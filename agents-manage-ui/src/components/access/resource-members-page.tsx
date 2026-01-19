@@ -4,7 +4,13 @@ import { Loader2, Search, X } from 'lucide-react';
 import { type FC, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AccessRoleDropdown } from './access-role-dropdown';
 import { PrincipalAvatar } from './principal-avatar';
@@ -48,7 +54,12 @@ export interface ResourceMembersPageProps {
   /** Callback when adding a principal */
   onAdd: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
   /** Callback when changing a principal's role */
-  onRoleChange: (principalId: string, principalType: PrincipalType, oldRole: string, newRole: string) => void;
+  onRoleChange: (
+    principalId: string,
+    principalType: PrincipalType,
+    oldRole: string,
+    newRole: string
+  ) => void;
   /** Callback when removing a principal */
   onRemove: (principalId: string, principalType: PrincipalType, role: string) => void;
   /** Loading state */
@@ -81,7 +92,10 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filter out already-added principals and already-selected members
-  const existingIds = new Set([...principals.map((p) => p.id), ...selectedMembers.map((m) => m.id)]);
+  const existingIds = new Set([
+    ...principals.map((p) => p.id),
+    ...selectedMembers.map((m) => m.id),
+  ]);
   const filteredMembers = availableMembers.filter(
     (m) =>
       !existingIds.has(m.id) &&
@@ -133,7 +147,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                   <Tooltip key={member.id}>
                     <TooltipTrigger asChild>
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
-                        <span className="max-w-[100px] truncate">{member.displayName.split(' ')[0]}</span>
+                        <span className="max-w-[100px] truncate">
+                          {member.displayName.split(' ')[0]}
+                        </span>
                         <button
                           type="button"
                           onClick={() => removeMember(member.id)}
@@ -145,7 +161,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="font-medium">{member.displayName}</p>
-                      {member.subtitle && <p className="text-xs text-muted-foreground">{member.subtitle}</p>}
+                      {member.subtitle && (
+                        <p className="text-xs text-muted-foreground">{member.subtitle}</p>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 ))}
@@ -192,7 +210,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{member.displayName}</p>
                               {member.subtitle && (
-                                <p className="text-xs text-muted-foreground truncate">{member.subtitle}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {member.subtitle}
+                                </p>
                               )}
                             </div>
                           </button>
@@ -215,7 +235,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                         <div className="flex flex-col items-start">
                           <span>{role.label}</span>
                           {role.description && (
-                            <span className="text-xs text-muted-foreground">{role.description}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {role.description}
+                            </span>
                           )}
                         </div>
                       </SelectItem>
@@ -224,7 +246,11 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                 </Select>
               )}
             </div>
-            <Button onClick={handleAdd} disabled={isAdding || selectedMembers.length === 0} className="h-10">
+            <Button
+              onClick={handleAdd}
+              disabled={isAdding || selectedMembers.length === 0}
+              className="h-10"
+            >
               {isAdding ? <Loader2 className="size-4 animate-spin" /> : 'Add'}
             </Button>
           </div>
@@ -288,7 +314,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                     <AccessRoleDropdown
                       currentRole={principal.role}
                       roles={roles}
-                      onRoleChange={(newRole) => onRoleChange(principal.id, principal.type, principal.role, newRole)}
+                      onRoleChange={(newRole) =>
+                        onRoleChange(principal.id, principal.type, principal.role, newRole)
+                      }
                       onRemove={() => onRemove(principal.id, principal.type, principal.role)}
                       showRemove
                     />
@@ -302,7 +330,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
             ))}
 
             {principals.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">{membersConfig.emptyMessage}</p>
+              <p className="text-sm text-muted-foreground text-center py-6">
+                {membersConfig.emptyMessage}
+              </p>
             )}
           </div>
         </CardContent>

@@ -17,12 +17,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 });
 
 // Import mocked functions
-import {
-  canEditProject,
-  canUseProject,
-  canViewProject,
-  isAuthzEnabled,
-} from '@inkeep/agents-core';
+import { canEditProject, canUseProject, canViewProject, isAuthzEnabled } from '@inkeep/agents-core';
 
 describe('requireProjectPermission middleware', () => {
   let app: Hono<{ Variables: BaseAppVariables }>;

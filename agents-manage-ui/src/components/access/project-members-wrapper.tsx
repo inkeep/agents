@@ -36,9 +36,21 @@ export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
   } = useProjectAccess({ tenantId, projectId });
 
   const roles = [
-    { value: 'project_admin', label: 'Project Admin', description: 'Full access to project settings and members' },
-    { value: 'project_member', label: 'Project Member', description: 'Can invoke agents and create API keys' },
-    { value: 'project_viewer', label: 'Project Viewer', description: 'Read-only access to project resources' },
+    {
+      value: 'project_admin',
+      label: 'Project Admin',
+      description: 'Full access to project settings and members',
+    },
+    {
+      value: 'project_member',
+      label: 'Project Member',
+      description: 'Can invoke agents and create API keys',
+    },
+    {
+      value: 'project_viewer',
+      label: 'Project Viewer',
+      description: 'Read-only access to project resources',
+    },
   ];
 
   const membersConfig = {

@@ -17,7 +17,6 @@ const logger = getLogger('playgroundToken');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-
 const PlaygroundTokenRequestSchema = z.object({
   projectId: z.string(),
   agentId: z.string(),

@@ -135,7 +135,8 @@ app.openapi(
     if (!isAuthzEnabled(tenantId)) {
       throw createApiError({
         code: 'bad_request',
-        message: 'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
+        message:
+          'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
       });
     }
 
@@ -198,7 +199,8 @@ app.openapi(
     if (!isAuthzEnabled(tenantId)) {
       throw createApiError({
         code: 'bad_request',
-        message: 'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
+        message:
+          'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
       });
     }
 
@@ -268,7 +270,8 @@ app.openapi(
     if (!isAuthzEnabled(tenantId)) {
       throw createApiError({
         code: 'bad_request',
-        message: 'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
+        message:
+          'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
       });
     }
 

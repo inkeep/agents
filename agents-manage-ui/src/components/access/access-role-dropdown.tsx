@@ -43,7 +43,12 @@ export const AccessRoleDropdown: FC<AccessRoleDropdownProps> = ({
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" disabled={disabled}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-muted-foreground"
+            disabled={disabled}
+          >
             {currentRoleLabel}
             <ChevronDown className="size-3" />
           </Button>
@@ -88,4 +93,3 @@ export const AccessRoleDropdown: FC<AccessRoleDropdownProps> = ({
     </Select>
   );
 };
-

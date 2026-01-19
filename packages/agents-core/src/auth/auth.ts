@@ -335,9 +335,7 @@ export function createAuth(config: BetterAuthConfig) {
                 role: member.role as 'owner' | 'admin' | 'member',
                 action: 'remove',
               });
-              console.log(
-                `🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`
-              );
+              console.log(`🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`);
             } catch (error) {
               console.error('❌ SpiceDB sync failed for member removal:', error);
             }

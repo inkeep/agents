@@ -1,8 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useAuthClient } from '@/lib/auth-client';
-import type { AccessPrincipal, InheritedAccessConfig, PrincipalType, ProjectMemberFromApi } from '../types';
+import { useAuthClient } from '@/contexts/auth-client';
+import type {
+  AccessPrincipal,
+  InheritedAccessConfig,
+  PrincipalType,
+  ProjectMemberFromApi,
+} from '../types';
 
 interface UseProjectAccessParams {
   tenantId: string;
@@ -24,8 +29,17 @@ interface UseProjectAccessResult {
 
   // Mutations
   addPrincipal: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  removePrincipal: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  changeRole: (principalId: string, principalType: PrincipalType, oldRole: string, newRole: string) => Promise<void>;
+  removePrincipal: (
+    principalId: string,
+    principalType: PrincipalType,
+    role: string
+  ) => Promise<void>;
+  changeRole: (
+    principalId: string,
+    principalType: PrincipalType,
+    oldRole: string,
+    newRole: string
+  ) => Promise<void>;
 
   // Refetch
   refetch: () => Promise<void>;
@@ -178,7 +192,11 @@ export function useProjectAccess({
     }
   };
 
-  const removePrincipal = async (principalId: string, principalType: PrincipalType, role: string) => {
+  const removePrincipal = async (
+    principalId: string,
+    principalType: PrincipalType,
+    role: string
+  ) => {
     if (principalType !== 'user') {
       throw new Error(`Removing ${principalType} from projects is not yet supported`);
     }

@@ -72,7 +72,13 @@ export interface AccessPrincipal {
 // Resource Types (WHAT is being protected)
 // ============================================================================
 
-export type ResourceType = 'project' | 'agent' | 'mcp_server' | 'workflow' | 'policy' | 'data_component';
+export type ResourceType =
+  | 'project'
+  | 'agent'
+  | 'mcp_server'
+  | 'workflow'
+  | 'policy'
+  | 'data_component';
 
 // ============================================================================
 // Role Configuration

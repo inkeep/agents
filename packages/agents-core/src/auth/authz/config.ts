@@ -6,10 +6,10 @@
 
 /**
  * Check if authorization is enabled.
- * 
+ *
  * When called without tenantId:
  * - Returns true if ENABLE_AUTHZ=true
- * 
+ *
  * When called with tenantId:
  * - If ENABLE_AUTHZ=false → returns false
  * - If ENABLE_AUTHZ=true and TENANT_ID is not set → returns true (all tenants)
@@ -19,14 +19,14 @@ export function isAuthzEnabled(tenantId: string): boolean {
   if (process.env.ENABLE_AUTHZ !== 'true') {
     return false;
   }
-  
+
   const configuredTenantId = process.env.TENANT_ID?.trim();
-  
+
   // If no specific tenant configured, authz applies to all
   if (!configuredTenantId) {
     return true;
   }
-  
+
   // Only enable for the configured tenant
   return tenantId === configuredTenantId;
 }
@@ -53,7 +53,7 @@ export const SpiceDbResourceTypes = {
 
 /**
  * SpiceDB relations used in the schema
- * 
+ *
  * Relations are named as nouns (roles) per SpiceDB best practices.
  * Project roles are prefixed for clarity when debugging/grepping.
  */
@@ -64,26 +64,26 @@ export const SpiceDbRelations = {
   MEMBER: 'member',
   // Project relations (roles) - prefixed for clarity
   ORGANIZATION: 'organization',
-  PROJECT_ADMIN: 'project_admin',   // Full access: view + use + edit + manage members
+  PROJECT_ADMIN: 'project_admin', // Full access: view + use + edit + manage members
   PROJECT_MEMBER: 'project_member', // Operator: view + use (invoke agents, create API keys)
   PROJECT_VIEWER: 'project_viewer', // Read-only: view only
 } as const;
 
 /**
  * SpiceDB permissions used in the schema
- * 
+ *
  * Permissions are named as verbs (actions) per SpiceDB best practices.
  */
 /**
  * SpiceDB permissions used in permission checks.
- * 
+ *
  * Note: Organization-level permissions (manage) are handled via
  * orgRole bypass in permission functions, not direct SpiceDB checks.
  */
 export const SpiceDbPermissions = {
   VIEW: 'view',
-  USE: 'use',    // Can invoke agents, create API keys
-  EDIT: 'edit',  // Can modify configurations and manage members
+  USE: 'use', // Can invoke agents, create API keys
+  EDIT: 'edit', // Can modify configurations and manage members
   DELETE: 'delete',
 } as const;
 
