@@ -4,12 +4,12 @@ import type {
   ArtifactComponentApiSelect,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
-import dataComponentTemplate from '../../../../../../templates/v1/phase2/data-component.xml?raw';
-import dataComponentsTemplate from '../../../../../../templates/v1/phase2/data-components.xml?raw';
-import systemPromptTemplate from '../../../../../../templates/v1/phase2/system-prompt.xml?raw';
+import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
+import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
+import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.xml?raw';
 // Import template content as raw text
-import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
+import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 
 /**
@@ -396,6 +396,19 @@ ${artifactRetrievalGuidance}
     return artifactXml;
   }
 
+  private generateCurrentTimeSection(clientCurrentTime?: string): string {
+    if (!clientCurrentTime || clientCurrentTime.trim() === '') {
+      return '';
+    }
+
+    return `
+  <current_time>
+    The current time for the user is: ${clientCurrentTime}
+    Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
+    IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
+  </current_time>`;
+  }
+
   /**
    * Assemble the complete Phase 2 system prompt for structured output generation
    */
@@ -406,6 +419,7 @@ ${artifactRetrievalGuidance}
     hasArtifactComponents: boolean;
     hasAgentArtifactComponents?: boolean;
     artifacts?: Artifact[];
+    clientCurrentTime?: string;
   }): string {
     const {
       corePrompt,
@@ -414,6 +428,7 @@ ${artifactRetrievalGuidance}
       hasArtifactComponents,
       hasAgentArtifactComponents,
       artifacts = [],
+      clientCurrentTime,
     } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
@@ -443,7 +458,7 @@ ${artifactRetrievalGuidance}
     let phase2Prompt = systemPromptTemplate;
 
     // Handle core instructions - omit entire section if empty
-    if (corePrompt && corePrompt.trim()) {
+    if (corePrompt?.trim()) {
       phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);
     } else {
       // Remove the entire core_instructions section if empty
@@ -452,6 +467,10 @@ ${artifactRetrievalGuidance}
         ''
       );
     }
+    // Handle current time section - include user's current time in their timezone if available
+    const currentTimeSection = this.generateCurrentTimeSection(clientCurrentTime);
+    phase2Prompt = phase2Prompt.replace('{{CURRENT_TIME_SECTION}}', currentTimeSection);
+
     phase2Prompt = phase2Prompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACT_GUIDANCE_SECTION}}', artifactGuidance);

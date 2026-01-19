@@ -217,7 +217,7 @@ app.openapi(
             const messages = await getMessagesByConversation(runDbClient)({
               scopes: { tenantId, projectId },
               conversationId,
-              pagination: { page: 1, limit: 10 },
+              pagination: { page: 1, limit: 100 },
             });
 
             const messagesChronological = [...messages].reverse();

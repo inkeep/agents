@@ -105,6 +105,13 @@ async function handleMessageSend(
       forwardedHeaders['x-forwarded-cookie'] = cookie;
     }
 
+    // Merge forwardedHeaders from message metadata (contains browser timestamp from ExecutionHandler)
+    // with local forwardedHeaders (contains cookies from HTTP headers)
+    const mergedForwardedHeaders = {
+      ...(params.message.metadata?.forwardedHeaders || {}),
+      ...forwardedHeaders,
+    };
+
     const task: A2ATask = {
       id: generateId(),
       input: {
@@ -120,8 +127,9 @@ async function handleMessageSend(
           blocking: params.configuration?.blocking ?? false,
           custom: { agent_id: agentId || '' },
           ...params.message.metadata,
-          // Pass forwarded headers to taskHandler for MCP server authentication
-          forwardedHeaders: Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+          // Pass merged forwarded headers to taskHandler (includes both browser timestamp and cookies)
+          forwardedHeaders:
+            Object.keys(mergedForwardedHeaders).length > 0 ? mergedForwardedHeaders : undefined,
         },
       },
     };

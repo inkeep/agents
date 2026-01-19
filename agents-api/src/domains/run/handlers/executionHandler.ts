@@ -270,6 +270,8 @@ export class ExecutionHandler {
 
         const messageMetadata: any = {
           stream_request_id: requestId, // This also serves as the AgentSession ID
+          // Pass forwardedHeaders so the task handler can extract them
+          forwardedHeaders: forwardedHeaders,
         };
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;

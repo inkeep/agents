@@ -253,6 +253,7 @@ app.openapi(
         projectId,
         id: validatedBody.id || generateId(),
         name: validatedBody.name,
+        description: validatedBody.description, 
         defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
       });
