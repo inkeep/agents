@@ -96,9 +96,8 @@ export function SuiteConfigViewDialog({
       setSuiteConfig(null);
       setEvaluators([]);
       setAgents([]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {

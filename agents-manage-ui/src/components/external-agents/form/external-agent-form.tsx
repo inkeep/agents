@@ -53,15 +53,14 @@ export function ExternalAgentForm({
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
+    // Transform form data to API format
+    const transformedData = {
+      ...data,
+      description: data.description || '',
+      credentialReferenceId:
+        data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
+    };
     try {
-      // Transform form data to API format
-      const transformedData = {
-        ...data,
-        description: data.description || '',
-        credentialReferenceId:
-          data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
-      };
-
       if (mode === 'update' && externalAgent) {
         await updateExternalAgent(tenantId, projectId, externalAgent.id, transformedData);
         toast.success('External agent updated successfully');

@@ -41,7 +41,9 @@ export function DeleteEvaluationRunConfigConfirmation({
       if (result.success) {
         toast.success('Continuous test deleted');
         onOpenChange(false);
-        onSuccess?.();
+        if (onSuccess) {
+          onSuccess();
+        }
       } else {
         toast.error(result.error || 'Failed to delete continuous test');
       }
