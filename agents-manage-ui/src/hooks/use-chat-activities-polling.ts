@@ -34,9 +34,9 @@ export const useChatActivitiesPolling = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchChatActivities = async (): Promise<ConversationDetail | null> => {
-    try {
-      setError(null);
-
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       abortControllerRef.current = new AbortController();
       const currentConversationId = conversationId; // Capture current ID
 
@@ -77,8 +77,12 @@ export const useChatActivitiesPolling = ({
           lastActivityCount.current = newCount;
         }
       }
-
       return data;
+    }
+
+    setError(null);
+    try {
+      return await doRequest();
     } catch (err) {
       // Don't log abort errors as they are expected when cancelling requests
       if (err instanceof Error && err.name === 'AbortError') {
