@@ -17,7 +17,7 @@ import {
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import { requirePermission } from '../../../middleware/requirePermission';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('agentFull');
@@ -26,17 +26,17 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ agent: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:agentId', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ agent: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ agent: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });

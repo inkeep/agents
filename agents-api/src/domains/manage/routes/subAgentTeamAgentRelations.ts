@@ -1,11 +1,11 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  generateId,
   commonGetErrorResponses,
   createApiError,
   createSubAgentTeamAgentRelation,
   deleteSubAgentTeamAgentRelation,
   ErrorResponseSchema,
+  generateId,
   getSubAgentTeamAgentRelationById,
   listSubAgentTeamAgentRelations,
   type Pagination,
@@ -19,7 +19,7 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   updateSubAgentTeamAgentRelation,
 } from '@inkeep/agents-core';
-import { requirePermission } from 'src/middleware/requirePermission';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
@@ -27,17 +27,17 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ sub_agent: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ sub_agent: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ sub_agent: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });

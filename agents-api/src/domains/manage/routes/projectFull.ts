@@ -24,16 +24,18 @@ import {
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
+import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
-import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('projectFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
+// Creating a project is an org-level action
 app.use('/project-full', async (c, next) => {
   if (c.req.method === 'POST') {
     return requirePermission({ project: ['create'] })(c, next);
@@ -41,12 +43,13 @@ app.use('/project-full', async (c, next) => {
   return next();
 });
 
+// Updating/deleting a project requires project-level 'edit' permission
 app.use('/project-full/:projectId', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ project: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ project: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });

@@ -19,26 +19,27 @@ import {
   updateApiKey,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
-import { requirePermission } from '../../../middleware/requirePermission';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Apply permission middleware by HTTP method
+// API key creation requires 'use' permission (can invoke agents)
+// API key update/delete requires 'edit' permission
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ api_key: ['create'] })(c, next);
+    return requireProjectPermission('use')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PATCH') {
-    return requirePermission({ api_key: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ api_key: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });

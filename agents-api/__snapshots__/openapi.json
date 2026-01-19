@@ -5147,6 +5147,9 @@
                     },
                     "type": "array"
                   },
+                  "prompt": {
+                    "type": "string"
+                  },
                   "server": {
                     "properties": {
                       "url": {
@@ -5157,6 +5160,36 @@
                     "required": [
                       "url"
                     ],
+                    "type": "object"
+                  },
+                  "toolOverrides": {
+                    "additionalProperties": {
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "nullable": true
+                        },
+                        "transformation": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
                     "type": "object"
                   },
                   "transport": {
@@ -7398,6 +7431,9 @@
                     },
                     "type": "array"
                   },
+                  "prompt": {
+                    "type": "string"
+                  },
                   "server": {
                     "properties": {
                       "url": {
@@ -7408,6 +7444,36 @@
                     "required": [
                       "url"
                     ],
+                    "type": "object"
+                  },
+                  "toolOverrides": {
+                    "additionalProperties": {
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "nullable": true
+                        },
+                        "transformation": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
                     "type": "object"
                   },
                   "transport": {
@@ -7583,6 +7649,9 @@
                     },
                     "type": "array"
                   },
+                  "prompt": {
+                    "type": "string"
+                  },
                   "server": {
                     "properties": {
                       "url": {
@@ -7593,6 +7662,36 @@
                     "required": [
                       "url"
                     ],
+                    "type": "object"
+                  },
+                  "toolOverrides": {
+                    "additionalProperties": {
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "nullable": true
+                        },
+                        "transformation": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
                     "type": "object"
                   },
                   "transport": {
@@ -9439,7 +9538,7 @@
     },
     "/manage/tenants/{tenantId}/projects": {
       "get": {
-        "description": "List all projects within a tenant with pagination",
+        "description": "List all projects within a tenant with pagination. When authorization is enabled, only returns projects the user has access to.",
         "operationId": "list-projects",
         "parameters": [
           {
@@ -9564,7 +9663,7 @@
         }
       },
       "post": {
-        "description": "Create a new project",
+        "description": "Create a new project. When authorization is enabled, the creator is automatically granted admin role.",
         "operationId": "create-project",
         "parameters": [
           {
@@ -26892,6 +26991,691 @@
         "summary": "List MCP Server Catalog",
         "tags": [
           "MCP Catalog"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/members": {
+      "get": {
+        "description": "List all users with explicit project access. Requires authz to be enabled.",
+        "operationId": "list-project-members",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "role": {
+                            "enum": [
+                              "project_admin",
+                              "project_member",
+                              "project_viewer"
+                            ],
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "userId",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of project members"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Project Members",
+        "tags": [
+          "Project Members"
+        ]
+      },
+      "post": {
+        "description": "Add a user to a project with a specified role. Requires authz to be enabled.",
+        "operationId": "add-project-member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "role": {
+                    "enum": [
+                      "project_admin",
+                      "project_member",
+                      "project_viewer"
+                    ],
+                    "type": "string"
+                  },
+                  "userId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "role"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "enum": [
+                            "project_admin",
+                            "project_member",
+                            "project_viewer"
+                          ],
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "role",
+                        "projectId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Member added successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add Project Member",
+        "tags": [
+          "Project Members"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/members/{userId}": {
+      "delete": {
+        "description": "Remove a user from a project. Requires authz to be enabled. Pass role as query param to specify which role to revoke.",
+        "operationId": "remove-project-member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "project_admin",
+                "project_member",
+                "project_viewer"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member removed successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove Project Member",
+        "tags": [
+          "Project Members"
+        ]
+      },
+      "patch": {
+        "description": "Update a project member's role. Requires authz to be enabled. Include previousRole to specify which role to revoke.",
+        "operationId": "update-project-member",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "previousRole": {
+                    "enum": [
+                      "project_admin",
+                      "project_member",
+                      "project_viewer"
+                    ],
+                    "type": "string"
+                  },
+                  "role": {
+                    "enum": [
+                      "project_admin",
+                      "project_member",
+                      "project_viewer"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "role"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "enum": [
+                            "project_admin",
+                            "project_member",
+                            "project_viewer"
+                          ],
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "role",
+                        "projectId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Member role updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Project Member Role",
+        "tags": [
+          "Project Members"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/permissions": {
+      "get": {
+        "description": "Get the current user's permissions for a project. Returns which actions the user can perform.",
+        "operationId": "get-project-permissions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "canEdit": {
+                          "type": "boolean"
+                        },
+                        "canUse": {
+                          "type": "boolean"
+                        },
+                        "canView": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "canView",
+                        "canUse",
+                        "canEdit"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Project permissions for the current user"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Project Permissions",
+        "tags": [
+          "Project Permissions"
         ]
       }
     },

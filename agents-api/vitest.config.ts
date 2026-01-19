@@ -1,6 +1,7 @@
 import { defineProject } from 'vitest/config';
 
 export default defineProject({
+  assetsInclude: ['**/*.xml', '**/*.md'],
   test: {
     name: 'agents-api',
     setupFiles: ['./src/__tests__/setup.ts'],
@@ -8,7 +9,12 @@ export default defineProject({
     environment: 'node',
     testTimeout: 60000, // 60 seconds for database operations
     hookTimeout: 60000, // 60 seconds for setup/teardown hooks
-    exclude: ['node_modules', 'dist', 'src/__tests__/manage/integration/**/*.test.ts', 'src/domains/run/services/__tests__/ArtifactService.test.ts'],
+    exclude: [
+      'node_modules',
+      'dist',
+      'src/__tests__/manage/integration/**/*.test.ts',
+      'src/domains/run/services/__tests__/ArtifactService.test.ts',
+    ],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     isolate: true, // Ensure test isolation to prevent state leakage

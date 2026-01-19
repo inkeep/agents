@@ -1,23 +1,21 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  canUseProject,
   createApiError,
   ErrorResponseSchema,
   getAgentById,
+  type OrgRole,
   projectExists,
   signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import { requirePermission } from '../../../middleware/requirePermission';
 import type { ManageAppVariables } from '../../../types/app';
 
 const logger = getLogger('playgroundToken');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
-
-// Require agent:create permission
-app.use('/', requirePermission({ agent: ['create'] }));
 
 const PlaygroundTokenRequestSchema = z.object({
   projectId: z.string(),
@@ -72,6 +70,7 @@ app.openapi(
     const db = c.get('db');
     const userId = c.get('userId');
     const tenantId = c.get('tenantId'); // Set by requireTenantAccess middleware from URL param
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
     const { projectId, agentId } = c.req.valid('json');
 
     if (!userId || !tenantId || !projectId || !agentId) {
@@ -85,6 +84,23 @@ app.openapi(
       { userId, tenantId, projectId, agentId },
       'Generating temporary JWT token for playground'
     );
+
+    // Check SpiceDB 'use' permission for this project
+    // This allows project_admin and project_member roles, but not project_viewer
+    const canUse = await canUseProject({
+      tenantId,
+      userId,
+      projectId,
+      orgRole: tenantRole,
+    });
+
+    if (!canUse) {
+      logger.warn({ userId, tenantId, projectId }, 'User does not have use permission on project');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
+      });
+    }
 
     // Verify project exists and belongs to the tenant
     const projectExistsCheck = await projectExists(db)({ tenantId, projectId });

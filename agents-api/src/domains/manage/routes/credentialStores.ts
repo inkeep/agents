@@ -8,9 +8,17 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import type { PublicAppVariables } from '../../../types/app';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
+import type { ManageAppVariables } from '../../../types/app';
 
-const app = new OpenAPIHono<{ Variables: PublicAppVariables }>();
+const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+app.use('/:id/credentials', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

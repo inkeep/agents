@@ -1,6 +1,6 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { projects, subAgents, subAgentToolRelations } from '../../db/manage/manage-schema';
+import { projects, subAgents, subAgentToolRelations, subAgentFunctionToolRelations } from '../../db/manage/manage-schema';
 import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
@@ -25,7 +25,7 @@ import {
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { upsertFunction } from './functions';
-import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
+import { deleteFunctionTool, listFunctionTools, upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
 import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
@@ -973,6 +973,39 @@ export const updateFullAgentServerSide =
         );
       }
 
+      // Delete orphaned function tools
+      const incomingFunctionToolIds = new Set(
+        typedAgentDefinition.functionTools ? Object.keys(typedAgentDefinition.functionTools) : []
+      );
+
+      const existingFunctionTools = await listFunctionTools(db)({
+        scopes: { tenantId, projectId, agentId: finalAgentId },
+        pagination: { page: 1, limit: 1000 },
+      });
+
+      let deletedFunctionToolCount = 0;
+      for (const functionTool of existingFunctionTools.data) {
+        if (!incomingFunctionToolIds.has(functionTool.id)) {
+          try {
+            await deleteFunctionTool(db)({
+              scopes: { tenantId, projectId, agentId: finalAgentId },
+              functionToolId: functionTool.id,
+            });
+            deletedFunctionToolCount++;
+            logger.info({ functionToolId: functionTool.id }, 'Deleted orphaned function tool');
+          } catch (error) {
+            logger.error(
+              { functionToolId: functionTool.id, error },
+              'Failed to delete orphaned function tool'
+            );
+          }
+        }
+      }
+
+      if (deletedFunctionToolCount > 0) {
+        logger.info({ deletedFunctionToolCount }, 'Deleted orphaned function tools from agent');
+      }
+
       const subAgentPromises = Object.entries(typedAgentDefinition.subAgents).map(
         async ([subAgentId, agentData]) => {
           const subAgent = agentData;
@@ -1250,6 +1283,77 @@ export const updateFullAgentServerSide =
           }
         } catch (error) {
           logger.error({ subAgentId, error }, 'Failed to delete orphaned agent-tool relations');
+        }
+      }
+
+      // Delete orphaned function tool relations
+      // Collect incoming function tool relation IDs
+      const incomingFunctionToolRelationIds = new Set<string>();
+      for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
+          for (const canUseItem of agentData.canUse) {
+            const isFunctionTool =
+              typedAgentDefinition.functionTools &&
+              canUseItem.toolId in typedAgentDefinition.functionTools;
+            if (isFunctionTool && canUseItem.agentToolRelationId) {
+              incomingFunctionToolRelationIds.add(canUseItem.agentToolRelationId);
+            }
+          }
+        }
+      }
+
+      // Delete orphaned function tool relations for each sub-agent
+      for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
+        try {
+          let deletedFunctionToolRelationCount = 0;
+
+          if (incomingFunctionToolRelationIds.size === 0) {
+            // No incoming function tool relations - delete all existing ones
+            const result = await db
+              .delete(subAgentFunctionToolRelations)
+              .where(
+                and(
+                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
+                  eq(subAgentFunctionToolRelations.projectId, projectId),
+                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
+                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId)
+                )
+              )
+              .returning();
+            deletedFunctionToolRelationCount = result.length;
+          } else {
+            // Delete relations not in the incoming set
+            const result = await db
+              .delete(subAgentFunctionToolRelations)
+              .where(
+                and(
+                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
+                  eq(subAgentFunctionToolRelations.projectId, projectId),
+                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
+                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
+                  not(
+                    inArray(
+                      subAgentFunctionToolRelations.id,
+                      Array.from(incomingFunctionToolRelationIds)
+                    )
+                  )
+                )
+              )
+              .returning();
+            deletedFunctionToolRelationCount = result.length;
+          }
+
+          if (deletedFunctionToolRelationCount > 0) {
+            logger.info(
+              { subAgentId, deletedCount: deletedFunctionToolRelationCount },
+              'Deleted orphaned sub-agent-function tool relations'
+            );
+          }
+        } catch (error) {
+          logger.error(
+            { subAgentId, error },
+            'Failed to delete orphaned sub-agent-function tool relations'
+          );
         }
       }
 

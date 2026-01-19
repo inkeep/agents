@@ -2,6 +2,7 @@ import { defineProject } from 'vitest/config';
 
 export default defineProject({
   test: {
+    assetsInclude: ['**/*.xml', '**/*.md'],
     name: 'agents-api-integration',
     // No setup file - integration tests don't use PGlite migrations
     globals: true,

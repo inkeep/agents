@@ -18,26 +18,26 @@ import {
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
-import { requirePermission } from '../../../middleware/requirePermission';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Apply permission middleware by HTTP method
+// Write operations require 'edit' permission on the project
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ artifact_component: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requirePermission({ artifact_component: ['update'] })(c, next);
+  if (c.req.method === 'PATCH' || c.req.method === 'PUT') {
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ artifact_component: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });

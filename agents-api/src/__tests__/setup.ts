@@ -1,15 +1,19 @@
 import { getLogger } from '@inkeep/agents-core';
-import { migrate } from 'drizzle-orm/pglite/migrator';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
-import manageDbClient from '../data/db/manageDbClient';
-import runDbClient from '../data/db/runDbClient';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 /*instrumentation.ts*/
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { migrate } from 'drizzle-orm/pglite/migrator';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import manageDbClient from '../data/db/manageDbClient';
+import runDbClient from '../data/db/runDbClient';
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+
+// Disable SpiceDB authorization for tests (unless explicitly testing authz)
+// This ensures tests run without requiring a SpiceDB instance
+process.env.ENABLE_AUTHZ = 'false';
 
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
 vi.mock('../logger.js', () => {
@@ -114,8 +118,12 @@ beforeAll(async () => {
       ? '../packages/agents-core/drizzle/runtime'
       : './packages/agents-core/drizzle/runtime';
 
-    await migrate(manageDbClient as unknown as Parameters<typeof migrate>[0], { migrationsFolder: manageMigrationsPath });
-    await migrate(runDbClient as unknown as Parameters<typeof migrate>[0], { migrationsFolder: runMigrationsPath });
+    await migrate(manageDbClient as unknown as Parameters<typeof migrate>[0], {
+      migrationsFolder: manageMigrationsPath,
+    });
+    await migrate(runDbClient as unknown as Parameters<typeof migrate>[0], {
+      migrationsFolder: runMigrationsPath,
+    });
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');
