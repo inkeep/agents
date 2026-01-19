@@ -139,20 +139,22 @@ export function DatasetRunConfigForm({
     console.log('Form values:', form.getValues());
     console.log('Form watch evaluatorIds:', evaluatorIds);
 
-    try {
-      // Ensure evaluatorIds is always included, even if empty
-      const payload = {
-        name: data.name,
-        description: data.description,
-        agentIds: data.agentIds || [],
-        evaluatorIds: data.evaluatorIds || [],
-        ...(runConfigId ? {} : { datasetId }),
-      };
+    // Ensure evaluatorIds is always included, even if empty
+    const payload = {
+      name: data.name,
+      description: data.description,
+      agentIds: data.agentIds || [],
+      evaluatorIds: data.evaluatorIds || [],
+      ...(runConfigId ? {} : { datasetId }),
+    };
 
-      console.log('Payload being sent:', payload);
-      console.log('evaluatorIds in payload:', payload.evaluatorIds);
-      console.log('Payload JSON:', JSON.stringify(payload));
+    console.log('Payload being sent:', payload);
+    console.log('evaluatorIds in payload:', payload.evaluatorIds);
+    console.log('Payload JSON:', JSON.stringify(payload));
 
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
         : await createDatasetRunConfigAction(
@@ -169,6 +171,10 @@ export function DatasetRunConfigForm({
       } else {
         toast.error(result.error || 'An error occurred');
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
