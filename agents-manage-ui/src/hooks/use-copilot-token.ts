@@ -99,7 +99,10 @@ export function useCopilotToken(): UseCopilotTokenResult {
   // Initial fetch
   useEffect(() => {
     fetchToken();
-  }, [fetchToken]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -118,7 +121,11 @@ export function useCopilotToken(): UseCopilotTokenResult {
     }, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [expiresAt, fetchToken]);
+  }, [
+    expiresAt,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   return { apiKey, cookieHeader, isLoading, error, retryCount, refresh: fetchToken };
 }

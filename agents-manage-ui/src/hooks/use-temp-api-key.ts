@@ -69,7 +69,12 @@ export function useTempApiKey({
       // If not enabled or no agentId, set loading to false immediately
       setIsLoading(false);
     }
-  }, [enabled, agentId, fetchToken]);
+  }, [
+    enabled,
+    agentId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -88,7 +93,11 @@ export function useTempApiKey({
     }, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [expiresAt, fetchToken]);
+  }, [
+    expiresAt,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   return { apiKey, isLoading, error, refresh: fetchToken };
 }

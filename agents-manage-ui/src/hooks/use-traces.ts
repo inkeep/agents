@@ -209,7 +209,10 @@ export function useAggregateStats(options: {
 
   useEffect(() => {
     fetchAggregateStats();
-  }, [fetchAggregateStats]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchAggregateStats,
+  ]);
 
   return {
     aggregateStats,
