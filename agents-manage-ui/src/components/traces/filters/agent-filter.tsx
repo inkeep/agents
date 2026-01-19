@@ -20,20 +20,27 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
   const [agentOptions, setAgentOptions] = useState<OptionType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const response = await getAllAgentsAction(tenantId, projectId);
+      if (!cancelled && response.success) {
+        setAgentOptions(
+          response.data?.map((agent) => ({
+            value: agent.id,
+            label: agent.name,
+            searchBy: agent.name,
+          })) || []
+        );
+      }
+    }
+
     let cancelled = false;
+
     const fetchAgents = async () => {
       setLoading(true);
       try {
-        const response = await getAllAgentsAction(tenantId, projectId);
-        if (!cancelled && response.success) {
-          setAgentOptions(
-            response.data?.map((agent) => ({
-              value: agent.id,
-              label: agent.name,
-              searchBy: agent.name,
-            })) || []
-          );
-        }
+        await doRequest();
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to fetch agent:', error);
