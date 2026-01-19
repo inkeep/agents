@@ -56,24 +56,29 @@ export function EvaluationJobFormDialog({
     defaultValues: defaultFormData,
   });
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
       setEvaluators(evaluatorsRes.data || []);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
     }
-    setLoading(false);
-  };
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await doRequest();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data');
+      }
+      setLoading(false);
+    };
 
-  useEffect(() => {
     if (isOpen) {
       form.reset(defaultFormData);
       loadData();
     }
-  }, [isOpen, form, loadData]);
+  }, [isOpen, form, projectId, tenantId]);
 
   const { isSubmitting } = form.formState;
   const selectedEvaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
