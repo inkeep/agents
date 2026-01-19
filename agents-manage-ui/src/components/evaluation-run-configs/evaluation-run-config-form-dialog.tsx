@@ -122,6 +122,28 @@ export function EvaluationRunConfigFormDialog({
   useEffect(() => {
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doAnotherRequest(suiteConfigId: string) {
+      const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
+        fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
+        fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
+      ]);
+
+      const suiteConfig = suiteConfigRes.data;
+      const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
+
+      // Extract agentIds from filters
+      const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
+      const agentIds = filters?.agentIds || [];
+
+      suiteConfigForm.reset({
+        evaluatorIds,
+        agentIds,
+        sampleRate: suiteConfig?.sampleRate ?? undefined,
+      });
+    }
+
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest() {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
@@ -136,23 +158,7 @@ export function EvaluationRunConfigFormDialog({
       if (initialData?.suiteConfigIds && initialData.suiteConfigIds.length > 0) {
         const suiteConfigId = initialData.suiteConfigIds[0];
         try {
-          const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
-            fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
-            fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
-          ]);
-
-          const suiteConfig = suiteConfigRes.data;
-          const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
-
-          // Extract agentIds from filters
-          const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
-          const agentIds = filters?.agentIds || [];
-
-          suiteConfigForm.reset({
-            evaluatorIds,
-            agentIds,
-            sampleRate: suiteConfig?.sampleRate ?? undefined,
-          });
+          await doAnotherRequest(suiteConfigId);
         } catch (err) {
           console.error('Error loading suite config:', err);
         }
