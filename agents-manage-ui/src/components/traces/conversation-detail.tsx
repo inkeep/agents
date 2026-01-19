@@ -67,18 +67,24 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   };
 
   useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
+      const response = await fetch(
+        `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversation details');
+      }
+      const data = await response.json();
+      setConversation(data);
+    }
+
     const fetchConversationDetail = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
-        );
-        if (!response.ok) {
-          throw new Error('Failed to fetch conversation details');
-        }
-        const data = await response.json();
-        setConversation(data);
+        await doRequest();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       }
@@ -218,7 +224,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               > = {};
               ai.forEach((a: ActivityItem) => {
                 const model = a.aiModel || a.aiStreamTextModel || 'Unknown Model';
-                models[model] ||= { inputTokens: 0, outputTokens: 0, count: 0 };
+                if (!models[model]) {
+                  models[model] = { inputTokens: 0, outputTokens: 0, count: 0 };
+                }
                 models[model].inputTokens += a.inputTokens || 0;
                 models[model].outputTokens += a.outputTokens || 0;
                 models[model].count += 1;
