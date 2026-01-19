@@ -44,7 +44,9 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
   const router = useRouter();
 
   const onSubmit = form.handleSubmit(async ({ name }) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const payload: Partial<Dataset> = {
         name,
       };
@@ -65,6 +67,9 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
         toast.success('Test suite created');
         router.push(`/${tenantId}/projects/${projectId}/datasets/${res.data.id}`);
       }
+    }
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting dataset:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
