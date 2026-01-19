@@ -164,7 +164,10 @@ export const useChatActivitiesPolling = ({
       isComponentMountedRef.current = false;
       stopPolling();
     };
-  }, [stopPolling]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    stopPolling,
+  ]);
 
   // Reset chat activities and stop polling when conversationId changes
   const prevConversationIdRef = useRef(conversationId);

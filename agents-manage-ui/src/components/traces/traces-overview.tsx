@@ -9,7 +9,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
-import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 import { AreaChartCard } from './charts/area-chart-card';
 import { StatCard } from './charts/stat-card';
