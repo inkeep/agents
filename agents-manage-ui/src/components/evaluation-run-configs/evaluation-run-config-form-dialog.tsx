@@ -5,7 +5,7 @@ import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -116,6 +116,8 @@ export function EvaluationRunConfigFormDialog({
       sampleRate: undefined,
     },
   });
+  const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
+  const suiteEvaluatorIds = useWatch({ control: suiteConfigForm.control, name: 'evaluatorIds' });
 
   const loadData = async () => {
     try {
@@ -320,7 +322,7 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label="Agent Filter"
                       componentLookup={agentLookup}
-                      selectedComponents={suiteConfigForm.watch('agentIds') || []}
+                      selectedComponents={suiteAgentIds}
                       onSelectionChange={(newSelection) => {
                         suiteConfigForm.setValue('agentIds', newSelection);
                       }}
@@ -345,9 +347,7 @@ export function EvaluationRunConfigFormDialog({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FormLabel isRequired>Evaluators</FormLabel>
-                        <Badge variant="count">
-                          {(suiteConfigForm.watch('evaluatorIds') || []).length}
-                        </Badge>
+                        <Badge variant="count">{suiteEvaluatorIds.length}</Badge>
                       </div>
                       <Link
                         href={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
@@ -362,7 +362,7 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label=""
                       componentLookup={evaluatorLookup}
-                      selectedComponents={suiteConfigForm.watch('evaluatorIds') || []}
+                      selectedComponents={suiteEvaluatorIds}
                       onSelectionChange={(newSelection) => {
                         suiteConfigForm.setValue('evaluatorIds', newSelection);
                       }}
