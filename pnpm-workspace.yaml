@@ -1,7 +1,6 @@
 packages:
   - agents-api
   - agents-manage-ui
-  - agents-api
   - agents-cli
   - agents-ui
   - agents-docs
