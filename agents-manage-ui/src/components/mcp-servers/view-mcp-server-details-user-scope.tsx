@@ -67,19 +67,25 @@ export function ViewMCPServerDetailsUserScope({
 
   // Fetch third-party connect URL if needed (user-scoped)
   useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const response = await fetchThirdPartyMCPServer(
+        tenantId,
+        projectId,
+        tool.config.mcp.server.url,
+        'user'
+      );
+      if (response.data?.thirdPartyConnectAccountUrl) {
+        setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
+      }
+    }
+
     if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
       const fetchServerDetails = async () => {
         setIsLoadingThirdParty(true);
         try {
-          const response = await fetchThirdPartyMCPServer(
-            tenantId,
-            projectId,
-            tool.config.mcp.server.url,
-            'user'
-          );
-          if (response.data?.thirdPartyConnectAccountUrl) {
-            setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
-          }
+          await doRequest();
         } catch (error) {
           console.error('Failed to fetch third-party MCP server details:', error);
         }

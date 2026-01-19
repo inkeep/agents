@@ -84,9 +84,8 @@ export function MembersTable({
       toast.error('Failed to update role', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
-    } finally {
-      setUpdatingMemberId(null);
     }
+    setUpdatingMemberId(null);
   };
 
   const canEditMember = (member: Member): boolean => {

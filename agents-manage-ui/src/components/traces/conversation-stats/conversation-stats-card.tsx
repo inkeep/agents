@@ -56,7 +56,9 @@ export function ConversationStatsCard({
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       try {
-        onSearchChange?.(query);
+        if (onSearchChange) {
+          onSearchChange(query);
+        }
         setSearchError(null);
       } catch (error) {
         console.error('Search failed:', error);

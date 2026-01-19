@@ -111,12 +111,10 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
+      const modelId = selectedModel === 'all' ? undefined : selectedModel;
       try {
         const client = getSigNozStatsClient(tenantId);
-
-        const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
-        const modelId = selectedModel === 'all' ? undefined : selectedModel;
-
         // Fetch all data in parallel using SigNoz aggregations
         const [agentData, modelData, uniqueAgents, uniqueModels] = await Promise.all([
           client.getAICallsBySubAgent(
