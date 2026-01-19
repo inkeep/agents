@@ -150,7 +150,9 @@ export function ComponentRenderGenerator({
       });
       setRender(null);
       setIsSaved(false);
-      onRenderChanged?.(null);
+      if (onRenderChanged) {
+        onRenderChanged(null);
+      }
       toast.success('Render deleted');
     } catch (error) {
       console.error('Error deleting render:', error);
