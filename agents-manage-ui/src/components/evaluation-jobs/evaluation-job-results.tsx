@@ -58,7 +58,9 @@ export function EvaluationJobResults({
   }>({ total: 0, completed: 0, isRunning: false });
 
   const loadProgress = async () => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       // Fetch latest results
       const latestResults = await fetchEvaluationResultsByJobConfig(
         tenantId,
@@ -110,6 +112,9 @@ export function EvaluationJobResults({
         completed: completedCount,
         isRunning: completedCount < expectedTotal && expectedTotal > 0,
       });
+    }
+    try {
+      await doRequest();
     } catch (err) {
       console.error('Error loading evaluation progress:', err);
     }
