@@ -53,14 +53,17 @@ export function ExternalAgentForm({
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
-    // Transform form data to API format
-    const transformedData = {
-      ...data,
-      description: data.description || '',
-      credentialReferenceId:
-        data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
-    };
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      // Transform form data to API format
+      const transformedData = {
+        ...data,
+        description: data.description || '',
+        credentialReferenceId:
+          data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
+      };
+
       if (mode === 'update' && externalAgent) {
         await updateExternalAgent(tenantId, projectId, externalAgent.id, transformedData);
         toast.success('External agent updated successfully');
@@ -73,6 +76,10 @@ export function ExternalAgentForm({
         toast.success('External agent created successfully');
         router.push(`/${tenantId}/projects/${projectId}/external-agents/${newExternalAgent.id}`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error(`Failed to ${mode} external agent:`, error);
       toast.error(`Failed to ${mode} external agent. Please try again.`);
