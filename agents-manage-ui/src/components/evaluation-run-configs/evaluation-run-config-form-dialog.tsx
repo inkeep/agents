@@ -197,14 +197,9 @@ export function EvaluationRunConfigFormDialog({
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
-    const formValid = await form.trigger();
-    const suiteConfigFormValid = await suiteConfigForm.trigger();
-
-    if (!formValid || !suiteConfigFormValid) {
-      return;
-    }
-
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       // First, create the evaluation suite config
       const suiteConfigData = suiteConfigForm.getValues();
       const filters: Record<string, unknown> | null =
@@ -263,6 +258,17 @@ export function EvaluationRunConfigFormDialog({
           result.error || `Failed to ${runConfigId ? 'update' : 'create'} continuous test`
         );
       }
+    }
+
+    const formValid = await form.trigger();
+    const suiteConfigFormValid = await suiteConfigForm.trigger();
+
+    if (!formValid || !suiteConfigFormValid) {
+      return;
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
