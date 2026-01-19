@@ -54,24 +54,23 @@ export function EvaluationRunConfigResults({
   const [filters, setFilters] = useState<EvaluationResultFilters>({});
   const [results, setResults] = useState<EvaluationResult[]>(initialResults);
 
-  // Fetch results for polling
-  const refreshResults = async () => {
-    try {
-      const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
-      setResults(response.data);
-    } catch (error) {
-      console.error('Error refreshing results:', error);
-    }
-  };
-
   // Always poll for new results since continuous tests can receive new evaluations at any time
   useEffect(() => {
+    // Fetch results for polling
+    const refreshResults = async () => {
+      try {
+        const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
+        setResults(response.data);
+      } catch (error) {
+        console.error('Error refreshing results:', error);
+      }
+    };
     const interval = setInterval(() => {
       refreshResults();
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(interval);
-  }, [refreshResults]);
+  }, [tenantId, projectId, runConfig.id]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {

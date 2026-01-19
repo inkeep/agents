@@ -129,7 +129,10 @@ export function EvaluationJobResults({
   // Initial progress load
   useEffect(() => {
     loadProgress();
-  }, [loadProgress]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadProgress,
+  ]);
 
   // Auto-refresh when evaluations are in progress
   useEffect(() => {
@@ -140,7 +143,11 @@ export function EvaluationJobResults({
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [progress.isRunning, loadProgress]);
+  }, [
+    progress.isRunning,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadProgress,
+  ]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {

@@ -68,7 +68,11 @@ export function EvaluationRunConfigsList({
       console.log('Calling refreshRunConfigs');
       refreshRunConfigs();
     }
-  }, [refreshKey, refreshRunConfigs]);
+  }, [
+    refreshKey,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    refreshRunConfigs,
+  ]);
 
   const handleEdit = (runConfig: EvaluationRunConfig) => {
     setEditingRunConfig(runConfig);
