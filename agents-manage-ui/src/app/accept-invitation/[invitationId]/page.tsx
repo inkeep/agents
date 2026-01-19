@@ -57,7 +57,7 @@ export default function AcceptInvitationPage() {
     }
 
     fetchInvitation();
-  }, [invitationId, user, authClient.organization.getInvitation]);
+  }, [invitationId, user, authClient]);
 
   const handleAccept = async () => {
     if (!user) {

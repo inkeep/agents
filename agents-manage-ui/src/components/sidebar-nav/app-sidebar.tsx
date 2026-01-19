@@ -5,7 +5,6 @@ import {
   BarChart3,
   BookOpen,
   Component,
-  // Database,
   Globe,
   Key,
   Layers,
@@ -93,6 +92,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
+        // {
+        //   title: 'Members',
+        //   url: `/${tenantId}/projects/${projectId}/members`,
+        //   icon: Users,
+        // },
       ]
     : [];
 

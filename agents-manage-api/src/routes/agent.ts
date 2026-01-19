@@ -26,7 +26,7 @@ import {
   updateAgent,
 } from '@inkeep/agents-core';
 import runDbClient from '../data/db/runDbClient';
-import { requirePermission } from '../middleware/require-permission';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
@@ -34,17 +34,17 @@ const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
