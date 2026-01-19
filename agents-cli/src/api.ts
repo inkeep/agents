@@ -102,12 +102,12 @@ export class ManagementApiClient extends BaseApiClient {
     const config = await validateConfiguration(configPath);
 
     // Allow overrides from parameters
-    const resolvedApiUrl = apiUrl || config.agentsManageApiUrl;
+    const resolvedApiUrl = apiUrl || config.agentsApiUrl;
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
     // Use explicit API key override if provided (e.g., from profile credentials)
-    const apiKey = apiKeyOverride || config.agentsManageApiKey;
+    const apiKey = apiKeyOverride || config.agentsApiKey;
 
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, apiKey, isCI ?? false);
   }
@@ -299,7 +299,7 @@ export class ExecutionApiClient extends BaseApiClient {
     const config = await validateConfiguration(configPath);
 
     // Allow overrides from parameters
-    const resolvedApiUrl = apiUrl || config.agentsRunApiUrl;
+    const resolvedApiUrl = apiUrl || config.agentsApiUrl;
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
@@ -307,7 +307,7 @@ export class ExecutionApiClient extends BaseApiClient {
       resolvedApiUrl,
       tenantId,
       projectId,
-      config.agentsRunApiKey,
+      config.agentsApiKey,
       isCI ?? false
     );
   }
@@ -318,7 +318,7 @@ export class ExecutionApiClient extends BaseApiClient {
     conversationId?: string,
     emitOperations?: boolean
   ): Promise<ReadableStream<Uint8Array> | string> {
-    const response = await this.authenticatedFetch(`${this.apiUrl}/v1/chat/completions`, {
+    const response = await this.authenticatedFetch(`${this.apiUrl}/run/v1/chat/completions`, {
       method: 'POST',
       headers: {
         Accept: 'text/event-stream',

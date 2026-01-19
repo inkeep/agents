@@ -22,7 +22,7 @@ export async function listAgentsCommand(options: ListAgentsOptions): Promise<voi
   console.log();
 
   const api = await ManagementApiClient.create(
-    config.agentsManageApiUrl,
+    config.agentsApiUrl,
     configPath,
     config.tenantId,
     options.project // pass project ID as projectIdOverride

@@ -112,7 +112,7 @@ export async function pushCommand(options: PushOptions): Promise<void> {
     const originalApiUrl = process.env.INKEEP_API_URL;
 
     process.env.INKEEP_TENANT_ID = config.tenantId;
-    process.env.INKEEP_API_URL = config.agentsManageApiUrl;
+    process.env.INKEEP_API_URL = config.agentsApiUrl;
 
     // Load project from index.ts
     s.start('Loading project from index.ts...');
@@ -136,9 +136,9 @@ export async function pushCommand(options: PushOptions): Promise<void> {
     if (typeof project.setConfig === 'function') {
       project.setConfig(
         config.tenantId,
-        config.agentsManageApiUrl,
+        config.agentsApiUrl,
         undefined, // models - not needed here as they come from the project definition
-        config.agentsManageApiKey
+        config.agentsApiKey
       );
     }
 
@@ -505,7 +505,7 @@ async function pushSingleProject(
     const originalApiUrl = process.env.INKEEP_API_URL;
 
     process.env.INKEEP_TENANT_ID = config.tenantId;
-    process.env.INKEEP_API_URL = config.agentsManageApiUrl;
+    process.env.INKEEP_API_URL = config.agentsApiUrl;
 
     // Load project from index.ts
     const project = await loadProject(projectDir);
@@ -526,9 +526,9 @@ async function pushSingleProject(
     if (typeof project.setConfig === 'function') {
       project.setConfig(
         config.tenantId,
-        config.agentsManageApiUrl,
+        config.agentsApiUrl,
         undefined,
-        config.agentsManageApiKey
+        config.agentsApiKey
       );
     }
 

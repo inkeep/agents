@@ -19,10 +19,10 @@ vi.mock('../../utils/project-directory.js', () => ({
 vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
-    agentsManageApiUrl: 'http://localhost:3002',
+    agentsApiUrl: 'http://localhost:3002',
     sources: {
       tenantId: 'config',
-      agentsManageApiUrl: 'config',
+      agentsApiUrl: 'config',
     },
   }),
 }));
@@ -62,8 +62,7 @@ describe('Push Command - TypeScript Loading', () => {
     const { validateConfiguration } = await import('../../utils/config.js');
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
-      agentsManageApiUrl: 'http://localhost:3002',
-      agentsRunApiUrl: 'http://localhost:3001',
+      agentsApiUrl: 'http://localhost:3002',
       sources: {},
     });
 
@@ -107,7 +106,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      agentsManageApiUrl: 'http://localhost:3002',
+      agentsApiUrl: 'http://localhost:3002',
     };
 
     mockImportWithTypeScriptSupport
@@ -164,7 +163,7 @@ describe('Push Command - TypeScript Loading', () => {
     // Mock config module
     const mockConfig = {
       tenantId: 'test-tenant',
-      agentsManageApiUrl: 'http://localhost:3002',
+      agentsApiUrl: 'http://localhost:3002',
     };
 
     mockImportWithTypeScriptSupport

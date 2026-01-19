@@ -77,8 +77,7 @@ inkeep init
 # export default defineConfig({
 #   tenantId: "your-tenant-id",
 #   projectId: "your-project-id",
-#   agentsManageApiUrl: "http://localhost:3002",
-#   agentsRunApiUrl: "http://localhost:3003"
+#   agentsApiUrl: "http://localhost:3002",
 # });
 ```
 
@@ -86,10 +85,10 @@ inkeep init
 
 ### Configuration Sources (priority order)
 
-1. **Command-line flags** - Highest priority (e.g., `--tenant-id`, `--agents-manage-api-url`, `--config`)
+1. **Command-line flags** - Highest priority (e.g., `--tenant-id`, `--agents-api-url`, `--config`)
 2. **Config file** - `inkeep.config.ts` (or file specified with `--config`)
-3. **Environment variables** - `INKEEP_AGENTS_MANAGE_API_URL`, `INKEEP_AGENTS_RUN_API_URL`
-4. **Defaults** - Lowest priority (defaults to `http://localhost:3002` and `http://localhost:3003`)
+3. **Environment variables** - `INKEEP_AGENTS_API_URL`
+4. **Defaults** - Lowest priority (defaults to `http://localhost:3002`)
 
 ### Config File Options
 
@@ -108,15 +107,13 @@ inkeep list-graphs --project my-project --config-file-path ./staging-config.ts
 Create a `.env` file in your project directory:
 
 ```bash
-INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002
-INKEEP_AGENTS_RUN_API_URL=http://localhost:3003
+INKEEP_AGENTS_API_URL=http://localhost:3002
 ```
 
 Or export them in your shell:
 
 ```bash
-export INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002
-export INKEEP_AGENTS_RUN_API_URL=http://localhost:3003
+export INKEEP_AGENTS_API_URL=http://localhost:3002
 ```
 
 ## Commands
@@ -251,7 +248,7 @@ List all available graphs for a specific project.
 inkeep list-graphs --project my-project-id
 
 # With custom API URL
-inkeep list-graphs --project my-project-id --agents-manage-api-url http://api.example.com:3002
+inkeep list-graphs --project my-project-id --agent-api-url http://api.example.com:3002
 
 # With custom tenant ID
 inkeep list-graphs --project my-project-id --tenant-id my-tenant-id
@@ -286,7 +283,7 @@ inkeep push --project my-project-id
 inkeep push --project my-project-id --config ./my-config.ts
 
 # With custom API URLs
-inkeep push --project my-project-id --agents-manage-api-url http://manage.example.com --agents-run-api-url http://run.example.com
+inkeep push --project my-project-id --agents-api-url http://api.example.com
 
 # With custom tenant ID
 inkeep push --project my-project-id --tenant-id my-tenant-id
@@ -490,8 +487,7 @@ inkeep mcp stop --all
 INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 inkeep list-graphs
 
 # Using .env file
-echo "INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002" > .env
-echo "INKEEP_AGENTS_RUN_API_URL=http://localhost:3003" >> .env
+echo "INKEEP_AGENTS_API_URL=http://localhost:3002" > .env
 ```
 
 ### Staging
@@ -499,16 +495,14 @@ echo "INKEEP_AGENTS_RUN_API_URL=http://localhost:3003" >> .env
 ```bash
 # Set in config file
 # Edit your inkeep.config.ts:
-# agentsManageApiUrl: 'https://staging-manage-api.example.com'
-# agentsRunApiUrl: 'https://staging-run-api.example.com'
+# agentsApiUrl: 'https://staging-api.example.com'
 ```
 
 ### Production
 
 ```bash
 # Using environment variables
-export INKEEP_AGENTS_MANAGE_API_URL=https://manage-api.example.com
-export INKEEP_AGENTS_RUN_API_URL=https://run-api.example.com
+export INKEEP_AGENTS_API_URL=https://inkeep-api.example.com
 inkeep list-graphs
 ```
 
@@ -577,11 +571,10 @@ agents-cli/
 curl http://localhost:3002/health
 
 # Verify API URLs
-echo $INKEEP_AGENTS_MANAGE_API_URL
-echo $INKEEP_AGENTS_RUN_API_URL
+echo $INKEEP_AGENTS_API_URL
 
 # Try with explicit URL and project
-inkeep list-graphs --project my-project-id --agents-manage-api-url http://localhost:3002
+inkeep list-graphs --project my-project-id --agents-api-url http://localhost:3002
 ```
 
 **Command not found: inkeep**

@@ -8,8 +8,7 @@ import { ProfileManager, type ResolvedProfile } from './profiles';
 export interface ProfileConfig {
   profileName: string;
   tenantId?: string;
-  agentsManageApiUrl: string;
-  agentsRunApiUrl: string;
+  agentsApiUrl: string;
   manageUiUrl: string;
   environment: string;
   credentialKey: string;
@@ -49,8 +48,7 @@ export async function resolveProfileConfig(
     // No profile configured - return defaults for backward compatibility
     return {
       profileName: 'default',
-      agentsManageApiUrl: 'http://localhost:3002',
-      agentsRunApiUrl: 'http://localhost:3003',
+      agentsApiUrl: 'http://localhost:3002',
       manageUiUrl: 'http://localhost:3000',
       environment: 'development',
       credentialKey: 'auth-credentials',
@@ -84,8 +82,7 @@ export async function resolveProfileConfig(
   return {
     profileName,
     tenantId: credentials?.organizationId,
-    agentsManageApiUrl: profile.remote.manageApi,
-    agentsRunApiUrl: profile.remote.runApi,
+    agentsApiUrl: profile.remote.api,
     manageUiUrl: profile.remote.manageUi,
     environment: profile.environment,
     credentialKey: profile.credential,
@@ -99,7 +96,7 @@ export function logProfileConfig(config: ProfileConfig, quiet: boolean = false):
   if (quiet) return;
 
   console.log(chalk.gray(`Using profile: ${chalk.cyan(config.profileName)}`));
-  console.log(chalk.gray(`  Remote: ${config.agentsManageApiUrl}`));
+  console.log(chalk.gray(`  Remote: ${config.agentsApiUrl}`));
   console.log(chalk.gray(`  Environment: ${config.environment}`));
 
   if (config.isAuthenticated) {

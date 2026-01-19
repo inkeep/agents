@@ -100,12 +100,12 @@ describe('Inkeep CLI', () => {
       expect(result.stderr.toLowerCase()).toMatch(/tenant id|index\.ts|config/);
     });
 
-    it('should accept --agents-manage-api-url option', () => {
+    it('should accept --agents-api-url option', () => {
       const result = runCli([
         'push',
         '--project',
         'non-existent',
-        '--agents-manage-api-url',
+        '--agents-api-url',
         'http://example.com',
       ]);
 
@@ -123,7 +123,7 @@ describe('Inkeep CLI', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('List all available agents for a specific project');
       expect(result.stdout).toContain('--project <project-id>');
-      expect(result.stdout).toContain('--agents-manage-api-url');
+      expect(result.stdout).toContain('--agents-api-url');
     });
   });
 
@@ -144,7 +144,7 @@ describe('Inkeep CLI', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Push a project configuration');
-      expect(result.stdout).toContain('--agents-manage-api-url');
+      expect(result.stdout).toContain('--agents-api-url');
     });
   });
 

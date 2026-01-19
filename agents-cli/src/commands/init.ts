@@ -132,7 +132,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
   let selectedTenantName: string;
 
   try {
-    const response = await fetch('https://manage-api.inkeep.com/api/cli/me', {
+    const response = await fetch('https://agents-api.inkeep.com/api/cli/me', {
       headers: {
         Authorization: `Bearer ${credentials?.accessToken}`,
       },
@@ -165,7 +165,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
 
   try {
     const response = await fetch(
-      `https://manage-api.inkeep.com/tenants/${selectedTenantId}/projects?limit=100`,
+      `https://agents-api.inkeep.com/manage/tenants/${selectedTenantId}/projects?limit=100`,
       {
         headers: {
           Authorization: `Bearer ${credentials?.accessToken}`,
@@ -383,13 +383,11 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
   }
 
   let tenantId: string;
-  let manageApiUrl: string;
-  let runApiUrl: string;
+  let apiUrl: string;
 
   if (options?.interactive === false) {
     tenantId = 'default';
-    manageApiUrl = 'http://localhost:3002';
-    runApiUrl = 'http://localhost:3003';
+    apiUrl = 'http://localhost:3002';
   } else {
     const tenantIdInput = await p.text({
       message: 'Enter your tenant ID:',
@@ -420,45 +418,28 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
       }
     };
 
-    const manageApiUrlInput = await p.text({
-      message: 'Enter the Management API URL:',
+    const apiUrlInput = await p.text({
+      message: 'Enter the Agents API URL:',
       placeholder: 'http://localhost:3002',
       initialValue: 'http://localhost:3002',
       validate: validateUrl,
     });
 
-    if (p.isCancel(manageApiUrlInput)) {
+    if (p.isCancel(apiUrlInput)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
 
-    manageApiUrl = manageApiUrlInput;
-
-    const runApiUrlInput = await p.text({
-      message: 'Enter the Run API URL:',
-      placeholder: 'http://localhost:3003',
-      initialValue: 'http://localhost:3003',
-      validate: validateUrl,
-    });
-
-    if (p.isCancel(runApiUrlInput)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-
-    runApiUrl = runApiUrlInput;
+    apiUrl = apiUrlInput;
   }
 
   const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: '${tenantId}',
-  agentsManageApi: {
-    url: '${manageApiUrl}',
-  },
-  agentsRunApi: {
-    url: '${runApiUrl}',
-  },
+  agentsApi: {
+    url: '${apiUrl}',
+  }
 });
 `;
 
@@ -471,9 +452,8 @@ export default defineConfig({
       const profileManager = new ProfileManager();
       const localProfile: Profile = {
         remote: {
-          manageApi: manageApiUrl as string,
+          api: apiUrl,
           manageUi: 'http://localhost:3001',
-          runApi: runApiUrl as string,
         },
         credential: 'none',
         environment: 'development',
@@ -538,11 +518,8 @@ function generateConfigFile(tenantId: string, projectId: string): string {
 export default defineConfig({
   tenantId: '${tenantId}',
   projectId: '${projectId}',
-  agentsManageApi: {
-    url: 'https://manage-api.inkeep.com',
-  },
-  agentsRunApi: {
-    url: 'https://run-api.inkeep.com',
+  agentsApi: {
+    url: 'https://agents-api.inkeep.com',
   },
 });
 `;
