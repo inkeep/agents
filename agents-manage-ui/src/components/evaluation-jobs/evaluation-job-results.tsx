@@ -80,14 +80,20 @@ export function EvaluationJobResults({
       // Get conversation count from dataset run if available
       let conversationCount = 0;
       const criteria = jobConfig.jobFilters as EvaluationJobFilterCriteria;
+
+      function getCount(datasetRun: Awaited<ReturnType<typeof fetchDatasetRun>>): number {
+        return (
+          datasetRun.data?.items?.reduce(
+            (acc, item) => acc + (item.conversations?.length || 0),
+            0
+          ) || 0
+        );
+      }
+
       if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
         try {
           const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
-          conversationCount =
-            datasetRun.data?.items?.reduce(
-              (acc, item) => acc + (item.conversations?.length || 0),
-              0
-            ) || 0;
+          conversationCount = getCount(datasetRun);
         } catch {
           // If we can't get dataset run, estimate from unique conversations in results
           const uniqueConversations = new Set(
