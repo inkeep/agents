@@ -213,7 +213,7 @@ export function EvaluationRunConfigResults({
                 <TableHead>Time</TableHead>
                 <TableHead>Agent</TableHead>
                 <TableHead>Evaluator</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>PASS/FAIL</TableHead>
                 <TableHead>Output</TableHead>
               </TableRow>
             </TableHeader>
@@ -342,8 +342,9 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
         <ExpandableJsonEditor
           name={`output-${resultId}`}
           value={JSON.stringify(output, null, 2)}
-          label="Output"
+          label=""
           readOnly
+          defaultOpen
         />
       </CollapsibleContent>
     </Collapsible>
@@ -363,8 +364,9 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
         <ExpandableJsonEditor
           name={`metadata-${resultId}`}
           value={JSON.stringify(metadata, null, 2)}
-          label="Metadata"
+          label=""
           readOnly
+          defaultOpen
         />
       </CollapsibleContent>
     </Collapsible>
