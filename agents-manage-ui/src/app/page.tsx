@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { useAuthSession, type User } from '@/hooks/use-auth';
+import { type User, useAuthSession } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
