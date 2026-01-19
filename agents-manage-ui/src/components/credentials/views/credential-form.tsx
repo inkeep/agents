@@ -149,13 +149,13 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
       return;
     }
 
-    const selectedStore = credentialStores.find(
-      (store) => store.id === credentialStoreId
-    );
-    if (selectedStore && selectedStore.type !== 'memory') {
-      if (selectedStore.type !== credentialStoreType) {
-        form.setValue('credentialStoreType', selectedStore.type);
-      }
+    const selectedStore = credentialStores.find((store) => store.id === credentialStoreId);
+    if (
+      selectedStore &&
+      selectedStore.type !== 'memory' &&
+      selectedStore.type !== credentialStoreType
+    ) {
+      form.setValue('credentialStoreType', selectedStore.type);
     }
   }, [credentialStoreId, credentialStoreType, credentialStores, form]);
 
