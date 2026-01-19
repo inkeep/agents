@@ -4,10 +4,30 @@
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./manage": "./dist/domains/manage/index.js",
-    "./run": "./dist/domains/run/index.js",
-    "./evals": "./dist/domains/evals/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./manage": {
+      "types": "./dist/domains/manage/index.d.ts",
+      "import": "./dist/domains/manage/index.js"
+    },
+    "./run": {
+      "types": "./dist/domains/run/index.d.ts",
+      "import": "./dist/domains/run/index.js"
+    },
+    "./evals": {
+      "types": "./dist/domains/evals/index.d.ts",
+      "import": "./dist/domains/evals/index.js"
+    },
+    "./instrumentation": {
+      "types": "./dist/instrumentation.d.ts",
+      "import": "./dist/instrumentation.js"
+    },
+    "./factory": {
+      "types": "./dist/factory.d.ts",
+      "import": "./dist/factory.js"
+    }
   },
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",

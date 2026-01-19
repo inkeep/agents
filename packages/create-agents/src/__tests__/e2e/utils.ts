@@ -158,8 +158,7 @@ export async function verifyDirectoryStructure(
 export async function linkLocalPackages(projectDir: string, monorepoRoot: string): Promise<void> {
   const packageJsonPaths: string[] = [
     path.join(projectDir, 'package.json'),
-    path.join(projectDir, 'apps/manage-api/package.json'),
-    path.join(projectDir, 'apps/run-api/package.json'),
+    path.join(projectDir, 'apps/agents-api/package.json'),
   ];
   const packageJsons: Record<string, any> = {};
   for (const packageJsonPath of packageJsonPaths) {
@@ -170,7 +169,7 @@ export async function linkLocalPackages(projectDir: string, monorepoRoot: string
   const inkeepPackages = {
     '@inkeep/agents-sdk': `link:${path.join(monorepoRoot, 'packages/agents-sdk')}`,
     '@inkeep/agents-core': `link:${path.join(monorepoRoot, 'packages/agents-core')}`,
-    '@inkeep/agents-api': `link:${path.join(monorepoRoot, 'packages/agents-api')}`,
+    '@inkeep/agents-api': `link:${path.join(monorepoRoot, 'agents-api')}`,
     '@inkeep/agents-cli': `link:${path.join(monorepoRoot, 'agents-cli')}`,
   };
 
