@@ -119,8 +119,10 @@ export function EvaluationRunConfigFormDialog({
   const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
   const suiteEvaluatorIds = useWatch({ control: suiteConfigForm.control, name: 'evaluatorIds' });
 
-  const loadData = async () => {
-    try {
+  useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
         getAllAgentsAction(tenantId, projectId),
@@ -155,13 +157,16 @@ export function EvaluationRunConfigFormDialog({
           console.error('Error loading suite config:', err);
         }
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
     }
-  };
 
-  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await doRequest();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data');
+      }
+    };
     if (isOpen) {
       form.reset(formatFormData(initialData));
       suiteConfigForm.reset({
@@ -171,7 +176,7 @@ export function EvaluationRunConfigFormDialog({
       });
       loadData();
     }
-  }, [isOpen, initialData, form, suiteConfigForm, loadData]);
+  }, [isOpen, initialData, form, suiteConfigForm, projectId, tenantId]);
 
   const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
     acc[evaluator.id] = evaluator;
