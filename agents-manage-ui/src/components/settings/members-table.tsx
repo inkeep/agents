@@ -62,7 +62,9 @@ export function MembersTable({
     if (!canEditRoles) return;
 
     setUpdatingMemberId(memberId);
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const { error } = await authClient.organization.updateMemberRole({
         memberId,
         role: newRole,
@@ -80,6 +82,10 @@ export function MembersTable({
         description: `Member role has been changed to ${getDisplayRole(newRole)}.`,
       });
       onMemberUpdated?.();
+    }
+
+    try {
+      await doRequest();
     } catch (err) {
       toast.error('Failed to update role', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',

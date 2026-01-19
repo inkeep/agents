@@ -77,7 +77,9 @@ export function ConversationStatsCard({
     setLocalQuery('');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     try {
-      onSearchChange?.('');
+      if (onSearchChange) {
+        onSearchChange('');
+      }
       setSearchError(null);
     } catch (error) {
       console.error('Search failed:', error);
