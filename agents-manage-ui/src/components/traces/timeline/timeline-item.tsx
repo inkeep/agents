@@ -13,6 +13,7 @@ import {
   Sparkles,
   User,
   X,
+  Zap,
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
@@ -51,10 +52,12 @@ function statusIcon(
     | 'tool_purpose'
     | 'tool_approval_requested'
     | 'tool_approval_approved'
-    | 'tool_approval_denied',
+    | 'tool_approval_denied'
+    | 'trigger_invocation',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string }> = {
+    trigger_invocation: { Icon: Zap, cls: 'text-amber-500' },
     user_message: { Icon: User, cls: 'text-primary' },
     ai_generation: { Icon: Sparkles, cls: 'text-primary' },
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
@@ -113,21 +116,24 @@ export function TimelineItem({
   onToggleCollapse,
 }: TimelineItemProps) {
   const typeForIcon =
-    activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
-      ? 'transfer'
-      : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolName?.includes('delegate')
-        ? 'delegation'
-        : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolPurpose
-          ? 'tool_purpose'
-          : activity.type === ACTIVITY_TYPES.TOOL_CALL
-            ? 'generic_tool'
-            : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
-              ? 'tool_approval_requested'
-              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
-                ? 'tool_approval_approved'
-                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
-                  ? 'tool_approval_denied'
-                  : activity.type;
+    // Trigger invocations get their own icon (Zap)
+    activity.type === ACTIVITY_TYPES.USER_MESSAGE && activity.invocationType === 'trigger'
+      ? 'trigger_invocation'
+      : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
+        ? 'transfer'
+        : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolName?.includes('delegate')
+          ? 'delegation'
+          : activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolPurpose
+            ? 'tool_purpose'
+            : activity.type === ACTIVITY_TYPES.TOOL_CALL
+              ? 'generic_tool'
+              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
+                ? 'tool_approval_requested'
+                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
+                  ? 'tool_approval_approved'
+                  : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
+                    ? 'tool_approval_denied'
+                    : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
   const formattedDateTime = formatDateTime(activity.timestamp);

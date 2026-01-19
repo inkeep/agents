@@ -2482,12 +2482,21 @@ ${output}`;
       };
     }
   ) {
+    // Extract conversation ID early for span attributes
+    const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
+
     return tracer.startActiveSpan(
       'agent.generate',
       {
         attributes: {
           'subAgent.id': this.config.id,
           'subAgent.name': this.config.name,
+          // Add key attributes for SigNoz conversation queries
+          'tenant.id': this.config.tenantId,
+          'project.id': this.config.projectId,
+          'agent.id': this.config.agentId,
+          'agent.name': this.config.name,
+          ...(conversationIdForSpan ? { 'conversation.id': conversationIdForSpan } : {}),
         },
       },
       async (span) => {

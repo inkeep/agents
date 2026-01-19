@@ -17,6 +17,7 @@ import {
   verifySigningSecret,
   verifyTriggerAuth,
 } from '@inkeep/agents-core';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
@@ -290,16 +291,56 @@ async function invokeAgentAsync(params: {
   const { tenantId, projectId, agentId, triggerId, invocationId, conversationId, userMessage } =
     params;
 
-  try {
-    logger.info(
-      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
-      'Starting async agent invocation'
-    );
+  // Create a new tracer for trigger invocations
+  const tracer = trace.getTracer('trigger-invocation');
 
-    // Load full project with agents to build execution context
-    const project = await getFullProjectWithRelationIds(manageDbClient)({
-      scopes: { tenantId, projectId },
-    });
+  // Create a new root span for the trigger invocation (since this runs async after HTTP request completes)
+  return await tracer.startActiveSpan(
+    'trigger.invocation',
+    {
+      attributes: {
+        'conversation.id': conversationId,
+        'tenant.id': tenantId,
+        'project.id': projectId,
+        'agent.id': agentId,
+        // Trigger-specific attributes to identify this as a trigger invocation
+        'invocation.type': 'trigger',
+        'trigger.id': triggerId,
+        'trigger.invocation.id': invocationId,
+        // User message attributes for SigNoz conversation queries
+        'message.content': userMessage,
+        'message.timestamp': new Date().toISOString(),
+      },
+    },
+    async (span) => {
+      // Set up baggage so all child spans inherit the key attributes
+      // The BaggageSpanProcessor will automatically copy these to span attributes
+      let currentBag = propagation.getBaggage(otelContext.active());
+      if (!currentBag) {
+        currentBag = propagation.createBaggage();
+      }
+      currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
+      currentBag = currentBag.setEntry('tenant.id', { value: tenantId });
+      currentBag = currentBag.setEntry('project.id', { value: projectId });
+      currentBag = currentBag.setEntry('agent.id', { value: agentId });
+      // Trigger-specific baggage entries - propagate to all child spans
+      currentBag = currentBag.setEntry('invocation.type', { value: 'trigger' });
+      currentBag = currentBag.setEntry('trigger.id', { value: triggerId });
+      currentBag = currentBag.setEntry('trigger.invocation.id', { value: invocationId });
+      const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+
+      // Execute the entire invocation within the traced context
+      return await otelContext.with(ctxWithBaggage, async () => {
+        try {
+          logger.info(
+            { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+            'Starting async agent invocation'
+          );
+
+      // Load full project with agents to build execution context
+      const project = await getFullProjectWithRelationIds(manageDbClient)({
+        scopes: { tenantId, projectId },
+      });
 
     if (!project) {
       throw createApiError({
@@ -440,38 +481,47 @@ async function invokeAgentAsync(params: {
       },
     });
 
-    logger.info(
-      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
-      'Agent invocation completed successfully'
-    );
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.info(
+            { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+            'Agent invocation completed successfully'
+          );
+          span.end();
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
 
-    logger.error(
-      { error, tenantId, projectId, agentId, triggerId, invocationId },
-      'Agent invocation failed'
-    );
+          logger.error(
+            { error, tenantId, projectId, agentId, triggerId, invocationId },
+            'Agent invocation failed'
+          );
 
-    // Update trigger invocation status to failed - uses runtime DB
-    try {
-      await updateTriggerInvocationStatus(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-        triggerId,
-        invocationId,
-        data: {
-          status: 'failed',
-          errorMessage,
-        },
+          // Record error on span
+          span.recordException(error instanceof Error ? error : new Error(errorMessage));
+          span.setStatus({ code: 2, message: errorMessage }); // SpanStatusCode.ERROR = 2
+
+          // Update trigger invocation status to failed - uses runtime DB
+          try {
+            await updateTriggerInvocationStatus(dbClient)({
+              scopes: { tenantId, projectId, agentId },
+              triggerId,
+              invocationId,
+              data: {
+                status: 'failed',
+                errorMessage,
+              },
+            });
+          } catch (updateError) {
+            logger.error(
+              { updateError, invocationId },
+              'Failed to update trigger invocation status to failed'
+            );
+          }
+
+          span.end();
+          throw error;
+        }
       });
-    } catch (updateError) {
-      logger.error(
-        { updateError, invocationId },
-        'Failed to update trigger invocation status to failed'
-      );
     }
-
-    throw error;
-  }
+  );
 }
 
 export default app;

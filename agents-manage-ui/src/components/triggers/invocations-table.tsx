@@ -39,7 +39,9 @@ interface InvocationsTableProps {
 }
 
 function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+  // Ensure the date is parsed as UTC if no timezone is specified
+  const normalizedDateString = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
+  const date = new Date(normalizedDateString);
   return date.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
