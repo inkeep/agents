@@ -50,7 +50,10 @@ export function SuiteConfigViewDialog({
     }
 
     setLoading(true);
-    try {
+
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const [suiteConfigRes, evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId).catch((err) => {
           console.error('Error fetching suite config:', err);
@@ -91,6 +94,10 @@ export function SuiteConfigViewDialog({
       }
 
       setAgents(agentsRes.data || []);
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error loading suite config details:', error);
       setSuiteConfig(null);
