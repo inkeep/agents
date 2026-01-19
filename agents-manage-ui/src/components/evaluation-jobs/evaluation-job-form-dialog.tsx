@@ -127,12 +127,9 @@ export function EvaluationJobFormDialog({
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
-    const isValid = await form.trigger();
-    if (!isValid) {
-      return;
-    }
-
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       let jobFilters = data.jobFilters;
 
       // Transform date strings to ISO timestamps with proper timezone handling
@@ -168,6 +165,15 @@ export function EvaluationJobFormDialog({
       } else {
         toast.error(result.error || 'Failed to create batch evaluation');
       }
+    }
+
+    const isValid = await form.trigger();
+    if (!isValid) {
+      return;
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting batch evaluation:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
