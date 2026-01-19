@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
@@ -71,6 +71,7 @@ export function DatasetRunConfigForm({
   });
 
   const { isSubmitting } = form.formState;
+  const evaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
   const {
     field: { value: agentIds, onChange: setAgentIds },
   } = useController({
@@ -130,7 +131,7 @@ export function DatasetRunConfigForm({
     console.log('Form submission data:', data);
     console.log('evaluatorIds in form data:', data.evaluatorIds);
     console.log('Form values:', form.getValues());
-    console.log('Form watch evaluatorIds:', form.watch('evaluatorIds'));
+    console.log('Form watch evaluatorIds:', evaluatorIds);
 
     try {
       // Ensure evaluatorIds is always included, even if empty
