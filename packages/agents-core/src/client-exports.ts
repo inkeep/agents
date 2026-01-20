@@ -34,6 +34,10 @@ import {
   StopWhenSchema,
   type SubAgentStopWhen,
   SubAgentStopWhenSchema,
+  type TriggerApiInsertSchema,
+  type TriggerApiSelectSchema,
+  type TriggerApiUpdateSchema,
+  type TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
@@ -53,6 +57,15 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  TriggerApiInsertSchema,
+  TriggerApiSelectSchema,
+  TriggerApiUpdateSchema,
+  TriggerInvocationApiSelectSchema,
+  TriggerInvocationListResponse,
+  TriggerInvocationResponse,
+  TriggerInvocationStatusEnum,
+  TriggerListResponse,
+  TriggerResponse,
 } from './validation/schemas';
 
 export const TenantParamsSchema = z.object({
@@ -261,6 +274,10 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
+export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
+export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
+export type TriggerApiUpdate = z.infer<typeof TriggerApiUpdateSchema>;
+export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;

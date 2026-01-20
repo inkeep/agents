@@ -39,7 +39,7 @@ interface InheritedAccessConfig {
  * Generic props for the ResourceMembersPage component.
  * This component can be used for any resource type (projects, agents, etc.)
  */
-export interface ResourceMembersPageProps {
+interface ResourceMembersPageProps {
   /** Available roles that can be assigned */
   roles: AccessRole[];
   /** Members available to add (e.g., org members not yet added) */

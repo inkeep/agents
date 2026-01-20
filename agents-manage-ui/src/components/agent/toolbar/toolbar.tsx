@@ -1,4 +1,6 @@
-import { Play, Settings } from 'lucide-react';
+import { Play, Settings, Webhook } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -19,6 +21,11 @@ interface ToolbarProps {
 export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
 
   const { canView, canUse, canEdit } = useProjectPermissions();
 
@@ -60,25 +67,24 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
       {canUse && <ShipModal buttonClassName={commonProps.className} />}
-      {canUse &&
-        (dirty ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {/**
-               * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-               * don't trigger pointer events in the browser
-               **/}
-              <div>{PreviewButton}</div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {dirty
-                ? 'Please save your changes before trying the agent.'
-                : 'Please save the agent to try it.'}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          PreviewButton
-        ))}
+      {dirty && canUse ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/**
+             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+             * don't trigger pointer events in the browser
+             **/}
+            <div>{PreviewButton}</div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {dirty
+              ? 'Please save your changes before trying the agent.'
+              : 'Please save the agent to try it.'}
+          </TooltipContent>
+        </Tooltip>
+      ) : canUse ? (
+        PreviewButton
+      ) : null}
       {canEdit && (
         <Button
           {...commonProps}
@@ -95,6 +101,14 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
         <Button {...commonProps} onClick={toggleSidePane}>
           <Settings className="size-4" />
           Agent Settings
+        </Button>
+      )}
+      {canEdit && (
+        <Button {...commonProps} asChild>
+          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
+            <Webhook className="size-4" />
+            Triggers
+          </Link>
         </Button>
       )}
     </div>

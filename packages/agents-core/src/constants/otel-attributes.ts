@@ -103,6 +103,11 @@ export const SPAN_KEYS = {
   PARENT_SPAN_ID: 'parentSpanID',
   CONVERSATION_ID: 'conversation.id',
 
+  // Trigger/Invocation attributes
+  INVOCATION_TYPE: 'invocation.type',
+  TRIGGER_ID: 'trigger.id',
+  TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
+
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
   ARTIFACT_TYPE: 'artifact.type',

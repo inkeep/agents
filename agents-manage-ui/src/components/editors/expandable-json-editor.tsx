@@ -20,6 +20,7 @@ interface ExpandableJsonEditorProps {
   editorOptions?: JsonEditorProps['editorOptions'];
   readOnly?: boolean;
   onChange?: JsonEditorProps['onChange'];
+  defaultOpen?: boolean;
 }
 
 // Shared JSON validation logic
@@ -65,6 +66,7 @@ export function ExpandableJsonEditor({
   error: externalError,
   readOnly,
   editorOptions,
+  defaultOpen = false,
 }: ExpandableJsonEditorProps) {
   const { error: internalError } = useJsonValidation(value);
   const handleChange = onChange ?? noop;
@@ -73,7 +75,7 @@ export function ExpandableJsonEditor({
     !!(externalError || internalError),
     onChange
   );
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   const error = externalError || internalError;
   const id = `${name}-label`;

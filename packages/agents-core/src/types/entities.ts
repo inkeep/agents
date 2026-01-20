@@ -214,10 +214,22 @@ import type {
   ToolInsertSchema,
   ToolSelectSchema,
   ToolUpdateSchema,
+  TriggerApiInsertSchema,
+  TriggerApiSelectSchema,
+  TriggerApiUpdateSchema,
   TriggerBatchConversationEvaluationSchema,
   TriggerConversationEvaluationSchema,
   TriggerDatasetRunSchema,
   TriggerEvaluationJobSchema,
+  TriggerInsertSchema,
+  TriggerInvocationApiInsertSchema,
+  TriggerInvocationApiSelectSchema,
+  TriggerInvocationApiUpdateSchema,
+  TriggerInvocationInsertSchema,
+  TriggerInvocationSelectSchema,
+  TriggerInvocationUpdateSchema,
+  TriggerSelectSchema,
+  TriggerUpdateSchema,
 } from '../validation/schemas';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
@@ -357,6 +369,20 @@ export type ToolUpdate = z.infer<typeof ToolUpdateSchema>;
 export type ToolApiSelect = z.infer<typeof ToolApiSelectSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type ToolApiUpdate = z.infer<typeof ToolApiUpdateSchema>;
+
+export type TriggerSelect = z.infer<typeof TriggerSelectSchema>;
+export type TriggerInsert = z.infer<typeof TriggerInsertSchema>;
+export type TriggerUpdate = z.infer<typeof TriggerUpdateSchema>;
+export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
+export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
+export type TriggerApiUpdate = z.infer<typeof TriggerApiUpdateSchema>;
+
+export type TriggerInvocationSelect = z.infer<typeof TriggerInvocationSelectSchema>;
+export type TriggerInvocationInsert = z.infer<typeof TriggerInvocationInsertSchema>;
+export type TriggerInvocationUpdate = z.infer<typeof TriggerInvocationUpdateSchema>;
+export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
+export type TriggerInvocationApiInsert = z.infer<typeof TriggerInvocationApiInsertSchema>;
+export type TriggerInvocationApiUpdate = z.infer<typeof TriggerInvocationApiUpdateSchema>;
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
 
