@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -65,7 +66,7 @@ export async function fetchDatasetRuns(
   );
 }
 
-export async function fetchDatasetRun(
+async function $fetchDatasetRun(
   tenantId: string,
   projectId: string,
   runId: string
@@ -77,3 +78,5 @@ export async function fetchDatasetRun(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}`
   );
 }
+
+export const fetchDatasetRun = cache($fetchDatasetRun);

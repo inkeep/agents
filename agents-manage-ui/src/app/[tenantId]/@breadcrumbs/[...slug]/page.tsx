@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import type { FC } from 'react';
+import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
 import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchCredential } from '@/lib/api/credentials';
 import { fetchDataComponent } from '@/lib/api/data-components';
+import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchProject } from '@/lib/api/projects';
 import { fetchMCPTool } from '@/lib/api/tools';
@@ -77,13 +79,21 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     async conversations() {
       return 'Conversation Details';
     },
-    evaluations() {},
+    async jobs(id) {
+      const jobConfig = await fetchEvaluationJobConfig(tenantId, projectId, id);
+      return getJobName({ tenantId, projectId, jobConfig });
+    },
   };
 
   function addCrumb({ segment, label }: { segment: string; label: string }) {
     href += `/${segment}`;
+
+    const notExistedRoutes = new Set([
+      `/${tenantId}/projects/${projectId}/traces/conversations`,
+      `/${tenantId}/projects/${projectId}/evaluations/jobs`,
+    ]);
     // This route isn't exist so we don't add it to crumbs list
-    if (href !== `/${tenantId}/projects/${projectId}/traces/conversations`) {
+    if (!notExistedRoutes.has(href)) {
       crumbs.push({ label, href });
     }
   }

@@ -29,4 +29,5 @@ export const STATIC_LABELS = Object.freeze({
   conversations: 'Conversations',
   members: 'Members',
   evaluations: 'Evaluations',
+  jobs: 'Batch Evaluations',
 });
