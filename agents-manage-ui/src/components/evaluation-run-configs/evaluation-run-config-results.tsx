@@ -118,38 +118,26 @@ export function EvaluationRunConfigResults({
   }, [results]);
 
   // Extract unique output schema keys from results for filtering dropdown
-  // Only include 'output.*' fields, excluding 'metadata.*' fields
-  const availableOutputKeys = useMemo(() => {
-    const keys = new Set<string>();
+  type AnyRecord = Record<string, unknown>;
+  const isPlainObject = (v: unknown): v is AnyRecord =>
+    v != null && typeof v === 'object' && !Array.isArray(v);
 
-    const extractKeys = (obj: unknown, prefix = ''): void => {
-      if (!obj || typeof obj !== 'object') return;
-      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-        const fullKey = prefix ? `${prefix}.${key}` : key;
-        keys.add(fullKey);
-        if (value && typeof value === 'object') {
-          if (Array.isArray(value)) {
-            const firstItem = value[0];
-            if (firstItem && typeof firstItem === 'object' && !Array.isArray(firstItem)) {
-              extractKeys(firstItem, fullKey);
-            }
-          } else {
-            extractKeys(value, fullKey);
-          }
+  const availableOutputKeys = useMemo(() => {
+    const collect = (obj: unknown, prefix = ''): string[] => {
+      if (!isPlainObject(obj)) return [];
+
+      return Object.entries(obj).flatMap(([k, v]) => {
+        const p = prefix ? `${prefix}.${k}` : k;
+        if (Array.isArray(v)) {
+          const first = v[0];
+          return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
         }
-      }
+        return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
+      });
     };
 
-    results.forEach((result) => {
-      if (result.output) {
-        extractKeys(result.output);
-      }
-    });
-
-    // Filter to only show output.* nested keys (exclude bare 'output' and 'metadata.*')
-    return Array.from(keys)
-      .filter((key) => key.startsWith('output.'))
-      .sort();
+    const keys = results.flatMap((r) => collect(r.output));
+    return [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
   }, [results]);
 
   return (
