@@ -15,8 +15,8 @@ import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
-import { apiKeyAuth } from './middleware/api-key-auth';
-import { projectConfigMiddleware } from './middleware/projectConfig';
+import { apiKeyAuth, apiKeyAuthExcept } from './middleware/api-key-auth';
+import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
 import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
@@ -196,23 +196,13 @@ function createExecutionHono(
   };
 
   // Apply API key authentication to all routes except health, docs, and webhooks
-  app.use('/tenants/*', async (c, next) => {
-    if (isWebhookRoute(c.req.path)) {
-      return next();
-    }
-    return apiKeyAuth()(c, next);
-  });
+  app.use('/tenants/*', apiKeyAuthExcept(isWebhookRoute));
   app.use('/agents/*', apiKeyAuth());
   app.use('/v1/*', apiKeyAuth());
   app.use('/api/*', apiKeyAuth());
 
   // Fetch project config from Management API for authenticated routes (except webhooks)
-  app.use('/tenants/*', async (c, next) => {
-    if (isWebhookRoute(c.req.path)) {
-      return next();
-    }
-    return projectConfigMiddleware(c, next);
-  });
+  app.use('/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
   app.use('/agents/*', projectConfigMiddleware);
   app.use('/v1/*', projectConfigMiddleware);
   app.use('/api/*', projectConfigMiddleware);

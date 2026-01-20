@@ -1,9 +1,6 @@
-import {
-  type FullExecutionContext,
-  InternalServices,
-  ManageApiError,
-  ManagementApiClient,
-} from '@inkeep/agents-core';
+import type { BaseExecutionContext, FullExecutionContext } from '@inkeep/agents-core';
+import { InternalServices, ManageApiError, ManagementApiClient } from '@inkeep/agents-core';
+import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
 import { env } from '../env';
@@ -12,18 +9,19 @@ import { getLogger } from '../logger';
 const logger = getLogger('projectConfigMiddleware');
 
 /**
- * Middleware that fetches the full project definition from the Management API
+ * Core handler that fetches the full project definition from the Management API
  * and adds it to the Hono context for use in route handlers.
  *
- * This middleware should be applied after authentication middleware since it
+ * This handler should be applied after authentication middleware since it
  * requires the execution context to be set.
  */
-export const projectConfigMiddleware = createMiddleware<{
-  Variables: {
-    executionContext: FullExecutionContext;
-  };
-}>(async (c, next) => {
-  const executionContext = c.get('executionContext');
+async function projectConfigHandler(
+  c: Context<{ Variables: { executionContext: FullExecutionContext } }>,
+  next: () => Promise<void>
+): Promise<Response | void> {
+  // At this point, executionContext is BaseExecutionContext from auth middleware
+  // We'll upgrade it to FullExecutionContext by adding project and resolvedRef
+  const executionContext = c.get('executionContext') as BaseExecutionContext;
   const { tenantId, projectId, ref } = executionContext;
 
   logger.debug(
@@ -66,7 +64,7 @@ export const projectConfigMiddleware = createMiddleware<{
       ...executionContext,
       project: projectConfig,
       resolvedRef,
-    });
+    } as FullExecutionContext);
 
     logger.debug(
       {
@@ -129,4 +127,29 @@ export const projectConfigMiddleware = createMiddleware<{
       500
     );
   }
-});
+}
+
+/**
+ * Middleware that fetches the full project definition from the Management API
+ */
+export const projectConfigMiddleware = createMiddleware<{
+  Variables: {
+    executionContext: FullExecutionContext;
+  };
+}>(projectConfigHandler);
+
+/**
+ * Creates a middleware that applies project config fetching except for specified route patterns
+ * @param skipRouteCheck - Function that returns true if the route should skip the middleware
+ */
+export const projectConfigMiddlewareExcept = (skipRouteCheck: (path: string) => boolean) =>
+  createMiddleware<{
+    Variables: {
+      executionContext: FullExecutionContext;
+    };
+  }>(async (c, next) => {
+    if (skipRouteCheck(c.req.path)) {
+      return next();
+    }
+    return projectConfigHandler(c, next);
+  });
