@@ -28,6 +28,10 @@ import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results'
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+
+type AnyRecord = Record<string, unknown>;
+const isPlainObject = (v: unknown): v is AnyRecord =>
+  v != null && typeof v === 'object' && !Array.isArray(v);
 import {
   type EvaluationResultFilters,
   EvaluationResultsFilters,
@@ -163,10 +167,6 @@ export function EvaluationJobResults({
   }, [results]);
 
   // Extract unique output schema keys from results for filtering dropdown
-  type AnyRecord = Record<string, unknown>;
-  const isPlainObject = (v: unknown): v is AnyRecord =>
-    v != null && typeof v === 'object' && !Array.isArray(v);
-
   const availableOutputKeys = useMemo(() => {
     const collect = (obj: unknown, prefix = ''): string[] => {
       if (!isPlainObject(obj)) return [];
