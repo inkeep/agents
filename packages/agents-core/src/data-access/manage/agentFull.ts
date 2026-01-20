@@ -1,6 +1,11 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { projects, subAgents, subAgentToolRelations, subAgentFunctionToolRelations } from '../../db/manage/manage-schema';
+import {
+  projects,
+  subAgentFunctionToolRelations,
+  subAgents,
+  subAgentToolRelations,
+} from '../../db/manage/manage-schema';
 import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
@@ -25,7 +30,12 @@ import {
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { upsertFunction } from './functions';
-import { deleteFunctionTool, listFunctionTools, upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
+import {
+  deleteFunctionTool,
+  listFunctionTools,
+  upsertFunctionTool,
+  upsertSubAgentFunctionToolRelation,
+} from './functionTools';
 import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
@@ -44,6 +54,7 @@ import {
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
 import { upsertSubAgentToolRelation } from './tools';
+import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
 
 export interface AgentLogger {
   info(obj: Record<string, any>, msg?: string): void;
@@ -362,6 +373,51 @@ export const createFullAgentServerSide =
             functionToolCount: Object.keys(typed.functionTools).length,
           },
           'All function tools created successfully'
+        );
+      }
+
+      // Create triggers (agent-scoped)
+      if (typed.triggers && Object.keys(typed.triggers).length > 0) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typed.triggers).length,
+          },
+          'Creating triggers for agent'
+        );
+
+        const triggerPromises = Object.entries(typed.triggers).map(
+          async ([triggerId, triggerData]) => {
+            try {
+              logger.info({ agentId: finalAgentId, triggerId }, 'Creating trigger in agent');
+              await upsertTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...triggerData,
+                  id: triggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info({ agentId: finalAgentId, triggerId }, 'Trigger created successfully');
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, triggerId, error },
+                'Failed to create trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(triggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typed.triggers).length,
+          },
+          'All triggers created successfully'
         );
       }
 
@@ -1004,6 +1060,86 @@ export const updateFullAgentServerSide =
 
       if (deletedFunctionToolCount > 0) {
         logger.info({ deletedFunctionToolCount }, 'Deleted orphaned function tools from agent');
+      }
+
+      // Update triggers (agent-scoped)
+      if (
+        typedAgentDefinition.triggers &&
+        Object.keys(typedAgentDefinition.triggers).length > 0
+      ) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typedAgentDefinition.triggers).length,
+          },
+          'Updating triggers for agent'
+        );
+
+        const triggerPromises = Object.entries(typedAgentDefinition.triggers).map(
+          async ([triggerId, triggerData]) => {
+            try {
+              logger.info({ agentId: finalAgentId, triggerId }, 'Updating trigger in agent');
+              await upsertTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...triggerData,
+                  id: triggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info({ agentId: finalAgentId, triggerId }, 'Trigger updated successfully');
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, triggerId, error },
+                'Failed to update trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(triggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typedAgentDefinition.triggers).length,
+          },
+          'All triggers updated successfully'
+        );
+      }
+
+      // Delete orphaned triggers
+      const incomingTriggerIds = new Set(
+        typedAgentDefinition.triggers ? Object.keys(typedAgentDefinition.triggers) : []
+      );
+
+      const existingTriggers = await listTriggers(db)({
+        scopes: { tenantId, projectId, agentId: finalAgentId },
+      });
+
+      let deletedTriggerCount = 0;
+      for (const trigger of existingTriggers) {
+        if (!incomingTriggerIds.has(trigger.id)) {
+          try {
+            await deleteTrigger(db)({
+              scopes: { tenantId, projectId, agentId: finalAgentId },
+              triggerId: trigger.id,
+            });
+            deletedTriggerCount++;
+            logger.info({ triggerId: trigger.id }, 'Deleted orphaned trigger');
+          } catch (error) {
+            logger.error(
+              { triggerId: trigger.id, error },
+              'Failed to delete orphaned trigger'
+            );
+          }
+        }
+      }
+
+      if (deletedTriggerCount > 0) {
+        logger.info({ deletedTriggerCount }, 'Deleted orphaned triggers from agent');
       }
 
       const subAgentPromises = Object.entries(typedAgentDefinition.subAgents).map(

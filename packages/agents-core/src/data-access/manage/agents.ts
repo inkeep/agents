@@ -33,6 +33,7 @@ import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations
 import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
 import { listTools } from './tools';
+import { listTriggers } from './triggers';
 
 export const getAgentById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
@@ -813,6 +814,36 @@ const getFullAgentDefinitionInternal =
       }
     } catch (error) {
       console.warn('Failed to load tools/functions lookups:', error);
+    }
+
+    // Fetch triggers (agent-scoped)
+    try {
+      const triggersList = await listTriggers(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+
+      console.log(`[getFullAgentDefinitionInternal] Fetched ${triggersList.length} triggers for agent ${agentId}`);
+
+      if (triggersList.length > 0) {
+        const triggersObject: Record<string, any> = {};
+        for (const trigger of triggersList) {
+          triggersObject[trigger.id] = {
+            id: trigger.id,
+            name: trigger.name,
+            description: trigger.description,
+            enabled: trigger.enabled,
+            inputSchema: trigger.inputSchema,
+            outputTransform: trigger.outputTransform,
+            messageTemplate: trigger.messageTemplate,
+            authentication: trigger.authentication,
+            signingSecret: trigger.signingSecret,
+          };
+        }
+        result.triggers = triggersObject;
+        console.log(`[getFullAgentDefinitionInternal] Added triggers to result:`, Object.keys(triggersObject));
+      }
+    } catch (error) {
+      console.warn('Failed to load triggers:', error);
     }
 
     return result;

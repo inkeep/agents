@@ -166,3 +166,55 @@ export const deleteTrigger =
         )
       );
   };
+
+/**
+ * Upsert a trigger (create or update based on existence)
+ */
+export const upsertTrigger =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; data: TriggerInsert }): Promise<TriggerSelect> => {
+    const { scopes, data } = params;
+
+    // Check if trigger exists
+    const existing = await db.query.triggers.findFirst({
+      where: and(
+        eq(triggers.tenantId, scopes.tenantId),
+        eq(triggers.projectId, scopes.projectId),
+        eq(triggers.agentId, scopes.agentId),
+        eq(triggers.id, data.id)
+      ),
+    });
+
+    if (existing) {
+      // Update existing trigger
+      const updateData = {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
+      const result = await db
+        .update(triggers)
+        .set(updateData)
+        .where(
+          and(
+            eq(triggers.tenantId, scopes.tenantId),
+            eq(triggers.projectId, scopes.projectId),
+            eq(triggers.agentId, scopes.agentId),
+            eq(triggers.id, data.id)
+          )
+        )
+        .returning();
+      return result[0] as TriggerSelect;
+    }
+
+    // Create new trigger
+    const result = await db
+      .insert(triggers)
+      .values({
+        ...data,
+        tenantId: scopes.tenantId,
+        projectId: scopes.projectId,
+        agentId: scopes.agentId,
+      })
+      .returning();
+    return result[0] as TriggerSelect;
+  };

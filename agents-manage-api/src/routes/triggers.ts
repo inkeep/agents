@@ -364,8 +364,12 @@ app.openapi(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } =
-      updatedTrigger;
+    const {
+      tenantId: _tid,
+      projectId: _pid,
+      agentId: _aid,
+      ...triggerWithoutScopes
+    } = updatedTrigger;
 
     return c.json({
       data: {
@@ -570,8 +574,12 @@ app.openapi(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...invocationWithoutScopes } =
-      invocation;
+    const {
+      tenantId: _tid,
+      projectId: _pid,
+      agentId: _aid,
+      ...invocationWithoutScopes
+    } = invocation;
 
     return c.json({
       data: invocationWithoutScopes,
