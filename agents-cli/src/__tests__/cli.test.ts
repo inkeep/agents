@@ -42,7 +42,7 @@ function runCli(args: string[]): { stdout: string; stderr: string; exitCode: num
       error.code === 'ETIMEDOUT' ||
       error.signal === 'SIGTERM' ||
       error.killed ||
-      (error.message && error.message.toLowerCase().includes('timedout'));
+      error.message?.toLowerCase().includes('timedout');
 
     if (isTimeout) {
       return {
