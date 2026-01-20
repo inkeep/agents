@@ -159,20 +159,22 @@ Nested properties are accessed with dot notation (`{{customer.email}}`). Array l
 
 ### Payload Transformation
 
-Transform incoming payloads before they reach the message template:
+Transform incoming payloads before they reach the message template using `outputTransform`. You can choose between two approaches:
+
+| Approach | Best For | Complexity |
+| --- | --- | --- |
+| **Object Transformation** | Simple field remapping | Low |
+| **JMESPath** | Complex filtering, restructuring, array operations | High |
+
+<Note>
+These options are **mutually exclusive**. Use either `jmespath` OR `objectTransformation`, not both. If both are provided, `jmespath` takes priority.
+</Note>
+
+#### Object Transformation (Recommended for Simple Cases)
+
+Use `objectTransformation` when you just need to remap fields from the payload. Each key becomes a field in the transformed output, and each value is a JMESPath path to extract from the input:
 
 ```typescript
-const transformingTrigger = trigger({
-  name: "Transformed Webhook",
-  messageTemplate: "Event: {{eventType}} - {{summary}}",
-  outputTransform: {
-    // JMESPath expression for complex transformations
-    jmespath: "{ eventType: type, summary: data.description }",
-  },
-  authentication: { type: "none" },
-});
-
-// Or use simple object mapping
 const mappingTrigger = trigger({
   name: "Mapped Webhook",
   messageTemplate: "User {{userName}} performed {{actionName}}",
@@ -184,7 +186,51 @@ const mappingTrigger = trigger({
   },
   authentication: { type: "none" },
 });
+
+// Input: { payload: { user: { display_name: "Alice" }, action: { type: "click" } } }
+// Transformed: { userName: "Alice", actionName: "click" }
+// Message: "User Alice performed click"
 ```
+
+#### JMESPath (For Complex Transformations)
+
+Use `jmespath` when you need more powerful transformations like filtering arrays, conditional logic, or complex restructuring. [JMESPath](https://jmespath.org/) is a query language for JSON:
+
+```typescript
+const transformingTrigger = trigger({
+  name: "Transformed Webhook",
+  messageTemplate: "Event: {{eventType}} - {{summary}}",
+  outputTransform: {
+    jmespath: "{ eventType: type, summary: data.description }",
+  },
+  authentication: { type: "none" },
+});
+
+// Input: { type: "alert", data: { description: "Server down" } }
+// Transformed: { eventType: "alert", summary: "Server down" }
+// Message: "Event: alert - Server down"
+```
+
+**Advanced JMESPath example** - filtering and projecting arrays:
+
+```typescript
+const advancedTrigger = trigger({
+  name: "Active Users Alert",
+  messageTemplate: "Active users: {{activeUserNames}}",
+  outputTransform: {
+    jmespath: "{ activeUserNames: join(', ', users[?active==`true`].name) }",
+  },
+  authentication: { type: "none" },
+});
+
+// Input: { users: [{ name: "Alice", active: true }, { name: "Bob", active: false }] }
+// Transformed: { activeUserNames: "Alice" }
+// Message: "Active users: Alice"
+```
+
+<Tip>
+Object Transformation is converted to JMESPath under the hood. For example, `{ userName: "user.name" }` becomes the JMESPath expression `{ userName: user.name }`.
+</Tip>
 
 ### Signature Verification
 
