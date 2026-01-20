@@ -153,23 +153,3 @@ export async function fetchTriggerInvocations(
 
   return response;
 }
-
-/**
- * Get a single invocation by ID
- */
-async function getTriggerInvocation(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  triggerId: string,
-  invocationId: string
-): Promise<TriggerInvocation> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<SingleResponse<TriggerInvocation>>(
-    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/invocations/${invocationId}`
-  );
-
-  return response.data;
-}
