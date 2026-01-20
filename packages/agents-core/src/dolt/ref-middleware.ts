@@ -8,7 +8,6 @@ import { isRefWritable, resolveRef } from './ref-helpers';
 
 const logger = getLogger('ref-middleware');
 
-
 export type RefContext = {
   resolvedRef?: ResolvedRef;
 };
@@ -97,7 +96,7 @@ export const createRefMiddleware = (
     const path = c.req.path;
     const pathSplit = path.split('/');
 
-    let tenantId = extractTenantId(c);
+    const tenantId = extractTenantId(c);
     let projectId = extractProjectId(c);
 
     // If projectId not in path, try to extract from body for POST/PUT/PATCH requests

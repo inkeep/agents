@@ -5,23 +5,23 @@ import {
   createEvaluationRun,
   generateId,
   getConversation,
+  getEvaluationSuiteConfigById,
+  getEvaluationSuiteConfigEvaluatorRelations,
+  getEvaluatorsByIds,
   listEvaluationRunConfigsWithSuiteConfigs,
+  type ResolvedRef,
   TenantProjectParamsSchema,
   TriggerEvaluationJobSchema,
-  getEvaluationSuiteConfigById,
   withRef,
-  type ResolvedRef,
-  getEvaluationSuiteConfigEvaluatorRelations,
-  getEvaluatorsByIds
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
-import runDbClient from '../../../data/db/runDbClient';
 import manageDbPool from '../../../data/db/manageDbPool';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import { evaluateConversationWorkflow } from '../workflow';
 import { queueEvaluationJobConversations } from '../services/evaluationJob';
+import { evaluateConversationWorkflow } from '../workflow';
 
-const app = new OpenAPIHono<{ Variables: { resolvedRef: ResolvedRef } }>  ();
+const app = new OpenAPIHono<{ Variables: { resolvedRef: ResolvedRef } }>();
 const logger = getLogger('ConversationEvaluations');
 
 const TriggerConversationSchema = z.object({
@@ -93,9 +93,11 @@ app.openapi(
 
       // Get all active evaluation run configs
       // const allRunConfigs = await client.listEvaluationRunConfigs();
-      const configs = await withRef(manageDbPool, resolvedRef, (db) => listEvaluationRunConfigsWithSuiteConfigs(db)({
-        scopes: { tenantId, projectId },
-      }));
+      const configs = await withRef(manageDbPool, resolvedRef, (db) =>
+        listEvaluationRunConfigsWithSuiteConfigs(db)({
+          scopes: { tenantId, projectId },
+        })
+      );
 
       const runConfigs = configs.filter((config) => config.isActive);
 
@@ -115,9 +117,11 @@ app.openapi(
         // For now, we match all - can add filter logic later if needed
 
         for (const suiteConfigId of runConfig.suiteConfigIds) {
-          const suiteConfig = await withRef(manageDbPool, resolvedRef, (db) => getEvaluationSuiteConfigById(db)({
-            scopes: { tenantId, projectId, evaluationSuiteConfigId: suiteConfigId },
-          }));
+          const suiteConfig = await withRef(manageDbPool, resolvedRef, (db) =>
+            getEvaluationSuiteConfigById(db)({
+              scopes: { tenantId, projectId, evaluationSuiteConfigId: suiteConfigId },
+            })
+          );
 
           if (!suiteConfig) {
             logger.warn({ suiteConfigId }, 'Suite config not found, skipping');
@@ -142,10 +146,11 @@ app.openapi(
           }
 
           // Get evaluators for this suite config
-          const evaluatorRelations =
-            await withRef(manageDbPool, resolvedRef, (db) => getEvaluationSuiteConfigEvaluatorRelations(db)({
+          const evaluatorRelations = await withRef(manageDbPool, resolvedRef, (db) =>
+            getEvaluationSuiteConfigEvaluatorRelations(db)({
               scopes: { tenantId, projectId, evaluationSuiteConfigId: suiteConfigId },
-            }));
+            })
+          );
 
           const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
 
@@ -281,10 +286,12 @@ app.openapi(
       }
 
       // Verify all evaluators exist
-      const evaluators = await withRef(manageDbPool, resolvedRef, (db) => getEvaluatorsByIds(db)({
-        scopes: { tenantId, projectId },
-        evaluatorIds,
-      }));
+      const evaluators = await withRef(manageDbPool, resolvedRef, (db) =>
+        getEvaluatorsByIds(db)({
+          scopes: { tenantId, projectId },
+          evaluatorIds,
+        })
+      );
 
       const missingEvaluators = evaluatorIds.filter((_id, index) => !evaluators[index]);
       if (missingEvaluators.length > 0) {

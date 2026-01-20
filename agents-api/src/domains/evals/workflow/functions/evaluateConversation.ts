@@ -2,17 +2,17 @@ import {
   createEvaluationResult,
   generateId,
   getConversation,
+  getEvaluatorById,
+  getEvaluatorsByIds,
+  getProjectMainResolvedRef,
   updateEvaluationResult,
   withRef,
-  getProjectMainResolvedRef,
-  getEvaluatorsByIds,
-  getEvaluatorById,
 } from '@inkeep/agents-core';
+import { manageDbClient } from 'src/data/db';
+import manageDbPool from 'src/data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
-import manageDbPool from 'src/data/db/manageDbPool';
-import { manageDbClient } from 'src/data/db';
 
 const logger = getLogger('workflow-evaluate-conversation');
 
@@ -47,10 +47,12 @@ async function getEvaluatorsStep(payload: EvaluationPayload) {
 
   const projectMain = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
 
-  const evals = await withRef(manageDbPool, projectMain, (db) => getEvaluatorsByIds(db)({
-    scopes: { tenantId, projectId },
-    evaluatorIds,
-  }));
+  const evals = await withRef(manageDbPool, projectMain, (db) =>
+    getEvaluatorsByIds(db)({
+      scopes: { tenantId, projectId },
+      evaluatorIds,
+    })
+  );
 
   return evals;
 }
@@ -66,9 +68,11 @@ async function executeEvaluatorStep(
 
   const projectMain = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
 
-  const evaluator = await withRef(manageDbPool, projectMain, (db) => getEvaluatorById(db)({
-    scopes: { tenantId, projectId, evaluatorId },
-  }));
+  const evaluator = await withRef(manageDbPool, projectMain, (db) =>
+    getEvaluatorById(db)({
+      scopes: { tenantId, projectId, evaluatorId },
+    })
+  );
 
   if (!evaluator) {
     throw new Error(`Evaluator not found: ${evaluatorId}`);

@@ -353,8 +353,7 @@ describe('Configuration Validation', () => {
 
         // Find the log call with config
         const configLogCall = logCalls.find(
-          (call: any) =>
-            call[0]?.config?.agentsApiKey || call[0]?.mergedConfig?.agentsApiKey
+          (call: any) => call[0]?.config?.agentsApiKey || call[0]?.mergedConfig?.agentsApiKey
         );
 
         expect(configLogCall).toBeDefined();

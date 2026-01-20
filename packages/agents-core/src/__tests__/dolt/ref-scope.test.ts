@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Pool, PoolClient } from 'pg';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 
 vi.mock('../../dolt/branches-api', () => ({
@@ -246,7 +246,6 @@ describe('Ref Scope Module', () => {
           })
         ).rejects.toThrow(NestedRefScopeError);
       });
-
     });
 
     describe('test environment', () => {

@@ -51,6 +51,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { getLogger } from '../../../logger';
 import {
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
   FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS,
@@ -59,7 +60,6 @@ import {
   FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
   FUNCTION_TOOL_SANDBOX_QUEUE_WAIT_TIMEOUT_MS,
 } from '../constants/execution-limits';
-import { getLogger } from '../../../logger';
 import type { SandboxConfig } from '../types/executionContext';
 import { createExecutionWrapper, parseExecutionResult } from './sandbox-utils';
 

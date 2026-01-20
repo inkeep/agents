@@ -1,16 +1,16 @@
-import type { Context, Next } from 'hono';
 import {
-  createApiError,
-  getLogger,
-  ensureBranchExists,
-  isRefWritable,
-  resolveRef,
-  type ResolvedRef,
   type AgentsManageDatabaseClient,
   type BaseExecutionContext,
+  createApiError,
+  ensureBranchExists,
+  getLogger,
   getProjectScopedRef,
   getTenantScopedRef,
+  isRefWritable,
+  type ResolvedRef,
+  resolveRef,
 } from '@inkeep/agents-core';
+import type { Context, Next } from 'hono';
 import { manageDbClient } from 'src/data/db';
 
 const logger = getLogger('ref-middleware');
@@ -120,7 +120,7 @@ export const createRefMiddleware = (
     const path = c.req.path;
     const pathSplit = path.split('/');
 
-    let tenantId = extractTenantId(c);
+    const tenantId = extractTenantId(c);
     let projectId = extractProjectId(c);
 
     // If projectId not in path, try to extract from body for POST/PUT/PATCH requests
@@ -144,7 +144,9 @@ export const createRefMiddleware = (
     }
 
     if (process.env.ENVIRONMENT === 'test') {
-      const defaultBranchName = projectId ? getProjectScopedRef(tenantId, projectId, 'main') : getTenantScopedRef(tenantId, 'main');
+      const defaultBranchName = projectId
+        ? getProjectScopedRef(tenantId, projectId, 'main')
+        : getTenantScopedRef(tenantId, 'main');
       const defaultRef: ResolvedRef = {
         type: 'branch',
         name: defaultBranchName,

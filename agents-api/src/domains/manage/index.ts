@@ -1,16 +1,15 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-
-import userOrganizationsRoutes from './routes/userOrganizations';
-import cliAuthRoutes from './routes/cliAuth';
-import invitationsRoutes from './routes/invitations';
-import crudRoutes from './routes/index';
-import playgroundTokenRoutes from './routes/playgroundToken';
-import signozRoutes from './routes/signoz';
-import projectFullRoutes from './routes/projectFull';
 import type { ManageAppVariables } from '../../types/app';
-import oauthRoutes from './routes/oauth';
-import mcpRoutes from './routes/mcp';
+import cliAuthRoutes from './routes/cliAuth';
 import evalsRoutes from './routes/evals';
+import crudRoutes from './routes/index';
+import invitationsRoutes from './routes/invitations';
+import mcpRoutes from './routes/mcp';
+import oauthRoutes from './routes/oauth';
+import playgroundTokenRoutes from './routes/playgroundToken';
+import projectFullRoutes from './routes/projectFull';
+import signozRoutes from './routes/signoz';
+import userOrganizationsRoutes from './routes/userOrganizations';
 
 export function createManageRoutes() {
   const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();

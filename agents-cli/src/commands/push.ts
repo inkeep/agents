@@ -524,12 +524,7 @@ async function pushSingleProject(
 
     // Set configuration on the project
     if (typeof project.setConfig === 'function') {
-      project.setConfig(
-        config.tenantId,
-        config.agentsApiUrl,
-        undefined,
-        config.agentsApiKey
-      );
+      project.setConfig(config.tenantId, config.agentsApiUrl, undefined, config.agentsApiKey);
     }
 
     // Load environment credentials if --env flag is provided

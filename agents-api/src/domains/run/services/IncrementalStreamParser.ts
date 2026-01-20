@@ -1,10 +1,10 @@
 import type { FullExecutionContext, ResolvedRef } from '@inkeep/agents-core';
+import { getLogger } from '../../../logger';
 import {
   STREAM_PARSER_MAX_COLLECTED_PARTS,
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,
   STREAM_PARSER_MAX_STREAMED_SIZE,
 } from '../constants/execution-limits';
-import { getLogger } from '../../../logger';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { agentSessionManager } from './AgentSession';

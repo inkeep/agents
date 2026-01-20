@@ -10,21 +10,21 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
-import { resolveModelConfig } from '../utils/model-resolver.js';
-import { tracer } from '../utils/tracer.js';
+import runDbClient from '../../../data/db/runDbClient.js';
+import { flushBatchProcessor } from '../../../instrumentation.js';
+import { getLogger } from '../../../logger.js';
+import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
-import runDbClient from '../../../data/db/runDbClient.js';
-import { flushBatchProcessor } from '../../../instrumentation.js';
-import { getLogger } from '../../../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
+import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -527,7 +527,8 @@ export class ExecutionHandler {
               logger.info({}, 'ExecutionHandler returning success');
               // Trigger evaluation
               if (!params.datasetRunId) {
-                triggerConversationEvaluation({tenantId,
+                triggerConversationEvaluation({
+                  tenantId,
                   projectId,
                   conversationId,
                   resolvedRef,

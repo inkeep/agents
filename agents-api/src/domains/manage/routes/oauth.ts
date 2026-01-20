@@ -26,6 +26,7 @@ import {
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
 import { oauthService, retrievePKCEVerifier } from '../../../utils/oauthService';
+
 /**
  * Find existing credential or create a new one (idempotent operation)
  */

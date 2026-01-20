@@ -10,8 +10,8 @@ import type {
   FullProjectSelectWithRelationIds,
   ToolApiSelect,
 } from '@inkeep/agents-core';
-import { generateDescriptionWithRelationData } from '../data/agents';
 import { getLogger } from '../../../logger';
+import { generateDescriptionWithRelationData } from '../data/agents';
 
 const logger = getLogger('project-helper');
 

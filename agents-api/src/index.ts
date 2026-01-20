@@ -3,13 +3,14 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
-import { createAgentsAuth } from './factory';
 import { createAgentsHono } from './createApp';
 import { env } from './env';
-import { createAuth0Provider } from './ssoHelpers';
-import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
+import { createAgentsAuth } from './factory';
 import { initializeDefaultUser } from './initialization';
+import { createAuth0Provider } from './ssoHelpers';
+
 export type { AppConfig, AppVariables } from './types';
 
 // Re-export Hono to ensure it's not tree-shaken (required for Vercel framework detection)
@@ -18,9 +19,9 @@ export { Hono };
 // Re-export everything from factory for backward compatibility
 export type { SSOProviderConfig, UserAuthConfig } from './factory';
 export {
-  createAuth0Provider,
   createAgentsApp,
   createAgentsHono,
+  createAuth0Provider,
   createOIDCProvider,
   initializeDefaultUser,
 } from './factory';

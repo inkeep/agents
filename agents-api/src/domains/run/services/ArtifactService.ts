@@ -7,9 +7,9 @@ import {
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
-import { toolSessionManager } from '../agents/ToolSessionManager';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   type ExtendedJsonSchema,
   extractFullFields,

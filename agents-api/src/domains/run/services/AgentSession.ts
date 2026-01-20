@@ -17,6 +17,8 @@ import {
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateText, Output } from 'ai';
+import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
@@ -28,8 +30,6 @@ import {
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
-import runDbClient from '../../../data/db/runDbClient';
-import { getLogger } from '../../../logger';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';

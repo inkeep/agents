@@ -1,7 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import {
@@ -15,12 +12,15 @@ import {
   type ResolvedRef,
   updateConversation,
 } from '@inkeep/agents-core';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
-import { contextValidationMiddleware, handleContextResolution } from '../context';
 import runDbClient from '../../../data/db/runDbClient';
-import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../../../logger';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
+import { ExecutionHandler } from '../handlers/executionHandler';
 import { createMCPStreamHelper } from '../utils/stream-helpers';
 
 const logger = getLogger('mcp');

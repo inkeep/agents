@@ -128,7 +128,6 @@ export async function profileAddCommand(name?: string): Promise<void> {
         process.exit(0);
       }
 
-
       remote = {
         api,
         manageUi,

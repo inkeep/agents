@@ -15,11 +15,11 @@ import {
   updateEvaluationResult,
   withRef,
 } from '@inkeep/agents-core';
+import { manageDbClient } from 'src/data/db';
+import manageDbPool from 'src/data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
-import { manageDbClient } from 'src/data/db';
-import manageDbPool from 'src/data/db/manageDbPool';
 
 const logger = getLogger('workflow-run-dataset-item');
 
@@ -140,7 +140,6 @@ async function executeEvaluatorStep(
 ) {
   'use step';
 
-
   const ref = getProjectScopedRef(tenantId, projectId, 'main');
   const resolvedRef = await resolveRef(manageDbClient)(ref);
 
@@ -148,9 +147,11 @@ async function executeEvaluatorStep(
     throw new Error('Failed to resolve ref');
   }
 
-  const evaluator = await withRef(manageDbPool, resolvedRef, (db) => getEvaluatorById(db)({
-    scopes: { tenantId, projectId, evaluatorId },
-  }));
+  const evaluator = await withRef(manageDbPool, resolvedRef, (db) =>
+    getEvaluatorById(db)({
+      scopes: { tenantId, projectId, evaluatorId },
+    })
+  );
 
   if (!evaluator) {
     logger.warn({ evaluatorId }, 'Evaluator not found');

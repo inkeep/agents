@@ -9,13 +9,12 @@ import {
   type DataComponentApiInsert,
   type FullExecutionContext,
   generateId,
+  getFunctionToolsForSubAgent,
   getLedgerArtifacts,
   JsonTransformer,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
-  withRef,
-  getFunctionToolsForSubAgent,
   MCPTransportType,
   McpClient,
   type McpServerConfig,
@@ -28,6 +27,7 @@ import {
   type ResolvedRef,
   type SubAgentStopWhen,
   TemplateEngine,
+  withRef,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
@@ -39,6 +39,9 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
+import manageDbPool from 'src/data/db/manageDbPool';
+import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
@@ -53,8 +56,6 @@ import {
   createDefaultConversationHistoryConfig,
   getConversationHistoryWithCompression,
 } from '../data/conversations';
-import runDbClient from '../../../data/db/runDbClient';
-import { getLogger } from '../../../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
@@ -82,7 +83,6 @@ import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { Phase1Config, V1_BREAKDOWN_SCHEMA } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
-import manageDbPool from 'src/data/db/manageDbPool';
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names
@@ -2126,7 +2126,6 @@ export class Agent {
 
     return processedTools;
   }
-
 
   /**
    * Format tool result for storage in conversation history

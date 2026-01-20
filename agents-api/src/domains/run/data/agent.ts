@@ -3,9 +3,9 @@ import type {
   AgentWithinContextOfProjectSelectWithRelationIds,
   FullExecutionContext,
 } from '@inkeep/agents-core';
-import { getAgentFromProject, getSubAgentFromProject } from '../utils/project';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
+import { getAgentFromProject, getSubAgentFromProject } from '../utils/project';
 
 // Hydrate agent function
 async function hydrateAgent({

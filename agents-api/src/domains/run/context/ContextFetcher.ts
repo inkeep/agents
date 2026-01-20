@@ -3,9 +3,9 @@ import {
   CredentialStuffer,
   type FullExecutionContext,
   getLogger,
+  JsonTransformer,
   type TemplateContext,
   TemplateEngine,
-  JsonTransformer,
 } from '@inkeep/agents-core';
 import { validateAgainstJsonSchema } from './validation';
 

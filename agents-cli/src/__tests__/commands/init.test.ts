@@ -70,7 +70,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant-123') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });
@@ -107,7 +107,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('new-tenant-456') // tenantId
-        .mockResolvedValueOnce('https://agents-api.example.com') // apiUrl
+        .mockResolvedValueOnce('https://agents-api.example.com'); // apiUrl
       vi.mocked(p.confirm).mockResolvedValueOnce(true); // overwrite
       vi.mocked(p.isCancel).mockReturnValue(false);
 
@@ -211,7 +211,7 @@ describe('Init Command', () => {
       // Mock clack prompts
       vi.mocked(p.text)
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ path: './custom/path', local: true });
@@ -232,7 +232,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       vi.mocked(writeFileSync).mockImplementation(() => {
@@ -262,7 +262,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant-123') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });
@@ -302,7 +302,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });
@@ -346,7 +346,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });

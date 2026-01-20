@@ -407,7 +407,13 @@ export const getMcpToolById =
     if (!tool) {
       return null;
     }
-    return await dbResultToMcpTool(tool, db, params.credentialStoreRegistry, params.relationshipId, params.userId);
+    return await dbResultToMcpTool(
+      tool,
+      db,
+      params.credentialStoreRegistry,
+      params.relationshipId,
+      params.userId
+    );
   };
 
 export const listTools =

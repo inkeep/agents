@@ -13,7 +13,12 @@ export async function queueEvaluationJobConversations(params: {
   evaluationJobConfigId: string;
   evaluatorIds: string[];
   jobFilters: EvaluationJobFilterCriteria | null | undefined;
-}): Promise<{ conversationCount: number; queued: number; failed: number; evaluationRunId: string }> {
+}): Promise<{
+  conversationCount: number;
+  queued: number;
+  failed: number;
+  evaluationRunId: string;
+}> {
   const { tenantId, projectId, evaluationJobConfigId, evaluatorIds, jobFilters } = params;
 
   const conversations = await filterConversationsForJob(runDbClient)({
@@ -61,5 +66,3 @@ export async function queueEvaluationJobConversations(params: {
     evaluationRunId: evaluationRun.id,
   };
 }
-
-

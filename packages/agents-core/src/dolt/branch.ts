@@ -1,7 +1,7 @@
+import { logger } from '@composio/core';
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltHashOf } from './commit';
-import { logger } from '@composio/core';
 import { resolveRef } from './ref-helpers';
 
 export type branchScopes = {
@@ -99,7 +99,7 @@ export const ensureBranchExists = async (
   const existingBranch = await resolveRef(db)(branchName);
   if (existingBranch) {
     logger.debug({ branchName }, 'Branch already exists, skipping creation');
-    return; 
+    return;
   }
 
   try {

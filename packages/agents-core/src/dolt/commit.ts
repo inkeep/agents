@@ -206,5 +206,3 @@ export const doltListTags =
     const result = await db.execute(sql`SELECT * FROM dolt_tags`);
     return result.rows as any[];
   };
-
-

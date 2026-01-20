@@ -1,10 +1,10 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { createApiError } from '../utils/error';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { doltListBranches } from './branch';
 import { checkoutBranch } from './branches-api';
 import { doltHashOf, doltListTags } from './commit';
-import { createApiError } from '../utils/error';
 
 export type RefType = 'commit' | 'tag' | 'branch';
 
@@ -93,16 +93,13 @@ export const getCurrentBranchOrCommit =
     };
   };
 
-
 export const getProjectMainResolvedRef =
   (db: AgentsManageDatabaseClient) =>
-  async (tenantId:string, projectId: string): Promise<ResolvedRef> => {
+  async (tenantId: string, projectId: string): Promise<ResolvedRef> => {
     const projectMain = `${tenantId}_${projectId}_main`;
     const resolvedRef = await resolveRef(db)(projectMain);
     if (!resolvedRef) {
-      throw new Error(
-        `Project main branch not found: ${projectMain}`
-      );
+      throw new Error(`Project main branch not found: ${projectMain}`);
     }
     return resolvedRef;
   };

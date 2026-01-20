@@ -13,21 +13,21 @@ import {
   filterConversationsForJob,
   generateId,
   getConversationHistory,
-  getFullAgent,
-  ModelFactory,
-  resolveRef,
-  withRef,
-  updateEvaluationResult,
-  getProjectScopedRef,
   getEvaluationJobConfigById,
   getEvaluationJobConfigEvaluatorRelations,
   getEvaluatorById,
+  getFullAgent,
+  getProjectScopedRef,
+  ModelFactory,
+  resolveRef,
+  updateEvaluationResult,
+  withRef,
 } from '@inkeep/agents-core';
 import { generateObject, generateText } from 'ai';
 import { z } from 'zod';
-import runDbClient from '../../../data/db/runDbClient';
 import manageDbClient from '../../../data/db/manageDbClient';
 import manageDbPool from '../../../data/db/manageDbPool';
+import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 
@@ -725,28 +725,35 @@ Generate the next user message:`;
     );
 
     // Get the evaluation job config
-    const config = await withRef(manageDbPool, resolvedRef, (db) => getEvaluationJobConfigById(db)({
-      scopes: { tenantId, projectId, evaluationJobConfigId },
-    }));
+    const config = await withRef(manageDbPool, resolvedRef, (db) =>
+      getEvaluationJobConfigById(db)({
+        scopes: { tenantId, projectId, evaluationJobConfigId },
+      })
+    );
 
     if (!config) {
       throw new Error(`Evaluation job config not found: ${evaluationJobConfigId}`);
     }
 
     // Get evaluators for this job
-    const evaluatorRelations =
-      await withRef(manageDbPool, resolvedRef, (db) => getEvaluationJobConfigEvaluatorRelations(db)({
+    const evaluatorRelations = await withRef(manageDbPool, resolvedRef, (db) =>
+      getEvaluationJobConfigEvaluatorRelations(db)({
         scopes: { tenantId, projectId, evaluationJobConfigId },
-      }));
+      })
+    );
 
     if (evaluatorRelations.length === 0) {
       throw new Error(`No evaluators found for job config: ${evaluationJobConfigId}`);
     }
 
     const evaluators = await Promise.all(
-      evaluatorRelations.map((relation) => withRef(manageDbPool, resolvedRef, (db) => getEvaluatorById(db)({
-        scopes: { tenantId, projectId, evaluatorId: relation.evaluatorId },
-      })))
+      evaluatorRelations.map((relation) =>
+        withRef(manageDbPool, resolvedRef, (db) =>
+          getEvaluatorById(db)({
+            scopes: { tenantId, projectId, evaluatorId: relation.evaluatorId },
+          })
+        )
+      )
     );
 
     const validEvaluators = evaluators.filter((e): e is NonNullable<typeof e> => e !== null);
@@ -976,9 +983,11 @@ Generate the next user message:`;
 
       if (agentId) {
         const agentIdForLookup = agentId;
-        agentDefinition = await withRef(manageDbPool, resolvedRef, (db) => getFullAgent(db)({
-          scopes: { tenantId, projectId, agentId: agentIdForLookup },
-        }));
+        agentDefinition = await withRef(manageDbPool, resolvedRef, (db) =>
+          getFullAgent(db)({
+            scopes: { tenantId, projectId, agentId: agentIdForLookup },
+          })
+        );
       } else {
         logger.warn(
           { conversationId: conversation.id, agentId: conversation.agentId },

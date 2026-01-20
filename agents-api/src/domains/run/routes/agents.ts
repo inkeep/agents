@@ -6,9 +6,9 @@ import {
   type ResolvedRef,
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
+import { getLogger } from '../../../logger';
 import { a2aHandler } from '../a2a/handlers';
 import { getRegisteredAgent } from '../data/agents';
-import { getLogger } from '../../../logger';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;

@@ -10,14 +10,14 @@ import {
   getLedgerArtifacts,
   type ResolvedRef,
 } from '@inkeep/agents-core';
+import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import {
   CONVERSATION_ARTIFACTS_LIMIT,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
-import { getLogger } from '../../../logger';
 import { ConversationCompressor } from '../services/ConversationCompressor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
-import runDbClient from '../../../data/db/runDbClient';
 
 const logger = getLogger('conversations');
 

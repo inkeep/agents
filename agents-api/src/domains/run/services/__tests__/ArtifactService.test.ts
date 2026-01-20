@@ -240,9 +240,7 @@ describe('ArtifactService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      listTaskIdsByContextIdMock.mockReturnValue(() =>
-        Promise.reject(new Error('Database error'))
-      );
+      listTaskIdsByContextIdMock.mockReturnValue(() => Promise.reject(new Error('Database error')));
 
       const result = await artifactService.getContextArtifacts('test-context');
 
@@ -488,9 +486,7 @@ describe('ArtifactService', () => {
 
     it('should handle database errors gracefully', async () => {
       agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
-      getLedgerArtifactsMock.mockReturnValue(() =>
-        Promise.reject(new Error('Database error'))
-      );
+      getLedgerArtifactsMock.mockReturnValue(() => Promise.reject(new Error('Database error')));
 
       const result = await artifactService.getArtifactSummary('test-artifact', 'test-tool-call');
 

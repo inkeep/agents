@@ -1,5 +1,4 @@
 import {
-  withRef,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   type FullExecutionContext,
@@ -9,9 +8,11 @@ import {
   type Part,
   type SubAgentApiSelect,
   TaskState,
+  withRef,
 } from '@inkeep/agents-core';
-import type { A2ATask, A2ATaskResult } from '../a2a/types';
+import manageDbPool from 'src/data/db/manageDbPool';
 import { getLogger } from '../../../logger';
+import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { agentSessionManager } from '../services/AgentSession';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
 import { resolveModelConfig } from '../utils/model-resolver';
@@ -26,7 +27,6 @@ import {
 import { Agent } from './Agent';
 import { buildTransferRelationConfig } from './relationTools';
 import { toolSessionManager } from './ToolSessionManager';
-import manageDbPool from 'src/data/db/manageDbPool';
 
 const logger = getLogger('generateTaskHandler');
 

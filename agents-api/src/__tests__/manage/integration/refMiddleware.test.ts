@@ -1,4 +1,4 @@
-import { doltBranch, doltHashOf, generateId, doltTag, doltBranchExists } from '@inkeep/agents-core';
+import { doltBranch, doltBranchExists, doltHashOf, doltTag, generateId } from '@inkeep/agents-core';
 import { afterEach, describe, expect, it } from 'vitest';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { cleanupTenants } from '../../utils/cleanup';

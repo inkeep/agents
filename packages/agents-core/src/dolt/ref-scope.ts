@@ -3,8 +3,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import * as schema from '../db/manage/manage-schema';
-import { getLogger } from '../utils/logger';
 import { generateId } from '../utils/conversations';
+import { getLogger } from '../utils/logger';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutBranch } from './branches-api';
 
@@ -23,7 +23,6 @@ interface RefScopeContext {
  * AsyncLocalStorage to track active ref scope and detect nesting
  */
 const refScopeStorage = new AsyncLocalStorage<RefScopeContext>();
-
 
 /**
  * Error thrown when nested withRef calls are detected with different refs
@@ -78,7 +77,7 @@ export class NestedRefScopeError extends Error {
 export async function withRef<T>(
   pool: Pool,
   resolvedRef: ResolvedRef,
-  dataAccessFn: (db: AgentsManageDatabaseClient) => Promise<T>,
+  dataAccessFn: (db: AgentsManageDatabaseClient) => Promise<T>
 ): Promise<T> {
   const startTime = Date.now();
   const connectionId = generateId();
@@ -101,7 +100,9 @@ export async function withRef<T>(
     const connection = await pool.connect();
     try {
       const db = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
-      return await refScopeStorage.run({ db, ref: resolvedRef.name, connectionId }, () => dataAccessFn(db));
+      return await refScopeStorage.run({ db, ref: resolvedRef.name, connectionId }, () =>
+        dataAccessFn(db)
+      );
     } finally {
       connection.release();
     }

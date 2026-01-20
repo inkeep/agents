@@ -4,9 +4,9 @@ import type {
   FullExecutionContext,
   SubAgentSelect,
 } from '@inkeep/agents-core';
+import { getLogger } from '../../../logger';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
-import { getLogger } from '../../../logger';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
 import { getSubAgentFromProject } from '../utils/project';
 

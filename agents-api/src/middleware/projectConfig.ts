@@ -1,13 +1,13 @@
 import {
   type FullExecutionContext,
+  getFullProjectWithRelationIds,
   ManageApiError,
   type ResolvedRef,
-  getFullProjectWithRelationIds,
   withRef,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
-import { getLogger } from '../logger';
 import manageDbPool from '../data/db/manageDbPool';
+import { getLogger } from '../logger';
 
 const logger = getLogger('projectConfigMiddleware');
 

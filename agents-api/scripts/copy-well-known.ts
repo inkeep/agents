@@ -10,4 +10,3 @@ if (!existsSync(src)) {
 
 mkdirSync(dirname(dest), { recursive: true });
 cpSync(src, dest, { recursive: true });
-

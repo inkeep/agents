@@ -7,15 +7,18 @@ import {
   type FullExecutionContext,
   generateId,
   generateServiceToken,
+  getMcpToolById,
   headers,
-  withRef,
   type McpTool,
   SPAN_KEYS,
   TemplateEngine,
-  getMcpToolById,
+  withRef,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
+import manageDbPool from 'src/data/db/manageDbPool';
+import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import { A2AClient } from '../a2a/client';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
@@ -25,8 +28,6 @@ import {
 } from '../constants/execution-limits';
 import { ContextResolver } from '../context';
 import { saveA2AMessageResponse } from '../data/conversations';
-import runDbClient from '../../../data/db/runDbClient';
-import { getLogger } from '../../../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { getUserIdFromContext } from '../types/executionContext';
 import {
@@ -37,7 +38,6 @@ import {
 } from '../utils/project';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
-import manageDbPool from 'src/data/db/manageDbPool';
 
 const logger = getLogger('relationships Tools');
 

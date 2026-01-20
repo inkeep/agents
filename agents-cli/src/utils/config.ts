@@ -54,7 +54,7 @@ function isNestedConfig(config: any): config is {
   manageUiUrl?: string;
   outputDirectory?: string;
 } {
-  return config && (config.agentsApi !== undefined);
+  return config && config.agentsApi !== undefined;
 }
 
 /**

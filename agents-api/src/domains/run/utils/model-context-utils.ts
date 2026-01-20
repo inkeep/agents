@@ -1,11 +1,11 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { ModelInfoMap } from 'llm-info';
+import { getLogger } from '../../../logger';
 import {
   COMPRESSION_ENABLED,
   COMPRESSION_HARD_LIMIT,
   COMPRESSION_SAFETY_BUFFER,
 } from '../constants/execution-limits';
-import { getLogger } from '../../../logger';
 
 const logger = getLogger('ModelContextUtils');
 

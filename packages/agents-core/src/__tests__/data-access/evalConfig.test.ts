@@ -99,5 +99,3 @@ describe('Eval config data access', () => {
     });
   });
 });
-
-

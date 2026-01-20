@@ -2,8 +2,8 @@ import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import { createTestAgentDataComponentData } from '../../../utils/testHelpers';
-import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
+import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Agent Data Component CRUD Routes - Integration Tests', () => {

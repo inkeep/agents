@@ -3,8 +3,8 @@ import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import { createTestAgentToolRelationData } from '../../../utils/testHelpers';
-import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
+import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 // Mock the MCP client to avoid external dependencies

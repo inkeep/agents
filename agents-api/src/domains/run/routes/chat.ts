@@ -12,10 +12,10 @@ import {
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
-import { contextValidationMiddleware, handleContextResolution } from '../context';
 import runDbClient from '../../../data/db/runDbClient';
-import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../../../logger';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
+import { ExecutionHandler } from '../handlers/executionHandler';
 import type { ContentItem, Message } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
@@ -365,7 +365,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           if (clientTimezone && clientTimestamp) {
             // Validate timezone format
             const isValidTimezone =
-              clientTimezone.length < 100 && /^[A-Za-z0-9_\/\-\+]+$/.test(clientTimezone);
+              clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
             // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
             const isValidTimestamp =
               clientTimestamp.length < 50 &&

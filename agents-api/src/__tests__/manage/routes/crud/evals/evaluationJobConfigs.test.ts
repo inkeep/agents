@@ -1,4 +1,3 @@
-import { generateId } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../../data/db/manageDbClient';
@@ -19,7 +18,7 @@ vi.mock('src/domains/evals/services/evaluationJob', () => {
 describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
-  const createJobConfigData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
+  const createJobConfigData = (): any => ({
     jobFilters: {
       agentIds: ['agent-1', 'agent-2'],
       startDate: '2024-01-01T00:00:00Z',
@@ -48,11 +47,9 @@ describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
 
   const createTestJobConfig = async ({
     tenantId,
-    suffix = '',
     evaluatorIds,
   }: {
     tenantId: string;
-    suffix?: string;
     evaluatorIds?: string[];
   }) => {
     // Ensure at least one evaluator is provided (required by schema)
@@ -61,7 +58,7 @@ describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
       const { evaluatorId } = await createTestEvaluator({ tenantId });
       finalEvaluatorIds = [evaluatorId];
     }
-    const configData = { ...createJobConfigData({ suffix }), evaluatorIds: finalEvaluatorIds };
+    const configData = { ...createJobConfigData(), evaluatorIds: finalEvaluatorIds };
     const createRes = await makeRequest(
       `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`,
       {
@@ -90,8 +87,8 @@ describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
     it('should list job configs after creation', async () => {
       const tenantId = await createTestTenantWithOrg('job-list-created');
       await createTestProject(manageDbClient, tenantId, projectId);
-      await createTestJobConfig({ tenantId, suffix: '-1' });
-      await createTestJobConfig({ tenantId, suffix: '-2' });
+      await createTestJobConfig({ tenantId });
+      await createTestJobConfig({ tenantId });
 
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`

@@ -1,6 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   dataset,
   datasetItem,
@@ -14,6 +13,7 @@ import {
   evaluationSuiteConfigEvaluatorRelations,
   evaluator,
 } from '../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { datasetRun } from '../../db/runtime/runtime-schema';
 import type {
   DatasetInsert,
@@ -810,7 +810,9 @@ export const listEvaluationRunConfigs =
 
 export const listEvaluationRunConfigsWithSuiteConfigs =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationRunConfigWithSuiteConfigs[]> => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+  }): Promise<EvaluationRunConfigWithSuiteConfigs[]> => {
     const rows = await db
       .select({
         runConfig: evaluationRunConfig,
@@ -844,14 +846,14 @@ export const listEvaluationRunConfigsWithSuiteConfigs =
     const runConfigsById = new Map<string, EvaluationRunConfigWithSuiteConfigs>();
 
     for (const row of rows) {
-      const runConfig = row.runConfig
-      const runConfigId = runConfig.id
+      const runConfig = row.runConfig;
+      const runConfigId = runConfig.id;
 
       if (!runConfigsById.has(runConfigId)) {
         const { tenantId: _tenantId, projectId: _projectId, ...apiRunConfig } = runConfig;
 
         runConfigsById.set(runConfigId, {
-          ...(apiRunConfig),
+          ...apiRunConfig,
           suiteConfigIds: [],
         });
       }

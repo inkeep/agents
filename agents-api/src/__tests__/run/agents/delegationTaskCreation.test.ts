@@ -3,7 +3,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import runDbClient from '../../../data/db/runDbClient';
 
 describe('Delegation Task Creation Fixes', () => {
-  const tenantId = 'math-tenant';
   const projectId = 'default';
   let conversationId: string;
 

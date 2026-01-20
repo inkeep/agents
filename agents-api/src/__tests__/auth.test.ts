@@ -1,6 +1,6 @@
+import type { UserAuthConfig } from '@inkeep/agents-core/auth';
 import { describe, expect, it, vi } from 'vitest';
 import { createAgentsApp } from '../index';
-import type { UserAuthConfig } from '@inkeep/agents-core/auth';
 
 vi.mock('../../env', () => ({
   env: {
