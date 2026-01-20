@@ -14,6 +14,8 @@ import { fetchProject } from '@/lib/api/projects';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
+import { cn } from '@/lib/utils';
+import { getTrigger } from '@/lib/api/triggers';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
@@ -96,6 +98,10 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     async runs(_id) {
       return 'Run';
     },
+    async triggers(id) {
+      const trigger = await getTrigger(tenantId, projectId, slug[3], id);
+      return trigger.name;
+    },
   };
 
   function addCrumb({ segment, label }: { segment: string; label: string }) {
@@ -147,11 +153,12 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
       <li
         key={href}
         aria-current={isLast ? 'page' : undefined}
-        className={
+        className={cn(
+          'shrink-0',
           isLast
             ? 'font-medium text-foreground'
             : 'after:ml-2 after:content-["›"] after:text-muted-foreground/60'
-        }
+        )}
       >
         {isLast ? (
           label

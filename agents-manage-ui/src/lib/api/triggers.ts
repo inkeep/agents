@@ -14,6 +14,7 @@ import type {
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
+import { cache } from 'react';
 
 // Re-export types from core package for convenience
 export type Trigger = TriggerApiSelect & {
@@ -40,7 +41,7 @@ export async function fetchTriggers(
 /**
  * Get a single trigger by ID
  */
-export async function getTrigger(
+async function $getTrigger(
   tenantId: string,
   projectId: string,
   agentId: string,
@@ -55,6 +56,8 @@ export async function getTrigger(
 
   return response.data;
 }
+
+export const getTrigger = cache($getTrigger);
 
 /**
  * Create a new trigger (POST)

@@ -34,4 +34,5 @@ export const STATIC_LABELS = Object.freeze({
   datasets: 'Test Suites',
   runs: 'Runs',
   triggers: 'Triggers',
+  invocations: 'Invocations',
 });

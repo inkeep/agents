@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 import { InvocationsTable } from '@/components/triggers/invocations-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
@@ -47,23 +46,7 @@ export default async function InvocationsPage({
   );
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: agent.data?.name || 'Agent',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        },
-        {
-          label: 'Triggers',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        {
-          label: trigger.name,
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        'Invocations',
-      ]}
-    >
+    <>
       <PageHeader
         title={`Invocations for ${trigger.name}`}
         description="View the history of webhook invocations for this trigger."
@@ -80,6 +63,6 @@ export default async function InvocationsPage({
         projectId={projectId}
         currentStatus={status}
       />
-    </BodyTemplate>
+    </>
   );
 }

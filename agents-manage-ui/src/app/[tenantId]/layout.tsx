@@ -14,7 +14,7 @@ const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
             <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground hover:bg-accent dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-accent/50" />
             <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
             <nav aria-label="Breadcrumb">
-              <ol className="text-sm text-muted-foreground flex items-center gap-2">
+              <ol className="text-sm text-muted-foreground flex items-center gap-2 overflow-y-auto">
                 {breadcrumbs}
               </ol>
             </nav>
