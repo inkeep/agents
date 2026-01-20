@@ -1,0 +1,56 @@
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: claude-proxy
+    volumes:
+      - ./squid.conf:/etc/squid/squid.conf:ro
+      - squid-certs:/certs
+    networks:
+      - external-net
+      - internal-net
+    restart: unless-stopped
+    # Copy cert to shared volume on startup
+    entrypoint: ["/bin/bash", "-c", "cp /etc/squid/ssl/squid-ca.crt /certs/ && chmod 644 /certs/squid-ca.crt && exec squid -N"]
+
+  claude-sandbox:
+    image: docker/sandbox-templates:claude-code
+    container_name: claude-sandbox
+    environment:
+      - HTTP_PROXY=http://proxy:3128
+      - HTTPS_PROXY=http://proxy:3128
+      - http_proxy=http://proxy:3128
+      - https_proxy=http://proxy:3128
+      - NO_PROXY=localhost,127.0.0.1
+      # ANTHROPIC_API_KEY not needed if Claude is signed in
+      # Auth is stored in the claude-data volume
+      - NODE_EXTRA_CA_CERTS=/certs/squid-ca.crt
+      - REQUESTS_CA_BUNDLE=/certs/squid-ca.crt
+      - SSL_CERT_FILE=/certs/squid-ca.crt
+    volumes:
+      - ..:/workspace
+      - claude-data:/home/user/.claude
+      - squid-certs:/certs:ro
+    working_dir: /workspace
+    networks:
+      - internal-net
+    depends_on:
+      - proxy
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash
+    deploy:
+      resources:
+        limits:
+          memory: 14G
+
+networks:
+  internal-net:
+    internal: true
+  external-net:
+    internal: false
+
+volumes:
+  claude-data:
+  squid-certs:

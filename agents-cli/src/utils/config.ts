@@ -386,19 +386,25 @@ export async function validateConfiguration(
   const actualConfigFile = configPath || findConfigFile(process.cwd(), tag);
 
   // Load CLI credentials as fallback for API key and tenant ID
+  // Skip keychain access in CI to avoid hanging on unavailable keychain services
   let cliCredentials: { accessToken: string; organizationId: string } | null = null;
-  try {
-    const credentials = await loadCredentials();
-    if (credentials?.accessToken && credentials.organizationId) {
-      cliCredentials = {
-        accessToken: credentials.accessToken,
-        organizationId: credentials.organizationId,
-      };
-      logger.info({}, 'CLI credentials available for fallback');
+  const isCI = process.env.CI === 'true' || process.env.CI === '1' || !!process.env.GITHUB_ACTIONS;
+  if (!isCI) {
+    try {
+      const credentials = await loadCredentials();
+      if (credentials?.accessToken && credentials.organizationId) {
+        cliCredentials = {
+          accessToken: credentials.accessToken,
+          organizationId: credentials.organizationId,
+        };
+        logger.info({}, 'CLI credentials available for fallback');
+      }
+    } catch {
+      // Ignore errors loading credentials - keychain might not be available
+      logger.debug({}, 'Could not load CLI credentials');
     }
-  } catch {
-    // Ignore errors loading credentials - keychain might not be available
-    logger.debug({}, 'Could not load CLI credentials');
+  } else {
+    logger.debug({}, 'Skipping keychain credential loading in CI environment');
   }
 
   // Use CLI credentials as fallback for API key if not specified in config

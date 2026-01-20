@@ -337,7 +337,7 @@ export function EvaluationRunConfigFormDialog({
                       emptyStateMessage="No agents available."
                       emptyStateActionText="Create agent"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
-                      placeholder="Select agents to filter..."
+                      placeholder="Select agents to evaluate..."
                     />
                     <div className="text-xs text-muted-foreground">
                       Select which agents to evaluate. Leave empty to evaluate all agents.
@@ -391,7 +391,7 @@ export function EvaluationRunConfigFormDialog({
                 name="sampleRate"
                 label="Sample Rate"
                 type="number"
-                placeholder="0.1"
+                placeholder="1.0"
                 description="Sample rate for evaluation (0.0 to 1.0). For example, 0.1 means 10% of conversations will be evaluated. If not set, all conversations will be evaluated."
               />
             </div>

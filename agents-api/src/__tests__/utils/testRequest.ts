@@ -15,8 +15,8 @@ export const makeRequest = async (url: string, options: TestRequestOptions = {})
     headers: {
       'Content-Type': 'application/json',
       // Include bypass secret if configured (for authentication in tests)
-      ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-        Authorization: `Bearer ${env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+      ...(env.INKEEP_AGENTS_API_BYPASS_SECRET && {
+        Authorization: `Bearer ${env.INKEEP_AGENTS_API_BYPASS_SECRET}`,
       }),
       ...customHeaders,
       ...requestOptions.headers,

@@ -18,12 +18,13 @@ import {
   playgroundCorsConfig,
   requireTenantAccess,
   runApiKeyAuth,
+  runApiKeyAuthExcept,
   runCorsConfig,
   signozCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { evalApiKeyAuth } from './middleware/evalsAuth';
-import { projectConfigMiddleware } from './middleware/projectConfig';
+import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
 import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from './middleware/ref';
 import { sessionAuth, sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
@@ -33,6 +34,11 @@ import type { AppConfig, AppVariables } from './types';
 const logger = getLogger('agents-api');
 
 const isTestEnvironment = () => env.ENVIRONMENT === 'test';
+
+// Helper to check if a path is a webhook/trigger route (no API key auth required)
+export const isWebhookRoute = (path: string) => {
+  return path.includes('/triggers/') && !path.endsWith('/triggers') && !path.endsWith('/triggers/');
+};
 
 function createAgentsHono(config: AppConfig) {
   const { serverConfig, credentialStores, auth, sandboxConfig } = config;
@@ -208,7 +214,7 @@ function createAgentsHono(config: AppConfig) {
   }
 
   // Apply API key authentication to all protected run routes
-  app.use('/run/tenants/*', runApiKeyAuth());
+  app.use('/run/tenants/*', runApiKeyAuthExcept(isWebhookRoute));
   app.use('/run/agents/*', runApiKeyAuth());
   app.use('/run/v1/*', runApiKeyAuth());
   app.use('/run/api/*', runApiKeyAuth());
@@ -224,7 +230,10 @@ function createAgentsHono(config: AppConfig) {
   app.use('/run/*', async (c, next) => runRefMiddleware(c, next));
 
   // Fetch project config upfront for authenticated execution routes
-  app.use('/run/*', projectConfigMiddleware);
+  app.use('/run/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
+  app.use('/run/agents/*', projectConfigMiddleware);
+  app.use('/run/v1/*', projectConfigMiddleware);
+  app.use('/run/api/*', projectConfigMiddleware);
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('/run/*', async (c, next) => {

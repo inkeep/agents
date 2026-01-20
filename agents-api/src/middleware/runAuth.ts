@@ -311,92 +311,116 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   return { authResult: null, failureMessage: teamAttempt.failureMessage };
 }
 
+/**
+ * Core authentication handler that can be reused across middleware
+ */
+async function runApiKeyAuthHandler(
+  c: { req: any; set: (key: 'executionContext', value: BaseExecutionContext) => void },
+  next: () => Promise<void>
+): Promise<void> {
+  if (c.req.method === 'OPTIONS') {
+    await next();
+    return;
+  }
+
+  const reqData = extractRequestData(c);
+  const isDev = process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test';
+
+  // Development/test environment handling
+  if (isDev) {
+    logger.info({}, 'development environment');
+
+    const attempt = await authenticateRequest(reqData);
+
+    if (attempt.authResult) {
+      c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+    } else {
+      logger.info(
+        {},
+        reqData.apiKey
+          ? 'Development/test environment - fallback to default context due to invalid API key'
+          : 'Development/test environment - no API key provided, using default context'
+      );
+      c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
+    }
+
+    await next();
+    return;
+  }
+
+  // Production environment - require valid auth
+  if (!reqData.authHeader || !reqData.authHeader.startsWith('Bearer ')) {
+    throw new HTTPException(401, {
+      message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
+    });
+  }
+
+  if (!reqData.apiKey || reqData.apiKey.length < 16) {
+    throw new HTTPException(401, {
+      message: 'Invalid API key format',
+    });
+  }
+
+  let attempt: AuthAttempt = { authResult: null };
+  try {
+    attempt = await authenticateRequest(reqData);
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    logger.error({ error }, 'Authentication failed');
+    throw new HTTPException(500, { message: 'Authentication failed' });
+  }
+
+  if (!attempt.authResult) {
+    logger.error({}, 'API key authentication error - no valid auth method found');
+    throw new HTTPException(401, {
+      message: attempt.failureMessage || 'Invalid Token',
+    });
+  }
+
+  logger.debug(
+    {
+      tenantId: attempt.authResult.tenantId,
+      projectId: attempt.authResult.projectId,
+      agentId: attempt.authResult.agentId,
+      subAgentId: reqData.subAgentId,
+    },
+    'API key authenticated successfully'
+  );
+
+  c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+  await next();
+}
+
 export const runApiKeyAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext: BaseExecutionContext;
     };
+  }>(runApiKeyAuthHandler);
+
+/**
+ * Creates a middleware that applies API key authentication except for specified route patterns
+ * @param skipRouteCheck - Function that returns true if the route should skip authentication
+ */
+export const runApiKeyAuthExcept = (skipRouteCheck: (path: string) => boolean) =>
+  createMiddleware<{
+    Variables: {
+      executionContext: BaseExecutionContext;
+    };
   }>(async (c, next) => {
-    if (c.req.method === 'OPTIONS') {
-      await next();
-      return;
+    if (skipRouteCheck(c.req.path)) {
+      return next();
     }
-
-    const reqData = extractRequestData(c);
-    const isDev = process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test';
-
-    // Development/test environment handling
-    if (isDev) {
-      logger.info({}, 'development environment');
-
-      const attempt = await authenticateRequest(reqData);
-
-      if (attempt.authResult) {
-        c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
-      } else {
-        logger.info(
-          {},
-          reqData.apiKey
-            ? 'Development/test environment - fallback to default context due to invalid API key'
-            : 'Development/test environment - no API key provided, using default context'
-        );
-        c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
-      }
-
-      await next();
-      return;
-    }
-
-    // Production environment - require valid auth
-    if (!reqData.authHeader || !reqData.authHeader.startsWith('Bearer ')) {
-      throw new HTTPException(401, {
-        message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
-      });
-    }
-
-    if (!reqData.apiKey || reqData.apiKey.length < 16) {
-      throw new HTTPException(401, {
-        message: 'Invalid API key format',
-      });
-    }
-
-    let attempt: AuthAttempt = { authResult: null };
-    try {
-      attempt = await authenticateRequest(reqData);
-    } catch (error) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
-      logger.error({ error }, 'Authentication failed');
-      throw new HTTPException(500, { message: 'Authentication failed' });
-    }
-
-    if (!attempt.authResult) {
-      logger.error({}, 'API key authentication error - no valid auth method found');
-      throw new HTTPException(401, {
-        message: attempt.failureMessage || 'Invalid Token',
-      });
-    }
-
-    logger.debug(
-      {
-        tenantId: attempt.authResult.tenantId,
-        projectId: attempt.authResult.projectId,
-        agentId: attempt.authResult.agentId,
-        subAgentId: reqData.subAgentId,
-      },
-      'API key authenticated successfully'
-    );
-
-    c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
-    await next();
+    return runApiKeyAuthHandler(c, next);
   });
 
 /**
  * Helper middleware for endpoints that optionally support API key authentication
  * If no auth header is present, it continues without setting the executionContext
  */
-export const optionalAuth = () =>
+export const runOptionalAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext?: BaseExecutionContext;
@@ -409,5 +433,5 @@ export const optionalAuth = () =>
       return;
     }
 
-    return runApiKeyAuth()(c as any, next);
+    return runApiKeyAuthHandler(c, next);
   });

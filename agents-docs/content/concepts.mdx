@@ -55,6 +55,34 @@ Sub Agents in Inkeep are designed to respond to the user as a single, cohesive u
 
 <Snippet file="multi-agent-framework/WaysToTalkToAgent.mdx" />
 
+## Triggers
+
+**Triggers** are webhook endpoints that allow external services to invoke your Agents. When a webhook is received, the payload is validated, transformed into a message, and used to start a new conversation.
+
+Triggers are useful for:
+
+- **Event-driven workflows** - Respond to events from external services like GitHub, Slack, or Stripe
+- **Third-party integrations** - Connect any service that can send HTTP webhooks to your Agents
+- **Automated pipelines** - Kick off Agent tasks from CI/CD, cron jobs, or other automation systems
+
+Each trigger can be configured with:
+
+- **Input validation** - JSON Schema to validate incoming payloads
+- **Message templates** - Transform webhook payloads into natural language messages using `{{placeholder}}` syntax
+- **Authentication** - API keys, bearer tokens, or basic auth to secure the endpoint
+- **Signature verification** - HMAC-SHA256 verification for services like GitHub that sign webhooks
+
+When a webhook is received, the trigger creates a new conversation and invokes the Agent asynchronously, returning immediately with an invocation ID for tracking.
+
+<Cards>
+  <Card title="Webhook Triggers" icon="LuWebhook" href="/talk-to-your-agents/triggers">
+    Learn how triggers work and when to use them.
+  </Card>
+  <Card title="TypeScript SDK" icon="LuCode" href="/typescript-sdk/triggers">
+    Define triggers in code with the SDK.
+  </Card>
+</Cards>
+
 ## Authentication & API Keys
 
 You can authenticate with your Agent using:
@@ -138,8 +166,11 @@ Provide real-time progress updates.
 <Card title="Context Fetchers" icon="LuCirclePlus" href="/typescript-sdk/context-fetchers">
 Dynamically fetch and cache external context.
 </Card>
-<Card title="Credentials" icon="LuKey" href="/typescript-sdk/tools/credentials">
+<Card title="Credentials" icon="LuKey" href="/typescript-sdk/credentials/overview">
 Store and retrieve credentials for MCP tools.
+</Card>
+<Card title="Triggers" icon="LuWebhook" href="/typescript-sdk/triggers">
+Create webhook endpoints for external services.
 </Card>
 </Cards>
   </Tab>

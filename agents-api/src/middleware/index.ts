@@ -9,6 +9,6 @@ export {
 } from './cors';
 export { errorHandler } from './errorHandler';
 export { manageApiKeyAuth } from './manageAuth';
-export { runApiKeyAuth } from './runAuth';
+export { runApiKeyAuth, runApiKeyAuthExcept, runOptionalAuth } from './runAuth';
 export { sessionAuth } from './sessionAuth';
 export { requireTenantAccess } from './tenantAccess';

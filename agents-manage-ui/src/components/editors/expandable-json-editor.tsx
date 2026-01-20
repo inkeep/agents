@@ -18,6 +18,7 @@ interface ExpandableJsonEditorCommonProps {
   error?: string;
   placeholder?: JsonEditorProps['placeholder'];
   editorOptions?: JsonEditorProps['editorOptions'];
+  defaultOpen?: boolean;
 }
 
 interface ExpandableJsonEditorEditableProps extends ExpandableJsonEditorCommonProps {
@@ -77,6 +78,7 @@ export function ExpandableJsonEditor({
   error: externalError,
   readOnly,
   editorOptions,
+  defaultOpen = false,
 }: ExpandableJsonEditorProps) {
   const { error: internalError } = useJsonValidation(value);
   const handleChange = onChange ?? noop;
@@ -85,7 +87,7 @@ export function ExpandableJsonEditor({
     !!(externalError || internalError),
     onChange
   );
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   const error = externalError || internalError;
   const id = `${name}-label`;

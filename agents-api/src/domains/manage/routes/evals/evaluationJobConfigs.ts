@@ -7,6 +7,7 @@ import {
   deleteEvaluationJobConfig,
   EvaluationJobConfigApiInsertSchema,
   EvaluationJobConfigApiSelectSchema,
+  type EvaluationJobFilterCriteria,
   EvaluationResultApiSelectSchema,
   generateId,
   getConversation,
@@ -26,6 +27,21 @@ import { queueEvaluationJobConversations } from '../../../evals/services/evaluat
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigs');
+
+/**
+ * Extract plain filter criteria from a potential Filter wrapper.
+ * Returns null if the filter is a complex and/or combinator.
+ */
+function getPlainJobFilters<T extends Record<string, unknown>>(
+  filter: T | { and: unknown[] } | { or: unknown[] } | null | undefined
+): T | null {
+  if (!filter) return null;
+  if ('and' in filter || 'or' in filter) {
+    // Complex filters not yet supported for trigger
+    return null;
+  }
+  return filter as T;
+}
 
 app.openapi(
   createRoute({
@@ -199,7 +215,7 @@ app.openapi(
           projectId,
           evaluationJobConfigId: id,
           evaluatorIds,
-          jobFilters: created.jobFilters,
+          jobFilters: getPlainJobFilters<EvaluationJobFilterCriteria>(created.jobFilters),
         })
           .then((result) => {
             logger.info(

@@ -43,9 +43,13 @@ const projectScoped = {
   projectId: varchar('project_id', { length: 256 }).notNull(),
 };
 
-const subAgentScoped = {
+const agentScoped = {
   ...projectScoped,
   agentId: varchar('agent_id', { length: 256 }).notNull(),
+};
+
+const subAgentScoped = {
+  ...agentScoped,
   subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
 };
 
@@ -144,6 +148,34 @@ export const apiKeys = pgTable(
     index('api_keys_tenant_agent_idx').on(t.tenantId, t.agentId),
     index('api_keys_prefix_idx').on(t.keyPrefix),
     index('api_keys_public_id_idx').on(t.publicId),
+  ]
+);
+
+/**
+ * Trigger invocations - records each time a webhook trigger is invoked.
+ * This is runtime data (transactional) so it lives in PostgreSQL, not DoltGres.
+ * NOTE: No FK to triggers table since triggers is in a different database (DoltGres).
+ * Application code must enforce referential integrity for triggerId.
+ * Can optionally link to conversations when the trigger creates one.
+ */
+export const triggerInvocations = pgTable(
+  'trigger_invocations',
+  {
+    ...agentScoped,
+    triggerId: varchar('trigger_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }),
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    requestPayload: jsonb('request_payload').notNull(),
+    transformedPayload: jsonb('transformed_payload'),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    index('trigger_invocations_trigger_idx').on(table.triggerId, table.createdAt),
+    index('trigger_invocations_status_idx').on(table.triggerId, table.status),
+    // Optional FK to conversations - only if conversationId is set
+    // Note: Using a separate constraint to allow NULL conversationId
   ]
 );
 

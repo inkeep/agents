@@ -520,6 +520,10 @@ function buildConversationListPayload(
             },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            // Trigger-related attributes
+            { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.TRIGGER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
         ),
 
@@ -1147,9 +1151,19 @@ export async function GET(
 
     let agentId: string | null = null;
     let agentName: string | null = null;
+    let invocationType: string | null = null;
+    let triggerId: string | null = null;
+    let triggerInvocationId: string | null = null;
     for (const s of userMessageSpans) {
       agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
+      // Extract trigger info if present
+      const spanInvocationType = getString(s, SPAN_KEYS.INVOCATION_TYPE, '');
+      if (spanInvocationType && !invocationType) {
+        invocationType = spanInvocationType;
+        triggerId = getString(s, SPAN_KEYS.TRIGGER_ID, '') || null;
+        triggerInvocationId = getString(s, SPAN_KEYS.TRIGGER_INVOCATION_ID, '') || null;
+      }
       if (agentId || agentName) break;
     }
 
@@ -1227,6 +1241,10 @@ export async function GET(
       aiResponseText?: string;
       // user
       messageContent?: string;
+      // trigger/invocation attributes
+      invocationType?: string;
+      triggerId?: string;
+      triggerInvocationId?: string;
       // context resolution
       contextConfigId?: string;
       contextAgentAgentId?: string;
@@ -1412,19 +1430,33 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const invocationType = getString(span, SPAN_KEYS.INVOCATION_TYPE, '');
+      const triggerId = getString(span, SPAN_KEYS.TRIGGER_ID, '');
+      const triggerInvocationId = getString(span, SPAN_KEYS.TRIGGER_INVOCATION_ID, '');
+
+      // Determine description based on invocation type
+      const isTriggerInvocation = invocationType === 'trigger';
+      const description = isTriggerInvocation
+        ? 'Trigger invocation received'
+        : 'User sent a message';
+
       activities.push({
         id: userMessageSpanId,
         type: ACTIVITY_TYPES.USER_MESSAGE,
-        description: 'User sent a message',
+        description,
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
         parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
-        subAgentName: ACTIVITY_NAMES.USER,
+        subAgentName: isTriggerInvocation ? 'Trigger' : ACTIVITY_NAMES.USER,
         result: hasError
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
+        // Trigger-specific attributes
+        invocationType: invocationType || undefined,
+        triggerId: triggerId || undefined,
+        triggerInvocationId: triggerInvocationId || undefined,
       });
     }
 
@@ -1873,6 +1905,10 @@ export async function GET(
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
+      // Trigger-specific info (null if not a trigger invocation)
+      invocationType,
+      triggerId,
+      triggerInvocationId,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');
