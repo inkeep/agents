@@ -91,7 +91,7 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     let label: string | undefined;
     try {
       const prev = slug[index - 1];
-      // this condition is needed until we remove all `/[segment]/new` routes
+
       if (segment === 'new') {
         const parentLabel = getStaticLabel(prev);
         label = parentLabel ? `New ${parentLabel.replace(/s$/, '')}` : 'New';

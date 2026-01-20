@@ -126,7 +126,7 @@ export default function ConversationDetail({
   }
 
   return (
-    <div className="h-full flex flex-col no-container p-6">
+    <div className="h-full flex flex-col no-parent-container p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8 flex-shrink-0">
         <div className="flex items-center gap-2">

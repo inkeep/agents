@@ -27,4 +27,5 @@ export const STATIC_LABELS = Object.freeze({
   'tool-calls': 'Tool Calls',
   'ai-calls': 'AI Calls',
   conversations: 'Conversations',
+  members: 'Members',
 });

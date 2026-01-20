@@ -33,7 +33,7 @@ const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
               'scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50'
             )}
           >
-            <div className="flex-1 p-6 [&:has(>.no-container)]:contents">{children}</div>
+            <div className="flex-1 p-6 [&:has(>.no-parent-container)]:contents">{children}</div>
           </main>
         </div>
       </SidebarInset>
