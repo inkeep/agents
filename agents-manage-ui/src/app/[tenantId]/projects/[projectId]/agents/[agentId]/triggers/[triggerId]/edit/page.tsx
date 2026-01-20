@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
@@ -26,23 +25,7 @@ export default async function EditTriggerPage({
   }
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: agent.data?.name || 'Agent',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        },
-        {
-          label: 'Triggers',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        {
-          label: trigger.name,
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        'Edit',
-      ]}
-    >
+    <>
       <PageHeader
         title={`Edit ${trigger.name}`}
         description="Update the webhook trigger configuration."
@@ -54,6 +37,6 @@ export default async function EditTriggerPage({
         trigger={trigger}
         mode="edit"
       />
-    </BodyTemplate>
+    </>
   );
 }

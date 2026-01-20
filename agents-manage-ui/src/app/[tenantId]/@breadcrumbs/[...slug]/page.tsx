@@ -113,6 +113,7 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
       `/${tenantId}/projects/${projectId}/evaluations/jobs`,
       `/${tenantId}/projects/${projectId}/evaluations/run-configs`,
       `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
+      `/${tenantId}/projects/${projectId}/agents/${slug[3]}/triggers/${slug[5]}`,
     ]);
 
     if (!routesWithoutBreadcrumbs.has(href)) {
