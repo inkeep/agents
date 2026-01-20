@@ -175,9 +175,6 @@ describe('External Agent Credential Handling', () => {
           threadId: 'thread-123',
         },
         sessionId: 'session-123',
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
@@ -296,9 +293,6 @@ describe('External Agent Credential Handling', () => {
           threadId: 'thread-123',
         },
         sessionId: 'session-123',
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
@@ -401,9 +395,6 @@ describe('External Agent Credential Handling', () => {
           threadId: 'thread-123',
         },
         sessionId: 'session-123',
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
@@ -493,9 +484,6 @@ describe('External Agent Credential Handling', () => {
           threadId: 'thread-123',
         },
         sessionId: 'session-123',
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
