@@ -10,6 +10,7 @@
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
+import { cache } from 'react';
 
 export interface Dataset {
   id: string;
@@ -47,7 +48,7 @@ export async function fetchDatasets(
 /**
  * Fetch a single dataset by ID
  */
-export async function fetchDataset(
+async function $fetchDataset(
   tenantId: string,
   projectId: string,
   datasetId: string
@@ -61,6 +62,8 @@ export async function fetchDataset(
 
   return response.data;
 }
+
+export const fetchDataset = cache($fetchDataset);
 
 /**
  * Create a new dataset

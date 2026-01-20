@@ -13,6 +13,7 @@ import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
+import { fetchDataset } from '@/lib/api/datasets';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
@@ -87,6 +88,10 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     async 'run-configs'(id) {
       const runConfig = await fetchEvaluationRunConfig(tenantId, projectId, id);
       return runConfig.name;
+    },
+    async datasets(id) {
+      const dataset = await fetchDataset(tenantId, projectId, id);
+      return dataset.name || 'Test Suite';
     },
   };
 
