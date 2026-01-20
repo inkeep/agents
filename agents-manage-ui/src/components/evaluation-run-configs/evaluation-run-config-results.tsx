@@ -117,6 +117,41 @@ export function EvaluationRunConfigResults({
     return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
   }, [results]);
 
+  // Extract unique output schema keys from results for filtering dropdown
+  // Only include 'output.*' fields, excluding 'metadata.*' fields
+  const availableOutputKeys = useMemo(() => {
+    const keys = new Set<string>();
+
+    const extractKeys = (obj: unknown, prefix = ''): void => {
+      if (!obj || typeof obj !== 'object') return;
+      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        keys.add(fullKey);
+        if (value && typeof value === 'object') {
+          if (Array.isArray(value)) {
+            const firstItem = value[0];
+            if (firstItem && typeof firstItem === 'object' && !Array.isArray(firstItem)) {
+              extractKeys(firstItem, fullKey);
+            }
+          } else {
+            extractKeys(value, fullKey);
+          }
+        }
+      }
+    };
+
+    results.forEach((result) => {
+      if (result.output) {
+        extractKeys(result.output);
+      }
+    });
+
+    // Filter to only show output.* nested keys (exclude bare 'output' and 'metadata.*')
+    return Array.from(keys)
+      .filter((key) => key.startsWith('output.'))
+      .sort();
+  }, [results]);
+
   return (
     <div className="space-y-6">
       {/* Evaluation Plans Section */}
@@ -185,6 +220,7 @@ export function EvaluationRunConfigResults({
         onFiltersChange={setFilters}
         evaluators={evaluatorOptions}
         agents={agentOptions}
+        availableOutputKeys={availableOutputKeys}
       />
 
       <div className="rounded-lg border">
