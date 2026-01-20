@@ -3,7 +3,6 @@ import NextLink from 'next/link';
 import type { FC } from 'react';
 import { formatDate, formatDateAgo } from '@/app/utils/format-date';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';

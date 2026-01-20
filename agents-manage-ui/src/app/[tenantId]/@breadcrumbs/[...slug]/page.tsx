@@ -106,7 +106,7 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     async skills(id) {
       const result = await fetchSkillAction(tenantId, projectId, id);
       if (result.success) {
-        return result.data.name;
+        return result.data?.name;
       }
       throw {
         message: result.error,
