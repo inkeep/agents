@@ -25,7 +25,7 @@ import { generateText } from 'ai';
 import { createInkeep } from '@inkeep/ai-sdk-provider';
 
 const inkeep = createInkeep({
-  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL, // Required, for local development this is typically http://localhost:3003
+  baseURL: process.env.INKEEP_AGENTS_API_URL, // Required, for local development this is typically http://localhost:3002
   apiKey: '<your-agent-api-key>', // Created in the Agents Dashboard
   headers: { // Optional if you are developing locally and don't want to use an api key
     'x-inkeep-agent-id': 'your-agent-id',
@@ -49,7 +49,7 @@ import { streamText } from 'ai';
 import { createInkeep } from '@inkeep/ai-sdk-provider';
 
 const inkeep = createInkeep({
-  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
+  baseURL: process.env.INKEEP_AGENTS_API_URL,
   apiKey: '<your-agent-api-key>', // The agent ID is encoded in the API key
   headers: {
     'x-emit-operations': 'true', // Enable tool event streaming
@@ -95,7 +95,7 @@ To receive tool call and result events in your stream, include the `x-emit-opera
 
 ```typescript
 const inkeep = createInkeep({
-  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
+  baseURL: process.env.INKEEP_AGENTS_API_URL,
   apiKey: '<your-agent-api-key>', // The agent ID is encoded in the API key
   headers: {
     'x-emit-operations': 'true',

@@ -10,14 +10,11 @@ vi.mock('../utils/config.js', () => ({
   loadConfig: vi.fn(),
   validateConfiguration: vi.fn(async () => ({
     tenantId: 'test-tenant-id',
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3003',
-    agentsManageApiKey: undefined,
-    agentsRunApiKey: undefined,
+    agentsApiUrl: 'http://localhost:3002',
+    agentsApiKey: undefined,
     sources: {
       tenantId: 'test',
-      agentsManageApiUrl: 'test',
-      agentsRunApiUrl: 'test',
+      agentsApiUrl: 'test',
     },
   })),
 }));
@@ -75,7 +72,7 @@ describe('ApiClient', () => {
       const result = await apiClient.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
         {
           method: 'GET',
           headers: {
@@ -111,14 +108,11 @@ describe('ApiClient', () => {
       // Mock validateConfiguration to return a config with empty tenant ID
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: '',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3003',
-        agentsManageApiKey: undefined,
-        agentsRunApiKey: undefined,
+        agentsApiUrl: 'http://localhost:3002',
+        agentsApiKey: undefined,
         sources: {
           tenantId: 'test',
-          agentsManageApiUrl: 'test',
-          agentsRunApiUrl: 'test',
+          agentsApiUrl: 'test',
         },
       });
 
@@ -133,14 +127,11 @@ describe('ApiClient', () => {
       const { validateConfiguration } = await import('../utils/config.js');
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: 'test-tenant-id',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3003',
-        agentsManageApiKey: 'test-api-key-123',
-        agentsRunApiKey: undefined,
+        agentsApiUrl: 'http://localhost:3002',
+        agentsApiKey: 'test-api-key-123',
         sources: {
           tenantId: 'test',
-          agentsManageApiUrl: 'test',
-          agentsRunApiUrl: 'test',
+          agentsApiUrl: 'test',
         },
       });
 
@@ -160,7 +151,7 @@ describe('ApiClient', () => {
       await clientWithApiKey.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
         {
           method: 'GET',
           headers: {
@@ -226,7 +217,7 @@ describe('ApiClient', () => {
       const result = await apiClient.pushAgent(agentDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
         {
           method: 'PUT',
           headers: {
@@ -274,14 +265,11 @@ describe('ApiClient', () => {
       const { validateConfiguration } = await import('../utils/config.js');
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: 'test-tenant-id',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3003',
-        agentsManageApiKey: 'test-manage-key-456',
-        agentsRunApiKey: undefined,
+        agentsApiUrl: 'http://localhost:3002',
+        agentsApiKey: 'test-manage-key-456',
         sources: {
           tenantId: 'test',
-          agentsManageApiUrl: 'test',
-          agentsRunApiUrl: 'test',
+          agentsApiUrl: 'test',
         },
       });
 
@@ -305,7 +293,7 @@ describe('ApiClient', () => {
       await clientWithApiKey.pushAgent(agentDefinition);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
+        'http://localhost:3002/manage/tenants/test-tenant-id/projects/test-project-id/agents/test-agent',
         {
           method: 'PUT',
           headers: {
@@ -447,14 +435,11 @@ describe('ApiClient', () => {
       const { validateConfiguration } = await import('../utils/config.js');
       vi.mocked(validateConfiguration).mockResolvedValueOnce({
         tenantId: 'test-tenant-id',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3003',
-        agentsManageApiKey: undefined,
-        agentsRunApiKey: 'test-run-key-789',
+        agentsApiUrl: 'http://localhost:3002',
+        agentsApiKey: 'test-run-key-789',
         sources: {
           tenantId: 'test',
-          agentsManageApiUrl: 'test',
-          agentsRunApiUrl: 'test',
+          agentsApiUrl: 'test',
         },
       });
 
@@ -478,7 +463,7 @@ describe('ApiClient', () => {
 
       await clientWithApiKey.chatCompletion('test-agent', messages);
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3003/v1/chat/completions', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3002/run/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -504,14 +489,11 @@ describe('ApiClient', () => {
       // Mock validateConfiguration to return a config with no tenant ID
       vi.mocked(validateConfiguration).mockResolvedValue({
         tenantId: '',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3003',
-        agentsManageApiKey: undefined,
-        agentsRunApiKey: undefined,
+        agentsApiUrl: 'http://localhost:3002',
+        agentsApiKey: undefined,
         sources: {
           tenantId: 'test',
-          agentsManageApiUrl: 'test',
-          agentsRunApiUrl: 'test',
+          agentsApiUrl: 'test',
         },
       });
 

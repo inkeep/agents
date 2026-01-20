@@ -33,8 +33,7 @@ vi.mock('../../utils/tsx-loader.js', () => ({
 vi.mock('../../utils/config.js', () => ({
   validateConfiguration: vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3001',
+    agentsApiUrl: 'http://localhost:3002',
     sources: {},
   }),
 }));
@@ -70,8 +69,7 @@ describe('Push Command - Project Validation', () => {
     const { validateConfiguration } = await import('../../utils/config.js');
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
-      agentsManageApiUrl: 'http://localhost:3002',
-      agentsRunApiUrl: 'http://localhost:3001',
+      agentsApiUrl: 'http://localhost:3002',
       sources: {},
     });
 
@@ -80,8 +78,7 @@ describe('Push Command - Project Validation', () => {
     (initializeCommand as Mock).mockResolvedValue({
       config: {
         tenantId: 'test-tenant',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3001',
+        agentsApiUrl: 'http://localhost:3002',
         sources: {},
       },
       spinner: undefined,
@@ -311,8 +308,7 @@ describe('Push Command - Output Messages', () => {
     const { validateConfiguration } = await import('../../utils/config.js');
     (validateConfiguration as Mock).mockResolvedValue({
       tenantId: 'test-tenant',
-      agentsManageApiUrl: 'http://localhost:3002',
-      agentsRunApiUrl: 'http://localhost:3001',
+      agentsApiUrl: 'http://localhost:3002',
       sources: {},
     });
 
@@ -321,8 +317,7 @@ describe('Push Command - Output Messages', () => {
     (initializeCommand as Mock).mockResolvedValue({
       config: {
         tenantId: 'test-tenant',
-        agentsManageApiUrl: 'http://localhost:3002',
-        agentsRunApiUrl: 'http://localhost:3001',
+        agentsApiUrl: 'http://localhost:3002',
         sources: {},
       },
       spinner: undefined,

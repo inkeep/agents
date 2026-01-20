@@ -52,7 +52,7 @@ describe('projectFullClient', () => {
 
       const result = await createFullProjectViaAPI(tenantId, apiUrl, mockProjectData);
 
-      expect(mockFetch).toHaveBeenCalledWith(`${apiUrl}/tenants/${tenantId}/project-full`, {
+      expect(mockFetch).toHaveBeenCalledWith(`${apiUrl}/manage/tenants/${tenantId}/project-full`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ describe('projectFullClient', () => {
       const result = await updateFullProjectViaAPI(tenantId, apiUrl, projectId, mockProjectData);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
+        `${apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
         {
           method: 'PUT',
           headers: {
@@ -132,7 +132,7 @@ describe('projectFullClient', () => {
       const result = await getFullProjectViaAPI(tenantId, apiUrl, projectId);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
+        `${apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
         {
           method: 'GET',
           headers: {
@@ -180,7 +180,7 @@ describe('projectFullClient', () => {
       await deleteFullProjectViaAPI(tenantId, apiUrl, projectId);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
+        `${apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
         {
           method: 'DELETE',
           headers: {

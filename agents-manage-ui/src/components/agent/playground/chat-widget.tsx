@@ -61,7 +61,7 @@ export function ChatWidget({
   dataComponentLookup = {},
   setShowTraces,
 }: ChatWidgetProps) {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
@@ -197,7 +197,7 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
+            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat` : undefined,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,

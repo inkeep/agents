@@ -35,7 +35,7 @@ export function useOAuthLogin({
   onFinish,
 }: UseOAuthLoginProps): OAuthLoginResult {
   const router = useRouter();
-  const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { openNangoConnectHeadless } = useNangoConnect();
   const { user } = useAuthSession();
 
@@ -56,7 +56,7 @@ export function useOAuthLogin({
           const oauthUrl =
             thirdPartyConnectAccountUrl ??
             getOAuthLoginUrl({
-              PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
+              PUBLIC_INKEEP_AGENTS_API_URL,
               tenantId,
               projectId,
               id: toolId,
@@ -140,7 +140,7 @@ export function useOAuthLogin({
         }
       });
     },
-    [PUBLIC_INKEEP_AGENTS_MANAGE_API_URL, tenantId, projectId, onFinish, router]
+    [PUBLIC_INKEEP_AGENTS_API_URL, tenantId, projectId, onFinish, router]
   );
 
   const handleOAuthLoginWithNangoMCPGeneric = useCallback(

@@ -43,7 +43,7 @@ import {
   defaultResource,
   defaultTextMapPropagator,
   defaultInstrumentations,
-} from "@inkeep/agents-run-api/instrumentation";
+} from "@inkeep/agents-api/instrumentation";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { LangfuseSpanProcessor } from "@langfuse/otel";
 
@@ -59,8 +59,8 @@ defaultSDK.start();
 ```
 
 <Note>
-  Make sure to install the required dependencies in your run API directory:
-  ```bash cd apps/run-api pnpm add @opentelemetry/sdk-node @langfuse/otel ```
+  Make sure to install the required dependencies in your agents API directory:
+  ```bash cd apps/agents-api pnpm add @opentelemetry/sdk-node @langfuse/otel ```
 </Note>
 
 #### What This Configuration Does

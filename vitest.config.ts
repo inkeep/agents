@@ -6,9 +6,8 @@ export default defineConfig({
     // Define all test projects in the monorepo
     projects: [
       './agents-cli',
-      './agents-manage-api',
       './agents-manage-ui',
-      './agents-run-api',
+      './agents-api',
       './packages/agents-core',
       './packages/agents-sdk',
       './packages/create-agents',

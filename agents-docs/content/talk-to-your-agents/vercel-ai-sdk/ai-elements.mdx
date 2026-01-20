@@ -10,7 +10,7 @@ keywords: Vercel AI Elements, shadcn ui, chat components, React, agents
 
 [Vercel AI Elements](https://ai-sdk.dev/elements/overview) is a set of prebuilt, headless-first UI primitives for building AI chat interfaces. Think of it as a `shadcn/ui`-like library of UI components for conversational experiences.
 
-The library works out of the box with Inkeep Agents via the `/api/chat` [API endpoint](/talk-to-your-agents/chat-api) since it follows the streaming protocol used by AI Elements.
+The library works out of the box with Inkeep Agents via the `/run/api/chat` [API endpoint](/talk-to-your-agents/chat-api) since it follows the streaming protocol used by AI Elements.
 
 For fully custom `useChat` hooks and lower-level control, see the [useChat guide](/talk-to-your-agents/vercel-ai-sdk/use-chat).
 
@@ -23,7 +23,7 @@ import { useChat } from '@ai-sdk/react';
 export default function ChatWithElements() {
   const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({
-      api: "${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat",
+      api: "${process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat",
       headers: {
         "x-inkeep-tenant-id": "default",
         "x-inkeep-project-id": "weather-project",

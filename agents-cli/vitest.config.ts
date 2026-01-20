@@ -9,8 +9,7 @@ export default defineProject({
     setupFiles: ['./vitest.setup.ts'],
     env: {
       ENVIRONMENT: 'test',
-      INKEEP_AGENTS_MANAGE_API_URL: 'http://localhost:3002',
-      INKEEP_AGENTS_RUN_API_URL: 'http://localhost:3003',
+      INKEEP_AGENTS_API_URL: 'http://localhost:3002',
     },
     testTimeout: 120000, // 120 second timeout for CLI tests
     hookTimeout: 30000, // 30 second timeout for setup/teardown hooks

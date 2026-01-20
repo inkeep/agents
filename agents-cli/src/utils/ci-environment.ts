@@ -8,8 +8,7 @@ export interface CIEnvironmentConfig {
   isCI: boolean;
   reason?: string;
   apiKey?: string;
-  manageApiUrl?: string;
-  runApiUrl?: string;
+  agentsApiUrl?: string;
   environment?: string;
   tenantId?: string;
 }
@@ -72,8 +71,7 @@ export async function detectCIEnvironment(): Promise<CIDetectionResult> {
 
 export function loadCIEnvironmentConfig(): CIEnvironmentConfig | null {
   const apiKey = process.env.INKEEP_API_KEY;
-  const manageApiUrl = process.env.INKEEP_MANAGE_API_URL;
-  const runApiUrl = process.env.INKEEP_RUN_API_URL;
+  const agentsApiUrl = process.env.INKEEP_AGENTS_API_URL;
   const environment = process.env.INKEEP_ENVIRONMENT || 'production';
   const tenantId = process.env.INKEEP_TENANT_ID;
 
@@ -85,8 +83,7 @@ export function loadCIEnvironmentConfig(): CIEnvironmentConfig | null {
   return {
     isCI: true,
     apiKey,
-    manageApiUrl: manageApiUrl || 'https://manage-api.inkeep.com',
-    runApiUrl: runApiUrl || 'https://run-api.inkeep.com',
+    agentsApiUrl: agentsApiUrl || 'https://agents-api.inkeep.com',
     environment,
     tenantId,
   };
@@ -94,7 +91,7 @@ export function loadCIEnvironmentConfig(): CIEnvironmentConfig | null {
 
 export function logCIConfig(config: CIEnvironmentConfig, reason: string): void {
   console.log(chalk.yellow(`CI mode detected (${reason})`));
-  console.log(chalk.gray(`  Remote: ${config.manageApiUrl}`));
+  console.log(chalk.gray(`  Remote: ${config.agentsApiUrl}`));
   console.log(chalk.gray(`  Environment: ${config.environment}`));
   console.log(chalk.gray(`  Auth: API key (INKEEP_API_KEY)`));
   if (config.tenantId) {

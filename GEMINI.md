@@ -30,9 +30,8 @@ The project is a monorepo with the following packages:
 
 *   `agents-cli`: A command-line interface for interacting with the agent framework.
 *   `agents-docs`: The documentation website.
-*   `agents-manage-api`: The API for managing agents.
+*   `agents-api`: The API for managing, running and evaluating agents.
 *   `agents-manage-ui`: The UI for the visual builder.
-*   `agents-run-api`: The API for running agents.
 *   `agents-ui`: The UI for the chat widget.
 *   `examples`: Example agent configurations.
 *   `packages/agents-core`: Core functionality of the agent framework.

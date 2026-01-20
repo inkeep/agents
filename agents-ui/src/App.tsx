@@ -9,7 +9,7 @@ function App() {
           primaryBrandColor: '#3784ff',
         }}
         aiChatSettings={{
-          agentUrl: 'http://localhost:3003/api/chat',
+          agentUrl: 'http://localhost:3003/run/api/chat',
           apiKey: 'YOUR_API_KEY',
         }}
       />

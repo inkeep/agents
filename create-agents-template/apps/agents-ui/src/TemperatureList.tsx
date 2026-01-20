@@ -83,7 +83,7 @@ export const TemperatureList = ({ temperature_data }: TemperatureDataProps) => {
         <div className="bg-white/95 backdrop-blur-sm p-4 border border-gray-200/50 rounded-xl shadow-xl">
           <p className="font-semibold text-gray-800 text-sm mb-2">{label}</p>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full" />
             <p className="text-blue-600 font-bold text-lg">{data.temperature}°F</p>
           </div>
           <p className="text-gray-600 text-sm flex items-center gap-2">

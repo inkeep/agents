@@ -1,6 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
-import { getManageApiUrl } from '@/lib/api/api-config';
+import { getAgentsApiUrl } from '@/lib/api/api-config';
 
 async function getAuthHeaders() {
   let cookieHeader: string | undefined;
@@ -40,12 +40,12 @@ export async function PATCH(
   { params }: { params: Promise<{ tenantId: string; projectId: string; userId: string }> }
 ) {
   const { tenantId, projectId, userId } = await params;
-  const apiUrl = getManageApiUrl();
+  const apiUrl = getAgentsApiUrl();
   const authHeaders = await getAuthHeaders();
   const body = await request.json();
 
   const response = await fetch(
-    `${apiUrl}/tenants/${tenantId}/projects/${projectId}/members/${userId}`,
+    `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/members/${userId}`,
     {
       method: 'PATCH',
       headers: authHeaders,
@@ -63,13 +63,13 @@ export async function DELETE(
   { params }: { params: Promise<{ tenantId: string; projectId: string; userId: string }> }
 ) {
   const { tenantId, projectId, userId } = await params;
-  const apiUrl = getManageApiUrl();
+  const apiUrl = getAgentsApiUrl();
   const authHeaders = await getAuthHeaders();
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role');
 
   const response = await fetch(
-    `${apiUrl}/tenants/${tenantId}/projects/${projectId}/members/${userId}?role=${role}`,
+    `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/members/${userId}?role=${role}`,
     {
       method: 'DELETE',
       headers: authHeaders,
