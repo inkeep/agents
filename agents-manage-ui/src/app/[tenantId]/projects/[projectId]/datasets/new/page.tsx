@@ -2,24 +2,17 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { DeleteDatasetConfirmation } from '@/components/datasets/delete-dataset-confirmation';
+import { type DatasetFormData, datasetSchema } from '@/components/datasets/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { createDatasetAction, updateDatasetAction } from '@/lib/actions/datasets';
 import type { Dataset } from '@/lib/api/datasets';
-import { DeleteDatasetConfirmation } from '../delete-dataset-confirmation';
-import { type DatasetFormData, datasetSchema } from './validation';
-
-interface DatasetFormProps {
-  tenantId: string;
-  projectId: string;
-  id?: string;
-  initialData?: DatasetFormData;
-}
 
 const formatFormData = (data?: DatasetFormData): DatasetFormData => {
   if (!data) {
@@ -33,7 +26,15 @@ const formatFormData = (data?: DatasetFormData): DatasetFormData => {
   };
 };
 
-export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFormProps) {
+// TODO
+const id = undefined;
+const initialData = undefined;
+
+export default function DatasetForm({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/datasets/new'>) {
+  const { tenantId, projectId } = use(params);
+
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DatasetFormData>({
     resolver: zodResolver(datasetSchema),
@@ -75,7 +76,7 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
           <GenericInput
             control={form.control}
             name="name"
@@ -103,7 +104,7 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
           datasetId={id}
           datasetName={form.getValues('name') || undefined}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>

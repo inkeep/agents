@@ -1,17 +1,16 @@
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { PageHeader } from '@/components/layout/page-header';
 import { TriggersTable } from '@/components/triggers/triggers-table';
+import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTriggersAction } from '@/lib/actions/triggers';
 
-interface TriggersPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>;
-}
-
-export default async function TriggersPage({ params }: TriggersPageProps) {
+export default async function TriggersPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers'>) {
   const { tenantId, projectId, agentId } = await params;
 
   // Fetch agent to verify it exists
@@ -24,13 +23,19 @@ export default async function TriggersPage({ params }: TriggersPageProps) {
   const triggers = await getTriggersAction(tenantId, projectId, agentId);
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Triggers</h1>
-        <p className="text-muted-foreground">
-          Configure webhook triggers to invoke this agent from external services.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={STATIC_LABELS.triggers}
+        description="Configure webhook triggers to invoke this agent from external services."
+        action={
+          <Button asChild>
+            <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/new`}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create trigger
+            </Link>
+          </Button>
+        }
+      />
 
       <TriggersTable
         triggers={triggers}

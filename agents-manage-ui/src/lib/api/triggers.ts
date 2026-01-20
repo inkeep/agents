@@ -11,6 +11,7 @@ import type {
   TriggerApiSelect,
   TriggerInvocationApiSelect,
 } from '@inkeep/agents-core/client-exports';
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -40,7 +41,7 @@ export async function fetchTriggers(
 /**
  * Get a single trigger by ID
  */
-export async function getTrigger(
+async function $getTrigger(
   tenantId: string,
   projectId: string,
   agentId: string,
@@ -55,6 +56,8 @@ export async function getTrigger(
 
   return response.data;
 }
+
+export const getTrigger = cache($getTrigger);
 
 /**
  * Create a new trigger (POST)

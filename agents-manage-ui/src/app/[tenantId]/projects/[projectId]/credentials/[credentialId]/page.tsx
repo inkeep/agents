@@ -3,7 +3,6 @@ import {
   type EditCredentialFormData,
 } from '@/components/credentials/views/edit-credential-form';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
 import { getNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -33,23 +32,13 @@ async function EditCredentialsPage({
     const credential = await fetchCredential(tenantId, projectId, credentialId);
     const initialFormData = await credentialToFormData(credential);
     return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Credentials',
-            href: `/${tenantId}/projects/${projectId}/credentials`,
-          },
-          'Edit',
-        ]}
+      <EditCredentialForm
         className="max-w-2xl mx-auto"
-      >
-        <EditCredentialForm
-          tenantId={tenantId}
-          projectId={projectId}
-          credential={credential}
-          initialFormData={initialFormData}
-        />
-      </BodyTemplate>
+        tenantId={tenantId}
+        projectId={projectId}
+        credential={credential}
+        initialFormData={initialFormData}
+      />
     );
   } catch (error) {
     return (

@@ -68,7 +68,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
 export function useCopilotContext() {
   const context = useContext(CopilotContext);
   if (!context) {
-    throw new Error('useCopilotContext must be used within CopilotProvider');
+    throw new Error('useCopilotContext must be used within a <CopilotProvider />');
   }
   return context;
 }

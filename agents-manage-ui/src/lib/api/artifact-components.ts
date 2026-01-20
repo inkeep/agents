@@ -12,6 +12,7 @@ import type {
   ArtifactComponentApiSelect,
   ArtifactComponentApiUpdate,
 } from '@inkeep/agents-core';
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
@@ -24,7 +25,7 @@ export type ArtifactComponent = ArtifactComponentApiSelect;
 /**
  * Fetch all artifacts for a tenant
  */
-export async function fetchArtifactComponents(
+async function $fetchArtifactComponents(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<ArtifactComponent>> {
@@ -37,11 +38,12 @@ export async function fetchArtifactComponents(
 
   return response;
 }
+export const fetchArtifactComponents = cache($fetchArtifactComponents);
 
 /**
  * Fetch a single artifact by ID
  */
-export async function fetchArtifactComponent(
+async function $fetchArtifactComponent(
   tenantId: string,
   projectId: string,
   artifactComponentId: string
@@ -55,6 +57,7 @@ export async function fetchArtifactComponent(
 
   return response.data;
 }
+export const fetchArtifactComponent = cache($fetchArtifactComponent);
 
 /**
  * Create a new artifact
