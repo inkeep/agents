@@ -43,9 +43,13 @@ const projectScoped = {
   projectId: varchar('project_id', { length: 256 }).notNull(),
 };
 
-const subAgentScoped = {
+const agentScoped = {
   ...projectScoped,
   agentId: varchar('agent_id', { length: 256 }).notNull(),
+};
+
+const subAgentScoped = {
+  ...agentScoped,
   subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
 };
 
@@ -146,11 +150,6 @@ export const apiKeys = pgTable(
     index('api_keys_public_id_idx').on(t.publicId),
   ]
 );
-
-const agentScoped = {
-  ...projectScoped,
-  agentId: varchar('agent_id', { length: 256 }).notNull(),
-};
 
 /**
  * Trigger invocations - records each time a webhook trigger is invoked.
