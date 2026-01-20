@@ -1,7 +1,19 @@
+import fs from 'node:fs/promises';
 import { defineProject } from 'vitest/config';
 
 export default defineProject({
-  assetsInclude: ['**/*.xml', '**/*.md'],
+  plugins: [
+    {
+      name: 'xml-as-string',
+      enforce: 'pre',
+      async load(id) {
+        if (id.endsWith('.xml') || id.endsWith('.md')) {
+          const code = await fs.readFile(id, 'utf8');
+          return `export default ${JSON.stringify(code)};`;
+        }
+      },
+    },
+  ],
   test: {
     name: 'agents-api',
     setupFiles: ['./src/__tests__/setup.ts'],
