@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg">
-<title>arrow</title>
+  <title>arrow</title>
   <defs>
     <marker
       class="react-flow__arrowhead !stroke-border dark:!stroke-muted-foreground"
