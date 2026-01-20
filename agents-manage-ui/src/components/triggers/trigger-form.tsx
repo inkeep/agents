@@ -33,6 +33,13 @@ const authTypeOptions: SelectOption[] = [
   { value: 'bearer_token', label: 'Bearer Token' },
 ];
 
+// Transform type options
+const transformTypeOptions: SelectOption[] = [
+  { value: 'none', label: 'None' },
+  { value: 'object_transformation', label: 'Object Transformation (Simple)' },
+  { value: 'jmespath', label: 'JMESPath (Advanced)' },
+];
+
 // Zod schema for the form
 const triggerFormSchema = z.object({
   id: z.string().optional(),
@@ -41,6 +48,7 @@ const triggerFormSchema = z.object({
   enabled: z.boolean(),
   messageTemplate: z.string().min(1, 'Message template is required'),
   inputSchemaJson: z.string().default(''),
+  transformType: z.enum(['none', 'object_transformation', 'jmespath']),
   jmespath: z.string().default(''),
   objectTransformationJson: z.string().default(''),
   authType: z.enum(['none', 'api_key', 'basic_auth', 'bearer_token']),
@@ -78,6 +86,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         description: '',
         messageTemplate: '',
         inputSchemaJson: '',
+        transformType: 'none',
         jmespath: '',
         objectTransformationJson: '',
         authType: 'none',
@@ -112,6 +121,14 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       }
     }
 
+    // Determine transform type from existing data
+    let transformType: 'none' | 'object_transformation' | 'jmespath' = 'none';
+    if (trigger.outputTransform?.jmespath) {
+      transformType = 'jmespath';
+    } else if (trigger.outputTransform?.objectTransformation) {
+      transformType = 'object_transformation';
+    }
+
     return {
       id: trigger.id,
       name: trigger.name,
@@ -119,6 +136,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       enabled: trigger.enabled,
       messageTemplate: trigger.messageTemplate,
       inputSchemaJson: trigger.inputSchema ? JSON.stringify(trigger.inputSchema, null, 2) : '',
+      transformType,
       jmespath: trigger.outputTransform?.jmespath || '',
       objectTransformationJson: trigger.outputTransform?.objectTransformation
         ? JSON.stringify(trigger.outputTransform.objectTransformation, null, 2)
@@ -142,6 +160,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
   const { isSubmitting } = form.formState;
   const authType = form.watch('authType');
+  const transformType = form.watch('transformType');
 
   const onSubmit = async (data: TriggerFormData) => {
     try {
@@ -156,24 +175,20 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         }
       }
 
-      let objectTransformation: Record<string, unknown> | undefined;
-      if (data.objectTransformationJson?.trim()) {
+      // Build output transform based on selected transform type
+      let outputTransform: { jmespath?: string; objectTransformation?: Record<string, unknown> } | undefined;
+      
+      if (data.transformType === 'jmespath' && data.jmespath?.trim()) {
+        outputTransform = { jmespath: data.jmespath };
+      } else if (data.transformType === 'object_transformation' && data.objectTransformationJson?.trim()) {
         try {
-          objectTransformation = JSON.parse(data.objectTransformationJson);
+          const objectTransformation = JSON.parse(data.objectTransformationJson);
+          outputTransform = { objectTransformation };
         } catch {
           toast.error('Invalid object transformation JSON');
           return;
         }
       }
-
-      // Build output transform
-      const outputTransform =
-        data.jmespath || objectTransformation
-          ? {
-              jmespath: data.jmespath || undefined,
-              objectTransformation: objectTransformation,
-            }
-          : undefined;
 
       // Build authentication object
       let authentication: any;
@@ -355,33 +370,67 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           <CardHeader>
             <CardTitle>Output Transform (Optional)</CardTitle>
             <CardDescription>
-              Transform the incoming payload before interpolating the message template.
+              Transform the incoming payload before interpolating the message template. Choose one
+              approach: Object Transformation for simple field remapping, or JMESPath for complex
+              transformations.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <GenericInput
+            <GenericSelect
               control={form.control}
-              name="jmespath"
-              label="JMESPath Expression"
-              placeholder="e.g., data.{title: title, body: body}"
+              name="transformType"
+              label="Transform Type"
+              options={transformTypeOptions}
+              placeholder="Select transform type"
             />
-            <FormField
-              control={form.control}
-              name="objectTransformationJson"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <ExpandableJsonEditor
-                    name="trigger-object-transformation"
-                    label="Object Transformation"
-                    value={field.value || ''}
-                    onChange={field.onChange}
-                    placeholder={`{\n  "title": "{{issue.title}}",\n  "description": "{{issue.body}}"\n}`}
-                    error={fieldState.error?.message}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            {transformType === 'object_transformation' && (
+              <FormField
+                control={form.control}
+                name="objectTransformationJson"
+                render={({ field, fieldState }) => (
+                  <FormItem>
+                    <ExpandableJsonEditor
+                      name="trigger-object-transformation"
+                      label="Object Transformation"
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      placeholder={`{\n  "title": "issue.title",\n  "author": "issue.user.login"\n}`}
+                      error={fieldState.error?.message}
+                    />
+                    <FormDescription>
+                      Map output field names to JMESPath paths. Each key becomes a field in the
+                      transformed payload, and each value is a path to extract from the input.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {transformType === 'jmespath' && (
+              <>
+                <GenericInput
+                  control={form.control}
+                  name="jmespath"
+                  label="JMESPath Expression"
+                  placeholder="e.g., { title: issue.title, author: issue.user.login }"
+                />
+                <FormDescription>
+                  A JMESPath expression for complex transformations like filtering arrays or
+                  restructuring nested data. See{' '}
+                  <a
+                    href="https://jmespath.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    jmespath.org
+                  </a>{' '}
+                  for syntax reference.
+                </FormDescription>
+              </>
+            )}
           </CardContent>
         </Card>
 
