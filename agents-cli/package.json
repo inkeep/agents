@@ -58,7 +58,8 @@
     "open": "^10.2.0",
     "ts-morph": "^26.0.0",
     "tsx": "^4.20.5",
-    "yaml": "^2.7.0"
+    "yaml": "^2.7.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/degit": "^2.8.6",
@@ -69,8 +70,7 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@inkeep/agents-manage-ui": "*",
-    "zod": "^4.1.11"
+    "@inkeep/agents-manage-ui": "*"
   },
   "publishConfig": {
     "access": "public",
