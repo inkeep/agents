@@ -358,6 +358,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     animateGraph(event) {
       // @ts-expect-error -- improve types
       const data = event.detail;
+      console.info('Data operation received:', data);
+
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
 
