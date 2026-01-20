@@ -14,26 +14,26 @@ export type PrincipalType = 'user' | 'group' | 'service_account' | 'agent' | 'wo
 /**
  * Metadata specific to each principal type
  */
-export interface UserMetadata {
+interface UserMetadata {
   email: string;
 }
 
-export interface GroupMetadata {
+interface GroupMetadata {
   memberCount?: number;
   isIdpManaged?: boolean;
 }
 
-export interface ServiceAccountMetadata {
+interface ServiceAccountMetadata {
   lastUsed?: string;
   keyCount?: number;
 }
 
-export interface AgentMetadata {
+interface AgentMetadata {
   projectId: string;
   projectName?: string;
 }
 
-export interface WorkflowMetadata {
+interface WorkflowMetadata {
   projectId: string;
   projectName?: string;
 }
@@ -72,7 +72,7 @@ export interface AccessPrincipal {
 // Resource Types (WHAT is being protected)
 // ============================================================================
 
-export type ResourceType =
+type ResourceType =
   | 'project'
   | 'agent'
   | 'mcp_server'
@@ -124,7 +124,7 @@ export interface ProjectMemberFromApi {
 /**
  * Get display icon name for a principal type
  */
-export function getPrincipalIcon(type: PrincipalType): string {
+function getPrincipalIcon(type: PrincipalType): string {
   switch (type) {
     case 'user':
       return 'user';
@@ -144,7 +144,7 @@ export function getPrincipalIcon(type: PrincipalType): string {
 /**
  * Get display label for a principal type
  */
-export function getPrincipalTypeLabel(type: PrincipalType): string {
+function getPrincipalTypeLabel(type: PrincipalType): string {
   switch (type) {
     case 'user':
       return 'User';

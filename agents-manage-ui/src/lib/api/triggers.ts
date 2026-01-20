@@ -157,7 +157,7 @@ export async function fetchTriggerInvocations(
 /**
  * Get a single invocation by ID
  */
-export async function getTriggerInvocation(
+async function getTriggerInvocation(
   tenantId: string,
   projectId: string,
   agentId: string,
