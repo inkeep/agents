@@ -12,6 +12,7 @@ import { fetchProject } from '@/lib/api/projects';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
+import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
@@ -83,6 +84,10 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
       const jobConfig = await fetchEvaluationJobConfig(tenantId, projectId, id);
       return getJobName({ tenantId, projectId, jobConfig });
     },
+    async 'run-configs'(id) {
+      const runConfig = await fetchEvaluationRunConfig(tenantId, projectId, id);
+      return runConfig.name;
+    },
   };
 
   function addCrumb({ segment, label }: { segment: string; label: string }) {
@@ -92,6 +97,7 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     const routesWithoutBreadcrumbs = new Set([
       `/${tenantId}/projects/${projectId}/traces/conversations`,
       `/${tenantId}/projects/${projectId}/evaluations/jobs`,
+      `/${tenantId}/projects/${projectId}/evaluations/run-configs`,
     ]);
     if (!routesWithoutBreadcrumbs.has(href)) {
       crumbs.push({ label, href });
