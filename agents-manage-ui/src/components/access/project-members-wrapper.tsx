@@ -3,13 +3,36 @@
 import type { FC } from 'react';
 import { useProjectAccess } from './hooks/use-project-access';
 import { ResourceMembersPage } from './resource-members-page';
-import type { PrincipalType } from './types';
 
 interface ProjectMembersWrapperProps {
   projectId: string;
   tenantId: string;
   canManage: boolean;
 }
+
+const roles = [
+  {
+    value: 'project_admin',
+    label: 'Project Admin',
+    description: 'Full access to project settings and members',
+  },
+  {
+    value: 'project_member',
+    label: 'Project Member',
+    description: 'Can invoke agents and create API keys',
+  },
+  {
+    value: 'project_viewer',
+    label: 'Project Viewer',
+    description: 'Read-only access to project resources',
+  },
+];
+
+const membersConfig = {
+  title: 'Project Members',
+  description: 'Users with direct access to this project',
+  emptyMessage: 'No project members yet. Add members above to grant them access.',
+};
 
 /**
  * Project-specific wrapper for the ResourceMembersPage component.
@@ -35,34 +58,6 @@ export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
     changeRole,
   } = useProjectAccess({ tenantId, projectId });
 
-  const roles = [
-    {
-      value: 'project_admin',
-      label: 'Project Admin',
-      description: 'Full access to project settings and members',
-    },
-    {
-      value: 'project_member',
-      label: 'Project Member',
-      description: 'Can invoke agents and create API keys',
-    },
-    {
-      value: 'project_viewer',
-      label: 'Project Viewer',
-      description: 'Read-only access to project resources',
-    },
-  ];
-
-  const membersConfig = {
-    title: 'Project Members',
-    description: 'Users with direct access to this project',
-    emptyMessage: 'No project members yet. Add members above to grant them access.',
-  };
-
-  const handleAdd = async (principalId: string, principalType: PrincipalType, role: string) => {
-    await addPrincipal(principalId, principalType, role);
-  };
-
   return (
     <ResourceMembersPage
       roles={roles}
@@ -71,7 +66,7 @@ export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
       principals={principals}
       membersConfig={membersConfig}
       canManage={canManage}
-      onAdd={handleAdd}
+      onAdd={addPrincipal}
       onRoleChange={changeRole}
       onRemove={removePrincipal}
       isLoading={isLoading}
