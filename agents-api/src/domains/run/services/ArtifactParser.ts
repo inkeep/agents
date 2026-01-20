@@ -166,7 +166,7 @@ export class ArtifactParser {
    */
   private parseCreateAttributes(attrString: string): ArtifactCreateAnnotation | null {
     const attrs: Record<string, any> = {};
-    let match;
+    let match: RegExpExecArray | null = null;
 
     ArtifactParser.ATTR_REGEX.lastIndex = 0;
     while ((match = ArtifactParser.ATTR_REGEX.exec(attrString)) !== null) {

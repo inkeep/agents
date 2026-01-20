@@ -32,8 +32,8 @@ app.all('/', async (c) => {
   }
 
   // Map x-forwarded-cookie to cookie (browsers forbid setting Cookie header directly)
-  if (headersToForward['x-forwarded-cookie'] && !headersToForward['cookie']) {
-    headersToForward['cookie'] = headersToForward['x-forwarded-cookie'];
+  if (headersToForward['x-forwarded-cookie'] && !headersToForward.cookie) {
+    headersToForward.cookie = headersToForward['x-forwarded-cookie'];
   }
 
   // Create SDK factory with header forwarding hook

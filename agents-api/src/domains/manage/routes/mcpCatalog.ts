@@ -1,10 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type {
-  CredentialStoreRegistry,
-  PrebuiltMCPServerSchema,
-  ServerConfig,
-} from '@inkeep/agents-core';
+import type { PrebuiltMCPServerSchema } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
   fetchComposioServers,

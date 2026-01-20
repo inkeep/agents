@@ -7,7 +7,7 @@ import type {
 import { getLogger } from '../../../logger';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
-import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
+import type { SandboxConfig } from '../types/executionContext';
 import { getSubAgentFromProject } from '../utils/project';
 
 const logger = getLogger('agents');

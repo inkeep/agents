@@ -58,7 +58,7 @@ export class ContextCache {
     requestHash?: string;
   }): Promise<CacheEntry | null> {
     try {
-      let cacheEntry: ContextCacheSelect | null;
+      let cacheEntry: ContextCacheSelect | null = null;
 
       cacheEntry = await getCacheEntry(runDbClient)({
         conversationId,
@@ -148,8 +148,7 @@ export class ContextCache {
     conversationId: string
   ): Promise<void> {
     try {
-      let result: number | undefined;
-      result = await clearConversationCache(runDbClient)({
+      const result = await clearConversationCache(runDbClient)({
         scopes: { tenantId, projectId },
         conversationId,
       });
@@ -240,7 +239,7 @@ export class ContextCache {
     contextConfigId: string,
     definitionIds: string[]
   ): Promise<void> {
-    const result = await invalidateInvocationDefinitionsCache(runDbClient)({
+    await invalidateInvocationDefinitionsCache(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       contextConfigId,
@@ -254,7 +253,7 @@ export class ContextCache {
     conversationId: string,
     contextConfigId: string
   ): Promise<void> {
-    const result = await invalidateHeadersCache(runDbClient)({
+    await invalidateHeadersCache(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       contextConfigId,

@@ -627,7 +627,6 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -654,7 +653,6 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -1938,7 +1936,7 @@ export class Agent {
           );
 
           // Use override schema if provided, otherwise use original
-          let inputSchema;
+          let inputSchema: any;
           try {
             inputSchema = override.schema
               ? jsonSchemaToZod(override.schema)
@@ -2460,7 +2458,7 @@ ${output}`;
         return false;
       }
       return Object.values(subAgents).some(
-        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
+        (subAgent) => (subAgent.artifactComponents?.length ?? 0) > 0
       );
     } catch (error) {
       logger.error(

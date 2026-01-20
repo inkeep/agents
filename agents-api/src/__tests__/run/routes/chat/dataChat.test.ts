@@ -1,4 +1,3 @@
-import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it, vi } from 'vitest';
 
 // Logger mock is now in setup.ts globally
@@ -18,7 +17,6 @@ vi.mock('../../../../domains/run/handlers/executionHandler', () => {
 });
 
 import { makeRequest } from '../../../utils/testRequest';
-import { createTestTenantId } from '../../../utils/testTenant';
 
 // Mock context exports used by the chat data stream routes
 vi.mock('../../../../domains/run/context', () => ({
@@ -117,11 +115,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 describe('Chat Data Stream Route', () => {
   it('should stream response using Vercel data stream protocol', async () => {
-    const tenantId = createTestTenantId('chat-data-stream');
-    const projectId = 'default';
-    const agentId = generateId();
-    const subAgentId = 'test-agent';
-
     // Ensure project exists first
     // await createTestProject(dbClient, tenantId, projectId);
 

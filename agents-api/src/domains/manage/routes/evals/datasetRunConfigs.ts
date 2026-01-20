@@ -280,9 +280,10 @@ app.openapi(
         let evalJobConfigId: string | undefined;
         if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
           // Create evaluation job config first
-          evalJobConfigId = generateId();
+          const jobConfigId = generateId();
+          evalJobConfigId = jobConfigId;
           await createEvaluationJobConfig(db)({
-            id: evalJobConfigId,
+            id: jobConfigId,
             tenantId,
             projectId,
             jobFilters: {
@@ -297,7 +298,7 @@ app.openapi(
                 tenantId,
                 projectId,
                 id: generateId(),
-                evaluationJobConfigId: evalJobConfigId!,
+                evaluationJobConfigId: jobConfigId,
                 evaluatorId,
               })
             )

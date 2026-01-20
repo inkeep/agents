@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
-import { createApiError } from '../utils/error';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { doltListBranches } from './branch';
 import { checkoutBranch } from './branches-api';

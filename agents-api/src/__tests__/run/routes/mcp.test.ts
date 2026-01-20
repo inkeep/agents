@@ -3,29 +3,25 @@ import * as execModule from '../../../domains/run/handlers/executionHandler';
 import { makeRequest } from '../../utils/testRequest';
 
 // Mock context exports used by the MCP route (routes/mcp.ts imports from ../context)
-const {
-  contextValidationMiddlewareMock,
-  handleContextResolutionMock,
-  getFullProjectMock,
-  getResolvedRefMock,
-} = vi.hoisted(() => ({
-  contextValidationMiddlewareMock: vi.fn().mockImplementation(async (c: any, next: any) => {
-    c.set('validatedContext', {
-      agentId: 'test-agent',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-    });
-    await next();
-  }),
-  handleContextResolutionMock: vi.fn().mockResolvedValue({}),
-  // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
-  getFullProjectMock: vi.fn(),
-  getResolvedRefMock: vi.fn().mockResolvedValue({
-    type: 'branch',
-    name: 'main',
-    hash: 'test-hash',
-  }),
-}));
+const { contextValidationMiddlewareMock, handleContextResolutionMock, getFullProjectMock } =
+  vi.hoisted(() => ({
+    contextValidationMiddlewareMock: vi.fn().mockImplementation(async (c: any, next: any) => {
+      c.set('validatedContext', {
+        agentId: 'test-agent',
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+      });
+      await next();
+    }),
+    handleContextResolutionMock: vi.fn().mockResolvedValue({}),
+    // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
+    getFullProjectMock: vi.fn(),
+    getResolvedRefMock: vi.fn().mockResolvedValue({
+      type: 'branch',
+      name: 'main',
+      hash: 'test-hash',
+    }),
+  }));
 
 vi.mock('../../../domains/run/context', () => ({
   contextValidationMiddleware: contextValidationMiddlewareMock,

@@ -266,9 +266,6 @@ describe('Relationship Tools', () => {
       threadId: 'test-thread',
       apiKey: 'test-api-key',
     },
-    subAgent: {
-      getStreamingHelper: vi.fn().mockReturnValue(undefined),
-    },
   });
 
   const getExternalDelegateParams = (config?: Partial<ExternalAgentRelationConfig>) => ({
@@ -283,9 +280,6 @@ describe('Relationship Tools', () => {
       conversationId: 'test-conversation',
       threadId: 'test-thread',
       apiKey: 'test-api-key',
-    },
-    subAgent: {
-      getStreamingHelper: vi.fn().mockReturnValue(undefined),
     },
     get credentialStoreRegistry() {
       return mockCredentialStoreRegistry;
@@ -342,9 +336,6 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool.description).toContain(
@@ -356,9 +347,6 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       // Verify tool structure
@@ -378,9 +366,6 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: differentAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool.description).toContain(
@@ -397,9 +382,6 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: specialAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool.description).toContain(
@@ -416,9 +398,6 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: invalidAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool.description).toContain(
@@ -434,9 +413,6 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: partialAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool.description).toContain(
@@ -699,9 +675,6 @@ describe('Relationship Tools', () => {
       const transferTool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
       const delegateTool = createDelegateToAgentTool(getDelegateParams());
 
@@ -721,16 +694,10 @@ describe('Relationship Tools', () => {
       const tool1 = createTransferToAgentTool({
         transferConfig: agent1,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
       const tool2 = createTransferToAgentTool({
         transferConfig: agent2,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool1.description).toContain('agent-1');
@@ -745,9 +712,6 @@ describe('Relationship Tools', () => {
       const transferTool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       const delegateTool = createDelegateToAgentTool(getDelegateParams());
@@ -783,18 +747,12 @@ describe('Relationship Tools', () => {
         createTransferToAgentTool({
           transferConfig: malformedConfig,
           callingAgentId: 'test-agent',
-          subAgent: {
-            getStreamingHelper: vi.fn().mockReturnValue(undefined),
-          },
         })
       ).not.toThrow();
 
       const tool = createTransferToAgentTool({
         transferConfig: malformedConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
       expect(tool).toHaveProperty('description');
     });

@@ -283,7 +283,11 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
+      if (!cached) {
+        logger.warn({ artifactId, toolCallId }, 'Cached artifact not found');
+        return null;
+      }
       return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
@@ -354,7 +358,11 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
+      if (!cached) {
+        logger.warn({ artifactId, toolCallId }, 'Cached artifact not found');
+        return null;
+      }
       return this.formatArtifactFullData(cached, artifactId, toolCallId);
     }
 
@@ -587,7 +595,7 @@ export class ArtifactService {
 
     // Block artifact creation if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {
-      const error = new Error(
+      new Error(
         `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
           `for '${artifactType}' schema. ` +
           `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
@@ -851,7 +859,9 @@ export class ArtifactService {
         tenantId,
         projectId,
       },
+      // biome-ignore lint/style/noNonNullAssertion: Context ID is guaranteed to be set
       contextId: this.context.contextId!,
+      // biome-ignore lint/style/noNonNullAssertion: Task ID is guaranteed to be set
       taskId: this.context.taskId!,
       toolCallId: artifact.toolCallId,
       artifact: artifactToSave,
@@ -876,8 +886,10 @@ export class ArtifactService {
       let cleaned = value;
 
       cleaned = cleaned
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control chars to remove them
         .replace(/\u0000/g, '') // Remove null bytes
-        .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // Remove control chars
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching control chars to remove them
+        .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 
       cleaned = cleaned
         .replace(/\\"([^"]+)\\"/g, '"$1"') // \"text\" -> "text"
@@ -889,7 +901,7 @@ export class ArtifactService {
       // Handle the specific pattern we're seeing: \\\\\\n (4 backslashes + n)
       const maxIterations = 10;
       let iteration = 0;
-      let previousLength;
+      let previousLength: number;
 
       do {
         previousLength = cleaned.length;
@@ -942,7 +954,7 @@ export class ArtifactService {
         try {
           // Check if there's a custom selector for this field
           const customSelector = customSelectors[fieldName];
-          let rawValue;
+          let rawValue: any;
 
           if (customSelector) {
             // Use custom JMESPath selector

@@ -408,7 +408,7 @@ describe('BaseCompressor', () => {
       for (let cycle = 0; cycle < 5; cycle++) {
         // Add tool calls
         for (let i = 0; i < 20; i++) {
-          compressor['processedToolCalls'].add(`cycle-${cycle}-call-${i}`);
+          compressor.processedToolCalls.add(`cycle-${cycle}-call-${i}`);
         }
 
         // Periodic partial cleanup
@@ -418,8 +418,8 @@ describe('BaseCompressor', () => {
       }
 
       // Should maintain reasonable size
-      expect(compressor['processedToolCalls'].size).toBeLessThan(100);
-      expect(compressor['processedToolCalls'].size).toBeGreaterThan(0);
+      expect(compressor.processedToolCalls.size).toBeLessThan(100);
+      expect(compressor.processedToolCalls.size).toBeGreaterThan(0);
     });
   });
 });

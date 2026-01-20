@@ -9,7 +9,7 @@ import {
   type TaskHandlerConfig,
 } from '../../../domains/run/agents/generateTaskHandler';
 
-const { getMcpToolMock } = vi.hoisted(() => {
+vi.hoisted(() => {
   const getMcpToolMock = vi.fn().mockResolvedValue({
     tenantId: 'test-tenant',
     projectId: 'test-project',

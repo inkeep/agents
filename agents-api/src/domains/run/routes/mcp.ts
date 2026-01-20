@@ -9,7 +9,6 @@ import {
   getConversation,
   getConversationId,
   HeadersScopeSchema,
-  type ResolvedRef,
   updateConversation,
 } from '@inkeep/agents-core';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -115,8 +114,7 @@ const validateSession = async (
   body: any,
   tenantId: string,
   projectId: string,
-  agentId: string,
-  ref: ResolvedRef
+  agentId: string
 ): Promise<any | null> => {
   const sessionId = req.headers['mcp-session-id'];
   logger.info({ sessionId }, 'Received MCP session ID');
@@ -206,8 +204,7 @@ const processUserMessage = async (
   tenantId: string,
   projectId: string,
   conversationId: string,
-  query: string,
-  ref: ResolvedRef
+  query: string
 ): Promise<void> => {
   const messageSpan = trace.getActiveSpan();
   if (messageSpan) {
@@ -290,7 +287,7 @@ const getServer = async (
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId, resolvedRef } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   setupTracing(conversationId, tenantId, agentId);
 
   const agent = executionContext.project.agents[agentId];
@@ -362,7 +359,7 @@ const getServer = async (
           'parameters'
         );
 
-        await processUserMessage(tenantId, projectId, conversationId, query, resolvedRef);
+        await processUserMessage(tenantId, projectId, conversationId, query);
 
         return executeAgentQuery(executionContext, conversationId, query, defaultSubAgentId);
       } catch (error) {
@@ -547,16 +544,8 @@ const handleExistingSessionRequest = async (
   res: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId, resolvedRef } = executionContext;
-  const conversation = await validateSession(
-    req,
-    res,
-    body,
-    tenantId,
-    projectId,
-    agentId,
-    resolvedRef
-  );
+  const { tenantId, projectId, agentId } = executionContext;
+  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId);
   if (!conversation) {
     return toFetchResponse(res);
   }

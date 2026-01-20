@@ -1,5 +1,4 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
   createApiError,

@@ -309,7 +309,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const ref = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
     const deleted = await deleteApiKey(runDbClient)({

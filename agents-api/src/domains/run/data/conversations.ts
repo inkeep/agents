@@ -542,7 +542,6 @@ export async function getConversationHistoryWithCompression({
       }
     } else {
       // No existing compression, check if we need to compress for the first time
-      const originalMessageCount = messagesToFormat.length;
       messagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
         conversationId,
         tenantId,
@@ -597,7 +596,7 @@ export async function compressConversationIfNeeded(
     fullContextSize?: number;
   }
 ): Promise<any[]> {
-  const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
+  const { conversationId, tenantId, projectId } = params;
 
   // Prevent race conditions by using conversation-level locking
   const lockKey = `${conversationId}_${tenantId}_${projectId}`;
@@ -739,26 +738,32 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
     parts.push(`🎯 Primary Goal: ${summary.user_goals.primary}`);
     if (summary.user_goals.secondary && summary.user_goals.secondary.length > 0) {
       parts.push(`🎯 Secondary Goals:`);
-      summary.user_goals.secondary.forEach((goal: string) => parts.push(`  • ${goal}`));
+      for (const goal of summary.user_goals.secondary) {
+        parts.push(`  • ${goal}`);
+      }
     }
   }
 
   if (summary.key_outcomes) {
     if (summary.key_outcomes.completed && summary.key_outcomes.completed.length > 0) {
       parts.push(`✅ Completed:`);
-      summary.key_outcomes.completed.forEach((item: string) => parts.push(`  • ${item}`));
+      for (const item of summary.key_outcomes.completed) {
+        parts.push(`  • ${item}`);
+      }
     }
 
     if (summary.key_outcomes.discoveries && summary.key_outcomes.discoveries.length > 0) {
       parts.push(`💡 Key Discoveries:`);
-      summary.key_outcomes.discoveries.forEach((discovery: string) =>
-        parts.push(`  • ${discovery}`)
-      );
+      for (const discovery of summary.key_outcomes.discoveries) {
+        parts.push(`  • ${discovery}`);
+      }
     }
 
     if (summary.key_outcomes.partial && summary.key_outcomes.partial.length > 0) {
       parts.push(`⏳ In Progress:`);
-      summary.key_outcomes.partial.forEach((item: string) => parts.push(`  • ${item}`));
+      for (const item of summary.key_outcomes.partial) {
+        parts.push(`  • ${item}`);
+      }
     }
   }
 
@@ -772,9 +777,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.context_for_continuation.next_logical_steps.length > 0
     ) {
       parts.push(`📝 Next Steps:`);
-      summary.context_for_continuation.next_logical_steps.forEach((step: string) =>
-        parts.push(`  • ${step}`)
-      );
+      for (const step of summary.context_for_continuation.next_logical_steps) {
+        parts.push(`  • ${step}`);
+      }
     }
 
     if (
@@ -782,9 +787,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.context_for_continuation.important_context.length > 0
     ) {
       parts.push(`🔑 Key Context:`);
-      summary.context_for_continuation.important_context.forEach((context: string) =>
-        parts.push(`  • ${context}`)
-      );
+      for (const context of summary.context_for_continuation.important_context) {
+        parts.push(`  • ${context}`);
+      }
     }
   }
 
@@ -802,9 +807,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.technical_context.issues_encountered.length > 0
     ) {
       parts.push(`⚠️ Issues Encountered:`);
-      summary.technical_context.issues_encountered.forEach((issue: string) =>
-        parts.push(`  • ${issue}`)
-      );
+      for (const issue of summary.technical_context.issues_encountered) {
+        parts.push(`  • ${issue}`);
+      }
     }
 
     if (
@@ -812,9 +817,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.technical_context.solutions_applied.length > 0
     ) {
       parts.push(`✨ Solutions Applied:`);
-      summary.technical_context.solutions_applied.forEach((solution: string) =>
-        parts.push(`  • ${solution}`)
-      );
+      for (const solution of summary.technical_context.solutions_applied) {
+        parts.push(`  • ${solution}`);
+      }
     }
   }
 
@@ -829,17 +834,23 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 
   if (summary.decisions && summary.decisions.length > 0) {
     parts.push(`✅ Key Decisions Made:`);
-    summary.decisions.forEach((decision: string) => parts.push(`  • ${decision}`));
+    for (const decision of summary.decisions) {
+      parts.push(`  • ${decision}`);
+    }
   }
 
   if (summary.next_steps && summary.next_steps.length > 0) {
     parts.push(`📝 Planned Next Steps:`);
-    summary.next_steps.forEach((step: string) => parts.push(`  • ${step}`));
+    for (const step of summary.next_steps) {
+      parts.push(`  • ${step}`);
+    }
   }
 
   if (summary.open_questions && summary.open_questions.length > 0) {
     parts.push(`❓ Outstanding Questions:`);
-    summary.open_questions.forEach((question: string) => parts.push(`  • ${question}`));
+    for (const question of summary.open_questions) {
+      parts.push(`  • ${question}`);
+    }
   }
 
   // Handle conversation artifacts with detailed information and proper reference format
@@ -926,7 +937,7 @@ export async function getConversationScopedArtifacts(params: {
   historyConfig: AgentConversationHistoryConfig;
   ref: ResolvedRef;
 }): Promise<Artifact[]> {
-  const { tenantId, projectId, conversationId, historyConfig, ref } = params;
+  const { tenantId, projectId, conversationId, historyConfig } = params;
 
   if (!conversationId) {
     return [];

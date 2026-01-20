@@ -172,7 +172,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
   );
   try {
     const executionContext = c.get('executionContext');
-    const { tenantId, projectId, agentId, ref } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     getLogger('chat').debug(
       {

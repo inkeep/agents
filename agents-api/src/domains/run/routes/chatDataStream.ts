@@ -94,7 +94,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = c.get('executionContext');
-    const { tenantId, projectId, agentId, resolvedRef } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')

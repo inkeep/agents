@@ -128,7 +128,7 @@ describe('Chat Data Stream Advanced', () => {
   }
 
   it('streams expected completion content', async () => {
-    const { tenantId, projectId, agentId } = await setupAgent();
+    await setupAgent();
 
     const res = await makeRequest('/run/api/chat', {
       method: 'POST',

@@ -197,12 +197,10 @@ NOTE: Unlike transfers, delegation returns control back to you with the delegate
 export const createTransferToAgentTool = ({
   transferConfig,
   callingAgentId,
-  subAgent,
   streamRequestId,
 }: {
   transferConfig: AgentConfig;
   callingAgentId: string;
-  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   streamRequestId?: string;
 }) => {
   const toolDescription = generateTransferToolDescription(transferConfig);
@@ -261,7 +259,6 @@ export function createDelegateToAgentTool({
   contextId,
   metadata,
   sessionId,
-  subAgent,
   credentialStoreRegistry,
 }: {
   delegateConfig: DelegateRelation;
@@ -276,7 +273,6 @@ export function createDelegateToAgentTool({
     apiKey?: string;
   };
   sessionId?: string;
-  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
   const { tenantId, projectId, agentId, project } = executionContext;

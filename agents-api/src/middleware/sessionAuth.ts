@@ -1,5 +1,4 @@
-import { createApiError, session, user } from '@inkeep/agents-core';
-import { auth } from '@inkeep/agents-core/auth';
+import { createApiError } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';

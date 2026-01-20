@@ -379,7 +379,10 @@ describe('Model Context Utils', () => {
       models.forEach(({ model, expected }) => {
         const result = getCompressionConfigForModel({ model });
         const triggerPoint = result.hardLimit - result.safetyBuffer;
-        const contextWindow = getModelContextWindow({ model }).contextWindow!;
+        const contextWindow = getModelContextWindow({ model }).contextWindow;
+        if (!contextWindow) {
+          throw new Error('Context window not found');
+        }
         const triggerPercentage = triggerPoint / contextWindow;
 
         expect(triggerPercentage).toBeGreaterThan(expected.min);
