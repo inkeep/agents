@@ -251,7 +251,6 @@ export class VercelDataStreamHelper implements StreamHelper {
   private jsonBuffer = '';
   private sentItems = new Map<number, string>(); // Track what we've sent for each index
   private completedItems = new Set<number>(); // Track completed items
-  private sessionId?: string;
 
   private static readonly MAX_BUFFER_SIZE = STREAM_BUFFER_MAX_SIZE_BYTES;
   private isCompleted = false;
@@ -267,10 +266,6 @@ export class VercelDataStreamHelper implements StreamHelper {
     this.connectionDropTimer = setTimeout(() => {
       this.forceCleanup('Connection lifetime exceeded');
     }, STREAM_MAX_LIFETIME_MS);
-  }
-
-  setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
   }
 
   async writeRole(_ = 'assistant'): Promise<void> {}
@@ -689,11 +684,6 @@ export class BufferingStreamHelper implements StreamHelper {
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-  private sessionId?: string;
-
-  setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
-  }
 
   async writeRole(_role?: string): Promise<void> {
     // No-op for MCP

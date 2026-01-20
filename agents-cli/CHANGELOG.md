@@ -1,5 +1,102 @@
 # @inkeep/agents-cli
 
+## 0.41.2
+
+### Patch Changes
+
+- 112b5c7: Add --local flag to inkeep init to set local profile as default
+- de84714: Add tsdown `clean` option based on watch status
+- af347c8: Add `dev` watch scripts and skip `d.ts` generation in watch mode across packages
+- 2e86062: warning status messages
+- Updated dependencies [112b5c7]
+- Updated dependencies [de84714]
+- Updated dependencies [d32fdb8]
+- Updated dependencies [01ca1e6]
+- Updated dependencies [af347c8]
+- Updated dependencies [c584a64]
+- Updated dependencies [86273ec]
+- Updated dependencies [e5e12d9]
+- Updated dependencies [2e86062]
+  - @inkeep/agents-core@0.41.2
+  - @inkeep/agents-manage-ui@0.41.2
+  - @inkeep/agents-sdk@0.41.2
+
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+- Updated dependencies [d1f60f3]
+- Updated dependencies [53acc10]
+  - @inkeep/agents-core@0.41.1
+  - @inkeep/agents-manage-ui@0.41.1
+  - @inkeep/agents-sdk@0.41.1
+
+## 0.41.0
+
+### Patch Changes
+
+- 49ec561: fix auth dependencies
+- 5d095da: Properly contain overflow of trace card content
+- f1a6cd4: compression ui improvements
+- 561605f: Export DEFAULT_NANGO_STORE_ID from @inkeep/agents-core main exports
+- 4b016d4: target ids for chat-to-edit
+- d933953: Disable colorized logs in non-TTY environments like Vercel. Logs now respect the NO_COLOR env var and automatically disable colors when stdout is not a TTY.
+- 9b17c81: streamObject removed from traces
+- f58f9e4: Fix cookie header forwarding for MCP server authentication
+- Updated dependencies [49ec561]
+- Updated dependencies [5d095da]
+- Updated dependencies [f1a6cd4]
+- Updated dependencies [7a00f08]
+- Updated dependencies [1257b10]
+- Updated dependencies [de60268]
+- Updated dependencies [561605f]
+- Updated dependencies [c890035]
+- Updated dependencies [4b016d4]
+- Updated dependencies [d933953]
+- Updated dependencies [1c46e8f]
+- Updated dependencies [9b17c81]
+- Updated dependencies [f58f9e4]
+  - @inkeep/agents-core@0.41.0
+  - @inkeep/agents-manage-ui@0.41.0
+  - @inkeep/agents-sdk@0.41.0
+
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 178d5b1: keep file structure for build `dist` directory
+
+### Patch Changes
+
+- be0131e: user info for spans
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- 153d4e5: Added Conversation COmpression
+- Updated dependencies [7317cb1]
+- Updated dependencies [be0131e]
+- Updated dependencies [e5172e2]
+- Updated dependencies [07f77ab]
+- Updated dependencies [8b95949]
+- Updated dependencies [811b6e2]
+- Updated dependencies [90c4cfb]
+- Updated dependencies [b2c2fd9]
+- Updated dependencies [b231869]
+- Updated dependencies [178d5b1]
+- Updated dependencies [ff51b72]
+- Updated dependencies [1ef2557]
+- Updated dependencies [5b32e12]
+- Updated dependencies [d27e015]
+- Updated dependencies [44d5516]
+- Updated dependencies [153d4e5]
+- Updated dependencies [970a7bd]
+- Updated dependencies [50ed255]
+  - @inkeep/agents-manage-ui@0.40.0
+  - @inkeep/agents-core@0.40.0
+  - @inkeep/agents-sdk@0.40.0
+
 ## 0.39.5
 
 ### Patch Changes

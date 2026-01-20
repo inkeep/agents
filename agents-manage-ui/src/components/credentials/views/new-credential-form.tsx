@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { CredentialForm } from '@/components/credentials/views/credential-form';
 import { CredentialFormInkeepCloud } from '@/components/credentials/views/credential-form-inkeep-cloud';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';

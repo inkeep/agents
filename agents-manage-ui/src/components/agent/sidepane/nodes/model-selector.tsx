@@ -22,6 +22,7 @@ interface ModelSelectorProps {
   label?: React.ReactNode;
   value?: string;
   onValueChange?: (value: string) => void;
+  onProviderOptionsChange?: (options: Record<string, any>) => void;
   placeholder?: string;
   inheritedValue?: string;
   isRequired?: boolean;
@@ -33,6 +34,7 @@ export function ModelSelector({
   tooltip,
   value,
   onValueChange,
+  onProviderOptionsChange,
   placeholder = 'Select a model...',
   inheritedValue,
   isRequired = false,
@@ -40,8 +42,11 @@ export function ModelSelector({
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState<
-    'openrouter' | 'gateway' | 'nim' | 'custom' | null
+    'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
   >(null);
+  const [azureDeploymentName, setAzureDeploymentName] = useState('');
+  const [azureResourceName, setAzureResourceName] = useState('');
+  const [azureBaseURL, setAzureBaseURL] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
 
   const selectedModel = useMemo(() => {
@@ -66,6 +71,10 @@ export function ModelSelector({
       if (value.startsWith('custom/')) {
         const modelName = value.replace('custom/', '');
         return { value, label: modelName, prefix: 'custom/' };
+      }
+      if (value.startsWith('azure/')) {
+        const modelName = value.replace('azure/', '');
+        return { value, label: modelName, prefix: 'azure/' };
       }
       return { value, label: `${value} (custom)` };
     }
@@ -187,6 +196,32 @@ export function ModelSelector({
                       );
                     })()}
                   </CommandEmpty>
+                  {/* Predefined models */}
+                  {Object.entries(modelOptions).map(([provider, models]) => (
+                    <CommandGroup key={provider} heading={provider}>
+                      {models.map((model) => (
+                        <CommandItem
+                          key={model.value}
+                          className="flex items-center justify-between cursor-pointer text-foreground"
+                          value={model.value}
+                          onSelect={(currentValue) => {
+                            onValueChange?.(currentValue === value ? '' : currentValue);
+                            setOpen(false);
+                            setCustomModelInput('');
+                            setShowCustomInput(null);
+                          }}
+                        >
+                          {model.label}
+                          <Check
+                            className={cn(
+                              'ml-2 h-4 w-4',
+                              value === model.value ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  ))}
                   {/* Custom OpenAI-compatible */}
                   <CommandGroup heading="Custom OpenAI-compatible">
                     <CommandItem
@@ -236,38 +271,26 @@ export function ModelSelector({
                     >
                       NVIDIA NIM ...
                     </CommandItem>
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__azure__"
+                      onSelect={() => {
+                        setShowCustomInput('azure');
+                        setOpen(false);
+                        setCustomModelInput('');
+                        setAzureDeploymentName('');
+                        setAzureResourceName('');
+                        setAzureBaseURL('');
+                      }}
+                    >
+                      Azure ...
+                    </CommandItem>
                   </CommandGroup>
-                  {/* Predefined models */}
-                  {Object.entries(modelOptions).map(([provider, models]) => (
-                    <CommandGroup key={provider} heading={provider}>
-                      {models.map((model) => (
-                        <CommandItem
-                          key={model.value}
-                          className="flex items-center justify-between cursor-pointer text-foreground"
-                          value={model.value}
-                          onSelect={(currentValue) => {
-                            onValueChange?.(currentValue === value ? '' : currentValue);
-                            setOpen(false);
-                            setCustomModelInput('');
-                            setShowCustomInput(null);
-                          }}
-                        >
-                          {model.label}
-                          <Check
-                            className={cn(
-                              'ml-2 h-4 w-4',
-                              value === model.value ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  ))}
                 </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
-          {showCustomInput && (
+          {showCustomInput && showCustomInput !== 'azure' && (
             <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
               <div className="space-y-2">
                 <div className="text-sm font-medium">
@@ -351,6 +374,117 @@ export function ModelSelector({
                     onClick={() => {
                       setShowCustomInput(null);
                       setCustomModelInput('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showCustomInput === 'azure' && (
+            <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Azure Configuration</div>
+                <div className="text-xs text-muted-foreground">
+                  Configure your Azure deployment and connection details
+                </div>
+
+                <div>
+                  <label htmlFor="azure-deployment-name" className="block text-xs font-medium mb-1">
+                    Deployment Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="azure-deployment-name"
+                    className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="my-gpt-4o-deployment"
+                    value={azureDeploymentName}
+                    onChange={(e) => setAzureDeploymentName(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your Azure model deployment name (required)
+                  </p>
+                </div>
+
+                <div className="border-t pt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Choose one connection method <span className="text-red-500">*</span>
+                  </p>
+
+                  <div>
+                    <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">
+                      Azure Resource Name
+                    </label>
+                    <input
+                      id="azure-resource-name"
+                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="your-azure-resource"
+                      value={azureResourceName}
+                      onChange={(e) => setAzureResourceName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
+
+                  <div>
+                    <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">
+                      Custom Base URL
+                    </label>
+                    <input
+                      id="azure-base-url"
+                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://your-endpoint.com"
+                      value={azureBaseURL}
+                      onChange={(e) => setAzureBaseURL(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Set <code>AZURE_API_KEY</code> environment variable
+                </div>
+
+                <div className="flex gap-2 items-center">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (
+                        azureDeploymentName.trim() &&
+                        (azureResourceName.trim() || azureBaseURL.trim())
+                      ) {
+                        // Set the Azure model FIRST so the store has it
+                        onValueChange?.(`azure/${azureDeploymentName.trim()}`);
+
+                        // Then set the provider options
+                        const providerOptions: Record<string, any> = {};
+                        if (azureResourceName.trim()) {
+                          providerOptions.resourceName = azureResourceName.trim();
+                        } else if (azureBaseURL.trim()) {
+                          providerOptions.baseURL = azureBaseURL.trim();
+                        }
+                        onProviderOptionsChange?.(providerOptions);
+
+                        setShowCustomInput(null);
+                        setAzureDeploymentName('');
+                        setAzureResourceName('');
+                        setAzureBaseURL('');
+                      }
+                    }}
+                    disabled={
+                      !azureDeploymentName.trim() ||
+                      (!azureResourceName.trim() && !azureBaseURL.trim())
+                    }
+                  >
+                    Configure
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCustomInput(null);
+                      setAzureDeploymentName('');
+                      setAzureResourceName('');
+                      setAzureBaseURL('');
                     }}
                   >
                     Cancel

@@ -18,27 +18,26 @@ import {
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { requirePermission } from '../middleware/require-permission';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-// Apply permission middleware by HTTP method
+// Write operations require 'edit' permission on the project
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ artifact_component: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requirePermission({ artifact_component: ['update'] })(c, next);
+  if (c.req.method === 'PATCH' || c.req.method === 'PUT') {
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ artifact_component: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -68,11 +67,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listArtifactComponentsPaginated(dbClient)({
+    const result = await listArtifactComponentsPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -103,8 +103,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const artifactComponent = await getArtifactComponentById(dbClient)({
+    const artifactComponent = await getArtifactComponentById(db)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -150,6 +151,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -174,10 +176,11 @@ app.openapi(
       name: String(body.name),
       description: String(body.description),
       props: body.props ?? null,
+      render: body.render ?? null,
     };
 
     try {
-      const artifactComponent = await createArtifactComponent(dbClient)({
+      const artifactComponent = await createArtifactComponent(db)({
         ...componentData,
       });
 
@@ -227,6 +230,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -255,8 +259,11 @@ app.openapi(
     if (body.props !== undefined) {
       updateData.props = body.props ?? null;
     }
+    if (body.render !== undefined) {
+      updateData.render = body.render ?? null;
+    }
 
-    const updatedArtifactComponent = await updateArtifactComponent(dbClient)({
+    const updatedArtifactComponent = await updateArtifactComponent(db)({
       scopes: { tenantId, projectId },
       id,
       data: updateData,
@@ -298,9 +305,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteArtifactComponent(dbClient)({
+    const deleted = await deleteArtifactComponent(db)({
       scopes: { tenantId, projectId },
       id,
     });

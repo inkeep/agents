@@ -1,3 +1,5 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 /**
  * Unit tests for function tool generator
  */
@@ -33,14 +35,14 @@ describe('Function Tool Generator', () => {
 
   describe('generateFunctionToolImports', () => {
     it('should generate correct imports', () => {
-      const imports = generateFunctionToolImports('calculate-bmi', testToolData);
+      const imports = generateFunctionToolImports();
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { functionTool } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateFunctionToolImports('calculate-bmi', testToolData, {
+      const imports = generateFunctionToolImports({
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
@@ -253,7 +255,7 @@ describe('Function Tool Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working function tool', async () => {
-      const file = generateFunctionToolFile('calculate-bmi', testToolData);
+      generateFunctionToolFile('calculate-bmi', testToolData);
 
       // Extract just the tool definition (remove imports and export)
       const definition = generateFunctionToolDefinition('calculate-bmi', testToolData);
@@ -270,7 +272,7 @@ describe('Function Tool Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

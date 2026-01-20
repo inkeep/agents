@@ -1,5 +1,5 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { ProjectProvider } from '@/contexts/project-context';
+import { ProjectProvider } from '@/contexts/project';
 import { fetchProject } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 

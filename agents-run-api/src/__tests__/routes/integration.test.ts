@@ -84,6 +84,10 @@ vi.mock('../../data/db/dbClient.js', () => ({
   default: {},
 }));
 
+vi.mock('../../data/db/dbClient', () => ({
+  default: {},
+}));
+
 vi.mock('../../data/conversations.js', () => ({
   // Keep for any local functions still used
   saveA2AMessageResponse: vi.fn().mockResolvedValue({}),
@@ -127,34 +131,33 @@ vi.mock('../../utils/stream-registry.js', () => ({
   unregisterStreamHelper: vi.fn(),
 }));
 
-vi.mock('../../utils/agent-session.js', () => ({
-  agentSessionManager: {
-    createSession: vi.fn(),
-    endSession: vi.fn(),
-    getSession: vi.fn().mockReturnValue(null),
-  },
-}));
-
-vi.mock('../../utils/tracer.js', () => ({
+// ExecutionHandler imports tracer via absolute path
+vi.mock('src/utils/tracer.js', () => ({
   tracer: {
-    startActiveSpan: vi.fn((_name, options, fn) => {
-      // Handle both 2 and 3 argument versions
+    startActiveSpan: vi.fn((_name: string, options: any, fn?: any) => {
       const callback = typeof options === 'function' ? options : fn;
       return callback({
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
+        addEvent: vi.fn(),
       });
     }),
-    startSpan: vi.fn(() => ({
-      setAttributes: vi.fn(),
-      setStatus: vi.fn(),
-      end: vi.fn(),
-    })),
   },
 }));
 
-vi.mock('../../env.js', async (importOriginal) => {
+// ExecutionHandler uses AgentSession manager from services
+vi.mock('../../services/AgentSession.js', () => ({
+  agentSessionManager: {
+    createSession: vi.fn(),
+    enableEmitOperations: vi.fn(),
+    initializeStatusUpdates: vi.fn(),
+    endSession: vi.fn(),
+    getSession: vi.fn().mockReturnValue(null),
+  },
+}));
+
+vi.mock('../../env.js', async () => {
   return {
     env: {
       AGENT_BASE_URL: 'http://localhost:3002',
@@ -183,18 +186,140 @@ describe('Integration Tests', () => {
     let executionHandler: ExecutionHandler;
     let mockStreamHelper: any;
 
-    // Helper to create test execution context
-    const createTestExecutionContext = async () => {
-      const { createExecutionContext } = await import('../../types/execution-context.js');
-      return createExecutionContext({
+    const createTestExecutionContext = () =>
+      ({
         apiKey: 'test-api-key',
         tenantId: 'test-tenant',
         projectId: 'test-project',
         agentId: 'test-agent',
         apiKeyId: 'test-key',
         baseUrl: 'http://localhost:3003',
-      });
-    };
+        resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+        project: {
+          id: 'test-project',
+          tenantId: 'test-tenant',
+          name: 'Test Project',
+          agents: {
+            'test-agent': {
+              id: 'test-agent',
+              tenantId: 'test-tenant',
+              projectId: 'test-project',
+              name: 'Test Agent',
+              description: 'Test agent',
+              defaultSubAgentId: 'default-agent',
+              subAgents: {
+                'default-agent': {
+                  id: 'default-agent',
+                  tenantId: 'test-tenant',
+                  projectId: 'test-project',
+                  name: 'Default Agent',
+                  description: 'Default agent',
+                  prompt: 'You are a helpful assistant.',
+                  canUse: [],
+                  canTransferTo: [],
+                  canDelegateTo: [],
+                  dataComponents: [],
+                  artifactComponents: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+                'router-agent': {
+                  id: 'router-agent',
+                  tenantId: 'test-tenant',
+                  projectId: 'test-project',
+                  name: 'Router Agent',
+                  description: 'Router agent',
+                  prompt: 'You route things.',
+                  canUse: [],
+                  canTransferTo: [],
+                  canDelegateTo: [],
+                  dataComponents: [],
+                  artifactComponents: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+                'support-agent': {
+                  id: 'support-agent',
+                  tenantId: 'test-tenant',
+                  projectId: 'test-project',
+                  name: 'Support Agent',
+                  description: 'Support agent',
+                  prompt: 'You support things.',
+                  canUse: [],
+                  canTransferTo: [],
+                  canDelegateTo: [],
+                  dataComponents: [],
+                  artifactComponents: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+                'context-agent': {
+                  id: 'context-agent',
+                  tenantId: 'test-tenant',
+                  projectId: 'test-project',
+                  name: 'Context Agent',
+                  description: 'Context agent',
+                  prompt: 'You remember things.',
+                  canUse: [],
+                  canTransferTo: [],
+                  canDelegateTo: [],
+                  dataComponents: [],
+                  artifactComponents: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+                'tool-agent': {
+                  id: 'tool-agent',
+                  tenantId: 'test-tenant',
+                  projectId: 'test-project',
+                  name: 'Tool Agent',
+                  description: 'Tool agent',
+                  prompt: 'You use tools.',
+                  canUse: [],
+                  canTransferTo: [],
+                  canDelegateTo: [],
+                  dataComponents: [],
+                  artifactComponents: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+                'faulty-agent': {
+                  id: 'faulty-agent',
+                  tenantId: 'test-tenant',
+                  projectId: 'test-project',
+                  name: 'Faulty Agent',
+                  description: 'Faulty agent',
+                  prompt: 'You fail.',
+                  canUse: [],
+                  canTransferTo: [],
+                  canDelegateTo: [],
+                  dataComponents: [],
+                  artifactComponents: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+              },
+              tools: {},
+              externalAgents: {},
+              teamAgents: {},
+              transferRelations: {},
+              delegateRelations: {},
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              contextConfigId: null,
+              contextConfig: null,
+              statusUpdates: { enabled: false },
+            },
+          },
+          tools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+          statusUpdates: null,
+        },
+      }) as any;
 
     beforeEach(() => {
       vi.clearAllMocks();
@@ -211,8 +336,8 @@ describe('Integration Tests', () => {
       };
     });
 
-    it.skip('should handle basic message execution flow', async () => {
-      const executionContext = await createTestExecutionContext();
+    it('should handle basic message execution flow', async () => {
+      const executionContext = createTestExecutionContext();
 
       const params = {
         executionContext,
@@ -237,7 +362,7 @@ describe('Integration Tests', () => {
       expect(createMessageMock).toHaveBeenCalled();
     });
 
-    it.skip('should handle agent transfer scenarios', async () => {
+    it('should handle agent transfer scenarios', async () => {
       // Mock transfer response from A2A client
       const { A2AClient } = await import('../../a2a/client.js');
       const mockSendMessage = vi
@@ -251,7 +376,9 @@ describe('Integration Tests', () => {
                   {
                     kind: 'data',
                     data: {
+                      type: 'transfer',
                       targetSubAgentId: 'support-agent',
+                      fromSubAgentId: 'router-agent',
                     },
                   },
                   {
@@ -287,13 +414,7 @@ describe('Integration Tests', () => {
           }) as any
       );
 
-      // Mock transfer detection
-      const { isTransferResponse } = await import('../../a2a/transfer.js');
-      vi.mocked(isTransferResponse)
-        .mockReturnValueOnce(true) // First response is transfer
-        .mockReturnValueOnce(false); // Second response is completion
-
-      const executionContext = await createTestExecutionContext();
+      const executionContext = createTestExecutionContext();
       const params = {
         executionContext,
         conversationId: 'conv-transfer',
@@ -314,7 +435,7 @@ describe('Integration Tests', () => {
       expect(executeTransfer).toHaveBeenCalled();
     });
 
-    it.skip('should handle conversation context and history', async () => {
+    it('should handle conversation context and history', async () => {
       // Ensure proper A2A mock for this test
       const { A2AClient } = await import('../../a2a/client.js');
       const mockSendMessage = vi.fn().mockResolvedValue({
@@ -340,7 +461,7 @@ describe('Integration Tests', () => {
           }) as any
       );
 
-      const executionContext = await createTestExecutionContext();
+      const executionContext = createTestExecutionContext();
       const params = {
         executionContext,
         conversationId: 'conv-context',
@@ -371,7 +492,7 @@ describe('Integration Tests', () => {
       );
     });
 
-    it.skip('should handle tool execution requests', async () => {
+    it('should handle tool execution requests', async () => {
       // Mock A2A response with tool execution result
       const { A2AClient } = await import('../../a2a/client.js');
       vi.mocked(A2AClient).mockImplementation(
@@ -403,7 +524,7 @@ describe('Integration Tests', () => {
           }) as any
       );
 
-      const executionContext = await createTestExecutionContext();
+      const executionContext = createTestExecutionContext();
       const params = {
         executionContext,
         conversationId: 'conv-tools',
@@ -426,7 +547,7 @@ describe('Integration Tests', () => {
       );
     });
 
-    it.skip('should handle error scenarios gracefully', async () => {
+    it('should handle error scenarios gracefully', async () => {
       // Mock A2A client to throw an error
       const { A2AClient } = await import('../../a2a/client.js');
       vi.mocked(A2AClient).mockImplementation(
@@ -437,7 +558,7 @@ describe('Integration Tests', () => {
           }) as any
       );
 
-      const executionContext = await createTestExecutionContext();
+      const executionContext = createTestExecutionContext();
       const params = {
         executionContext,
         conversationId: 'conv-error',

@@ -17,7 +17,7 @@ export function stripJsonCodeBlocks(text: string): string {
 }
 
 /**
- * Configuration helper to add JSON post-processing to generateObject calls
+ * Configuration helper to add JSON post-processing to structured output generateText calls
  */
 export function withJsonPostProcessing<T extends Record<string, any>>(
   config: T

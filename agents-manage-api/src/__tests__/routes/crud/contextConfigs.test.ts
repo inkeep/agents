@@ -1,7 +1,7 @@
 import { generateId } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import dbClient from '../../../data/db/dbClient';
+import manageDbClient from '../../../data/db/dbClient';
 import { createTestContextConfigDataFull } from '../../utils/testHelpers';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
@@ -102,7 +102,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   describe('GET /', () => {
     it('should list context configs with pagination (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-list-empty');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs?page=1&limit=10`
       );
@@ -122,7 +122,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should list context configs with pagination (single item)', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-list-single');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { contextConfigData } = await createTestContextConfig({ tenantId });
 
       const res = await makeRequest(
@@ -147,7 +147,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should handle pagination with multiple pages', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-list-multipages');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const _contextConfigs = await createMultipleContextConfigs({ tenantId, count: 5 });
 
       // Test first page with limit 2
@@ -206,7 +206,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should return empty data for page beyond available data', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-list-beyond-pages');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createMultipleContextConfigs({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
@@ -227,7 +227,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should handle large page size (larger than total items)', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-list-large-limit');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const _contextConfigs = await createMultipleContextConfigs({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
@@ -250,7 +250,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   describe('GET /{id}', () => {
     it('should get a context config by id', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-get-by-id');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { contextConfigData, contextConfigId } = await createTestContextConfig({
         tenantId,
       });
@@ -272,7 +272,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should return 404 when context config not found', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-get-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/non-existent-id`
       );
@@ -293,7 +293,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-problem-details-404');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/non-existent-id`
       );
@@ -315,7 +315,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   describe('POST /', () => {
     it('should create a new context config', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-create-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createtestAgent({ tenantId });
       const contextConfigData = createTestContextConfigDataFull({ tenantId, projectId });
 
@@ -340,7 +340,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should create a new context config with minimal required fields', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-create-minimal');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createtestAgent({ tenantId });
       const minimalData = {
         id: `minimal-context-config-${generateId(6)}`,
@@ -367,7 +367,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should create a context config with complex fetch definitions', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-create-complex');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createtestAgent({ tenantId });
       const complexData = {
         id: `complex-context-config-${generateId(6)}`,
@@ -430,7 +430,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should fail to create context config without context variables or headers schema', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-create-minimal');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs`,
         {
@@ -446,7 +446,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   describe('PUT /{id}', () => {
     it('should update an existing context config', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-update-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { contextConfigId } = await createTestContextConfig({ tenantId });
 
       const updateData = {
@@ -498,7 +498,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   describe('DELETE /{id}', () => {
     it('should delete an existing context config', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-delete-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { contextConfigId } = await createTestContextConfig({ tenantId });
 
       const res = await makeRequest(
@@ -519,7 +519,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should return 404 when deleting non-existent context config', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-delete-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${testAgentId}/context-configs/non-existent-id`,
         {
@@ -534,7 +534,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
   describe('Edge Cases and Data Validation', () => {
     it('should handle context config with empty context variables object', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-empty-context-vars');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createtestAgent({ tenantId });
       const configData = {
         id: `empty-context-vars-${generateId(6)}`,
@@ -559,7 +559,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should handle context config with null headersSchema', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-null-headers-schema');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createtestAgent({ tenantId });
       const configData = {
         id: `null-headers-schema-${generateId(6)}`,
@@ -584,7 +584,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
     it('should preserve complex nested data structures', async () => {
       const tenantId = await createTestTenantWithOrg('context-configs-complex-nested');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createtestAgent({ tenantId });
       const complexConfig = {
         id: `complex-nested-config-${generateId(6)}`,
@@ -659,7 +659,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Context Variables Removal', () => {
       it('should clear contextVariables when set to null via update', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-clear-context-vars-null');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear contextVariables with null
@@ -678,7 +678,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should clear contextVariables when set to empty object via update', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-clear-context-vars-empty');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear contextVariables with empty object
@@ -697,7 +697,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should create with empty contextVariables treated as null', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-create-empty-context-vars');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         await createtestAgent({ tenantId });
         const configData = {
           id: `empty-context-vars-config-${generateId(6)}`,
@@ -722,7 +722,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should preserve non-empty contextVariables', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-preserve-context-vars');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({
           tenantId,
         });
@@ -760,7 +760,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Request Context Schema Removal', () => {
       it('should clear headersSchema when set to null via update', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-clear-request-schema-null');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear headersSchema with null
@@ -781,7 +781,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         const tenantId = await createTestTenantWithOrg(
           'context-configs-create-null-request-schema'
         );
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         await createtestAgent({ tenantId });
         const configData = {
           id: `null-request-schema-config-${generateId(6)}`,
@@ -806,7 +806,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should preserve non-null headersSchema', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-preserve-request-schema');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to modify but not clear headersSchema
@@ -838,7 +838,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Combined Field Clearing', () => {
       it('should clear both contextVariables and headersSchema simultaneously', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-clear-both-fields');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Update to clear both fields
@@ -861,7 +861,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should handle mixed clearing and updating of fields', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-mixed-clear-update');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Clear contextVariables but update headersSchema
@@ -893,7 +893,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
     describe('Default Values and Consistency', () => {
       it('should handle creation with minimal data and consistent null defaults', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-minimal-with-nulls');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         await createtestAgent({ tenantId });
         const minimalData = {
           id: `minimal-null-defaults-config-${generateId(6)}`,
@@ -920,7 +920,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should retrieve cleared fields as null consistently', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-consistent-null-retrieval');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
         const { contextConfigId } = await createTestContextConfig({ tenantId });
 
         // Clear both fields
@@ -951,7 +951,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
 
       it('should list configs with null fields correctly', async () => {
         const tenantId = await createTestTenantWithOrg('context-configs-list-with-nulls');
-        await createTestProject(dbClient, tenantId, projectId);
+        await createTestProject(manageDbClient, tenantId, projectId);
 
         // Create config and clear its fields
         const { contextConfigId } = await createTestContextConfig({ tenantId });

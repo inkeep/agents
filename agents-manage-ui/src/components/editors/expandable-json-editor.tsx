@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
 
+const noop = () => {};
+
 type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor>;
 
 interface ExpandableJsonEditorCommonProps {
@@ -16,6 +18,7 @@ interface ExpandableJsonEditorCommonProps {
   error?: string;
   placeholder?: JsonEditorProps['placeholder'];
   editorOptions?: JsonEditorProps['editorOptions'];
+  defaultOpen?: boolean;
 }
 
 interface ExpandableJsonEditorEditableProps extends ExpandableJsonEditorCommonProps {
@@ -75,14 +78,16 @@ export function ExpandableJsonEditor({
   error: externalError,
   readOnly,
   editorOptions,
+  defaultOpen = false,
 }: ExpandableJsonEditorProps) {
   const { error: internalError } = useJsonValidation(value);
+  const handleChange = onChange ?? noop;
   const { handleFormat, canFormat } = useJsonFormat(
     value,
     !!(externalError || internalError),
     onChange
   );
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   const error = externalError || internalError;
   const id = `${name}-label`;
@@ -113,7 +118,7 @@ export function ExpandableJsonEditor({
       <JsonEditor
         uri={uri}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         placeholder={placeholder}
         aria-invalid={error ? 'true' : undefined}
         className={cn(!open && error && 'max-h-96')}

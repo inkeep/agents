@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  cascadeDeleteBySubAgent,
   commonGetErrorResponses,
   createApiError,
   createSubAgent,
@@ -18,8 +19,8 @@ import {
   TenantProjectAgentParamsSchema,
   updateSubAgent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { requirePermission } from '../middleware/require-permission';
+import runDbClient from '../data/db/runDbClient';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
@@ -27,17 +28,17 @@ const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ sub_agent: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ sub_agent: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ sub_agent: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -71,7 +72,8 @@ app.openapi(
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listSubAgentsPaginated(dbClient)({
+    const db = c.get('db');
+    const result = await listSubAgentsPaginated(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -112,7 +114,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const subAgent = await getSubAgentById(dbClient)({
+    const db = c.get('db');
+
+    const subAgent = await getSubAgentById(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
     });
@@ -167,7 +171,8 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const subAgentId = body.id ? String(body.id) : generateId();
-    const subAgent = await createSubAgent(dbClient)({
+    const db = c.get('db');
+    const subAgent = await createSubAgent(db)({
       ...body,
       id: subAgentId,
       tenantId,
@@ -218,7 +223,8 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedSubAgent = await updateSubAgent(dbClient)({
+    const db = c.get('db');
+    const updatedSubAgent = await updateSubAgent(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
       data: body,
@@ -275,9 +281,19 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
 
     try {
-      const deleted = await deleteSubAgent(dbClient)({
+      // Delete runtime entities for this subAgent on this branch
+      await cascadeDeleteBySubAgent(runDbClient)({
+        scopes: { tenantId, projectId },
+        subAgentId: id,
+        fullBranchName: resolvedRef.name,
+      });
+
+      // Delete the subAgent from the config DB
+      const deleted = await deleteSubAgent(db)({
         scopes: { tenantId, projectId, agentId },
         subAgentId: id,
       });

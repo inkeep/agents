@@ -3,7 +3,7 @@ title: Troubleshooting Guide
 sidebarTitle: Troubleshooting
 description: Learn how to diagnose and resolve issues when something breaks in your Inkeep agent system.
 icon: LuWrench
-keywords: troubleshooting, debugging, errors, timeline, signoz, widget implementation
+keywords: troubleshooting, debugging, errors, timeline, signoz, retry, retryable errors, error handling
 ---
 
 ## Overview
@@ -132,3 +132,24 @@ To terminate the running services, click press `q` or `esc` in the terminal.
 - **Context fetcher timeouts**:
   - Check that external services are responding within expected timeframes
 
+## Error Retry Behavior
+
+When calling agents the system automatically retries certain errors using exponential backoff.
+
+The following errors are automatically retried:
+
+| Status Code | Meaning |
+| --- | --- |
+| `429` | Too Many Requests (rate limited) |
+| `500` | Internal Server Error |
+| `502` | Bad Gateway |
+| `503` | Service Unavailable |
+| `504` | Gateway Timeout |
+
+These transient network issues are also automatically retried:
+- Network connectivity failures
+- Connection timeouts
+- `ECONNRESET` — Connection reset by peer
+- `ECONNREFUSED` — Connection refused (network level)
+- `ENOTFOUND` — DNS lookup failures
+- Fetch/request failures

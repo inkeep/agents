@@ -6,12 +6,12 @@ import {
   deleteLedgerArtifactsByTask,
   getLedgerArtifacts,
   getLedgerArtifactsByContext,
-} from '../../data-access/ledgerArtifacts';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/runtime/ledgerArtifacts';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { testRunDbClient } from '../setup';
 
 describe('Ledger Artifacts Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
   const testContextId = 'context-789';
@@ -19,7 +19,7 @@ describe('Ledger Artifacts Data Access', () => {
   const testArtifactId = 'artifact-xyz';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testRunDbClient;
     vi.clearAllMocks();
   });
 
@@ -39,6 +39,7 @@ describe('Ledger Artifacts Data Access', () => {
             visibility: 'public',
             allowedAgents: ['agent-1', 'agent-2'],
           },
+          createdAt: '2024-01-15T10:30:00.000Z',
         },
         {
           artifactId: 'artifact-2',
@@ -46,6 +47,7 @@ describe('Ledger Artifacts Data Access', () => {
           description: 'Another test artifact',
           parts: [{ kind: 'file', file: { name: 'test.txt', uri: 'file://test.txt' } } as const],
           metadata: { source: 'test' },
+          createdAt: '2024-01-15T11:30:00.000Z',
         },
       ];
 
@@ -81,6 +83,7 @@ describe('Ledger Artifacts Data Access', () => {
           description: 'An artifact without ID',
           parts: [{ kind: 'text', text: 'Content' } as const],
           metadata: {},
+          createdAt: '2024-01-15T12:30:00.000Z',
         },
       ];
 
@@ -112,6 +115,7 @@ describe('Ledger Artifacts Data Access', () => {
           taskId: 'artifact-task-id',
           parts: [],
           metadata: { taskId: 'metadata-task-id' },
+          createdAt: '2024-01-15T13:30:00.000Z',
         },
       ];
 
@@ -167,6 +171,7 @@ describe('Ledger Artifacts Data Access', () => {
             allowedAgents: ['agent-1'],
             derivedFrom: 'parent-artifact',
           },
+          createdAt: '2024-01-15T14:30:00.000Z',
         },
       ];
 
@@ -236,10 +241,12 @@ describe('Ledger Artifacts Data Access', () => {
         artifactId: testArtifactId,
         type: 'source',
         taskId: testTaskId,
+        toolCallId: undefined,
         name: 'Test Artifact',
         description: 'A test artifact',
         parts: [{ kind: 'text', text: 'Hello' }],
         metadata: { key: 'value' },
+        createdAt: '2024-01-01T00:00:00Z',
       });
     });
 
@@ -282,10 +289,12 @@ describe('Ledger Artifacts Data Access', () => {
         artifactId: testArtifactId,
         type: 'generated',
         taskId: undefined,
+        toolCallId: undefined,
         name: undefined,
         description: undefined,
         parts: [],
         metadata: {},
+        createdAt: '2024-01-01T00:00:00Z',
       });
     });
 
@@ -335,7 +344,9 @@ describe('Ledger Artifacts Data Access', () => {
         getLedgerArtifacts(mockDb)({
           scopes: { tenantId: testTenantId, projectId: testProjectId },
         })
-      ).rejects.toThrow('At least one of taskId, toolCallId, or artifactId must be provided');
+      ).rejects.toThrow(
+        'At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided'
+      );
     });
 
     it('should return empty array when no artifacts found', async () => {

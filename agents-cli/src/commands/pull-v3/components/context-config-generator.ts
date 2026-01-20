@@ -53,7 +53,7 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
 
     // Only include properties that have defined values
     const entries = Object.entries(obj)
-      .filter(([key, val]) => val !== undefined && val !== null)
+      .filter(([_key, val]) => val !== undefined && val !== null)
       .map(([key, val]) => {
         const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
         return `${processedKey}: ${processValue(val)}`;
@@ -73,8 +73,7 @@ export function generateHeadersDefinition(
   headersData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const { quotes, semicolons, indentation } = style;
-  const q = quotes === 'single' ? "'" : '"';
+  const { semicolons, indentation } = style;
   const semi = semicolons ? ';' : '';
 
   const headersVarName = toCamelCase(headersId);
@@ -177,9 +176,8 @@ export function generateFetchDefinitionDefinition(
 export function generateContextConfigDefinition(
   contextId: string,
   contextData: any,
-  style: CodeStyle = DEFAULT_STYLE,
+  style: CodeStyle | undefined = DEFAULT_STYLE,
   registry: ComponentRegistry,
-  agentId?: string,
   headersVarName?: string
 ): string {
   // Validate required parameters
@@ -304,13 +302,10 @@ export function generateContextConfigImports(
     const credentialRefs: Array<{ id: string; type: ComponentType }> = [];
 
     // Collect all credential references from fetchDefinitions
-    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
-      string,
-      any,
-    ][]) {
-      if (varData && typeof varData === 'object' && varData.credentialReferenceId) {
+    for (const varData of Object.values(contextData.contextVariables)) {
+      if (varData && typeof varData === 'object' && 'credentialReferenceId' in varData) {
         credentialRefs.push({
-          id: varData.credentialReferenceId,
+          id: varData.credentialReferenceId as string,
           type: 'credentials',
         });
       }
@@ -361,8 +356,7 @@ export function generateContextConfigFile(
   contextId: string,
   contextData: any,
   style: CodeStyle = DEFAULT_STYLE,
-  registry?: ComponentRegistry,
-  agentId?: string
+  registry?: ComponentRegistry
 ): string {
   const imports = generateContextConfigImports(contextId, contextData, style, registry);
   const definitions: string[] = [];
@@ -414,8 +408,8 @@ export function generateContextConfigFile(
     contextId,
     contextData,
     style,
+    // biome-ignore lint/style/noNonNullAssertion: ignore
     registry!,
-    agentId,
     headersVarName
   );
   definitions.push(contextDefinition);

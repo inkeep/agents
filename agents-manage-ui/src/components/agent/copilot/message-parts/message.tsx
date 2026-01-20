@@ -4,7 +4,7 @@ import { type FC, useEffect, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
-import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
+import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { DataComponent } from '@/lib/api/data-components';
 import { CitationBadge } from './citation-badge';
 import { Citations } from './citations';
@@ -31,6 +31,8 @@ interface IkpMessageProps {
   refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
   cookieHeader?: string;
   copilotToken?: string;
+  /** Whether auth is disabled - pass this for Shadow DOM compatibility */
+  isAuthDisabled?: boolean;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -166,6 +168,7 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
   refreshAgentGraph,
   cookieHeader,
   copilotToken,
+  isAuthDisabled,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
   // Just use operations in chronological order
@@ -330,6 +333,7 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
                               targetAgentId={targetAgentId}
                               onOAuthLogin={onOAuthLogin}
                               refreshAgentGraph={refreshAgentGraph}
+                              isAuthDisabled={isAuthDisabled}
                             />
                           )}
                         </div>
@@ -391,6 +395,7 @@ export const IkpMessage = (props: any) => {
         refreshAgentGraph={otherProps.refreshAgentGraph}
         cookieHeader={otherProps.cookieHeader}
         copilotToken={otherProps.copilotToken}
+        isAuthDisabled={otherProps.isAuthDisabled}
       />
     </div>
   );

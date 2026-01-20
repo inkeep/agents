@@ -61,8 +61,8 @@ importers:
   apps/agents-ui:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.15.5
-        version: 0.15.5(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^0.15.8
+        version: 0.15.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react:
         specifier: 19.2.0
         version: 19.2.0
@@ -1452,8 +1452,8 @@ packages:
   '@inkeep/agents-ui@0.15.4':
     resolution: {integrity: sha512-gybfzh5dNI07grwhOyW5un6cZGYcwcn+i+LlKmafSGzUTS1K8aj42NrNPWUgWFhmlkQBwBRCIa37igYMFc/Vng==}
 
-  '@inkeep/agents-ui@0.15.5':
-    resolution: {integrity: sha512-Q+mkcWwlFoA+wqibboAareEQHRF+HOXYFSfhas4PCrlRpk99zmSp7c9rG9W4nE/v+c3uP8Uy63SFkz5Dnjz+aw==}
+  '@inkeep/agents-ui@0.15.8':
+    resolution: {integrity: sha512-ifgUNLiNDGX4sQm8pH57EjPCVg2LYnqsJZPyJ0ro1T4bYA0NoyXno5BAx8PAJRIduJnloGAXXydWZtLAU+uWtA==}
 
   '@isaacs/balanced-match@4.0.1':
     resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
@@ -6337,9 +6337,6 @@ packages:
   mdast-util-phrasing@4.1.0:
     resolution: {integrity: sha512-TqICwyvJJpBwvGAMZjj4J2n0X8QWp21b9l0o7eXyVJ25YNWYbJDVIyD1bZXE6WtV6RmKJVYmQAKWa0zWOABz2w==}
 
-  mdast-util-to-hast@13.2.0:
-    resolution: {integrity: sha512-QGYKEuUsYT9ykKBCMOEDLsU5JRObWQusAolFMeko/tYPufNkRffBAQjIE+99jbA87xv6FgmjLtwjh9wBWajwAA==}
-
   mdast-util-to-hast@13.2.1:
     resolution: {integrity: sha512-cctsq2wp5vTsLIcaymblUriiTcZd0CwWtCbLvrOzYCDZoWyMNV8sZ7krj09FSnsiJi3WVsHLM4k6Dq/yaPyCXA==}
 
@@ -6498,10 +6495,6 @@ packages:
 
   mime-types@2.1.35:
     resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
-    engines: {node: '>= 0.6'}
-
-  mime-types@3.0.1:
-    resolution: {integrity: sha512-xRc4oEhT6eaBpU1XF7AjpOFD+xQmXNB5OVKwp4tqCuBpHLS/ZbBDrc07mYTDqVMg6PfxUjjNp85O6Cd2Z/5HWA==}
     engines: {node: '>= 0.6'}
 
   mime-types@3.0.2:
@@ -8221,12 +8214,6 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.2(zod@4.2.1)
       zod: 4.2.1
 
-  '@ai-sdk/gateway@1.0.3(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.1(zod@4.1.13)
-      zod: 4.1.13
-
   '@ai-sdk/gateway@1.0.3(zod@4.2.1)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -8271,24 +8258,11 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.2(zod@4.2.1)
       zod: 4.2.1
 
-  '@ai-sdk/openai@2.0.4(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.1(zod@4.1.13)
-      zod: 4.1.13
-
   '@ai-sdk/openai@2.0.4(zod@4.2.1)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.1(zod@4.2.1)
       zod: 4.2.1
-
-  '@ai-sdk/provider-utils@2.2.8(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider': 1.1.3
-      nanoid: 3.3.11
-      secure-json-parse: 2.7.0
-      zod: 4.1.13
 
   '@ai-sdk/provider-utils@2.2.8(zod@4.2.1)':
     dependencies:
@@ -8296,14 +8270,6 @@ snapshots:
       nanoid: 3.3.11
       secure-json-parse: 2.7.0
       zod: 4.2.1
-
-  '@ai-sdk/provider-utils@3.0.1(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@standard-schema/spec': 1.0.0
-      eventsource-parser: 3.0.6
-      zod: 4.1.13
-      zod-to-json-schema: 3.25.0(zod@4.1.13)
 
   '@ai-sdk/provider-utils@3.0.1(zod@4.2.1)':
     dependencies:
@@ -8353,16 +8319,6 @@ snapshots:
     optionalDependencies:
       zod: 4.2.1
 
-  '@ai-sdk/react@2.0.5(react@19.2.0)(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider-utils': 3.0.1(zod@4.1.13)
-      ai: 5.0.5(zod@4.1.13)
-      react: 19.2.0
-      swr: 2.3.6(react@19.2.0)
-      throttleit: 2.1.0
-    optionalDependencies:
-      zod: 4.1.13
-
   '@ai-sdk/react@2.0.5(react@19.2.0)(zod@4.2.1)':
     dependencies:
       '@ai-sdk/provider-utils': 3.0.1(zod@4.2.1)
@@ -8372,13 +8328,6 @@ snapshots:
       throttleit: 2.1.0
     optionalDependencies:
       zod: 4.2.1
-
-  '@ai-sdk/ui-utils@1.2.11(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider': 1.1.3
-      '@ai-sdk/provider-utils': 2.2.8(zod@4.1.13)
-      zod: 4.1.13
-      zod-to-json-schema: 3.25.0(zod@4.1.13)
 
   '@ai-sdk/ui-utils@1.2.11(zod@4.2.1)':
     dependencies:
@@ -9781,9 +9730,9 @@ snapshots:
 
   '@inkeep/agents-ui@0.15.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
-      '@ai-sdk/openai': 2.0.4(zod@4.1.13)
-      '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.1.13)
-      '@ai-sdk/ui-utils': 1.2.11(zod@4.1.13)
+      '@ai-sdk/openai': 2.0.4(zod@4.2.1)
+      '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.2.1)
+      '@ai-sdk/ui-utils': 1.2.11(zod@4.2.1)
       '@radix-ui/number': 1.1.1
       '@radix-ui/primitive': 1.1.3
       '@radix-ui/react-avatar': 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -9813,7 +9762,7 @@ snapshots:
       '@zag-js/presence': 1.29.0
       '@zag-js/react': 1.29.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@zag-js/remove-scroll': 1.29.0
-      ai: 5.0.5(zod@4.1.13)
+      ai: 5.0.5(zod@4.2.1)
       altcha-lib: 1.3.0
       aria-hidden: 1.2.6
       class-variance-authority: 0.7.1
@@ -9824,7 +9773,7 @@ snapshots:
       lucide-react: 0.503.0(react@19.2.0)
       marked: 15.0.12
       merge-anything: 5.1.7
-      openai: 4.78.1(zod@4.1.13)
+      openai: 4.78.1(zod@4.2.1)
       prism-react-renderer: 2.4.1(react@19.2.0)
       react-error-boundary: 6.0.0(react@19.2.0)
       react-hook-form: 7.54.2(react@19.2.0)
@@ -9838,7 +9787,7 @@ snapshots:
       tailwind-merge: 2.6.0
       unist-util-visit: 5.0.0
       use-sync-external-store: 1.6.0(react@19.2.0)
-      zod: 4.1.13
+      zod: 4.2.1
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
@@ -9847,7 +9796,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.15.5(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@inkeep/agents-ui@0.15.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.2.1)
       '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.2.1)
@@ -12814,11 +12763,11 @@ snapshots:
 
   '@types/bunyan@1.8.11':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
 
   '@types/d3-array@3.2.2': {}
 
@@ -12963,13 +12912,13 @@ snapshots:
 
   '@types/memcached@2.2.10':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
 
   '@types/ms@2.1.0': {}
 
   '@types/mysql@2.15.27':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
 
   '@types/node-fetch@2.6.13':
     dependencies:
@@ -12998,7 +12947,7 @@ snapshots:
 
   '@types/oracledb@6.5.2':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
 
   '@types/pg-pool@2.0.6':
     dependencies:
@@ -13006,7 +12955,7 @@ snapshots:
 
   '@types/pg@8.15.5':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 
@@ -13024,7 +12973,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -13254,7 +13203,7 @@ snapshots:
 
   accepts@2.0.0:
     dependencies:
-      mime-types: 3.0.1
+      mime-types: 3.0.2
       negotiator: 1.0.0
 
   acorn-import-attributes@1.9.5(acorn@8.15.0):
@@ -13288,14 +13237,6 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.2(zod@4.2.1)
       '@opentelemetry/api': 1.9.0
       zod: 4.2.1
-
-  ai@5.0.5(zod@4.1.13):
-    dependencies:
-      '@ai-sdk/gateway': 1.0.3(zod@4.1.13)
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.1(zod@4.1.13)
-      '@opentelemetry/api': 1.9.0
-      zod: 4.1.13
 
   ai@5.0.5(zod@4.2.1):
     dependencies:
@@ -14416,7 +14357,7 @@ snapshots:
       fresh: 2.0.0
       http-errors: 2.0.1
       merge-descriptors: 2.0.0
-      mime-types: 3.0.1
+      mime-types: 3.0.2
       on-finished: 2.4.1
       once: 1.4.0
       parseurl: 1.3.3
@@ -15482,18 +15423,6 @@ snapshots:
       '@types/mdast': 4.0.4
       unist-util-is: 6.0.1
 
-  mdast-util-to-hast@13.2.0:
-    dependencies:
-      '@types/hast': 3.0.4
-      '@types/mdast': 4.0.4
-      '@ungap/structured-clone': 1.3.0
-      devlop: 1.1.0
-      micromark-util-sanitize-uri: 2.0.1
-      trim-lines: 3.0.1
-      unist-util-position: 5.0.0
-      unist-util-visit: 5.0.0
-      vfile: 6.0.3
-
   mdast-util-to-hast@13.2.1:
     dependencies:
       '@types/hast': 3.0.4
@@ -15803,10 +15732,6 @@ snapshots:
     dependencies:
       mime-db: 1.52.0
 
-  mime-types@3.0.1:
-    dependencies:
-      mime-db: 1.54.0
-
   mime-types@3.0.2:
     dependencies:
       mime-db: 1.54.0
@@ -16002,20 +15927,6 @@ snapshots:
       define-lazy-prop: 3.0.0
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
-
-  openai@4.78.1(zod@4.1.13):
-    dependencies:
-      '@types/node': 18.19.130
-      '@types/node-fetch': 2.6.13
-      abort-controller: 3.0.0
-      agentkeepalive: 4.6.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-    optionalDependencies:
-      zod: 4.1.13
-    transitivePeerDependencies:
-      - encoding
 
   openai@4.78.1(zod@4.2.1):
     dependencies:
@@ -16295,7 +16206,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 20.19.27
+      '@types/node': 24.9.2
       long: 5.3.2
 
   proxy-addr@2.0.7:
@@ -16652,7 +16563,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
       '@types/mdast': 4.0.4
-      mdast-util-to-hast: 13.2.0
+      mdast-util-to-hast: 13.2.1
       unified: 11.0.5
       vfile: 6.0.3
 
@@ -16857,7 +16768,7 @@ snapshots:
       etag: 1.8.1
       fresh: 2.0.0
       http-errors: 2.0.1
-      mime-types: 3.0.1
+      mime-types: 3.0.2
       ms: 2.1.3
       on-finished: 2.4.1
       range-parser: 1.2.1
@@ -17311,7 +17222,7 @@ snapshots:
     dependencies:
       content-type: 1.0.5
       media-typer: 1.1.0
-      mime-types: 3.0.1
+      mime-types: 3.0.2
 
   typed-array-buffer@1.0.3:
     dependencies:
@@ -17735,10 +17646,6 @@ snapshots:
   zod-to-json-schema@3.25.0(zod@3.25.76):
     dependencies:
       zod: 3.25.76
-
-  zod-to-json-schema@3.25.0(zod@4.1.13):
-    dependencies:
-      zod: 4.1.13
 
   zod-to-json-schema@3.25.0(zod@4.2.1):
     dependencies:

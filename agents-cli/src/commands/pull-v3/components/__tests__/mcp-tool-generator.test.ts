@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for MCP tool generator
  */
@@ -50,21 +51,21 @@ describe('MCP Tool Generator', () => {
 
   describe('generateMcpToolImports', () => {
     it('should generate basic imports', () => {
-      const imports = generateMcpToolImports('weather-mcp', testToolData);
+      const imports = generateMcpToolImports(testToolData);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
     });
 
     it('should not add environment settings import for direct credential references', () => {
-      const imports = generateMcpToolImports('stripe-mcp', testToolWithCredential);
+      const imports = generateMcpToolImports(testToolWithCredential);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateMcpToolImports('weather-mcp', testToolData, {
+      const imports = generateMcpToolImports(testToolData, {
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
@@ -221,7 +222,7 @@ describe('MCP Tool Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working MCP tool', async () => {
-      const file = generateMcpToolFile('weather-mcp', testToolData);
+      generateMcpToolFile('weather-mcp', testToolData);
 
       // Extract just the tool definition (remove imports and export)
       const definition = generateMcpToolDefinition('weather-mcp', testToolData);
@@ -238,7 +239,7 @@ describe('MCP Tool Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -274,7 +275,7 @@ describe('MCP Tool Generator', () => {
         return stripeMcp;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

@@ -115,7 +115,6 @@ export const QUERY_EXPRESSIONS = {
   AI_ASSISTANT_MESSAGES: 'aiAssistantMessages',
   AI_GENERATIONS: 'aiGenerations',
   AI_STREAMING_TEXT: 'aiStreamingText',
-  AI_STREAMING_OBJECT: 'aiStreamingObject',
   CONTEXT_FETCHERS: 'contextFetchers',
   DURATION_SPANS: 'durationSpans',
   AGENT_GENERATIONS: 'agentGenerations',
@@ -124,6 +123,7 @@ export const QUERY_EXPRESSIONS = {
   TOOL_APPROVAL_REQUESTED: 'toolApprovalRequested',
   TOOL_APPROVAL_APPROVED: 'toolApprovalApproved',
   TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
+  COMPRESSION: 'compression',
 } as const;
 
 /** Query Reduce Operations */

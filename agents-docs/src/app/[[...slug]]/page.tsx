@@ -1,4 +1,5 @@
 import { a } from '@inkeep/docskit';
+import type { LoaderConfig, LoaderOutput } from 'fumadocs-core/source';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage, DocsTitle } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
@@ -42,7 +43,8 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
         <MDXContent
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths
-            a: createRelativeLink(source, page, a),
+            // TODO: Remove cast when fumadocs releases fix from commit d743dc7
+            a: createRelativeLink(source as unknown as LoaderOutput<LoaderConfig>, page, a),
           })}
         />
       </DocsBody>

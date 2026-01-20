@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  BarChart3,
   BookOpen,
   Component,
   Globe,
@@ -91,6 +92,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
+        // {
+        //   title: 'Members',
+        //   url: `/${tenantId}/projects/${projectId}/members`,
+        //   icon: Users,
+        // },
       ]
     : [];
 
@@ -135,6 +141,17 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: 'Traces',
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
+        },
+        // Disabling test suites
+        // {
+        //   title: 'Test Suites',
+        //   url: `/${tenantId}/projects/${projectId}/datasets`,
+        //   icon: Database,
+        // },
+        {
+          title: 'Evaluations',
+          url: `/${tenantId}/projects/${projectId}/evaluations`,
+          icon: BarChart3,
         },
       ]
     : [];

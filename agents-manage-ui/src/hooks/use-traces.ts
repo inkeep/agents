@@ -56,7 +56,7 @@ export function useConversationStats(
   const pageSize = options?.pagination?.pageSize || 50;
 
   const fetchData = useCallback(
-    async (page: number = currentPage) => {
+    async (page: number) => {
       try {
         setLoading(true);
         setError(null);
@@ -97,7 +97,6 @@ export function useConversationStats(
       options?.searchQuery,
       options?.agentId,
       pageSize,
-      currentPage,
     ]
   );
 
@@ -137,12 +136,21 @@ export function useConversationStats(
     [currentPage, paginationInfo, fetchData]
   );
 
-  // Fetch when component mounts or time range changes
-  // Reset to page 1 when filters or time range change
+  // Reset to page 1 and fetch when filters or time range change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally tracking filter values instead of fetchData to prevent page reset on pagination clicks
   useEffect(() => {
     setCurrentPage(1);
     fetchData(1);
-  }, [fetchData]);
+  }, [
+    options?.startTime,
+    options?.endTime,
+    options?.filters,
+    options?.projectId,
+    options?.tenantId,
+    options?.searchQuery,
+    options?.agentId,
+    pageSize,
+  ]);
 
   return {
     stats,

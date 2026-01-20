@@ -26,8 +26,8 @@
     "coverage:diff": "node scripts/coverage-diff.mjs",
     "coverage:enforce": "node scripts/enforce-coverage-change.mjs",
     "coverage:check": "pnpm coverage:diff && pnpm coverage:enforce",
-    "lint": "turbo lint --filter='!agents-cookbook-templates'",
-    "lint:fix": "turbo lint:fix --filter='!agents-cookbook-templates'",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
     "format": "pnpm format:check --write",
     "format:check": "biome check --linter-enabled=false",
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
@@ -41,18 +41,27 @@
     "turbo:login": "turbo login && turbo link",
     "turbo:setup-cache": "sh scripts/setup-turbo-cache.sh",
     "prepare": "husky",
-    "cs": "node scripts/quick-changeset.mjs",
+    "bump": "node scripts/quick-changeset.mjs",
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:drop": "pnpm --filter @inkeep/agents-core db:drop",
-    "db:studio": "pnpm --filter @inkeep/agents-core db:studio",
     "db:clean": "pnpm --filter @inkeep/agents-core db:clean",
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
     "db:reset": "pnpm --filter @inkeep/agents-core db:reset",
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
+    "db:manage:generate": "pnpm --filter @inkeep/agents-core db:manage:generate",
+    "db:manage:migrate": "pnpm --filter @inkeep/agents-core db:manage:migrate",
+    "db:manage:drop": "pnpm --filter @inkeep/agents-core db:manage:drop",
+    "db:manage:studio": "pnpm --filter @inkeep/agents-core db:manage:studio",
+    "db:manage:check": "pnpm --filter @inkeep/agents-core db:manage:check",
+    "db:run:generate": "pnpm --filter @inkeep/agents-core db:run:generate",
+    "db:run:migrate": "pnpm --filter @inkeep/agents-core db:run:migrate",
+    "db:run:drop": "pnpm --filter @inkeep/agents-core db:run:drop",
+    "db:run:studio": "pnpm --filter @inkeep/agents-core db:run:studio",
+    "db:run:check": "pnpm --filter @inkeep/agents-core db:run:check",
     "mcp:generate": "pnpm mcp:generate:manage",
     "mcp:generate:manage": "pnpm --filter @inkeep/agents-manage-mcp generate",
     "mcp:watch": "pnpm mcp:watch:manage",
@@ -60,17 +69,24 @@
     "workflow:profile": "node scripts/workflows/profile.mjs",
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "profile:prepush": "node scripts/profile-prepush.mjs",
-    "setup-dev": "sh scripts/setup.sh"
+    "setup-dev": "sh scripts/setup.sh",
+    "spicedb:start": "spicedb serve --grpc-preshared-key dev-secret-key --datastore-engine memory --http-enabled",
+    "spicedb:schema": "zed schema write spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key",
+    "spicedb:schema:read": "zed schema read --insecure --endpoint localhost:50051 --token dev-secret-key",
+    "spicedb:read:orgs": "zed relationship read organization --insecure --endpoint localhost:50051 --token dev-secret-key",
+    "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
+    "spicedb:sync": "bash scripts/sync-spicedb.sh",
+    "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply"
   },
   "version": "0.1.0",
   "dependencies": {
-    "tsdown": "^0.18.0",
+    "tsdown": "^0.19.0",
     "zod": "^4.1.12",
     "@hono/zod-openapi": "^1.1.5"
   },
   "devDependencies": {
-    "knip": "^5.75.2",
-    "@biomejs/biome": "2.2.4",
+    "knip": "5.82.0",
+    "@biomejs/biome": "2.3.11",
     "@changesets/cli": "2.29.7",
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
@@ -90,18 +106,5 @@
       "bash -c 'cd agents-run-api && pnpm test --passWithNoTests --reporter=verbose'"
     ]
   },
-  "packageManager": "pnpm@10.10.0",
-  "pnpm": {
-    "// esbuild": "we pin it for Cypress",
-    "overrides": {
-      "esbuild": "0.25.9",
-      "zod": "^4.1.11",
-      "@modelcontextprotocol/sdk>zod": "^3.25.7",
-      "@anthropic-ai/mcpb>zod": "^3.25.7"
-    },
-    "patchedDependencies": {
-      "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan.patch",
-      "fumadocs-core": "patches/fumadocs-core.patch"
-    }
-  }
+  "packageManager": "pnpm@10.10.0"
 }

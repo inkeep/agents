@@ -1,3 +1,4 @@
+import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
 import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
@@ -33,26 +34,12 @@ function formatJsonSafely(content: string): string {
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
   const items = useMemo(() => {
-    const config: Array<{
-      key: keyof Omit<ContextBreakdown, 'total'>;
-      label: string;
-      color: string;
-    }> = [
-      { key: 'toolsSection', label: 'Tools (MCP/Function/Relation)', color: 'bg-emerald-500' },
-      { key: 'coreInstructions', label: 'Core Instructions', color: 'bg-indigo-500' },
-      { key: 'systemPromptTemplate', label: 'System Prompt Template', color: 'bg-blue-500' },
-      { key: 'transferInstructions', label: 'Transfer Instructions', color: 'bg-cyan-500' },
-      { key: 'agentPrompt', label: 'Agent Prompt', color: 'bg-violet-500' },
-      { key: 'artifactsSection', label: 'Artifacts', color: 'bg-amber-500' },
-      { key: 'dataComponents', label: 'Data Components', color: 'bg-orange-500' },
-      { key: 'artifactComponents', label: 'Artifact Components', color: 'bg-rose-500' },
-      { key: 'delegationInstructions', label: 'Delegation Instructions', color: 'bg-teal-500' },
-      { key: 'thinkingPreparation', label: 'Thinking Preparation', color: 'bg-purple-500' },
-      { key: 'conversationHistory', label: 'Conversation History', color: 'bg-sky-500' },
-    ];
-
-    return config
-      .map((c) => ({ ...c, value: breakdown[c.key] }))
+    return V1_BREAKDOWN_SCHEMA.map((def) => ({
+      key: def.key,
+      label: def.label,
+      color: def.color,
+      value: breakdown.components[def.key] ?? 0,
+    }))
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
   }, [breakdown]);
@@ -78,8 +65,7 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
             return (
               <div
                 key={item.key}
-                className={`${item.color}`}
-                style={{ width: `${percentage}%` }}
+                style={{ width: `${percentage}%`, backgroundColor: item.color }}
                 title={`${item.label}: ${item.value.toLocaleString()} tokens (${percentage.toFixed(1)}%)`}
               />
             );
@@ -93,7 +79,7 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
             return (
               <div key={item.key} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
-                  <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`} />
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
                   <span className="text-muted-foreground">{item.label}</span>
                 </div>
                 <span className="font-mono text-foreground">
@@ -258,7 +244,12 @@ export function renderPanelContent({
         </>
       );
 
-    case 'user_message':
+    case 'user_message': {
+      // Extract target context from span attributes (for copilot/chat-to-edit scenarios)
+      const targetTenantId = span?.data?.['target.tenant.id'] as string | undefined;
+      const targetProjectId = span?.data?.['target.project.id'] as string | undefined;
+      const targetAgentId = span?.data?.['target.agent.id'] as string | undefined;
+
       return (
         <>
           <Section>
@@ -266,6 +257,18 @@ export function renderPanelContent({
               label="Message content"
               value={a.messageContent || 'Message content not available'}
             />
+            {targetTenantId && (
+              <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
+            )}
+            {targetProjectId && (
+              <Info
+                label="Target project"
+                value={<Badge variant="code">{targetProjectId}</Badge>}
+              />
+            )}
+            {targetAgentId && (
+              <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -274,6 +277,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'ai_assistant_message':
       return (
@@ -449,6 +453,13 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -526,7 +537,13 @@ export function renderPanelContent({
         </>
       );
 
-    case 'ai_model_streamed_text':
+    case 'ai_model_streamed_text': {
+      const isStructuredGeneration = a.aiTelemetryPhase === 'structured_generation';
+      const structuredContent =
+        isStructuredGeneration && a.aiStreamTextContent
+          ? formatJsonSafely(a.aiStreamTextContent)
+          : null;
+
       return (
         <>
           <Section>
@@ -540,44 +557,13 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <StatusBadge status={a.status} />
-            {a.status === 'error' && a.otelStatusDescription && (
-              <LabeledBlock label="Status message">
-                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                  {a.otelStatusDescription}
-                </Bubble>
-              </LabeledBlock>
-            )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-          </Section>
-          <Divider />
-          {SignozButton}
-          {AdvancedBlock}
-        </>
-      );
-
-    case 'ai_model_streamed_object':
-      return (
-        <>
-          <Section>
-            <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
-            {a.aiTelemetryFunctionId && (
-              <Info
-                label="Sub agent"
-                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
+            {structuredContent && (
+              <JsonEditorWithCopy
+                value={structuredContent}
+                title="Structured output"
+                uri="structured-output.json"
               />
             )}
-            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.aiStreamObjectContent && (
-              <LabeledBlock label="Structured object response">
-                <JsonEditorWithCopy
-                  value={formatJsonSafely(a.aiStreamObjectContent)}
-                  title="Object content"
-                  uri="stream-object-response.json"
-                />
-              </LabeledBlock>
-            )}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (
               <LabeledBlock label="Status message">
@@ -593,6 +579,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'artifact_processing':
       return (
@@ -691,6 +678,46 @@ export function renderPanelContent({
                 Denied by user
               </Badge>
             </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'compression':
+      return (
+        <>
+          <Section>
+            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
+            <Info
+              label="Output tokens"
+              value={a.compressionOutputTokens?.toLocaleString() || '0'}
+            />
+            {a.compressionRatio !== undefined && (
+              <Info
+                label="Compression ratio"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.compressionRatio * 100).toFixed(1)}%
+                  </Badge>
+                }
+              />
+            )}
+            {a.compressionSummary && (
+              <LabeledBlock label="Summary">
+                <Bubble className="text-sm text-foreground">{a.compressionSummary}</Bubble>
+              </LabeledBlock>
+            )}
+            {a.compressionError && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.compressionError}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

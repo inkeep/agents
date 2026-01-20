@@ -1,7 +1,7 @@
 import { SparklesIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useCopilotContext } from '../copilot/copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 
 export function CopilotTrigger() {
   const { openCopilot, isCopilotConfigured } = useCopilotContext();

@@ -88,6 +88,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
         renderLineHighlight: 'none', // disable active line highlight
         ariaLabel: 'Prompt input editor',
         quickSuggestions: false,
+        unicodeHighlight: {
+          // Disable warnings for – ’ characters
+          ambiguousCharacters: false,
+        },
         ...editorOptions,
       }}
       {...props}

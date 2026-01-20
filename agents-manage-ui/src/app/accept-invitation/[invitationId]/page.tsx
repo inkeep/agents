@@ -8,8 +8,8 @@ import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
-import { useAuthClient } from '@/lib/auth-client';
 
 export default function AcceptInvitationPage() {
   const params = useParams();
@@ -57,7 +57,7 @@ export default function AcceptInvitationPage() {
     }
 
     fetchInvitation();
-  }, [invitationId, user, authClient.organization.getInvitation]);
+  }, [invitationId, user, authClient]);
 
   const handleAccept = async () => {
     if (!user) {
@@ -80,12 +80,23 @@ export default function AcceptInvitationPage() {
         return;
       }
 
+      // Get the organization ID from the result or invitation
+      const orgId =
+        (result.data as { organizationId?: string })?.organizationId ?? invitation?.organizationId;
+
+      // Set the newly joined organization as active so session is updated
+      if (orgId) {
+        await authClient.organization.setActive({
+          organizationId: orgId,
+        });
+      }
+
       setSuccess(true);
 
       // Redirect to the organization after a short delay
       setTimeout(() => {
-        if (invitation?.organizationId) {
-          router.push(`/${invitation.organizationId}/projects`);
+        if (orgId) {
+          router.push(`/${orgId}/projects`);
         } else {
           router.push('/');
         }

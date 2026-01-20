@@ -4,6 +4,7 @@ import {
   ContextConfigApiUpdateSchema,
   ContextConfigListResponse,
   ContextConfigResponse,
+  cascadeDeleteByContextConfig,
   commonDeleteErrorResponses,
   commonGetErrorResponses,
   commonUpdateErrorResponses,
@@ -17,8 +18,8 @@ import {
   TenantProjectAgentParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { requirePermission } from '../middleware/require-permission';
+import runDbClient from '../data/db/runDbClient';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
@@ -26,17 +27,17 @@ const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ context_config: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ context_config: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ context_config: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -66,11 +67,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listContextConfigsPaginated(dbClient)({
+    const result = await listContextConfigsPaginated(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -101,8 +103,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const contextConfig = await getContextConfigById(dbClient)({
+    const contextConfig = await getContextConfigById(db)({
       scopes: { tenantId, projectId, agentId },
       id,
     });
@@ -148,6 +151,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -157,7 +161,7 @@ app.openapi(
       agentId,
       ...body,
     };
-    const contextConfig = await createContextConfig(dbClient)(configData);
+    const contextConfig = await createContextConfig(db)(configData);
 
     return c.json({ data: contextConfig }, 201);
   }
@@ -193,10 +197,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedContextConfig = await updateContextConfig(dbClient)({
+    const updatedContextConfig = await updateContextConfig(db)({
       scopes: { tenantId, projectId, agentId },
       id,
       data: body,
@@ -231,9 +236,19 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const deleted = await deleteContextConfig(dbClient)({
+    // Delete contextCache entries for this contextConfig on this branch
+    await cascadeDeleteByContextConfig(runDbClient)({
+      scopes: { tenantId, projectId },
+      contextConfigId: id,
+      fullBranchName: resolvedRef.name,
+    });
+
+    // Delete the contextConfig from the config DB
+    const deleted = await deleteContextConfig(db)({
       scopes: { tenantId, projectId, agentId },
       id,
     });

@@ -1,17 +1,10 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import {
-  AlertTriangle,
-  Check,
-  CircleAlert,
-  //  Shield,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import {
   getCurrentHeadersForNode,
@@ -31,6 +25,7 @@ import {
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
 import type { MCPNodeData } from '../../configuration/node-types';
+import { FieldLabel } from '../form-components/label';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
@@ -257,20 +252,6 @@ export function MCPServerNodeEditor({
           className="w-full"
         />
       </div>
-      {toolData?.imageUrl && (
-        <div className="space-y-2">
-          <Label htmlFor="imageUrl">Image URL</Label>
-          <Input
-            id="imageUrl"
-            name="imageUrl"
-            value={toolData.imageUrl || ''}
-            onChange={handleInputChange}
-            placeholder="https://example.com/icon.png"
-            disabled
-            className="w-full"
-          />
-        </div>
-      )}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -336,7 +317,7 @@ export function MCPServerNodeEditor({
             {/* Header */}
             <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md border-b">
               <div>Tool</div>
-              {/* <Tooltip>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1 cursor-help">
                     <Shield className="w-3 h-3" />
@@ -349,7 +330,7 @@ export function MCPServerNodeEditor({
                     before running.
                   </div>
                 </TooltipContent>
-              </Tooltip> */}
+              </Tooltip>
             </div>
 
             {/* Active tools */}
@@ -385,7 +366,7 @@ export function MCPServerNodeEditor({
                     </Tooltip>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="items-center hidden mcp-needs-approval">
+                  <div className="items-center mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
@@ -429,7 +410,7 @@ export function MCPServerNodeEditor({
                     </Tooltip>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="hidden items-center mcp-needs-approval">
+                  <div className="items-center mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
@@ -447,12 +428,13 @@ export function MCPServerNodeEditor({
       </div>
 
       <div className="space-y-2">
-        <ExpandableJsonEditor
+        <FieldLabel id="headers" label="Headers" />
+        <StandaloneJsonEditor
           name="headers"
-          label="Headers (JSON)"
           value={headersInputValue}
           onChange={handleHeadersChange}
-          placeholder='{"X-Your-Header": "your-value", "Content-Type": "application/json"}'
+          placeholder={headersTemplate}
+          customTemplate={headersTemplate}
         />
       </div>
 

@@ -1,3 +1,4 @@
+import type { FullExecutionContext } from '@inkeep/agents-core';
 import {
   STREAM_PARSER_MAX_COLLECTED_PARTS,
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,
@@ -41,12 +42,11 @@ export class IncrementalStreamParser {
 
   constructor(
     streamHelper: StreamHelper,
-    tenantId: string,
+    executionContext: FullExecutionContext,
     contextId: string,
     artifactParserOptions?: {
       sessionId?: string;
       taskId?: string;
-      projectId?: string;
       artifactComponents?: any[];
       streamRequestId?: string;
       subAgentId?: string;
@@ -79,7 +79,7 @@ export class IncrementalStreamParser {
       } catch (_error) {}
     }
 
-    this.artifactParser = new ArtifactParser(tenantId, {
+    this.artifactParser = new ArtifactParser(executionContext, {
       ...artifactParserOptions,
       contextId,
       artifactService: sharedArtifactService, // Use shared ArtifactService if available

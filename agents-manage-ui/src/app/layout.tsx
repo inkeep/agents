@@ -4,8 +4,9 @@ import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
-import { AuthClientProvider } from '@/lib/auth-client';
+import { AuthClientProvider } from '@/contexts/auth-client';
+import { PostHogProvider } from '@/contexts/posthog';
+import { RuntimeConfigProvider } from '@/contexts/runtime-config';
 import {
   DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
   DEFAULT_INKEEP_AGENTS_RUN_API_URL,
@@ -16,7 +17,6 @@ import {
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
 import './globals.css';
-import { PostHogProvider } from './providers';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -83,7 +83,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={cn(inter.variable, jetBrainsMono.variable, 'antialiased')}
+        className={cn(
+          inter.variable,
+          jetBrainsMono.variable,
+          'bg-background has-data-[slot=sidebar-wrapper]:bg-sidebar',
+          'antialiased text-foreground'
+        )}
         // Suppress hydration warnings in development caused by browser extensions
         suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
       >

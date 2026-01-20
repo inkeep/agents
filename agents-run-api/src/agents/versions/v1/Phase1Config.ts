@@ -1,22 +1,22 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
+import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
-
-import { getLogger } from '../../../logger';
 import {
   type AssembleResult,
+  type BreakdownComponentDef,
   calculateBreakdownTotal,
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
-const _logger = getLogger('Phase1Config');
-
+// Re-export for Agent.ts
+export { V1_BREAKDOWN_SCHEMA };
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
     const templates = new Map<string, string>();
@@ -30,6 +30,10 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return templates;
   }
 
+  getBreakdownSchema(): BreakdownComponentDef[] {
+    return V1_BREAKDOWN_SCHEMA;
+  }
+
   static convertMcpToolsToToolData(mcpTools: McpTool[] | undefined): ToolData[] {
     if (!mcpTools || mcpTools.length === 0) {
       return [];
@@ -38,11 +42,18 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     for (const mcpTool of mcpTools) {
       if (mcpTool.availableTools) {
         for (const toolDef of mcpTool.availableTools) {
+          // Build usage guidelines with custom prompt as additional context
+          let usageGuidelines = '';
+          if (mcpTool.config.mcp.prompt) {
+            usageGuidelines = `${mcpTool.config.mcp.prompt}\n\n`;
+          }
+          usageGuidelines += `Use this tool from ${mcpTool.name} server when appropriate.`;
+
           toolData.push({
             name: toolDef.name,
             description: toolDef.description || 'No description available',
             inputSchema: toolDef.inputSchema || {},
-            usageGuidelines: `Use this tool from ${mcpTool.name} server when appropriate.`,
+            usageGuidelines,
           });
         }
       }
@@ -64,7 +75,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     if (isZodSchema(inputSchema)) {
       try {
         return convertZodToJsonSchema(inputSchema);
-      } catch (error) {
+      } catch {
         return {};
       }
     }
@@ -73,7 +84,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   assemble(templates: Map<string, string>, config: SystemPromptV1): AssembleResult {
-    const breakdown = createEmptyBreakdown();
+    const breakdown = createEmptyBreakdown(this.getBreakdownSchema());
 
     const systemPromptTemplateContent = templates.get('system-prompt');
     if (!systemPromptTemplateContent) {
@@ -81,9 +92,10 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     }
 
     // Track base template tokens (without placeholders - estimate overhead)
-    breakdown.systemPromptTemplate = estimateTokens(
+    breakdown.components.systemPromptTemplate = estimateTokens(
       systemPromptTemplateContent
         .replace('{{CORE_INSTRUCTIONS}}', '')
+        .replace('{{CURRENT_TIME_SECTION}}', '')
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
         .replace('{{ARTIFACTS_SECTION}}', '')
         .replace('{{TOOLS_SECTION}}', '')
@@ -95,8 +107,8 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     let systemPrompt = systemPromptTemplateContent;
 
     // Handle core instructions - omit entire section if empty
-    if (config.corePrompt && config.corePrompt.trim()) {
-      breakdown.coreInstructions = estimateTokens(config.corePrompt);
+    if (config.corePrompt?.trim()) {
+      breakdown.components.coreInstructions = estimateTokens(config.corePrompt);
       systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
     } else {
       // Remove the entire core_instructions section if empty
@@ -106,8 +118,13 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       );
     }
 
+    // Handle current time section - include user's current time in their timezone if available
+    const currentTimeSection = this.generateCurrentTimeSection(config.clientCurrentTime);
+    breakdown.components.currentTime = estimateTokens(currentTimeSection);
+    systemPrompt = systemPrompt.replace('{{CURRENT_TIME_SECTION}}', currentTimeSection);
+
     const agentContextSection = this.generateAgentContextSection(config.prompt);
-    breakdown.agentPrompt = estimateTokens(agentContextSection);
+    breakdown.components.agentPrompt = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
     const rawToolData = this.isToolDataArray(config.tools)
@@ -135,11 +152,10 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
       templates,
       hasArtifactComponents,
-      config.artifactComponents,
       config.hasAgentArtifactComponents,
       (config.artifacts?.length ?? 0) > 0
     );
-    breakdown.systemPromptTemplate += artifactInstructionsTokens;
+    breakdown.components.systemPromptTemplate += artifactInstructionsTokens;
 
     const actualArtifactsXml =
       config.artifacts?.length > 0
@@ -147,38 +163,38 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
             .map((artifact) => this.generateArtifactXml(templates, artifact))
             .join('\n  ')
         : '';
-    breakdown.artifactsSection = estimateTokens(actualArtifactsXml);
+    breakdown.components.artifactsSection = estimateTokens(actualArtifactsXml);
 
     if (hasArtifactComponents) {
       const creationInstructions = this.getArtifactCreationInstructions(
         hasArtifactComponents,
         config.artifactComponents
       );
-      breakdown.artifactComponents = estimateTokens(creationInstructions);
+      breakdown.components.artifactComponents = estimateTokens(creationInstructions);
     }
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
-    breakdown.toolsSection = estimateTokens(toolsSection);
+    breakdown.components.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
       config.isThinkingPreparation
     );
-    breakdown.thinkingPreparation = estimateTokens(thinkingPreparationSection);
+    breakdown.components.thinkingPreparation = estimateTokens(thinkingPreparationSection);
     systemPrompt = systemPrompt.replace(
       '{{THINKING_PREPARATION_INSTRUCTIONS}}',
       thinkingPreparationSection
     );
 
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
-    breakdown.transferInstructions = estimateTokens(transferSection);
+    breakdown.components.transferInstructions = estimateTokens(transferSection);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
 
     const delegationSection = this.generateDelegationInstructions(config.hasDelegateRelations);
-    breakdown.delegationInstructions = estimateTokens(delegationSection);
+    breakdown.components.delegationInstructions = estimateTokens(delegationSection);
     systemPrompt = systemPrompt.replace('{{DELEGATION_INSTRUCTIONS}}', delegationSection);
 
     // Calculate total
@@ -199,6 +215,19 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   <agent_context>
     ${prompt}
   </agent_context>`;
+  }
+
+  private generateCurrentTimeSection(clientCurrentTime?: string): string {
+    if (!clientCurrentTime || clientCurrentTime.trim() === '') {
+      return '';
+    }
+
+    return `
+  <current_time>
+    The current time for the user is: ${clientCurrentTime}
+    Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
+    IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
+  </current_time>`;
   }
 
   private generateThinkingPreparationSection(
@@ -224,9 +253,20 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     return `You are part of a single unified assistant composed of specialized agents. To the user, you must always appear as one continuous, confident voice.
 
-You have transfer_to_* tools that seamlessly continue the conversation. When you determine another agent should handle a request: ONLY call the appropriate transfer_to_* tool. Do not provide any substantive answer, limitation, or explanation before transferring. NEVER announce, describe, or apologize for a transfer.
+🚨 CRITICAL TRANSFER PROTOCOL 🚨
+When you determine another agent should handle a request:
+1. IMMEDIATELY call the appropriate transfer_to_* tool  
+2. Generate ZERO text in your response - no words, no explanations, no acknowledgments
+3. Do NOT stream any content - the tool call must be your ONLY output
 
-Do NOT stream any text when transferring - call the transfer tool IMMEDIATELY. Do NOT acknowledge the request, do NOT say "Looking into that...", "Let me search...", "I'll help you find...", or provide ANY explanatory text. Place all reasoning or handoff details inside the transfer tool call, not in the user message. The tool call is sufficient - no additional text should be generated.
+FORBIDDEN BEFORE TRANSFERS:
+❌ Do NOT acknowledge the request ("I understand you want...")
+❌ Do NOT provide partial answers ("The basics are..." then transfer) 
+❌ Do NOT explain what you're doing ("Let me search...", "I'll help you find...")
+❌ Do NOT apologize or announce transfers ("I'll need to transfer you...")
+❌ Do NOT generate ANY text content whatsoever - just call the transfer tool
+
+REMEMBER: Tool call = complete response. No additional text generation allowed.
 
 CRITICAL: When you receive a user message that ends with "Please continue from where this conversation was left off" - this indicates you are continuing a conversation that another agent started. You should:
 - Review the conversation history to see what was already communicated to the user
@@ -256,7 +296,6 @@ Your goal: preserve the illusion of a single, seamless, intelligent assistant. A
   private getArtifactInstructionsTokens(
     templates: Map<string, string>,
     hasArtifactComponents: boolean,
-    artifactComponents?: any[],
     hasAgentArtifactComponents?: boolean,
     hasArtifacts?: boolean
   ): number {

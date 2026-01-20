@@ -1,11 +1,10 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig({
-  watch: process.env.MODE === 'watch',
   entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
-  format: ['esm'],
+  format: 'esm',
   target: 'node20',
-  dts: process.env.MODE !== 'watch',
+  dts: true,
   external: ['@inkeep/agents-core'],
   outDir: 'dist',
   shims: true,
