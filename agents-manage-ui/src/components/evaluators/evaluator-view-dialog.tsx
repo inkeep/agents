@@ -90,6 +90,41 @@ export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: Evaluat
             </div>
           </div>
 
+          {/* Pass/Fail Criteria */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Pass/Fail Criteria</Label>
+            <div className="bg-muted rounded-md p-3">
+              {evaluator.passCriteria?.conditions &&
+              evaluator.passCriteria.conditions.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Pass when </span>
+                    <span className="font-medium">
+                      {evaluator.passCriteria.operator === 'and' ? 'ALL' : 'ANY'}
+                    </span>
+                    <span className="text-muted-foreground"> conditions are met:</span>
+                  </div>
+                  <div className="space-y-1">
+                    {evaluator.passCriteria.conditions.map((condition, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        {index > 0 && (
+                          <span className="text-muted-foreground text-xs uppercase">
+                            {evaluator.passCriteria?.operator === 'and' ? 'and' : 'or'}
+                          </span>
+                        )}
+                        <code className="bg-background px-2 py-1 rounded text-xs">
+                          {condition.field} {condition.operator} {condition.value}
+                        </code>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">No pass/fail criteria defined</span>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Close
