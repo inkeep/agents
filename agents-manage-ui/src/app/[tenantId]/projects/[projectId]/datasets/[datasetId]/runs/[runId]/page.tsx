@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
@@ -26,19 +26,10 @@ import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 
-interface DatasetRunDetailsProps {
-  tenantId: string;
-  projectId: string;
-  datasetId: string;
-  runId: string;
-}
-
-export function DatasetRunDetails({
-  tenantId,
-  projectId,
-  datasetId,
-  runId,
-}: DatasetRunDetailsProps) {
+export default function Page({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/datasets/[datasetId]/runs/[runId]'>) {
+  const { tenantId, projectId, datasetId, runId } = use(params);
   const [run, setRun] = useState<DatasetRunWithConversations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
