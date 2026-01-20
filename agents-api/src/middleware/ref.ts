@@ -50,7 +50,7 @@ export interface RefMiddlewareOptions {
  */
 const defaultExtractTenantId = (c: Context): string | undefined => {
   const path = c.req.path;
-  const tenantPathRegex = /^\/(?:manage\/)?tenants\/([^/]+)/;
+  const tenantPathRegex = /^\/(?:manage|run)\/tenants\/([^/]+)/;
   const match = path.match(tenantPathRegex);
   return match?.[1];
 };
@@ -62,7 +62,7 @@ const defaultExtractTenantId = (c: Context): string | undefined => {
 const defaultExtractProjectId = (c: Context): string | undefined => {
   const path = c.req.path;
   const projectPathRegex =
-    /^\/(?:manage\/)?tenants\/[^/]+\/(?:projects|project-full)(?:\/([^/]+))?/;
+    /^\/(?:manage|run)\/tenants\/[^/]+\/(?:projects|project-full)(?:\/([^/]+))?/;
   const match = path.match(projectPathRegex);
   return match?.[1];
 };
@@ -72,7 +72,14 @@ const defaultExtractProjectId = (c: Context): string | undefined => {
  */
 const extractTenantIdFromExecutionContext = (c: Context): string | undefined => {
   const executionContext = c.get('executionContext') as BaseExecutionContext | undefined;
-  return executionContext?.tenantId;
+  let tenantId: string | undefined;
+  if (executionContext) {
+    tenantId = executionContext.tenantId;
+  } else {
+    tenantId = defaultExtractTenantId(c);
+  }
+
+  return tenantId;
 };
 
 /**
@@ -80,7 +87,13 @@ const extractTenantIdFromExecutionContext = (c: Context): string | undefined => 
  */
 const extractProjectIdFromExecutionContext = (c: Context): string | undefined => {
   const executionContext = c.get('executionContext') as BaseExecutionContext | undefined;
-  return executionContext?.projectId;
+  let projectId: string | undefined;
+  if (executionContext) {
+    projectId = executionContext.projectId;
+  } else {
+    projectId = defaultExtractProjectId(c);
+  }
+  return projectId;
 };
 
 /**

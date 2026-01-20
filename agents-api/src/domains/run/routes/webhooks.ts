@@ -34,6 +34,7 @@ type AppVariables = {
   credentialStores: CredentialStoreRegistry;
   executionContext: FullExecutionContext;
   requestBody?: unknown;
+  resolvedRef: ResolvedRef;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -126,7 +127,7 @@ const triggerWebhookRoute = createRoute({
 
 app.openapi(triggerWebhookRoute, async (c) => {
   const { tenantId, projectId, agentId, triggerId } = c.req.param();
-  const { resolvedRef } = c.get('executionContext');
+  const resolvedRef = c.get('resolvedRef');
 
   logger.info({ tenantId, projectId, agentId, triggerId }, 'Processing trigger webhook');
 
