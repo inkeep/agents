@@ -44,7 +44,7 @@ app.use('/', async (c, next) => {
   return next();
 });
 
-// GET/PATCH/DELETE /projects/:id - Project-level actions (require SpiceDB permission)
+// GET/PATCH /projects/:id - Project-level actions (require SpiceDB permission)
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'GET') {
     // View project requires 'view' permission
@@ -55,8 +55,8 @@ app.use('/:id', async (c, next) => {
     return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    // Delete project requires 'edit' permission
-    return requireProjectPermission('edit')(c, next);
+    // Delete project requires org-level 'delete' permission (not project-level)
+    return requirePermission({ project: ['delete'] })(c, next);
   }
   return next();
 });

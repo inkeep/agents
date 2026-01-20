@@ -43,13 +43,15 @@ app.use('/project-full', async (c, next) => {
   return next();
 });
 
-// Updating/deleting a project requires project-level 'edit' permission
+// Updating a project requires project-level 'edit' permission
+// Deleting a project requires org-level 'delete' permission
 app.use('/project-full/:projectId', async (c, next) => {
   if (c.req.method === 'PUT') {
     return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
+    // Delete project requires org-level 'delete' permission (not project-level)
+    return requirePermission({ project: ['delete'] })(c, next);
   }
   return next();
 });
