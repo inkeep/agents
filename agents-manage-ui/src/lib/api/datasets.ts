@@ -7,10 +7,10 @@
 
 'use server';
 
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
-import { cache } from 'react';
 
 export interface Dataset {
   id: string;
