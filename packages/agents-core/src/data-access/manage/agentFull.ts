@@ -1063,10 +1063,7 @@ export const updateFullAgentServerSide =
       }
 
       // Update triggers (agent-scoped)
-      if (
-        typedAgentDefinition.triggers &&
-        Object.keys(typedAgentDefinition.triggers).length > 0
-      ) {
+      if (typedAgentDefinition.triggers && Object.keys(typedAgentDefinition.triggers).length > 0) {
         logger.info(
           {
             agentId: finalAgentId,
@@ -1130,10 +1127,7 @@ export const updateFullAgentServerSide =
             deletedTriggerCount++;
             logger.info({ triggerId: trigger.id }, 'Deleted orphaned trigger');
           } catch (error) {
-            logger.error(
-              { triggerId: trigger.id, error },
-              'Failed to delete orphaned trigger'
-            );
+            logger.error({ triggerId: trigger.id, error }, 'Failed to delete orphaned trigger');
           }
         }
       }

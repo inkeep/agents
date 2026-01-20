@@ -822,7 +822,9 @@ const getFullAgentDefinitionInternal =
         scopes: { tenantId, projectId, agentId },
       });
 
-      console.log(`[getFullAgentDefinitionInternal] Fetched ${triggersList.length} triggers for agent ${agentId}`);
+      console.log(
+        `[getFullAgentDefinitionInternal] Fetched ${triggersList.length} triggers for agent ${agentId}`
+      );
 
       if (triggersList.length > 0) {
         const triggersObject: Record<string, any> = {};
@@ -840,7 +842,10 @@ const getFullAgentDefinitionInternal =
           };
         }
         result.triggers = triggersObject;
-        console.log(`[getFullAgentDefinitionInternal] Added triggers to result:`, Object.keys(triggersObject));
+        console.log(
+          `[getFullAgentDefinitionInternal] Added triggers to result:`,
+          Object.keys(triggersObject)
+        );
       }
     } catch (error) {
       console.warn('Failed to load triggers:', error);

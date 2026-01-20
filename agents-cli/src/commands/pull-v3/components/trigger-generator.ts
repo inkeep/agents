@@ -16,11 +16,7 @@ import {
 /**
  * Format authentication configuration
  */
-function formatAuthentication(
-  auth: any,
-  style: CodeStyle,
-  indentLevel: number
-): string {
+function formatAuthentication(auth: any, style: CodeStyle, indentLevel: number): string {
   if (!auth) return '';
 
   const { indentation } = style;
@@ -47,11 +43,7 @@ function formatAuthentication(
 /**
  * Format output transform configuration
  */
-function formatOutputTransform(
-  transform: any,
-  style: CodeStyle,
-  indentLevel: number
-): string {
+function formatOutputTransform(transform: any, style: CodeStyle, indentLevel: number): string {
   if (!transform) return '';
 
   const { indentation } = style;
@@ -107,7 +99,8 @@ export function generateTriggerDefinition(
   // Validate required trigger fields
   const requiredFields = ['name', 'messageTemplate'];
   const missingFields = requiredFields.filter(
-    (field) => !triggerData[field] || triggerData[field] === null || triggerData[field] === undefined
+    (field) =>
+      !triggerData[field] || triggerData[field] === null || triggerData[field] === undefined
   );
 
   if (missingFields.length > 0) {
@@ -142,7 +135,9 @@ export function generateTriggerDefinition(
   }
 
   // Message template (required)
-  lines.push(`${indentation}messageTemplate: ${formatString(triggerData.messageTemplate, q, true)},`);
+  lines.push(
+    `${indentation}messageTemplate: ${formatString(triggerData.messageTemplate, q, true)},`
+  );
 
   // Input schema (optional)
   if (triggerData.inputSchema) {
