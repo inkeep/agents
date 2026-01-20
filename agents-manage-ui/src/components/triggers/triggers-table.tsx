@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, History, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

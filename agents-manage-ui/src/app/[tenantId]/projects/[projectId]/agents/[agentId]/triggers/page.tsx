@@ -1,12 +1,12 @@
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { PageHeader } from '@/components/layout/page-header';
 import { TriggersTable } from '@/components/triggers/triggers-table';
+import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTriggersAction } from '@/lib/actions/triggers';
-import { STATIC_LABELS } from '@/constants/theme';
-import Link from 'next/link';
-import { PageHeader } from '@/components/layout/page-header';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export default async function TriggersPage({
   params,

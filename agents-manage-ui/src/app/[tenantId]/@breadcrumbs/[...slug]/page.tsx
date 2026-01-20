@@ -12,10 +12,10 @@ import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchProject } from '@/lib/api/projects';
 import { fetchMCPTool } from '@/lib/api/tools';
-import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
-import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
-import { cn } from '@/lib/utils';
 import { getTrigger } from '@/lib/api/triggers';
+import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
+import { cn } from '@/lib/utils';
+import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 

@@ -11,10 +11,10 @@ import type {
   TriggerApiSelect,
   TriggerInvocationApiSelect,
 } from '@inkeep/agents-core/client-exports';
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
-import { cache } from 'react';
 
 // Re-export types from core package for convenience
 export type Trigger = TriggerApiSelect & {
