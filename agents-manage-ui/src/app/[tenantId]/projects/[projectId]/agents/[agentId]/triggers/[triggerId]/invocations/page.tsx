@@ -5,22 +5,18 @@ import { InvocationsTable } from '@/components/triggers/invocations-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchTriggerInvocations, getTrigger, type Trigger } from '@/lib/api/triggers';
 
-interface InvocationsPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    triggerId: string;
-  }>;
-  searchParams: Promise<{
+export default async function InvocationsPage({
+  params,
+  searchParams,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/invocations'>) {
+  const { tenantId, projectId, agentId, triggerId } = await params;
+  const {
+    status,
+    page,
+  }: {
     status?: 'pending' | 'success' | 'failed';
     page?: string;
-  }>;
-}
-
-export default async function InvocationsPage({ params, searchParams }: InvocationsPageProps) {
-  const { tenantId, projectId, agentId, triggerId } = await params;
-  const { status, page } = await searchParams;
+  } = await searchParams;
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);

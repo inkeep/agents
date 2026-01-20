@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useToolCallsQueryState } from '@/hooks/use-tool-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
-import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
+import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },

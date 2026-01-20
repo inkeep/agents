@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
-import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
+import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 
 // Time range options
 const TIME_RANGES = {

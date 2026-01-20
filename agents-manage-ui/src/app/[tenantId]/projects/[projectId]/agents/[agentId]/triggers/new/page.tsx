@@ -4,15 +4,9 @@ import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 
-interface NewTriggerPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>;
-}
-
-export default async function NewTriggerPage({ params }: NewTriggerPageProps) {
+export default async function NewTriggerPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/new'>) {
   const { tenantId, projectId, agentId } = await params;
 
   // Fetch agent to verify it exists

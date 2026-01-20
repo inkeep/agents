@@ -5,16 +5,9 @@ import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTrigger, type Trigger } from '@/lib/api/triggers';
 
-interface EditTriggerPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    triggerId: string;
-  }>;
-}
-
-export default async function EditTriggerPage({ params }: EditTriggerPageProps) {
+export default async function EditTriggerPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/edit'>) {
   const { tenantId, projectId, agentId, triggerId } = await params;
 
   // Fetch agent to verify it exists

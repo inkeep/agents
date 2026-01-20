@@ -3,15 +3,9 @@ import { TriggersTable } from '@/components/triggers/triggers-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTriggersAction } from '@/lib/actions/triggers';
 
-interface TriggersPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>;
-}
-
-export default async function TriggersPage({ params }: TriggersPageProps) {
+export default async function TriggersPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers'>) {
   const { tenantId, projectId, agentId } = await params;
 
   // Fetch agent to verify it exists
