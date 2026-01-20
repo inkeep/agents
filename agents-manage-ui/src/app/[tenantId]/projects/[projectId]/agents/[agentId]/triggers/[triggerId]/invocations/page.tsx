@@ -1,26 +1,21 @@
 import { notFound } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 import { InvocationsTable } from '@/components/triggers/invocations-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchTriggerInvocations, getTrigger, type Trigger } from '@/lib/api/triggers';
 
-interface InvocationsPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    triggerId: string;
-  }>;
-  searchParams: Promise<{
+export default async function InvocationsPage({
+  params,
+  searchParams,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/invocations'>) {
+  const { tenantId, projectId, agentId, triggerId } = await params;
+  const {
+    status,
+    page,
+  }: {
     status?: 'pending' | 'success' | 'failed';
     page?: string;
-  }>;
-}
-
-export default async function InvocationsPage({ params, searchParams }: InvocationsPageProps) {
-  const { tenantId, projectId, agentId, triggerId } = await params;
-  const { status, page } = await searchParams;
+  } = await searchParams;
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);
@@ -51,23 +46,7 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
   );
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: agent.data?.name || 'Agent',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        },
-        {
-          label: 'Triggers',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        {
-          label: trigger.name,
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        'Invocations',
-      ]}
-    >
+    <>
       <PageHeader
         title={`Invocations for ${trigger.name}`}
         description="View the history of webhook invocations for this trigger."
@@ -84,6 +63,6 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
         projectId={projectId}
         currentStatus={status}
       />
-    </BodyTemplate>
+    </>
   );
 }

@@ -13,8 +13,8 @@ export default async function ProjectLayout({
 
   try {
     // Verify project exists
-    const project = await fetchProject(tenantId, projectId);
-    return <ProjectProvider value={project.data}>{children}</ProjectProvider>;
+    const { data } = await fetchProject(tenantId, projectId);
+    return <ProjectProvider value={data}>{children}</ProjectProvider>;
   } catch (error) {
     return (
       <FullPageError

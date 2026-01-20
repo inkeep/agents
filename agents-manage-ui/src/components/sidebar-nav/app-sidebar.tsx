@@ -28,6 +28,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
@@ -61,7 +62,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
     ? []
     : [
         {
-          title: 'Projects',
+          title: STATIC_LABELS.projects,
           url: `/${tenantId}/projects`,
           icon: Layers,
         },
@@ -69,7 +70,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
 
   const orgNavItems: NavItemProps[] = [
     {
-      title: 'Settings',
+      title: STATIC_LABELS.settings,
       url: `/${tenantId}/settings`,
       icon: Settings,
     },
@@ -78,17 +79,17 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const configureNavItems: NavItemProps[] = projectId
     ? [
         {
-          title: 'Agents',
+          title: STATIC_LABELS.agents,
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
         },
         {
-          title: 'API Keys',
+          title: STATIC_LABELS['api-keys'],
           url: `/${tenantId}/projects/${projectId}/api-keys`,
           icon: Key,
         },
         {
-          title: 'Settings',
+          title: STATIC_LABELS.settings,
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
@@ -103,17 +104,17 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const registerNavItems: NavItemProps[] = projectId
     ? [
         {
-          title: 'MCP Servers',
+          title: STATIC_LABELS['mcp-servers'],
           url: `/${tenantId}/projects/${projectId}/mcp-servers`,
           icon: MCPIcon,
         },
         {
-          title: 'Credentials',
+          title: STATIC_LABELS.credentials,
           url: `/${tenantId}/projects/${projectId}/credentials`,
           icon: Lock,
         },
         {
-          title: 'External Agents',
+          title: STATIC_LABELS['external-agents'],
           url: `/${tenantId}/projects/${projectId}/external-agents`,
           icon: Globe,
         },
@@ -123,12 +124,12 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const uiNavItems: NavItemProps[] = projectId
     ? [
         {
-          title: 'Components',
+          title: STATIC_LABELS.components,
           url: `/${tenantId}/projects/${projectId}/components`,
           icon: Component,
         },
         {
-          title: 'Artifacts',
+          title: STATIC_LABELS.artifacts,
           url: `/${tenantId}/projects/${projectId}/artifacts`,
           icon: Library,
         },
@@ -138,7 +139,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const monitorNavItems: NavItemProps[] = projectId
     ? [
         {
-          title: 'Traces',
+          title: STATIC_LABELS.traces,
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
         },
@@ -149,7 +150,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
         //   icon: Database,
         // },
         {
-          title: 'Evaluations',
+          title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
         },

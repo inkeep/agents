@@ -1,12 +1,12 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { DataComponentsList } from '@/components/data-components/data-components-list';
+import { DataComponentItem } from '@/components/data-components/data-component-item';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { dataComponentDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchDataComponents } from '@/lib/api/data-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -18,11 +18,11 @@ async function DataComponentsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const dataComponents = await fetchDataComponents(tenantId, projectId);
-    const content = dataComponents.data.length ? (
+    const { data } = await fetchDataComponents(tenantId, projectId);
+    return data.length ? (
       <>
         <PageHeader
-          title="Components"
+          title={STATIC_LABELS.components}
           description={dataComponentDescription}
           action={
             <Button asChild>
@@ -36,11 +36,16 @@ async function DataComponentsPage({
             </Button>
           }
         />
-        <DataComponentsList
-          tenantId={tenantId}
-          projectId={projectId}
-          dataComponents={dataComponents.data}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          {data.map((dataComponent) => (
+            <DataComponentItem
+              key={dataComponent.id}
+              {...dataComponent}
+              tenantId={tenantId}
+              projectId={projectId}
+            />
+          ))}
+        </div>
       </>
     ) : (
       <EmptyState
@@ -50,7 +55,6 @@ async function DataComponentsPage({
         linkText="Create component"
       />
     );
-    return <BodyTemplate breadcrumbs={['Components']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="components" />;
   }
