@@ -9,6 +9,7 @@ import {
   generateId,
   getConversationId,
   getFullProjectWithRelationIds,
+  getProjectBranchName,
   getTriggerById,
   interpolateTemplate,
   JsonTransformer,
@@ -291,6 +292,13 @@ async function invokeAgentAsync(params: {
   const { tenantId, projectId, agentId, triggerId, invocationId, conversationId, userMessage } =
     params;
 
+  // Resolve the branch reference at the top - used for execution context and conversation operations
+  const resolvedRef = {
+    type: 'branch' as const,
+    name: getProjectBranchName(tenantId, projectId),
+    hash: 'HEAD',
+  };
+
   // Create a new tracer for trigger invocations
   const tracer = trace.getTracer('trigger-invocation');
 
@@ -391,11 +399,7 @@ async function invokeAgentAsync(params: {
             baseUrl: env.INKEEP_AGENTS_RUN_API_URL || 'http://localhost:8080',
             apiKey: '', // Triggers don't use API keys
             apiKeyId: 'trigger-invocation', // Placeholder since triggers don't use API keys
-            resolvedRef: {
-              type: 'branch' as const,
-              name: 'main',
-              hash: 'HEAD',
-            },
+            resolvedRef,
             project,
             metadata: {
               initiatedBy: {
