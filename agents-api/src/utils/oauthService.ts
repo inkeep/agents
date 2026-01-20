@@ -135,7 +135,7 @@ class OAuthService {
     const { tenantId, projectId, toolId, mcpServerUrl, baseUrl } = params;
 
     const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
-    const redirectUri = `${redirectBaseUrl}/oauth/callback`;
+    const redirectUri = `${redirectBaseUrl}/manage/oauth/callback`;
     const state = `tool_${toolId}`;
 
     const authResult = await initiateMcpOAuthFlow({
@@ -193,7 +193,7 @@ class OAuthService {
       params;
 
     const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
-    const redirectUri = `${redirectBaseUrl}/oauth/callback`;
+    const redirectUri = `${redirectBaseUrl}/manage/oauth/callback`;
 
     // Use MCP SDK token exchange with stored metadata (no rediscovery needed)
     const tokens = await exchangeMcpAuthorizationCode({

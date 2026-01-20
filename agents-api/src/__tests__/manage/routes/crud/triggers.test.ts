@@ -79,7 +79,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
     };
 
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+      `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
       {
         method: 'POST',
         body: JSON.stringify(createData),
@@ -100,7 +100,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { agentId, projectId } = await createTestAgent(tenantId);
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?page=1&limit=10`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -125,7 +125,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       await createTestTrigger({ tenantId, projectId, agentId, name: 'Trigger 2' });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?page=1&limit=10`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -163,7 +163,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`
       );
       expect(res.status).toBe(200);
 
@@ -191,7 +191,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       }
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?page=1&limit=3`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?page=1&limit=3`
       );
       expect(res.status).toBe(200);
 
@@ -213,7 +213,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`
       );
       expect(res.status).toBe(200);
 
@@ -230,7 +230,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const nonExistentId = `non-existent-${generateId()}`;
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${nonExistentId}`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${nonExistentId}`
       );
       expect(res.status).toBe(404);
 
@@ -255,7 +255,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger.id}`
+        `/manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger.id}`
       );
       expect(res.status).toBe(404);
     });
@@ -293,7 +293,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(createData),
@@ -333,7 +333,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(createData),
@@ -367,7 +367,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const basicRes = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(basicAuthData),
@@ -394,7 +394,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const bearerRes = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(bearerData),
@@ -420,7 +420,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(createData),
@@ -449,7 +449,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
         {
           method: 'PATCH',
           body: JSON.stringify(updateData),
@@ -481,7 +481,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
         {
           method: 'PATCH',
           body: JSON.stringify(updateData),
@@ -500,7 +500,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
         {
           method: 'PATCH',
           body: JSON.stringify({}),
@@ -549,7 +549,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger.id}`,
         {
           method: 'PATCH',
           body: JSON.stringify(updateData),
@@ -567,7 +567,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
         {
           method: 'DELETE',
         }
@@ -577,7 +577,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       // Verify trigger is deleted
       const getRes = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -588,7 +588,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const nonExistentId = `non-existent-${generateId()}`;
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${nonExistentId}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${nonExistentId}`,
         {
           method: 'DELETE',
         }
@@ -614,7 +614,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
 
       const res = await makeRequest(
-        `manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger.id}`,
         {
           method: 'DELETE',
         }
@@ -642,7 +642,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       // makeRequest includes bypass secret, so this should succeed
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(createData),
@@ -662,7 +662,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       // makeRequest includes bypass secret, so this should succeed
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
         {
           method: 'PATCH',
           body: JSON.stringify(updateData),
@@ -680,7 +680,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       // makeRequest includes bypass secret, so this should succeed
       const res = await makeRequest(
-        `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}`,
         {
           method: 'DELETE',
         }
@@ -737,7 +737,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=10`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=10`
         );
         expect(res.status).toBe(200);
 
@@ -775,7 +775,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         });
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=10`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=10`
         );
         expect(res.status).toBe(200);
 
@@ -829,7 +829,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         });
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`
         );
         expect(res.status).toBe(200);
 
@@ -870,7 +870,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
         // Filter for only success
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?status=success`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?status=success`
         );
         expect(res.status).toBe(200);
 
@@ -914,7 +914,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
         // Filter from June onwards
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?from=2025-06-01T00:00:00Z`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?from=2025-06-01T00:00:00Z`
         );
         expect(res.status).toBe(200);
 
@@ -960,7 +960,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
         // Filter for June only
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?from=2025-05-01T00:00:00Z&to=2025-07-01T00:00:00Z`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?from=2025-05-01T00:00:00Z&to=2025-07-01T00:00:00Z`
         );
         expect(res.status).toBe(200);
 
@@ -986,7 +986,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         }
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=3`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=3`
         );
         expect(res.status).toBe(200);
 
@@ -1017,7 +1017,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         });
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${invocation.id}`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${invocation.id}`
         );
         expect(res.status).toBe(200);
 
@@ -1035,7 +1035,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         const nonExistentId = `non-existent-${generateId()}`;
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${nonExistentId}`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${nonExistentId}`
         );
         expect(res.status).toBe(404);
 
@@ -1072,7 +1072,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         });
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger2.id}/invocations/${invocation.id}`
+          `/manage/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger2.id}/invocations/${invocation.id}`
         );
         expect(res.status).toBe(404);
       });
@@ -1091,7 +1091,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         });
 
         const res = await makeRequest(
-          `manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${invocation.id}`
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${invocation.id}`
         );
         expect(res.status).toBe(200);
 

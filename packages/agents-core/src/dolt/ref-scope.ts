@@ -7,6 +7,7 @@ import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutBranch } from './branches-api';
+import { doltAddAndCommit, doltReset, doltStatus } from './commit';
 
 const logger = getLogger('ref-scope');
 
@@ -38,6 +39,33 @@ export class NestedRefScopeError extends Error {
 }
 
 /**
+ * Options for withRef function
+ */
+export interface WithRefOptions {
+  /**
+   * Whether to auto-commit changes after successful callback execution.
+   * Only applies to branch refs (tags/commits are immutable).
+   * @default false
+   */
+  commit?: boolean;
+
+  /**
+   * Commit message to use when committing changes.
+   * @default 'withRef auto-commit'
+   */
+  commitMessage?: string;
+
+  /**
+   * Author information for the commit.
+   * @default { name: 'agents-api', email: 'api@inkeep.com' }
+   */
+  author?: {
+    name: string;
+    email: string;
+  };
+}
+
+/**
  * Execute a function with a database connection scoped to a specific ref (branch/tag/commit).
  *
  * This function:
@@ -45,40 +73,46 @@ export class NestedRefScopeError extends Error {
  * 2. For branches: checks out the branch directly
  * 3. For tags/commits: creates a temporary branch from the hash, then checks out
  * 4. Executes the callback with a Drizzle client scoped to that connection
- * 5. Cleans up: checks out main, deletes temp branch if created, releases connection
+ * 5. Optionally auto-commits changes on success (if commit: true)
+ * 6. Cleans up: checks out main, deletes temp branch if created, releases connection
  *
  * Important:
  * - The callback should only perform database operations
  * - Do NOT hold the connection while making external API calls
- * - Use this for reads; for writes that need auto-commit, use the branch-scoped middleware
  *
  * @param pool - The PostgreSQL connection pool
  * @param resolvedRef - The resolved ref (branch, tag, or commit)
  * @param dataAccessFn - The function to execute with the scoped database client
+ * @param options - Optional configuration for commit behavior
  * @returns The result of the callback function
  *
  * @example
  * ```typescript
- * // Simple read
+ * // Simple read (no commit)
  * const agent = await withRef(pool, resolvedRef, (db) =>
  *   getAgent(db, agentId)
  * );
  *
- * // Batch multiple reads
- * const { agent, tools } = await withRef(pool, resolvedRef, async (db) => {
- *   const [agent, tools] = await Promise.all([
- *     getAgent(db, agentId),
- *     getTools(db, projectId),
- *   ]);
- *   return { agent, tools };
- * });
+ * // Write with auto-commit
+ * await withRef(pool, resolvedRef, async (db) => {
+ *   await updateAgent(db, agentId, data);
+ * }, { commit: true, commitMessage: 'Update agent config' });
+ *
+ * // Batch multiple operations with commit
+ * const result = await withRef(pool, resolvedRef, async (db) => {
+ *   await createCredential(db, credData);
+ *   await updateTool(db, toolId, { credentialId });
+ *   return { success: true };
+ * }, { commit: true, author: { name: 'oauth', email: 'oauth@inkeep.com' } });
  * ```
  */
 export async function withRef<T>(
   pool: Pool,
   resolvedRef: ResolvedRef,
-  dataAccessFn: (db: AgentsManageDatabaseClient) => Promise<T>
+  dataAccessFn: (db: AgentsManageDatabaseClient) => Promise<T>,
+  options?: WithRefOptions
 ): Promise<T> {
+  const { commit = false, commitMessage = 'withRef auto-commit', author } = options ?? {};
   const startTime = Date.now();
   const connectionId = generateId();
 
@@ -138,6 +172,36 @@ export async function withRef<T>(
       dataAccessFn(db)
     );
 
+    // Auto-commit for successful operations on branches (if commit: true)
+    if (commit && resolvedRef.type === 'branch') {
+      try {
+        const statusResult = await doltStatus(db)();
+
+        if (statusResult.length > 0) {
+          logger.info(
+            { branch: resolvedRef.name, message: commitMessage, connectionId },
+            'Auto-committing changes'
+          );
+
+          await doltAddAndCommit(db)({
+            message: commitMessage,
+            author: author ?? {
+              name: 'agents-api',
+              email: 'api@inkeep.com',
+            },
+          });
+
+          logger.info({ branch: resolvedRef.name, connectionId }, 'Successfully committed changes');
+        }
+      } catch (commitError) {
+        // Log but don't fail - the operation already succeeded
+        logger.error(
+          { error: commitError, branch: resolvedRef.name, connectionId },
+          'Failed to auto-commit changes'
+        );
+      }
+    }
+
     logger.debug(
       { ref: resolvedRef.name, duration: Date.now() - startTime, connectionId },
       'Ref scope completed successfully'
@@ -145,6 +209,27 @@ export async function withRef<T>(
 
     return result;
   } catch (error) {
+    // Reset uncommitted changes on failure (if commit mode was enabled)
+    if (commit && resolvedRef.type === 'branch') {
+      try {
+        const db = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+        const statusResult = await doltStatus(db)();
+
+        if (statusResult.length > 0) {
+          await doltReset(db)();
+          logger.info(
+            { branch: resolvedRef.name, connectionId },
+            'Reset uncommitted changes due to failed operation'
+          );
+        }
+      } catch (resetError) {
+        logger.error(
+          { error: resetError, branch: resolvedRef.name, connectionId },
+          'Failed to reset changes after error'
+        );
+      }
+    }
+
     logger.error(
       { ref: resolvedRef.name, duration: Date.now() - startTime, connectionId, error },
       'Ref scope failed'

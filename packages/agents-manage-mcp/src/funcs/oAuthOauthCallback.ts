@@ -87,7 +87,7 @@ async function $do(
   }
   const payload$ = parsed$.value;
   const body$ = null;
-  const path$ = pathToFunc("/oauth/callback")();
+  const path$ = pathToFunc("/manage/oauth/callback")();
   const query$ = encodeFormQuery({
     "code": payload$.code,
     "error": payload$.error,

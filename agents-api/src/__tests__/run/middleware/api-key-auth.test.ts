@@ -39,7 +39,10 @@ vi.mock('@inkeep/agents-core', () => ({
 import { type ApiKeySelect, validateAndGetApiKey } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { env } from '../../../env';
-import { runApiKeyAuth as apiKeyAuth, optionalAuth } from '../../../middleware/runAuth';
+import {
+  runApiKeyAuth as apiKeyAuth,
+  runOptionalAuth as optionalAuth,
+} from '../../../middleware/runAuth';
 
 vi.mock('../../data/db/dbClient.js', () => ({
   default: {},

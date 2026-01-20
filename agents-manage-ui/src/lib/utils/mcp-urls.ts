@@ -50,7 +50,7 @@ export function getOAuthLoginUrl({
     );
   }
 
-  const url = `${PUBLIC_INKEEP_AGENTS_API_URL}/oauth/login?tenantId=${encodeURIComponent(tenantId)}&projectId=${encodeURIComponent(projectId)}&toolId=${encodeURIComponent(id)}`;
+  const url = `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/oauth/login?tenantId=${encodeURIComponent(tenantId)}&projectId=${encodeURIComponent(projectId)}&toolId=${encodeURIComponent(id)}`;
 
   // Verify the final URL starts with our expected base
   if (!url.startsWith(PUBLIC_INKEEP_AGENTS_API_URL)) {

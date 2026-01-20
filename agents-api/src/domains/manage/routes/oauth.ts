@@ -18,11 +18,15 @@ import {
   createCredentialReference,
   generateId,
   getCredentialReferenceWithResources,
+  getProjectMainResolvedRef,
   getToolById,
   OAuthCallbackQuerySchema,
   OAuthLoginQuerySchema,
   updateTool,
+  withRef,
 } from '@inkeep/agents-core';
+import manageDbClient from '../../../data/db/manageDbClient';
+import manageDbPool from '../../../data/db/manageDbPool';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
 import { oauthService, retrievePKCEVerifier } from '../../../utils/oauthService';
@@ -270,7 +274,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     try {
       const { code, state, error, error_description } = c.req.valid('query');
 
@@ -318,10 +321,15 @@ app.openapi(
         resourceUrl,
       } = pkceData;
 
-      const tool = await getToolById(db)({
-        scopes: { tenantId, projectId },
-        toolId,
-      });
+      // Resolve the project's main branch (tenant/project come from PKCE state, not query params)
+      const resolvedRef = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
+
+      const tool = await withRef(manageDbPool, resolvedRef, (db) =>
+        getToolById(db)({
+          scopes: { tenantId, projectId },
+          toolId,
+        })
+      );
       if (!tool) {
         throw new Error(`Tool ${toolId} not found`);
       }
@@ -378,21 +386,37 @@ app.openapi(
         throw new Error('No credential store found');
       }
 
-      const newCredential = await findOrCreateCredential(
-        db,
-        tenantId,
-        projectId,
-        newCredentialData
-      );
+      const commitOptions = {
+        commit: true,
+        commitMessage: `OAuth: Link credential to tool ${toolId}`,
+        author: { name: 'oauth-callback', email: 'api@inkeep.com' },
+      };
 
-      // Update MCP tool to link the credential
-      await updateTool(db)({
-        scopes: { tenantId, projectId },
-        toolId,
-        data: {
-          credentialReferenceId: newCredential.id,
+      // Create credential and update tool in a single withRef scope with auto-commit
+      const newCredential = await withRef(
+        manageDbPool,
+        resolvedRef,
+        async (db) => {
+          const credential = await findOrCreateCredential(
+            db,
+            tenantId,
+            projectId,
+            newCredentialData
+          );
+
+          // Update MCP tool to link the credential
+          await updateTool(db)({
+            scopes: { tenantId, projectId },
+            toolId,
+            data: {
+              credentialReferenceId: credential.id,
+            },
+          });
+
+          return credential;
         },
-      });
+        commitOptions
+      );
 
       logger.info({ toolId, credentialId: newCredential.id }, 'OAuth flow completed successfully');
 
