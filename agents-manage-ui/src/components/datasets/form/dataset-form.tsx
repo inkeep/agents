@@ -75,7 +75,7 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
           <GenericInput
             control={form.control}
             name="name"
@@ -103,7 +103,7 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
           datasetId={id}
           datasetName={form.getValues('name') || undefined}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>
