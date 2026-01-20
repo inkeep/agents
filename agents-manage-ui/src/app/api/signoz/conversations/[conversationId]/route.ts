@@ -288,7 +288,8 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // context resolution spans
@@ -346,7 +347,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // context handle spans
@@ -404,7 +406,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         agentGenerations: listQuery(
@@ -448,7 +451,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // Count spans with errors
@@ -473,7 +477,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // user messages
@@ -524,7 +529,8 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // assistant messages
@@ -577,7 +583,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // AI generations
@@ -651,7 +658,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_PROMPT_MESSAGES,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // AI streaming text
@@ -726,7 +734,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // context fetchers
@@ -776,7 +785,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         durationSpans: listQuery(
@@ -799,7 +809,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         artifactProcessing: listQuery(
@@ -859,7 +870,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         toolApprovalRequested: listQuery(
@@ -907,7 +919,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         toolApprovalApproved: listQuery(
@@ -955,7 +968,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         toolApprovalDenied: listQuery(
@@ -1003,7 +1017,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         compression: listQuery(
@@ -1092,7 +1107,8 @@ function buildConversationListPayload(
               key: 'compression.result.summary',
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
       },
     },
