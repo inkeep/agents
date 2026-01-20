@@ -1,5 +1,6 @@
 'use client';
 
+import { AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,8 +10,12 @@ import {
   type CredentialScope,
   CredentialScopeEnum,
 } from '@/components/mcp-servers/form/validation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { useNangoConfig } from '@/hooks/use-nango-config';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
@@ -49,6 +54,9 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
+
+  // Check if Nango is configured
+  const { isLoading: isNangoConfigLoading, configError: nangoConfigError } = useNangoConfig();
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -148,6 +156,27 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
 
   return (
     <>
+      {/* Nango Configuration Banner */}
+      {!isNangoConfigLoading && nangoConfigError && (
+        <Alert variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Nango Configuration Error</AlertTitle>
+          <AlertDescription>
+            <p>
+              {nangoConfigError} Please follow the instructions in the{' '}
+              <ExternalLink
+                className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200"
+                iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
+                href={`${DOCS_BASE_URL}/typescript-sdk/credentials/nango`}
+              >
+                Nango setup guide
+              </ExternalLink>
+              .
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <PageHeader
         className="gap-2 items-start"
         title={selectedMode === 'popular' ? 'Popular MCP Servers' : 'Custom MCP Server'}

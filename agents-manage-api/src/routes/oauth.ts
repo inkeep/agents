@@ -227,8 +227,20 @@ app.openapi(
     } catch (error) {
       logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
 
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to initiate OAuth login';
+      let errorMessage = 'Failed to initiate OAuth login';
+      
+      if (error instanceof Error) {
+        // Check for Nango-specific errors
+        if (error.message.includes('NANGO_SECRET_KEY')) {
+          errorMessage = 'NANGO_SECRET_KEY environment variable is not configured. Please set it up to enable OAuth authentication.';
+        } else if (error.message.includes('query') || error.message.includes('undefined')) {
+          // Catch the "Cannot read properties of undefined (reading 'query')" error
+          errorMessage = 'OAuth configuration error. This may be caused by a missing NANGO_SECRET_KEY environment variable.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       return c.text(`OAuth Error: ${errorMessage}`, 500);
     }
   }

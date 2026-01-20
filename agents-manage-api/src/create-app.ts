@@ -19,6 +19,7 @@ import evalsRoutes from './routes/evals';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
+import nangoRoutes from './routes/nango';
 import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
@@ -124,6 +125,29 @@ function createManagementHono(
     })
   );
 
+  // CORS middleware for Nango config routes (must be registered before global CORS)
+  app.use(
+    '/tenants/*/nango/*',
+    cors({
+      origin: (origin) => {
+        return isOriginAllowed(origin) ? origin : null;
+      },
+      allowHeaders: [
+        'content-type',
+        'Content-Type',
+        'authorization',
+        'Authorization',
+        'User-Agent',
+        'Cookie',
+        'X-Forwarded-Cookie',
+      ],
+      allowMethods: ['GET', 'OPTIONS'],
+      exposeHeaders: ['Content-Length', 'Set-Cookie'],
+      maxAge: 600,
+      credentials: true,
+    })
+  );
+
   // CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS middleware for routes with their own CORS config
@@ -134,6 +158,9 @@ function createManagementHono(
       return next();
     }
     if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
+    if (c.req.path.includes('/nango/')) {
       return next();
     }
 
@@ -242,6 +269,9 @@ function createManagementHono(
 
   // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
   app.route('/tenants/:tenantId/signoz', signozRoutes);
+
+  // Mount Nango config routes under tenant (uses requireTenantAccess middleware for authorization)
+  app.route('/tenants/:tenantId/nango', nangoRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
