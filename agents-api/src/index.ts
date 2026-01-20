@@ -15,6 +15,7 @@ import { env } from './env';
 import { createAgentsAuth } from './factory';
 import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './ssoHelpers';
+import type { SandboxConfig } from 'src/types';
 
 export type { AppConfig, AppVariables } from './types';
 
@@ -46,6 +47,19 @@ const defaultConfig: ServerConfig = {
     keepAlive: true,
   },
 };
+
+export const sandboxConfig: SandboxConfig =
+  env.ENVIRONMENT === 'development'
+    ? { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 }
+    : {
+        provider: 'vercel',
+        runtime: 'node22',
+        timeout: 60000,
+        vcpus: 4,
+        teamId: process.env.SANDBOX_VERCEL_TEAM_ID as string,
+        projectId: process.env.SANDBOX_VERCEL_PROJECT_ID as string,
+        token: process.env.SANDBOX_VERCEL_TOKEN as string,
+      };
 
 // Module-level initialization for default app export
 // This only runs when importing the default app (legacy/simple deployments)
@@ -86,6 +100,7 @@ const app = createAgentsHono({
   serverConfig: defaultConfig,
   credentialStores: defaultRegistry,
   auth,
+  sandboxConfig,
 });
 
 // Initialize default user for development environment only
