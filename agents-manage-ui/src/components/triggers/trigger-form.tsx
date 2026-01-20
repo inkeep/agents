@@ -1,8 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -21,17 +22,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
-
-// Authentication type options
-const authTypeOptions: SelectOption[] = [
-  { value: 'none', label: 'None' },
-  { value: 'api_key', label: 'API Key' },
-  { value: 'basic_auth', label: 'Basic Auth' },
-  { value: 'bearer_token', label: 'Bearer Token' },
-];
 
 // Transform type options
 const transformTypeOptions: SelectOption[] = [
@@ -51,15 +45,15 @@ const triggerFormSchema = z.object({
   transformType: z.enum(['none', 'object_transformation', 'jmespath']),
   jmespath: z.string().default(''),
   objectTransformationJson: z.string().default(''),
-  authType: z.enum(['none', 'api_key', 'basic_auth', 'bearer_token']),
-  // API Key fields
-  apiKeyName: z.string().default(''),
-  apiKeyValue: z.string().default(''),
-  // Basic Auth fields
-  basicAuthUsername: z.string().default(''),
-  basicAuthPassword: z.string().default(''),
-  // Bearer Token fields
-  bearerToken: z.string().default(''),
+  // Authentication headers - array of name/value pairs
+  authHeaders: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Header name is required'),
+        value: z.string().min(1, 'Header value is required'),
+      })
+    )
+    .default([]),
   // Signing secret
   signingSecret: z.string().default(''),
 });
@@ -89,35 +83,27 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         transformType: 'none',
         jmespath: '',
         objectTransformationJson: '',
-        authType: 'none',
-        apiKeyName: '',
-        apiKeyValue: '',
-        basicAuthUsername: '',
-        basicAuthPassword: '',
-        bearerToken: '',
+        authHeaders: [],
         signingSecret: '',
       };
     }
 
-    // Extract authentication details
-    const auth = trigger.authentication as any;
-    let authType: 'none' | 'api_key' | 'basic_auth' | 'bearer_token' = 'none';
-    let apiKeyName = '';
-    let apiKeyValue = '';
-    let basicAuthUsername = '';
-    let basicAuthPassword = '';
-    let bearerToken = '';
+    // Extract authentication headers from stored format
+    // Stored format has: { headers: [{ name, valueHash, valuePrefix }] }
+    // We show the prefix for display but require new value on edit
+    const auth = trigger.authentication as {
+      headers?: Array<{ name: string; valuePrefix?: string }>;
+    } | null;
+    const authHeaders: Array<{ name: string; value: string }> = [];
 
-    if (auth && typeof auth === 'object' && 'type' in auth) {
-      authType = auth.type;
-      if (auth.type === 'api_key' && auth.data) {
-        apiKeyName = auth.data.name || '';
-        apiKeyValue = auth.data.value || '';
-      } else if (auth.type === 'basic_auth' && auth.data) {
-        basicAuthUsername = auth.data.username || '';
-        basicAuthPassword = auth.data.password || '';
-      } else if (auth.type === 'bearer_token' && auth.data) {
-        bearerToken = auth.data.token || '';
+    if (auth?.headers && Array.isArray(auth.headers)) {
+      for (const header of auth.headers) {
+        // When editing, we show the header name but require user to re-enter the value
+        // since we only store the hash, not the original value
+        authHeaders.push({
+          name: header.name,
+          value: '', // User must re-enter value
+        });
       }
     }
 
@@ -141,13 +127,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       objectTransformationJson: trigger.outputTransform?.objectTransformation
         ? JSON.stringify(trigger.outputTransform.objectTransformation, null, 2)
         : '',
-      authType,
-      apiKeyName,
-      apiKeyValue,
-      basicAuthUsername,
-      basicAuthPassword,
-      bearerToken,
-      signingSecret: trigger.signingSecret || '',
+      authHeaders,
+      signingSecret: '', // User must re-enter if they want to change it
     };
   };
 
@@ -158,8 +139,12 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
     defaultValues,
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'authHeaders',
+  });
+
   const { isSubmitting } = form.formState;
-  const authType = form.watch('authType');
   const transformType = form.watch('transformType');
 
   const onSubmit = async (data: TriggerFormData) => {
@@ -176,11 +161,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       }
 
       // Build output transform based on selected transform type
-      let outputTransform: { jmespath?: string; objectTransformation?: Record<string, unknown> } | undefined;
-      
+      let outputTransform:
+        | { jmespath?: string; objectTransformation?: Record<string, unknown> }
+        | undefined;
+
       if (data.transformType === 'jmespath' && data.jmespath?.trim()) {
         outputTransform = { jmespath: data.jmespath };
-      } else if (data.transformType === 'object_transformation' && data.objectTransformationJson?.trim()) {
+      } else if (
+        data.transformType === 'object_transformation' &&
+        data.objectTransformationJson?.trim()
+      ) {
         try {
           const objectTransformation = JSON.parse(data.objectTransformationJson);
           outputTransform = { objectTransformation };
@@ -190,53 +180,13 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         }
       }
 
-      // Build authentication object
-      let authentication: any;
-      if (data.authType !== 'none') {
-        switch (data.authType) {
-          case 'api_key':
-            if (!data.apiKeyName || !data.apiKeyValue) {
-              toast.error('API Key name and value are required');
-              return;
-            }
-            authentication = {
-              type: 'api_key',
-              data: {
-                name: data.apiKeyName,
-                value: data.apiKeyValue,
-              },
-              add_position: 'header',
-            };
-            break;
-          case 'basic_auth':
-            if (!data.basicAuthUsername || !data.basicAuthPassword) {
-              toast.error('Username and password are required');
-              return;
-            }
-            authentication = {
-              type: 'basic_auth',
-              data: {
-                username: data.basicAuthUsername,
-                password: data.basicAuthPassword,
-              },
-              add_position: 'header',
-            };
-            break;
-          case 'bearer_token':
-            if (!data.bearerToken) {
-              toast.error('Bearer token is required');
-              return;
-            }
-            authentication = {
-              type: 'bearer_token',
-              data: {
-                token: data.bearerToken,
-              },
-              add_position: 'header',
-            };
-            break;
-        }
-      }
+      // Build authentication object with headers (only if headers have values)
+      // Filter out headers where user didn't provide a new value (for edit mode)
+      const validHeaders = data.authHeaders.filter((h) => h.name && h.value);
+      const authentication =
+        validHeaders.length > 0
+          ? { headers: validHeaders.map((h) => ({ name: h.name, value: h.value })) }
+          : undefined;
 
       const payload: any = {
         id: data.id,
@@ -439,81 +389,88 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           <CardHeader>
             <CardTitle>Authentication</CardTitle>
             <CardDescription>
-              Configure authentication for incoming webhook requests.
+              Configure header-based authentication for incoming webhook requests. Add one or more
+              headers that must be present and match the expected values.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <GenericSelect
-              control={form.control}
-              name="authType"
-              label="Authentication Type"
-              options={authTypeOptions}
-              placeholder="Select authentication type"
-              isRequired
-            />
+            {/* Header list */}
+            <div className="space-y-3">
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex gap-3 items-start">
+                  <FormField
+                    control={form.control}
+                    name={`authHeaders.${index}.name`}
+                    render={({ field: inputField }) => (
+                      <FormItem className="flex-1">
+                        {index === 0 && <FormLabel>Header Name</FormLabel>}
+                        <FormControl>
+                          <Input {...inputField} placeholder="e.g., X-API-Key" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`authHeaders.${index}.value`}
+                    render={({ field: inputField }) => (
+                      <FormItem className="flex-1">
+                        {index === 0 && <FormLabel>Header Value</FormLabel>}
+                        <FormControl>
+                          <Input
+                            {...inputField}
+                            type="password"
+                            placeholder="Enter expected value"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => remove(index)}
+                    className={index === 0 ? 'mt-8' : ''}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
 
-            {authType === 'api_key' && (
-              <>
-                <GenericInput
-                  control={form.control}
-                  name="apiKeyName"
-                  label="Header Name"
-                  placeholder="e.g., X-API-Key"
-                  isRequired
-                />
-                <GenericInput
-                  control={form.control}
-                  name="apiKeyValue"
-                  label="API Key Value"
-                  placeholder="Enter the expected API key"
-                  type="password"
-                  isRequired
-                />
-              </>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ name: '', value: '' })}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Authentication Header
+            </Button>
+
+            {mode === 'edit' && fields.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Note: Header values are stored securely (hashed). You must re-enter the value to
+                update it.
+              </p>
             )}
 
-            {authType === 'basic_auth' && (
-              <>
-                <GenericInput
-                  control={form.control}
-                  name="basicAuthUsername"
-                  label="Username"
-                  placeholder="Enter username"
-                  isRequired
-                />
-                <GenericInput
-                  control={form.control}
-                  name="basicAuthPassword"
-                  label="Password"
-                  placeholder="Enter password"
-                  type="password"
-                  isRequired
-                />
-              </>
-            )}
-
-            {authType === 'bearer_token' && (
+            <div className="pt-4 border-t">
               <GenericInput
                 control={form.control}
-                name="bearerToken"
-                label="Bearer Token"
-                placeholder="Enter bearer token"
+                name="signingSecret"
+                label="Signing Secret (Optional)"
+                placeholder="HMAC-SHA256 signing secret"
                 type="password"
-                isRequired
               />
-            )}
-
-            <GenericInput
-              control={form.control}
-              name="signingSecret"
-              label="Signing Secret (Optional)"
-              placeholder="HMAC-SHA256 signing secret"
-              type="password"
-            />
-            <FormDescription>
-              If provided, webhook requests must include a valid X-Signature-256 header for
-              verification.
-            </FormDescription>
+              <FormDescription className="mt-2">
+                If provided, webhook requests must include a valid X-Signature-256 header for
+                verification.
+              </FormDescription>
+            </div>
           </CardContent>
         </Card>
 

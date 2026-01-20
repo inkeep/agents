@@ -7,6 +7,7 @@ import {
   generateId,
   getTriggerById,
   getTriggerInvocationById,
+  hashAuthenticationHeaders,
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
   PaginationQueryParamsSchema,
@@ -248,6 +249,17 @@ app.openapi(
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
 
+    // Hash authentication header values before storing
+    // The input schema uses { headers: [{name, value}] }, stored as { headers: [{name, valueHash, valuePrefix}] }
+    let hashedAuthentication: unknown;
+    const authInput = body.authentication as
+      | { headers?: Array<{ name: string; value: string }> }
+      | undefined;
+    if (authInput?.headers && authInput.headers.length > 0) {
+      const hashedHeaders = await hashAuthenticationHeaders(authInput.headers);
+      hashedAuthentication = { headers: hashedHeaders };
+    }
+
     const trigger = await createTrigger(db)({
       id,
       tenantId,
@@ -259,7 +271,7 @@ app.openapi(
       inputSchema: body.inputSchema,
       outputTransform: body.outputTransform,
       messageTemplate: body.messageTemplate,
-      authentication: body.authentication,
+      authentication: hashedAuthentication as any,
       signingSecret: body.signingSecret,
     });
 
@@ -343,6 +355,20 @@ app.openapi(
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Updating trigger');
 
+    // Hash authentication header values before storing (if provided)
+    // The input schema uses { headers: [{name, value}] }, stored as { headers: [{name, valueHash, valuePrefix}] }
+    let hashedAuthentication: unknown;
+    const authInput = body.authentication as
+      | { headers?: Array<{ name: string; value: string }> }
+      | undefined;
+    if (authInput?.headers && authInput.headers.length > 0) {
+      const hashedHeaders = await hashAuthenticationHeaders(authInput.headers);
+      hashedAuthentication = { headers: hashedHeaders };
+    } else if (body.authentication !== undefined) {
+      // Explicitly set to undefined/empty to clear authentication
+      hashedAuthentication = body.authentication;
+    }
+
     const updatedTrigger = await updateTrigger(db)({
       scopes: { tenantId, projectId, agentId },
       triggerId: id,
@@ -353,7 +379,7 @@ app.openapi(
         inputSchema: body.inputSchema,
         outputTransform: body.outputTransform,
         messageTemplate: body.messageTemplate,
-        authentication: body.authentication,
+        authentication: hashedAuthentication as any,
         signingSecret: body.signingSecret,
       },
     });
