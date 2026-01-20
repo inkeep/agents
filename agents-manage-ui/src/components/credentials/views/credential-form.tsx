@@ -2,8 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
-import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
@@ -52,6 +52,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
   });
+  const credentialStoreId = useWatch({ control: form.control, name: 'credentialStoreId' });
+  const credentialStoreType = useWatch({ control: form.control, name: 'credentialStoreType' });
 
   const { isSubmitting } = form.formState;
 
@@ -64,9 +66,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         setAvailableMCPServers(toolsWithoutCredentials);
       } catch (err) {
         console.error('Failed to load MCP tools:', err);
-      } finally {
-        setToolsLoading(false);
       }
+      setToolsLoading(false);
     };
 
     loadAvailableTools();
@@ -83,9 +84,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         setAvailableExternalAgents(externalAgentsWithoutCredentials);
       } catch (err) {
         console.error('Failed to load external agents:', err);
-      } finally {
-        setExternalAgentsLoading(false);
       }
+      setExternalAgentsLoading(false);
     };
 
     loadAvailableExternalAgents();
@@ -93,34 +93,37 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
 
   // loadCredentialStores
   useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const stores = await listCredentialStores(tenantId, projectId);
+      setCredentialStores(stores);
+
+      // Auto-select preferred store: prioritize Nango, then other available non-memory stores
+      const availableStores = stores.filter((store) => store.available && store.type !== 'memory');
+      if (availableStores.length > 0) {
+        // First try to find Nango store
+        const nangoStore = availableStores.find((store) => store.type === 'nango');
+        const preferredStore = nangoStore || availableStores[0];
+
+        // Only set values if form doesn't already have a credentialStoreId value
+        const currentStoreId = form.getValues('credentialStoreId');
+        if (!currentStoreId) {
+          form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
+          form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
+            shouldValidate: true,
+          });
+        }
+      }
+    }
+
     const loadCredentialStores = async () => {
       try {
-        const stores = await listCredentialStores(tenantId, projectId);
-        setCredentialStores(stores);
-
-        // Auto-select preferred store: prioritize Nango, then other available non-memory stores
-        const availableStores = stores.filter(
-          (store) => store.available && store.type !== 'memory'
-        );
-        if (availableStores.length > 0) {
-          // First try to find Nango store
-          const nangoStore = availableStores.find((store) => store.type === 'nango');
-          const preferredStore = nangoStore || availableStores[0];
-
-          // Only set values if form doesn't already have a credentialStoreId value
-          const currentStoreId = form.getValues('credentialStoreId');
-          if (!currentStoreId) {
-            form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
-              shouldValidate: true,
-            });
-          }
-        }
+        await doRequest();
       } catch (err) {
         console.error('Failed to load credential stores:', err);
-      } finally {
-        setStoresLoading(false);
       }
+      setStoresLoading(false);
     };
 
     loadCredentialStores();
@@ -142,18 +145,19 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   }, [shouldLinkToExternalAgent, form]);
 
   useEffect(() => {
-    const subscription = form.watch((value: any, { name }: any) => {
-      if (name === 'credentialStoreId' && value.credentialStoreId) {
-        const selectedStore = credentialStores.find(
-          (store) => store.id === value.credentialStoreId
-        );
-        if (selectedStore && selectedStore.type !== 'memory') {
-          form.setValue('credentialStoreType', selectedStore.type);
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, credentialStores]);
+    if (!credentialStoreId) {
+      return;
+    }
+
+    const selectedStore = credentialStores.find((store) => store.id === credentialStoreId);
+    if (
+      selectedStore &&
+      selectedStore.type !== 'memory' &&
+      selectedStore.type !== credentialStoreType
+    ) {
+      form.setValue('credentialStoreType', selectedStore.type);
+    }
+  }, [credentialStoreId, credentialStoreType, credentialStores, form]);
 
   const handleLinkToServerChange = (checked: boolean | 'indeterminate') => {
     setShouldLinkToServer(checked === true);
@@ -163,20 +167,20 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     setShouldLinkToExternalAgent(checked === true);
   };
 
-  const onSubmit = async (data: CredentialFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
+    const isInvalidServerSelection =
+      shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
+    const isInvalidExternalAgentSelection =
+      shouldLinkToExternalAgent &&
+      (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error');
+
     try {
-      if (
-        shouldLinkToServer &&
-        (data.selectedTool === 'loading' || data.selectedTool === 'error')
-      ) {
+      if (isInvalidServerSelection) {
         toast('Please select a valid MCP server');
         return;
       }
 
-      if (
-        shouldLinkToExternalAgent &&
-        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
-      ) {
+      if (isInvalidExternalAgentSelection) {
         toast('Please select a valid external agent');
         return;
       }
@@ -186,47 +190,41 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
       console.error('Failed to create credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to create credential');
     }
-  };
+  });
 
-  const serverOptions = useMemo(
-    () => [
-      ...(toolsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading MCP servers...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableMCPServers.map((tool) => ({
-        value: tool.id,
-        label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
-      })),
-    ],
-    [availableMCPServers, toolsLoading]
-  );
+  const serverOptions = [
+    ...(toolsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading MCP servers...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableMCPServers.map((tool) => ({
+      value: tool.id,
+      label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
+    })),
+  ];
 
-  const externalAgentOptions = useMemo(
-    () => [
-      ...(externalAgentsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading external agents...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableExternalAgents.map((agent) => ({
-        value: agent.id,
-        label: `${agent.name} - ${agent.baseUrl}`,
-      })),
-    ],
-    [availableExternalAgents, externalAgentsLoading]
-  );
+  const externalAgentOptions = [
+    ...(externalAgentsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading external agents...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableExternalAgents.map((agent) => ({
+      value: agent.id,
+      label: `${agent.name} - ${agent.baseUrl}`,
+    })),
+  ];
 
-  const credentialStoreOptions = useMemo(() => {
+  const credentialStoreOptions = (() => {
     if (storesLoading) {
       return [
         {
@@ -257,11 +255,11 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     }));
 
     return options;
-  }, [credentialStores, storesLoading]);
+  })();
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         {/* Credential Details Section */}
         <div className="space-y-8">
           <GenericInput
@@ -294,7 +292,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             </InfoCard>
           </div>
 
-          {!storesLoading && form.watch('credentialStoreType') === CredentialStoreType.nango && (
+          {!storesLoading && credentialStoreType === CredentialStoreType.nango && (
             <div className="space-y-3">
               <GenericKeyValueInput
                 control={form.control}

@@ -2,7 +2,7 @@
 
 import { ChevronRight, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDate } from '@/app/utils/format-date';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,7 @@ export function EvaluationRunConfigsList({
     setRunConfigs(initialRunConfigs);
   }, [initialRunConfigs]);
 
-  const refreshRunConfigs = useCallback(async () => {
+  const refreshRunConfigs = async () => {
     try {
       console.log('Fetching fresh run configs...');
       const response = await fetchEvaluationRunConfigs(tenantId, projectId);
@@ -59,7 +59,7 @@ export function EvaluationRunConfigsList({
     } catch (error) {
       console.error('Error refreshing run configs:', error);
     }
-  }, [tenantId, projectId]);
+  };
 
   // Refresh when refreshKey changes (e.g., after creating a new config)
   useEffect(() => {
@@ -68,7 +68,11 @@ export function EvaluationRunConfigsList({
       console.log('Calling refreshRunConfigs');
       refreshRunConfigs();
     }
-  }, [refreshKey, refreshRunConfigs]);
+  }, [
+    refreshKey,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    refreshRunConfigs,
+  ]);
 
   const handleEdit = (runConfig: EvaluationRunConfig) => {
     setEditingRunConfig(runConfig);

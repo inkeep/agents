@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteEvaluatorAction } from '@/lib/actions/evaluators';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { getValueOrFallback } from '@/lib/utils';
 
 interface DeleteEvaluatorConfirmationProps {
   tenantId: string;
@@ -40,14 +41,13 @@ export function DeleteEvaluatorConfirmation({
         toast.success('Evaluator deleted');
         onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to delete evaluator');
+        toast.error(getValueOrFallback(result.error, 'Failed to delete evaluator'));
       }
     } catch (error) {
       console.error('Error deleting evaluator:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   return (

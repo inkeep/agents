@@ -1,7 +1,7 @@
 'use client';
 
 import { Maximize } from 'lucide-react';
-import { type ComponentProps, type ReactNode, useCallback } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -42,14 +42,14 @@ export function ExpandableField({
 }: ExpandableFieldProps) {
   const monaco = useMonacoStore((state) => state.monaco);
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     if (!monaco) {
       return;
     }
     const model = monaco.editor.getModel(monaco.Uri.parse(uri));
     const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
     editor?.focus();
-  }, [monaco, uri]);
+  };
 
   const content = (
     <>

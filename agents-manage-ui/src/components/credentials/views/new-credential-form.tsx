@@ -24,7 +24,9 @@ export function NewCredentialForm() {
   }>();
   const { user } = useAuthSession();
   const handleCreateCredential = async (data: CredentialFormData) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const newCredentialId = generateId();
 
       let newCredential: Credential | undefined;
@@ -102,6 +104,9 @@ export function NewCredentialForm() {
 
       toast.success('Credential created successfully');
       router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    }
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Failed to create credential:', error);
       toast.error('Failed to create credential. Please try again.');

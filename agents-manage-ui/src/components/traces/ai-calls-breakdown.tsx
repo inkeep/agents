@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Brain, Calendar, Cpu, MessageSquare } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -71,7 +71,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   };
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
@@ -104,20 +104,17 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch AI calls by agent and model
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
+      const modelId = selectedModel === 'all' ? undefined : selectedModel;
       try {
-        setLoading(true);
-        setError(null);
-
         const client = getSigNozStatsClient(tenantId);
-
-        const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
-        const modelId = selectedModel === 'all' ? undefined : selectedModel;
-
         // Fetch all data in parallel using SigNoz aggregations
         const [agentData, modelData, uniqueAgents, uniqueModels] = await Promise.all([
           client.getAICallsBySubAgent(
@@ -139,9 +136,8 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { updateDatasetAction } from '@/lib/actions/datasets';
+import { getValueOrFallback } from '@/lib/utils';
 
 const renameSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -49,25 +50,22 @@ export function RenameDatasetDialog({
     },
   });
 
-  const onSubmit = async (data: RenameFormData) => {
+  const onSubmit = form.handleSubmit(async ({ name }) => {
     setIsSubmitting(true);
     try {
-      const result = await updateDatasetAction(tenantId, projectId, datasetId, {
-        name: data.name,
-      });
+      const result = await updateDatasetAction(tenantId, projectId, datasetId, { name });
       if (result.success) {
         toast.success('Test suite renamed');
         onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to rename test suite');
+        toast.error(getValueOrFallback(result.error, 'Failed to rename test suite'));
       }
     } catch (error) {
       console.error('Error renaming dataset:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+    setIsSubmitting(false);
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -76,7 +74,7 @@ export function RenameDatasetDialog({
           <DialogTitle>Rename Test Suite</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             <GenericInput
               control={form.control}
               name="name"

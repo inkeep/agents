@@ -67,8 +67,6 @@ function getCredentialAuthenticationType(credential: Credential): string | undef
 
     return 'Bearer authentication';
   }
-
-  return undefined;
 }
 
 export function EditCredentialForm({
@@ -89,8 +87,10 @@ export function EditCredentialForm({
 
   const { isSubmitting } = form.formState;
 
-  const handleUpdateCredential = async (formData: EditCredentialFormData) => {
-    try {
+  const handleUpdateCredential = form.handleSubmit(async (formData) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       await updateCredential(tenantId, projectId, credential.id, {
         name: formData.name.trim(),
       });
@@ -110,30 +110,26 @@ export function EditCredentialForm({
 
       toast.success('Credential updated successfully');
       router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    }
+    try {
+      await doRequest();
     } catch (err) {
       console.error('Failed to update credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to update credential');
     }
-  };
-
-  const onSubmit = async (data: EditCredentialFormData) => {
-    await handleUpdateCredential(data);
-  };
+  });
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    try {
-      const result = await deleteCredentialAction(tenantId, projectId, credential.id);
-      if (result.success) {
-        setIsDeleteOpen(false);
-        toast.success('Credential deleted.');
-        router.push(`/${tenantId}/projects/${projectId}/credentials`);
-      } else {
-        toast.error(result.error);
-      }
-    } finally {
-      setIsDeleting(false);
+    const result = await deleteCredentialAction(tenantId, projectId, credential.id);
+    if (result.success) {
+      setIsDeleteOpen(false);
+      toast.success('Credential deleted.');
+      router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    } else {
+      toast.error(result.error);
     }
+    setIsDeleting(false);
   };
 
   const credentialAuthenticationType = getCredentialAuthenticationType(credential);
@@ -142,7 +138,7 @@ export function EditCredentialForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleUpdateCredential} className="space-y-8">
           {/* Credential Details Section */}
           <div className="space-y-8">
             <GenericInput
@@ -180,7 +176,7 @@ export function EditCredentialForm({
             {credential.createdBy && (
               <div className="space-y-3">
                 <Label>Created by</Label>
-                <Input type="text" disabled={true} value={credential.createdBy} />
+                <Input type="text" disabled value={credential.createdBy} />
               </div>
             )}
 

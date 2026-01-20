@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, CheckCircle2, Loader2, Terminal, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
+import { getValueOrFallback } from '@/lib/utils';
 
 type DeviceState =
   | 'input'
@@ -30,6 +31,20 @@ function formatUserCode(code: string): string {
   return cleaned;
 }
 
+const StateToMessage: Record<DeviceState, string> = {
+  input: 'Enter the code displayed in your CLI to authorize the device.',
+  get validating() {
+    return this.input;
+  },
+  confirm: 'Confirm that you want to authorize this device.',
+  get approving() {
+    return this.confirm;
+  },
+  approved: 'Device authorized successfully.',
+  denied: 'Device authorization denied.',
+  error: 'An error occurred.',
+};
+
 function DeviceVerificationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,38 +63,40 @@ function DeviceVerificationForm() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const validateCode = useCallback(
-    async (code: string) => {
-      setState('validating');
-      setError(null);
+  const validateCode = async (code: string) => {
+    setState('validating');
+    setError(null);
 
-      try {
-        const formattedCode = code.replace(/-/g, '').toUpperCase();
-        const response = await authClient.device({
-          query: { user_code: formattedCode },
-        });
+    try {
+      const formattedCode = code.replace(/-/g, '').toUpperCase();
+      const response = await authClient.device({
+        query: { user_code: formattedCode },
+      });
 
-        if (response.error) {
-          setError(response.error.error_description || 'Invalid or expired code');
-          setState('error');
-          return;
-        }
-
-        setState('confirm');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to validate code');
+      if (response.error) {
+        setError(getValueOrFallback(response.error.error_description, 'Invalid or expired code'));
         setState('error');
+        return;
       }
-    },
-    [authClient]
-  );
+
+      setState('confirm');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to validate code');
+      setState('error');
+    }
+  };
 
   // Auto-validate if code provided in URL
   useEffect(() => {
     if (initialCode && isAuthenticated) {
       validateCode(initialCode);
     }
-  }, [initialCode, isAuthenticated, validateCode]);
+  }, [
+    initialCode,
+    isAuthenticated,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    validateCode,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +115,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(response.error.error_description || 'Failed to approve device');
+        setError(getValueOrFallback(response.error.error_description, 'Failed to approve device'));
         setState('error');
         return;
       }
@@ -121,7 +138,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(response.error.error_description || 'Failed to deny device');
+        setError(getValueOrFallback(response.error.error_description, 'Failed to deny device'));
         setState('error');
         return;
       }
@@ -168,17 +185,7 @@ function DeviceVerificationForm() {
             <Terminal className="h-6 w-6" />
             Device Authorization
           </CardTitle>
-          <CardDescription>
-            {state === 'input' || state === 'validating'
-              ? 'Enter the code displayed in your CLI to authorize the device.'
-              : state === 'confirm' || state === 'approving'
-                ? 'Confirm that you want to authorize this device.'
-                : state === 'approved'
-                  ? 'Device authorized successfully.'
-                  : state === 'denied'
-                    ? 'Device authorization denied.'
-                    : 'An error occurred.'}
-          </CardDescription>
+          <CardDescription>{StateToMessage[state] ?? StateToMessage.error}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {error && (

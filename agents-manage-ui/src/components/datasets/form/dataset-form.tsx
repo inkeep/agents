@@ -43,10 +43,12 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
   const { isSubmitting } = form.formState;
   const router = useRouter();
 
-  const onSubmit = async (data: DatasetFormData) => {
-    try {
+  const onSubmit = form.handleSubmit(async ({ name }) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const payload: Partial<Dataset> = {
-        name: data.name,
+        name,
       };
 
       if (id) {
@@ -65,17 +67,20 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
         toast.success('Test suite created');
         router.push(`/${tenantId}/projects/${projectId}/datasets/${res.data.id}`);
       }
+    }
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting dataset:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={onSubmit} className="space-y-8">
           <GenericInput
             control={form.control}
             name="name"

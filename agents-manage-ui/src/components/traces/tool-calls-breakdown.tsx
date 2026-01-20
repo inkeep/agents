@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Calendar, Server, Wrench } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -67,7 +67,7 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
@@ -95,17 +95,15 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
       try {
-        setLoading(true);
-        setError(null);
-
         const client = getSigNozStatsClient();
-        const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
-
         const [toolData, uniqueServers, uniqueTools] = await Promise.all([
           client.getToolCallsByTool(startTime, endTime, serverFilter, params.projectId as string),
           client.getUniqueToolServers(startTime, endTime, params.projectId as string),
@@ -118,17 +116,16 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
       } catch (err) {
         console.error('Error fetching tool calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tool calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();
   }, [selectedServer, startTime, endTime, params.projectId]);
 
-  const filteredToolCalls = useMemo(() => {
-    return toolCalls.filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool);
-  }, [toolCalls, selectedTool]);
+  const filteredToolCalls = toolCalls.filter(
+    (tool) => selectedTool === 'all' || tool.toolName === selectedTool
+  );
 
   const totalToolCalls = filteredToolCalls.reduce((sum, item) => sum + item.totalCalls, 0);
   const totalErrors = filteredToolCalls.reduce((sum, item) => sum + item.errorCount, 0);

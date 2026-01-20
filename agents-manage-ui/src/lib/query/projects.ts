@@ -1,7 +1,6 @@
 'use client';
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
 
@@ -31,10 +30,10 @@ export function useProjectsQuery(tenantId: string) {
 export function useProjectsInvalidation(tenantId?: string) {
   const queryClient = useQueryClient();
 
-  return useCallback(async () => {
+  return async () => {
     if (!tenantId) {
       return;
     }
     await queryClient.invalidateQueries({ queryKey: projectQueryKeys.list(tenantId) });
-  }, [queryClient, tenantId]);
+  };
 }

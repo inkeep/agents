@@ -55,6 +55,17 @@
         "noUselessLoneBlockStatements": "off"
       },
       "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": {
+                "importNames": ["useCallback", "useMemo", "memo"],
+                "message": "The highlighted React API is flagged.\nWe use the React Compiler, which automatically memoizes where needed.\nIn 99% of cases, manual memoization is unnecessary.\nIf you encounter a real issue, please ping Dima in Slack."
+              }
+            }
+          }
+        },
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn",
         "noUselessElse": "error",
@@ -73,7 +84,16 @@
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "error",
-        "useExhaustiveDependencies": "warn",
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "hooks": [
+              { "name": "useAgentActions", "stableResult": true },
+              { "name": "useMonacoActions", "stableResult": true },
+              { "name": "useProjectActions", "stableResult": true }
+            ]
+          }
+        },
         "useJsxKeyInIterable": "warn",
         "useUniqueElementIds": "off",
         "noNestedComponentDefinitions": "off",

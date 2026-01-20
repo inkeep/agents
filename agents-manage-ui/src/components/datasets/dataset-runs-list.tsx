@@ -2,7 +2,7 @@
 
 import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDateAgo } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import type { DatasetRun } from '@/lib/api/dataset-runs';
 import { fetchDatasetRuns } from '@/lib/api/dataset-runs';
+import { getValueOrFallback } from '@/lib/utils';
 import { DatasetRunConfigFormDialog } from './dataset-run-config-form-dialog';
 
 interface DatasetRunsListProps {
@@ -37,25 +38,28 @@ export function DatasetRunsList({
   const [error, setError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const loadRuns = useCallback(async () => {
+  const loadRuns = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const response = await fetchDatasetRuns(tenantId, projectId, datasetId);
-      setRuns(response.data || []);
+      setRuns(getValueOrFallback(response.data, []));
     } catch (err) {
       console.error('Error loading dataset runs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load runs');
-    } finally {
-      setLoading(false);
     }
-  }, [tenantId, projectId, datasetId]);
+    setLoading(false);
+  };
 
   useEffect(() => {
     // refreshKey triggers reload when incremented
     void refreshKey;
     loadRuns();
-  }, [loadRuns, refreshKey]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRuns,
+    refreshKey,
+  ]);
 
   if (loading) {
     return (

@@ -2,14 +2,14 @@
 
 import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
-import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 import { AreaChartCard } from './charts/area-chart-card';
 import { StatCard } from './charts/stat-card';
@@ -56,7 +56,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const [activityLoading, setActivityLoading] = useState(true);
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now() - 1; // Clamp to now-1ms to satisfy backend validation
 
     if (selectedTimeRange === CUSTOM) {
@@ -91,7 +91,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls
@@ -103,16 +103,13 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const spanFilters = useMemo<SpanFilterOptions | undefined>(() => {
-    if (!spanName && attributes.length === 0) {
-      return undefined;
-    }
-    const filters = {
-      spanName: spanName || undefined,
-      attributes: attributes.length > 0 ? attributes : undefined,
-    };
-    return filters;
-  }, [spanName, attributes]);
+  const spanFilters: SpanFilterOptions | undefined =
+    !spanName && attributes.length === 0
+      ? undefined
+      : {
+          spanName: spanName || undefined,
+          attributes: attributes.length > 0 ? attributes : undefined,
+        };
 
   const {
     aggregateStats,
@@ -154,10 +151,10 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   // Fetch conversations per day activity
   useEffect(() => {
     const fetchActivity = async () => {
+      setActivityLoading(true);
+      const agentId = selectedAgent ? selectedAgent : undefined;
       try {
-        setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId as string);
-        const agentId = selectedAgent ? selectedAgent : undefined;
         console.log('🔍 Fetching activity data:', {
           startTime,
           endTime,
@@ -175,9 +172,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
         setActivityData([]);
-      } finally {
-        setActivityLoading(false);
       }
+      setActivityLoading(false);
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
@@ -202,9 +198,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       } catch (error) {
         console.error('Failed to fetch span names:', error);
         setAvailableSpanNames([]);
-      } finally {
-        setSpanNamesLoading(false);
       }
+      setSpanNamesLoading(false);
     };
 
     // Only fetch if we have valid time range
@@ -300,8 +295,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               ? { from: customStartDate, to: customEndDate }
               : selectedTimeRange
           }
-          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          onAdd={setSelectedTimeRange}
+          setCustomDateRange={setCustomDateRange}
           options={Object.entries(TIME_RANGES).map(([value, config]) => ({
             value,
             label: config.label,
@@ -341,21 +336,11 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
             dataKeyOne="count"
             hasError={!!aggregateError}
             isLoading={activityLoading}
-            tickFormatter={(value: string) => {
-              try {
-                const [y, m, d] = value.split('-').map(Number);
-                return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                });
-              } catch {
-                return value;
-              }
-            }}
+            tickFormatter={tickFormatter}
             title={`Conversations per day`}
             xAxisDataKey={'date'}
             yAxisDataKey={'count'}
-            yAxisTickFormatter={(value: number | string) => value?.toLocaleString()}
+            yAxisTickFormatter={(value) => value?.toLocaleString()}
           />
         </div>
 
@@ -425,4 +410,16 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       />
     </div>
   );
+}
+
+function tickFormatter(value: string): string {
+  try {
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return value;
+  }
 }

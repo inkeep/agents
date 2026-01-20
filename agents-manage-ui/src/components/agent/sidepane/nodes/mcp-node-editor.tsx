@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
@@ -53,10 +53,8 @@ export function MCPServerNodeEditor({
     edges: state.edges,
   }));
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
-  }, [selectedNode, agentToolConfigLookup, edges]);
-
+  const getCurrentHeaders = (): Record<string, string> =>
+    getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
 
@@ -166,11 +164,10 @@ export function MCPServerNodeEditor({
   const handleHeadersChange = (value: string) => {
     // Always update the input state (allows user to type invalid JSON)
     setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    const doAction = () => {
       const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-
       if (
         typeof parsedHeaders === 'object' &&
         parsedHeaders !== null &&
@@ -183,6 +180,11 @@ export function MCPServerNodeEditor({
         });
         markUnsaved();
       }
+    };
+
+    try {
+      // Only save to node data if the JSON is valid
+      doAction();
     } catch {
       // Invalid JSON - don't save, but allow user to continue typing
       // The ExpandableJsonEditor will show the validation error

@@ -45,9 +45,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const handleCopyTrace = async () => {
     if (!conversation) return;
 
-    setIsCopying(true);
-    try {
-      const result = await copyTraceToClipboard(conversation);
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doCopy() {
+      // biome-ignore lint/style/noNonNullAssertion: exist
+      const result = await copyTraceToClipboard(conversation!);
       if (result.success) {
         toast.success('Trace copied to clipboard', {
           description: 'The OTEL trace has been copied successfully.',
@@ -57,34 +59,43 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           description: result.error || 'An unknown error occurred',
         });
       }
+    }
+
+    setIsCopying(true);
+    try {
+      await doCopy();
     } catch (err) {
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
+      const response = await fetch(
+        `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversation details');
+      }
+      const data = await response.json();
+      setConversation(data);
+    }
+
     const fetchConversationDetail = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(
-          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
-        );
-
-        if (!response.ok) throw new Error('Failed to fetch conversation details');
-        const data = await response.json();
-        setConversation(data);
+        await doRequest();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();
@@ -220,7 +231,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               > = {};
               ai.forEach((a: ActivityItem) => {
                 const model = a.aiModel || a.aiStreamTextModel || 'Unknown Model';
-                models[model] ||= { inputTokens: 0, outputTokens: 0, count: 0 };
+                if (!models[model]) {
+                  models[model] = { inputTokens: 0, outputTokens: 0, count: 0 };
+                }
                 models[model].inputTokens += a.inputTokens || 0;
                 models[model].outputTokens += a.outputTokens || 0;
                 models[model].count += 1;

@@ -2,8 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -56,42 +56,41 @@ export function EvaluationJobFormDialog({
     defaultValues: defaultFormData,
   });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
       setEvaluators(evaluatorsRes.data || []);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
     }
-  }, [tenantId, projectId]);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await doRequest();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data');
+      }
+      setLoading(false);
+    };
 
-  useEffect(() => {
     if (isOpen) {
       form.reset(defaultFormData);
       loadData();
     }
-  }, [isOpen, form, loadData]);
+  }, [isOpen, form, projectId, tenantId]);
 
   const { isSubmitting } = form.formState;
-  const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
-  const jobFilters = form.watch('jobFilters');
+  const selectedEvaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
+  const jobFilters = useWatch({ control: form.control, name: 'jobFilters' });
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const datePickerValue =
     customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;
@@ -127,13 +126,10 @@ export function EvaluationJobFormDialog({
     });
   };
 
-  const onSubmit = async (data: EvaluationJobConfigFormData) => {
-    const isValid = await form.trigger();
-    if (!isValid) {
-      return;
-    }
-
-    try {
+  const onSubmit = form.handleSubmit(async (data) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       let jobFilters = data.jobFilters;
 
       // Transform date strings to ISO timestamps with proper timezone handling
@@ -169,12 +165,21 @@ export function EvaluationJobFormDialog({
       } else {
         toast.error(result.error || 'Failed to create batch evaluation');
       }
+    }
+
+    const isValid = await form.trigger();
+    if (!isValid) {
+      return;
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting batch evaluation:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -191,7 +196,7 @@ export function EvaluationJobFormDialog({
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6">
               <FormField
                 control={form.control}
                 name="evaluatorIds"

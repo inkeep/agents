@@ -432,7 +432,7 @@ export const Agent: FC<AgentProps> = ({
 
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    async function doRequest(): Promise<void> {
+    async function doRequest() {
       const [fullProjectResult, toolsResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
         options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
@@ -913,7 +913,6 @@ export const Agent: FC<AgentProps> = ({
     return false;
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
     const onCompletion = () => {
       // @ts-expect-error

@@ -33,8 +33,9 @@ export function DeleteEvaluationJobConfirmation({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result = await deleteEvaluationJobConfigAction(tenantId, projectId, jobConfig.id);
       if (result.success) {
         toast.success('Batch evaluation deleted');
@@ -42,12 +43,16 @@ export function DeleteEvaluationJobConfirmation({
       } else {
         toast.error(result.error || 'Failed to delete batch evaluation');
       }
+    }
+
+    setIsDeleting(true);
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error deleting batch evaluation:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   return (

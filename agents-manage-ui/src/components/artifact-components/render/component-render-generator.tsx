@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/editors/code-editor';
@@ -52,7 +52,9 @@ export function ComponentRenderGenerator({
     setIsComplete(false);
     setIsSaved(false);
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const response = await fetch(
         `/api/artifact-components/${artifactComponentId}/generate-render`,
         {
@@ -115,13 +117,16 @@ export function ComponentRenderGenerator({
       } else {
         throw new Error('No valid render generated');
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
       setIsComplete(true);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   const handleDeletePreview = async () => {
@@ -133,41 +138,37 @@ export function ComponentRenderGenerator({
       });
       setRender(null);
       setIsSaved(false);
-      onRenderChanged?.(null);
+      if (onRenderChanged) {
+        onRenderChanged(null);
+      }
       toast.success('Render deleted');
     } catch (error) {
       console.error('Error deleting render:', error);
       toast.error('Failed to delete render');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
 
   // Memoize to prevent infinite re-renders
-  const stringifiedData = useMemo(
-    () => (render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}'),
-    [render?.mockData]
-  );
+  const stringifiedData = render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}';
+  const renderCode = render?.component || '';
+  const renderData = render?.mockData || {};
 
-  const renderCode = useMemo(() => render?.component || '', [render?.component]);
-  const renderData = useMemo(() => render?.mockData || {}, [render?.mockData]);
-
-  const handleDataChange = useCallback(
-    (newData: string) => {
-      if (!render) return;
-      try {
-        const parsedData = JSON.parse(newData);
-        const updatedRender = { ...render, mockData: parsedData };
-        setRender(updatedRender);
-        onRenderChanged?.(updatedRender);
-      } catch {
-        // Invalid JSON, ignore
+  const handleDataChange = (newData: string) => {
+    if (!render) return;
+    try {
+      const parsedData = JSON.parse(newData);
+      const updatedRender = { ...render, mockData: parsedData };
+      setRender(updatedRender);
+      if (onRenderChanged) {
+        onRenderChanged(updatedRender);
       }
-    },
-    [render, onRenderChanged]
-  );
+    } catch {
+      // Invalid JSON, ignore
+    }
+  };
 
   return (
     <div className="space-y-4">

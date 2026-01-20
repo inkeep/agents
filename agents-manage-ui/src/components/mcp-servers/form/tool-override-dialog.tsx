@@ -131,24 +131,23 @@ export function ToolOverrideDialog({
       return;
     }
 
+    const newOverride = {
+      ...(displayName.trim() && { displayName: displayName.trim() }),
+      ...(description.trim() && { description: description.trim() }),
+      ...(schema.trim() && {
+        schema: (() => {
+          try {
+            return JSON.parse(schema);
+          } catch {
+            return schema;
+          }
+        })(),
+      }),
+      ...(override.transformation && {
+        transformation: override.transformation,
+      }),
+    };
     try {
-      const newOverride = {
-        ...(displayName.trim() && { displayName: displayName.trim() }),
-        ...(description.trim() && { description: description.trim() }),
-        ...(schema.trim() && {
-          schema: (() => {
-            try {
-              return JSON.parse(schema);
-            } catch {
-              return schema;
-            }
-          })(),
-        }),
-        ...(override.transformation && {
-          transformation: override.transformation,
-        }),
-      };
-
       onSave(newOverride);
       onOpenChange(false);
 

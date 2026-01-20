@@ -70,7 +70,9 @@ function LoginForm() {
     setIsLoading(true);
     setError(null);
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result = await authClient.signIn.email({
         email: formData.email,
         password: formData.password,
@@ -93,6 +95,10 @@ function LoginForm() {
 
       // Redirect to the intended destination
       router.push(getRedirectUrl());
+    }
+
+    try {
+      await doRequest();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);
@@ -107,7 +113,9 @@ function LoginForm() {
     setIsLoading(true);
     setError(null);
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result =
         method === 'social'
           ? await authClient.signIn.social({
@@ -124,6 +132,10 @@ function LoginForm() {
         setError(result.error.message || fallbackError);
         setIsLoading(false);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (err) {
       const errorMessage =
         err instanceof Error

@@ -55,10 +55,17 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
       });
 
       const names: Record<string, string> = {};
+
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doRequest(runId: string) {
+        const response = await fetchDatasetRun(tenantId, projectId, runId);
+        names[runId] = response.data?.runConfigName || `Run ${runId.slice(0, 8)}`;
+      }
+
       for (const runId of runIds) {
         try {
-          const response = await fetchDatasetRun(tenantId, projectId, runId);
-          names[runId] = response.data?.runConfigName || `Run ${runId.slice(0, 8)}`;
+          await doRequest(runId);
         } catch {
           names[runId] = `Run ${runId.slice(0, 8)}`;
         }

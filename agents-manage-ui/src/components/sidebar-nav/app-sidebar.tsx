@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type Dispatch, type FC, useCallback } from 'react';
+import type { ComponentProps, Dispatch, FC } from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { NavGroup } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
@@ -156,25 +156,22 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       ]
     : [];
 
-  const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = useCallback(
-    throttle(200, (event) => {
-      const isBlur = event.type === 'mouseleave';
+  const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = throttle(200, (event) => {
+    const isBlur = event.type === 'mouseleave';
 
-      if (isBlur) {
-        const blurToElement = event.relatedTarget;
-        const insideMainContent =
-          blurToElement &&
-          blurToElement instanceof HTMLElement &&
-          !!blurToElement.closest('#main-content');
+    if (isBlur) {
+      const blurToElement = event.relatedTarget;
+      const insideMainContent =
+        blurToElement &&
+        blurToElement instanceof HTMLElement &&
+        !!blurToElement.closest('#main-content');
 
-        if (!insideMainContent) {
-          return;
-        }
+      if (!insideMainContent) {
+        return;
       }
-      setOpen(!isBlur);
-    }),
-    []
-  );
+    }
+    setOpen(!isBlur);
+  });
 
   return (
     <Sidebar

@@ -36,7 +36,10 @@ export function DeleteEvaluationRunConfigConfirmation({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    try {
+
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result = await deleteEvaluationRunConfigAction(tenantId, projectId, runConfig.id);
       if (result.success) {
         toast.success('Continuous test deleted');
@@ -45,12 +48,15 @@ export function DeleteEvaluationRunConfigConfirmation({
       } else {
         toast.error(result.error || 'Failed to delete continuous test');
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error deleting evaluation run config:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   return (

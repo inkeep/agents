@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { useMemo } from 'react';
 import { useProject } from '@/contexts/project';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +21,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
   const { tenantId } = useParams<{ tenantId: string }>();
   const pathname = usePathname();
 
-  const allItems = useMemo(() => {
+  const allItems = (() => {
     const result: BreadcrumbItem[] = [];
     const isSettingsRoute = pathname.startsWith(`/${tenantId}/settings`);
 
@@ -44,7 +43,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
       result.push(...items);
     }
     return result;
-  }, [items, tenantId, project, pathname]);
+  })();
 
   if (allItems.length === 0) {
     return null;

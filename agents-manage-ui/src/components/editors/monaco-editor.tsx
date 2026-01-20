@@ -53,7 +53,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
   const { importMonaco } = useMonacoActions();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+
   useEffect(() => {
     importMonaco();
   }, []);

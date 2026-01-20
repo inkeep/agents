@@ -125,7 +125,7 @@ export function DatasetItemFormDialog({
     }
   };
 
-  const onSubmit = async (data: DatasetItemFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     // Double-check validation before proceeding
     const isValid = await form.trigger();
     if (!isValid) {
@@ -142,14 +142,11 @@ export function DatasetItemFormDialog({
       return;
     }
 
-    try {
-      // Validate that input is provided and has at least one message
-      if (!data.input?.trim()) {
-        toast.error('Input is required. Please add at least one message.');
-        return;
-      }
-
-      const parsedInput = parseJsonField(data.input) as DatasetItem['input'];
+    const value = data.input?.trim();
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const parsedInput = parseJsonField(value) as DatasetItem['input'];
       if (!parsedInput || !parsedInput.messages || parsedInput.messages.length === 0) {
         toast.error('Input must contain at least one message.');
         return;
@@ -244,12 +241,21 @@ export function DatasetItemFormDialog({
       form.reset();
       router.refresh();
       onSuccess?.();
+    }
+
+    try {
+      // Validate that input is provided and has at least one message
+      if (!value) {
+        toast.error('Input is required. Please add at least one message.');
+        return;
+      }
+      await doRequest();
     } catch (error) {
       console.error('Error submitting dataset item:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -264,7 +270,7 @@ export function DatasetItemFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-6">
             <FormField
               control={form.control}
               name="input"

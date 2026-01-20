@@ -2,7 +2,7 @@
 
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
@@ -54,24 +54,23 @@ export function EvaluationRunConfigResults({
   const [filters, setFilters] = useState<EvaluationResultFilters>({});
   const [results, setResults] = useState<EvaluationResult[]>(initialResults);
 
-  // Fetch results for polling
-  const refreshResults = useCallback(async () => {
-    try {
-      const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
-      setResults(response.data);
-    } catch (error) {
-      console.error('Error refreshing results:', error);
-    }
-  }, [tenantId, projectId, runConfig.id]);
-
   // Always poll for new results since continuous tests can receive new evaluations at any time
   useEffect(() => {
+    // Fetch results for polling
+    const refreshResults = async () => {
+      try {
+        const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
+        setResults(response.data);
+      } catch (error) {
+        console.error('Error refreshing results:', error);
+      }
+    };
     const interval = setInterval(() => {
       refreshResults();
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(interval);
-  }, [refreshResults]);
+  }, [tenantId, projectId, runConfig.id]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -100,14 +99,10 @@ export function EvaluationRunConfigResults({
     .map((id) => getSuiteConfigById(id))
     .filter((config): config is EvaluationSuiteConfig => config !== undefined);
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
-
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
 
-  const agentOptions = useMemo(() => {
+  const agentOptions = (() => {
     const uniqueAgents = new Map<string, string>();
     results.forEach((result) => {
       if (result.agentId && !uniqueAgents.has(result.agentId)) {
@@ -115,7 +110,7 @@ export function EvaluationRunConfigResults({
       }
     });
     return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  })();
 
   return (
     <div className="space-y-6">

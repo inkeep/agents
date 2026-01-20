@@ -37,6 +37,9 @@ interface IkpMessageProps {
 
 // StreamMarkdown component that renders with inline citations and data operations
 function StreamMarkdown({ parts }: { parts: any[] }) {
+  'use no memo';
+  // Ignore due error from React Compiler
+  // Todo: (BuildHIR::lowerExpression) Handle UpdateExpression to variables captured within lambdas.
   const [processedParts, setProcessedParts] = useState<any[]>([]);
 
   // Process parts to create a mixed array of text and inline operations

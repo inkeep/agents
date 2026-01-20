@@ -1,8 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
@@ -71,6 +71,7 @@ export function DatasetRunConfigForm({
   });
 
   const { isSubmitting } = form.formState;
+  const evaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
   const {
     field: { value: agentIds, onChange: setAgentIds },
   } = useController({
@@ -81,9 +82,9 @@ export function DatasetRunConfigForm({
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoadingAgents(true);
-        setLoadingEvaluators(true);
+      async function doRequest() {
+        // Workaround for a React Compiler limitation.
+        // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
         const [agentsResult, evaluatorsResult] = await Promise.all([
           getAllAgentsAction(tenantId, projectId),
           fetchEvaluators(tenantId, projectId),
@@ -94,13 +95,18 @@ export function DatasetRunConfigForm({
         if (evaluatorsResult.data) {
           setEvaluators(evaluatorsResult.data);
         }
+      }
+
+      setLoadingAgents(true);
+      setLoadingEvaluators(true);
+      try {
+        await doRequest();
       } catch (error) {
         console.error('Failed to fetch data:', error);
         toast.error('Failed to load data');
-      } finally {
-        setLoadingAgents(false);
-        setLoadingEvaluators(false);
       }
+      setLoadingAgents(false);
+      setLoadingEvaluators(false);
     };
 
     fetchData();
@@ -117,46 +123,38 @@ export function DatasetRunConfigForm({
     }
   }, [initialData, form]);
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
+  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
+    acc[agent.id] = agent;
+    return acc;
+  }, {});
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const onSubmit = async (data: DatasetRunConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     console.log('Form submission data:', data);
     console.log('evaluatorIds in form data:', data.evaluatorIds);
     console.log('Form values:', form.getValues());
-    console.log('Form watch evaluatorIds:', form.watch('evaluatorIds'));
+    console.log('Form watch evaluatorIds:', evaluatorIds);
 
-    try {
-      // Ensure evaluatorIds is always included, even if empty
-      const payload = {
-        name: data.name,
-        description: data.description,
-        agentIds: data.agentIds || [],
-        evaluatorIds: data.evaluatorIds || [],
-        ...(runConfigId ? {} : { datasetId }),
-      };
+    // Ensure evaluatorIds is always included, even if empty
+    const payload = {
+      name: data.name,
+      description: data.description,
+      agentIds: data.agentIds || [],
+      evaluatorIds: data.evaluatorIds || [],
+      ...(runConfigId ? {} : { datasetId }),
+    };
 
-      console.log('Payload being sent:', payload);
-      console.log('evaluatorIds in payload:', payload.evaluatorIds);
-      console.log('Payload JSON:', JSON.stringify(payload));
+    console.log('Payload being sent:', payload);
+    console.log('evaluatorIds in payload:', payload.evaluatorIds);
+    console.log('Payload JSON:', JSON.stringify(payload));
 
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
         : await createDatasetRunConfigAction(
@@ -173,15 +171,19 @@ export function DatasetRunConfigForm({
       } else {
         toast.error(result.error || 'An error occurred');
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         <GenericInput
           control={form.control}
           name="name"

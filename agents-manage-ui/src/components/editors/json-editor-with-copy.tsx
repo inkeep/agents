@@ -1,6 +1,6 @@
 import { Copy, Download, TextWrap } from 'lucide-react';
 import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,7 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
   const { toggleTextWrap } = useAgentActions();
   const hasTextWrap = useAgentStore((state) => state.hasTextWrap);
 
-  const handleCopyCode = useCallback(async () => {
+  const handleCopyCode = async () => {
     const code = editor?.getValue() ?? '';
     try {
       await navigator.clipboard.writeText(code);
@@ -59,9 +59,9 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
       console.error('Failed to copy', error);
       toast.error('Failed to copy to clipboard');
     }
-  }, [editor]);
+  };
 
-  const handleDownloadCode = useCallback(() => {
+  const handleDownloadCode = () => {
     const code = editor?.getValue() ?? '';
     // Create a blob with the JSON content
     const blob = new Blob([code], { type: 'application/json' });
@@ -77,7 +77,7 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
     link.remove();
     URL.revokeObjectURL(url);
     toast.success('File downloaded successfully');
-  }, [editor]);
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally ignore `value` changes — run only on mount
   useEffect(() => {
@@ -108,12 +108,9 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
     };
   }, [editor, monaco]);
 
-  const handleOnMount = useCallback<NonNullable<ComponentProps<typeof JsonEditor>['onMount']>>(
-    (editor) => {
-      setEditor(editor);
-    },
-    []
-  );
+  const handleOnMount: NonNullable<ComponentProps<typeof JsonEditor>['onMount']> = (editor) => {
+    setEditor(editor);
+  };
 
   return (
     <>

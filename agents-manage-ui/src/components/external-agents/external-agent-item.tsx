@@ -61,27 +61,20 @@ function ExternalAgentDialogMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-  };
-
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('External agent deleted.');
-      } else {
-        toast.error('Failed to delete external agent.');
-      }
-    } finally {
-      setIsSubmitting(false);
+    const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('External agent deleted.');
+    } else {
+      toast.error('Failed to delete external agent.');
     }
+    setIsSubmitting(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

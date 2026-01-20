@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,68 +44,73 @@ export function SuiteConfigViewDialog({
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
 
-  const loadSuiteConfigDetails = useCallback(async () => {
-    if (!suiteConfigId || !tenantId || !projectId) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const [suiteConfigRes, evaluatorsRes, agentsRes] = await Promise.all([
-        fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId).catch((err) => {
-          console.error('Error fetching suite config:', err);
-          throw err;
-        }),
-        fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId).catch((err) => {
-          console.error('Error fetching suite config evaluators:', err);
-          return { data: [] };
-        }),
-        fetchAgents(tenantId, projectId).catch((err) => {
-          console.error('Error fetching agents:', err);
-          return { data: [] };
-        }),
-      ]);
-
-      if (!suiteConfigRes?.data) {
-        console.error('No suite config data returned');
+  useEffect(() => {
+    const loadSuiteConfigDetails = async () => {
+      if (!suiteConfigId || !tenantId || !projectId) {
         return;
       }
 
-      const suiteConfigData = suiteConfigRes.data;
-      setSuiteConfig({
-        filters: suiteConfigData.filters,
-        sampleRate: suiteConfigData.sampleRate,
-      });
+      setLoading(true);
 
-      // Get evaluator IDs from relations
-      const evaluatorIds =
-        evaluatorsRes.data?.map((rel: { evaluatorId: string }) => rel.evaluatorId) || [];
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doRequest() {
+        const [suiteConfigRes, evaluatorsRes, agentsRes] = await Promise.all([
+          fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId).catch((err) => {
+            console.error('Error fetching suite config:', err);
+            throw err;
+          }),
+          fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId).catch((err) => {
+            console.error('Error fetching suite config evaluators:', err);
+            return { data: [] };
+          }),
+          fetchAgents(tenantId, projectId).catch((err) => {
+            console.error('Error fetching agents:', err);
+            return { data: [] };
+          }),
+        ]);
 
-      // Fetch full evaluator details
-      if (evaluatorIds.length > 0) {
-        const allEvaluatorsRes = await fetchEvaluators(tenantId, projectId);
-        const matchedEvaluators = (allEvaluatorsRes.data || []).filter((evaluator) =>
-          evaluatorIds.includes(evaluator.id)
-        );
-        setEvaluators(matchedEvaluators);
+        if (!suiteConfigRes?.data) {
+          console.error('No suite config data returned');
+          return;
+        }
+
+        const suiteConfigData = suiteConfigRes.data;
+        setSuiteConfig({
+          filters: suiteConfigData.filters,
+          sampleRate: suiteConfigData.sampleRate,
+        });
+
+        // Get evaluator IDs from relations
+        const evaluatorIds =
+          evaluatorsRes.data?.map((rel: { evaluatorId: string }) => rel.evaluatorId) || [];
+
+        // Fetch full evaluator details
+        if (evaluatorIds.length > 0) {
+          const allEvaluatorsRes = await fetchEvaluators(tenantId, projectId);
+          const matchedEvaluators = (allEvaluatorsRes.data || []).filter((evaluator) =>
+            evaluatorIds.includes(evaluator.id)
+          );
+          setEvaluators(matchedEvaluators);
+        }
+
+        setAgents(agentsRes.data || []);
       }
 
-      setAgents(agentsRes.data || []);
-    } catch (error) {
-      console.error('Error loading suite config details:', error);
-      setSuiteConfig(null);
-      setEvaluators([]);
-      setAgents([]);
-    } finally {
+      try {
+        await doRequest();
+      } catch (error) {
+        console.error('Error loading suite config details:', error);
+        setSuiteConfig(null);
+        setEvaluators([]);
+        setAgents([]);
+      }
       setLoading(false);
-    }
-  }, [suiteConfigId, tenantId, projectId]);
-
-  useEffect(() => {
+    };
     if (isOpen && suiteConfigId && tenantId && projectId) {
       loadSuiteConfigDetails();
     }
-  }, [isOpen, suiteConfigId, tenantId, projectId, loadSuiteConfigDetails]);
+  }, [isOpen, suiteConfigId, tenantId, projectId]);
 
   const getAgentNames = (agentIds?: string[]): string[] => {
     if (!agentIds || agentIds.length === 0) {

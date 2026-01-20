@@ -6,7 +6,10 @@ import { useProjectActions, useProjectStore } from '@/features/project/state/use
 import { fetchProjectAction } from '@/lib/actions/projects';
 
 export function useProjectData() {
-  const { tenantId, projectId } = useParams();
+  const { tenantId, projectId } = useParams<{
+    tenantId?: string;
+    projectId?: string;
+  }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,12 +32,14 @@ export function useProjectData() {
         return;
       }
 
-      try {
-        setLoading(true);
-        setError(null);
-
+      setLoading(true);
+      setError(null);
+      // Workaround for a React Compiler limitation.
+      // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+      async function doRequest() {
         // Use server action to fetch project data
-        const result = await fetchProjectAction(tenantId as string, projectId as string);
+        // biome-ignore lint/style/noNonNullAssertion: both exists
+        const result = await fetchProjectAction(tenantId!, projectId!);
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to fetch project');
@@ -45,12 +50,14 @@ export function useProjectData() {
         if (result.data) {
           setProjectStore(result.data);
         }
+      }
+      try {
+        await doRequest();
       } catch (err) {
         console.error('Error fetching project:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     }
 
     // Only fetch if project is not in store or doesn't match current projectId
@@ -59,7 +66,7 @@ export function useProjectData() {
     } else {
       setLoading(false);
     }
-  }, [tenantId, projectId, storedProjectId, setProjectStore]);
+  }, [tenantId, projectId, storedProjectId]);
 
   return { project, loading, error };
 }

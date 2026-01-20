@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/settings/members-table';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
@@ -16,6 +16,12 @@ type FullOrganization = NonNullable<
 
 type Member = FullOrganization['members'][number];
 
+// Workaround for a React Compiler limitation.
+// Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Failed to fetch organization';
+}
+
 export default function SettingsPage() {
   const authClient = useAuthClient();
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -24,10 +30,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchOrganization = useCallback(async () => {
+  const fetchOrganization = async () => {
     if (!tenantId) return;
-
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const [orgResult, memberResult] = await Promise.all([
         authClient.organization.getFullOrganization({
           query: {
@@ -50,16 +57,21 @@ export default function SettingsPage() {
       if (memberResult.data) {
         setCurrentMember(memberResult.data as Member);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch organization');
-    } finally {
-      setLoading(false);
     }
-  }, [tenantId, authClient]);
+    try {
+      await doRequest();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchOrganization();
-  }, [fetchOrganization]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchOrganization,
+  ]);
 
   if (loading) {
     return <SettingsLoadingSkeleton />;

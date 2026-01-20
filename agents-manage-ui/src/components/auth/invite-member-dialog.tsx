@@ -74,38 +74,43 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     }
 
     const results: InvitationResult[] = [];
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest(email: string) {
+      const result = await authClient.organization.inviteMember({
+        email,
+        role: 'admin',
+        organizationId,
+      });
+
+      if ('error' in result && result.error) {
+        results.push({
+          email,
+          status: 'error',
+          error: result.error.message || 'Failed to create invitation',
+        });
+      } else if ('data' in result && result.data && 'id' in result.data) {
+        const invitationId = result.data.id;
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/accept-invitation/${invitationId}`;
+        results.push({
+          email,
+          status: 'success',
+          link,
+        });
+      } else {
+        results.push({
+          email,
+          status: 'error',
+          error: 'Failed to generate invitation link',
+        });
+      }
+    }
 
     // Create invitations for each email
     for (const email of emailList) {
       try {
-        const result = await authClient.organization.inviteMember({
-          email,
-          role: 'admin',
-          organizationId,
-        });
-
-        if ('error' in result && result.error) {
-          results.push({
-            email,
-            status: 'error',
-            error: result.error.message || 'Failed to create invitation',
-          });
-        } else if ('data' in result && result.data && 'id' in result.data) {
-          const invitationId = result.data.id;
-          const baseUrl = window.location.origin;
-          const link = `${baseUrl}/accept-invitation/${invitationId}`;
-          results.push({
-            email,
-            status: 'success',
-            link,
-          });
-        } else {
-          results.push({
-            email,
-            status: 'error',
-            error: 'Failed to generate invitation link',
-          });
-        }
+        await doRequest(email);
       } catch (err) {
         results.push({
           email,

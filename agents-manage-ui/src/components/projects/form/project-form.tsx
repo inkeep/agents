@@ -111,10 +111,12 @@ export function ProjectForm({
     isEditing: !!projectId,
   });
 
-  const onSubmit = async (data: ProjectFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const serializedData = serializeData(data);
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doAction() {
       if (projectId) {
         const res = await updateProjectAction(tenantId, projectId, serializedData);
         if (!res.success) {
@@ -140,16 +142,20 @@ export function ProjectForm({
           router.push(`/${tenantId}/projects/${data.id}/agent`);
         }
       }
+    }
+
+    try {
+      await doAction();
     } catch (error) {
       console.error('Error creating project:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"

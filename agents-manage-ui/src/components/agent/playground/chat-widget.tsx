@@ -1,7 +1,7 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
-import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
+import { type Dispatch, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useCopilotContext } from '@/contexts/copilot';
@@ -76,7 +76,7 @@ export function ChatWidget({
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   // Helper function to reset the stop polling timeout
-  const resetStopPollingTimeout = useCallback(() => {
+  const resetStopPollingTimeout = () => {
     // Clear any existing timeout
     if (stopPollingTimeoutRef.current) {
       clearTimeout(stopPollingTimeoutRef.current);
@@ -88,7 +88,7 @@ export function ChatWidget({
       stopPolling();
       stopPollingTimeoutRef.current = null;
     }, POLLING_TIMEOUT_MS);
-  }, [stopPolling]);
+  };
 
   // Reset timeout when new activities come in AFTER assistant message received
   // biome-ignore lint/correctness/useExhaustiveDependencies: activities length is intentionally tracked to reset timeout on new activities
@@ -97,7 +97,11 @@ export function ChatWidget({
     if (hasReceivedAssistantMessageRef.current) {
       resetStopPollingTimeout();
     }
-  }, [chatActivities?.activities?.length, resetStopPollingTimeout]);
+  }, [
+    chatActivities?.activities?.length,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    resetStopPollingTimeout,
+  ]);
 
   useEffect(() => {
     return () => {

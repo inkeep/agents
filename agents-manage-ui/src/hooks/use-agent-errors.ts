@@ -1,8 +1,6 @@
 /**
  * Hook for accessing agent error state and utilities
  */
-
-import { useCallback } from 'react';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 export interface ErrorHelpers {
@@ -35,46 +33,34 @@ export function useAgentErrors() {
     return getEdgeErrorCount(edgeId) > 0;
   };
 
-  const getFieldErrors = useCallback(
-    (nodeId: string): Record<string, string[]> => {
-      const nodeErrors = getNodeErrors(nodeId);
-      const fieldErrors: Record<string, string[]> = {};
+  const getFieldErrors = (nodeId: string): Record<string, string[]> => {
+    const nodeErrors = getNodeErrors(nodeId);
+    const fieldErrors: Record<string, string[]> = {};
 
-      for (const error of nodeErrors) {
-        if (!fieldErrors[error.field]) {
-          fieldErrors[error.field] = [];
-        }
-        fieldErrors[error.field].push(error.message);
+    for (const error of nodeErrors) {
+      if (!fieldErrors[error.field]) {
+        fieldErrors[error.field] = [];
       }
+      fieldErrors[error.field].push(error.message);
+    }
 
-      return fieldErrors;
-    },
-    [getNodeErrors]
-  );
+    return fieldErrors;
+  };
 
-  const hasFieldError = useCallback(
-    (nodeId: string, fieldName: string): boolean => {
-      const fieldErrors = getFieldErrors(nodeId);
-      return fieldName in fieldErrors;
-    },
-    [getFieldErrors]
-  );
+  const hasFieldError = (nodeId: string, fieldName: string): boolean => {
+    const fieldErrors = getFieldErrors(nodeId);
+    return fieldName in fieldErrors;
+  };
 
-  const getFieldErrorMessage = useCallback(
-    (nodeId: string, fieldName: string): string | undefined => {
-      const fieldErrors = getFieldErrors(nodeId);
-      return fieldErrors[fieldName]?.[0];
-    },
-    [getFieldErrors]
-  );
+  const getFieldErrorMessage = (nodeId: string, fieldName: string): string | undefined => {
+    const fieldErrors = getFieldErrors(nodeId);
+    return fieldErrors[fieldName]?.[0];
+  };
 
-  const getFirstErrorField = useCallback(
-    (nodeId: string): string | undefined => {
-      const nodeErrors = getNodeErrors(nodeId);
-      return nodeErrors[0]?.field;
-    },
-    [getNodeErrors]
-  );
+  const getFirstErrorField = (nodeId: string): string | undefined => {
+    const nodeErrors = getNodeErrors(nodeId);
+    return nodeErrors[0]?.field;
+  };
 
   return {
     errors,

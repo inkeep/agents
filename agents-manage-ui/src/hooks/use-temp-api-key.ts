@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 interface UseTempApiKeyParams {
@@ -27,8 +27,10 @@ export function useTempApiKey({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchToken = useCallback(async () => {
-    try {
+  const fetchToken = async () => {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/tenants/${tenantId}/playground/token`,
         {
@@ -37,10 +39,7 @@ export function useTempApiKey({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            projectId,
-            agentId,
-          }),
+          body: JSON.stringify({ projectId, agentId }),
         }
       );
 
@@ -48,16 +47,19 @@ export function useTempApiKey({
         throw new Error('Failed to fetch temporary API key');
       }
 
-      const data = await response.json();
+      return await response.json();
+    }
+
+    try {
+      const data = await doRequest();
       setApiKey(data.apiKey);
       setExpiresAt(data.expiresAt);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
     }
-  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]);
+    setIsLoading(false);
+  };
 
   // Initial fetch
   useEffect(() => {
@@ -67,7 +69,12 @@ export function useTempApiKey({
       // If not enabled or no agentId, set loading to false immediately
       setIsLoading(false);
     }
-  }, [enabled, agentId, fetchToken]);
+  }, [
+    enabled,
+    agentId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -86,7 +93,11 @@ export function useTempApiKey({
     }, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [expiresAt, fetchToken]);
+  }, [
+    expiresAt,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   return { apiKey, isLoading, error, refresh: fetchToken };
 }

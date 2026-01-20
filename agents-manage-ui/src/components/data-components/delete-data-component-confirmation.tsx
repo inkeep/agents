@@ -28,20 +28,17 @@ export function DeleteDataComponentConfirmation({
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteDataComponentAction(tenantId, projectId, dataComponentId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('Component deleted.');
-        if (redirectOnDelete) {
-          router.push(`/${tenantId}/projects/${projectId}/components`);
-        }
-      } else {
-        toast.error(result.error);
+    const result = await deleteDataComponentAction(tenantId, projectId, dataComponentId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('Component deleted.');
+      if (redirectOnDelete) {
+        router.push(`/${tenantId}/projects/${projectId}/components`);
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   return (

@@ -93,8 +93,10 @@ export function ApiKeyUpdateForm({
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ApiKeyUpdateData) => {
-    try {
+  const onSubmit = form.handleSubmit(async (data) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const expiresAt = data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined;
       const name = data.name;
 
@@ -109,20 +111,22 @@ export function ApiKeyUpdateForm({
         toast.error(res.error || 'Failed to update api key');
         return;
       }
-
       if (res.data) {
         onApiKeyUpdated?.(res.data);
       }
       toast.success('API key updated successfully');
+    }
+    try {
+      await doRequest();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"

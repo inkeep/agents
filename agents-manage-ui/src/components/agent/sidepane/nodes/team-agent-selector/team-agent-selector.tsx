@@ -27,16 +27,17 @@ const useFetchAvailableAgents = (): TeamAgentSelectorState => {
 
   useEffect(() => {
     const loadAgents = async () => {
+      setIsLoading(true);
+      setError(null);
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      const filterAgents = (data: Agent[]) =>
+        agentId ? data.filter((agent) => agent.id !== agentId) : data;
       try {
-        setIsLoading(true);
-        setError(null);
         const response = await getAllAgentsAction(tenantId, projectId);
         if (response.success) {
           // Filter out the current agent to prevent self-selection
-          const filteredAgents = agentId
-            ? response.data.filter((agent) => agent.id !== agentId)
-            : response.data;
-          setAgents(filteredAgents);
+          setAgents(filterAgents(response.data));
         } else {
           setError(response.error);
           toast.error(response.error);
@@ -45,9 +46,8 @@ const useFetchAvailableAgents = (): TeamAgentSelectorState => {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load agents';
         setError(errorMessage);
         toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     loadAgents();

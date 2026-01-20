@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -116,9 +116,35 @@ export function EvaluationRunConfigFormDialog({
       sampleRate: undefined,
     },
   });
+  const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
+  const suiteEvaluatorIds = useWatch({ control: suiteConfigForm.control, name: 'evaluatorIds' });
 
-  const loadData = useCallback(async () => {
-    try {
+  useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doAnotherRequest(suiteConfigId: string) {
+      const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
+        fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
+        fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
+      ]);
+
+      const suiteConfig = suiteConfigRes.data;
+      const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
+
+      // Extract agentIds from filters
+      const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
+      const agentIds = filters?.agentIds || [];
+
+      suiteConfigForm.reset({
+        evaluatorIds,
+        agentIds,
+        sampleRate: suiteConfig?.sampleRate ?? undefined,
+      });
+    }
+
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
         getAllAgentsAction(tenantId, projectId),
@@ -132,34 +158,21 @@ export function EvaluationRunConfigFormDialog({
       if (initialData?.suiteConfigIds && initialData.suiteConfigIds.length > 0) {
         const suiteConfigId = initialData.suiteConfigIds[0];
         try {
-          const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
-            fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
-            fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
-          ]);
-
-          const suiteConfig = suiteConfigRes.data;
-          const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
-
-          // Extract agentIds from filters
-          const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
-          const agentIds = filters?.agentIds || [];
-
-          suiteConfigForm.reset({
-            evaluatorIds,
-            agentIds,
-            sampleRate: suiteConfig?.sampleRate ?? undefined,
-          });
+          await doAnotherRequest(suiteConfigId);
         } catch (err) {
           console.error('Error loading suite config:', err);
         }
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
     }
-  }, [tenantId, projectId, initialData, suiteConfigForm]);
 
-  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await doRequest();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data');
+      }
+    };
     if (isOpen) {
       form.reset(formatFormData(initialData));
       suiteConfigForm.reset({
@@ -169,39 +182,24 @@ export function EvaluationRunConfigFormDialog({
       });
       loadData();
     }
-  }, [isOpen, initialData, form, suiteConfigForm, loadData]);
+  }, [isOpen, initialData, form, suiteConfigForm, projectId, tenantId]);
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
+  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
+    acc[agent.id] = agent;
+    return acc;
+  }, {});
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: EvaluationRunConfigFormData) => {
-    const formValid = await form.trigger();
-    const suiteConfigFormValid = await suiteConfigForm.trigger();
-
-    if (!formValid || !suiteConfigFormValid) {
-      return;
-    }
-
-    try {
+  const onSubmit = form.handleSubmit(async (data) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       // First, create the evaluation suite config
       const suiteConfigData = suiteConfigForm.getValues();
       const filters: Record<string, unknown> | null =
@@ -260,11 +258,22 @@ export function EvaluationRunConfigFormDialog({
           result.error || `Failed to ${runConfigId ? 'update' : 'create'} continuous test`
         );
       }
+    }
+
+    const formValid = await form.trigger();
+    const suiteConfigFormValid = await suiteConfigForm.trigger();
+
+    if (!formValid || !suiteConfigFormValid) {
+      return;
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -281,7 +290,7 @@ export function EvaluationRunConfigFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-6">
             <GenericInput
               control={form.control}
               name="name"
@@ -330,7 +339,7 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label="Agent Filter"
                       componentLookup={agentLookup}
-                      selectedComponents={suiteConfigForm.watch('agentIds') || []}
+                      selectedComponents={suiteAgentIds}
                       onSelectionChange={(newSelection) => {
                         suiteConfigForm.setValue('agentIds', newSelection);
                       }}
@@ -355,9 +364,7 @@ export function EvaluationRunConfigFormDialog({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FormLabel isRequired>Evaluators</FormLabel>
-                        <Badge variant="count">
-                          {(suiteConfigForm.watch('evaluatorIds') || []).length}
-                        </Badge>
+                        <Badge variant="count">{suiteEvaluatorIds.length}</Badge>
                       </div>
                       <Link
                         href={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
@@ -372,7 +379,7 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label=""
                       componentLookup={evaluatorLookup}
-                      selectedComponents={suiteConfigForm.watch('evaluatorIds') || []}
+                      selectedComponents={suiteEvaluatorIds}
                       onSelectionChange={(newSelection) => {
                         suiteConfigForm.setValue('evaluatorIds', newSelection);
                       }}

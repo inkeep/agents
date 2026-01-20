@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
@@ -50,76 +50,76 @@ export function DatasetRunDetails({
     isRunning: boolean;
   } | null>(null);
 
-  const loadRun = useCallback(
-    async (showLoading = true) => {
-      try {
-        if (showLoading) {
-          setLoading(true);
-        }
-        setError(null);
-        const response = await fetchDatasetRun(tenantId, projectId, runId);
-        setRun(response.data);
+  const loadRun = async (showLoading = true) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const response = await fetchDatasetRun(tenantId, projectId, runId);
+      setRun(response.data);
 
-        // If there's an evaluation job, fetch evaluation progress
-        if (response.data?.evaluationJobConfigId) {
-          const [evaluatorRelations, evalResults] = await Promise.all([
-            fetchEvaluationJobConfigEvaluators(
-              tenantId,
-              projectId,
-              response.data.evaluationJobConfigId
-            ),
-            fetchEvaluationResultsByJobConfig(
-              tenantId,
-              projectId,
-              response.data.evaluationJobConfigId
-            ),
-          ]);
+      // If there's an evaluation job, fetch evaluation progress
+      if (response.data?.evaluationJobConfigId) {
+        const [evaluatorRelations, evalResults] = await Promise.all([
+          fetchEvaluationJobConfigEvaluators(
+            tenantId,
+            projectId,
+            response.data.evaluationJobConfigId
+          ),
+          fetchEvaluationResultsByJobConfig(
+            tenantId,
+            projectId,
+            response.data.evaluationJobConfigId
+          ),
+        ]);
 
-          // Count conversations that have been created
-          const conversationCount =
-            response.data.items?.reduce(
-              (acc, item) => acc + (item.conversations?.length || 0),
-              0
-            ) || 0;
+        // Count conversations that have been created
+        const conversationCount =
+          response.data.items?.reduce((acc, item) => acc + (item.conversations?.length || 0), 0) ||
+          0;
 
-          // Expected evaluations = conversations × evaluators
-          const evaluatorCount = evaluatorRelations.data?.length || 0;
-          const expectedEvaluations = conversationCount * evaluatorCount;
-          // Only count evaluations that have output (completed evaluations)
-          const completedEvaluations =
-            evalResults.data?.filter(
-              (result) => result.output !== null && result.output !== undefined
-            ).length || 0;
+        // Expected evaluations = conversations × evaluators
+        const evaluatorCount = evaluatorRelations.data?.length || 0;
+        const expectedEvaluations = conversationCount * evaluatorCount;
+        // Only count evaluations that have output (completed evaluations)
+        const completedEvaluations =
+          evalResults.data?.filter(
+            (result) => result.output !== null && result.output !== undefined
+          ).length || 0;
 
-          setEvaluationProgress({
-            total: expectedEvaluations,
-            completed: completedEvaluations,
-            isRunning: completedEvaluations < expectedEvaluations && expectedEvaluations > 0,
-          });
-        } else {
-          setEvaluationProgress(null);
-        }
-      } catch (err) {
-        console.error('Error loading dataset run:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load run');
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
+        setEvaluationProgress({
+          total: expectedEvaluations,
+          completed: completedEvaluations,
+          isRunning: completedEvaluations < expectedEvaluations && expectedEvaluations > 0,
+        });
+      } else {
+        setEvaluationProgress(null);
       }
-    },
-    [tenantId, projectId, runId]
-  );
+    }
+
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      setError(null);
+      await doRequest();
+    } catch (err) {
+      console.error('Error loading dataset run:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load run');
+    }
+    if (showLoading) {
+      setLoading(false);
+    }
+  };
 
   // Calculate conversation progress
-  const conversationProgress = useMemo(() => {
+  const conversationProgress = (() => {
     if (!run?.items) return { total: 0, completed: 0, isRunning: false };
     const total = run.items.length;
     const completed = run.items.filter(
       (item) => item.conversations && item.conversations.length > 0
     ).length;
     return { total, completed, isRunning: completed < total && total > 0 };
-  }, [run]);
+  })();
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
   const isRunInProgress =
@@ -128,7 +128,10 @@ export function DatasetRunDetails({
   // Initial load
   useEffect(() => {
     loadRun();
-  }, [loadRun]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   // Auto-refresh when run is in progress
   useEffect(() => {
@@ -139,9 +142,13 @@ export function DatasetRunDetails({
     }, 3000); // Refresh every 3 seconds
 
     return () => clearInterval(interval);
-  }, [isRunInProgress, loadRun]);
+  }, [
+    isRunInProgress,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
-  const uniqueAgents = useMemo(() => {
+  const uniqueAgents = (() => {
     if (!run?.items) return [];
     const agentIds = new Set<string>();
     run.items.forEach((item) => {
@@ -152,70 +159,67 @@ export function DatasetRunDetails({
       });
     });
     return Array.from(agentIds).map((id) => ({ id, name: id }));
-  }, [run]);
+  })();
 
-  const filteredItems = useMemo(() => {
-    if (!run?.items) return [];
+  const items = run?.items ?? [];
+  const filteredItems = items
+    .map((item) => {
+      const getInputText = (): string => {
+        const input = item.input;
+        if (!input) return '';
 
-    return run.items
-      .map((item) => {
-        const getInputText = (): string => {
-          const input = item.input;
-          if (!input) return '';
-
-          if (typeof input === 'object' && 'messages' in input) {
-            const messages = input.messages;
-            if (Array.isArray(messages) && messages.length > 0) {
-              const firstMessage = messages[0];
-              if (firstMessage?.content) {
-                const content = firstMessage.content;
-                if (typeof content === 'string') {
-                  return content;
-                }
-                if (typeof content === 'object' && content !== null && 'text' in content) {
-                  const text = (content as { text?: unknown }).text;
-                  if (typeof text === 'string') {
-                    return text;
-                  }
+        if (typeof input === 'object' && 'messages' in input) {
+          const messages = input.messages;
+          if (Array.isArray(messages) && messages.length > 0) {
+            const firstMessage = messages[0];
+            if (firstMessage?.content) {
+              const content = firstMessage.content;
+              if (typeof content === 'string') {
+                return content;
+              }
+              if (typeof content === 'object' && content !== null && 'text' in content) {
+                const text = (content as { text?: unknown }).text;
+                if (typeof text === 'string') {
+                  return text;
                 }
               }
             }
           }
-
-          return '';
-        };
-
-        const inputText = getInputText().toLowerCase();
-
-        if (filters.searchInput && !inputText.includes(filters.searchInput.toLowerCase())) {
-          return null;
         }
 
-        let conversations = item.conversations || [];
+        return '';
+      };
 
-        if (filters.agentId) {
-          conversations = conversations.filter((conv) => conv.agentId === filters.agentId);
+      const inputText = getInputText().toLowerCase();
+
+      if (filters.searchInput && !inputText.includes(filters.searchInput.toLowerCase())) {
+        return null;
+      }
+
+      let conversations = item.conversations || [];
+
+      if (filters.agentId) {
+        conversations = conversations.filter((conv) => conv.agentId === filters.agentId);
+      }
+
+      if (filters.outputStatus && filters.outputStatus !== 'all') {
+        if (filters.outputStatus === 'has_output') {
+          conversations = conversations.filter((conv) => conv.output);
+        } else if (filters.outputStatus === 'no_output') {
+          conversations = conversations.filter((conv) => !conv.output);
         }
+      }
 
-        if (filters.outputStatus && filters.outputStatus !== 'all') {
-          if (filters.outputStatus === 'has_output') {
-            conversations = conversations.filter((conv) => conv.output);
-          } else if (filters.outputStatus === 'no_output') {
-            conversations = conversations.filter((conv) => !conv.output);
-          }
-        }
+      if (conversations.length === 0 && (filters.agentId || filters.outputStatus)) {
+        return null;
+      }
 
-        if (conversations.length === 0 && (filters.agentId || filters.outputStatus)) {
-          return null;
-        }
-
-        return {
-          ...item,
-          conversations,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [run, filters]);
+      return {
+        ...item,
+        conversations,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   if (loading) {
     return (

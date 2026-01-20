@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
@@ -72,6 +72,8 @@ export function MCPServerForm({
       ...initialData,
     },
   });
+  const credentialScope = useWatch({ control: form.control, name: 'credentialScope' });
+  const toolOverrides = useWatch({ control: form.control, name: 'config.mcp.toolOverrides' }) || {};
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -88,8 +90,10 @@ export function MCPServerForm({
     return toolsConfig.tools.filter((toolName) => availableToolNames.includes(toolName));
   };
 
-  const onSubmit = async (data: MCPToolFormData) => {
-    try {
+  const onSubmit = form.handleSubmit(async (data) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const mcpServerName = data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
 
@@ -199,35 +203,36 @@ export function MCPServerForm({
         toast.success('MCP server created successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error(`Failed to ${mode} MCP tool:`, error);
       toast.error(`Failed to ${mode} MCP server. Please try again.`);
     }
-  };
+  });
 
   const handleDelete = async () => {
     if (!tool) return;
 
     setIsDeleting(true);
-    try {
-      // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
-      const result = await deleteToolAction(tenantId, projectId, tool.id, false);
-      if (result.success) {
-        setIsDeleteOpen(false);
-        toast.success('MCP server deleted.');
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
-      } else {
-        toast.error(result.error || 'Failed to delete MCP server.');
-      }
-    } finally {
-      setIsDeleting(false);
+    // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
+    const result = await deleteToolAction(tenantId, projectId, tool.id, false);
+    if (result.success) {
+      setIsDeleteOpen(false);
+      toast.success('MCP server deleted.');
+      router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
+    } else {
+      toast.error(result.error || 'Failed to delete MCP server.');
     }
+    setIsDeleting(false);
   };
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={onSubmit} className="space-y-8">
           <GenericInput
             control={form.control}
             name="name"
@@ -296,7 +301,7 @@ export function MCPServerForm({
             </InfoCard>
           </div>
 
-          {form.watch('credentialScope') === CredentialScopeEnum.project && (
+          {credentialScope === CredentialScopeEnum.project && (
             <div className="space-y-3">
               <GenericSelect
                 control={form.control}
@@ -341,10 +346,9 @@ export function MCPServerForm({
                 label="Tools"
                 availableTools={tool?.availableTools || []}
                 description="Select which tools should be enabled for this MCP server"
-                toolOverrides={form.watch('config.mcp.toolOverrides') || {}}
+                toolOverrides={toolOverrides}
                 onToolOverrideChange={(toolName, override) => {
-                  const currentOverrides = form.watch('config.mcp.toolOverrides') || {};
-                  const newOverrides = { ...currentOverrides };
+                  const newOverrides = { ...toolOverrides };
 
                   if (Object.keys(override).length === 0) {
                     // Remove override if empty

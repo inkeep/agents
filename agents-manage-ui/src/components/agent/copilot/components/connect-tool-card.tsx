@@ -65,13 +65,14 @@ export function ConnectToolCard({
 
   useEffect(() => {
     const fetchDetails = async () => {
-      if (!targetTenantId || !targetProjectId || !toolId) {
-        setStatus('error');
-        setErrorMessage('Missing tenant, project, or tool ID');
-        return;
-      }
-
-      try {
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doAction() {
+        if (!targetTenantId || !targetProjectId || !toolId) {
+          setStatus('error');
+          setErrorMessage('Missing tenant, project, or tool ID');
+          return;
+        }
         const tool = await fetchMCPTool(targetTenantId, targetProjectId, toolId);
         const serverUrl = tool.config?.mcp?.server?.url || '';
         const credentialScope = (tool.credentialScope as 'project' | 'user') || 'project';
@@ -91,6 +92,10 @@ export function ConnectToolCard({
         } else {
           setStatus('idle');
         }
+      }
+
+      try {
+        await doAction();
       } catch (err) {
         console.error('Failed to fetch tool details:', err);
         setStatus('error');
@@ -142,12 +147,14 @@ export function ConnectToolCard({
       }
     }
 
+    const thirdPartyConnectAccountUrl = credentialScopedRedirectUrl ?? undefined;
+
     try {
       await onConnect({
         toolId,
         toolName: toolDetails.name,
         mcpServerUrl: toolDetails.url,
-        thirdPartyConnectAccountUrl: credentialScopedRedirectUrl ?? undefined,
+        thirdPartyConnectAccountUrl,
         credentialScope: scope,
       });
       setStatus('success');

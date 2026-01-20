@@ -64,8 +64,10 @@ export function DataComponentForm({
     isEditing: !!id,
   });
 
-  const onSubmit = async (data: DataComponentFormData) => {
-    try {
+  const onSubmit = form.handleSubmit(async (data) => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const payload = { ...data } as DataComponent;
       if (id) {
         const res = await updateDataComponentAction(tenantId, projectId, payload);
@@ -83,17 +85,21 @@ export function DataComponentForm({
         toast.success('Component created');
         router.push(`/${tenantId}/projects/${projectId}/components`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting component:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={onSubmit} className="space-y-8">
           <GenericInput
             control={form.control}
             name="name"

@@ -1,7 +1,7 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -42,9 +42,9 @@ export function TeamAgentNodeEditor({
   const handleHeadersChange = (value: string) => {
     // Always update the input state (allows user to type invalid JSON)
     setHeadersInputValue(value);
-
-    // Only save to node data if the JSON is valid
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    const doAction = () => {
       const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
       if (
         typeof parsedHeaders === 'object' &&
@@ -58,18 +58,19 @@ export function TeamAgentNodeEditor({
         });
         markUnsaved();
       }
+    };
+    try {
+      // Only save to node data if the JSON is valid
+      doAction();
     } catch {
       // Invalid JSON - don't save, but allow user to continue typing
       // The ExpandableJsonEditor will show the validation error
     }
   };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updateField('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -79,9 +80,8 @@ export function TeamAgentNodeEditor({
     isEditing: false,
   });
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
-  }, [selectedNode, subAgentTeamAgentConfigLookup]);
+  const getCurrentHeaders = (): Record<string, string> =>
+    getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');

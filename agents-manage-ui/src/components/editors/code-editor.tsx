@@ -14,11 +14,9 @@ export const CodeEditor: FC<CodeEditorProps> = ({
   ...props
 }) => {
   const id = useId();
-  uri ??= `${id}.jsx`;
-
   return (
     <MonacoEditor
-      uri={uri}
+      uri={uri ?? `${id}.jsx`}
       placeholder={placeholder}
       editorOptions={{
         ariaLabel: 'Code editor',

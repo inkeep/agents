@@ -17,6 +17,9 @@ interface ChatUIProps {
 }
 
 export function ChatUIGuide() {
+  'use no memo';
+  // TODO:
+  // React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
   const form = useForm<Partial<ChatUIProps>>({

@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -97,7 +97,7 @@ export function EvaluatorFormDialog({
     defaultValue: undefined,
   });
 
-  const passCriteriaValue = form.watch('passCriteria');
+  const passCriteriaValue = useWatch({ control: form.control, name: 'passCriteria' }) ?? undefined;
 
   const { field: schemaField } = useController({
     control: form.control,
@@ -129,7 +129,9 @@ export function EvaluatorFormDialog({
   };
 
   const onSubmit = async (data: EvaluatorFormData) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       let parsedSchema: Record<string, unknown>;
       try {
         parsedSchema = JSON.parse(data.schema);
@@ -173,6 +175,9 @@ export function EvaluatorFormDialog({
 
       setIsOpen(false);
       form.reset();
+    }
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting evaluator:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -280,13 +285,14 @@ export function EvaluatorFormDialog({
             </div>
 
             <PassCriteriaBuilder
-              value={passCriteriaValue ?? undefined}
+              value={passCriteriaValue}
               onChange={(value) => {
                 form.setValue('passCriteria', value ?? null, { shouldDirty: true });
               }}
               schema={(() => {
+                const value = schemaField.value || '{}';
                 try {
-                  return JSON.parse(schemaField.value || '{}');
+                  return JSON.parse(value);
                 } catch {
                   return {};
                 }

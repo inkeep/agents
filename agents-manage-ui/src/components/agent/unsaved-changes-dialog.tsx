@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { type FC, useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { type FC, useEffect, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,12 +25,12 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
   const isNavigatingRef = useRef(false);
   const router = useRouter();
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = () => {
     pendingNavigationRef.current = null;
     setShowUnsavedDialog(false);
-  }, []);
+  };
 
-  const proceedWithNavigation = useCallback(() => {
+  const proceedWithNavigation = () => {
     const navigate = pendingNavigationRef.current;
     handleGoBack();
 
@@ -39,9 +39,9 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     }
     isNavigatingRef.current = true;
     navigate();
-  }, [handleGoBack]);
+  };
 
-  const handleSaveAndLeave = useCallback(() => {
+  const handleSaveAndLeave = () => {
     if (isSavingPendingNavigation) {
       return;
     }
@@ -52,7 +52,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       }
       setShowUnsavedDialog(false);
     });
-  }, [isSavingPendingNavigation, onSubmit, proceedWithNavigation]);
+  };
 
   useEffect(() => {
     if (!dirty) {
@@ -111,7 +111,11 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [dirty, handleGoBack]);
+  }, [
+    dirty,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    handleGoBack,
+  ]);
 
   return (
     <Dialog

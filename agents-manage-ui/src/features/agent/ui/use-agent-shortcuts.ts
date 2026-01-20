@@ -1,11 +1,10 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {
   const { undo, redo, deleteSelected } = useAgentActions();
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (!(e.target as HTMLElement)?.classList.contains('react-flow__node')) return;
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === 'z') {
@@ -30,12 +29,8 @@ export function useAgentShortcuts() {
           deleteSelected();
         }
       }
-    },
-    [undo, redo, deleteSelected]
-  );
-
-  useEffect(() => {
+    };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onKeyDown]);
+  }, []);
 }
