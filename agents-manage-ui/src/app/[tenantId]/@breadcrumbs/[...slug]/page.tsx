@@ -150,7 +150,7 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
         className={
           isLast
             ? 'font-medium text-foreground'
-            : 'after:ml-2 after:content-["/"] after:text-muted-foreground/60'
+            : 'after:ml-2 after:content-["›"] after:text-muted-foreground/60'
         }
       >
         {isLast ? (
