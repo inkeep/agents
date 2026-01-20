@@ -77,7 +77,7 @@ Example when using an API key for auth:
 {
   "AgentName": {
     "type": "mcp",
-    "url": "http://<your-run-api-url>/v1/mcp",
+    "url": "http://<your-agents-api-url>/run/v1/mcp",
     "headers": {
       "Authorization": "Bearer <agent_api_key>"
     }
@@ -87,7 +87,7 @@ Example when using an API key for auth:
 
 ## Session Management (Required by MCP HTTP Transport)
 
-- Initialize a session by sending an `initialize` JSON-RPC request to `/v1/mcp`.
+- Initialize a session by sending an `initialize` JSON-RPC request to `/run/v1/mcp`.
 - The server will respond and set `Mcp-Session-Id` in response headers.
 - For all subsequent JSON-RPC requests in that session, include `Mcp-Session-Id` header with the value from initialization.
 
@@ -99,6 +99,6 @@ Example when using an API key for auth:
 
 ## Configuration Notes
 
-- **URL**: Point to your `agents-run-api` instance (default: `http://localhost:3003`)
+- **URL**: Point to your `agents-api` instance (default: `http://localhost:3002`)
 - **Headers**: Use the appropriate authentication mode per the section above
 - **Authorization**: Only required outside development mode

@@ -22,7 +22,7 @@ export function getAgentsApiUrl(): string {
       hasWarnedAgentsApi = true;
     }
   }
-  return `${INKEEP_AGENTS_API_URL}/manage`;
+  return INKEEP_AGENTS_API_URL;
 }
 
 async function makeApiRequestInternal<T>(
@@ -169,5 +169,5 @@ export async function makeManagementApiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  return makeApiRequestInternal<T>(getAgentsApiUrl(), endpoint, options);
+  return makeApiRequestInternal<T>(getAgentsApiUrl(), `manage/${endpoint}`, options);
 }

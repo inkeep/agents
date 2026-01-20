@@ -215,7 +215,7 @@ class ChatAPIClient {
           tags: ['dataset-evaluation'],
         });
 
-        const response = await fetch(`${this.baseUrl}/api/chat`, {
+        const response = await fetch(`${this.baseUrl}/run/api/chat`, {
           method: 'POST',
           headers,
           body: JSON.stringify(chatPayload),
