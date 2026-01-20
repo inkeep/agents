@@ -18,7 +18,7 @@ const logger = getLogger('projectConfigMiddleware');
 async function projectConfigHandler(
   c: Context<{ Variables: { executionContext: FullExecutionContext } }>,
   next: () => Promise<void>
-): Promise<Response | void> {
+): Promise<Response | undefined> {
   // At this point, executionContext is BaseExecutionContext from auth middleware
   // We'll upgrade it to FullExecutionContext by adding project and resolvedRef
   const executionContext = c.get('executionContext') as BaseExecutionContext;

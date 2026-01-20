@@ -3,7 +3,7 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 import { InvocationsTable } from '@/components/triggers/invocations-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
-import { fetchTriggerInvocations, getTrigger } from '@/lib/api/triggers';
+import { fetchTriggerInvocations, getTrigger, type Trigger } from '@/lib/api/triggers';
 
 interface InvocationsPageProps {
   params: Promise<{
@@ -29,7 +29,7 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
   }
 
   // Fetch trigger
-  let trigger;
+  let trigger: Trigger;
   try {
     trigger = await getTrigger(tenantId, projectId, agentId, triggerId);
   } catch (error) {
@@ -45,7 +45,7 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
     triggerId,
     {
       status,
-      page: page ? parseInt(page) : 1,
+      page: page ? parseInt(page, 10) : 1,
       limit: 50,
     }
   );
@@ -82,8 +82,6 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
         }}
         tenantId={tenantId}
         projectId={projectId}
-        agentId={agentId}
-        triggerId={triggerId}
         currentStatus={status}
       />
     </BodyTemplate>

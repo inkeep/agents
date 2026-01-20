@@ -3,7 +3,7 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
-import { getTrigger } from '@/lib/api/triggers';
+import { getTrigger, type Trigger } from '@/lib/api/triggers';
 
 interface EditTriggerPageProps {
   params: Promise<{
@@ -24,7 +24,7 @@ export default async function EditTriggerPage({ params }: EditTriggerPageProps) 
   }
 
   // Fetch trigger to edit
-  let trigger;
+  let trigger: Trigger;
   try {
     trigger = await getTrigger(tenantId, projectId, agentId, triggerId);
   } catch (error) {

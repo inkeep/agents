@@ -125,7 +125,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Webhook URL</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>

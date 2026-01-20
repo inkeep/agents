@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock logger

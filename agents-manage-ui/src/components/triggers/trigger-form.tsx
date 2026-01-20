@@ -150,7 +150,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       if (data.inputSchemaJson?.trim()) {
         try {
           inputSchema = JSON.parse(data.inputSchemaJson);
-        } catch (error) {
+        } catch {
           toast.error('Invalid input schema JSON');
           return;
         }
@@ -160,7 +160,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       if (data.objectTransformationJson?.trim()) {
         try {
           objectTransformation = JSON.parse(data.objectTransformationJson);
-        } catch (error) {
+        } catch {
           toast.error('Invalid object transformation JSON');
           return;
         }
@@ -176,7 +176,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           : undefined;
 
       // Build authentication object
-      let authentication: any = undefined;
+      let authentication: any;
       if (data.authType !== 'none') {
         switch (data.authType) {
           case 'api_key':
@@ -235,11 +235,14 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         signingSecret: data.signingSecret || undefined,
       };
 
-      let result;
+      let result: { success: boolean; error?: string };
       if (mode === 'create') {
         result = await createTriggerAction(tenantId, projectId, agentId, payload);
+      } else if (trigger) {
+        result = await updateTriggerAction(tenantId, projectId, agentId, trigger.id, payload);
       } else {
-        result = await updateTriggerAction(tenantId, projectId, agentId, trigger!.id, payload);
+        toast.error('Trigger not found');
+        return;
       }
 
       if (result.success) {

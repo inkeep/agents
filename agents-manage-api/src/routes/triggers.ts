@@ -15,7 +15,6 @@ import {
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
-  TriggerInvocationApiSelectSchema,
   TriggerInvocationListResponse,
   TriggerInvocationResponse,
   TriggerInvocationStatusEnum,

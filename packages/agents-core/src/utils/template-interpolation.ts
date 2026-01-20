@@ -69,7 +69,7 @@ function valueToString(value: unknown): string {
  */
 export function interpolateTemplate(template: string, payload: Record<string, unknown>): string {
   // Match {{...}} placeholders (non-greedy)
-  return template.replace(/\{\{([^}]+)\}\}/g, (match, path: string) => {
+  return template.replace(/\{\{([^}]+)\}\}/g, (_match, path: string) => {
     // Trim whitespace from path
     const trimmedPath = path.trim();
 

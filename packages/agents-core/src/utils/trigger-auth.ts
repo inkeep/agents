@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Context } from 'hono';
 import type { z } from 'zod';
 import type { TriggerAuthenticationSchema } from '../validation/schemas';
@@ -76,7 +76,7 @@ export function verifyTriggerAuth(
       let credentials: string;
       try {
         credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-      } catch (error) {
+      } catch {
         return {
           success: false,
           status: 401,
@@ -200,7 +200,7 @@ export function verifySigningSecret(
     }
 
     return { success: true };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       status: 403,

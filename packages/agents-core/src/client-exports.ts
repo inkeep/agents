@@ -34,10 +34,10 @@ import {
   StopWhenSchema,
   type SubAgentStopWhen,
   SubAgentStopWhenSchema,
-  TriggerApiInsertSchema,
-  TriggerApiSelectSchema,
-  TriggerApiUpdateSchema,
-  TriggerInvocationApiSelectSchema,
+  type TriggerApiInsertSchema,
+  type TriggerApiSelectSchema,
+  type TriggerApiUpdateSchema,
+  type TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';

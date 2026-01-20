@@ -33,8 +33,6 @@ interface InvocationsTableProps {
   };
   tenantId: string;
   projectId: string;
-  agentId: string;
-  triggerId: string;
   currentStatus?: 'pending' | 'success' | 'failed';
 }
 
@@ -67,8 +65,6 @@ export function InvocationsTable({
   metadata,
   tenantId,
   projectId,
-  agentId,
-  triggerId,
   currentStatus,
 }: InvocationsTableProps) {
   const router = useRouter();
@@ -132,7 +128,7 @@ export function InvocationsTable({
         <Table>
           <TableHeader>
             <TableRow noHover>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
               <TableHead>Timestamp</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Conversation</TableHead>
