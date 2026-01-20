@@ -2,8 +2,11 @@
 
 import { generateIdFromName } from '@inkeep/agents-core/client-exports';
 import { CredentialStoreType } from '@inkeep/agents-core/types';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import { toast } from 'sonner';
+import { CredentialForm } from '@/components/credentials/views/credential-form';
+import { CredentialFormInkeepCloud } from '@/components/credentials/views/credential-form-inkeep-cloud';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
@@ -12,16 +15,13 @@ import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
-import { CredentialForm } from './credential-form';
-import { CredentialFormInkeepCloud } from './credential-form-inkeep-cloud';
 
-export function NewCredentialForm() {
+export default function NewCredentialForm({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/bearer'>) {
   const router = useRouter();
   const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = use(params);
   const { user } = useAuthSession();
   const handleCreateCredential = async (data: CredentialFormData) => {
     try {
@@ -108,21 +108,16 @@ export function NewCredentialForm() {
     }
   };
 
-  if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true') {
-    return (
-      <CredentialFormInkeepCloud
+  const FormToUse =
+    PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true' ? CredentialFormInkeepCloud : CredentialForm;
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <FormToUse
         onCreateCredential={handleCreateCredential}
         tenantId={tenantId}
         projectId={projectId}
       />
-    );
-  }
-
-  return (
-    <CredentialForm
-      onCreateCredential={handleCreateCredential}
-      tenantId={tenantId}
-      projectId={projectId}
-    />
+    </div>
   );
 }
