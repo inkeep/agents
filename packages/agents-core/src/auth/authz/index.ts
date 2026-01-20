@@ -20,8 +20,15 @@ export {
   getSpiceDbConfig,
   isAuthzEnabled,
   type OrgRole,
+  OrgRoles,
+  type ProjectPermissionLevel,
+  type ProjectPermissions,
   type ProjectRole,
-  SpiceDbPermissions,
+  ProjectRoles,
+  type SpiceDbOrgPermission,
+  SpiceDbOrgPermissions,
+  type SpiceDbProjectPermission,
+  SpiceDbProjectPermissions,
   SpiceDbRelations,
   SpiceDbResourceTypes,
 } from './config';
@@ -36,10 +43,12 @@ export {
 
 // Sync utilities
 export {
+  changeOrgRole,
   changeProjectRole,
   grantProjectAccess,
   listProjectMembers,
   removeProjectFromSpiceDb,
+  revokeAllProjectMemberships,
   revokeProjectAccess,
   syncOrgMemberToSpiceDb,
   syncProjectToSpiceDb,

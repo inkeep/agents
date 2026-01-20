@@ -9,11 +9,15 @@ import {
 } from '../sync';
 
 // Mock the client module
-vi.mock('../client', () => ({
-  getSpiceClient: vi.fn(),
-  writeRelationship: vi.fn(),
-  deleteRelationship: vi.fn(),
-}));
+vi.mock('../client', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../client')>();
+  return {
+    ...original,
+    getSpiceClient: vi.fn(),
+    writeRelationship: vi.fn(),
+    deleteRelationship: vi.fn(),
+  };
+});
 
 // Mock the config module
 vi.mock('../config', async (importOriginal) => {

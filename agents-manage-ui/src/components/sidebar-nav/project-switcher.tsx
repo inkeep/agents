@@ -1,9 +1,10 @@
 'use client';
 
+import { OrgRoles } from '@inkeep/agents-core/client-exports';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useProjectsInvalidation, useProjectsQuery } from '@/lib/query/projects';
 
 const ProjectItem: FC<{
@@ -43,10 +45,27 @@ const ProjectItem: FC<{
 
 export const ProjectSwitcher: FC = () => {
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  const [canCreateProject, setcanCreateProject] = useState(false);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile, state } = useSidebar();
   const { data: projects = [], isPending } = useProjectsQuery(tenantId);
   const invalidateProjects = useProjectsInvalidation(tenantId);
+  const authClient = useAuthClient();
+
+  useEffect(() => {
+    async function checkPermission() {
+      try {
+        const memberResult = await authClient.organization.getActiveMember();
+        if (memberResult.data) {
+          const role = memberResult.data.role;
+          setcanCreateProject(role === OrgRoles.OWNER || role === OrgRoles.ADMIN);
+        }
+      } catch {
+        setcanCreateProject(false);
+      }
+    }
+    checkPermission();
+  }, [authClient]);
 
   const handleCreateProject = useCallback(() => {
     setIsProjectDialogOpen(true);
@@ -91,18 +110,24 @@ export const ProjectSwitcher: FC = () => {
             </NextLink>
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="font-mono uppercase" onSelect={handleCreateProject}>
-          <Plus />
-          Create project
-        </DropdownMenuItem>
+        {canCreateProject && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="font-mono uppercase" onSelect={handleCreateProject}>
+              <Plus />
+              Create project
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
-      <NewProjectDialog
-        tenantId={tenantId}
-        open={isProjectDialogOpen}
-        onOpenChange={setIsProjectDialogOpen}
-        onSuccess={invalidateProjects}
-      />
+      {canCreateProject && (
+        <NewProjectDialog
+          tenantId={tenantId}
+          open={isProjectDialogOpen}
+          onOpenChange={setIsProjectDialogOpen}
+          onSuccess={invalidateProjects}
+        />
+      )}
     </DropdownMenu>
   );
 };

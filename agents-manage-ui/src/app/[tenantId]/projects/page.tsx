@@ -1,11 +1,9 @@
-import { Plus } from 'lucide-react';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { NewProjectDialog } from '@/components/projects/new-project-dialog';
+import { CreateProjectButton } from '@/components/projects/create-project-button';
 import { ProjectList } from '@/components/projects/project-list';
-import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -20,14 +18,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         <PageHeader
           title="Projects"
           description={projectDescription}
-          action={
-            <NewProjectDialog tenantId={tenantId}>
-              <Button>
-                <Plus />
-                Create project
-              </Button>
-            </NewProjectDialog>
-          }
+          action={<CreateProjectButton tenantId={tenantId} />}
         />
         <ProjectList tenantId={tenantId} projects={projects.data} />
       </>
@@ -36,12 +27,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         title="No projects yet."
         description={emptyStateProjectDescription}
         action={
-          <NewProjectDialog tenantId={tenantId}>
-            <Button size="lg">
-              <Plus />
-              Create your first project
-            </Button>
-          </NewProjectDialog>
+          <CreateProjectButton tenantId={tenantId} size="lg" label="Create your first project" />
         }
       />
     );

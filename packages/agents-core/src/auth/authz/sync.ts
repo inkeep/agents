@@ -4,7 +4,13 @@
  * Functions for syncing data between better-auth and SpiceDB.
  */
 
-import { deleteRelationship, getSpiceClient, readRelationships, writeRelationship } from './client';
+import {
+  deleteRelationship,
+  getSpiceClient,
+  RelationshipOperation,
+  readRelationships,
+  writeRelationship,
+} from './client';
 import {
   isAuthzEnabled,
   type OrgRole,
@@ -12,11 +18,6 @@ import {
   SpiceDbRelations,
   SpiceDbResourceTypes,
 } from './config';
-
-// Constants for relationship operations
-const RELATIONSHIP_OPERATION_CREATE = 1;
-const RELATIONSHIP_OPERATION_TOUCH = 2;
-const RELATIONSHIP_OPERATION_DELETE = 3;
 
 /**
  * Sync a user's org membership to SpiceDB.
@@ -74,7 +75,7 @@ export async function changeOrgRole(params: {
     updates: [
       // Delete old role
       {
-        operation: RELATIONSHIP_OPERATION_DELETE,
+        operation: RelationshipOperation.DELETE,
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.ORGANIZATION,
@@ -93,7 +94,7 @@ export async function changeOrgRole(params: {
       },
       // Add new role (TOUCH = upsert, safe if already exists)
       {
-        operation: RELATIONSHIP_OPERATION_TOUCH,
+        operation: RelationshipOperation.TOUCH,
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.ORGANIZATION,
@@ -134,7 +135,7 @@ export async function syncProjectToSpiceDb(params: {
     updates: [
       // Link project to organization
       {
-        operation: RELATIONSHIP_OPERATION_CREATE,
+        operation: RelationshipOperation.CREATE,
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.PROJECT,
@@ -153,7 +154,7 @@ export async function syncProjectToSpiceDb(params: {
       },
       // Grant creator project_admin role
       {
-        operation: RELATIONSHIP_OPERATION_CREATE,
+        operation: RelationshipOperation.CREATE,
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.PROJECT,
@@ -247,7 +248,7 @@ export async function changeProjectRole(params: {
     updates: [
       // Delete old role
       {
-        operation: RELATIONSHIP_OPERATION_DELETE,
+        operation: RelationshipOperation.DELETE,
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.PROJECT,
@@ -266,7 +267,7 @@ export async function changeProjectRole(params: {
       },
       // Add new role (TOUCH = upsert, safe if already exists)
       {
-        operation: RELATIONSHIP_OPERATION_TOUCH,
+        operation: RelationshipOperation.TOUCH,
         relationship: {
           resource: {
             objectType: SpiceDbResourceTypes.PROJECT,
@@ -346,4 +347,77 @@ export async function listProjectMembers(params: {
       userId: rel.subjectId,
       role: rel.relation as ProjectRole,
     }));
+}
+
+/**
+ * Revoke all project memberships for a user.
+ * Call when: user is promoted to org admin (they get inherited access, explicit project roles become redundant).
+ *
+ * Uses efficient bulk delete - deletes all project relationships for user without listing first.
+ */
+export async function revokeAllProjectMemberships(params: {
+  tenantId: string;
+  userId: string;
+}): Promise<void> {
+  if (!isAuthzEnabled(params.tenantId)) {
+    return;
+  }
+
+  const spice = getSpiceClient();
+
+  // Efficiently delete ALL project memberships for this user in parallel
+  // One call per project role type (project_admin, project_member, project_viewer)
+  await Promise.all([
+    spice.promises.deleteRelationships({
+      relationshipFilter: {
+        resourceType: SpiceDbResourceTypes.PROJECT,
+        optionalResourceId: '',
+        optionalResourceIdPrefix: '',
+        optionalRelation: SpiceDbRelations.PROJECT_ADMIN,
+        optionalSubjectFilter: {
+          subjectType: SpiceDbResourceTypes.USER,
+          optionalSubjectId: params.userId,
+          optionalRelation: undefined,
+        },
+      },
+      optionalPreconditions: [],
+      optionalLimit: 0,
+      optionalAllowPartialDeletions: false,
+      optionalTransactionMetadata: undefined,
+    }),
+    spice.promises.deleteRelationships({
+      relationshipFilter: {
+        resourceType: SpiceDbResourceTypes.PROJECT,
+        optionalResourceId: '',
+        optionalResourceIdPrefix: '',
+        optionalRelation: SpiceDbRelations.PROJECT_MEMBER,
+        optionalSubjectFilter: {
+          subjectType: SpiceDbResourceTypes.USER,
+          optionalSubjectId: params.userId,
+          optionalRelation: undefined,
+        },
+      },
+      optionalPreconditions: [],
+      optionalLimit: 0,
+      optionalAllowPartialDeletions: false,
+      optionalTransactionMetadata: undefined,
+    }),
+    spice.promises.deleteRelationships({
+      relationshipFilter: {
+        resourceType: SpiceDbResourceTypes.PROJECT,
+        optionalResourceId: '',
+        optionalResourceIdPrefix: '',
+        optionalRelation: SpiceDbRelations.PROJECT_VIEWER,
+        optionalSubjectFilter: {
+          subjectType: SpiceDbResourceTypes.USER,
+          optionalSubjectId: params.userId,
+          optionalRelation: undefined,
+        },
+      },
+      optionalPreconditions: [],
+      optionalLimit: 0,
+      optionalAllowPartialDeletions: false,
+      optionalTransactionMetadata: undefined,
+    }),
+  ]);
 }

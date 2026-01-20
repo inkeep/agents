@@ -7,6 +7,9 @@
 import { v1 } from '@authzed/authzed-node';
 import { getSpiceDbConfig } from './config';
 
+// Import enums from v1 namespace
+const { RelationshipUpdate_Operation, CheckPermissionResponse_Permissionship } = v1;
+
 type ZedClientInterface = ReturnType<typeof v1.NewClient>;
 
 let client: ZedClientInterface | null = null;
@@ -34,9 +37,9 @@ export function resetSpiceClient(): void {
   client = null;
 }
 
-// Constants for permission check results
-const PERMISSIONSHIP_HAS_PERMISSION = 2;
-const RELATIONSHIP_OPERATION_CREATE = 1;
+// Re-export enums for use in other modules
+export const RelationshipOperation = RelationshipUpdate_Operation;
+export const Permissionship = CheckPermissionResponse_Permissionship;
 
 // Re-export v1 for access to types
 export { v1 };
@@ -71,7 +74,7 @@ export async function checkPermission(params: {
     withTracing: false,
   });
 
-  return response.permissionship === PERMISSIONSHIP_HAS_PERMISSION;
+  return response.permissionship === CheckPermissionResponse_Permissionship.HAS_PERMISSION;
 }
 
 /**
@@ -126,7 +129,8 @@ export async function checkBulkPermissions(params: {
 
     // Check if the response indicates permission
     if (pair.response.oneofKind === 'item') {
-      result[permission] = pair.response.item.permissionship === PERMISSIONSHIP_HAS_PERMISSION;
+      result[permission] =
+        pair.response.item.permissionship === CheckPermissionResponse_Permissionship.HAS_PERMISSION;
     } else {
       // Error case - treat as no permission
       result[permission] = false;
@@ -183,7 +187,7 @@ export async function writeRelationship(params: {
   await spice.promises.writeRelationships({
     updates: [
       {
-        operation: RELATIONSHIP_OPERATION_CREATE,
+        operation: RelationshipUpdate_Operation.TOUCH, // TOUCH = upsert, idempotent and safe for retries
         relationship: {
           resource: { objectType: params.resourceType, objectId: params.resourceId },
           relation: params.relation,

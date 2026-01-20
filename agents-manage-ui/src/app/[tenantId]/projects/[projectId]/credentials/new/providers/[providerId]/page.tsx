@@ -10,6 +10,7 @@ import { GenericAuthForm } from '@/components/credentials/views/generic-auth-for
 import { BodyTemplate } from '@/components/layout/body-template';
 import { Button } from '@/components/ui/button';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
@@ -22,6 +23,7 @@ function ProviderSetupPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers/[providerId]'>) {
   const router = useRouter();
+  const { canEdit } = useProjectPermissions();
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
@@ -29,6 +31,13 @@ function ProviderSetupPage({
   const { user } = useAuthSession();
   const authClient = useAuthClient();
   const { providerId, tenantId, projectId } = use(params);
+
+  // Redirect if user doesn't have edit permission
+  useEffect(() => {
+    if (canEdit) {
+      router.replace(`/${tenantId}/projects/${projectId}/credentials`);
+    }
+  }, [canEdit, router, tenantId, projectId]);
 
   const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
 

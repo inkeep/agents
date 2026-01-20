@@ -11,15 +11,7 @@ type JsonEditorProps = ComponentProps<typeof JsonEditor>;
 interface StandaloneJsonEditorProps
   extends Pick<
     JsonEditorProps,
-    | 'value'
-    //
-    | 'placeholder'
-    | 'disabled'
-    | 'id'
-    | 'className'
-    | 'readOnly'
-    | 'aria-invalid'
-    | 'uri'
+    'value' | 'placeholder' | 'disabled' | 'id' | 'className' | 'readOnly' | 'aria-invalid' | 'uri'
   > {
   onChange: NonNullable<JsonEditorProps['onChange']>;
   name?: string;
@@ -33,6 +25,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   actions: $actions,
   customTemplate,
   name,
+  readOnly,
   ...props
 }) => {
   // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
@@ -52,30 +45,34 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   const actions = (
     <>
       {$actions}
-      <Button
-        type="button"
-        onClick={handleInsertTemplate}
-        variant="outline"
-        size="sm"
-        className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-      >
-        Template
-      </Button>
-      <Button
-        type="button"
-        onClick={handleFormat}
-        variant="outline"
-        size="sm"
-        className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-        disabled={!value.trim()}
-      >
-        Format
-      </Button>
+      {!readOnly && (
+        <>
+          <Button
+            type="button"
+            onClick={handleInsertTemplate}
+            variant="outline"
+            size="sm"
+            className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+          >
+            Template
+          </Button>
+          <Button
+            type="button"
+            onClick={handleFormat}
+            variant="outline"
+            size="sm"
+            className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+            disabled={!value.trim()}
+          >
+            Format
+          </Button>
+        </>
+      )}
     </>
   );
 
   return (
-    <JsonEditor value={value} onChange={onChange} {...props} uri={uri}>
+    <JsonEditor value={value} onChange={onChange} readOnly={readOnly} uri={uri} {...props}>
       <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
     </JsonEditor>
   );

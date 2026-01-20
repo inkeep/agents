@@ -5,12 +5,14 @@ interface AzureConfigurationSectionProps {
   providerOptions: Record<string, unknown> | string | undefined;
   onProviderOptionsChange?: (value: string | undefined) => void;
   editorNamePrefix: string;
+  disabled?: boolean;
 }
 
 export function AzureConfigurationSection({
   providerOptions,
   onProviderOptionsChange,
   editorNamePrefix,
+  disabled = false,
 }: AzureConfigurationSectionProps) {
   const providerOptionsObj =
     typeof providerOptions === 'string'
@@ -61,6 +63,7 @@ export function AzureConfigurationSection({
                 onChange={(e) => handleFieldChange('resourceName', e.target.value)}
                 placeholder="my-azure-openai"
                 className="text-sm"
+                disabled={disabled}
               />
               <p className="text-xs text-muted-foreground">
                 Azure OpenAI resource name (for standard deployments)
@@ -80,6 +83,7 @@ export function AzureConfigurationSection({
                 onChange={(e) => handleFieldChange('baseURL', e.target.value)}
                 placeholder="https://my-resource.openai.azure.com"
                 className="text-sm"
+                disabled={disabled}
               />
               <p className="text-xs text-muted-foreground">
                 Custom base URL (alternative to resource name)

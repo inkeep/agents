@@ -1,11 +1,20 @@
 import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/require-project-permission';
 
 async function NewExternalAgentPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/external-agents/new'>) {
   const { tenantId, projectId } = await params;
+
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/external-agents`
+  );
+
   let credentials: Credential[] = [];
   try {
     credentials = await fetchCredentials(tenantId, projectId);

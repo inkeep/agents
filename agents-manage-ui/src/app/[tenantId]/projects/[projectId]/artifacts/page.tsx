@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { artifactDescription } from '@/constants/page-descriptions';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -17,18 +18,26 @@ async function ArtifactComponentsPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts'>) {
   const { tenantId, projectId } = await params;
   try {
-    const { data } = await fetchArtifactComponents(tenantId, projectId);
+    const [{ data }, permissions] = await Promise.all([
+      fetchArtifactComponents(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    const canEdit = permissions.canEdit;
+
     const content = data.length ? (
       <>
         <PageHeader
           title="Artifacts"
           description={artifactDescription}
           action={
-            <Button asChild>
-              <Link href={`/${tenantId}/projects/${projectId}/artifacts/new`}>
-                <Plus className="size-4" /> New artifact
-              </Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link href={`/${tenantId}/projects/${projectId}/artifacts/new`}>
+                  <Plus className="size-4" /> New artifact
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
         <ArtifactComponentsList tenantId={tenantId} projectId={projectId} artifacts={data} />
@@ -37,8 +46,8 @@ async function ArtifactComponentsPage({
       <EmptyState
         title="No artifacts yet."
         description={artifactDescription}
-        link={`/${tenantId}/projects/${projectId}/artifacts/new`}
-        linkText="Create artifact"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/artifacts/new` : undefined}
+        linkText={canEdit ? 'Create artifact' : undefined}
       />
     );
     return (

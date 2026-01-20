@@ -2,6 +2,7 @@ import type { ApiProvider, AuthModeType } from '@nangohq/types';
 import { NangoProvidersGrid } from '@/components/credentials/views/nango-providers-grid';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/require-project-permission';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 
 // Supported authentication modes (add new modes here as you implement them)
@@ -35,6 +36,14 @@ async function ProvidersPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers'>) {
   const { tenantId, projectId } = await params;
+
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/credentials`
+  );
+
   try {
     const nangoProviders = await fetchNangoProviders();
     const providers = filterSupportedProviders(nangoProviders);

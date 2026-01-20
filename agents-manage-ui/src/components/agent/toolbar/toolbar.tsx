@@ -3,6 +3,7 @@ import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'r
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
@@ -18,6 +19,8 @@ interface ToolbarProps {
 export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+
+  const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
     className: 'backdrop-blur-3xl',
@@ -56,39 +59,44 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
-      <ShipModal buttonClassName={commonProps.className} />
-      {dirty ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/**
-             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-             * don’t trigger pointer events in the browser
-             **/}
-            <div>{PreviewButton}</div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {dirty
-              ? 'Please save your changes before trying the agent.'
-              : 'Please save the agent to try it.'}
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        PreviewButton
+      {canUse && <ShipModal buttonClassName={commonProps.className} />}
+      {canUse &&
+        (dirty ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/**
+               * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+               * don't trigger pointer events in the browser
+               **/}
+              <div>{PreviewButton}</div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {dirty
+                ? 'Please save your changes before trying the agent.'
+                : 'Please save the agent to try it.'}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          PreviewButton
+        ))}
+      {canEdit && (
+        <Button
+          {...commonProps}
+          onClick={saveAgent}
+          variant={dirty ? 'default' : 'outline'}
+          disabled={isSubmitting || !dirty}
+          ref={saveButtonRef}
+        >
+          <Spinner className={cn(!isSubmitting && 'hidden')} />
+          Save changes
+        </Button>
       )}
-      <Button
-        {...commonProps}
-        onClick={saveAgent}
-        variant={dirty ? 'default' : 'outline'}
-        disabled={isSubmitting || !dirty}
-        ref={saveButtonRef}
-      >
-        <Spinner className={cn(!isSubmitting && 'hidden')} />
-        Save changes
-      </Button>
-      <Button {...commonProps} onClick={toggleSidePane}>
-        <Settings className="size-4" />
-        Agent Settings
-      </Button>
+      {canView && (
+        <Button {...commonProps} onClick={toggleSidePane}>
+          <Settings className="size-4" />
+          Agent Settings
+        </Button>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 const externalAgentsDescription =
@@ -18,22 +19,30 @@ async function ExternalAgentsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const externalAgents = await fetchExternalAgents(tenantId, projectId);
+    const [externalAgents, permissions] = await Promise.all([
+      fetchExternalAgents(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    const canEdit = permissions.canEdit;
+
     const content = externalAgents.length ? (
       <>
         <PageHeader
           title="External agents"
           description={externalAgentsDescription}
           action={
-            <Button asChild>
-              <Link
-                href={`/${tenantId}/projects/${projectId}/external-agents/new`}
-                className="flex items-center gap-2"
-              >
-                <Plus className="size-4" />
-                New external agent
-              </Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/external-agents/new`}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="size-4" />
+                  New external agent
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
         <ExternalAgentsList externalAgents={externalAgents} />
@@ -42,8 +51,8 @@ async function ExternalAgentsPage({
       <EmptyState
         title="No external agents yet."
         description={externalAgentsDescription}
-        link={`/${tenantId}/projects/${projectId}/external-agents/new`}
-        linkText="Create external agent"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/external-agents/new` : undefined}
+        linkText={canEdit ? 'Create external agent' : undefined}
       />
     );
     return <BodyTemplate breadcrumbs={['External agents']}>{content}</BodyTemplate>;

@@ -1,7 +1,7 @@
 import { ProjectMembersWrapper } from '@/components/access/project-members-wrapper';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { fetchProject } from '@/lib/api/projects';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -12,19 +12,14 @@ export default async function MembersPage({
   const { tenantId, projectId } = await params;
 
   try {
-    // Verify project exists and user has access
-    await fetchProject(tenantId, projectId);
-
-    // Permission to manage access is enforced by the API (requires 'edit' permission).
-    // If user lacks permission, API calls will fail gracefully.
-    const canManageAccess = false;
+    const permissions = await fetchProjectPermissions(tenantId, projectId);
 
     return (
       <BodyTemplate breadcrumbs={['Members']} className="max-w-xl mx-auto">
         <ProjectMembersWrapper
           projectId={projectId}
           tenantId={tenantId}
-          canManage={canManageAccess}
+          canManage={permissions.canEdit}
         />
       </BodyTemplate>
     );

@@ -6,6 +6,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list';
 import { Button } from '@/components/ui/button';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -17,22 +18,28 @@ async function MCPServersPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const tools = await fetchMCPTools(tenantId, projectId);
+    const [tools, permissions] = await Promise.all([
+      fetchMCPTools(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+    const canEdit = permissions.canEdit;
     const content = tools.length ? (
       <>
         <PageHeader
           title="MCP servers"
           description={mcpServerDescription}
           action={
-            <Button asChild>
-              <Link
-                href={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
-                className="flex items-center gap-2"
-              >
-                <Plus className="size-4" />
-                New MCP server
-              </Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="size-4" />
+                  New MCP server
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
         <MCPToolsList tools={tools} />
@@ -41,8 +48,8 @@ async function MCPServersPage({
       <EmptyState
         title="No MCP servers yet."
         description={mcpServerDescription}
-        link={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
-        linkText="Create MCP server"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/mcp-servers/new` : undefined}
+        linkText={canEdit ? 'Create MCP server' : undefined}
       />
     );
     return <BodyTemplate breadcrumbs={['MCP servers']}>{content}</BodyTemplate>;

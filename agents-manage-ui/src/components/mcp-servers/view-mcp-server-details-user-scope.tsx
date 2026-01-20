@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { InfoCard } from '@/components/ui/info-card';
+import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { type Credential, fetchUserScopedCredential } from '@/lib/api/credentials';
 import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
@@ -35,6 +36,7 @@ export function ViewMCPServerDetailsUserScope({
 }) {
   const [userCredential, setUserCredential] = useState<Credential | null>(null);
   const [isLoadingCredential, setIsLoadingCredential] = useState(true);
+  const { canEdit } = useProjectPermissions();
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -108,12 +110,14 @@ export function ViewMCPServerDetailsUserScope({
             <p className="text-sm text-muted-foreground">MCP server details</p>
           </div>
         </div>
-        <Button asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
-            <Pencil className="w-4 h-4" />
-            Edit
-          </Link>
-        </Button>
+        {canEdit && (
+          <Button asChild>
+            <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
+              <Pencil className="w-4 h-4" />
+              Edit
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Basic Information */}

@@ -39,6 +39,7 @@ import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
@@ -134,6 +135,8 @@ export const Agent: FC<AgentProps> = ({
     isCopilotConfigured,
     isStreaming: isCopilotStreaming,
   } = useCopilotContext();
+
+  const { canEdit } = useProjectPermissions();
 
   const router = useRouter();
 
@@ -369,7 +372,8 @@ export const Agent: FC<AgentProps> = ({
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
-    if (agentNodes.length === 0 && (!isCopilotConfigured || !SHOW_CHAT_TO_CREATE)) {
+    // Only auto-add if user has edit permission
+    if (agentNodes.length === 0 && (!isCopilotConfigured || !SHOW_CHAT_TO_CREATE) && canEdit) {
       onAddInitialNode();
     }
 
@@ -510,6 +514,7 @@ export const Agent: FC<AgentProps> = ({
   };
 
   const onConnectWrapped: ReactFlowProps['onConnect'] = (params) => {
+    if (!canEdit) return;
     markUnsaved();
     const isSelfLoop = params.source === params.target;
     const id = isSelfLoop ? `edge-self-${params.source}` : getEdgeId(params.source, params.target);
@@ -624,6 +629,7 @@ export const Agent: FC<AgentProps> = ({
 
   const onDrop: ReactFlowProps['onDrop'] = (event) => {
     event.preventDefault();
+    if (!canEdit) return;
     const node = event.dataTransfer.getData('application/reactflow');
     if (!node) {
       return;
@@ -1002,17 +1008,19 @@ export const Agent: FC<AgentProps> = ({
           minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
+          nodesConnectable={canEdit}
+          nodesDraggable={canEdit}
           onNodeClick={onNodeClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
-          {!showEmptyState && (
+          {!showEmptyState && canEdit && (
             <Panel position="top-left">
               <NodeLibrary />
             </Panel>
           )}
 
-          {showEmptyState && (
+          {showEmptyState && canEdit && (
             <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
               <EmptyState onAddInitialNode={onAddInitialNode} />
             </Panel>
@@ -1075,7 +1083,7 @@ export const Agent: FC<AgentProps> = ({
                 subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
                 credentialLookup={credentialLookup}
-                disabled={isCopilotStreaming}
+                disabled={isCopilotStreaming || !canEdit}
               />
             </ResizablePanel>
           </>

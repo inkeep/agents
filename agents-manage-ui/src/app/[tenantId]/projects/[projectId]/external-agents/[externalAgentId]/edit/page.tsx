@@ -4,6 +4,7 @@ import type { ExternalAgentFormData } from '@/components/external-agents/form/va
 import { BodyTemplate } from '@/components/layout/body-template';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/require-project-permission';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -11,6 +12,13 @@ async function EditExternalAgentPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/external-agents/[externalAgentId]/edit'>) {
   const { externalAgentId, tenantId, projectId } = await params;
+
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`
+  );
 
   // Fetch both in parallel with individual error handling
   const [externalAgentResult, credentialsResult] = await Promise.allSettled([

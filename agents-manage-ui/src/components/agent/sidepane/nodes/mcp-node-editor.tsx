@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { headersTemplate } from '@/lib/templates';
@@ -36,6 +37,7 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
@@ -438,18 +440,22 @@ export function MCPServerNodeEditor({
         />
       </div>
 
-      <ExternalLink
-        href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}
-      >
-        Edit MCP Server
-      </ExternalLink>
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <>
+          <ExternalLink
+            href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}
+          >
+            Edit MCP Server
+          </ExternalLink>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

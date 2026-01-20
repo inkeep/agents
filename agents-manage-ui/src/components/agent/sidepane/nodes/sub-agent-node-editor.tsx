@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
@@ -66,10 +67,10 @@ export function SubAgentNodeEditor({
     tenantId: string;
     projectId: string;
   }>();
+  const { canEdit } = useProjectPermissions();
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
   const isDefaultSubAgent = selectedNode.data?.isDefault || false;
-
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
@@ -246,7 +247,7 @@ export function SubAgentNodeEditor({
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
       />
-      {!isDefaultSubAgent && (
+      {!isDefaultSubAgent && canEdit && (
         <>
           <Separator />
           <div className="flex justify-end">

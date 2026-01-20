@@ -1,14 +1,16 @@
+import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { InviteMemberDialog } from '@/components/auth/invite-member-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -19,6 +21,7 @@ import {
 } from '@/components/ui/table';
 import { type useAuthClient as UseAuthClientType, useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { AssignProjectsDialog } from './assign-projects-dialog';
 
 type FullOrganization = NonNullable<
   Awaited<
@@ -28,14 +31,30 @@ type FullOrganization = NonNullable<
 
 type Member = FullOrganization['members'][number];
 
-const DROPDOWN_ROLES = ['admin', 'member'] as const;
-type Role = 'owner' | 'admin' | 'member';
+interface RoleOption {
+  value: OrgRole;
+  label: string;
+  description: string;
+}
+
+const ROLE_OPTIONS: RoleOption[] = [
+  {
+    value: OrgRoles.ADMIN,
+    label: 'Admin',
+    description: 'Full access to manage organization settings and members',
+  },
+  {
+    value: OrgRoles.MEMBER,
+    label: 'Member',
+    description: 'Must be added to projects individually with a project role',
+  },
+];
 
 const getDisplayRole = (role: string | null): string => {
   if (!role) return '';
-  // Display 'owner' as 'Admin' in the UI for simplicity
-  if (role === 'owner') return 'Admin';
-  return role.charAt(0).toUpperCase() + role.slice(1);
+  if (role === OrgRoles.OWNER) return 'Admin';
+  const roleOption = ROLE_OPTIONS.find((r) => r.value === role);
+  return roleOption?.label || role.charAt(0).toUpperCase() + role.slice(1);
 };
 
 interface MembersTableProps {
@@ -54,12 +73,21 @@ export function MembersTable({
   const authClient = useAuthClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
-  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
 
-  const canEditRoles = currentMember?.role === 'owner' || currentMember?.role === 'admin';
+  // State for the assign projects dialog (shown after demotion)
+  const [assignProjectsDialogOpen, setAssignProjectsDialogOpen] = useState(false);
+  const [demotedUser, setDemotedUser] = useState<{ userId: string; userName: string } | null>(null);
 
-  const handleRoleChange = async (memberId: string, newRole: Role) => {
+  const canEditRoles =
+    currentMember?.role === OrgRoles.OWNER || currentMember?.role === OrgRoles.ADMIN;
+
+  const handleRoleChange = async (memberId: string, member: Member, newRole: OrgRole) => {
     if (!canEditRoles) return;
+
+    const oldRole = (member.role === OrgRoles.OWNER ? OrgRoles.ADMIN : member.role) as OrgRole;
+    if (oldRole === newRole) return;
+
+    const isDemotion = oldRole === OrgRoles.ADMIN && newRole === OrgRoles.MEMBER;
 
     setUpdatingMemberId(memberId);
     try {
@@ -79,7 +107,19 @@ export function MembersTable({
       toast.success('Role updated', {
         description: `Member role has been changed to ${getDisplayRole(newRole)}.`,
       });
-      onMemberUpdated?.();
+
+      // If this was a demotion, show the assign projects dialog
+      // Note: When promoting to admin, project memberships are automatically cleaned up
+      // in the beforeUpdateMemberRole hook (admins have inherited access to all projects)
+      if (isDemotion) {
+        setDemotedUser({
+          userId: member.user.id,
+          userName: member.user.name || member.user.email,
+        });
+        setAssignProjectsDialogOpen(true);
+      } else {
+        onMemberUpdated?.();
+      }
     } catch (err) {
       toast.error('Failed to update role', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
@@ -89,11 +129,16 @@ export function MembersTable({
     }
   };
 
+  const handleAssignProjectsComplete = () => {
+    setDemotedUser(null);
+    onMemberUpdated?.();
+  };
+
   const canEditMember = (member: Member): boolean => {
-    if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT) return false;
+    if (organizationId !== 'default') return false;
     if (!canEditRoles || !currentMember) return false;
     if (member.id === currentMember.id) return false;
-    if (currentMember.role === 'admin' && member.role === 'owner') return false;
+    if (currentMember.role === OrgRoles.ADMIN && member.role === OrgRoles.OWNER) return false;
     return true;
   };
 
@@ -145,22 +190,39 @@ export function MembersTable({
                     </TableCell>
                     <TableCell>
                       {isEditable ? (
-                        <Select
-                          value={role === 'owner' ? 'admin' : (role ?? undefined)}
-                          onValueChange={(value: Role) => handleRoleChange(id, value)}
-                          disabled={isUpdating}
-                        >
-                          <SelectTrigger size="sm" className="w-[120px]">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DROPDOWN_ROLES.map((r) => (
-                              <SelectItem key={r} value={r}>
-                                {getDisplayRole(r)}
-                              </SelectItem>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-muted-foreground normal-case text-xs"
+                              disabled={isUpdating}
+                            >
+                              {getDisplayRole(role === OrgRoles.OWNER ? OrgRoles.ADMIN : role)}
+                              <ChevronDown className="size-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {ROLE_OPTIONS.map((r) => (
+                              <DropdownMenuItem
+                                key={r.value}
+                                onClick={() => handleRoleChange(id, member, r.value)}
+                                className={
+                                  (role === OrgRoles.OWNER ? OrgRoles.ADMIN : role) === r.value
+                                    ? 'bg-muted'
+                                    : ''
+                                }
+                              >
+                                <div className="flex flex-col">
+                                  <span>{r.label}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {r.description}
+                                  </span>
+                                </div>
+                              </DropdownMenuItem>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       ) : (
                         role && <Badge variant="code">{getDisplayRole(role)}</Badge>
                       )}
@@ -172,7 +234,19 @@ export function MembersTable({
           </TableBody>
         </Table>
       </div>
+
       <InviteMemberDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} />
+
+      {demotedUser && (
+        <AssignProjectsDialog
+          open={assignProjectsDialogOpen}
+          onOpenChange={setAssignProjectsDialogOpen}
+          tenantId={organizationId}
+          userId={demotedUser.userId}
+          userName={demotedUser.userName}
+          onComplete={handleAssignProjectsComplete}
+        />
+      )}
     </div>
   );
 }

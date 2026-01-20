@@ -5,6 +5,8 @@
  * and multiple resource types (projects, agents, MCP servers, etc.)
  */
 
+import type { ProjectRole } from '@inkeep/agents-core';
+
 // ============================================================================
 // Principal Types (WHO can be granted access)
 // ============================================================================
@@ -114,7 +116,7 @@ export interface InheritedAccessConfig {
  */
 export interface ProjectMemberFromApi {
   userId: string;
-  role: 'project_admin' | 'project_member' | 'project_viewer';
+  role: ProjectRole;
 }
 
 // ============================================================================

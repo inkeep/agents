@@ -2,6 +2,7 @@
 
 import { Loader2, Search, X } from 'lucide-react';
 import { type FC, useRef, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -59,9 +60,9 @@ export interface ResourceMembersPageProps {
     principalType: PrincipalType,
     oldRole: string,
     newRole: string
-  ) => void;
+  ) => Promise<void>;
   /** Callback when removing a principal */
-  onRemove: (principalId: string, principalType: PrincipalType, role: string) => void;
+  onRemove: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
   /** Loading state */
   isLoading?: boolean;
   /** Adding/mutating state */
@@ -321,9 +322,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                       showRemove
                     />
                   ) : (
-                    <span className="text-sm text-muted-foreground">
+                    <Badge variant="code">
                       {roles.find((r) => r.value === principal.role)?.label || principal.role}
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>

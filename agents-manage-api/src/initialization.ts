@@ -2,6 +2,7 @@ import {
   generateId,
   getUserByEmail,
   member as memberTable,
+  OrgRoles,
   organization as orgTable,
 } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
@@ -100,7 +101,7 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
         id: generateId(),
         userId: user.id,
         organizationId: orgId,
-        role: 'owner',
+        role: OrgRoles.OWNER,
         createdAt: new Date(),
       });
       logger.info({ userId: user.id, organizationId: orgId }, 'Added user as organization owner');

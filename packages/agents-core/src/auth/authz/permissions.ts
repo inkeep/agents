@@ -5,7 +5,13 @@
  */
 
 import { checkPermission, lookupResources } from './client';
-import { isAuthzEnabled, type OrgRole, SpiceDbPermissions, SpiceDbResourceTypes } from './config';
+import {
+  isAuthzEnabled,
+  type OrgRole,
+  OrgRoles,
+  SpiceDbProjectPermissions,
+  SpiceDbResourceTypes,
+} from './config';
 
 /**
  * Check if a user can view a project.
@@ -26,7 +32,7 @@ export async function canViewProject(params: {
   }
 
   // Org owner/admin bypass
-  if (params.orgRole === 'owner' || params.orgRole === 'admin') {
+  if (params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN) {
     return true;
   }
 
@@ -34,7 +40,7 @@ export async function canViewProject(params: {
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,
-    permission: SpiceDbPermissions.VIEW,
+    permission: SpiceDbProjectPermissions.VIEW,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
   });
@@ -59,7 +65,7 @@ export async function canUseProject(params: {
   }
 
   // Org owner/admin bypass
-  if (params.orgRole === 'owner' || params.orgRole === 'admin') {
+  if (params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN) {
     return true;
   }
 
@@ -67,7 +73,7 @@ export async function canUseProject(params: {
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,
-    permission: SpiceDbPermissions.USE,
+    permission: SpiceDbProjectPermissions.USE,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
   });
@@ -88,11 +94,11 @@ export async function canEditProject(params: {
 }): Promise<boolean> {
   // Authz disabled (globally or for this tenant) = only org owner/admin can edit
   if (!isAuthzEnabled(params.tenantId)) {
-    return params.orgRole === 'owner' || params.orgRole === 'admin';
+    return params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN;
   }
 
   // Org owner/admin bypass
-  if (params.orgRole === 'owner' || params.orgRole === 'admin') {
+  if (params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN) {
     return true;
   }
 
@@ -100,7 +106,7 @@ export async function canEditProject(params: {
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,
-    permission: SpiceDbPermissions.EDIT,
+    permission: SpiceDbProjectPermissions.EDIT,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
   });
@@ -124,14 +130,14 @@ export async function listAccessibleProjectIds(params: {
   }
 
   // Org owner/admin sees all
-  if (params.orgRole === 'owner' || params.orgRole === 'admin') {
+  if (params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN) {
     return 'all';
   }
 
   // Use SpiceDB LookupResources
   return lookupResources({
     resourceType: SpiceDbResourceTypes.PROJECT,
-    permission: SpiceDbPermissions.VIEW,
+    permission: SpiceDbProjectPermissions.VIEW,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
   });

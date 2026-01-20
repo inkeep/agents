@@ -5,20 +5,12 @@ import {
   createApiError,
   isAuthzEnabled,
   type OrgRole,
+  type ProjectPermissionLevel,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
 import type { BaseAppVariables } from '../types/app';
-
-/**
- * Permission levels for project access
- *
- * - view: Can see project and resources (read-only)
- * - use: Can invoke agents, create API keys, view traces
- * - edit: Can modify configurations and manage members
- */
-export type ProjectPermission = 'view' | 'use' | 'edit';
 
 /**
  * Middleware to check project-level access.
@@ -34,7 +26,7 @@ export type ProjectPermission = 'view' | 'use' | 'edit';
 export const requireProjectPermission = <
   Env extends { Variables: BaseAppVariables } = { Variables: BaseAppVariables },
 >(
-  permission: ProjectPermission = 'view'
+  permission: ProjectPermissionLevel = 'view'
 ) =>
   createMiddleware<Env>(async (c, next) => {
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';

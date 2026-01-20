@@ -13,9 +13,10 @@ import type { ProjectFormData } from './validation';
 
 interface ProjectStopWhenSectionProps {
   control: Control<ProjectFormData>;
+  disabled?: boolean;
 }
 
-export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps) {
+export function ProjectStopWhenSection({ control, disabled }: ProjectStopWhenSectionProps) {
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
   const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);
@@ -68,6 +69,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
                 type="number"
                 placeholder="10"
                 min="1"
+                disabled={disabled}
               />
             </div>
 
@@ -81,6 +83,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
                 placeholder="50"
                 min="1"
                 description="Maximum number of execution steps per agent (agent-level limit)"
+                disabled={disabled}
               />
             </div>
           </div>

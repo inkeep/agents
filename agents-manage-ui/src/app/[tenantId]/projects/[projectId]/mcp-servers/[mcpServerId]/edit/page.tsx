@@ -9,6 +9,7 @@ import {
 } from '@/components/mcp-servers/form/validation';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchMCPTool } from '@/lib/api/tools';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/require-project-permission';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -16,6 +17,13 @@ async function EditMCPPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers/[mcpServerId]/edit'>) {
   const { mcpServerId, tenantId, projectId } = await params;
+
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`
+  );
 
   // Fetch both in parallel with individual error handling
   const [mcpToolResult, credentialsResult] = await Promise.allSettled([

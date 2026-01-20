@@ -46,7 +46,7 @@ export const AccessRoleDropdown: FC<AccessRoleDropdownProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1 text-muted-foreground"
+            className="gap-1 text-muted-foreground normal-case text-xs"
             disabled={disabled}
           >
             {currentRoleLabel}

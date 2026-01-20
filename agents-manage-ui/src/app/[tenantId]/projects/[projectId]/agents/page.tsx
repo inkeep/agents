@@ -7,6 +7,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { agentDescription } from '@/constants/page-descriptions';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -14,18 +15,28 @@ export const dynamic = 'force-dynamic';
 async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;
   try {
-    const agents = await fetchAgents(tenantId, projectId);
+    const [agents, permissions] = await Promise.all([
+      fetchAgents(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+    const canEdit = permissions.canEdit;
+
     const content = agents.data.length ? (
       <>
         <PageHeader title="Agents" description={agentDescription} />
-        <AgentList tenantId={tenantId} projectId={projectId} agent={agents.data} />
+        <AgentList
+          tenantId={tenantId}
+          projectId={projectId}
+          agent={agents.data}
+          canEdit={canEdit}
+        />
       </>
     ) : (
       <EmptyState
         title="No agents yet."
         description={agentDescription}
-        action={<NewAgentDialog tenantId={tenantId} projectId={projectId} />}
-        linkText="Create agent"
+        action={canEdit ? <NewAgentDialog tenantId={tenantId} projectId={projectId} /> : undefined}
+        linkText={canEdit ? 'Create agent' : undefined}
         icon={<AgentsIcon />}
       />
     );

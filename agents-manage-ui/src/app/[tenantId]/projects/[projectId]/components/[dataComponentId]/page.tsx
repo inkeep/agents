@@ -2,6 +2,7 @@ import { DataComponentForm } from '@/components/data-components/form/data-compon
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchDataComponent } from '@/lib/api/data-components';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +13,13 @@ export default async function DataComponentPage({
   const { tenantId, projectId, dataComponentId } = await params;
 
   try {
-    const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
+    const [dataComponent, permissions] = await Promise.all([
+      fetchDataComponent(tenantId, projectId, dataComponentId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
     const { name, description, props, render } = dataComponent;
+
     return (
       <BodyTemplate
         breadcrumbs={[
@@ -36,6 +42,7 @@ export default async function DataComponentPage({
             props,
             render,
           }}
+          readOnly={!permissions.canEdit}
         />
       </BodyTemplate>
     );
