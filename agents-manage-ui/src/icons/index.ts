@@ -1,6 +1,7 @@
 export { default as ArrayIcon } from './array.svg?svgr';
 export { default as BooleanIcon } from './boolean.svg?svgr';
 export { default as EdgeArrow } from './edge-arrow.svg?svgr';
+export { default as SelectedEdgeArrow } from './selected-edge-arrow.svg?svgr';
 export { default as EnumIcon } from './enum.svg?svgr';
 export { default as InkeepLogo } from './inkeep.svg?svgr';
 export { default as NumberIcon } from './number.svg?svgr';
