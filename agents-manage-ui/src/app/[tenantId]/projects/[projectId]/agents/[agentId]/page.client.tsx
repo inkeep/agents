@@ -77,6 +77,7 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
+import { EdgeArrow } from '@/icons';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -976,8 +977,9 @@ export const Agent: FC<AgentProps> = ({
         className="relative"
       >
         {isCopilotStreaming && <CopilotStreamingOverlay />}
-        <DefaultMarker />
-        <SelectedMarker />
+        <EdgeArrow style={{ position: 'absolute', top: 0, left: 0 }} />
+        {/*<DefaultMarker />*/}
+        {/*<SelectedMarker />*/}
         <ReactFlow
           defaultEdgeOptions={{
             // Built-in 'default' edges ignore the `data` prop.
