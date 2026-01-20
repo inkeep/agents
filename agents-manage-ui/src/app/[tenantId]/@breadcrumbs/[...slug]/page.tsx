@@ -77,6 +77,7 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     async conversations() {
       return 'Conversation Details';
     },
+    evaluations() {},
   };
 
   function addCrumb({ segment, label }: { segment: string; label: string }) {
