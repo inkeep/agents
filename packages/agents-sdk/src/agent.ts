@@ -10,7 +10,7 @@ import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/s
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import { getFullProjectViaAPI } from './projectFullClient';
-import { Trigger } from './trigger';
+import type { Trigger } from './trigger';
 import type {
   AgentConfig,
   AgentInterface,

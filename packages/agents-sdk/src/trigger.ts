@@ -84,7 +84,7 @@ export class Trigger implements TriggerInterface {
    */
   with(config: Partial<TriggerConfigWithZod>): Trigger {
     // Convert Zod schema to JSON Schema if needed in the override
-    let processedInputSchema: Record<string, unknown> | undefined = undefined;
+    let processedInputSchema: Record<string, unknown> | undefined;
     if (config.inputSchema !== undefined) {
       if (config.inputSchema === null) {
         processedInputSchema = undefined;
