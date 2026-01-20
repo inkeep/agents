@@ -83,18 +83,22 @@ describe('BaseCompressor', () => {
     it('should clean up processed tool calls on partial cleanup', () => {
       // Add many processed tool calls to test cleanup behavior
       for (let i = 0; i < 100; i++) {
+        // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
         compressor['processedToolCalls'].add(`call-${i}`);
       }
 
       // Partial cleanup should keep only recent ones (last 50)
       compressor.partialCleanup();
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['processedToolCalls'].size).toBe(50);
     });
 
     it('should reset all state on full cleanup', () => {
       // Add some state
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       compressor['processedToolCalls'].add('call-1');
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       compressor['cumulativeSummary'] = {
         type: 'conversation_summary_v1',
         high_level: 'test summary',
@@ -110,19 +114,23 @@ describe('BaseCompressor', () => {
       // Full cleanup should reset everything
       compressor.fullCleanup();
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['processedToolCalls'].size).toBe(0);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['cumulativeSummary']).toBe(null);
     });
 
     it('should preserve recent tool calls during partial cleanup', () => {
       // Add tool calls to simulate ongoing conversation
       for (let i = 0; i < 100; i++) {
+        // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
         compressor['processedToolCalls'].add(`call-${i}`);
       }
 
       compressor.partialCleanup();
 
       // Should keep last 50 tool calls
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['processedToolCalls'].size).toBe(50);
     });
   });
@@ -187,6 +195,7 @@ describe('BaseCompressor', () => {
         },
       ];
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       const toolCallIds = compressor['extractToolCallIds'](messages);
 
       expect(toolCallIds).toEqual(['db-call-1', 'sdk-call-1']);
@@ -213,6 +222,7 @@ describe('BaseCompressor', () => {
         },
       ];
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       const toolCallIds = compressor['extractToolCallIds'](messages);
 
       expect(toolCallIds).toEqual(['keep-1']);
@@ -284,7 +294,9 @@ describe('BaseCompressor', () => {
       const textContent = 'This is a test message with some content';
       const objectContent = { key: 'value', nested: { data: 123 } };
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       const textTokens = compressor['estimateTokens'](textContent);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       const objectTokens = compressor['estimateTokens'](objectContent);
 
       expect(textTokens).toBe(Math.ceil(textContent.length / 4));
@@ -303,6 +315,7 @@ describe('BaseCompressor', () => {
         },
       ];
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       const contextSize = compressor['calculateContextSize'](messages);
 
       expect(contextSize).toBeGreaterThan(0);
@@ -319,6 +332,7 @@ describe('BaseCompressor', () => {
       ];
 
       for (const messages of edgeCases) {
+        // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
         expect(() => compressor['calculateContextSize'](messages)).not.toThrow();
       }
     });
@@ -340,7 +354,9 @@ describe('BaseCompressor', () => {
         compressedAt: new Date().toISOString(),
       };
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['isEmpty'](validData)).toBe(false);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       expect(compressor['isEmpty'](emptyData)).toBe(true);
     });
 
@@ -358,6 +374,7 @@ describe('BaseCompressor', () => {
         compressedAt: new Date().toISOString(),
       };
 
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
       const artifactData = compressor['buildArtifactData']('artifact-123', block, toolResultData);
 
       expect(artifactData.artifactId).toBe('artifact-123');
@@ -408,7 +425,8 @@ describe('BaseCompressor', () => {
       for (let cycle = 0; cycle < 5; cycle++) {
         // Add tool calls
         for (let i = 0; i < 20; i++) {
-          compressor.processedToolCalls.add(`cycle-${cycle}-call-${i}`);
+          // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+          compressor['processedToolCalls'].add(`cycle-${cycle}-call-${i}`);
         }
 
         // Periodic partial cleanup
@@ -418,8 +436,10 @@ describe('BaseCompressor', () => {
       }
 
       // Should maintain reasonable size
-      expect(compressor.processedToolCalls.size).toBeLessThan(100);
-      expect(compressor.processedToolCalls.size).toBeGreaterThan(0);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      expect(compressor['processedToolCalls'].size).toBeLessThan(100);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      expect(compressor['processedToolCalls'].size).toBeGreaterThan(0);
     });
   });
 });

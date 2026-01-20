@@ -1,8 +1,20 @@
+import fs from 'node:fs/promises';
 import { defineProject } from 'vitest/config';
 
 export default defineProject({
+  plugins: [
+    {
+      name: 'xml-as-string',
+      enforce: 'pre',
+      async load(id) {
+        if (id.endsWith('.xml') || id.endsWith('.md')) {
+          const code = await fs.readFile(id, 'utf8');
+          return `export default ${JSON.stringify(code)};`;
+        }
+      },
+    },
+  ],
   test: {
-    assetsInclude: ['**/*.xml', '**/*.md'],
     name: 'agents-api-integration',
     // No setup file - integration tests don't use PGlite migrations
     globals: true,
