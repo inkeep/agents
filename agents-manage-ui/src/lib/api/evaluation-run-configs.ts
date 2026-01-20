@@ -7,6 +7,7 @@
 
 'use server';
 
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -56,7 +57,7 @@ export async function fetchEvaluationRunConfigs(
 /**
  * Fetch a single evaluation run config by ID
  */
-export async function fetchEvaluationRunConfig(
+async function $fetchEvaluationRunConfig(
   tenantId: string,
   projectId: string,
   configId: string
@@ -70,6 +71,8 @@ export async function fetchEvaluationRunConfig(
 
   return response.data;
 }
+
+export const fetchEvaluationRunConfig = cache($fetchEvaluationRunConfig);
 
 /**
  * Create a new evaluation run config

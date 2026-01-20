@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { requireProjectPermission } from '../middleware/project-access';
 import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
@@ -13,6 +14,8 @@ import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
+import projectMembersRoutes from './projectMembers';
+import projectPermissionsRoutes from './projectPermissions';
 import projectsRoutes from './projects';
 import refRoutes from './ref';
 import skillsRoutes from './skills';
@@ -28,11 +31,18 @@ import subAgentTeamAgentRelationsRoutes from './subAgentTeamAgentRelations';
 import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
+import triggersRoutes from './triggers';
 
 const app = new OpenAPIHono();
 
 // Mount projects route first (no projectId in path)
+// Note: projects.ts handles its own access checks internally
 app.route('/projects', projectsRoutes);
+
+// Apply project access check to all project-scoped routes BEFORE mounting them
+// This middleware checks 'view' permission by default
+// Individual routes can require higher permissions (use, edit)
+app.use('/projects/:projectId/*', requireProjectPermission('view'));
 
 // Mount branches route under project scope
 app.route('/projects/:projectId/branches', branchesRoutes);
@@ -40,7 +50,12 @@ app.route('/projects/:projectId/branches', branchesRoutes);
 // Mount ref routes under project scope
 app.route('/projects/:projectId/refs', refRoutes);
 
-// Mount existing routes under project scope
+// Note: projectMembers.ts overrides with 'edit' permission for write operations
+app.route('/projects/:projectId/members', projectMembersRoutes);
+
+// Project permissions endpoint - returns current user's permissions for a project
+app.route('/projects/:projectId/permissions', projectPermissionsRoutes);
+
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
 app.route(
@@ -84,5 +99,6 @@ app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
+app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
 
 export default app;

@@ -5,6 +5,7 @@
  */
 
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { getProjectBranchName, withBranch } from '../../dolt/branch';
 import type {
   ArtifactComponentApiSelect,
   CredentialReferenceApiSelect,
@@ -1418,10 +1419,19 @@ const getFullProjectInternal =
         await Promise.all(agentPromises);
       }
 
-      // Ensure project has required models configuration
-      if (!project.models) {
-        throw new Error(
-          `Project ${project.id} is missing required models configuration. Please update the project to include a base model.`
+      // Use default models configuration if project doesn't have one configured
+      const DEFAULT_MODELS = {
+        base: { model: 'claude-sonnet-4-5' },
+        structuredOutput: { model: 'claude-sonnet-4-5' },
+        summarizer: { model: 'claude-sonnet-4-5' },
+      };
+
+      const projectModels = project.models ?? DEFAULT_MODELS;
+
+      if (!projectModels.base) {
+        logger.warn(
+          { tenantId, projectId },
+          `Project ${project.id} is missing base model configuration. Using default: claude-sonnet-4-5`
         );
       }
 
@@ -1429,7 +1439,7 @@ const getFullProjectInternal =
         id: project.id,
         name: project.name,
         description: project.description,
-        models: project.models,
+        models: projectModels,
         stopWhen: project.stopWhen ?? null,
         agents,
         tools: projectTools,
@@ -1474,25 +1484,47 @@ const getFullProjectInternal =
 
 export const getFullProject =
   (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
-    return getFullProjectInternal(
-      db,
-      logger
-    )({ scopes: params.scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
+  async (params: {
+    scopes: ProjectScopeConfig;
+    /** Optional branch name to query from. If not provided, uses the project's main branch. */
+    branchName?: string;
+  }): Promise<FullProjectSelect | null> => {
+    const { scopes, branchName } = params;
+    const targetBranch = branchName ?? getProjectBranchName(scopes.tenantId, scopes.projectId);
+
+    return withBranch(db)({
+      branchName: targetBranch,
+      callback: async (txDb) => {
+        return getFullProjectInternal(
+          txDb,
+          logger
+        )({ scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
+      },
+    });
   };
 
 export const getFullProjectWithRelationIds =
   (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
+    /** Optional branch name to query from. If not provided, uses the project's main branch. */
+    branchName?: string;
   }): Promise<FullProjectSelectWithRelationIds | null> => {
-    return getFullProjectInternal(
-      db,
-      logger
-    )({
-      scopes: params.scopes,
-      includeRelationIds: true,
-    }) as Promise<FullProjectSelectWithRelationIds | null>;
+    const { scopes, branchName } = params;
+    const targetBranch = branchName ?? getProjectBranchName(scopes.tenantId, scopes.projectId);
+
+    return withBranch(db)({
+      branchName: targetBranch,
+      callback: async (txDb) => {
+        return getFullProjectInternal(
+          txDb,
+          logger
+        )({
+          scopes,
+          includeRelationIds: true,
+        }) as Promise<FullProjectSelectWithRelationIds | null>;
+      },
+    });
   };
 
 /**

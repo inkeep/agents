@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { projectMetadata } from '../../db/runtime/runtime-schema';
 import type { ProjectMetadataInsert, ProjectMetadataSelect } from '../../types/entities';
@@ -46,18 +46,32 @@ export const listProjectsMetadata =
 
 /**
  * List runtimeProjects with pagination from the runtime DB
+ * @param projectIds - Optional array of project IDs to filter by. If undefined, returns all projects.
  */
 export const listProjectsMetadataPaginated =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     tenantId: string;
     pagination?: PaginationConfig;
+    projectIds?: string[];
   }): Promise<ProjectMetadataPaginatedResult> => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const whereClause = eq(projectMetadata.tenantId, params.tenantId);
+    // Build where clause with optional projectIds filter
+    const conditions = [eq(projectMetadata.tenantId, params.tenantId)];
+    if (params.projectIds !== undefined) {
+      if (params.projectIds.length === 0) {
+        // No accessible projects - return empty result
+        return {
+          data: [],
+          pagination: { page, limit, total: 0, pages: 0 },
+        };
+      }
+      conditions.push(inArray(projectMetadata.id, params.projectIds));
+    }
+    const whereClause = and(...conditions);
 
     const [data, totalResult] = await Promise.all([
       db

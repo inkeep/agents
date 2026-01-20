@@ -11,5 +11,10 @@ export const ProjectProvider: FC<{
 }> = (props) => <ProjectContext {...props} />;
 
 export function useProject() {
-  return useContext(ProjectContext);
+  const ctx = useContext(ProjectContext);
+  if (!ctx) {
+    throw new Error('useProject must be used within a <ProjectProvider />');
+  }
+
+  return ctx;
 }

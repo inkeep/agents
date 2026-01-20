@@ -25,6 +25,7 @@ import { generateMcpToolFile } from './components/mcp-tool-generator';
 import { generateProjectFile } from './components/project-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
+import { generateTriggerFile } from './components/trigger-generator';
 import { ComponentRegistry, registerAllComponents } from './utils/component-registry';
 import { DEFAULT_STYLE } from './utils/generator-utils';
 
@@ -423,6 +424,18 @@ export async function introspectGenerate(
         ensureDir(agentFile);
         writeFileSync(agentFile, agentContent, 'utf-8');
         generatedFiles.push(agentFile);
+
+        // Generate triggers for this agent (if any)
+        if (agentData.triggers && Object.keys(agentData.triggers).length > 0) {
+          for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
+            const triggerFile = join(paths.agentsDir, 'triggers', `${triggerId}.ts`);
+            const triggerContent = generateTriggerFile(triggerId, triggerData, style);
+
+            ensureDir(triggerFile);
+            writeFileSync(triggerFile, triggerContent, 'utf-8');
+            generatedFiles.push(triggerFile);
+          }
+        }
       }
     }
 

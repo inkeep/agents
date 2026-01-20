@@ -1,11 +1,10 @@
-import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 
-export default function Layout({ children }: LayoutProps<'/[tenantId]/settings'>) {
+export default async function Layout({ children }: LayoutProps<'/[tenantId]/settings'>) {
   return (
-    <BodyTemplate breadcrumbs={['Settings']}>
+    <>
       <PageHeader title="Organization Settings" description="Manage your organization settings" />
       {children}
-    </BodyTemplate>
+    </>
   );
 }

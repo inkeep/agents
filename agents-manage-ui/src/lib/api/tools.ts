@@ -1,7 +1,7 @@
 'use server';
 
 import type { McpTool, ToolApiInsert } from '@inkeep/agents-core';
-
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
@@ -52,11 +52,7 @@ export async function fetchMCPTools(
 /**
  * Get a single MCP tool by ID
  */
-export async function fetchMCPTool(
-  tenantId: string,
-  projectId: string,
-  id: string
-): Promise<McpTool> {
+async function $fetchMCPTool(tenantId: string, projectId: string, id: string): Promise<McpTool> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
@@ -66,6 +62,8 @@ export async function fetchMCPTool(
 
   return response.data;
 }
+
+export const fetchMCPTool = cache($fetchMCPTool);
 
 /**
  * Create a new MCP tool

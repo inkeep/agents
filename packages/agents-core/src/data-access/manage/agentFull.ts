@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   projects,
   subAgentSkills,
+  subAgentFunctionToolRelations,
   subAgents,
   subAgentToolRelations,
 } from '../../db/manage/manage-schema';
@@ -30,7 +31,12 @@ import {
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { upsertFunction } from './functions';
-import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
+import {
+  deleteFunctionTool,
+  listFunctionTools,
+  upsertFunctionTool,
+  upsertSubAgentFunctionToolRelation,
+} from './functionTools';
 import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
@@ -50,6 +56,7 @@ import {
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
 import { upsertSubAgentToolRelation } from './tools';
+import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
 
 export interface AgentLogger {
   info(obj: Record<string, any>, msg?: string): void;
@@ -410,6 +417,51 @@ export const createFullAgentServerSide =
             functionToolCount: Object.keys(typed.functionTools).length,
           },
           'All function tools created successfully'
+        );
+      }
+
+      // Create triggers (agent-scoped)
+      if (typed.triggers && Object.keys(typed.triggers).length > 0) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typed.triggers).length,
+          },
+          'Creating triggers for agent'
+        );
+
+        const triggerPromises = Object.entries(typed.triggers).map(
+          async ([triggerId, triggerData]) => {
+            try {
+              logger.info({ agentId: finalAgentId, triggerId }, 'Creating trigger in agent');
+              await upsertTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...triggerData,
+                  id: triggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info({ agentId: finalAgentId, triggerId }, 'Trigger created successfully');
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, triggerId, error },
+                'Failed to create trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(triggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typed.triggers).length,
+          },
+          'All triggers created successfully'
         );
       }
 
@@ -1027,6 +1079,113 @@ export const updateFullAgentServerSide =
         );
       }
 
+      // Delete orphaned function tools
+      const incomingFunctionToolIds = new Set(
+        typedAgentDefinition.functionTools ? Object.keys(typedAgentDefinition.functionTools) : []
+      );
+
+      const existingFunctionTools = await listFunctionTools(db)({
+        scopes: { tenantId, projectId, agentId: finalAgentId },
+        pagination: { page: 1, limit: 1000 },
+      });
+
+      let deletedFunctionToolCount = 0;
+      for (const functionTool of existingFunctionTools.data) {
+        if (!incomingFunctionToolIds.has(functionTool.id)) {
+          try {
+            await deleteFunctionTool(db)({
+              scopes: { tenantId, projectId, agentId: finalAgentId },
+              functionToolId: functionTool.id,
+            });
+            deletedFunctionToolCount++;
+            logger.info({ functionToolId: functionTool.id }, 'Deleted orphaned function tool');
+          } catch (error) {
+            logger.error(
+              { functionToolId: functionTool.id, error },
+              'Failed to delete orphaned function tool'
+            );
+          }
+        }
+      }
+
+      if (deletedFunctionToolCount > 0) {
+        logger.info({ deletedFunctionToolCount }, 'Deleted orphaned function tools from agent');
+      }
+
+      // Update triggers (agent-scoped)
+      if (typedAgentDefinition.triggers && Object.keys(typedAgentDefinition.triggers).length > 0) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typedAgentDefinition.triggers).length,
+          },
+          'Updating triggers for agent'
+        );
+
+        const triggerPromises = Object.entries(typedAgentDefinition.triggers).map(
+          async ([triggerId, triggerData]) => {
+            try {
+              logger.info({ agentId: finalAgentId, triggerId }, 'Updating trigger in agent');
+              await upsertTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...triggerData,
+                  id: triggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info({ agentId: finalAgentId, triggerId }, 'Trigger updated successfully');
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, triggerId, error },
+                'Failed to update trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(triggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            triggerCount: Object.keys(typedAgentDefinition.triggers).length,
+          },
+          'All triggers updated successfully'
+        );
+      }
+
+      // Delete orphaned triggers
+      const incomingTriggerIds = new Set(
+        typedAgentDefinition.triggers ? Object.keys(typedAgentDefinition.triggers) : []
+      );
+
+      const existingTriggers = await listTriggers(db)({
+        scopes: { tenantId, projectId, agentId: finalAgentId },
+      });
+
+      let deletedTriggerCount = 0;
+      for (const trigger of existingTriggers) {
+        if (!incomingTriggerIds.has(trigger.id)) {
+          try {
+            await deleteTrigger(db)({
+              scopes: { tenantId, projectId, agentId: finalAgentId },
+              triggerId: trigger.id,
+            });
+            deletedTriggerCount++;
+            logger.info({ triggerId: trigger.id }, 'Deleted orphaned trigger');
+          } catch (error) {
+            logger.error({ triggerId: trigger.id, error }, 'Failed to delete orphaned trigger');
+          }
+        }
+      }
+
+      if (deletedTriggerCount > 0) {
+        logger.info({ deletedTriggerCount }, 'Deleted orphaned triggers from agent');
+      }
+
       const subAgentPromises = Object.entries(typedAgentDefinition.subAgents).map(
         async ([subAgentId, agentData]) => {
           const subAgent = agentData;
@@ -1304,6 +1463,77 @@ export const updateFullAgentServerSide =
           }
         } catch (error) {
           logger.error({ subAgentId, error }, 'Failed to delete orphaned agent-tool relations');
+        }
+      }
+
+      // Delete orphaned function tool relations
+      // Collect incoming function tool relation IDs
+      const incomingFunctionToolRelationIds = new Set<string>();
+      for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
+          for (const canUseItem of agentData.canUse) {
+            const isFunctionTool =
+              typedAgentDefinition.functionTools &&
+              canUseItem.toolId in typedAgentDefinition.functionTools;
+            if (isFunctionTool && canUseItem.agentToolRelationId) {
+              incomingFunctionToolRelationIds.add(canUseItem.agentToolRelationId);
+            }
+          }
+        }
+      }
+
+      // Delete orphaned function tool relations for each sub-agent
+      for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
+        try {
+          let deletedFunctionToolRelationCount = 0;
+
+          if (incomingFunctionToolRelationIds.size === 0) {
+            // No incoming function tool relations - delete all existing ones
+            const result = await db
+              .delete(subAgentFunctionToolRelations)
+              .where(
+                and(
+                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
+                  eq(subAgentFunctionToolRelations.projectId, projectId),
+                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
+                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId)
+                )
+              )
+              .returning();
+            deletedFunctionToolRelationCount = result.length;
+          } else {
+            // Delete relations not in the incoming set
+            const result = await db
+              .delete(subAgentFunctionToolRelations)
+              .where(
+                and(
+                  eq(subAgentFunctionToolRelations.tenantId, tenantId),
+                  eq(subAgentFunctionToolRelations.projectId, projectId),
+                  eq(subAgentFunctionToolRelations.agentId, finalAgentId),
+                  eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
+                  not(
+                    inArray(
+                      subAgentFunctionToolRelations.id,
+                      Array.from(incomingFunctionToolRelationIds)
+                    )
+                  )
+                )
+              )
+              .returning();
+            deletedFunctionToolRelationCount = result.length;
+          }
+
+          if (deletedFunctionToolRelationCount > 0) {
+            logger.info(
+              { subAgentId, deletedCount: deletedFunctionToolRelationCount },
+              'Deleted orphaned sub-agent-function tool relations'
+            );
+          }
+        } catch (error) {
+          logger.error(
+            { subAgentId, error },
+            'Failed to delete orphaned sub-agent-function tool relations'
+          );
         }
       }
 

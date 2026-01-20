@@ -14,6 +14,7 @@ import {
 } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { sentry } from '@/lib/sentry';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -364,6 +365,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     animateGraph(event) {
       // @ts-expect-error -- improve types
       const data = event.detail;
+      console.info('Data operation received:', data);
+
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
 
@@ -445,7 +448,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             const { relationshipId } = data.details.data;
             const { subAgentId } = data.details;
             if (!relationshipId) {
-              console.warn('[type: tool_call] relationshipId is missing');
+              const error = new Error('[type: tool_call] relationshipId is missing');
+              sentry.captureException(error, { extra: data });
+              console.warn(error);
             }
             return {
               edges: updateEdgeStatus((edge) => {
@@ -465,7 +470,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           case 'error': {
             const { relationshipId } = data.details ?? {};
             if (!relationshipId) {
-              console.warn('[type: error] relationshipId is missing');
+              const error = new Error('[type: error] relationshipId is missing');
+              sentry.captureException(error, { extra: data });
+              console.warn(error);
             }
             return {
               nodes: updateNodeStatus((node) =>
@@ -479,7 +486,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             const { error, relationshipId } = data.details.data;
             const { subAgentId } = data.details;
             if (!relationshipId) {
-              console.warn('[type: tool_result] relationshipId is missing');
+              const error = new Error('[type: tool_result] relationshipId is missing');
+              sentry.captureException(error, { extra: data });
+              console.warn(error);
             }
             return {
               edges: updateEdgeStatus((edge) => {
