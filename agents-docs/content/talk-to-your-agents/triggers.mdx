@@ -61,7 +61,9 @@ Each trigger is configured with:
 - **Input Schema**: JSON Schema to validate incoming payloads
 - **Authentication**: API key, bearer token, or basic auth
 - **Signing Secret**: HMAC-SHA256 signature verification (for GitHub, Slack, etc.)
-- **Output Transform**: JMESPath or object mapping to reshape payloads
+- **Output Transform**: Reshape payloads before interpolating the message template. Choose one approach:
+  - **Object Transformation**: Simple field remapping (recommended for basic use cases)
+  - **JMESPath**: Complex transformations like filtering arrays or restructuring nested data
 
 ## Authentication Options
 
