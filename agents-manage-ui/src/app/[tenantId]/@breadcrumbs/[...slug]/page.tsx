@@ -88,12 +88,12 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
   function addCrumb({ segment, label }: { segment: string; label: string }) {
     href += `/${segment}`;
 
-    const notExistedRoutes = new Set([
+    // These routes aren't exist so we don't add it to crumbs list
+    const routesWithoutBreadcrumbs = new Set([
       `/${tenantId}/projects/${projectId}/traces/conversations`,
       `/${tenantId}/projects/${projectId}/evaluations/jobs`,
     ]);
-    // This route isn't exist so we don't add it to crumbs list
-    if (!notExistedRoutes.has(href)) {
+    if (!routesWithoutBreadcrumbs.has(href)) {
       crumbs.push({ label, href });
     }
   }

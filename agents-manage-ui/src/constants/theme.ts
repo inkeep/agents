@@ -30,4 +30,5 @@ export const STATIC_LABELS = Object.freeze({
   members: 'Members',
   evaluations: 'Evaluations',
   jobs: 'Batch Evaluations',
+  'run-configs': 'Continuous Tests',
 });
