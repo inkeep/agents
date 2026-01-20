@@ -12,6 +12,7 @@
       refY="0"
     >
       <polyline
+        class="stroke-primary!"
         stroke-linecap="round"
         stroke-linejoin="round"
         points="-5,-4 0,0 -5,4"

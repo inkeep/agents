@@ -30,8 +30,6 @@ import {
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
-import { DefaultMarker } from '@/components/agent/markers/default-marker';
-import { SelectedMarker } from '@/components/agent/markers/selected-marker';
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
@@ -77,7 +75,7 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import { EdgeArrow } from '@/icons';
+import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -977,9 +975,8 @@ export const Agent: FC<AgentProps> = ({
         className="relative"
       >
         {isCopilotStreaming && <CopilotStreamingOverlay />}
-        <EdgeArrow style={{ position: 'absolute', top: 0, left: 0 }} />
-        {/*<DefaultMarker />*/}
-        {/*<SelectedMarker />*/}
+        <EdgeArrow id="foo" className="absolute" />
+        <SelectedEdgeArrow id="bar" className="absolute" />
         <ReactFlow
           defaultEdgeOptions={{
             // Built-in 'default' edges ignore the `data` prop.
