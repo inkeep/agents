@@ -54,6 +54,7 @@ import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
@@ -75,7 +76,6 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
