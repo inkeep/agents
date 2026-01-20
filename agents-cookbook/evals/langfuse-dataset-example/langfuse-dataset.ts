@@ -88,9 +88,9 @@ async function runDatasetEvaluation(config: RunConfig): Promise<void> {
   if (!baseUrl) throw new Error('Base URL is required. Set INKEEP_AGENTS_RUN_API_URL');
 
   const langfuse = new Langfuse({
-    publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
-    secretKey: process.env.LANGFUSE_SECRET_KEY!,
-    baseUrl: process.env.LANGFUSE_BASE_URL!,
+    publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+    secretKey: process.env.LANGFUSE_SECRET_KEY,
+    baseUrl: process.env.LANGFUSE_BASE_URL,
   });
 
   const dataset = await langfuse.getDataset(datasetName);

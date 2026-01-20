@@ -1,14 +1,15 @@
 import { z } from '@hono/zod-openapi';
 import {
-  ContextResolver,
   type CredentialStoreReference,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  type FullExecutionContext,
   generateId,
   generateServiceToken,
-  getCredentialReference,
   headers,
+  InternalServices,
+  ManagementApiClient,
   type McpTool,
   SPAN_KEYS,
   TemplateEngine,
@@ -22,10 +23,19 @@ import {
   DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
   DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
 } from '../constants/execution-limits';
+import { ContextResolver } from '../context';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
+import { getUserIdFromContext } from '../types/execution-context';
+import {
+  getExternalAgentRelationsForTargetSubAgent,
+  getToolsForSubAgent,
+  getTransferRelationsForTargetSubAgent,
+  type InternalRelation,
+} from '../utils/project';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 
@@ -87,14 +97,24 @@ Available Tools & Capabilities:
 ${toolDescriptions}`;
   }
 
-  const finalDescription = `Hand off the conversation to agent ${config.id}.
+  const finalDescription = `🚨 CRITICAL TRANSFER PROTOCOL 🚨
+
+This tool immediately transfers conversation control to agent ${config.id}. 
+
+⚠️ MANDATORY BEHAVIOR:
+1. DO NOT write any response to the user
+2. DO NOT explain what you're doing  
+3. DO NOT provide partial answers
+4. ONLY call this tool and STOP
 
 Agent Information:
 - ID: ${config.id}
 - Name: ${config.name ?? 'No name provided'}
 - Description: ${config.description ?? 'No description provided'}${toolsSection}${transferSection}${delegateSection}
 
-Hand off the conversation to agent ${config.id} when the user's request would be better handled by this specialized agent.`;
+🔄 Use when: The user's request is better handled by this specialized agent.
+
+⛔ VIOLATION WARNING: Any text generation before/after this tool call will create a disjointed user experience. The receiving agent will provide the complete response.`;
 
   return finalDescription;
 };
@@ -159,7 +179,7 @@ ${delegateList}`;
     }
   }
 
-  const finalDescription = `Delegate a specific task to another agent.
+  const finalDescription = `Delegate a specific task to another agent and wait for their response.
 
 Agent Information:
 - ID: ${config.id}
@@ -167,7 +187,9 @@ Agent Information:
 - Description: ${config.description || 'No description provided'}
 - Type: ${delegateRelation.type}${toolsSection}${transferSection}${delegateSection}
 
-Delegate a specific task to agent ${config.id} when it seems like the agent can do relevant work.`;
+Delegate a specific task to agent ${config.id} when it can do relevant work. The delegated agent will return results that you can incorporate into your response to the user.
+
+NOTE: Unlike transfers, delegation returns control back to you with the delegated agent's results.`;
 
   return finalDescription;
 };
@@ -175,12 +197,10 @@ Delegate a specific task to agent ${config.id} when it seems like the agent can 
 export const createTransferToAgentTool = ({
   transferConfig,
   callingAgentId,
-  subAgent,
   streamRequestId,
 }: {
   transferConfig: AgentConfig;
   callingAgentId: string;
-  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   streamRequestId?: string;
 }) => {
   const toolDescription = generateTransferToolDescription(transferConfig);
@@ -235,20 +255,15 @@ export const createTransferToAgentTool = ({
 export function createDelegateToAgentTool({
   delegateConfig,
   callingAgentId,
-  tenantId,
-  projectId,
-  agentId,
+  executionContext,
   contextId,
   metadata,
   sessionId,
-  subAgent,
   credentialStoreRegistry,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
-  tenantId: string;
-  projectId: string;
-  agentId: string;
+  executionContext: FullExecutionContext;
   contextId: string;
   metadata: {
     conversationId: string;
@@ -258,9 +273,10 @@ export function createDelegateToAgentTool({
     apiKey?: string;
   };
   sessionId?: string;
-  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
+  const { tenantId, projectId, agentId, project } = executionContext;
+
   return tool({
     description: generateDelegateToolDescription(delegateConfig),
     inputSchema: z.object({ message: z.string() }),
@@ -301,12 +317,7 @@ export function createDelegateToAgentTool({
           (delegateConfig.config.credentialReferenceId || delegateConfig.config.headers) &&
           credentialStoreRegistry
         ) {
-          const contextResolver = new ContextResolver(
-            tenantId,
-            projectId,
-            dbClient,
-            credentialStoreRegistry
-          );
+          const contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
           const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
 
           const credentialContext = {
@@ -319,13 +330,8 @@ export function createDelegateToAgentTool({
 
           let storeReference: CredentialStoreReference | undefined;
           if (delegateConfig.config.credentialReferenceId) {
-            const credentialReference = await getCredentialReference(dbClient)({
-              scopes: {
-                tenantId,
-                projectId,
-              },
-              id: delegateConfig.config.credentialReferenceId,
-            });
+            const id = delegateConfig.config.credentialReferenceId;
+            const credentialReference = project.credentialReferences?.[id];
             if (credentialReference) {
               storeReference = {
                 credentialStoreId: credentialReference.credentialStoreId,
@@ -340,12 +346,7 @@ export function createDelegateToAgentTool({
           });
         }
       } else if (isTeam) {
-        const contextResolver = new ContextResolver(
-          tenantId,
-          projectId,
-          dbClient,
-          credentialStoreRegistry
-        );
+        const contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
         const context = await contextResolver.resolveHeaders(metadata.conversationId, contextId);
 
         for (const [key, value] of Object.entries(headers)) {
@@ -417,6 +418,8 @@ export function createDelegateToAgentTool({
           : { toExternalAgentId: delegateConfig.config.id }),
       });
 
+      logger.info({ messageToSend }, 'Created message in database');
+
       const response = await a2aClient.sendMessage({
         message: messageToSend,
       });
@@ -468,4 +471,130 @@ export function createDelegateToAgentTool({
       };
     },
   });
+}
+
+/**
+ * Parameters for building a transfer relation config
+ */
+export type BuildTransferRelationConfigParams = {
+  relation: InternalRelation;
+  executionContext: FullExecutionContext;
+  baseUrl: string;
+  apiKey?: string;
+};
+
+/**
+ * Build a transfer relation config for an internal relation.
+ * Fetches tools, transfer relations, and external agent relations for the target sub-agent.
+ */
+export async function buildTransferRelationConfig(
+  params: BuildTransferRelationConfigParams
+): Promise<AgentConfig> {
+  const { relation, executionContext, baseUrl, apiKey } = params;
+  const { tenantId, projectId, project, agentId } = executionContext;
+
+  const agent = executionContext.project.agents[agentId];
+
+  const targetSubAgent = agent.subAgents?.[relation.id];
+
+  if (!targetSubAgent) {
+    throw new Error(`Target sub-agent not found: ${relation.id}`);
+  }
+
+  // Get tools for the target sub-agent
+  const targetToolsForSubAgent = getToolsForSubAgent({
+    agent,
+    project,
+    subAgent: targetSubAgent,
+  });
+
+  // Convert ToolForAgent[] to McpTool[] via Management API calls
+  //TODO: add user id to the scopes
+  const manageApiClient = new ManagementApiClient({
+    apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+    tenantId,
+    projectId,
+    auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API },
+    ref: executionContext.resolvedRef.name,
+    userId: getUserIdFromContext(executionContext),
+  });
+  const targetAgentTools: McpTool[] = await Promise.all(
+    targetToolsForSubAgent.map(async (item) => {
+      const mcpTool = await manageApiClient.getMcpTool(item.tool.id);
+      if (item.relationshipId) {
+        mcpTool.relationshipId = item.relationshipId;
+      }
+      if (item.selectedTools && item.selectedTools.length > 0) {
+        const selectedToolsSet = new Set(item.selectedTools);
+        mcpTool.availableTools =
+          mcpTool.availableTools?.filter((tool) => selectedToolsSet.has(tool.name)) || [];
+      }
+      return mcpTool;
+    })
+  );
+
+  // Get transfer relations for the target sub-agent
+  const targetTransferRelations = getTransferRelationsForTargetSubAgent({
+    agent,
+    subAgentId: relation.id,
+  });
+
+  // Get external agent relations for the target sub-agent
+  const targetExternalAgentRelations = getExternalAgentRelationsForTargetSubAgent({
+    agent,
+    project,
+    subAgentId: relation.id,
+  });
+
+  // Build transfer relations config for target agent (nested level)
+  const targetTransferRelationsConfig: AgentConfig[] = targetTransferRelations.map((rel) => ({
+    baseUrl,
+    apiKey,
+    id: rel.id,
+    tenantId,
+    projectId,
+    agentId,
+    name: rel.name,
+    description: rel.description || undefined,
+    prompt: '',
+    delegateRelations: [],
+    subAgentRelations: [],
+    transferRelations: [],
+    project,
+    // Note: Not including tools for nested relations to avoid infinite recursion
+  }));
+
+  // Build delegate relations config for target agent (external agents only)
+  const targetDelegateRelationsConfig: DelegateRelation[] = targetExternalAgentRelations.map(
+    (rel) => ({
+      type: 'external' as const,
+      config: {
+        relationId: rel.relationId || `external-${rel.externalAgent.id}`,
+        id: rel.externalAgent.id,
+        name: rel.externalAgent.name,
+        description: rel.externalAgent.description || '',
+        ref: executionContext.resolvedRef,
+        baseUrl: rel.externalAgent.baseUrl,
+        headers: rel.headers || undefined,
+        credentialReferenceId: rel.externalAgent.credentialReferenceId,
+        relationType: 'delegate',
+      },
+    })
+  );
+
+  return {
+    baseUrl,
+    apiKey,
+    id: relation.id,
+    tenantId,
+    projectId,
+    agentId,
+    name: relation.name,
+    description: relation.description || undefined,
+    prompt: '',
+    delegateRelations: targetDelegateRelationsConfig,
+    subAgentRelations: [],
+    transferRelations: targetTransferRelationsConfig,
+    tools: targetAgentTools,
+  };
 }

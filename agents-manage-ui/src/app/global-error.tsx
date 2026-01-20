@@ -2,16 +2,13 @@
 
 import NextError from 'next/error';
 import { type FC, useEffect } from 'react';
+import { sentry } from '@/lib/sentry';
 
 const GlobalError: FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      import('@sentry/nextjs').then((Sentry) => {
-        Sentry.captureException(error);
-      });
-    }
+    sentry.captureException(error);
   }, [error]);
   // global-error must include html and body tags
   return (

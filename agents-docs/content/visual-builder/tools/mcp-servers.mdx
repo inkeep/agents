@@ -23,10 +23,11 @@ MCP servers provide tools that your agents can use to interact with external API
 
 3. Optionally, configure additional settings:
 
-| Field        | Description                                                                                                                                                                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Image URL`  | Custom icon for the server (URL or base64 data URL)                                                                                                                                                                                                    |
-| `Credential` | Authentication credential if the server requires it. Choose from existing credentials, or leave blank and add a credential later. For OAuth 2.1/PKCE flows, leave blank and use the `Click to Login` button in the server details page to authenticate |
+| Field           | Description                                                                                                                                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Image URL`     | Custom icon for the server (URL or base64 data URL)                                                                                                                                                                                                    |
+| `Custom Prompt` | Additional instructions for agents on how to use tools from this server. This context is provided to agents alongside each tool from this server.                                                                                                     |
+| `Credential`    | Authentication credential if the server requires it. Choose from existing credentials, or leave blank and add a credential later. For OAuth 2.1/PKCE flows, leave blank and use the `Click to Login` button in the server details page to authenticate |
 
 4. Click "Create" to create the server.
 
@@ -65,6 +66,25 @@ To modify an existing MCP server:
 1. From the server details page, click the **Edit** button
 2. The edit form shows all the same fields as creation, plus the ability to update **Active Tools**. By default, all available tools are enabled. You can select specific tools to enable.
 3. Click **Save** to apply changes
+
+## Tool overrides
+
+For each enabled tool, you can configure overrides to customize how the tool appears to agents:
+
+1. In the **Active Tools** section of the edit form, click the **Override** badge next to any tool
+2. Configure the following override options:
+
+| Field           | Description                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `Display Name`  | Custom name for the tool that agents will see (overrides the original tool name)                                    |
+| `Description`   | Custom description that explains what the tool does (overrides the original description)                            |
+| `Schema`        | Simplified parameter schema using visual builder or JSON. Useful for hiding complex parameters or adding defaults. |
+
+3. Click **Save Override** to apply the customizations
+
+<Note>
+  Tool overrides help simplify complex tools for agents by providing clearer names, better descriptions, and simplified parameter schemas. The original tool functionality remains unchanged.
+</Note>
 
 <Image
   src="/images/mcp-server-edit-form.png"

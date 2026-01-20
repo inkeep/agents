@@ -12,6 +12,75 @@ import type { AgentConfig, ExternalAgentRelationConfig } from '../../agents/Agen
 import { createDelegateToAgentTool, createTransferToAgentTool } from '../../agents/relationTools';
 import { saveA2AMessageResponse } from '../../data/conversations';
 
+function createMockExecutionContext(
+  overrides: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    credentialReferences?: Record<string, any>;
+  } = {}
+) {
+  const tenantId = overrides.tenantId ?? 'test-tenant';
+  const projectId = overrides.projectId ?? 'test-project';
+  const agentId = overrides.agentId ?? 'test-agent';
+
+  return {
+    apiKey: 'test-api-key',
+    apiKeyId: 'test-api-key-id',
+    tenantId,
+    projectId,
+    agentId,
+    baseUrl: 'http://localhost:3000',
+    resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      agents: {
+        [agentId]: {
+          id: agentId,
+          tenantId,
+          projectId,
+          name: 'Test Agent',
+          description: 'Test agent',
+          defaultSubAgentId: 'target-agent',
+          subAgents: {
+            'target-agent': {
+              id: 'target-agent',
+              tenantId,
+              projectId,
+              name: 'Target Agent',
+              description: 'A target agent for testing',
+              prompt: 'You are a target agent.',
+              canUse: [],
+              canTransferTo: [],
+              canDelegateTo: [],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          },
+          tools: {},
+          externalAgents: {},
+          teamAgents: {},
+          transferRelations: {},
+          delegateRelations: {},
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: overrides.credentialReferences ?? {},
+      statusUpdates: null,
+    },
+  };
+}
+
 // Mock @inkeep/agents-core functions using hoisted pattern
 const { createMessageMock, getCredentialReferenceMock, getExternalAgentMock } = vi.hoisted(() => {
   const createMessageMock = vi.fn(() => vi.fn().mockResolvedValue({ id: 'mock-message-id' }));
@@ -27,6 +96,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createMessage: createMessageMock,
     getCredentialReference: getCredentialReferenceMock,
     getExternalAgent: getExternalAgentMock,
+    generateServiceToken: vi.fn().mockResolvedValue('test-service-token'),
     getTracer: vi.fn().mockReturnValue({
       startSpan: vi.fn().mockReturnValue({
         setAttributes: vi.fn(),
@@ -66,6 +136,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         has: vi.fn().mockReturnValue(true),
       };
     }),
+    generateId: vi.fn(() => 'test-nanoid-123'),
   };
 });
 
@@ -75,6 +146,16 @@ vi.mock('../../data/db/dbClient.js', () => ({
 }));
 
 // Credentials moved to @inkeep/agents-core, mocked above
+
+// Mock ContextResolver used by relationTools (comes from local module)
+vi.mock('../../context.js', () => ({
+  ContextResolver: vi.fn().mockImplementation(function ContextResolver() {
+    return {
+      resolveHeaders: vi.fn().mockResolvedValue({}),
+      resolveContext: vi.fn().mockResolvedValue({}),
+    };
+  }),
+}));
 
 // Mock the A2AClient
 const mockSendMessage = vi.fn().mockResolvedValue({ result: 'success', error: null });
@@ -101,15 +182,6 @@ vi.mock('../../env.js', () => ({
     AGENT_BASE_URL: 'http://localhost:3000',
   },
 }));
-
-// Mock generateId
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
-  return {
-    ...actual,
-    generateId: () => 'test-nanoid-123',
-  };
-});
 
 // Mock conversations functions (saveA2AMessageResponse is still in local file)
 vi.mock('../../data/conversations.js', () => ({
@@ -159,6 +231,7 @@ describe('Relationship Tools', () => {
   let mockExternalAgentConfig: ExternalAgentRelationConfig;
   let _mockSendMessageInstance: any;
   let mockCredentialStoreRegistry: any;
+  let mockExecutionContext: any;
 
   const mockToolCallOptions = {
     toolCallId: 'test-tool-call-id',
@@ -171,13 +244,12 @@ describe('Relationship Tools', () => {
       config: { ...mockAgentConfig, ...config },
     },
     callingAgentId: 'test-calling-agent',
-    tenantId: 'test-tenant',
-    projectId: 'test-project',
-    agentId: 'test-agent',
+    executionContext: mockExecutionContext,
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
       threadId: 'test-thread',
+      apiKey: 'test-api-key',
     },
     subAgent: {
       getStreamingHelper: vi.fn().mockReturnValue(undefined),
@@ -190,13 +262,12 @@ describe('Relationship Tools', () => {
       config: { ...mockExternalAgentConfig, ...config },
     },
     callingAgentId: 'test-calling-agent',
-    tenantId: 'test-tenant',
-    projectId: 'test-project',
-    agentId: 'test-agent',
+    executionContext: mockExecutionContext,
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
       threadId: 'test-thread',
+      apiKey: 'test-api-key',
     },
     subAgent: {
       getStreamingHelper: vi.fn().mockReturnValue(undefined),
@@ -208,6 +279,8 @@ describe('Relationship Tools', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockExecutionContext = createMockExecutionContext();
 
     // Create mock credential store registry
     mockCredentialStoreRegistry = {
@@ -241,31 +314,30 @@ describe('Relationship Tools', () => {
       name: 'External Agent',
       description: 'An external agent for testing',
       baseUrl: 'http://external-agent.example.com',
+      ref: { type: 'branch', name: 'main', hash: 'test-hash' },
+      headers: null,
+      credentialReferenceId: null,
       relationId: 'test-relation-id',
-      relationType: 'test-relation-type',
+      relationType: 'delegate',
     };
   });
 
   describe('createTransferToAgentTool', () => {
-    it.skip('should create a transfer tool with correct description', () => {
+    it('should create a transfer tool with correct description', () => {
       const tool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent target-agent');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent'
+      );
     });
 
-    it.skip('should have proper tool structure', () => {
+    it('should have proper tool structure', () => {
       const tool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       // Verify tool structure
@@ -275,7 +347,7 @@ describe('Relationship Tools', () => {
       expect(typeof tool.execute).toBe('function');
     });
 
-    it.skip('should work with different agent configurations', () => {
+    it('should work with different agent configurations', () => {
       const differentAgentConfig: AgentConfig = {
         ...mockAgentConfig,
         id: 'refund-agent',
@@ -285,15 +357,14 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: differentAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent refund-agent');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent refund-agent'
+      );
     });
 
-    it.skip('should handle agent IDs with special characters', () => {
+    it('should handle agent IDs with special characters', () => {
       const specialAgentConfig: AgentConfig = {
         ...mockAgentConfig,
         id: 'customer-support-agent-v2',
@@ -302,17 +373,14 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: specialAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool.description).toContain(
-        'Hand off the conversation to agent customer-support-agent-v2'
+        'This tool immediately transfers conversation control to agent customer-support-agent-v2'
       );
     });
 
-    it.skip('should handle invalid agent configuration', () => {
+    it('should handle invalid agent configuration', () => {
       const invalidAgentConfig = {
         ...mockAgentConfig,
         id: '', // Empty ID
@@ -321,15 +389,14 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: invalidAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent ');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent '
+      );
     });
 
-    it.skip('should handle undefined agent config properties', () => {
+    it('should handle undefined agent config properties', () => {
       const partialAgentConfig = {
         id: 'test-agent',
       } as AgentConfig;
@@ -337,29 +404,28 @@ describe('Relationship Tools', () => {
       const tool = createTransferToAgentTool({
         transferConfig: partialAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent test-agent');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent test-agent'
+      );
     });
   });
 
   describe('Unified createDelegateToAgentTool', () => {
-    it.skip('should create internal delegation tool when type is internal', () => {
+    it('should create internal delegation tool when type is internal', () => {
       const tool = createDelegateToAgentTool(getDelegateParams());
 
       expect(tool.description).toContain('Delegate a specific task to another agent');
     });
 
-    it.skip('should create external delegation tool when type is external', () => {
+    it('should create external delegation tool when type is external', () => {
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
 
       expect(tool.description).toContain('Delegate a specific task to another agent');
     });
 
-    it.skip('should handle different agent configurations for internal delegation', () => {
+    it('should handle different agent configurations for internal delegation', () => {
       const customAgentConfig = {
         ...mockAgentConfig,
         id: 'custom-agent',
@@ -371,7 +437,7 @@ describe('Relationship Tools', () => {
       expect(tool.description).toContain('Delegate a specific task to another agent');
     });
 
-    it.skip('should handle different external agent configurations', () => {
+    it('should handle different external agent configurations', () => {
       const customExternalAgent = {
         id: 'custom-external',
         name: 'Custom External Agent',
@@ -384,7 +450,7 @@ describe('Relationship Tools', () => {
       expect(tool.description).toContain('Delegate a specific task to another agent');
     });
 
-    it.skip('should have consistent tool structure for both internal and external delegation', () => {
+    it('should have consistent tool structure for both internal and external delegation', () => {
       const internalTool = createDelegateToAgentTool(getDelegateParams());
       const externalTool = createDelegateToAgentTool(getExternalDelegateParams());
 
@@ -397,7 +463,7 @@ describe('Relationship Tools', () => {
       }
     });
 
-    it.skip('should execute external delegation with proper message structure', async () => {
+    it('should execute external delegation with proper message structure', async () => {
       mockSendMessage.mockResolvedValue({ result: 'external success', error: null });
 
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
@@ -428,6 +494,7 @@ describe('Relationship Tools', () => {
           metadata: {
             conversationId: 'test-conversation',
             threadId: 'test-thread',
+            apiKey: 'test-api-key',
             fromExternalAgentId: 'test-calling-agent',
             isDelegation: true,
             delegationId: 'del_test-nanoid-123',
@@ -436,7 +503,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it.skip('should record outgoing external delegation message with external visibility', async () => {
+    it('should record outgoing external delegation message with external visibility', async () => {
       mockSendMessage.mockResolvedValue({ result: 'success', error: null });
 
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
@@ -468,7 +535,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it.skip('should save external delegation response with external visibility', async () => {
+    it('should save external delegation response with external visibility', async () => {
       const mockResponse = { result: 'external response', error: null };
       mockSendMessage.mockResolvedValue(mockResponse);
 
@@ -490,7 +557,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it.skip('should handle A2A client errors in external delegation', async () => {
+    it('should handle A2A client errors in external delegation', async () => {
       const errorResponse = {
         result: null,
         error: { message: 'External agent connection failed', code: 503 },
@@ -507,7 +574,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it.skip('should handle network errors in external delegation', async () => {
+    it('should handle network errors in external delegation', async () => {
       mockSendMessage.mockRejectedValue(new Error('Network timeout'));
 
       const tool = createDelegateToAgentTool(getExternalDelegateParams());
@@ -520,7 +587,7 @@ describe('Relationship Tools', () => {
       );
     });
 
-    it.skip('should execute internal delegation with proper message structure', async () => {
+    it('should execute internal delegation with proper message structure', async () => {
       mockSendMessage.mockResolvedValue({ result: 'internal success', error: null });
 
       const tool = createDelegateToAgentTool(getDelegateParams());
@@ -551,6 +618,7 @@ describe('Relationship Tools', () => {
           metadata: {
             conversationId: 'test-conversation',
             threadId: 'test-thread',
+            apiKey: 'test-api-key',
             fromSubAgentId: 'test-calling-agent',
             isDelegation: true,
             delegationId: 'del_test-nanoid-123',
@@ -559,7 +627,7 @@ describe('Relationship Tools', () => {
       });
     });
 
-    it.skip('should record outgoing internal delegation message with internal visibility', async () => {
+    it('should record outgoing internal delegation message with internal visibility', async () => {
       mockSendMessage.mockResolvedValue({ result: 'success', error: null });
 
       const tool = createDelegateToAgentTool(getDelegateParams());
@@ -593,14 +661,11 @@ describe('Relationship Tools', () => {
   });
 
   describe('Tool Integration', () => {
-    it.skip('should create both transfer and delegate tools for the same agent', () => {
+    it('should create both transfer and delegate tools for the same agent', () => {
       // Create both tools for the same agent
       const transferTool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
       const delegateTool = createDelegateToAgentTool(getDelegateParams());
 
@@ -613,23 +678,17 @@ describe('Relationship Tools', () => {
       expect(delegateTool.description).toContain(mockAgentConfig.id);
     });
 
-    it.skip('should create tools for multiple different agents', () => {
+    it('should create tools for multiple different agents', () => {
       const agent1 = { ...mockAgentConfig, id: 'agent-1' };
       const agent2 = { ...mockAgentConfig, id: 'agent-2' };
 
       const tool1 = createTransferToAgentTool({
         transferConfig: agent1,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
       const tool2 = createTransferToAgentTool({
         transferConfig: agent2,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       expect(tool1.description).toContain('agent-1');
@@ -640,13 +699,10 @@ describe('Relationship Tools', () => {
       expect(tool2.description).not.toContain('agent-1');
     });
 
-    it.skip('should create all three types of tools (transfer, delegate, external delegate)', () => {
+    it('should create all three types of tools (transfer, delegate, external delegate)', () => {
       const transferTool = createTransferToAgentTool({
         transferConfig: mockAgentConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
 
       const delegateTool = createDelegateToAgentTool(getDelegateParams());
@@ -654,7 +710,9 @@ describe('Relationship Tools', () => {
       const externalDelegateTool = createDelegateToAgentTool(getExternalDelegateParams());
 
       // All tools should be created successfully
-      expect(transferTool.description).toContain('Hand off the conversation to');
+      expect(transferTool.description).toContain(
+        'This tool immediately transfers conversation control to agent'
+      );
       expect(delegateTool.description).toContain('Delegate a specific task to');
       expect(externalDelegateTool.description).toContain('Delegate a specific task to');
 
@@ -669,7 +727,7 @@ describe('Relationship Tools', () => {
   });
 
   describe('Error Handling', () => {
-    it.skip('should handle malformed agent configurations gracefully', () => {
+    it('should handle malformed agent configurations gracefully', () => {
       const malformedConfig = {
         id: null,
         name: undefined,
@@ -680,23 +738,17 @@ describe('Relationship Tools', () => {
         createTransferToAgentTool({
           transferConfig: malformedConfig,
           callingAgentId: 'test-agent',
-          subAgent: {
-            getStreamingHelper: vi.fn().mockReturnValue(undefined),
-          },
         })
       ).not.toThrow();
 
       const tool = createTransferToAgentTool({
         transferConfig: malformedConfig,
         callingAgentId: 'test-agent',
-        subAgent: {
-          getStreamingHelper: vi.fn().mockReturnValue(undefined),
-        },
       });
       expect(tool).toHaveProperty('description');
     });
 
-    it.skip('should handle missing environment variables', () => {
+    it('should handle missing environment variables', () => {
       // Even if env is missing/malformed, tool creation should work
       const tool = createDelegateToAgentTool(getDelegateParams());
 

@@ -17,7 +17,7 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-sdk",
-  "version": "0.39.5",
+  "version": "0.41.2",
   "description": "Agents SDK for building and managing agents in the Inkeep Agent Framework",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -14,6 +14,7 @@
   "scripts": {
     "knip": "knip --directory ../.. --workspace packages/agents-sdk --config packages/agents-sdk/knip.config.ts --dependencies",
     "build": "tsdown",
+    "dev": "pnpm build --watch",
     "test": "ENVIRONMENT=test vitest --run",
     "test:watch": "ENVIRONMENT=test vitest",
     "test:coverage": "ENVIRONMENT=test vitest --run --coverage",

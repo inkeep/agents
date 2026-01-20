@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -44,6 +45,8 @@ const defaultValues: MCPToolFormData = {
         type: MCPTransportType.streamableHttp,
       },
       toolsConfig: { type: 'all' },
+      toolOverrides: {},
+      prompt: '',
     },
   },
   imageUrl: '', // Initialize as empty string to avoid uncontrolled/controlled warning
@@ -106,6 +109,7 @@ export function MCPServerForm({
               transport: {
                 type: data.config.mcp.transport.type,
               },
+              prompt: data.config.mcp.prompt,
             },
           },
           credentialReferenceId: null,
@@ -149,6 +153,7 @@ export function MCPServerForm({
               transport: {
                 type: data.config.mcp.transport.type,
               },
+              prompt: data.config.mcp.prompt,
             },
           },
           credentialReferenceId: null,
@@ -259,6 +264,12 @@ export function MCPServerForm({
             label="Image URL (optional)"
             placeholder="https://example.com/icon.png or data:image/png;base64,..."
           />
+          <GenericTextarea
+            control={form.control}
+            name="config.mcp.prompt"
+            label="Custom Prompt (optional)"
+            placeholder="Instructions for how agents should use these tools..."
+          />
 
           <div className="space-y-3">
             <GenericSelect
@@ -325,13 +336,30 @@ export function MCPServerForm({
           )}
 
           {tool && (
-            <ActiveToolsSelector
-              control={form.control}
-              name="config.mcp.toolsConfig"
-              label="Tools"
-              availableTools={tool?.availableTools || []}
-              description="Select which tools should be enabled for this MCP server"
-            />
+            <>
+              <ActiveToolsSelector
+                control={form.control}
+                name="config.mcp.toolsConfig"
+                label="Tools"
+                availableTools={tool?.availableTools || []}
+                description="Select which tools should be enabled for this MCP server"
+                toolOverrides={form.watch('config.mcp.toolOverrides') || {}}
+                onToolOverrideChange={(toolName, override) => {
+                  const currentOverrides = form.watch('config.mcp.toolOverrides') || {};
+                  const newOverrides = { ...currentOverrides };
+
+                  if (Object.keys(override).length === 0) {
+                    // Remove override if empty
+                    delete newOverrides[toolName];
+                  } else {
+                    newOverrides[toolName] = override;
+                  }
+
+                  form.setValue('config.mcp.toolOverrides', newOverrides);
+                  form.trigger('config.mcp.toolOverrides');
+                }}
+              />
+            </>
           )}
 
           <div className="flex w-full justify-between">

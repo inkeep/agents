@@ -85,6 +85,7 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchemaWithPre
   if (!field) {
     return { type: 'string' };
   }
+  const { allRequired } = jsonSchemaStore.getState();
   switch (field.type) {
     case 'object': {
       const properties: Record<string, JSONSchema7> = {};
@@ -93,7 +94,8 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchemaWithPre
       for (const property of field.properties ?? []) {
         if (!property.name) continue;
         properties[property.name] = fieldsToJsonSchema(property);
-        if (property.isRequired) {
+        // When allRequired is true, mark all properties as required
+        if (allRequired || property.isRequired) {
           required.push(property.name);
         }
       }
@@ -539,10 +541,11 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
 interface JsonSchemaStateData {
   fields: EditableField[];
   hasInPreview: boolean;
+  allRequired: boolean;
 }
 
 interface JsonSchemaActions {
-  setFields: (schemaJson: string, hasInPreview?: boolean) => void;
+  setFields: (schemaJson: string, hasInPreview?: boolean, allRequired?: boolean) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
   addChild: (parentId?: string) => void;
@@ -557,10 +560,11 @@ interface JsonSchemaState extends JsonSchemaStateData {
 const jsonSchemaState: StateCreator<JsonSchemaState> = (set) => ({
   fields: [],
   hasInPreview: false,
+  allRequired: false,
   actions: {
-    setFields(schemaJson, hasInPreview) {
-      // Update preview mode before parsing the schema
-      set({ hasInPreview });
+    setFields(schemaJson, hasInPreview, allRequired) {
+      // Update preview mode and allRequired before parsing the schema
+      set({ hasInPreview, allRequired: allRequired ?? false });
       // Parse fields from the JSON schema using the updated `hasInPreview` state
       set({ fields: parseFieldsFromJson(schemaJson) });
     },

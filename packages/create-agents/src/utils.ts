@@ -87,6 +87,7 @@ type FileConfig = {
   openAiKey?: string;
   anthropicKey?: string;
   googleKey?: string;
+  azureKey?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
   disableGit?: boolean;
@@ -101,6 +102,7 @@ export const createAgents = async (
     openAiKey?: string;
     anthropicKey?: string;
     googleKey?: string;
+    azureKey?: string;
     template?: string;
     customProjectId?: string;
     disableGit?: boolean;
@@ -115,6 +117,7 @@ export const createAgents = async (
     openAiKey,
     anthropicKey,
     googleKey,
+    azureKey,
     template,
     customProjectId,
     disableGit,
@@ -172,13 +175,14 @@ export const createAgents = async (
     }
   }
 
-  if (!anthropicKey && !openAiKey && !googleKey) {
+  if (!anthropicKey && !openAiKey && !googleKey && !azureKey) {
     const providerChoice = await p.select({
       message: 'Which AI provider would you like to use?',
       options: [
         { value: 'anthropic', label: 'Anthropic' },
         { value: 'openai', label: 'OpenAI' },
         { value: 'google', label: 'Google' },
+        { value: 'azure', label: 'Azure' },
       ],
     });
 
@@ -235,6 +239,22 @@ export const createAgents = async (
         process.exit(0);
       }
       googleKey = googleKeyResponse as string;
+    } else if (providerChoice === 'azure') {
+      const azureKeyResponse = await p.password({
+        message: 'Enter your Azure API key:',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'Azure API key is required';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(azureKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      azureKey = azureKeyResponse as string;
     }
   }
 
@@ -245,6 +265,86 @@ export const createAgents = async (
     defaultModelSettings = defaultOpenaiModelConfigurations;
   } else if (googleKey) {
     defaultModelSettings = defaultGoogleModelConfigurations;
+  } else if (azureKey) {
+    // Azure requires custom configuration - prompt for deployment details
+    p.note('Azure OpenAI requires custom deployment configuration.');
+
+    const deploymentName = await p.text({
+      message: 'Enter your Azure deployment name:',
+      placeholder: 'my-gpt-4o-deployment',
+      validate: (value) => {
+        if (!value?.trim()) return 'Deployment name is required';
+      },
+    });
+
+    if (p.isCancel(deploymentName)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    const connectionMethod = await p.select({
+      message: 'How would you like to connect to Azure?',
+      options: [
+        { value: 'resource', label: 'Azure Resource Name (recommended)' },
+        { value: 'url', label: 'Custom Base URL' },
+      ],
+    });
+
+    if (p.isCancel(connectionMethod)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    const azureProviderOptions: any = {};
+
+    if (connectionMethod === 'resource') {
+      const resourceName = await p.text({
+        message: 'Enter your Azure resource name:',
+        placeholder: 'your-azure-resource',
+        validate: (value) => {
+          if (!value?.trim()) return 'Resource name is required';
+        },
+      });
+
+      if (p.isCancel(resourceName)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      azureProviderOptions.resourceName = resourceName;
+    } else {
+      const baseURL = await p.text({
+        message: 'Enter your Azure base URL:',
+        placeholder: 'https://your-endpoint.openai.azure.com/openai',
+        validate: (value) => {
+          if (!value?.trim()) return 'Base URL is required';
+          if (!value.startsWith('https://')) return 'Base URL must start with https://';
+        },
+      });
+
+      if (p.isCancel(baseURL)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      azureProviderOptions.baseURL = baseURL;
+    }
+
+    // Create Azure model configuration with user's deployment
+    defaultModelSettings = {
+      base: {
+        model: `azure/${deploymentName}`,
+        providerOptions: azureProviderOptions,
+      },
+      structuredOutput: {
+        model: `azure/${deploymentName}`,
+        providerOptions: azureProviderOptions,
+      },
+      summarizer: {
+        model: `azure/${deploymentName}`,
+        providerOptions: azureProviderOptions,
+      },
+    };
   }
 
   if (Object.keys(defaultModelSettings).length === 0) {
@@ -289,6 +389,7 @@ export const createAgents = async (
       openAiKey,
       anthropicKey,
       googleKey,
+      azureKey,
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
       disableGit: disableGit,
@@ -423,13 +524,17 @@ async function createEnvironmentFiles(config: FileConfig) {
   const envContent = `# Environment
 ENVIRONMENT=development
 
-# Database
-DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+# Database Configuration (Split Database Setup)
+# Manage API uses DoltgreSQL on port 5432 for version control features
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+# Run API uses PostgreSQL on port 5433 for runtime operations
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
+AZURE_API_KEY=${config.azureKey || 'your-azure-key-here'}
 
 # Inkeep API URLs
 # Internal URLs (server-side, Docker internal networking)
@@ -467,6 +572,8 @@ DEFAULT_PROJECT_ID=${config.projectId}
 # INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
 BETTER_AUTH_SECRET=${betterAuthSecret}
 DISABLE_AUTH=true
+
+ENABLE_AUTHZ=false
 
 `;
 

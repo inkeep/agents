@@ -35,7 +35,9 @@ export function getCurrentVersion(): string {
 /**
  * Fetch the latest version from npm registry
  */
-export async function getLatestVersion(packageName = DEFAULT_PACKAGE_NAME): Promise<string> {
+export async function getLatestVersion(
+  packageName: string = DEFAULT_PACKAGE_NAME
+): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 

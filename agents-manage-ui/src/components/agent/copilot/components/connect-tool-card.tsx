@@ -30,6 +30,8 @@ interface ConnectToolCardProps {
   targetProjectId?: string;
   onConnect: OAuthLoginHandler;
   refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
+  /** Whether auth is disabled - pass this for Shadow DOM compatibility */
+  isAuthDisabled?: boolean;
 }
 
 export function ConnectToolCard({
@@ -38,6 +40,7 @@ export function ConnectToolCard({
   targetProjectId,
   onConnect,
   refreshAgentGraph,
+  isAuthDisabled,
 }: ConnectToolCardProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'connecting' | 'success' | 'error'>(
     'loading'
@@ -57,6 +60,7 @@ export function ConnectToolCard({
       await executeConnect(scope);
       refreshAgentGraph?.({ fetchTools: true });
     },
+    isAuthDisabled,
   });
 
   useEffect(() => {

@@ -1,9 +1,6 @@
 import path from 'node:path';
-import { getLogger } from '@inkeep/agents-core';
 import degit from 'degit';
 import fs from 'fs-extra';
-
-const logger = getLogger('templates');
 
 export interface ContentReplacement {
   /** Relative file path within the cloned template */
@@ -17,7 +14,7 @@ export async function cloneTemplate(
   templatePath: string,
   targetPath: string,
   replacements?: ContentReplacement[]
-) {
+): Promise<void> {
   await fs.mkdir(targetPath, { recursive: true });
 
   const templatePathSuffix = templatePath.replace('https://github.com/', '');
@@ -29,8 +26,8 @@ export async function cloneTemplate(
     if (replacements && replacements.length > 0) {
       await replaceContentInFiles(targetPath, replacements);
     }
-  } catch (_error) {
-    console.log(`❌ Error cloning template: ${_error}`);
+  } catch (error) {
+    console.log(`❌ Error cloning template: ${error}`);
     process.exit(1);
   }
 }
@@ -39,7 +36,7 @@ export async function cloneTemplateLocal(
   templatePath: string,
   targetPath: string,
   replacements?: ContentReplacement[]
-) {
+): Promise<void> {
   await fs.mkdir(targetPath, { recursive: true });
 
   try {
@@ -48,7 +45,7 @@ export async function cloneTemplateLocal(
       errorOnExist: false,
     });
 
-    if (replacements && replacements.length > 0) {
+    if (replacements?.length) {
       await replaceContentInFiles(targetPath, replacements);
     }
   } catch (error) {
@@ -63,7 +60,7 @@ export async function cloneTemplateLocal(
 export async function replaceContentInFiles(
   targetPath: string,
   replacements: ContentReplacement[]
-) {
+): Promise<void> {
   for (const replacement of replacements) {
     const filePath = path.join(targetPath, replacement.filePath);
 

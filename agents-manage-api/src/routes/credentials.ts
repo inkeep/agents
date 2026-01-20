@@ -20,33 +20,26 @@ import {
   TenantProjectParamsSchema,
   updateCredentialReference,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { requirePermission } from '../middleware/require-permission';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { AppVariablesWithCredentials } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: AppVariablesWithCredentials }>();
 
-// Apply permission middleware by HTTP method
+// Write operations require 'edit' permission on the project
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission<{ Variables: AppVariablesWithCredentials }>({
-      credential: ['create'],
-    })(c, next);
+    return requireProjectPermission<{ Variables: AppVariablesWithCredentials }>('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PATCH') {
-    return requirePermission<{ Variables: AppVariablesWithCredentials }>({
-      credential: ['update'],
-    })(c, next);
+    return requireProjectPermission<{ Variables: AppVariablesWithCredentials }>('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission<{ Variables: AppVariablesWithCredentials }>({
-      credential: ['delete'],
-    })(c, next);
+    return requireProjectPermission<{ Variables: AppVariablesWithCredentials }>('edit')(c, next);
   }
   return next();
 });
@@ -76,11 +69,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listCredentialReferencesPaginated(dbClient)({
+    const result = await listCredentialReferencesPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -114,7 +108,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const credential = await getCredentialReferenceWithResources(dbClient)({
+    const db = c.get('db');
+    const credential = await getCredentialReferenceWithResources(db)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -160,6 +155,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -169,7 +165,7 @@ app.openapi(
       projectId,
     };
 
-    const credential = await createCredentialReference(dbClient)(credentialData);
+    const credential = await createCredentialReference(db)(credentialData);
     const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
     return c.json({ data: validatedCredential }, 201);
   }
@@ -205,10 +201,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedCredential = await updateCredentialReference(dbClient)({
+    const updatedCredential = await updateCredentialReference(db)({
       scopes: { tenantId, projectId },
       id,
       data: body,
@@ -251,9 +248,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const credential = await getCredentialReferenceById(dbClient)({
+    const credential = await getCredentialReferenceById(db)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -292,7 +290,7 @@ app.openapi(
       }
     }
 
-    const deleted = await deleteCredentialReference(dbClient)({
+    const deleted = await deleteCredentialReference(db)({
       scopes: { tenantId, projectId },
       id,
     });

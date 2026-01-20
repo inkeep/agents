@@ -1,24 +1,21 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  canUseProject,
   createApiError,
   ErrorResponseSchema,
   getAgentById,
+  type OrgRole,
   projectExists,
   signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('playgroundToken');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
-
-// Require agent:create permission
-app.use('/', requirePermission({ agent: ['create'] }));
 
 const PlaygroundTokenRequestSchema = z.object({
   projectId: z.string(),
@@ -70,8 +67,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const userId = c.get('userId');
     const tenantId = c.get('tenantId'); // Set by requireTenantAccess middleware from URL param
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
     const { projectId, agentId } = c.req.valid('json');
 
     logger.info(
@@ -79,8 +78,25 @@ app.openapi(
       'Generating temporary JWT token for playground'
     );
 
+    // Check SpiceDB 'use' permission for this project
+    // This allows project_admin and project_member roles, but not project_viewer
+    const canUse = await canUseProject({
+      tenantId,
+      userId,
+      projectId,
+      orgRole: tenantRole,
+    });
+
+    if (!canUse) {
+      logger.warn({ userId, tenantId, projectId }, 'User does not have use permission on project');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
+      });
+    }
+
     // Verify project exists and belongs to the tenant
-    const projectExistsCheck = await projectExists(dbClient)({ tenantId, projectId });
+    const projectExistsCheck = await projectExists(db)({ tenantId, projectId });
     if (!projectExistsCheck) {
       logger.warn({ userId, tenantId, projectId }, 'Project not found or access denied');
       throw createApiError({
@@ -90,7 +106,7 @@ app.openapi(
     }
 
     // Verify agent exists and belongs to the project
-    const agent = await getAgentById(dbClient)({ scopes: { tenantId, projectId, agentId } });
+    const agent = await getAgentById(db)({ scopes: { tenantId, projectId, agentId } });
     if (!agent) {
       logger.warn({ userId, tenantId, projectId, agentId }, 'Agent not found or access denied');
       throw createApiError({

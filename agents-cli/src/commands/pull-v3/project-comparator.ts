@@ -8,7 +8,7 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { compareJsonObjects } from '../../utils/json-comparator';
-import type { ComponentRegistry, ComponentType } from './utils/component-registry';
+import type { ComponentType } from './utils/component-registry';
 
 export interface ComponentChange {
   componentType: ComponentType;
@@ -60,7 +60,6 @@ export interface ProjectComparison {
 export async function compareProjects(
   localProject: FullProjectDefinition | null,
   remoteProject: FullProjectDefinition,
-  localRegistry: ComponentRegistry | null,
   debug: boolean = false
 ): Promise<ProjectComparison> {
   if (debug) {
@@ -69,14 +68,12 @@ export async function compareProjects(
 
   // If no local project, everything is new
   if (!localProject) {
-    return createNewProjectComparison(remoteProject, debug);
+    return createNewProjectComparison(remoteProject);
   }
 
   // Direct component-by-component comparison
-  const changes = compareComponentsDirectly(localProject, remoteProject, localRegistry, debug);
+  const changes = compareComponentsDirectly(localProject, remoteProject);
   const componentChanges = groupChangesByType(changes);
-
-  // Debug logging removed
 
   return {
     hasChanges: changes.length > 0,
@@ -90,10 +87,7 @@ export async function compareProjects(
 /**
  * Handle new project case (everything is added)
  */
-function createNewProjectComparison(
-  project: FullProjectDefinition,
-  debug: boolean
-): ProjectComparison {
+function createNewProjectComparison(project: FullProjectDefinition): ProjectComparison {
   const changes: ComponentChange[] = [];
 
   // Add all agents
@@ -164,7 +158,7 @@ function createNewProjectComparison(
 
   // Add sub-agents (extracted from agents)
   if (project.agents) {
-    Object.entries(project.agents).forEach(([agentId, agentData]) => {
+    Object.values(project.agents).forEach((agentData) => {
       if (agentData.subAgents) {
         Object.keys(agentData.subAgents).forEach((subAgentId) => {
           changes.push({
@@ -189,7 +183,7 @@ function createNewProjectComparison(
 
   // Add context configs (extracted from agents)
   if (project.agents) {
-    Object.entries(project.agents).forEach(([agentId, agentData]) => {
+    Object.values(project.agents).forEach((agentData) => {
       if (agentData.contextConfig) {
         const contextConfigId = agentData.contextConfig.id; // Use actual contextConfig.id
         if (!contextConfigId) {
@@ -242,69 +236,51 @@ function createNewProjectComparison(
  */
 function compareComponentsDirectly(
   localProject: FullProjectDefinition,
-  remoteProject: FullProjectDefinition,
-  localRegistry: ComponentRegistry | null,
-  debug: boolean
+  remoteProject: FullProjectDefinition
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
   // Compare each component type
-  changes.push(...compareAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
-  changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
-  changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}, debug));
+  changes.push(...compareAgents(localProject.agents || {}, remoteProject.agents || {}));
+  changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}));
+  changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}));
   changes.push(
-    ...compareFunctionTools(
-      localProject.functionTools || {},
-      remoteProject.functionTools || {},
-      debug
-    )
+    ...compareFunctionTools(localProject.functionTools || {}, remoteProject.functionTools || {})
   );
+  changes.push(...compareFunctions(localProject.functions || {}, remoteProject.functions || {}));
   changes.push(
-    ...compareFunctions(localProject.functions || {}, remoteProject.functions || {}, debug)
-  );
-  changes.push(
-    ...compareDataComponents(
-      localProject.dataComponents || {},
-      remoteProject.dataComponents || {},
-      debug
-    )
+    ...compareDataComponents(localProject.dataComponents || {}, remoteProject.dataComponents || {})
   );
   changes.push(
     ...compareArtifactComponents(
       localProject.artifactComponents || {},
-      remoteProject.artifactComponents || {},
-      debug
+      remoteProject.artifactComponents || {}
     )
   );
   changes.push(
     ...compareCredentials(
       localProject.credentialReferences || {},
-      remoteProject.credentialReferences || {},
-      debug
+      remoteProject.credentialReferences || {}
     )
   );
 
   changes.push(
-    ...compareExternalAgents(
-      localProject.externalAgents || {},
-      remoteProject.externalAgents || {},
-      debug
-    )
+    ...compareExternalAgents(localProject.externalAgents || {}, remoteProject.externalAgents || {})
   );
   // Extract status components from agents for comparison
   const localStatusComponents = extractStatusComponentsFromProject(localProject);
   const remoteStatusComponents = extractStatusComponentsFromProject(remoteProject);
-  changes.push(...compareStatusComponents(localStatusComponents, remoteStatusComponents, debug));
+  changes.push(...compareStatusComponents(localStatusComponents, remoteStatusComponents));
 
   // Compare contextConfig and fetchDefinition components separately
-  changes.push(...compareContextConfigs(localProject, remoteProject, localRegistry, debug));
-  changes.push(...compareFetchDefinitions(localProject, remoteProject, debug));
+  changes.push(...compareContextConfigs(localProject, remoteProject));
+  changes.push(...compareFetchDefinitions(localProject, remoteProject));
 
   // Compare project-level models
-  changes.push(...compareProjectModels(localProject.models, remoteProject.models, debug));
+  changes.push(...compareProjectModels(localProject.models, remoteProject.models));
 
   // Compare project-level fields
-  changes.push(...compareProjectFields(localProject, remoteProject, debug));
+  changes.push(...compareProjectFields(localProject, remoteProject));
 
   return changes;
 }
@@ -314,8 +290,7 @@ function compareComponentsDirectly(
  */
 function compareAgents(
   localAgents: Record<string, any>,
-  remoteAgents: Record<string, any>,
-  debug: boolean
+  remoteAgents: Record<string, any>
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const localIds = Object.keys(localAgents);
@@ -372,14 +347,13 @@ function compareAgents(
  */
 function compareSubAgents(
   localAgents: Record<string, any>,
-  remoteAgents: Record<string, any>,
-  debug: boolean
+  remoteAgents: Record<string, any>
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
   // Extract all subAgents from local agents
   const localSubAgents: Record<string, any> = {};
-  for (const [agentId, agentData] of Object.entries(localAgents)) {
+  for (const agentData of Object.values(localAgents)) {
     if (agentData.subAgents) {
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
         localSubAgents[subAgentId] = subAgentData;
@@ -389,7 +363,7 @@ function compareSubAgents(
 
   // Extract all subAgents from remote agents
   const remoteSubAgents: Record<string, any> = {};
-  for (const [agentId, agentData] of Object.entries(remoteAgents)) {
+  for (const agentData of Object.values(remoteAgents)) {
     if (agentData.subAgents) {
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
         remoteSubAgents[subAgentId] = subAgentData;
@@ -474,10 +448,9 @@ function generateSubAgentChangeSummary(fieldChanges: FieldChange[]): string {
  */
 function compareTools(
   localTools: Record<string, any>,
-  remoteTools: Record<string, any>,
-  debug: boolean
+  remoteTools: Record<string, any>
 ): ComponentChange[] {
-  return compareComponentMaps('tools', localTools, remoteTools, debug);
+  return compareComponentMaps('tools', localTools, remoteTools);
 }
 
 /**
@@ -485,10 +458,9 @@ function compareTools(
  */
 function compareFunctionTools(
   localFunctionTools: Record<string, any>,
-  remoteFunctionTools: Record<string, any>,
-  debug: boolean
+  remoteFunctionTools: Record<string, any>
 ): ComponentChange[] {
-  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools, debug);
+  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools);
 }
 
 /**
@@ -496,8 +468,7 @@ function compareFunctionTools(
  */
 function compareFunctions(
   localFunctions: Record<string, any>,
-  remoteFunctions: Record<string, any>,
-  debug: boolean
+  remoteFunctions: Record<string, any>
 ): ComponentChange[] {
   // Clean functions data by removing metadata fields that belong to functionTools
   const cleanLocalFunctions: Record<string, any> = {};
@@ -523,7 +494,7 @@ function compareFunctions(
     };
   }
 
-  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions, debug);
+  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions);
 }
 
 /**
@@ -531,10 +502,9 @@ function compareFunctions(
  */
 function compareDataComponents(
   localDataComponents: Record<string, any>,
-  remoteDataComponents: Record<string, any>,
-  debug: boolean
+  remoteDataComponents: Record<string, any>
 ): ComponentChange[] {
-  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents, debug);
+  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents);
 }
 
 /**
@@ -542,14 +512,12 @@ function compareDataComponents(
  */
 function compareArtifactComponents(
   localArtifactComponents: Record<string, any>,
-  remoteArtifactComponents: Record<string, any>,
-  debug: boolean
+  remoteArtifactComponents: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps(
     'artifactComponents',
     localArtifactComponents,
-    remoteArtifactComponents,
-    debug
+    remoteArtifactComponents
   );
 }
 
@@ -558,10 +526,9 @@ function compareArtifactComponents(
  */
 function compareCredentials(
   localCredentials: Record<string, any>,
-  remoteCredentials: Record<string, any>,
-  debug: boolean
+  remoteCredentials: Record<string, any>
 ): ComponentChange[] {
-  return compareComponentMaps('credentials', localCredentials, remoteCredentials, debug);
+  return compareComponentMaps('credentials', localCredentials, remoteCredentials);
 }
 
 /**
@@ -569,10 +536,9 @@ function compareCredentials(
  */
 function compareExternalAgents(
   localExternalAgents: Record<string, any>,
-  remoteExternalAgents: Record<string, any>,
-  debug: boolean
+  remoteExternalAgents: Record<string, any>
 ): ComponentChange[] {
-  return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents, debug);
+  return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents);
 }
 
 /**
@@ -580,25 +546,15 @@ function compareExternalAgents(
  */
 function compareStatusComponents(
   localStatusComponents: Record<string, any>,
-  remoteStatusComponents: Record<string, any>,
-  debug: boolean
+  remoteStatusComponents: Record<string, any>
 ): ComponentChange[] {
-  return compareComponentMaps(
-    'statusComponents',
-    localStatusComponents,
-    remoteStatusComponents,
-    debug
-  );
+  return compareComponentMaps('statusComponents', localStatusComponents, remoteStatusComponents);
 }
 
 /**
  * Compare project-level models
  */
-function compareProjectModels(
-  localModels: any,
-  remoteModels: any,
-  debug: boolean
-): ComponentChange[] {
+function compareProjectModels(localModels: any, remoteModels: any): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
   // Get detailed field changes for models
@@ -645,8 +601,7 @@ function generateModelsChangeSummary(fieldChanges: FieldChange[]): string {
  */
 function compareProjectFields(
   localProject: FullProjectDefinition,
-  remoteProject: FullProjectDefinition,
-  debug: boolean
+  remoteProject: FullProjectDefinition
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
@@ -682,8 +637,7 @@ function compareProjectFields(
 function compareComponentMaps(
   componentType: ComponentType,
   localMap: Record<string, any>,
-  remoteMap: Record<string, any>,
-  debug: boolean
+  remoteMap: Record<string, any>
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const localIds = Object.keys(localMap);
@@ -834,7 +788,7 @@ function compareArraysAsSet(
   // Find modified items (same key, different content)
   for (const [key, { item: newItem }] of newMap) {
     if (oldMap.has(key)) {
-      const { item: oldItem } = oldMap.get(key)!;
+      const { item: oldItem } = oldMap.get(key);
       const itemChanges = getDetailedFieldChanges(
         `${basePath}[${key}]`,
         oldItem,
@@ -1119,7 +1073,7 @@ function formatValue(value: any): string {
       const pairs = keys.map((key) => {
         const val = value[key];
         if (typeof val === 'string') {
-          return `${key}: "${val.length > 15 ? val.substring(0, 12) + '...' : val}"`;
+          return `${key}: "${val.length > 15 ? `${val.substring(0, 12)}...` : val}"`;
         }
         if (typeof val === 'object' && val !== null) {
           return `${key}: {...}`;
@@ -1313,121 +1267,11 @@ function createEmptyComponentChanges(): ProjectComparison['componentChanges'] {
 }
 
 /**
- * Truncate long descriptions for better readability
- */
-function truncateDescription(description: string): string {
-  if (description.length <= 80) return description;
-  return description.substring(0, 77) + '...';
-}
-
-/**
- * Group agent field changes by category for better visualization
- */
-function groupAgentChangesByCategory(fieldChanges: FieldChange[]): Record<string, FieldChange[]> {
-  const categories: Record<string, FieldChange[]> = {
-    Configuration: [],
-    'Tools & Relationships': [],
-    Models: [],
-    'Context & Data': [],
-    Other: [],
-  };
-
-  fieldChanges.forEach((change) => {
-    const field = change.field.toLowerCase();
-
-    if (field.includes('model') || field.includes('provider')) {
-      categories['Models'].push(change);
-    } else if (
-      field.includes('tool') ||
-      field.includes('canuse') ||
-      field.includes('candelegateto') ||
-      field.includes('subagent') ||
-      field.includes('teamagent')
-    ) {
-      categories['Tools & Relationships'].push(change);
-    } else if (
-      field.includes('context') ||
-      field.includes('data') ||
-      field.includes('fetch') ||
-      field.includes('header')
-    ) {
-      categories['Context & Data'].push(change);
-    } else if (
-      field.includes('name') ||
-      field.includes('prompt') ||
-      field.includes('description') ||
-      field.includes('stopwhen')
-    ) {
-      categories['Configuration'].push(change);
-    } else {
-      categories['Other'].push(change);
-    }
-  });
-
-  // Remove empty categories
-  Object.keys(categories).forEach((key) => {
-    if (categories[key].length === 0) {
-      delete categories[key];
-    }
-  });
-
-  return categories;
-}
-
-/**
- * Get icon for change category
- */
-function getCategoryIcon(category: string): string {
-  switch (category) {
-    case 'Configuration':
-      return '⚙️ ';
-    case 'Models':
-      return '🧠';
-    case 'Tools & Relationships':
-      return '🔗';
-    case 'Context & Data':
-      return '📊';
-    default:
-      return '📝';
-  }
-}
-
-/**
- * Get icon for component type
- */
-function getComponentIcon(componentType: string): string {
-  switch (componentType) {
-    case 'agents':
-      return '🤖';
-    case 'tools':
-      return '🛠️ ';
-    case 'functionTools':
-      return '⚡';
-    case 'dataComponents':
-      return '📊';
-    case 'artifactComponents':
-      return '📄';
-    case 'credentials':
-      return '🔑';
-    case 'contextConfigs':
-      return '⚙️ ';
-    case 'fetchDefinitions':
-      return '🔄';
-    case 'models':
-      return '🧠';
-    default:
-      return '📦';
-  }
-}
-
-/**
  * Compare contextConfig components across agents
  */
 function compareContextConfigs(
   localProject: FullProjectDefinition,
-  remoteProject: FullProjectDefinition,
-  localRegistry: ComponentRegistry | null,
-  debug: boolean
+  remoteProject: FullProjectDefinition
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
@@ -1491,8 +1335,7 @@ function compareContextConfigs(
  */
 function compareFetchDefinitions(
   localProject: FullProjectDefinition,
-  remoteProject: FullProjectDefinition,
-  debug: boolean
+  remoteProject: FullProjectDefinition
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const fetchDefinitions = new Map<string, { local?: any; remote?: any }>();
@@ -1511,25 +1354,27 @@ function compareFetchDefinitions(
   };
 
   // Collect fetchDefinitions from both projects
-  Object.entries(localProject.agents || {}).forEach(([agentId, agentData]) => {
+  Object.values(localProject.agents || {}).forEach((agentData) => {
     if (agentData.contextConfig) {
       const fetchDefs = extractFetchDefinitions(agentData.contextConfig);
       fetchDefs.forEach((fetchDef: any) => {
         if (!fetchDefinitions.has(fetchDef.id)) {
           fetchDefinitions.set(fetchDef.id, {});
         }
+        // biome-ignore lint/style/noNonNullAssertion: ignore
         fetchDefinitions.get(fetchDef.id)!.local = fetchDef;
       });
     }
   });
 
-  Object.entries(remoteProject.agents || {}).forEach(([agentId, agentData]) => {
+  Object.values(remoteProject.agents || {}).forEach((agentData) => {
     if (agentData.contextConfig) {
       const fetchDefs = extractFetchDefinitions(agentData.contextConfig);
       fetchDefs.forEach((fetchDef: any) => {
         if (!fetchDefinitions.has(fetchDef.id)) {
           fetchDefinitions.set(fetchDef.id, {});
         }
+        // biome-ignore lint/style/noNonNullAssertion: ignore
         fetchDefinitions.get(fetchDef.id)!.remote = fetchDef;
       });
     }

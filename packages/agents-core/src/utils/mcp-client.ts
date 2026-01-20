@@ -105,6 +105,7 @@ export class McpClient {
 
   private async connectSSE(config: McpSSEConfig) {
     const url = typeof config.url === 'string' ? config.url : config.url.toString();
+    const headersToSend = config.headers || {};
 
     // TS 5.6+ typing mismatch: Node WHATWG `URL` vs DOM `URL` expected by MCP transports.
     // Safe at runtime in Node; remove once types converge upstream.
@@ -113,7 +114,7 @@ export class McpClient {
     this.transport = new SSEClientTransport(new URL(url), {
       eventSourceInit: config.eventSourceInit,
       requestInit: {
-        headers: config.headers || {},
+        headers: headersToSend,
       },
     });
 
@@ -125,15 +126,34 @@ export class McpClient {
   private async connectHttp(config: McpStreamableHttpConfig) {
     const { url, requestInit } = config;
 
+    // Normalize headers to a plain object for logging and merging
+    const normalizeHeaders = (headers: HeadersInit | undefined): Record<string, string> => {
+      if (!headers) return {};
+      if (headers instanceof Headers) {
+        const obj: Record<string, string> = {};
+        headers.forEach((value, key) => {
+          obj[key] = value;
+        });
+        return obj;
+      }
+      if (Array.isArray(headers)) {
+        return Object.fromEntries(headers);
+      }
+      return headers as Record<string, string>;
+    };
+
+    const mergedHeaders: Record<string, string> = {
+      ...normalizeHeaders(requestInit?.headers),
+      ...(config.headers || {}),
+    };
+
     const mergedRequestInit = {
       ...requestInit,
-      headers: {
-        ...(requestInit?.headers || {}),
-        ...(config.headers || {}),
-      },
+      headers: mergedHeaders,
     };
 
     const urlString = typeof url === 'string' ? url : url.toString();
+
     // See note above — Node WHATWG `URL` vs DOM `URL` typing mismatch.
     // biome-ignore lint: Intentional TS suppression at SDK boundary
     // @ts-ignore: Suppress DOM vs Node URL type mismatch at this boundary

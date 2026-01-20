@@ -13,6 +13,7 @@ export default async function SettingsPage({
 
   try {
     const projectData = await fetchProject(tenantId, projectId);
+
     return (
       <ProjectForm
         className="max-w-2xl mx-auto"

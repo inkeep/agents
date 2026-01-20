@@ -74,7 +74,7 @@ export const ProjectSwitcher: FC = () => {
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg max-h-[min(var(--radix-dropdown-menu-content-available-height),300px)]"
         side={isMobile ? 'bottom' : 'right'}
         align="end"
         sideOffset={4}

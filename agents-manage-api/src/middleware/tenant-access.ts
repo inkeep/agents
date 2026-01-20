@@ -1,7 +1,7 @@
 import { createApiError, getUserOrganizations } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 
 export const requireTenantAccess = () =>
   createMiddleware<{
@@ -52,7 +52,7 @@ export const requireTenantAccess = () =>
     }
 
     try {
-      const userOrganizations = await getUserOrganizations(dbClient)(userId);
+      const userOrganizations = await getUserOrganizations(runDbClient)(userId);
       const organizationAccess = userOrganizations.find((org) => org.organizationId === tenantId);
 
       if (!organizationAccess) {

@@ -82,7 +82,10 @@ export interface StatusComponentConfig {
 /**
  * Schema for transfer configuration (excluding function properties)
  */
-export const TransferConfigSchema = z.object({
+export const TransferConfigSchema: z.ZodType<{
+  agent: SubAgent;
+  description?: string;
+}> = z.object({
   agent: z.instanceof(SubAgent),
   description: z.string().optional(),
 });

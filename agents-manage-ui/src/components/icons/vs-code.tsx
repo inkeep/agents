@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 
-export const VSCodeIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
-  <SvgIcon ref={ref} {...props} strokeWidth={0}>
+export const VSCodeIcon: FC<IconComponentProps> = (props) => (
+  <SvgIcon {...props} strokeWidth={0}>
     <title>VS Code icon</title>
     <g clipPath="url(#clip0_22_190)">
       <path
@@ -19,6 +19,4 @@ export const VSCodeIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, 
       />
     </g>
   </SvgIcon>
-));
-
-VSCodeIcon.displayName = 'VSCodeIcon';
+);

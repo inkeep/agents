@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 
-export const DashedSplineIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
-  <SvgIcon ref={ref} {...props}>
+export const DashedSplineIcon: FC<IconComponentProps> = (props) => (
+  <SvgIcon {...props}>
     <path
       d="M19 7C20.1046 7 21 6.10457 21 5C21 3.89543 20.1046 3 19 3C17.8954 3 17 3.89543 17 5C17 6.10457 17.8954 7 19 7Z"
       stroke="currentColor"
@@ -26,6 +26,4 @@ export const DashedSplineIcon = forwardRef<SVGSVGElement, IconComponentProps>((p
       strokeDasharray="4 4"
     />
   </SvgIcon>
-));
-
-DashedSplineIcon.displayName = 'DashedSplineIcon';
+);

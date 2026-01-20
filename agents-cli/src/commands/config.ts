@@ -7,7 +7,7 @@ export interface ConfigOptions {
   configFilePath?: string; // deprecated, kept for backward compatibility
 }
 
-export async function configGetCommand(key?: string, options?: ConfigOptions) {
+export async function configGetCommand(key?: string, options?: ConfigOptions): Promise<void> {
   // Use new config parameter, fall back to configFilePath for backward compatibility
   const configPath =
     options?.config || options?.configFilePath || join(process.cwd(), 'inkeep.config.ts');
@@ -55,7 +55,11 @@ export async function configGetCommand(key?: string, options?: ConfigOptions) {
   }
 }
 
-export async function configSetCommand(key: string, value: string, options?: ConfigOptions) {
+export async function configSetCommand(
+  key: string,
+  value: string,
+  options?: ConfigOptions
+): Promise<void> {
   // Use new config parameter, fall back to configFilePath for backward compatibility
   const configPath =
     options?.config || options?.configFilePath || join(process.cwd(), 'inkeep.config.ts');
@@ -132,7 +136,7 @@ export default defineConfig({
   }
 }
 
-export async function configListCommand(options?: ConfigOptions) {
+export async function configListCommand(options?: ConfigOptions): Promise<void> {
   // Alias for configGetCommand without a key
   await configGetCommand(undefined, options);
 }

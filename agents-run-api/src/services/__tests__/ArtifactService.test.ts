@@ -1,3 +1,4 @@
+import type { ResolvedRef } from '@inkeep/agents-core';
 import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
@@ -24,10 +25,29 @@ describe('ArtifactService', () => {
     vi.clearAllMocks();
 
     mockContext = {
-      tenantId: 'test-tenant',
+      executionContext: {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        agentId: 'test-agent',
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        baseUrl: 'http://localhost:3003',
+        resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+        project: {
+          id: 'test-project',
+          tenantId: 'test-tenant',
+          name: 'Test Project',
+          agents: {},
+          tools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+        },
+      } as any,
       sessionId: 'test-session',
       taskId: 'test-task',
-      projectId: 'test-project',
       contextId: 'test-context',
       streamRequestId: 'test-stream-request',
       subAgentId: 'test-agent',
@@ -67,6 +87,7 @@ describe('ArtifactService', () => {
         status: 'active',
         metadata: null,
         subAgentId: 'test-agent',
+        ref: { type: 'branch', name: 'main', hash: 'test-hash' } as ResolvedRef,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -76,12 +97,14 @@ describe('ArtifactService', () => {
           taskId: 'task1',
           parts: [{ kind: 'data' as const, data: {} }],
           metadata: { toolCallId: 'tool1' },
+          createdAt: '2024-01-15T21:30:00.000Z',
         },
         {
           artifactId: 'artifact2',
           taskId: 'task2',
           parts: [{ kind: 'data' as const, data: {} }],
           metadata: { toolCallId: 'tool2' },
+          createdAt: '2024-01-15T22:30:00.000Z',
         },
       ];
 
@@ -110,6 +133,7 @@ describe('ArtifactService', () => {
             agentId: 'test-agent',
             id: 'task1',
             contextId: 'test-context',
+            ref: { type: 'branch', name: 'main', hash: 'test-hash' },
             status: 'active',
             metadata: null,
             subAgentId: 'test-agent',
@@ -125,6 +149,7 @@ describe('ArtifactService', () => {
             taskId: 'task1',
             parts: [{ kind: 'data', data: {} }],
             metadata: { toolCallId: 'tool1' },
+            createdAt: '2024-01-15T23:30:00.000Z',
           },
         ])
       );
@@ -353,6 +378,7 @@ describe('ArtifactService', () => {
         description: 'DB Description',
         parts: [{ kind: 'data' as const, data: { summary: { db: 'data' } } }],
         metadata: { artifactType: 'DBType' },
+        createdAt: '2024-01-16T00:30:00.000Z',
       };
       vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([mockDbArtifact]));
 
@@ -396,7 +422,10 @@ describe('ArtifactService', () => {
     it('should return null when missing required context', async () => {
       const serviceWithoutContext = new ArtifactService({
         ...mockContext,
-        projectId: undefined,
+        executionContext: {
+          ...(mockContext.executionContext as any),
+          projectId: undefined,
+        },
         taskId: undefined,
       });
 

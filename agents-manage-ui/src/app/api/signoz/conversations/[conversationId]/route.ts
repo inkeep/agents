@@ -1,3 +1,9 @@
+import {
+  CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE,
+  parseContextBreakdownFromSpan,
+  V1_BREAKDOWN_SCHEMA,
+} from '@inkeep/agents-core/client-exports';
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -57,7 +63,22 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-// Call secure manage-api instead of SigNoz directly
+/**
+ * Check if we should call SigNoz directly (server-to-server call without cookies)
+ */
+function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
+  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
+}
+
+/**
+ * Get the SigNoz endpoint URL
+ */
+function getSigNozEndpoint(): string {
+  const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
+  return `${signozUrl}/api/v4/query_range`;
+}
+
+// Call SigNoz directly for server-to-server calls, otherwise go through manage-api
 async function signozQuery(
   payload: any,
   tenantId: string,
@@ -66,25 +87,41 @@ async function signozQuery(
   const logger = getLogger('signoz-query');
 
   try {
-    const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+    let response: AxiosResponse;
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    // For server-to-server calls (no cookies), call SigNoz directly
+    if (shouldCallSigNozDirectly(cookieHeader)) {
+      const endpoint = getSigNozEndpoint();
+      logger.debug({ endpoint }, 'Calling SigNoz directly for conversation traces');
 
-    // Forward cookies for authentication
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
+      response = await axios.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
+        },
+        timeout: 30000,
+      });
+    } else {
+      // For browser calls, go through manage-api for auth
+      const manageApiUrl = getManageApiUrl();
+      const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+
+      logger.debug({ endpoint }, 'Calling manage-api for conversation traces');
+
+      response = await axios.post(endpoint, payload, {
+        headers,
+        timeout: 30000,
+        withCredentials: true,
+      });
     }
-
-    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
-
-    const response = await axios.post(endpoint, payload, {
-      headers,
-      timeout: 30000,
-      withCredentials: true,
-    });
 
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
@@ -681,75 +718,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
-        ),
-
-        // AI streaming object
-        aiStreamingObject: listQuery(
-          QUERY_EXPRESSIONS.AI_STREAMING_OBJECT,
-          [
             {
-              key: {
-                key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: AI_OPERATIONS.STREAM_OBJECT,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_OBJECT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_PROVIDER,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_OPERATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
+              key: SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -1031,6 +1001,95 @@ function buildConversationListPayload(
             },
           ]
         ),
+
+        compression: listQuery(
+          QUERY_EXPRESSIONS.COMPRESSION,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            // Compression-specific attributes
+            {
+              key: 'compression.type',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.session_id',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.input_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.result.output_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.result.compression_ratio',
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
+            },
+            {
+              key: 'compression.result.artifact_count',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.message_count',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.hard_limit',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.safety_buffer',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.success',
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: 'compression.error',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.result.summary',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -1078,13 +1137,13 @@ export async function GET(
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
     const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
-    const aiStreamingObjectSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_OBJECT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
     const toolApprovalRequestedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED);
     const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
+    const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -1115,39 +1174,19 @@ export async function GET(
     }
 
     // Build map from spanId to context breakdown (from agent.generate spans)
+    // Uses V1_BREAKDOWN_SCHEMA to dynamically parse breakdown from span attributes
     type ContextBreakdownData = {
-      systemPromptTemplate: number;
-      coreInstructions: number;
-      agentPrompt: number;
-      toolsSection: number;
-      artifactsSection: number;
-      dataComponents: number;
-      artifactComponents: number;
-      transferInstructions: number;
-      delegationInstructions: number;
-      thinkingPreparation: number;
-      conversationHistory: number;
+      components: Record<string, number>;
       total: number;
     };
     const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
     for (const spanAttr of allSpanAttributes) {
       const data = spanAttr.data;
-      if (data['context.breakdown.total_tokens'] !== undefined) {
-        spanIdToContextBreakdown.set(spanAttr.spanId, {
-          systemPromptTemplate: Number(data['context.breakdown.system_template_tokens']) || 0,
-          coreInstructions: Number(data['context.breakdown.core_instructions_tokens']) || 0,
-          agentPrompt: Number(data['context.breakdown.agent_prompt_tokens']) || 0,
-          toolsSection: Number(data['context.breakdown.tools_tokens']) || 0,
-          artifactsSection: Number(data['context.breakdown.artifacts_tokens']) || 0,
-          dataComponents: Number(data['context.breakdown.data_components_tokens']) || 0,
-          artifactComponents: Number(data['context.breakdown.artifact_components_tokens']) || 0,
-          transferInstructions: Number(data['context.breakdown.transfer_instructions_tokens']) || 0,
-          delegationInstructions:
-            Number(data['context.breakdown.delegation_instructions_tokens']) || 0,
-          thinkingPreparation: Number(data['context.breakdown.thinking_preparation_tokens']) || 0,
-          conversationHistory: Number(data['context.breakdown.conversation_history_tokens']) || 0,
-          total: Number(data['context.breakdown.total_tokens']) || 0,
-        });
+      if (data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] !== undefined) {
+        spanIdToContextBreakdown.set(
+          spanAttr.spanId,
+          parseContextBreakdownFromSpan(data, V1_BREAKDOWN_SCHEMA)
+        );
       }
     }
 
@@ -1163,11 +1202,11 @@ export async function GET(
         | 'user_message'
         | 'ai_assistant_message'
         | 'ai_model_streamed_text'
-        | 'ai_model_streamed_object'
         | 'artifact_processing'
         | 'tool_approval_requested'
         | 'tool_approval_approved'
-        | 'tool_approval_denied';
+        | 'tool_approval_denied'
+        | 'compression';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1214,23 +1253,10 @@ export async function GET(
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
       aiStreamTextOperationId?: string;
-      // streaming object
-      aiStreamObjectContent?: string;
-      aiStreamObjectModel?: string;
-      aiStreamObjectOperationId?: string;
+      aiTelemetryPhase?: string;
       // context breakdown (for AI streaming spans)
       contextBreakdown?: {
-        systemPromptTemplate: number;
-        coreInstructions: number;
-        agentPrompt: number;
-        toolsSection: number;
-        artifactsSection: number;
-        dataComponents: number;
-        artifactComponents: number;
-        transferInstructions: number;
-        delegationInstructions: number;
-        thinkingPreparation: number;
-        conversationHistory: number;
+        components: Record<string, number>;
         total: number;
       };
       // ai generation specifics
@@ -1247,6 +1273,17 @@ export async function GET(
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
+      // compression specifics
+      compressionType?: string;
+      compressionInputTokens?: number;
+      compressionOutputTokens?: number;
+      compressionRatio?: number;
+      compressionArtifactCount?: number;
+      compressionMessageCount?: number;
+      compressionHardLimit?: number;
+      compressionSafetyBuffer?: number;
+      compressionError?: string;
+      compressionSummary?: string;
     };
 
     const activities: Activity[] = [];
@@ -1512,34 +1549,7 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
-        otelStatusDescription: statusMessage || undefined,
-      });
-    }
-
-    // ai streaming object
-    for (const span of aiStreamingObjectSpans) {
-      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
-      const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
-      const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
-      activities.push({
-        id: aiStreamingObject,
-        type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
-        description: 'AI model streaming object response',
-        timestamp: span.timestamp,
-        parentSpanId: spanIdToParentSpanId.get(aiStreamingObject) || undefined,
-        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        result: hasError
-          ? 'AI streaming object failed'
-          : `AI object streamed successfully (${durMs.toFixed(2)}ms)`,
-        aiStreamObjectContent: getString(span, SPAN_KEYS.AI_RESPONSE_OBJECT, ''),
-        aiStreamObjectModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
-        aiStreamObjectOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
-        inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
-        outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
-        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
       });
     }
@@ -1660,6 +1670,60 @@ export async function GET(
       });
     }
 
+    // compression spans
+    for (const span of compressionSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const compressionSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+
+      // Extract compression-specific attributes
+      const compressionType = getString(span, 'compression.type', '');
+      const inputTokens = getNumber(span, 'compression.input_tokens', 0);
+      const outputTokens = getNumber(span, 'compression.result.output_tokens', 0);
+      const compressionRatio = getNumber(span, 'compression.result.compression_ratio', 0);
+      const artifactCount = getNumber(span, 'compression.result.artifact_count', 0);
+      const messageCount = getNumber(span, 'compression.message_count', 0);
+      const hardLimit = getNumber(span, 'compression.hard_limit', 0);
+      const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
+      const compressionError = getString(span, 'compression.error', '');
+      const compressionSummary = getString(span, 'compression.result.summary', '');
+
+      const description =
+        compressionType === 'mid_generation'
+          ? 'Context compacting'
+          : compressionType === 'conversation_level'
+            ? 'Conversation history compacting'
+            : compressionType || 'Unknown';
+
+      activities.push({
+        id: compressionSpanId,
+        type: ACTIVITY_TYPES.COMPRESSION,
+        description,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(compressionSpanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(
+          span,
+          'compression.session_id',
+          getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT)
+        ),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result:
+          compressionError ||
+          `Compressed ${messageCount} messages, ${inputTokens} → ${outputTokens} tokens`,
+        // Compression-specific fields
+        compressionType,
+        compressionInputTokens: inputTokens,
+        compressionOutputTokens: outputTokens,
+        compressionRatio,
+        compressionArtifactCount: artifactCount,
+        compressionMessageCount: messageCount,
+        compressionHardLimit: hardLimit,
+        compressionSafetyBuffer: safetyBuffer,
+        compressionError: compressionError || undefined,
+        compressionSummary: compressionSummary || undefined,
+      });
+    }
+
     // Pre-parse all timestamps once for better performance
     const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
@@ -1711,11 +1775,13 @@ export async function GET(
       // Group tool calls by MCP server name
       const toolCallsByMcpServer = new Map<string, Activity[]>();
       for (const toolCall of toolCallsInGeneration) {
-        const mcpServerName = toolCall.mcpServerName || UNKNOWN_VALUE;
-        if (!toolCallsByMcpServer.has(mcpServerName)) {
-          toolCallsByMcpServer.set(mcpServerName, []);
+        // Skip tool calls without an MCP server name
+        if (!toolCall.mcpServerName) continue;
+
+        if (!toolCallsByMcpServer.has(toolCall.mcpServerName)) {
+          toolCallsByMcpServer.set(toolCall.mcpServerName, []);
         }
-        toolCallsByMcpServer.get(mcpServerName)?.push(toolCall);
+        toolCallsByMcpServer.get(toolCall.mcpServerName)?.push(toolCall);
       }
 
       // For each MCP server, check if ALL or SOME tool calls failed
@@ -1744,8 +1810,7 @@ export async function GET(
         (a) =>
           a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           a.type === ACTIVITY_TYPES.AI_GENERATION ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
+          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
       );
     const conversationStartTime = firstUser
       ? new Date(firstUser.timestamp).getTime()
@@ -1761,7 +1826,6 @@ export async function GET(
     const TOKEN_ACTIVITY_TYPES: Set<string> = new Set([
       ACTIVITY_TYPES.AI_GENERATION,
       ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-      ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
     ]);
     const { totalInputTokens, totalOutputTokens } = activities.reduce(
       (acc, a) => {

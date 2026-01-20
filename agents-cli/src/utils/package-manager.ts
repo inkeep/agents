@@ -46,7 +46,7 @@ export async function detectPackageManager(): Promise<PackageManager | null> {
  */
 export function getUpdateCommand(
   manager: PackageManager,
-  packageName = DEFAULT_PACKAGE_NAME
+  packageName: string = DEFAULT_PACKAGE_NAME
 ): string {
   switch (manager) {
     case 'npm':

@@ -24,14 +24,19 @@ interface StandaloneJsonEditorProps
   onChange: NonNullable<JsonEditorProps['onChange']>;
   name?: string;
   actions?: ReactNode;
+  customTemplate?: string;
 }
 
 export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   value = '',
   onChange,
   actions: $actions,
+  customTemplate,
+  name,
   ...props
 }) => {
+  // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
+  const uri = props.uri ?? (name ? (`${name}.json` as const) : undefined);
   const handleFormat = useCallback(() => {
     if (value.trim()) {
       const formatted = formatJson(value);
@@ -40,24 +45,22 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   }, [onChange, value]);
 
   const handleInsertTemplate = useCallback(() => {
-    const template = createSchemaTemplate();
+    const template = customTemplate ?? createSchemaTemplate();
     onChange(template);
-  }, [onChange]);
+  }, [onChange, customTemplate]);
 
   const actions = (
     <>
       {$actions}
-      {!value.trim() && (
-        <Button
-          type="button"
-          onClick={handleInsertTemplate}
-          variant="outline"
-          size="sm"
-          className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-        >
-          Template
-        </Button>
-      )}
+      <Button
+        type="button"
+        onClick={handleInsertTemplate}
+        variant="outline"
+        size="sm"
+        className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+      >
+        Template
+      </Button>
       <Button
         type="button"
         onClick={handleFormat}
@@ -72,7 +75,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   );
 
   return (
-    <JsonEditor value={value} onChange={onChange} {...props}>
+    <JsonEditor value={value} onChange={onChange} {...props} uri={uri}>
       <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
     </JsonEditor>
   );

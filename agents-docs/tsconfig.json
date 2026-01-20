@@ -35,5 +35,5 @@
     "content/talk-to-your-agents/mcp-server.mdx",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", ".next/types/cache-life.d.ts"]
 }

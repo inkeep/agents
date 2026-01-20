@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
-import { useAuthClient } from '@/lib/auth-client';
 
 type DeviceState =
   | 'input'
@@ -44,8 +44,7 @@ function DeviceVerificationForm() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      const currentUrl = typeof window !== 'undefined' ? window.location.href : '/device';
-      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.href)}`);
     }
   }, [authLoading, isAuthenticated, router]);
 

@@ -10,5 +10,7 @@ export default {
   ignoreIssues: {
     'agents-manage-ui/src/components/ui/*': ['exports'],
     'agents-manage-ui/src/components/agent/configuration/model-options.tsx': ['exports'],
+    'agents-manage-ui/cypress/env.d.ts': ['files'],
+    'agents-manage-ui/cypress/cypress.config.ts': ['files'],
   },
 } satisfies KnipConfig;

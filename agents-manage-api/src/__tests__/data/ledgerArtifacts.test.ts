@@ -8,9 +8,10 @@ import {
   subAgents,
   tasks,
 } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
-import dbClient from '../../data/db/dbClient';
+import manageDbClient from '../../data/db/dbClient';
+import runDbClient from '../../data/db/runDbClient';
 
 /**
  * Integration tests for the ledger artifact helper functions.
@@ -19,6 +20,9 @@ import dbClient from '../../data/db/dbClient';
  * the ledger using the addLedgerArtifacts and getLedgerArtifacts helpers.
  *
  * The in-memory test database is initialised once globally via __tests__/setup.ts.
+ *
+ * Uses both dbClient (manage database) for agent/project data and
+ * runDbClient (runtime database) for conversations, tasks, and ledger artifacts.
  */
 
 describe('Ledger Artifacts – Data Layer', () => {
@@ -30,11 +34,11 @@ describe('Ledger Artifacts – Data Layer', () => {
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
-    await createTestProject(dbClient, tenantId, projectId);
+    await createTestProject(manageDbClient, tenantId, projectId);
 
     // Create agent first
     const agentId = 'test-agent';
-    await dbClient.insert(agents).values({
+    await manageDbClient.insert(agents).values({
       id: agentId,
       tenantId,
       projectId,
@@ -43,7 +47,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     });
 
     // Create agent with agentId
-    await dbClient.insert(subAgents).values({
+    await manageDbClient.insert(subAgents).values({
       id: subAgentId,
       tenantId,
       projectId,
@@ -54,16 +58,17 @@ describe('Ledger Artifacts – Data Layer', () => {
     });
 
     // Create conversation
-    await dbClient.insert(conversations).values({
+    await runDbClient.insert(conversations).values({
       id: conversationId,
       tenantId,
       projectId,
       activeSubAgentId: subAgentId,
       title: 'Test Conversation',
+      ref: { type: 'branch', name: 'main', hash: 'test' },
     });
 
     // Create task
-    await dbClient.insert(tasks).values({
+    await runDbClient.insert(tasks).values({
       id: taskId,
       tenantId,
       projectId,
@@ -71,6 +76,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       contextId,
       status: 'completed',
       subAgentId,
+      ref: { type: 'branch', name: 'main', hash: 'test' },
       metadata: {
         conversation_id: conversationId,
         message_id: `msg-${generateId()}`,
@@ -82,18 +88,18 @@ describe('Ledger Artifacts – Data Layer', () => {
 
   // Ensure a clean database between individual tests.
   afterEach(async () => {
-    await dbClient.delete(ledgerArtifactsTable);
-    await dbClient.delete(tasks);
-    await dbClient.delete(conversations);
-    await dbClient.delete(subAgents);
+    await runDbClient.delete(ledgerArtifactsTable);
+    await runDbClient.delete(tasks);
+    await runDbClient.delete(conversations);
+    await manageDbClient.delete(subAgents);
   });
 
   // Extra safety – clear again when the suite finishes.
   afterAll(async () => {
-    await dbClient.delete(ledgerArtifactsTable);
-    await dbClient.delete(tasks);
-    await dbClient.delete(conversations);
-    await dbClient.delete(subAgents);
+    await runDbClient.delete(ledgerArtifactsTable);
+    await runDbClient.delete(tasks);
+    await runDbClient.delete(conversations);
+    await manageDbClient.delete(subAgents);
   });
 
   it('should persist and retrieve artifacts by taskId', async () => {
@@ -117,6 +123,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         ],
         taskId,
         metadata: { foo: 'bar' },
+        createdAt: '2024-01-16T01:30:00.000Z',
       },
       {
         artifactId: generateId(),
@@ -130,11 +137,12 @@ describe('Ledger Artifacts – Data Layer', () => {
         ],
         taskId,
         metadata: { baz: 'qux' },
+        createdAt: '2024-01-16T02:30:00.000Z',
       },
     ];
 
     // Insert the two artifacts
-    await addLedgerArtifacts(dbClient)({
+    await addLedgerArtifacts(runDbClient)({
       scopes: { tenantId, projectId },
       contextId,
       taskId,
@@ -142,7 +150,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     });
 
     // Retrieve by taskId
-    const fetched = await getLedgerArtifacts(dbClient)({
+    const fetched = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId, projectId },
       taskId,
     });
@@ -173,16 +181,17 @@ describe('Ledger Artifacts – Data Layer', () => {
         },
       ],
       taskId,
+      createdAt: '2024-01-16T03:30:00.000Z',
     };
 
-    await addLedgerArtifacts(dbClient)({
+    await addLedgerArtifacts(runDbClient)({
       scopes: { tenantId, projectId },
       contextId,
       taskId,
       artifacts: [artifact],
     });
 
-    const fetched = await getLedgerArtifacts(dbClient)({
+    const fetched = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId, projectId },
       taskId,
       artifactId: artifact.artifactId,
@@ -202,7 +211,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await createTestData(contextId, taskId, tenantId);
 
     await expect(
-      addLedgerArtifacts(dbClient)({
+      addLedgerArtifacts(runDbClient)({
         scopes: { tenantId, projectId },
         contextId,
         taskId,
@@ -211,7 +220,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     ).resolves.not.toThrow();
 
     // Table should still be empty
-    const fetched = await getLedgerArtifacts(dbClient)({
+    const fetched = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId, projectId },
       taskId,
     }).catch(() => []);
@@ -221,8 +230,8 @@ describe('Ledger Artifacts – Data Layer', () => {
   it('should throw when neither taskId nor artifactId is provided', async () => {
     // Intentionally passing an invalid param to trigger validation error
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    await expect(getLedgerArtifacts(dbClient)({} as any)).rejects.toThrow(
-      'At least one of taskId, toolCallId, or artifactId must be provided'
+    await expect(getLedgerArtifacts(runDbClient)({} as any)).rejects.toThrow(
+      'At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided'
     );
   });
 
@@ -235,7 +244,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await createTestData(contextId, taskId, tenantId);
 
     // Try to get non-existent artifact
-    const result = await getLedgerArtifacts(dbClient)({
+    const result = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId, projectId },
       artifactId: 'non-existent-id',
     });
@@ -254,7 +263,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await createTestData(`${sharedContextId}-2`, `${sharedTaskId}-2`, tenant2Id);
 
     // Create artifacts for tenant 1
-    await addLedgerArtifacts(dbClient)({
+    await addLedgerArtifacts(runDbClient)({
       scopes: { tenantId: tenant1Id, projectId },
       contextId: `${sharedContextId}-1`,
       taskId: `${sharedTaskId}-1`,
@@ -269,12 +278,13 @@ describe('Ledger Artifacts – Data Layer', () => {
               data: { secret: 'tenant1-secret' },
             },
           ],
+          createdAt: '2024-01-16T04:30:00.000Z',
         },
       ],
     });
 
     // Create artifacts for tenant 2
-    await addLedgerArtifacts(dbClient)({
+    await addLedgerArtifacts(runDbClient)({
       scopes: { tenantId: tenant2Id, projectId },
       contextId: `${sharedContextId}-2`,
       taskId: `${sharedTaskId}-2`,
@@ -289,12 +299,13 @@ describe('Ledger Artifacts – Data Layer', () => {
               data: { secret: 'tenant2-secret' },
             },
           ],
+          createdAt: '2024-01-16T05:30:00.000Z',
         },
       ],
     });
 
     // Tenant 1 should not access tenant 2's artifacts
-    const crossTenantResults = await getLedgerArtifacts(dbClient)({
+    const crossTenantResults = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId: tenant1Id, projectId },
       artifactId: 'tenant2-artifact',
     });
@@ -302,7 +313,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     expect(crossTenantResults).toHaveLength(0);
 
     // Tenant 2 should not access tenant 1's artifacts
-    const crossTenantResults2 = await getLedgerArtifacts(dbClient)({
+    const crossTenantResults2 = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId: tenant2Id, projectId },
       artifactId: 'tenant1-artifact',
     });
@@ -310,14 +321,14 @@ describe('Ledger Artifacts – Data Layer', () => {
     expect(crossTenantResults2).toHaveLength(0);
 
     // Each tenant should only see their own artifacts
-    const tenant1Results = await getLedgerArtifacts(dbClient)({
+    const tenant1Results = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId: tenant1Id, projectId },
       taskId: `${sharedTaskId}-1`,
     });
     expect(tenant1Results).toHaveLength(1);
     expect(tenant1Results[0].artifactId).toBe('tenant1-artifact');
 
-    const tenant2Results = await getLedgerArtifacts(dbClient)({
+    const tenant2Results = await getLedgerArtifacts(runDbClient)({
       scopes: { tenantId: tenant2Id, projectId },
       taskId: `${sharedTaskId}-2`,
     });

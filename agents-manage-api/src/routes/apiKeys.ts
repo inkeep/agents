@@ -18,27 +18,28 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { requirePermission } from '../middleware/require-permission';
+import runDbClient from '../data/db/runDbClient';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-// Apply permission middleware by HTTP method
+// API key creation requires 'use' permission (can invoke agents)
+// API key update/delete requires 'edit' permission
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ api_key: ['create'] })(c, next);
+    return requireProjectPermission('use')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PATCH') {
-    return requirePermission({ api_key: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ api_key: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -76,7 +77,7 @@ app.openapi(
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const agentId = c.req.query('agentId');
 
-    const result = await listApiKeysPaginated(dbClient)({
+    const result = await listApiKeysPaginated(runDbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
       agentId: agentId,
@@ -116,7 +117,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const apiKey = await getApiKeyById(dbClient)({
+    const apiKey = await getApiKeyById(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -187,7 +188,7 @@ app.openapi(
     };
 
     try {
-      const result = await createApiKey(dbClient)(insertData);
+      const result = await createApiKey(runDbClient)(insertData);
       // Remove sensitive fields from the apiKey object (but keep the full key)
       const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = result;
 
@@ -253,7 +254,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedApiKey = await updateApiKey(dbClient)({
+    const updatedApiKey = await updateApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
       data: {
@@ -310,7 +311,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteApiKey(dbClient)({
+    const deleted = await deleteApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });

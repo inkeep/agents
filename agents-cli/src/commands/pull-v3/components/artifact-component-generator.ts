@@ -38,7 +38,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -89,7 +89,7 @@ function formatArtifactSchema(schema: any, style: CodeStyle): string {
 
     // Add description if available
     if (schema.description) {
-      return lines.join('\n') + `.describe(\`${schema.description}\`)`;
+      return `${lines.join('\n')}.describe(\`${schema.description}\`)`;
     }
 
     return lines.join('\n');
@@ -174,11 +174,38 @@ export function generateArtifactComponentDefinition(
       const schemaLines = zodSchema.split('\n');
       lines.push(`${indentation}props: ${schemaLines[0]}`);
       schemaLines.slice(1, -1).forEach((line) => {
-        lines[lines.length - 1] += '\n' + indentation + line;
+        lines[lines.length - 1] += `\n${indentation}${line}`;
       });
-      lines[lines.length - 1] += '\n' + indentation + schemaLines[schemaLines.length - 1] + ',';
+      lines[lines.length - 1] += `\n${indentation}${schemaLines[schemaLines.length - 1]},`;
     } else {
       lines.push(`${indentation}props: ${zodSchema},`);
+    }
+  }
+
+  // Render attribute - handle { component: string, mockData: object }
+  if (componentData.render && typeof componentData.render === 'object') {
+    const render = componentData.render;
+    if (render.component && typeof render.component === 'string') {
+      lines.push(`${indentation}render: {`);
+
+      // For complex render components, use JSON.stringify to properly escape as string
+      const componentString = JSON.stringify(render.component);
+      lines.push(`${indentation}${indentation}component: ${componentString},`);
+
+      // Add mockData if present
+      if (render.mockData && typeof render.mockData === 'object') {
+        const mockDataStr = JSON.stringify(render.mockData, null, 2);
+        const formattedMockData = mockDataStr
+          .split('\n')
+          .map((line, index) => {
+            if (index === 0) return line;
+            return `${indentation}${indentation}${line}`;
+          })
+          .join('\n');
+        lines.push(`${indentation}${indentation}mockData: ${formattedMockData},`);
+      }
+
+      lines.push(`${indentation}},`);
     }
   }
 
@@ -206,7 +233,6 @@ export function generateArtifactComponentDefinition(
  * Generate imports needed for an artifact component file
  */
 export function generateArtifactComponentImports(
-  componentId: string,
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string[] {
@@ -242,8 +268,8 @@ export function generateArtifactComponentFile(
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateArtifactComponentImports(componentId, componentData, style);
+  const imports = generateArtifactComponentImports(componentData, style);
   const definition = generateArtifactComponentDefinition(componentId, componentData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

@@ -6,7 +6,7 @@ import {
   UserOrganizationsResponseSchema,
 } from '@inkeep/agents-core/auth/validation';
 import type { AppVariables } from '../create-app';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 
 const userOrganizationsRoutes = new OpenAPIHono<{ Variables: AppVariables }>();
 
@@ -36,7 +36,7 @@ userOrganizationsRoutes.openapi(
   }),
   async (c) => {
     const { userId } = c.req.valid('param');
-    const orgs = await getUserOrganizations(dbClient)(userId);
+    const orgs = await getUserOrganizations(runDbClient)(userId);
     // Transform Date to string for API response
     const userOrganizations = orgs.map((org) => ({
       ...org,
@@ -81,7 +81,7 @@ userOrganizationsRoutes.openapi(
     const { userId } = c.req.valid('param');
     const { organizationId, role } = c.req.valid('json');
 
-    await addUserToOrganization(dbClient)({ userId, organizationId, role });
+    await addUserToOrganization(runDbClient)({ userId, organizationId, role });
     return c.json({ organizationId, role, createdAt: new Date().toISOString() }, 201);
   }
 );

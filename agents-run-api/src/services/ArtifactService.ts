@@ -1,5 +1,6 @@
 import {
   type ArtifactComponentApiInsert,
+  type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
@@ -45,10 +46,9 @@ export interface ArtifactCreateRequest {
 }
 
 export interface ArtifactServiceContext {
-  tenantId: string;
+  executionContext: FullExecutionContext;
   sessionId?: string;
   taskId?: string;
-  projectId?: string;
   contextId?: string;
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
@@ -85,6 +85,7 @@ export class ArtifactService {
    */
   async getContextArtifacts(contextId: string): Promise<Map<string, any>> {
     const artifacts = new Map<string, any>();
+    const { tenantId, projectId } = this.context.executionContext;
 
     try {
       const taskIds = await listTaskIdsByContextId(dbClient)({
@@ -101,7 +102,7 @@ export class ArtifactService {
         }
 
         const taskArtifacts = await getLedgerArtifacts(dbClient)({
-          scopes: { tenantId: this.context.tenantId, projectId: task.projectId },
+          scopes: { tenantId, projectId },
           taskId,
         });
 
@@ -269,6 +270,8 @@ export class ArtifactService {
   ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
+    const { tenantId, projectId } = this.context.executionContext;
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -280,7 +283,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
@@ -290,7 +293,7 @@ export class ArtifactService {
     }
 
     try {
-      if (!this.context.projectId || !this.context.taskId) {
+      if (!projectId || !this.context.taskId) {
         logger.warn(
           { artifactId, toolCallId },
           'No projectId or taskId available for artifact lookup'
@@ -300,7 +303,7 @@ export class ArtifactService {
 
       let artifacts: any[] = [];
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         toolCallId: toolCallId,
       });
@@ -310,7 +313,7 @@ export class ArtifactService {
       }
 
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         taskId: this.context.taskId,
       });
@@ -338,6 +341,8 @@ export class ArtifactService {
   ): Promise<ArtifactFullData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
+    const { tenantId, projectId } = this.context.executionContext;
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -349,7 +354,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactFullData(cached, artifactId, toolCallId);
     }
 
@@ -359,7 +364,7 @@ export class ArtifactService {
     }
 
     try {
-      if (!this.context.projectId || !this.context.taskId) {
+      if (!projectId || !this.context.taskId) {
         logger.warn(
           { artifactId, toolCallId },
           'No projectId or taskId available for artifact lookup'
@@ -370,7 +375,7 @@ export class ArtifactService {
       let artifacts: any[] = [];
 
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         toolCallId: toolCallId,
       });
@@ -380,7 +385,7 @@ export class ArtifactService {
       }
 
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         taskId: this.context.taskId,
       });
@@ -582,14 +587,6 @@ export class ArtifactService {
 
     // Block artifact creation if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {
-      const error = new Error(
-        `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
-          `for '${artifactType}' schema. ` +
-          `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
-          `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
-          `Consider using a different artifact component type that matches your data structure.`
-      );
-
       logger.error(
         {
           artifactId,
@@ -700,8 +697,8 @@ export class ArtifactService {
             },
             schemaFound: false,
           },
-          tenantId: this.context.tenantId,
-          projectId: this.context.projectId,
+          tenantId: this.context.executionContext.tenantId,
+          projectId: this.context.executionContext.projectId,
           contextId: this.context.contextId,
           pendingGeneration: true,
         }
@@ -796,6 +793,7 @@ export class ArtifactService {
     // Use provided summaryData if available, otherwise default to artifact.data
     let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
+    const { tenantId, projectId } = this.context.executionContext;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -837,14 +835,17 @@ export class ArtifactService {
         },
       ],
       metadata: artifact.metadata || {},
+      createdAt: new Date().toISOString(),
     };
 
     const result = await upsertLedgerArtifact(dbClient)({
       scopes: {
-        tenantId: this.context.tenantId,
-        projectId: this.context.projectId!,
+        tenantId,
+        projectId,
       },
+      // biome-ignore lint/style/noNonNullAssertion: ignore
       contextId: this.context.contextId!,
+      // biome-ignore lint/style/noNonNullAssertion: ignore
       taskId: this.context.taskId!,
       toolCallId: artifact.toolCallId,
       artifact: artifactToSave,
@@ -869,7 +870,9 @@ export class ArtifactService {
       let cleaned = value;
 
       cleaned = cleaned
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: I am not sure if it's safe to remove
         .replace(/\u0000/g, '') // Remove null bytes
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: I am not sure if it's safe to remove
         .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // Remove control chars
 
       cleaned = cleaned
@@ -882,7 +885,7 @@ export class ArtifactService {
       // Handle the specific pattern we're seeing: \\\\\\n (4 backslashes + n)
       const maxIterations = 10;
       let iteration = 0;
-      let previousLength;
+      let previousLength: number;
 
       do {
         previousLength = cleaned.length;
@@ -935,7 +938,7 @@ export class ArtifactService {
         try {
           // Check if there's a custom selector for this field
           const customSelector = customSelectors[fieldName];
-          let rawValue;
+          let rawValue: any;
 
           if (customSelector) {
             // Use custom JMESPath selector

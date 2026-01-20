@@ -15,9 +15,8 @@ import {
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { requirePermission } from '../middleware/require-permission';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
@@ -25,20 +24,20 @@ const logger = getLogger('functions');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-// Apply permission middleware by HTTP method
+// Write operations require 'edit' permission on the project
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ function: ['create'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ function: ['update'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ function: ['delete'] })(c, next);
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -68,12 +67,13 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     try {
-      const result = await listFunctionsPaginated(dbClient)({
+      const result = await listFunctionsPaginated(db)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
       });
@@ -112,11 +112,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
       // Functions are project-scoped
-      const functionData = await getFunction(dbClient)({
+      const functionData = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -169,6 +170,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const functionData = c.req.valid('json');
 
@@ -176,7 +178,7 @@ app.openapi(
       // Generate ID if not provided
       const id = functionData.id || generateId();
 
-      await upsertFunction(dbClient)({
+      await upsertFunction(db)({
         data: {
           ...functionData,
           id,
@@ -184,7 +186,7 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      const created = await getFunction(dbClient)({
+      const created = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -232,11 +234,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const updateData = c.req.valid('json');
 
     try {
-      const existing = await getFunction(dbClient)({
+      const existing = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -247,7 +250,7 @@ app.openapi(
         ) as any;
       }
 
-      await upsertFunction(dbClient)({
+      await upsertFunction(db)({
         data: {
           ...existing,
           ...updateData,
@@ -256,7 +259,7 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      const updated = await getFunction(dbClient)({
+      const updated = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -292,10 +295,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
-      const existing = await getFunction(dbClient)({
+      const existing = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -306,7 +310,7 @@ app.openapi(
         ) as any;
       }
 
-      await deleteFunction(dbClient)({
+      await deleteFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });

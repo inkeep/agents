@@ -1,8 +1,10 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for external agent generator
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateExternalAgentDefinition,
   generateExternalAgentFile,
@@ -11,7 +13,7 @@ import {
 
 // Mock registry for tests
 const mockRegistry = {
-  getVariableName: (id: string, type?: string) => {
+  getVariableName(id, _type) {
     // If already camelCase, return as-is, otherwise convert
     if (!/[-_]/.test(id)) {
       return id;
@@ -22,11 +24,11 @@ const mockRegistry = {
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
   },
-  getImportsForFile: (filePath: string, components: any[]) => {
+  getImportsForFile(_filePath, _components) {
     // Mock implementation returns empty array
     return [];
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('External Agent Generator', () => {
   const basicExternalAgentData = {
@@ -256,7 +258,7 @@ describe('External Agent Generator', () => {
         return testExternalAgent;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -283,7 +285,7 @@ describe('External Agent Generator', () => {
         return complexTestExternalAgent;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

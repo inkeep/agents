@@ -24,11 +24,11 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
-  AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
   ARTIFACT_PROCESSING: 'artifact_processing',
   TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -95,10 +95,6 @@ export interface ActivityItem {
   aiStreamTextModel?: string;
   aiStreamTextProvider?: string;
   aiStreamTextOperationId?: string;
-  aiStreamObjectContent?: string;
-  aiStreamObjectModel?: string;
-  aiStreamObjectProvider?: string;
-  aiStreamObjectOperationId?: string;
   toolCallArgs?: string;
   toolCallResult?: string;
   toolStatusMessage?: string;
@@ -110,6 +106,7 @@ export interface ActivityItem {
   otelStatusCode?: string;
   otelStatusDescription?: string;
   aiTelemetryFunctionId?: string;
+  aiTelemetryPhase?: string;
   // Artifact processing fields
   artifactId?: string;
   artifactType?: string;
@@ -123,6 +120,17 @@ export interface ActivityItem {
   approvalToolCallId?: string;
   // Context breakdown for AI generation spans
   contextBreakdown?: ContextBreakdown;
+  // Compression fields
+  compressionType?: string;
+  compressionInputTokens?: number;
+  compressionOutputTokens?: number;
+  compressionRatio?: number;
+  compressionArtifactCount?: number;
+  compressionMessageCount?: number;
+  compressionHardLimit?: number;
+  compressionSafetyBuffer?: number;
+  compressionError?: string;
+  compressionSummary?: string;
 }
 
 interface ToolCall {
@@ -149,28 +157,8 @@ interface AgentInteraction {
 
 /** Context breakdown showing estimated token usage by component */
 export interface ContextBreakdown {
-  /** Base system prompt template tokens */
-  systemPromptTemplate: number;
-  /** Core instructions (corePrompt) tokens */
-  coreInstructions: number;
-  /** Agent-level context (prompt) tokens */
-  agentPrompt: number;
-  /** Tools section (MCP, function, relation tools) tokens */
-  toolsSection: number;
-  /** Artifacts section tokens */
-  artifactsSection: number;
-  /** Data components section tokens (Phase 2) */
-  dataComponents: number;
-  /** Artifact component instructions tokens */
-  artifactComponents: number;
-  /** Transfer instructions tokens */
-  transferInstructions: number;
-  /** Delegation instructions tokens */
-  delegationInstructions: number;
-  /** Thinking preparation instructions tokens */
-  thinkingPreparation: number;
-  /** Conversation history tokens */
-  conversationHistory: number;
+  /** Token counts by component key (version-specific) */
+  components: Record<string, number>;
   /** Total estimated tokens */
   total: number;
 }

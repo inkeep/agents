@@ -2,9 +2,11 @@ import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
 import type { ReactElement } from 'react';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import { renderMarkdownToHast } from '@/lib/markdown';
+import { ExpandableRow } from './expandable-row'; // or inline if you prefer
 
 interface ComparisonRow {
   feature: string;
+  featureNote?: string; // Add this
   inkeep: boolean | string | { value: boolean | string; note?: string };
   competitor: boolean | string | { value: boolean | string; note?: string };
 }
@@ -36,6 +38,13 @@ interface ComparisonData {
   _meta: {
     path: string;
   };
+}
+
+function getCompetitorDisplayName(competitor: string): string {
+  if (competitor === 'OpenAI AgentKit') {
+    return 'AgentKit';
+  }
+  return competitor;
 }
 
 async function getComparison(competitor: string): Promise<ComparisonData | null> {
@@ -140,6 +149,14 @@ export async function ComparisonTable({
       processedRows: await Promise.all(
         section.rows.map(async (row) => ({
           feature: row.feature,
+          featureNote: row.featureNote
+            ? toJsxRuntime(await renderMarkdownToHast(row.featureNote), {
+                Fragment,
+                jsx,
+                jsxs,
+                components: {},
+              })
+            : undefined,
           inkeepCell: await renderCell(row.inkeep),
           competitorCell: await renderCell(row.competitor),
         }))
@@ -156,21 +173,21 @@ export async function ComparisonTable({
           <tr className="border-b border-fd-border bg-fd-muted/50">
             <th className="p-4 text-left font-semibold">Feature</th>
             <th className="p-4 text-center font-semibold w-32">Inkeep</th>
-            <th className="p-4 text-center font-semibold w-32">{comparison.competitor}</th>
+            <th className="p-4 text-center font-semibold w-32">
+              {getCompetitorDisplayName(comparison.competitor)}
+            </th>
           </tr>
         </thead>
         <tbody>
           {section.processedRows.map((row, idx) => (
-            <tr
+            <ExpandableRow
               key={idx}
-              className={`border-b border-fd-border last:border-b-0 hover:bg-fd-muted/30 transition-colors ${
-                idx % 2 === 0 ? 'bg-white dark:bg-transparent' : 'bg-fd-muted/10'
-              }`}
-            >
-              <td className="p-4 font-medium">{row.feature}</td>
-              <td className="p-4 text-center align-top">{row.inkeepCell}</td>
-              <td className="p-4 text-center align-top">{row.competitorCell}</td>
-            </tr>
+              feature={row.feature}
+              featureNote={row.featureNote}
+              inkeepCell={row.inkeepCell}
+              competitorCell={row.competitorCell}
+              isEven={idx % 2 === 0}
+            />
           ))}
         </tbody>
       </table>
@@ -189,7 +206,9 @@ export async function ComparisonTable({
                 <tr className="border-b border-fd-border bg-fd-muted/50">
                   <th className="p-4 text-left font-semibold">Feature</th>
                   <th className="p-4 text-center font-semibold w-32">Inkeep</th>
-                  <th className="p-4 text-center font-semibold w-32">{comparison.competitor}</th>
+                  <th className="p-4 text-center font-semibold w-32">
+                    {getCompetitorDisplayName(comparison.competitor)}
+                  </th>
                 </tr>
               </thead>
               <tbody>

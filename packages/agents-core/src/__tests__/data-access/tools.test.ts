@@ -7,13 +7,13 @@ import {
   listTools,
   removeToolFromAgent,
   updateTool,
-} from '../../data-access/tools';
-import type { DatabaseClient } from '../../db/client';
+} from '../../data-access/manage/tools';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { ToolInsert } from '../../types/index';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 
 describe('Tools Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
@@ -21,7 +21,7 @@ describe('Tools Data Access', () => {
   const testSubAgentId = 'test-sub-agent';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

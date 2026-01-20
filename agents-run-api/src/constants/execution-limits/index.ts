@@ -9,11 +9,17 @@ loadEnvironmentFiles();
 // This ensures we only define constants once in defaults.ts
 const constantsSchema = z.object(
   Object.fromEntries(
-    Object.keys(executionLimitsDefaults).map((key) => [
-      `AGENTS_${key}`,
-      z.coerce.number().optional(),
-    ])
-  ) as Record<string, z.ZodOptional<z.ZodNumber>>
+    Object.keys(executionLimitsDefaults).map((key) => {
+      const defaultValue = executionLimitsDefaults[key as keyof typeof executionLimitsDefaults];
+      const envKey = `AGENTS_${key}`;
+
+      // Use appropriate schema type based on the default value type
+      if (typeof defaultValue === 'boolean') {
+        return [envKey, z.coerce.boolean().optional()];
+      }
+      return [envKey, z.coerce.number().optional()];
+    })
+  ) as Record<string, z.ZodOptional<z.ZodNumber> | z.ZodOptional<z.ZodBoolean>>
 );
 
 const parseConstants = () => {
@@ -70,6 +76,10 @@ export const {
   STREAM_TEXT_GAP_THRESHOLD_MS,
   STREAM_MAX_LIFETIME_MS,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
+  CONVERSATION_ARTIFACTS_LIMIT,
+  COMPRESSION_HARD_LIMIT,
+  COMPRESSION_SAFETY_BUFFER,
+  COMPRESSION_ENABLED,
 } = constants;
 
 // Also export the defaults for potential use elsewhere
