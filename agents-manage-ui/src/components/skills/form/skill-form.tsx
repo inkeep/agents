@@ -14,13 +14,14 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { createSkillAction, updateSkillAction } from '@/lib/actions/skills';
 import type { Skill } from '@/lib/types/skills';
-import { formatJsonField } from '@/lib/utils';
+import { cn, formatJsonField } from '@/lib/utils';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { defaultValues, parseMetadataField, type SkillFormData, SkillSchema } from './validation';
 
 interface SkillFormProps {
   initialData?: Skill;
   onSaved?: () => void;
+  className?: string;
 }
 
 const formatFormData = (data?: Skill): SkillFormData => {
@@ -63,7 +64,7 @@ async function doRequest(
   return { success: true };
 }
 
-export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
+export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved, className }) => {
   'use memo';
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
@@ -106,7 +107,7 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-8">
+      <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"

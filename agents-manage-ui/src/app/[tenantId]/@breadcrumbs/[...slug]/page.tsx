@@ -16,6 +16,7 @@ import { getTrigger } from '@/lib/api/triggers';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
+import { fetchSkillAction } from '@/lib/actions/skills';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
@@ -101,6 +102,16 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     async triggers(id) {
       const trigger = await getTrigger(tenantId, projectId, slug[3], id);
       return trigger.name;
+    },
+    async skills(id) {
+      const result = await fetchSkillAction(tenantId, projectId, id);
+      if (result.success) {
+        return result.data.name;
+      }
+      throw {
+        message: result.error,
+        code: result.code,
+      };
     },
   };
 

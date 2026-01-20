@@ -12,6 +12,7 @@ import {
 } from '@/lib/api/skills';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
+import { cache } from 'react';
 
 export async function fetchSkillsAction(
   tenantId: string,
@@ -34,7 +35,7 @@ export async function fetchSkillsAction(
   }
 }
 
-export async function fetchSkillAction(
+async function $fetchSkillAction(
   tenantId: string,
   projectId: string,
   skillId: string
@@ -55,6 +56,7 @@ export async function fetchSkillAction(
     };
   }
 }
+export const fetchSkillAction = cache($fetchSkillAction);
 
 export async function createSkillAction(
   tenantId: string,

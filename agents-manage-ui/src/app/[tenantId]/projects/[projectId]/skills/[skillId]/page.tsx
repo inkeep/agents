@@ -1,5 +1,4 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { SkillForm } from '@/components/skills/form/skill-form';
 import { fetchSkillAction } from '@/lib/actions/skills';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -22,17 +21,7 @@ async function SkillDetailPage({
     );
   }
 
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        { label: 'Skills', href: `/${tenantId}/projects/${projectId}/skills` },
-        skillResult.data.name,
-      ]}
-      className="max-w-2xl mx-auto"
-    >
-      <SkillForm initialData={skillResult.data} />
-    </BodyTemplate>
-  );
+  return <SkillForm initialData={skillResult.data} className="max-w-2xl mx-auto" />;
 }
 
 export default SkillDetailPage;

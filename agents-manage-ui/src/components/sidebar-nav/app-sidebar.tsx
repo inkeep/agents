@@ -85,9 +85,9 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Workflow,
         },
         {
-            title: 'Skills',
-            url: `/${tenantId}/projects/${projectId}/skills`,
-            icon: LucideHexagon,
+          title: STATIC_LABELS.skills,
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
         },
         {
           title: STATIC_LABELS['api-keys'],
