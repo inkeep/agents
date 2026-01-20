@@ -94,8 +94,7 @@ export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: Evaluat
           <div className="space-y-2">
             <Label className="text-sm font-medium">Pass/Fail Criteria</Label>
             <div className="bg-muted rounded-md p-3">
-              {evaluator.passCriteria &&
-              evaluator.passCriteria.conditions &&
+              {evaluator.passCriteria?.conditions &&
               evaluator.passCriteria.conditions.length > 0 ? (
                 <div className="space-y-2">
                   <div className="text-sm">
