@@ -108,115 +108,105 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/new`}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create trigger
-          </Link>
-        </Button>
-      </div>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+    <div className="rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow noHover>
+            <TableHead>Name</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Webhook URL</TableHead>
+            <TableHead className="w-12" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {triggers.length === 0 ? (
             <TableRow noHover>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Webhook URL</TableHead>
-              <TableHead className="w-12" />
+              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                No triggers configured yet. Create a trigger to enable webhook-based agent
+                invocation.
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {triggers.length === 0 ? (
-              <TableRow noHover>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No triggers configured yet. Create a trigger to enable webhook-based agent
-                  invocation.
-                </TableCell>
-              </TableRow>
-            ) : (
-              triggers.map((trigger) => {
-                const isLoading = loadingTriggers.has(trigger.id);
-                return (
-                  <TableRow key={trigger.id} noHover>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{trigger.name}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-muted-foreground max-w-md truncate">
-                        {trigger.description || '—'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={trigger.enabled}
-                          onCheckedChange={() => toggleEnabled(trigger.id, trigger.enabled)}
-                          disabled={isLoading}
-                        />
-                        <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
-                          {trigger.enabled ? 'Enabled' : 'Disabled'}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono truncate max-w-xs">
-                          {trigger.webhookUrl}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => copyWebhookUrl(trigger.webhookUrl, trigger.name)}
-                          title="Copy webhook URL"
-                        >
-                          <Copy className="w-4 h-4" />
+          ) : (
+            triggers.map((trigger) => {
+              const isLoading = loadingTriggers.has(trigger.id);
+              return (
+                <TableRow key={trigger.id} noHover>
+                  <TableCell>
+                    <div className="font-medium text-foreground">{trigger.name}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-muted-foreground max-w-md truncate">
+                      {trigger.description || '—'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={trigger.enabled}
+                        onCheckedChange={() => toggleEnabled(trigger.id, trigger.enabled)}
+                        disabled={isLoading}
+                      />
+                      <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
+                        {trigger.enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono truncate max-w-xs">
+                        {trigger.webhookUrl}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => copyWebhookUrl(trigger.webhookUrl, trigger.name)}
+                        title="Copy webhook URL"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon-sm" disabled={isLoading}>
+                          <MoreHorizontal className="w-4 h-4" />
                         </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" disabled={isLoading}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`}
-                            >
-                              <History className="w-4 h-4 mr-2" />
-                              View Invocations
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
-                            >
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => deleteTrigger(trigger.id, trigger.name)}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`}
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                            <History className="w-4 h-4 mr-2" />
+                            View Invocations
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => deleteTrigger(trigger.id, trigger.name)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

@@ -2,6 +2,11 @@ import { notFound } from 'next/navigation';
 import { TriggersTable } from '@/components/triggers/triggers-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTriggersAction } from '@/lib/actions/triggers';
+import { STATIC_LABELS } from '@/constants/theme';
+import Link from 'next/link';
+import { PageHeader } from '@/components/layout/page-header';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default async function TriggersPage({
   params,
@@ -18,13 +23,19 @@ export default async function TriggersPage({
   const triggers = await getTriggersAction(tenantId, projectId, agentId);
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Triggers</h1>
-        <p className="text-muted-foreground">
-          Configure webhook triggers to invoke this agent from external services.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={STATIC_LABELS.triggers}
+        description="Configure webhook triggers to invoke this agent from external services."
+        action={
+          <Button asChild>
+            <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/new`}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create trigger
+            </Link>
+          </Button>
+        }
+      />
 
       <TriggersTable
         triggers={triggers}
