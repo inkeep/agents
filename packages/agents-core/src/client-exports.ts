@@ -37,6 +37,7 @@ import {
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
+  TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
@@ -60,6 +61,11 @@ export {
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
   TriggerInvocationApiSelectSchema,
+  TriggerInvocationListResponse,
+  TriggerInvocationResponse,
+  TriggerInvocationStatusEnum,
+  TriggerListResponse,
+  TriggerResponse,
 } from './validation/schemas';
 
 export const TenantParamsSchema = z.object({

@@ -8116,6 +8116,35 @@
         ],
         "type": "object"
       },
+      "TriggerInvocationListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TriggerInvocation"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "TriggerInvocationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TriggerInvocation"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "TriggerOutputTransform": {
         "nullable": true,
         "properties": {
@@ -18193,10 +18222,12 @@
             }
           },
           {
+            "description": "Filter by invocation status",
             "in": "query",
             "name": "status",
             "required": false,
             "schema": {
+              "description": "Filter by invocation status",
               "enum": [
                 "pending",
                 "success",
@@ -18233,42 +18264,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "$ref": "#/components/schemas/TriggerInvocation"
-                      },
-                      "type": "array"
-                    },
-                    "pagination": {
-                      "properties": {
-                        "limit": {
-                          "type": "number"
-                        },
-                        "page": {
-                          "type": "number"
-                        },
-                        "pages": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "page",
-                        "limit",
-                        "total",
-                        "pages"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "pagination"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/TriggerInvocationListResponse"
                 }
               }
             },
@@ -18420,15 +18416,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/TriggerInvocation"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/TriggerInvocationResponse"
                 }
               }
             },

@@ -16,6 +16,8 @@ import {
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
   TriggerInvocationApiSelectSchema,
+  TriggerInvocationListResponse,
+  TriggerInvocationResponse,
   TriggerInvocationStatusEnum,
   updateTrigger,
 } from '@inkeep/agents-core';
@@ -30,7 +32,8 @@ const logger = getLogger('triggers');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-// Response schemas
+// Extended response schemas with webhookUrl (specific to manage API responses)
+// Note: These extend the base TriggerApiSelectSchema to add the computed webhookUrl field
 const TriggerResponse = z.object({
   data: TriggerApiSelectSchema.extend({
     webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
@@ -440,27 +443,18 @@ app.openapi(
  * ========================================
  */
 
-// Response schemas for invocations
-const TriggerInvocationResponse = z.object({
-  data: TriggerInvocationApiSelectSchema,
-});
-
-const TriggerInvocationListResponse = z.object({
-  data: z.array(TriggerInvocationApiSelectSchema),
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    total: z.number(),
-    pages: z.number(),
-  }),
-});
-
-// Query params for invocation filtering
+// Query params for invocation filtering (extends base pagination with status/date filters)
 const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: TriggerInvocationStatusEnum.optional(),
-  from: z.string().datetime().optional().describe('Start date for filtering (ISO8601)'),
-  to: z.string().datetime().optional().describe('End date for filtering (ISO8601)'),
-});
+  status: TriggerInvocationStatusEnum.optional().openapi({
+    description: 'Filter by invocation status',
+  }),
+  from: z.string().datetime().optional().openapi({
+    description: 'Start date for filtering (ISO8601)',
+  }),
+  to: z.string().datetime().optional().openapi({
+    description: 'End date for filtering (ISO8601)',
+  }),
+}).openapi('TriggerInvocationQueryParams');
 
 /**
  * List Trigger Invocations
