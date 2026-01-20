@@ -2,7 +2,7 @@
   <defs>
     <marker
       class="react-flow__arrowhead"
-      id="marker-default"
+      id="marker-selected"
       markerWidth="12.5"
       markerHeight="12.5"
       viewBox="-10 -10 20 20"
@@ -15,6 +15,7 @@
         class="stroke-primary!"
         stroke-linecap="round"
         stroke-linejoin="round"
+        fill="none"
         points="-5,-4 0,0 -5,4"
         stroke-width="1.5"
       />

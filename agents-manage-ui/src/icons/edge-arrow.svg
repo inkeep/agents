@@ -15,6 +15,7 @@
         class="stroke-border! dark:stroke-muted-foreground!"
         stroke-linecap="round"
         stroke-linejoin="round"
+        fill="none"
         points="-5,-4 0,0 -5,4"
         stroke-width="1.5"
       />
