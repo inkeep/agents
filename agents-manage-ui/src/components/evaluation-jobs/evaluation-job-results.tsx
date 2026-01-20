@@ -28,6 +28,10 @@ import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results'
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+
+type AnyRecord = Record<string, unknown>;
+const isPlainObject = (v: unknown): v is AnyRecord =>
+  v != null && typeof v === 'object' && !Array.isArray(v);
 import {
   type EvaluationResultFilters,
   EvaluationResultsFilters,
@@ -162,6 +166,25 @@ export function EvaluationJobResults({
     return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
   }, [results]);
 
+  // Extract unique output schema keys from results for filtering dropdown
+  const availableOutputKeys = useMemo(() => {
+    const collect = (obj: unknown, prefix = ''): string[] => {
+      if (!isPlainObject(obj)) return [];
+
+      return Object.entries(obj).flatMap(([k, v]) => {
+        const p = prefix ? `${prefix}.${k}` : k;
+        if (Array.isArray(v)) {
+          const first = v[0];
+          return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
+        }
+        return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
+      });
+    };
+
+    const keys = results.flatMap((r) => collect(r.output));
+    return [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
+  }, [results]);
+
   return (
     <div className="space-y-6">
       <EvaluationResultsFilters
@@ -169,6 +192,7 @@ export function EvaluationJobResults({
         onFiltersChange={setFilters}
         evaluators={evaluatorOptions}
         agents={agentOptions}
+        availableOutputKeys={availableOutputKeys}
       />
 
       {/* Progress indicator */}
