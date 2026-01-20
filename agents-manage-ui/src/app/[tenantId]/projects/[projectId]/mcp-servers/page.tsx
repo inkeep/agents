@@ -5,6 +5,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { MCPToolItem } from '@/components/mcp-servers/mcp-tool-item';
 import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -20,7 +21,7 @@ async function MCPServersPage({
     return tools.length ? (
       <>
         <PageHeader
-          title="MCP servers"
+          title={STATIC_LABELS['mcp-servers']}
           description={mcpServerDescription}
           action={
             <Button asChild>

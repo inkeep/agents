@@ -150,7 +150,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
         //   icon: Database,
         // },
         {
-          title: 'Evaluations',
+          title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
         },

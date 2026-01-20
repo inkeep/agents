@@ -6,6 +6,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { dataComponentDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchDataComponents } from '@/lib/api/data-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -21,7 +22,7 @@ async function DataComponentsPage({
     return data.length ? (
       <>
         <PageHeader
-          title="Components"
+          title={STATIC_LABELS.components}
           description={dataComponentDescription}
           action={
             <Button asChild>

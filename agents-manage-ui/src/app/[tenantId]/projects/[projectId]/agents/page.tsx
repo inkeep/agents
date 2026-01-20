@@ -5,6 +5,7 @@ import { AgentsIcon } from '@/components/icons/empty-state/agents';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { agentDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -16,7 +17,7 @@ async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
     const { data } = await fetchAgents(tenantId, projectId);
     return data.length ? (
       <>
-        <PageHeader title="Agents" description={agentDescription} />
+        <PageHeader title={STATIC_LABELS.agents} description={agentDescription} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
           <NewAgentItem tenantId={tenantId} projectId={projectId} />
           {data.map((agent) => (

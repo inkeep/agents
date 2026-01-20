@@ -5,6 +5,7 @@ import { ExternalAgentItem } from '@/components/external-agents/external-agent-i
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -21,7 +22,7 @@ async function ExternalAgentsPage({
     return externalAgents.length ? (
       <>
         <PageHeader
-          title="External agents"
+          title={STATIC_LABELS['external-agents']}
           description={externalAgentsDescription}
           action={
             <Button asChild>

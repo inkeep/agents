@@ -6,6 +6,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { artifactDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -20,7 +21,7 @@ async function ArtifactComponentsPage({
     return data.length ? (
       <>
         <PageHeader
-          title="Artifacts"
+          title={STATIC_LABELS.artifacts}
           description={artifactDescription}
           action={
             <Button asChild>

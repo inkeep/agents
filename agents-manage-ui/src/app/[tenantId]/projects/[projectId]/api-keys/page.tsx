@@ -4,6 +4,7 @@ import FullPageError from '@/components/errors/full-page-error';
 import type { SelectOption } from '@/components/form/generic-select';
 import { PageHeader } from '@/components/layout/page-header';
 import { apiKeyDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchApiKeys } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
@@ -32,7 +33,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
     return (
       <>
         <PageHeader
-          title="API keys"
+          title={STATIC_LABELS['api-keys']}
           description={apiKeyDescription}
           action={
             <NewApiKeyDialog

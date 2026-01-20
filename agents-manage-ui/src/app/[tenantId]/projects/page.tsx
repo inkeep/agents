@@ -6,6 +6,7 @@ import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { ProjectItem } from '@/components/projects/project-item';
 import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -17,7 +18,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
     return data.length ? (
       <>
         <PageHeader
-          title="Projects"
+          title={STATIC_LABELS.projects}
           description={projectDescription}
           action={
             <NewProjectDialog tenantId={tenantId}>
