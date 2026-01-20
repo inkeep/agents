@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
+import { ConversationPicker } from '@/components/evaluation-jobs/conversation-picker';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,7 +48,12 @@ export function EvaluationJobFormDialog({
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
 
   const defaultFormData: EvaluationJobConfigFormData = {
-    jobFilters: null,
+    jobFilters: {
+      dateRange: {
+        startDate: '',
+        endDate: '',
+      },
+    },
     evaluatorIds: [],
   };
 
@@ -72,6 +78,9 @@ export function EvaluationJobFormDialog({
   useEffect(() => {
     if (isOpen) {
       form.reset(defaultFormData);
+      setCustomStartDate('');
+      setCustomEndDate('');
+      setSelectedConversationIds([]);
       loadData();
     }
   }, [isOpen, form, loadData]);
@@ -92,9 +101,25 @@ export function EvaluationJobFormDialog({
 
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [selectedConversationIds, setSelectedConversationIds] = useState<string[]>([]);
 
   const datePickerValue =
     customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;
+
+  // Compute time range in milliseconds for the conversation picker
+  const timeRange = useMemo(() => {
+    if (!customStartDate || !customEndDate) return { startTime: undefined, endTime: undefined };
+
+    const [sy, sm, sd] = customStartDate.split('-').map(Number);
+    const [ey, em, ed] = customEndDate.split('-').map(Number);
+    const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
+    const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
+
+    return {
+      startTime: startDate.getTime(),
+      endTime: Math.min(endDate.getTime(), Date.now() - 1),
+    };
+  }, [customStartDate, customEndDate]);
 
   const setCustomDateRange = (start: string, end: string) => {
     setCustomStartDate(start);
@@ -113,7 +138,10 @@ export function EvaluationJobFormDialog({
     } else {
       form.setValue('jobFilters', {
         ...jobFilters,
-        dateRange: undefined,
+        dateRange: {
+          startDate: '',
+          endDate: '',
+        },
       });
     }
   };
@@ -121,9 +149,22 @@ export function EvaluationJobFormDialog({
   const handleRemoveDateRange = () => {
     setCustomStartDate('');
     setCustomEndDate('');
+    setSelectedConversationIds([]);
     form.setValue('jobFilters', {
       ...jobFilters,
-      dateRange: undefined,
+      dateRange: {
+        startDate: '',
+        endDate: '',
+      },
+      conversationIds: undefined,
+    });
+  };
+
+  const handleConversationSelectionChange = (ids: string[]) => {
+    setSelectedConversationIds(ids);
+    form.setValue('jobFilters', {
+      ...jobFilters,
+      conversationIds: ids.length > 0 ? ids : undefined,
     });
   };
 
@@ -217,18 +258,36 @@ export function EvaluationJobFormDialog({
               <div className="space-y-4">
                 <Label>Filters</Label>
                 <div className="space-y-4 border rounded-lg p-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Date Range</Label>
-                    <DatePickerWithPresets
-                      label="Date range"
-                      value={datePickerValue}
-                      onAdd={() => {}}
-                      onRemove={handleRemoveDateRange}
-                      setCustomDateRange={setCustomDateRange}
-                      showCalendarDirectly
-                      placeholder="Select date range"
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="jobFilters.dateRange"
+                    render={() => (
+                      <FormItem className="space-y-2">
+                        <Label className="text-sm">
+                          Date Range <span className="text-destructive">*</span>
+                        </Label>
+                        <DatePickerWithPresets
+                          label="Date range"
+                          value={datePickerValue}
+                          onAdd={() => {}}
+                          onRemove={handleRemoveDateRange}
+                          setCustomDateRange={setCustomDateRange}
+                          showCalendarDirectly
+                          placeholder="Select date range"
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <ConversationPicker
+                    tenantId={tenantId}
+                    projectId={projectId}
+                    startTime={timeRange.startTime}
+                    endTime={timeRange.endTime}
+                    selectedConversationIds={selectedConversationIds}
+                    onSelectionChange={handleConversationSelectionChange}
+                  />
                 </div>
               </div>
 
