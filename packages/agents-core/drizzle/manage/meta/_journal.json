@@ -8,6 +8,13 @@
       "when": 1767821157311,
       "tag": "0000_tearful_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768766675586,
+      "tag": "0001_broken_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

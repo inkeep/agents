@@ -15,13 +15,14 @@ import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
-import { apiKeyAuth } from './middleware/api-key-auth';
-import { projectConfigMiddleware } from './middleware/projectConfig';
+import { apiKeyAuth, apiKeyAuthExcept } from './middleware/api-key-auth';
+import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
 import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
+import webhookRoutes from './routes/webhooks';
 import type { SandboxConfig } from './types/execution-context';
 
 const logger = getLogger('agents-run-api');
@@ -187,14 +188,21 @@ function createExecutionHono(
     })
   );
 
-  // Apply API key authentication to all routes except health and docs
-  app.use('/tenants/*', apiKeyAuth());
+  // Helper to check if a path is a webhook/trigger route (no API key auth required)
+  const isWebhookRoute = (path: string) => {
+    return (
+      path.includes('/triggers/') && !path.endsWith('/triggers') && !path.endsWith('/triggers/')
+    );
+  };
+
+  // Apply API key authentication to all routes except health, docs, and webhooks
+  app.use('/tenants/*', apiKeyAuthExcept(isWebhookRoute));
   app.use('/agents/*', apiKeyAuth());
   app.use('/v1/*', apiKeyAuth());
   app.use('/api/*', apiKeyAuth());
 
-  // Fetch project config from Management API for authenticated routes
-  app.use('/tenants/*', projectConfigMiddleware);
+  // Fetch project config from Management API for authenticated routes (except webhooks)
+  app.use('/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
   app.use('/agents/*', projectConfigMiddleware);
   app.use('/v1/*', projectConfigMiddleware);
   app.use('/api/*', projectConfigMiddleware);
@@ -272,6 +280,7 @@ function createExecutionHono(
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);
   app.route('/agents', agentRoutes);
+  app.route('/', webhookRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

@@ -5,6 +5,7 @@
     "models",
     "agent-relationships",
     "tools",
+    "triggers",
     "credentials",
     "memory",
     "headers",

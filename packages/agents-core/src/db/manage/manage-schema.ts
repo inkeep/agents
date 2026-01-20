@@ -122,6 +122,32 @@ export const contextConfigs = pgTable(
   ]
 );
 
+export const triggers = pgTable(
+  'triggers',
+  {
+    ...agentScoped,
+    ...uiProperties,
+    enabled: boolean('enabled').notNull().default(true),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
+    outputTransform: jsonb('output_transform').$type<{
+      jmespath?: string;
+      objectTransformation?: Record<string, string>;
+    }>(),
+    messageTemplate: text('message_template').notNull(),
+    authentication: jsonb('authentication').$type<unknown>(),
+    signingSecret: text('signing_secret'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'triggers_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const subAgents = pgTable(
   'sub_agents',
   {

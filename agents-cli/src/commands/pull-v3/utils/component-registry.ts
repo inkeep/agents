@@ -25,6 +25,7 @@ export type ComponentType =
   | 'fetchDefinitions'
   | 'headers'
   | 'models'
+  | 'triggers'
   | 'project';
 
 export interface ComponentInfo {
@@ -380,6 +381,8 @@ export class ComponentRegistry {
         return 'header';
       case 'models':
         return 'model';
+      case 'triggers':
+        return 'trigger';
       case 'project':
         return 'project';
       default:
@@ -587,6 +590,18 @@ export function registerAllComponents(
   if (project.agents) {
     for (const agentId of Object.keys(project.agents)) {
       registry.register(agentId, 'agents', `agents/${agentId}.ts`);
+    }
+  }
+
+  // Register triggers (agent-scoped)
+  if (project.agents) {
+    for (const agentData of Object.values(project.agents)) {
+      const agentTriggers = (agentData as any).triggers;
+      if (agentTriggers) {
+        for (const triggerId of Object.keys(agentTriggers)) {
+          registry.register(triggerId, 'triggers', `agents/triggers/${triggerId}.ts`);
+        }
+      }
     }
   }
 

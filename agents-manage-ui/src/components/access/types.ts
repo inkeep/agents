@@ -14,26 +14,26 @@ export type PrincipalType = 'user' | 'group' | 'service_account' | 'agent' | 'wo
 /**
  * Metadata specific to each principal type
  */
-export interface UserMetadata {
+interface UserMetadata {
   email: string;
 }
 
-export interface GroupMetadata {
+interface GroupMetadata {
   memberCount?: number;
   isIdpManaged?: boolean;
 }
 
-export interface ServiceAccountMetadata {
+interface ServiceAccountMetadata {
   lastUsed?: string;
   keyCount?: number;
 }
 
-export interface AgentMetadata {
+interface AgentMetadata {
   projectId: string;
   projectName?: string;
 }
 
-export interface WorkflowMetadata {
+interface WorkflowMetadata {
   projectId: string;
   projectName?: string;
 }
@@ -67,18 +67,6 @@ export interface AccessPrincipal {
   /** Type-specific metadata */
   metadata?: PrincipalMetadata;
 }
-
-// ============================================================================
-// Resource Types (WHAT is being protected)
-// ============================================================================
-
-export type ResourceType =
-  | 'project'
-  | 'agent'
-  | 'mcp_server'
-  | 'workflow'
-  | 'policy'
-  | 'data_component';
 
 // ============================================================================
 // Role Configuration
@@ -115,48 +103,4 @@ export interface InheritedAccessConfig {
 export interface ProjectMemberFromApi {
   userId: string;
   role: 'project_admin' | 'project_member' | 'project_viewer';
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Get display icon name for a principal type
- */
-export function getPrincipalIcon(type: PrincipalType): string {
-  switch (type) {
-    case 'user':
-      return 'user';
-    case 'group':
-      return 'users';
-    case 'service_account':
-      return 'key';
-    case 'agent':
-      return 'bot';
-    case 'workflow':
-      return 'workflow';
-    default:
-      return 'user';
-  }
-}
-
-/**
- * Get display label for a principal type
- */
-export function getPrincipalTypeLabel(type: PrincipalType): string {
-  switch (type) {
-    case 'user':
-      return 'User';
-    case 'group':
-      return 'Group';
-    case 'service_account':
-      return 'Service Account';
-    case 'agent':
-      return 'Agent';
-    case 'workflow':
-      return 'Workflow';
-    default:
-      return 'Unknown';
-  }
 }
