@@ -21,6 +21,7 @@ import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { fetchSkills } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { STATIC_LABELS } from '@/constants/theme';
 
 const colClass = 'align-top whitespace-pre-wrap';
 const description = (
@@ -45,9 +46,9 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
       </Button>
     );
 
-    const content = data.length ? (
+    return data.length ? (
       <>
-        <PageHeader title="Skills" description={description} action={action} />
+        <PageHeader title={STATIC_LABELS.skills} description={description} action={action} />
         <Table>
           <TableHeader>
             <TableRow noHover>
@@ -91,8 +92,6 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
     ) : (
       <EmptyState title="No skills yet." description={description} action={action} />
     );
-
-    return <BodyTemplate breadcrumbs={['Skills']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="skills" />;
   }
