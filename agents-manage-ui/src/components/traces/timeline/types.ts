@@ -7,7 +7,8 @@ export type PanelType =
   | 'mcp_tool_error'
   | 'tool_approval_requested'
   | 'tool_approval_approved'
-  | 'tool_approval_denied';
+  | 'tool_approval_denied'
+  | 'trigger_invocation';
 
 type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
@@ -131,6 +132,10 @@ export interface ActivityItem {
   compressionSafetyBuffer?: number;
   compressionError?: string;
   compressionSummary?: string;
+  // Trigger invocation fields
+  invocationType?: string;
+  triggerId?: string;
+  triggerInvocationId?: string;
 }
 
 interface ToolCall {

@@ -29,6 +29,7 @@ import subAgentTeamAgentRelationsRoutes from './subAgentTeamAgentRelations';
 import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
+import triggersRoutes from './triggers';
 
 const app = new OpenAPIHono();
 
@@ -94,5 +95,6 @@ app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
+app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
 
 export default app;

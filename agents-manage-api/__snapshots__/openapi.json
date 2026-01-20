@@ -530,6 +530,12 @@
                   "$ref": "#/components/schemas/ToolCreate"
                 },
                 "type": "object"
+              },
+              "triggers": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/TriggerCreate"
+                },
+                "type": "object"
               }
             },
             "required": [
@@ -7670,6 +7676,661 @@
             "type": "string"
           },
           "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Trigger": {
+        "properties": {
+          "authentication": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "inputSchema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "messageTemplate": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "outputTransform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "signingSecret": {
+            "nullable": true,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "enabled",
+          "inputSchema",
+          "outputTransform",
+          "messageTemplate",
+          "authentication",
+          "signingSecret",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "TriggerAuthentication": {
+        "oneOf": [
+          {
+            "properties": {
+              "add_position": {
+                "enum": [
+                  "header"
+                ],
+                "type": "string"
+              },
+              "data": {
+                "properties": {
+                  "name": {
+                    "description": "Header name for the API key",
+                    "type": "string"
+                  },
+                  "value": {
+                    "description": "Expected API key value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "type": "object"
+              },
+              "type": {
+                "enum": [
+                  "api_key"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "data",
+              "add_position"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "add_position": {
+                "enum": [
+                  "header"
+                ],
+                "type": "string"
+              },
+              "data": {
+                "properties": {
+                  "password": {
+                    "description": "Expected password",
+                    "type": "string"
+                  },
+                  "username": {
+                    "description": "Expected username",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "type": "object"
+              },
+              "type": {
+                "enum": [
+                  "basic_auth"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "data",
+              "add_position"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "add_position": {
+                "enum": [
+                  "header"
+                ],
+                "type": "string"
+              },
+              "data": {
+                "properties": {
+                  "token": {
+                    "description": "Expected bearer token",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ],
+                "type": "object"
+              },
+              "type": {
+                "enum": [
+                  "bearer_token"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "data",
+              "add_position"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "none"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "nullable": true
+          }
+        ]
+      },
+      "TriggerCreate": {
+        "properties": {
+          "authentication": {
+            "$ref": "#/components/schemas/TriggerAuthentication"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "description": {
+            "description": "Trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Resource identifier",
+            "example": "resource_789",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
+          },
+          "inputSchema": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "JSON Schema for input validation",
+            "nullable": true,
+            "type": "object"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "Trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "outputTransform": {
+            "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "signingSecret": {
+            "description": "HMAC-SHA256 signing secret",
+            "nullable": true,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "messageTemplate"
+        ],
+        "type": "object"
+      },
+      "TriggerInvocation": {
+        "properties": {
+          "conversationId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "requestPayload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "status": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "transformedPayload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "triggerId": {
+            "maxLength": 256,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "triggerId",
+          "conversationId",
+          "status",
+          "requestPayload",
+          "transformedPayload",
+          "errorMessage",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TriggerInvocationListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TriggerInvocation"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "TriggerInvocationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TriggerInvocation"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "TriggerOutputTransform": {
+        "nullable": true,
+        "properties": {
+          "jmespath": {
+            "description": "JMESPath expression for payload transformation",
+            "type": "string"
+          },
+          "objectTransformation": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Object transformation mapping",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "TriggerUpdate": {
+        "properties": {
+          "authentication": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TriggerAuthentication"
+              },
+              {
+                "oneOf": [
+                  {
+                    "properties": {
+                      "add_position": {
+                        "enum": [
+                          "header"
+                        ],
+                        "type": "string"
+                      },
+                      "data": {
+                        "properties": {
+                          "name": {
+                            "description": "Header name for the API key",
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Expected API key value",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": {
+                        "enum": [
+                          "api_key"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "data",
+                      "add_position"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "add_position": {
+                        "enum": [
+                          "header"
+                        ],
+                        "type": "string"
+                      },
+                      "data": {
+                        "properties": {
+                          "password": {
+                            "description": "Expected password",
+                            "type": "string"
+                          },
+                          "username": {
+                            "description": "Expected username",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "username",
+                          "password"
+                        ],
+                        "type": "object"
+                      },
+                      "type": {
+                        "enum": [
+                          "basic_auth"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "data",
+                      "add_position"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "add_position": {
+                        "enum": [
+                          "header"
+                        ],
+                        "type": "string"
+                      },
+                      "data": {
+                        "properties": {
+                          "token": {
+                            "description": "Expected bearer token",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "token"
+                        ],
+                        "type": "object"
+                      },
+                      "type": {
+                        "enum": [
+                          "bearer_token"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "data",
+                      "add_position"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            ]
+          },
+          "description": {
+            "description": "Trigger description",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "inputSchema": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "JSON Schema for input validation",
+            "type": "object"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "Trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "outputTransform": {
+            "$ref": "#/components/schemas/TriggerOutputTransform"
+          },
+          "signingSecret": {
+            "description": "HMAC-SHA256 signing secret",
             "type": "string"
           }
         },
@@ -16742,6 +17403,1089 @@
         "summary": "Update Sub Agent Team Agent Relation",
         "tags": [
           "Sub Agent Team Agent Relations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers": {
+      "get": {
+        "operationId": "list-triggers",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Trigger"
+                          },
+                          {
+                            "properties": {
+                              "webhookUrl": {
+                                "description": "Fully qualified webhook URL for this trigger",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "webhookUrl"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "properties": {
+                        "limit": {
+                          "type": "number"
+                        },
+                        "page": {
+                          "type": "number"
+                        },
+                        "pages": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "limit",
+                        "total",
+                        "pages"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of triggers retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Triggers",
+        "tags": [
+          "Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "operationId": "create-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Trigger"
+                        },
+                        {
+                          "properties": {
+                            "webhookUrl": {
+                              "description": "Fully qualified webhook URL for this trigger",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "webhookUrl"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Trigger created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Trigger",
+        "tags": [
+          "Triggers"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}": {
+      "delete": {
+        "operationId": "delete-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Trigger deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Trigger",
+        "tags": [
+          "Triggers"
+        ]
+      },
+      "get": {
+        "operationId": "get-trigger-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Trigger"
+                        },
+                        {
+                          "properties": {
+                            "webhookUrl": {
+                              "description": "Fully qualified webhook URL for this trigger",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "webhookUrl"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Trigger found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Trigger",
+        "tags": [
+          "Triggers"
+        ]
+      },
+      "patch": {
+        "operationId": "update-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Trigger"
+                        },
+                        {
+                          "properties": {
+                            "webhookUrl": {
+                              "description": "Fully qualified webhook URL for this trigger",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "webhookUrl"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Trigger updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Trigger",
+        "tags": [
+          "Triggers"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/invocations": {
+      "get": {
+        "operationId": "list-trigger-invocations",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Filter by invocation status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Filter by invocation status",
+              "enum": [
+                "pending",
+                "success",
+                "failed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start date for filtering (ISO8601)",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "description": "Start date for filtering (ISO8601)",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End date for filtering (ISO8601)",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "description": "End date for filtering (ISO8601)",
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerInvocationListResponse"
+                }
+              }
+            },
+            "description": "List of trigger invocations retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Trigger Invocations",
+        "tags": [
+          "Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/invocations/{invocationId}": {
+      "get": {
+        "operationId": "get-trigger-invocation-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trigger Invocation ID",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Trigger Invocation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerInvocationResponse"
+                }
+              }
+            },
+            "description": "Trigger invocation found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Trigger Invocation",
+        "tags": [
+          "Triggers"
         ]
       }
     },
