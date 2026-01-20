@@ -975,8 +975,8 @@ export const Agent: FC<AgentProps> = ({
         className="relative"
       >
         {isCopilotStreaming && <CopilotStreamingOverlay />}
-        <EdgeArrow id="foo" className="absolute" />
-        <SelectedEdgeArrow id="bar" className="absolute" />
+        <EdgeArrow className="absolute" />
+        <SelectedEdgeArrow className="absolute" />
         <ReactFlow
           defaultEdgeOptions={{
             // Built-in 'default' edges ignore the `data` prop.
