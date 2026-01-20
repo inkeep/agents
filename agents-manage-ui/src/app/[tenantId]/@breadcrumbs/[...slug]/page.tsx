@@ -93,6 +93,9 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
       const dataset = await fetchDataset(tenantId, projectId, id);
       return dataset.name || 'Test Suite';
     },
+    async runs(_id) {
+      return 'Run';
+    },
   };
 
   function addCrumb({ segment, label }: { segment: string; label: string }) {
@@ -103,7 +106,9 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
       `/${tenantId}/projects/${projectId}/traces/conversations`,
       `/${tenantId}/projects/${projectId}/evaluations/jobs`,
       `/${tenantId}/projects/${projectId}/evaluations/run-configs`,
+      `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
     ]);
+
     if (!routesWithoutBreadcrumbs.has(href)) {
       crumbs.push({ label, href });
     }

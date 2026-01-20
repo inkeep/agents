@@ -32,4 +32,5 @@ export const STATIC_LABELS = Object.freeze({
   jobs: 'Batch Evaluations',
   'run-configs': 'Continuous Tests',
   datasets: 'Test Suites',
+  runs: 'Runs',
 });

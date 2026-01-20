@@ -1,9 +1,7 @@
 import { DatasetsList } from '@/components/datasets/datasets-list';
 import FullPageError from '@/components/errors/full-page-error';
 import { Database } from '@/components/icons/empty-state/database';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
-import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { fetchDatasets } from '@/lib/api/datasets';
 

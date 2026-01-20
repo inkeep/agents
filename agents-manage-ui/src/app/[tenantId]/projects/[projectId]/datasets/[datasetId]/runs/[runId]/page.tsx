@@ -1,6 +1,4 @@
 import { DatasetRunDetails } from '@/components/datasets/dataset-run-details';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,27 +8,11 @@ export default async function DatasetRunPage({
   const { tenantId, projectId, datasetId, runId } = await params;
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Test Suites',
-          href: `/${tenantId}/projects/${projectId}/datasets`,
-        },
-        {
-          label: 'Test Suite',
-          href: `/${tenantId}/projects/${projectId}/datasets/${datasetId}`,
-        },
-        'Run',
-      ]}
-    >
-      <MainContent>
-        <DatasetRunDetails
-          tenantId={tenantId}
-          projectId={projectId}
-          datasetId={datasetId}
-          runId={runId}
-        />
-      </MainContent>
-    </BodyTemplate>
+    <DatasetRunDetails
+      tenantId={tenantId}
+      projectId={projectId}
+      datasetId={datasetId}
+      runId={runId}
+    />
   );
 }
