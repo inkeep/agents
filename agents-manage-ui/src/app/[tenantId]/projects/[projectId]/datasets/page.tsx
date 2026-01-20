@@ -3,6 +3,7 @@ import FullPageError from '@/components/errors/full-page-error';
 import { Database } from '@/components/icons/empty-state/database';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchDatasets } from '@/lib/api/datasets';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[project
     const datasets = await fetchDatasets(tenantId, projectId);
     return datasets.data.length ? (
       <>
-        <PageHeader title="Test Suites" description={datasetDescription} />
+        <PageHeader title={STATIC_LABELS.datasets} description={datasetDescription} />
         <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
       </>
     ) : (

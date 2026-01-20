@@ -1,6 +1,7 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationsTabs } from '@/components/evaluations/evaluations-tabs';
 import { PageHeader } from '@/components/layout/page-header';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchEvaluationJobConfigs } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationRunConfigs } from '@/lib/api/evaluation-run-configs';
 import { fetchEvaluators } from '@/lib/api/evaluators';
@@ -23,7 +24,7 @@ async function EvaluationsPage({
     ]);
     return (
       <>
-        <PageHeader title="Evaluations" description={evaluationsDescription} />
+        <PageHeader title={STATIC_LABELS.evaluations} description={evaluationsDescription} />
         <EvaluationsTabs
           tenantId={tenantId}
           projectId={projectId}
