@@ -1,3 +1,8 @@
+import './env';
+import { defaultSDK } from './instrumentation';
+
+defaultSDK.start();
+
 import {
   CredentialStoreRegistry,
   createDefaultCredentialStores,
@@ -16,6 +21,12 @@ export type { AppConfig, AppVariables } from './types';
 // Re-export Hono to ensure it's not tree-shaken (required for Vercel framework detection)
 export { Hono };
 
+// Export SandboxConfig type for use in applications
+export type {
+  NativeSandboxConfig,
+  SandboxConfig,
+  VercelSandboxConfig,
+} from './domains/run/types/executionContext';
 // Re-export everything from factory for backward compatibility
 export type { SSOProviderConfig, UserAuthConfig } from './factory';
 export {
