@@ -139,7 +139,7 @@ async function logStep(message: string, data: Record<string, any>) {
  * - Do NOT call Node.js APIs directly here (no DB, no fs, etc.)
  * - All side effects must happen in step functions
  */
-export async function evaluateConversationWorkflow(payload: EvaluationPayload) {
+async function _evaluateConversationWorkflow(payload: EvaluationPayload) {
   'use workflow';
 
   const { conversationId, evaluatorIds } = payload;
@@ -166,3 +166,9 @@ export async function evaluateConversationWorkflow(payload: EvaluationPayload) {
     resultCount: results.length,
   };
 }
+
+// This ID must match what workflow:build generates in .well-known/workflow/v1/flow.cjs
+export const evaluateConversationWorkflow = Object.assign(_evaluateConversationWorkflow, {
+  workflowId:
+    'workflow//src/domains/evals/workflow/functions/evaluateConversation.ts//_evaluateConversationWorkflow',
+});
