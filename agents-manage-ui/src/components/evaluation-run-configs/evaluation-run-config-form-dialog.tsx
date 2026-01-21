@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import {
   createEvaluationRunConfigAction,
   updateEvaluationRunConfigAction,
@@ -31,12 +30,13 @@ import {
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import {
-  fetchEvaluationSuiteConfig,
-  fetchEvaluationSuiteConfigEvaluators,
-} from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
-import { fetchEvaluators } from '@/lib/api/evaluators';
+import { useAgentsQuery } from '@/lib/query/agents';
+import {
+  useEvaluationSuiteConfigEvaluatorsQuery,
+  useEvaluationSuiteConfigQuery,
+} from '@/lib/query/evaluation-suite-configs';
+import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
 
 const evaluationRunConfigSchema = z.object({
