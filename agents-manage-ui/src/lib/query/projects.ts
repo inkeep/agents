@@ -21,6 +21,8 @@ export function useProjectsQuery(tenantId: string) {
     },
     enabled: !!tenantId,
     initialData: [],
+    // force `queryFn` still runs on mount
+    initialDataUpdatedAt: 0,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });

@@ -4,14 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
-const mcpToolsQueryKeys = {
-  list: (tenantId: string, projectId: string) => ['mcp-tools', tenantId, projectId] as const,
-};
-
 export function useMcpToolsQuery(tenantId: string, projectId: string) {
   'use memo';
   return useQuery<MCPTool[]>({
-    queryKey: mcpToolsQueryKeys.list(tenantId, projectId),
+    queryKey: ['mcp-tools', tenantId, projectId],
     queryFn: () => fetchMCPTools(tenantId, projectId),
     enabled: Boolean(tenantId && projectId),
     staleTime: 30_000,
