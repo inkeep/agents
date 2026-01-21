@@ -115,11 +115,7 @@ async function handleMessageSend(
     const task: A2ATask = {
       id: generateId(),
       input: {
-        parts: params.message.parts.map((part) => ({
-          kind: part.kind,
-          text: part.kind === 'text' ? part.text : undefined,
-          data: part.kind === 'data' ? part.data : undefined,
-        })),
+        parts: params.message.parts,
       },
       context: {
         conversationId: params.message.contextId,
@@ -473,11 +469,7 @@ async function handleMessageStream(
     const task: A2ATask = {
       id: generateId(),
       input: {
-        parts: params.message.parts.map((part) => ({
-          kind: part.kind,
-          text: part.kind === 'text' ? part.text : undefined,
-          data: part.kind === 'data' ? part.data : undefined,
-        })),
+        parts: params.message.parts,
       },
       context: {
         conversationId: params.message.contextId,

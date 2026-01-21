@@ -1,5 +1,5 @@
 // A2A Protocol Types based on Google's specification
-import type { AgentCard, Artifact, Message, Task, TaskState } from '@inkeep/agents-core';
+import type { AgentCard, Artifact, Message, Part, Task, TaskState } from '@inkeep/agents-core';
 
 // Re-export AgentCard from the official schema
 export type { AgentCard };
@@ -16,11 +16,7 @@ export interface RegisteredAgent {
 export interface A2ATask {
   id: string;
   input: {
-    parts: Array<{
-      kind: string;
-      text?: string;
-      data?: any;
-    }>;
+    parts: Part[];
   };
   context?: {
     conversationId?: string;
