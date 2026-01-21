@@ -27,7 +27,7 @@ interface ToolResultProps {
   copilotAgentId?: string;
   copilotProjectId?: string;
   copilotTenantId?: string;
-  runApiUrl?: string;
+  apiUrl?: string;
   targetTenantId?: string;
   targetProjectId?: string;
   targetAgentId?: string;

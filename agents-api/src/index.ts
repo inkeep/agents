@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
-import type { SandboxConfig } from 'src/types';
+import type { SandboxConfig } from './types';
 import { createAgentsHono } from './createApp';
 import { env } from './env';
 import { createAgentsAuth } from './factory';

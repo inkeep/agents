@@ -289,7 +289,7 @@ export function ChatWithApprovals() {
   });
 
   const handleApproval = async (toolCallId: string, conversationId: string, approved: boolean) => {
-    await fetch('/api/tool-approvals', {
+    await fetch('/run/api/tool-approvals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
