@@ -95,7 +95,7 @@ export class ContextConfigBuilder<
     this.tenantId = options.tenantId || 'default';
     this.projectId = options.projectId || 'default';
     this.agentId = options.agentId || 'default';
-    this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
+    this.baseURL = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
     let headers: any;
     if (options.headers) {
