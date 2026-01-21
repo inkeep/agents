@@ -36,6 +36,9 @@ export function useEvaluationSuiteConfigQuery(configId = '', options?: { enabled
     initialData: null,
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
+    meta: {
+      defaultError: 'Failed to load suite config',
+    },
   });
 }
 
@@ -63,5 +66,8 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
     initialData: [],
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
+    meta: {
+      defaultError: 'Failed to load suite config evaluators',
+    },
   });
 }

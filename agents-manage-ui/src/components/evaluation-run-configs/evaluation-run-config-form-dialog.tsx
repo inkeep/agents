@@ -97,11 +97,20 @@ export function EvaluationRunConfigFormDialog({
 }: EvaluationRunConfigFormDialogProps) {
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
+  const suiteConfigId = initialData?.suiteConfigIds?.[0];
+  const { data: evaluators } = useEvaluatorsQuery({ enabled: isOpen });
+  const { data: agents } = useAgentsQuery({ enabled: isOpen });
+  const { data: suiteConfig, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery(
+    suiteConfigId,
+    { enabled: isOpen }
+  );
+  const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
+    useEvaluationSuiteConfigEvaluatorsQuery(suiteConfigId, {
+      enabled: isOpen,
+    });
 
   const form = useForm<EvaluationRunConfigFormData>({
     resolver: zodResolver(evaluationRunConfigSchema),
@@ -117,47 +126,35 @@ export function EvaluationRunConfigFormDialog({
     },
   });
 
-  const loadData = useCallback(async () => {
-    try {
-      const [evaluatorsRes, agentsRes] = await Promise.all([
-        fetchEvaluators(tenantId, projectId),
-        getAllAgentsAction(tenantId, projectId),
-      ]);
-      setEvaluators(evaluatorsRes.data || []);
-      if (agentsRes.success && agentsRes.data) {
-        setAgents(agentsRes.data);
-      }
-
-      // If editing and has suite configs, load the first suite config's data
-      if (initialData?.suiteConfigIds && initialData.suiteConfigIds.length > 0) {
-        const suiteConfigId = initialData.suiteConfigIds[0];
-        try {
-          const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
-            fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
-            fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
-          ]);
-
-          const suiteConfig = suiteConfigRes.data;
-          const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
-
-          // Extract agentIds from filters
-          const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
-          const agentIds = filters?.agentIds || [];
-
-          suiteConfigForm.reset({
-            evaluatorIds,
-            agentIds,
-            sampleRate: suiteConfig?.sampleRate ?? undefined,
-          });
-        } catch (err) {
-          console.error('Error loading suite config:', err);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !suiteConfig ||
+      suiteConfigFetching ||
+      suiteConfigEvaluatorsFetching
+    ) {
+      return;
     }
-  }, [tenantId, projectId, initialData, suiteConfigForm]);
+
+    const evaluatorIds = suiteConfigEvaluators.map((e) => e.evaluatorId);
+
+    // Extract agentIds from filters
+    const filters = suiteConfig.filters as { agentIds?: string[] } | null;
+    const agentIds = filters?.agentIds || [];
+
+    suiteConfigForm.reset({
+      evaluatorIds,
+      agentIds,
+      sampleRate: suiteConfig.sampleRate ?? undefined,
+    });
+  }, [
+    isOpen,
+    suiteConfig,
+    suiteConfigEvaluators,
+    suiteConfigFetching,
+    suiteConfigEvaluatorsFetching,
+    suiteConfigForm,
+  ]);
 
   useEffect(() => {
     if (!isOpen) {
