@@ -15,7 +15,6 @@ const QUERY_CONFIG: QueryClientConfig = {
     queries: {
       staleTime: 30_000,
       refetchOnWindowFocus: false,
-      throwOnError: true,
     },
   },
   queryCache: new QueryCache({
