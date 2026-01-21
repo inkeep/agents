@@ -160,16 +160,17 @@ export function EvaluationRunConfigFormDialog({
   }, [tenantId, projectId, initialData, suiteConfigForm]);
 
   useEffect(() => {
-    if (isOpen) {
-      form.reset(formatFormData(initialData));
-      suiteConfigForm.reset({
-        evaluatorIds: [],
-        agentIds: [],
-        sampleRate: undefined,
-      });
-      loadData();
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen, initialData, form, suiteConfigForm, loadData]);
+
+    form.reset(formatFormData(initialData));
+    suiteConfigForm.reset({
+      evaluatorIds: [],
+      agentIds: [],
+      sampleRate: undefined,
+    });
+  }, [isOpen, initialData, form, suiteConfigForm]);
 
   const evaluatorLookup = useMemo(() => {
     return evaluators.reduce(
