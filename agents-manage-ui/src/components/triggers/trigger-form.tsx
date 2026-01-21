@@ -176,11 +176,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       }
 
       // Build output transform based on selected transform type
-      let outputTransform: { jmespath?: string; objectTransformation?: Record<string, unknown> } | undefined;
-      
+      let outputTransform:
+        | { jmespath?: string; objectTransformation?: Record<string, unknown> }
+        | undefined;
+
       if (data.transformType === 'jmespath' && data.jmespath?.trim()) {
         outputTransform = { jmespath: data.jmespath };
-      } else if (data.transformType === 'object_transformation' && data.objectTransformationJson?.trim()) {
+      } else if (
+        data.transformType === 'object_transformation' &&
+        data.objectTransformationJson?.trim()
+      ) {
         try {
           const objectTransformation = JSON.parse(data.objectTransformationJson);
           outputTransform = { objectTransformation };

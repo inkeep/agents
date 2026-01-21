@@ -4,7 +4,7 @@ import packageJson from './package.json' with { type: 'json' };
 export default defineProject({
   test: {
     name: packageJson.name,
-    setupFiles: ['./src/__tests__/setup.ts'],
+    setupFiles: './src/__tests__/setup.ts',
     globals: true,
     environment: 'node',
     testTimeout: 60000, // 60 seconds for database operations
