@@ -344,6 +344,8 @@ async function invokeAgentAsync(params: {
         'trigger.invocation.id': invocationId,
         // User message attributes for SigNoz conversation queries
         'message.content': userMessage,
+        'message.parts': JSON.stringify(messageParts),
+        'message.parts.count': messageParts.length,
         'message.timestamp': new Date().toISOString(),
       },
     },

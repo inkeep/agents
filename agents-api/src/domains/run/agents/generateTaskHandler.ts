@@ -358,7 +358,16 @@ export const createTaskHandler = (
       }
 
       logger.info({ contextId }, 'Context ID');
-      logger.info({ userMessage }, 'User Message');
+      logger.info(
+        {
+          userMessage: userMessage.substring(0, 500), // Truncate for logging
+          inputPartsCount: task.input.parts.length,
+          textPartsCount: task.input.parts.filter((p) => p.kind === 'text').length,
+          dataPartsCount: task.input.parts.filter((p) => p.kind === 'data').length,
+          hasDataParts: task.input.parts.some((p) => p.kind === 'data'),
+        },
+        'User Message with parts breakdown'
+      );
 
       const response = await agent.generate(userMessage, {
         contextId,
