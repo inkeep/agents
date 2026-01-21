@@ -407,8 +407,9 @@ export class Agent implements AgentInterface {
       // Include function tools at agent level
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
-      // Include triggers at agent level
-      ...(Object.keys(triggersObject).length > 0 && { triggers: triggersObject }),
+      // Always include triggers (even if empty) so the API knows to sync them
+      // If undefined, API preserves existing triggers (for UI which manages triggers separately)
+      triggers: triggersObject,
       models: this.models,
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
