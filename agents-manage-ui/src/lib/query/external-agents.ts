@@ -14,7 +14,9 @@ export function useExternalAgentsQuery(tenantId: string, projectId: string) {
     queryFn: () => fetchExternalAgents(tenantId, projectId),
     enabled: Boolean(tenantId && projectId),
     staleTime: 30_000,
-    placeholderData: [],
+    initialData: [],
+    // force `queryFn` still runs on mount
+    initialDataUpdatedAt: 0,
     meta: {
       defaultError: 'Failed to load external agents',
     },
