@@ -1496,8 +1496,7 @@ export class Agent {
   }
 
   /**
-   * Build adaptive system prompt for Phase 2 structured output generation
-   * based on configured data components and artifact components across the agent
+   * Get the client's current time formatted in their timezone
    */
   private getClientCurrentTime(): string | undefined {
     const clientTimezone = this.config.forwardedHeaders?.['x-inkeep-client-timezone'];
