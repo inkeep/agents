@@ -168,3 +168,24 @@ Started: Wed Jan 21 08:04:38 UTC 2026
 
 ---
 
+## Iteration 7 - $(date -u)
+
+### Story: US-008 - Update template project
+
+**Implementation:**
+- Verified create-agents-template/apps/shared/credential-stores.ts has no direct keytar imports
+- Confirmed template uses createKeyChainStore from @inkeep/agents-core
+- Searched entire template apps directory - no keytar references found
+- The template correctly uses the agents-core abstraction layer
+
+**Files Changed:**
+- None (verification only - template already uses correct abstraction)
+
+**Learnings:**
+- The template was already correctly implemented using the KeyChainStore abstraction from agents-core
+- No changes needed - the abstraction layer successfully isolated template code from the underlying library
+- The credential-stores.ts file demonstrates the correct pattern: importing createKeyChainStore from agents-core
+- This validates that the migration strategy (updating core, then verifying dependents) was effective
+
+---
+
