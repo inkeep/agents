@@ -56,7 +56,7 @@ export const Playground = ({
 
     setIsCopying(true);
     try {
-      const result = await copyTraceToClipboard(chatActivities);
+      const result = await copyTraceToClipboard(chatActivities, tenantId, projectId);
       if (result.success) {
         toast.success('Trace copied to clipboard', {
           description: 'The OTEL trace has been copied successfully.',

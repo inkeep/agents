@@ -4,6 +4,14 @@
  */
 
 import type { ActivityItem, ConversationDetail } from '@/components/traces/timeline/types';
+import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
+
+interface SimpleMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface PrettifiedTrace {
   metadata: {
@@ -18,7 +26,9 @@ interface PrettifiedTrace {
     endTime: string;
     durationMs: number;
   };
-  timeline: Omit<ActivityItem, 'id'>[];
+  agentDefinition?: Record<string, unknown>;
+  conversationHistory: SimpleMessage[];
+  timeline: Omit<ActivityItem, 'id' | 'parentSpanId'>[];
 }
 
 /**
@@ -40,7 +50,6 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
   const priorityKeys: string[] = [];
   const remainingKeys: string[] = [];
 
-  // Separate keys into priority and remaining
   for (const key of Object.keys(obj)) {
     if (PRIORITY_FIELDS.includes(key)) {
       priorityKeys.push(key);
@@ -62,10 +71,24 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
   return result;
 }
 
+function extractTextContent(
+  content: string | Array<{ type: string; text?: string }>
+): string {
+  if (typeof content === 'string') return content;
+  return content
+    .filter((part) => part.type === 'text' && part.text)
+    .map((part) => part.text)
+    .join('');
+}
+
 /**
  * Formats conversation detail data into a prettified OTEL trace structure
  */
-function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): PrettifiedTrace {
+function formatConversationAsPrettifiedTrace(
+  conversation: ConversationDetail,
+  agentDefinition?: FullAgentDefinition,
+  messages?: SimpleMessage[]
+): PrettifiedTrace {
   const trace: PrettifiedTrace = {
     metadata: {
       conversationId: conversation.conversationId,
@@ -83,10 +106,10 @@ function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): 
         : '',
       durationMs: conversation.duration,
     },
+    agentDefinition: agentDefinition as Record<string, unknown> | undefined,
+    conversationHistory: messages || [],
     timeline: (conversation.activities || []).map((activity) => {
-      // Destructure to exclude unwanted fields
-      const { id: _id, ...rest } = activity;
-      // Order the fields according to hierarchy
+      const { id: _id, parentSpanId: _parentSpanId, ...rest } = activity;
       return orderObjectKeys(rest);
     }),
   };
@@ -95,22 +118,38 @@ function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): 
 }
 
 /**
- * Converts the trace to a prettified JSON string
- */
-function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
-  return JSON.stringify(trace, null, indent);
-}
-
-/**
  * Copies the prettified trace to clipboard with compact defaults
  */
 export async function copyTraceToClipboard(
-  conversation: ConversationDetail
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const trace = formatConversationAsPrettifiedTrace(conversation);
-    const json = traceToJSON(trace);
-    await navigator.clipboard.writeText(json);
+    const [agentResult, historyResult] = await Promise.all([
+      conversation.agentId
+        ? getFullAgentAction(tenantId, projectId, conversation.agentId)
+        : Promise.resolve(null),
+      fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
+    ]);
+
+    const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+
+    // Extract just user/assistant messages
+    const messages: SimpleMessage[] = [];
+    if (historyResult?.success && historyResult.data?.messages) {
+      for (const msg of historyResult.data.messages) {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          const content = extractTextContent(msg.content);
+          if (content) {
+            messages.push({ role: msg.role, content });
+          }
+        }
+      }
+    }
+
+    const trace = formatConversationAsPrettifiedTrace(conversation, agentDefinition, messages);
+    await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
     return { success: true };
   } catch (error) {
     return {

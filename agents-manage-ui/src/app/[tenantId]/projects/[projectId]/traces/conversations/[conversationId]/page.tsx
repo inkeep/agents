@@ -46,7 +46,7 @@ export default function ConversationDetail({
 
     setIsCopying(true);
     try {
-      const result = await copyTraceToClipboard(conversation);
+      const result = await copyTraceToClipboard(conversation, tenantId, projectId);
       if (result.success) {
         toast.success('Trace copied to clipboard', {
           description: 'The OTEL trace has been copied successfully.',
