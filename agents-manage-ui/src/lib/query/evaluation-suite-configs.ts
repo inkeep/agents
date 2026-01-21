@@ -15,7 +15,7 @@ const evaluationSuiteConfigQueryKeys = {
     ['evaluation-suite-config-evaluators', tenantId, projectId, configId] as const,
 };
 
-export function useEvaluationSuiteConfigQuery(configId: string, options?: { enabled?: boolean }) {
+export function useEvaluationSuiteConfigQuery(configId = '', options?: { enabled?: boolean }) {
   'use memo';
 
   const { tenantId, projectId } = useParams<{
@@ -44,7 +44,7 @@ export function useEvaluationSuiteConfigQuery(configId: string, options?: { enab
 }
 
 export function useEvaluationSuiteConfigEvaluatorsQuery(
-  configId: string,
+  configId = '',
   options?: { enabled?: boolean }
 ) {
   'use memo';
@@ -69,6 +69,7 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
     enabled,
     staleTime: 30_000,
     initialData: [],
+    // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
   });
 }
