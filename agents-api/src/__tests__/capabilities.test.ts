@@ -9,7 +9,7 @@ describe('GET /capabilities', () => {
       auth: null,
     });
 
-    const res = await app.request('/capabilities');
+    const res = await app.request('/manage/capabilities');
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ sandbox: { configured: false } });
   });
@@ -22,11 +22,10 @@ describe('GET /capabilities', () => {
       sandboxConfig: { provider: 'native', runtime: 'node22', timeout: 123, vcpus: 2 },
     });
 
-    const res = await app.request('/capabilities');
+    const res = await app.request('/manage/capabilities');
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({
       sandbox: { configured: true, provider: 'native', runtime: 'node22' },
     });
   });
 });
-

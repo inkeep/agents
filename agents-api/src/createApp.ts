@@ -153,38 +153,6 @@ function createAgentsHono(config: AppConfig) {
   // Global session middleware - sets user and session in context for all routes
   app.use('*', sessionContext());
 
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/capabilities',
-      operationId: 'capabilities',
-      summary: 'Get server capabilities',
-      description: 'Get information about optional server-side capabilities and configuration.',
-      responses: {
-        200: {
-          description: 'Server capabilities',
-          content: {
-            'application/json': {
-              schema: CapabilitiesResponseSchema,
-            },
-          },
-        },
-      },
-    }),
-    (c) => {
-      if (!sandboxConfig) {
-        return c.json({ sandbox: { configured: false } });
-      }
-      return c.json({
-        sandbox: {
-          configured: true,
-          provider: sandboxConfig.provider,
-          runtime: sandboxConfig.runtime,
-        },
-      });
-    }
-  );
-
   // Health check endpoint
   app.openapi(
     createRoute({
@@ -242,6 +210,55 @@ function createAgentsHono(config: AppConfig) {
 
     return sessionAuth()(c as any, next);
   });
+
+  // Authentication middleware for non-tenant manage routes
+  app.use('/manage/capabilities', async (c, next) => {
+    // Capabilities should be gated the same way as other manage routes, but still work
+    // when auth is disabled or not configured.
+    if (!auth || env.DISABLE_AUTH || isTestEnvironment()) {
+      await next();
+      return;
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      return manageApiKeyAuth()(c as any, next);
+    }
+
+    return sessionAuth()(c as any, next);
+  });
+
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/manage/capabilities',
+      operationId: 'capabilities',
+      summary: 'Get server capabilities',
+      description: 'Get information about optional server-side capabilities and configuration.',
+      responses: {
+        200: {
+          description: 'Server capabilities',
+          content: {
+            'application/json': {
+              schema: CapabilitiesResponseSchema,
+            },
+          },
+        },
+      },
+    }),
+    (c) => {
+      if (!sandboxConfig) {
+        return c.json({ sandbox: { configured: false } });
+      }
+      return c.json({
+        sandbox: {
+          configured: true,
+          provider: sandboxConfig.provider,
+          runtime: sandboxConfig.runtime,
+        },
+      });
+    }
+  );
 
   // Tenant access check (skip in DISABLE_AUTH and test environments)
   if (env.DISABLE_AUTH || isTestEnvironment()) {
