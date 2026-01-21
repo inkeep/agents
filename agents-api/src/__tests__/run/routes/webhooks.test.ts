@@ -926,4 +926,158 @@ describe('Webhook Endpoint Tests', () => {
       );
     });
   });
+
+  describe('Multi-part message format', () => {
+    it('should create message with both text and data parts when messageTemplate is provided', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'Hello webhook!' }),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: {
+            parts: [
+              { kind: 'text', text: 'Webhook message: Hello webhook!' },
+              {
+                kind: 'data',
+                data: { message: 'Hello webhook!' },
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          },
+        })
+      );
+    });
+
+    it('should create message with only data part when messageTemplate is not provided', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      const triggerNoTemplate = { ...testTrigger, messageTemplate: null };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoTemplate));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test data' }),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: {
+            parts: [
+              {
+                kind: 'data',
+                data: { message: 'test data' },
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          },
+        })
+      );
+    });
+
+    it('should include data part even for empty object payload', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      const triggerNoSchema = { ...testTrigger, inputSchema: null, messageTemplate: null };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoSchema));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: {
+            parts: [
+              {
+                kind: 'data',
+                data: {},
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          },
+        })
+      );
+    });
+
+    it('should include transformed payload in data part when outputTransform is configured', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      const triggerWithTransform = {
+        ...testTrigger,
+        inputSchema: null,
+        messageTemplate: 'User: {{userName}}',
+        outputTransform: {
+          objectTransformation: {
+            userName: 'user.name',
+          },
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithTransform));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user: { name: 'Alice' } }),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: {
+            parts: [
+              { kind: 'text', text: 'User: Alice' },
+              {
+                kind: 'data',
+                data: { userName: 'Alice' },
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          },
+        })
+      );
+    });
+  });
 });

@@ -424,7 +424,7 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
     z.record(z.string(), z.unknown()).optional().describe('JSON Schema for input validation'),
   outputTransform: () => TriggerOutputTransformSchema.optional(),
   messageTemplate: () =>
-    z.string().trim().nonempty().describe('Message template with {{placeholder}} syntax'),
+    z.string().trim().nonempty().describe('Message template with {{placeholder}} syntax').optional(),
   authentication: () => TriggerAuthenticationInputSchema.optional(),
   signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
 });
