@@ -105,6 +105,36 @@ Other alternatives considered:
 - [ ] No direct keytar references in template code
 - [ ] Template builds and runs successfully
 
+### US-009: Configure build to externalize native module
+**Description:** As a developer, I need the build configuration updated to mark @napi-rs/keyring as an external dependency so the native `.node` binary is not bundled.
+
+**Acceptance Criteria:**
+- [ ] Identify build configuration files for agents-core (tsdown.config.ts, rollup.config.js, or similar)
+- [ ] Add `@napi-rs/keyring` to the external dependencies list in the build config
+- [ ] Ensure the native module is loaded at runtime, not bundled
+- [ ] `pnpm build` completes successfully in packages/agents-core
+- [ ] Typecheck passes (`pnpm typecheck`)
+
+### US-010: Configure CLI build to externalize native module
+**Description:** As a developer, I need the CLI build configuration updated to handle the native module correctly.
+
+**Acceptance Criteria:**
+- [ ] Identify build configuration files for agents-cli
+- [ ] Add `@napi-rs/keyring` to the external dependencies list in the build config
+- [ ] `pnpm build` completes successfully in agents-cli
+- [ ] Typecheck passes (`pnpm typecheck`)
+
+### US-011: Final verification - all commands pass
+**Description:** As a developer, I need to verify that all standard development commands work correctly after the migration.
+
+**Acceptance Criteria:**
+- [ ] `pnpm install` completes successfully (no native compilation errors)
+- [ ] `pnpm build` completes successfully across all packages
+- [ ] `pnpm test` completes successfully (all tests pass)
+- [ ] `pnpm typecheck` completes successfully (no type errors)
+- [ ] `pnpm lint` completes successfully (if applicable)
+- [ ] No keytar references remain in the codebase (search for "keytar" returns no results except maybe CHANGELOG or migration notes)
+
 ## Functional Requirements
 
 - **FR-1:** The system must store credentials in the OS keychain using @napi-rs/keyring
