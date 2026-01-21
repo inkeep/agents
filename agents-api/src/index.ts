@@ -48,18 +48,20 @@ const defaultConfig: ServerConfig = {
   },
 };
 
-export const sandboxConfig: SandboxConfig =
-  env.ENVIRONMENT === 'development'
-    ? { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 }
-    : {
+const sandboxConfig: SandboxConfig =
+  process.env.SANDBOX_VERCEL_TEAM_ID &&
+  process.env.SANDBOX_VERCEL_PROJECT_ID &&
+  process.env.SANDBOX_VERCEL_TOKEN
+    ? {
         provider: 'vercel',
         runtime: 'node22',
         timeout: 60000,
         vcpus: 4,
-        teamId: process.env.SANDBOX_VERCEL_TEAM_ID as string,
-        projectId: process.env.SANDBOX_VERCEL_PROJECT_ID as string,
-        token: process.env.SANDBOX_VERCEL_TOKEN as string,
-      };
+        teamId: process.env.SANDBOX_VERCEL_TEAM_ID,
+        projectId: process.env.SANDBOX_VERCEL_PROJECT_ID,
+        token: process.env.SANDBOX_VERCEL_TOKEN,
+      }
+    : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
 
 // Module-level initialization for default app export
 // This only runs when importing the default app (legacy/simple deployments)
