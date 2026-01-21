@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -46,16 +47,20 @@ const triggerFormSchema = z.object({
   jmespath: z.string().default(''),
   objectTransformationJson: z.string().default(''),
   // Authentication headers - array of name/value pairs
+  // existingValuePrefix is used to show that an existing value is configured (display only)
   authHeaders: z
     .array(
       z.object({
         name: z.string().min(1, 'Header name is required'),
-        value: z.string().min(1, 'Header value is required'),
+        value: z.string(), // Can be empty if keeping existing value
+        existingValuePrefix: z.string().optional(), // First 8 chars of existing value for display
       })
     )
     .default([]),
   // Signing secret
   signingSecret: z.string().default(''),
+  // Track if signing secret is configured (for display)
+  hasExistingSigningSecret: z.boolean().default(false),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -85,6 +90,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         objectTransformationJson: '',
         authHeaders: [],
         signingSecret: '',
+        hasExistingSigningSecret: false,
       };
     }
 
@@ -93,19 +99,24 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
     // We show the prefix for display but require new value on edit
     const auth = trigger.authentication as {
       headers?: Array<{ name: string; valuePrefix?: string }>;
+      signingSecretHash?: string;
     } | null;
-    const authHeaders: Array<{ name: string; value: string }> = [];
+    const authHeaders: Array<{ name: string; value: string; existingValuePrefix?: string }> = [];
 
     if (auth?.headers && Array.isArray(auth.headers)) {
       for (const header of auth.headers) {
-        // When editing, we show the header name but require user to re-enter the value
-        // since we only store the hash, not the original value
+        // When editing, we show the header name and prefix indicator
+        // Value is empty - user can optionally re-enter to update
         authHeaders.push({
           name: header.name,
-          value: '', // User must re-enter value
+          value: '', // User can optionally re-enter value to update
+          existingValuePrefix: header.valuePrefix, // Shows first 8 chars as indicator
         });
       }
     }
+
+    // Check if signing secret is configured
+    const hasExistingSigningSecret = Boolean(auth?.signingSecretHash);
 
     // Determine transform type from existing data
     let transformType: 'none' | 'object_transformation' | 'jmespath' = 'none';
@@ -128,7 +139,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         ? JSON.stringify(trigger.outputTransform.objectTransformation, null, 2)
         : '',
       authHeaders,
-      signingSecret: '', // User must re-enter if they want to change it
+      signingSecret: '', // User can optionally re-enter to update
+      hasExistingSigningSecret,
     };
   };
 
@@ -180,13 +192,36 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         }
       }
 
-      // Build authentication object with headers (only if headers have values)
-      // Filter out headers where user didn't provide a new value (for edit mode)
-      const validHeaders = data.authHeaders.filter((h) => h.name && h.value);
+      // Build authentication object with headers
+      // For edit mode: headers with existingValuePrefix but no new value should keep existing
+      // Headers with new values will update, headers with no value and no existing will be skipped
+      const headersToSend: Array<{ name: string; value?: string; keepExisting?: boolean }> = [];
+
+      for (const h of data.authHeaders) {
+        if (!h.name) continue; // Skip headers without a name
+
+        if (h.value) {
+          // User provided a new value - update it
+          headersToSend.push({ name: h.name, value: h.value });
+        } else if (h.existingValuePrefix) {
+          // Existing value, no new value - keep existing
+          headersToSend.push({ name: h.name, keepExisting: true });
+        }
+        // If no value and no existing prefix, skip this header entirely
+      }
+
+      // Build authentication payload
       const authentication =
-        validHeaders.length > 0
-          ? { headers: validHeaders.map((h) => ({ name: h.name, value: h.value })) }
+        headersToSend.length > 0
+          ? { headers: headersToSend.map((h) => ({ name: h.name, value: h.value, keepExisting: h.keepExisting })) }
           : undefined;
+
+      // Handle signing secret - if not provided but existing, keep existing
+      const signingSecretPayload = data.signingSecret
+        ? { signingSecret: data.signingSecret }
+        : defaultValues.hasExistingSigningSecret
+          ? { keepExistingSigningSecret: true }
+          : {};
 
       const payload: any = {
         id: data.id,
@@ -197,7 +232,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         inputSchema,
         outputTransform,
         authentication,
-        signingSecret: data.signingSecret || undefined,
+        ...signingSecretPayload,
       };
 
       let result: { success: boolean; error?: string };
@@ -396,77 +431,109 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           <CardContent className="space-y-4">
             {/* Header list */}
             <div className="space-y-3">
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex gap-3 items-start">
-                  <FormField
-                    control={form.control}
-                    name={`authHeaders.${index}.name`}
-                    render={({ field: inputField }) => (
-                      <FormItem className="flex-1">
-                        {index === 0 && <FormLabel>Header Name</FormLabel>}
-                        <FormControl>
-                          <Input {...inputField} placeholder="e.g., X-API-Key" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+              {fields.map((field, index) => {
+                const existingPrefix = form.getValues(`authHeaders.${index}.existingValuePrefix`);
+                const hasExistingValue = Boolean(existingPrefix);
+
+                return (
+                  <div key={field.id} className="space-y-2">
+                    <div className="flex gap-3 items-start">
+                      <FormField
+                        control={form.control}
+                        name={`authHeaders.${index}.name`}
+                        render={({ field: inputField }) => (
+                          <FormItem className="flex-1">
+                            {index === 0 && <FormLabel>Header Name</FormLabel>}
+                            <FormControl>
+                              <Input {...inputField} placeholder="e.g., X-API-Key" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`authHeaders.${index}.value`}
+                        render={({ field: inputField }) => (
+                          <FormItem className="flex-1">
+                            {index === 0 && <FormLabel>Header Value</FormLabel>}
+                            <FormControl>
+                              <Input
+                                {...inputField}
+                                type="password"
+                                placeholder={
+                                  hasExistingValue
+                                    ? 'Enter new value to update'
+                                    : 'Enter expected value'
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(index)}
+                        className={index === 0 ? 'mt-8' : ''}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {hasExistingValue && (
+                      <div className="flex items-center gap-2 ml-1">
+                        <Badge variant="secondary" className="text-xs font-normal gap-1.5">
+                          <KeyRound className="h-3 w-3" />
+                          <span>
+                            Configured: <code className="font-mono">{existingPrefix}••••</code>
+                          </span>
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Leave blank to keep existing value
+                        </span>
+                      </div>
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`authHeaders.${index}.value`}
-                    render={({ field: inputField }) => (
-                      <FormItem className="flex-1">
-                        {index === 0 && <FormLabel>Header Value</FormLabel>}
-                        <FormControl>
-                          <Input
-                            {...inputField}
-                            type="password"
-                            placeholder="Enter expected value"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => remove(index)}
-                    className={index === 0 ? 'mt-8' : ''}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
 
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ name: '', value: '' })}
+              onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Authentication Header
+              Add Required Header
             </Button>
 
-            {mode === 'edit' && fields.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Note: Header values are stored securely (hashed). You must re-enter the value to
-                update it.
-              </p>
-            )}
-
-            <div className="pt-4 border-t">
+            <div className="pt-4 border-t space-y-3">
               <GenericInput
                 control={form.control}
                 name="signingSecret"
                 label="Signing Secret (Optional)"
-                placeholder="HMAC-SHA256 signing secret"
+                placeholder={
+                  defaultValues.hasExistingSigningSecret
+                    ? 'Enter new secret to update'
+                    : 'HMAC-SHA256 signing secret'
+                }
                 type="password"
               />
-              <FormDescription className="mt-2">
+              {defaultValues.hasExistingSigningSecret && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs font-normal gap-1.5">
+                    <KeyRound className="h-3 w-3" />
+                    <span>Signing secret configured</span>
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Leave blank to keep existing secret
+                  </span>
+                </div>
+              )}
+              <FormDescription>
                 If provided, webhook requests must include a valid X-Signature-256 header for
                 verification.
               </FormDescription>
