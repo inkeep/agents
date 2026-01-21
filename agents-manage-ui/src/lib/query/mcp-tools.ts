@@ -17,5 +17,8 @@ export function useMcpToolsQuery(tenantId: string, projectId: string) {
     initialData: [],
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
+    meta: {
+      defaultError: 'Failed to load MCP tools',
+    },
   });
 }
