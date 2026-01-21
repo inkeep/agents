@@ -359,8 +359,14 @@ export const TriggerAuthHeaderInputSchema = z.object({
 // Update schema: allows keeping existing header values without re-entering
 export const TriggerAuthHeaderUpdateSchema = z.object({
   name: z.string().min(1).describe('Header name (e.g., X-API-Key, Authorization)'),
-  value: z.string().optional().describe('New header value (plaintext). If omitted, existing value is kept.'),
-  keepExisting: z.boolean().optional().describe('If true, keep the existing hashed value for this header'),
+  value: z
+    .string()
+    .optional()
+    .describe('New header value (plaintext). If omitted, existing value is kept.'),
+  keepExisting: z
+    .boolean()
+    .optional()
+    .describe('If true, keep the existing hashed value for this header'),
 });
 
 export const TriggerAuthenticationInputSchema = z
@@ -448,7 +454,10 @@ export const TriggerUpdateSchema = z.object({
     .optional(),
   authentication: TriggerAuthenticationUpdateSchema.optional(),
   signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
-  keepExistingSigningSecret: z.boolean().optional().describe('If true, keep existing signing secret'),
+  keepExistingSigningSecret: z
+    .boolean()
+    .optional()
+    .describe('If true, keep existing signing secret'),
 });
 
 export const TriggerApiSelectSchema =

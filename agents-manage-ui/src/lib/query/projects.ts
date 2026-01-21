@@ -13,9 +13,6 @@ export function useProjectsQuery(tenantId: string) {
   return useQuery<Project[]>({
     queryKey: projectQueryKeys.list(tenantId),
     async queryFn() {
-      if (!tenantId) {
-        throw new Error('tenantId is required');
-      }
       const response = await fetchProjectsAction(tenantId);
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Unable to fetch projects');
