@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { Sandbox } from '@vercel/sandbox';
 import { getLogger } from '../../../logger';
 import {
@@ -9,6 +10,7 @@ import {
 import type { VercelSandboxConfig } from '../types/executionContext';
 import type { FunctionToolConfig } from './NativeSandboxExecutor';
 import { createExecutionWrapper, parseExecutionResult } from './sandbox-utils';
+import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('VercelSandboxExecutor');
 
@@ -270,262 +272,344 @@ export class VercelSandboxExecutor {
     args: Record<string, unknown>,
     toolConfig: FunctionToolConfig
   ): Promise<ExecutionResult> {
-    const startTime = Date.now();
-    const logs: string[] = [];
     const dependencies = toolConfig.dependencies || {};
     const dependencyHash = this.generateDependencyHash(dependencies);
 
-    try {
-      logger.info(
-        {
-          functionId,
-          functionName: toolConfig.name,
-          dependencyHash,
-          poolSize: this.sandboxPool.size,
+    return tracer.startActiveSpan(
+      'vercel.sandbox.execute',
+      {
+        attributes: {
+          'sandbox.functionId': functionId,
+          'sandbox.functionName': toolConfig.name || '',
+          'sandbox.dependencyHash': dependencyHash,
+          'sandbox.poolSize': this.sandboxPool.size,
+          'sandbox.runtime': this.config.runtime || 'javascript',
         },
-        'Executing function in Vercel Sandbox'
-      );
+      },
+      async (span) => {
+        const startTime = Date.now();
+        const logs: string[] = [];
 
-      // Try to get cached sandbox
-      let sandbox = this.getCachedSandbox(dependencyHash);
-      let isNewSandbox = false;
-
-      // Create new sandbox if not cached
-      if (!sandbox) {
-        isNewSandbox = true;
-        sandbox = await Sandbox.create({
-          token: this.config.token,
-          teamId: this.config.teamId,
-          projectId: this.config.projectId,
-          timeout: this.config.timeout,
-          resources: {
-            vcpus: this.config.vcpus || 1,
-          },
-          runtime: this.config.runtime,
-        });
-
-        logger.info(
-          {
-            functionId,
-            sandboxId: sandbox.sandboxId,
-            dependencyHash,
-          },
-          `New sandbox created for function ${functionId}`
-        );
-
-        // Add to pool for reuse
-        this.addToPool(dependencyHash, sandbox, dependencies);
-      } else {
-        logger.info(
-          {
-            functionId,
-            sandboxId: sandbox.sandboxId,
-            dependencyHash,
-          },
-          `Reusing cached sandbox for function ${functionId}`
-        );
-      }
-
-      // Increment use count
-      this.incrementUseCount(dependencyHash);
-
-      try {
-        // Install dependencies only for new sandboxes
-        if (
-          isNewSandbox &&
-          toolConfig.dependencies &&
-          Object.keys(toolConfig.dependencies).length > 0
-        ) {
-          logger.debug(
-            {
-              functionId,
-              functionName: toolConfig.name,
-              dependencies: toolConfig.dependencies,
-            },
-            'Installing dependencies in new sandbox'
-          );
-
-          const packageJson = {
-            dependencies: toolConfig.dependencies,
-          };
-
-          // Write package.json using writeFiles
-          const packageJsonContent = JSON.stringify(packageJson, null, 2);
-          await sandbox.writeFiles([
-            {
-              path: 'package.json',
-              content: Buffer.from(packageJsonContent, 'utf-8'),
-            },
-          ]);
-
-          // Run npm install
-          const installCmd = await sandbox.runCommand({
-            cmd: 'npm',
-            args: ['install', '--omit=dev'],
-          });
-
-          const installStdout = await installCmd.stdout();
-          const installStderr = await installCmd.stderr();
-
-          if (installStdout) {
-            logs.push(installStdout);
-          }
-          if (installStderr) {
-            logs.push(installStderr);
-          }
-
-          if (installCmd.exitCode !== 0) {
-            throw new Error(`Failed to install dependencies: ${installStderr}`);
-          }
-
+        try {
           logger.info(
             {
               functionId,
+              functionName: toolConfig.name,
               dependencyHash,
+              poolSize: this.sandboxPool.size,
             },
-            'Dependencies installed successfully'
+            'Executing function in Vercel Sandbox'
           );
-        }
 
-        // Create the execution wrapper
-        const executionCode = createExecutionWrapper(toolConfig.executeCode, args);
+          // Try to get cached sandbox
+          span.addEvent('sandbox.checking_cache', { 'sandbox.dependencyHash': dependencyHash });
+          let sandbox = this.getCachedSandbox(dependencyHash);
+          let isNewSandbox = false;
+          let sandboxSource: 'cache' | 'new' = 'cache';
 
-        // Detect and prepare environment variables
-        const envVars = this.extractEnvVars(toolConfig.executeCode);
-        const filesToWrite: Array<{ path: string; content: Buffer }> = [];
+          // Create new sandbox if not cached
+          if (!sandbox) {
+            sandboxSource = 'new';
+            isNewSandbox = true;
 
-        // Write the code file
-        const filename = this.config.runtime === 'typescript' ? 'execute.ts' : 'execute.js';
-        filesToWrite.push({
-          path: filename,
-          content: Buffer.from(executionCode, 'utf-8'),
-        });
+            span.addEvent('sandbox.cache_miss_creating', {
+              'sandbox.dependencyHash': dependencyHash,
+            });
 
-        // Write .env file if environment variables are detected
-        if (envVars.size > 0) {
-          const envFileContent = this.createEnvFileContent(envVars);
-          if (envFileContent) {
-            filesToWrite.push({
-              path: '.env',
-              content: Buffer.from(envFileContent, 'utf-8'),
+            sandbox = await Sandbox.create({
+              token: this.config.token,
+              teamId: this.config.teamId,
+              projectId: this.config.projectId,
+              timeout: this.config.timeout,
+              resources: {
+                vcpus: this.config.vcpus || 1,
+              },
+              runtime: this.config.runtime,
+            });
+
+            span.addEvent('sandbox.created', {
+              'sandbox.id': sandbox.sandboxId,
+              'sandbox.dependencyHash': dependencyHash,
             });
 
             logger.info(
               {
                 functionId,
-                envVarCount: envVars.size,
-                envVars: Array.from(envVars),
+                sandboxId: sandbox.sandboxId,
+                dependencyHash,
               },
-              'Creating environment variable placeholders in sandbox'
+              `New sandbox created for function ${functionId}`
+            );
+
+            // Add to pool for reuse
+            this.addToPool(dependencyHash, sandbox, dependencies);
+            span.addEvent('sandbox.added_to_pool', {
+              'sandbox.id': sandbox.sandboxId,
+              'sandbox.poolSize': this.sandboxPool.size,
+            });
+          } else {
+            span.addEvent('sandbox.cache_hit', {
+              'sandbox.id': sandbox.sandboxId,
+              'sandbox.dependencyHash': dependencyHash,
+            });
+            logger.info(
+              {
+                functionId,
+                sandboxId: sandbox.sandboxId,
+                dependencyHash,
+              },
+              `Reusing cached sandbox for function ${functionId}`
             );
           }
-        }
 
-        // Write all files to sandbox
-        await sandbox.writeFiles(filesToWrite);
-
-        logger.info(
-          {
-            functionId,
-            runtime: this.config.runtime === 'typescript' ? 'tsx' : 'node',
-            hasEnvVars: envVars.size > 0,
-          },
-          `Execution code written to file for runtime ${this.config.runtime}`
-        );
-
-        // Execute the code with dotenv if env vars exist
-        const executeCmd = await (async () => {
-          if (envVars.size > 0) {
-            // Use dotenv-cli to load .env file automatically
-            return sandbox.runCommand({
-              cmd: 'npx',
-              args:
-                this.config.runtime === 'typescript'
-                  ? ['--yes', 'dotenv-cli', '--', 'npx', 'tsx', filename]
-                  : ['--yes', 'dotenv-cli', '--', 'node', filename],
-            });
-          }
-          // Execute normally without dotenv
-          const runtime = this.config.runtime === 'typescript' ? 'tsx' : 'node';
-          return sandbox.runCommand({
-            cmd: runtime,
-            args: [filename],
+          // Set sandbox info on span
+          span.setAttributes({
+            'sandbox.id': sandbox.sandboxId,
+            'sandbox.source': sandboxSource,
+            'sandbox.isNew': isNewSandbox,
           });
-        })();
 
-        // Collect logs
-        const executeStdout = await executeCmd.stdout();
-        const executeStderr = await executeCmd.stderr();
+          // Increment use count
+          this.incrementUseCount(dependencyHash);
+          const cached = this.sandboxPool.get(dependencyHash);
+          span.setAttribute('sandbox.useCount', cached?.useCount || 0);
 
-        if (executeStdout) {
-          logs.push(executeStdout);
-        }
-        if (executeStderr) {
-          logs.push(executeStderr);
-        }
+          try {
+            // Install dependencies only for new sandboxes
+            if (
+              isNewSandbox &&
+              toolConfig.dependencies &&
+              Object.keys(toolConfig.dependencies).length > 0
+            ) {
+              span.addEvent('sandbox.installing_dependencies', {
+                'sandbox.dependencyCount': Object.keys(toolConfig.dependencies).length,
+              });
 
-        const executionTime = Date.now() - startTime;
+              logger.debug(
+                {
+                  functionId,
+                  functionName: toolConfig.name,
+                  dependencies: toolConfig.dependencies,
+                },
+                'Installing dependencies in new sandbox'
+              );
 
-        // Check for execution errors
-        if (executeCmd.exitCode !== 0) {
+              const packageJson = {
+                dependencies: toolConfig.dependencies,
+              };
+
+              // Write package.json using writeFiles
+              const packageJsonContent = JSON.stringify(packageJson, null, 2);
+              await sandbox.writeFiles([
+                {
+                  path: 'package.json',
+                  content: Buffer.from(packageJsonContent, 'utf-8'),
+                },
+              ]);
+
+              // Run npm install
+              const installCmd = await sandbox.runCommand({
+                cmd: 'npm',
+                args: ['install', '--omit=dev'],
+              });
+
+              const installStdout = await installCmd.stdout();
+              const installStderr = await installCmd.stderr();
+
+              if (installStdout) {
+                logs.push(installStdout);
+              }
+              if (installStderr) {
+                logs.push(installStderr);
+              }
+
+              if (installCmd.exitCode !== 0) {
+                span.addEvent('sandbox.npm_install_failed', {
+                  'sandbox.exitCode': installCmd.exitCode ?? -1,
+                });
+                throw new Error(`Failed to install dependencies: ${installStderr}`);
+              }
+
+              span.addEvent('sandbox.dependencies_installed');
+
+              logger.info(
+                {
+                  functionId,
+                  dependencyHash,
+                },
+                'Dependencies installed successfully'
+              );
+            }
+
+            // Create the execution wrapper
+            const executionCode = createExecutionWrapper(toolConfig.executeCode, args);
+
+            // Detect and prepare environment variables
+            const envVars = this.extractEnvVars(toolConfig.executeCode);
+            const filesToWrite: Array<{ path: string; content: Buffer }> = [];
+
+            // Write the code file
+            const filename = this.config.runtime === 'typescript' ? 'execute.ts' : 'execute.js';
+            filesToWrite.push({
+              path: filename,
+              content: Buffer.from(executionCode, 'utf-8'),
+            });
+
+            // Write .env file if environment variables are detected
+            if (envVars.size > 0) {
+              const envFileContent = this.createEnvFileContent(envVars);
+              if (envFileContent) {
+                filesToWrite.push({
+                  path: '.env',
+                  content: Buffer.from(envFileContent, 'utf-8'),
+                });
+
+                logger.info(
+                  {
+                    functionId,
+                    envVarCount: envVars.size,
+                    envVars: Array.from(envVars),
+                  },
+                  'Creating environment variable placeholders in sandbox'
+                );
+              }
+            }
+
+            span.addEvent('sandbox.writing_files', {
+              'sandbox.fileCount': filesToWrite.length,
+              'sandbox.filename': filename,
+            });
+
+            // Write all files to sandbox
+            await sandbox.writeFiles(filesToWrite);
+
+            span.addEvent('sandbox.files_written');
+
+            logger.info(
+              {
+                functionId,
+                runtime: this.config.runtime === 'typescript' ? 'tsx' : 'node',
+                hasEnvVars: envVars.size > 0,
+              },
+              `Execution code written to file for runtime ${this.config.runtime}`
+            );
+
+            span.addEvent('sandbox.executing_code');
+
+            // Execute the code with dotenv if env vars exist
+            const executeCmd = await (async () => {
+              if (envVars.size > 0) {
+                // Use dotenv-cli to load .env file automatically
+                return sandbox.runCommand({
+                  cmd: 'npx',
+                  args:
+                    this.config.runtime === 'typescript'
+                      ? ['--yes', 'dotenv-cli', '--', 'npx', 'tsx', filename]
+                      : ['--yes', 'dotenv-cli', '--', 'node', filename],
+                });
+              }
+              // Execute normally without dotenv
+              const runtime = this.config.runtime === 'typescript' ? 'tsx' : 'node';
+              return sandbox.runCommand({
+                cmd: runtime,
+                args: [filename],
+              });
+            })();
+
+            // Collect logs
+            const executeStdout = await executeCmd.stdout();
+            const executeStderr = await executeCmd.stderr();
+
+            if (executeStdout) {
+              logs.push(executeStdout);
+            }
+            if (executeStderr) {
+              logs.push(executeStderr);
+            }
+
+            const executionTime = Date.now() - startTime;
+
+            span.addEvent('sandbox.execution_complete', {
+              'sandbox.exitCode': executeCmd.exitCode ?? -1,
+              'sandbox.executionTimeMs': executionTime,
+            });
+            span.setAttribute('sandbox.executionTimeMs', executionTime);
+
+            // Check for execution errors
+            if (executeCmd.exitCode !== 0) {
+              logger.error(
+                {
+                  functionId,
+                  exitCode: executeCmd.exitCode,
+                  stderr: executeStderr,
+                },
+                'Function execution failed'
+              );
+
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: executeStderr || 'Non-zero exit code',
+              });
+
+              return {
+                success: false,
+                error: executeStderr || 'Function execution failed with non-zero exit code',
+                logs,
+                executionTime,
+              };
+            }
+
+            // Parse the result from stdout
+            const result = parseExecutionResult(executeStdout, functionId, logger);
+
+            logger.info(
+              {
+                functionId,
+                executionTime,
+              },
+              'Function executed successfully in Vercel Sandbox'
+            );
+
+            span.setStatus({ code: SpanStatusCode.OK });
+
+            return {
+              success: true,
+              result,
+              logs,
+              executionTime,
+            };
+          } catch (innerError) {
+            // On error, remove from pool so it doesn't get reused
+            span.addEvent('sandbox.removing_from_pool_on_error', {
+              'sandbox.dependencyHash': dependencyHash,
+            });
+            await this.removeSandbox(dependencyHash);
+            throw innerError;
+          }
+        } catch (error) {
+          const executionTime = Date.now() - startTime;
+          const errorMessage = error instanceof Error ? error.message : String(error);
+
+          setSpanWithError(span, error instanceof Error ? error : new Error(errorMessage));
+          span.setAttribute('sandbox.executionTimeMs', executionTime);
+
           logger.error(
             {
               functionId,
-              exitCode: executeCmd.exitCode,
-              stderr: executeStderr,
+              error: errorMessage,
+              executionTime,
             },
-            'Function execution failed'
+            'Vercel Sandbox execution error'
           );
 
           return {
             success: false,
-            error: executeStderr || 'Function execution failed with non-zero exit code',
+            error: errorMessage,
             logs,
             executionTime,
           };
         }
-
-        // Parse the result from stdout
-        const result = parseExecutionResult(executeStdout, functionId, logger);
-
-        logger.info(
-          {
-            functionId,
-            executionTime,
-          },
-          'Function executed successfully in Vercel Sandbox'
-        );
-
-        return {
-          success: true,
-          result,
-          logs,
-          executionTime,
-        };
-      } catch (innerError) {
-        // On error, remove from pool so it doesn't get reused
-        await this.removeSandbox(dependencyHash);
-        throw innerError;
       }
-    } catch (error) {
-      const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      logger.error(
-        {
-          functionId,
-          error: errorMessage,
-          executionTime,
-        },
-        'Vercel Sandbox execution error'
-      );
-
-      return {
-        success: false,
-        error: errorMessage,
-        logs,
-        executionTime,
-      };
-    }
+    );
   }
 }
