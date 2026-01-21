@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,26 +12,20 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchAgents } from '@/lib/api/agent-full-client';
+import { useAgentsQuery } from '@/lib/query/agents';
 import {
-  fetchEvaluationSuiteConfig,
-  fetchEvaluationSuiteConfigEvaluators,
-} from '@/lib/api/evaluation-suite-configs';
-import type { Evaluator } from '@/lib/api/evaluators';
-import { fetchEvaluators } from '@/lib/api/evaluators';
-import type { Agent } from '@/lib/types/agent-full';
+  useEvaluationSuiteConfigEvaluatorsQuery,
+  useEvaluationSuiteConfigQuery,
+} from '@/lib/query/evaluation-suite-configs';
+import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 
 interface SuiteConfigViewDialogProps {
-  tenantId: string;
-  projectId: string;
   suiteConfigId: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function SuiteConfigViewDialog({
-  tenantId,
-  projectId,
   suiteConfigId,
   isOpen,
   onOpenChange,
