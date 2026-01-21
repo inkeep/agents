@@ -9,6 +9,7 @@ const externalAgentQueryKeys = {
 };
 
 export function useExternalAgentsQuery(tenantId: string, projectId: string) {
+  'use memo';
   return useQuery<ExternalAgent[]>({
     queryKey: externalAgentQueryKeys.list(tenantId, projectId),
     queryFn: () => fetchExternalAgents(tenantId, projectId),

@@ -9,6 +9,7 @@ const credentialStoresQueryKeys = {
 };
 
 export function useCredentialStoresQuery(tenantId: string, projectId: string) {
+  'use memo';
   return useQuery<CredentialStoreStatus[]>({
     queryKey: credentialStoresQueryKeys.list(tenantId, projectId),
     queryFn: () => listCredentialStores(tenantId, projectId),

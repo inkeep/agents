@@ -9,6 +9,7 @@ const mcpToolsQueryKeys = {
 };
 
 export function useMcpToolsQuery(tenantId: string, projectId: string) {
+  'use memo';
   return useQuery<MCPTool[]>({
     queryKey: mcpToolsQueryKeys.list(tenantId, projectId),
     queryFn: () => fetchMCPTools(tenantId, projectId),
