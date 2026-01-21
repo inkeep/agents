@@ -1,12 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'next/navigation';
 import {
+  type EvaluationSuiteConfig,
   fetchEvaluationSuiteConfig,
   fetchEvaluationSuiteConfigEvaluators,
-  type EvaluationSuiteConfig,
 } from '@/lib/api/evaluation-suite-configs';
-import { useParams } from 'next/navigation';
 
 const evaluationSuiteConfigQueryKeys = {
   detail: (tenantId: string, projectId: string, configId: string) =>
@@ -23,8 +23,8 @@ export function useEvaluationSuiteConfigQuery(configId: string, options?: { enab
     projectId?: string;
   }>();
 
-  if (!tenantId || !projectId || !configId) {
-    throw new Error('tenantId, projectId, and configId are required');
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
   }
 
   const enabled = Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
@@ -33,11 +33,12 @@ export function useEvaluationSuiteConfigQuery(configId: string, options?: { enab
     queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, configId),
     async queryFn() {
       const response = await fetchEvaluationSuiteConfig(tenantId, projectId, configId);
-      return response.data ?? null;
+      return response.data;
     },
     enabled,
     staleTime: 30_000,
     initialData: null,
+    // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
   });
 }
@@ -53,8 +54,8 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
     projectId?: string;
   }>();
 
-  if (!tenantId || !projectId || !configId) {
-    throw new Error('tenantId, projectId, and configId are required');
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
   }
 
   const enabled = Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
@@ -62,11 +63,8 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
   return useQuery<{ evaluatorId: string }[]>({
     queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, configId),
     async queryFn() {
-      if (!tenantId || !projectId || !configId) {
-        throw new Error('tenantId, projectId, and configId are required');
-      }
       const response = await fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, configId);
-      return response.data ?? [];
+      return response.data;
     },
     enabled,
     staleTime: 30_000,
