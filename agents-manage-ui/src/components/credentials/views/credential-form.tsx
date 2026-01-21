@@ -2,8 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
-import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
@@ -12,11 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
-import { fetchExternalAgents } from '@/lib/api/external-agents';
-import { fetchMCPTools } from '@/lib/api/tools';
-import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { MCPTool } from '@/lib/types/tools';
+import { useCredentialStoresQuery } from '@/lib/query/credential-stores';
+import { useExternalAgentsQuery } from '@/lib/query/external-agents';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
 
 interface CredentialFormProps {
@@ -39,92 +37,55 @@ const defaultValues: CredentialFormData = {
 };
 
 export function CredentialForm({ onCreateCredential, tenantId, projectId }: CredentialFormProps) {
-  const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(true);
+  'use memo';
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
-  const [availableExternalAgents, setAvailableExternalAgents] = useState<ExternalAgent[]>([]);
-  const [externalAgentsLoading, setExternalAgentsLoading] = useState(true);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
-  const [credentialStores, setCredentialStores] = useState<CredentialStoreStatus[]>([]);
-  const [storesLoading, setStoresLoading] = useState(true);
 
   const form = useForm({
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
   });
+  const credentialStoreId = useWatch({ control: form.control, name: 'credentialStoreId' });
+  const credentialStoreType = useWatch({ control: form.control, name: 'credentialStoreType' });
 
   const { isSubmitting } = form.formState;
+  const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery(
+    tenantId,
+    projectId
+  );
+  const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery(tenantId, projectId);
+  const { data: credentialStores, isFetching: storesLoading } = useCredentialStoresQuery(
+    tenantId,
+    projectId
+  );
 
-  // loadAvailableTools
+  const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
+  const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);
+
   useEffect(() => {
-    const loadAvailableTools = async () => {
-      try {
-        const allTools = await fetchMCPTools(tenantId, projectId);
-        const toolsWithoutCredentials = allTools.filter((tool) => !tool.credentialReferenceId);
-        setAvailableMCPServers(toolsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load MCP tools:', err);
-      } finally {
-        setToolsLoading(false);
+    if (storesLoading) {
+      return;
+    }
+
+    // Auto-select preferred store: prioritize Nango, then other available non-memory stores
+    const availableStores = credentialStores.filter(
+      (store) => store.available && store.type !== 'memory'
+    );
+    if (availableStores.length > 0) {
+      // First try to find Nango store
+      const nangoStore = availableStores.find((store) => store.type === 'nango');
+      const preferredStore = nangoStore || availableStores[0];
+
+      // Only set values if form doesn't already have a credentialStoreId value
+      const currentStoreId = form.getValues('credentialStoreId');
+      if (!currentStoreId) {
+        form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
+        form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
+          shouldValidate: true,
+        });
       }
-    };
-
-    loadAvailableTools();
-  }, [tenantId, projectId]);
-
-  // loadAvailableExternalAgents
-  useEffect(() => {
-    const loadAvailableExternalAgents = async () => {
-      try {
-        const allExternalAgents = await fetchExternalAgents(tenantId, projectId);
-        const externalAgentsWithoutCredentials = allExternalAgents.filter(
-          (agent) => !agent.credentialReferenceId
-        );
-        setAvailableExternalAgents(externalAgentsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load external agents:', err);
-      } finally {
-        setExternalAgentsLoading(false);
-      }
-    };
-
-    loadAvailableExternalAgents();
-  }, [tenantId, projectId]);
-
-  // loadCredentialStores
-  useEffect(() => {
-    const loadCredentialStores = async () => {
-      try {
-        const stores = await listCredentialStores(tenantId, projectId);
-        setCredentialStores(stores);
-
-        // Auto-select preferred store: prioritize Nango, then other available non-memory stores
-        const availableStores = stores.filter(
-          (store) => store.available && store.type !== 'memory'
-        );
-        if (availableStores.length > 0) {
-          // First try to find Nango store
-          const nangoStore = availableStores.find((store) => store.type === 'nango');
-          const preferredStore = nangoStore || availableStores[0];
-
-          // Only set values if form doesn't already have a credentialStoreId value
-          const currentStoreId = form.getValues('credentialStoreId');
-          if (!currentStoreId) {
-            form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
-              shouldValidate: true,
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load credential stores:', err);
-      } finally {
-        setStoresLoading(false);
-      }
-    };
-
-    loadCredentialStores();
-  }, [tenantId, projectId, form.getValues, form.setValue]);
+    }
+  }, [form, credentialStores, storesLoading]);
 
   // Handle checkbox state changes
   useEffect(() => {
@@ -142,18 +103,19 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   }, [shouldLinkToExternalAgent, form]);
 
   useEffect(() => {
-    const subscription = form.watch((value: any, { name }: any) => {
-      if (name === 'credentialStoreId' && value.credentialStoreId) {
-        const selectedStore = credentialStores.find(
-          (store) => store.id === value.credentialStoreId
-        );
-        if (selectedStore && selectedStore.type !== 'memory') {
-          form.setValue('credentialStoreType', selectedStore.type);
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, credentialStores]);
+    if (!credentialStoreId) {
+      return;
+    }
+
+    const selectedStore = credentialStores.find((store) => store.id === credentialStoreId);
+    if (
+      selectedStore &&
+      selectedStore.type !== 'memory' &&
+      selectedStore.type !== credentialStoreType
+    ) {
+      form.setValue('credentialStoreType', selectedStore.type);
+    }
+  }, [credentialStoreId, credentialStoreType, credentialStores, form]);
 
   const handleLinkToServerChange = (checked: boolean | 'indeterminate') => {
     setShouldLinkToServer(checked === true);
@@ -164,19 +126,18 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   };
 
   const onSubmit = async (data: CredentialFormData) => {
+    const isInvalidServerSelection =
+      shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
+    const isInvalidExternalAgentSelection =
+      shouldLinkToExternalAgent &&
+      (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error');
     try {
-      if (
-        shouldLinkToServer &&
-        (data.selectedTool === 'loading' || data.selectedTool === 'error')
-      ) {
+      if (isInvalidServerSelection) {
         toast('Please select a valid MCP server');
         return;
       }
 
-      if (
-        shouldLinkToExternalAgent &&
-        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
-      ) {
+      if (isInvalidExternalAgentSelection) {
         toast('Please select a valid external agent');
         return;
       }
@@ -188,76 +149,62 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     }
   };
 
-  const serverOptions = useMemo(
-    () => [
-      ...(toolsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading MCP servers...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableMCPServers.map((tool) => ({
-        value: tool.id,
-        label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
-      })),
-    ],
-    [availableMCPServers, toolsLoading]
+  const serverOptions = [
+    ...(toolsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading MCP servers...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableMCPServers.map((tool) => ({
+      value: tool.id,
+      label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
+    })),
+  ];
+
+  const externalAgentOptions = [
+    ...(externalAgentsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading external agents...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableExternalAgents.map((agent) => ({
+      value: agent.id,
+      label: `${agent.name} - ${agent.baseUrl}`,
+    })),
+  ];
+
+  const availableStores = credentialStores.filter(
+    (store) => store.available && store.type !== 'memory'
   );
 
-  const externalAgentOptions = useMemo(
-    () => [
-      ...(externalAgentsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading external agents...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableExternalAgents.map((agent) => ({
-        value: agent.id,
-        label: `${agent.name} - ${agent.baseUrl}`,
-      })),
-    ],
-    [availableExternalAgents, externalAgentsLoading]
-  );
-
-  const credentialStoreOptions = useMemo(() => {
-    if (storesLoading) {
-      return [
+  const credentialStoreOptions = storesLoading
+    ? [
         {
           value: 'loading',
           label: 'Loading credential stores...',
           disabled: true,
         },
-      ];
-    }
-
-    const availableStores = credentialStores.filter(
-      (store) => store.available && store.type !== 'memory'
-    );
-
-    if (availableStores.length === 0) {
-      return [
-        {
-          value: 'none',
-          label: 'No credential stores available',
-          disabled: true,
-        },
-      ];
-    }
-
-    const options = availableStores.map((store) => ({
-      value: store.id,
-      label: `${store.type === 'keychain' ? 'Keychain Store' : 'Nango Store'} (${store.id})`,
-    }));
-
-    return options;
-  }, [credentialStores, storesLoading]);
+      ]
+    : availableStores.length
+      ? availableStores.map((store) => ({
+          value: store.id,
+          label: `${store.type === 'keychain' ? 'Keychain Store' : 'Nango Store'} (${store.id})`,
+        }))
+      : [
+          {
+            value: 'none',
+            label: 'No credential stores available',
+            disabled: true,
+          },
+        ];
 
   return (
     <Form {...form}>
@@ -294,7 +241,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             </InfoCard>
           </div>
 
-          {!storesLoading && form.watch('credentialStoreType') === CredentialStoreType.nango && (
+          {!storesLoading && credentialStoreType === CredentialStoreType.nango && (
             <div className="space-y-3">
               <GenericKeyValueInput
                 control={form.control}

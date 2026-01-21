@@ -81,3 +81,9 @@ node-compile-cache/
 
 # inkeep pull temp folder
 .temp-validation-*/
+
+# PID files from auto-started services
+*.pid
+
+
+tasks/

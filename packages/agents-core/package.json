@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.41.2",
+  "version": "0.42.0",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -111,7 +111,6 @@
     "db:reset": "pnpm db:delete && pnpm db:migrate",
     "db:studio": "echo 'Use db:manage:studio or db:run:studio'",
     "db:check": "pnpm db:manage:check && pnpm db:run:check",
-    "db:migrate:cleanup-old-triggers": "tsx src/db/migrations/cleanup-old-trigger-auth.ts",
     "db:manage:generate": "drizzle-kit generate --config=drizzle.manage.config.ts",
     "db:manage:migrate": "tsx src/dolt/migrate-dolt.ts",
     "db:manage:sync-all-branches": "tsx src/dolt/migrate-all-branches.ts",
