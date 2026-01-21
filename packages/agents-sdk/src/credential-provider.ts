@@ -240,7 +240,7 @@ export class InkeepCredentialProvider implements CredentialStore {
         } catch {
           return {
             available: false,
-            reason: 'Keychain store requires keytar package to be installed',
+            reason: 'Keychain store requires @napi-rs/keyring package to be installed',
           };
         }
       },

@@ -23,10 +23,10 @@ const createMockStore = (
 
 const createNonFunctionalKeychainStore = () =>
   createMockStore('keychain-default', CredentialStoreType.keychain, {
-    has: vi.fn().mockRejectedValue(new Error('keytar not available')),
+    has: vi.fn().mockRejectedValue(new Error('@napi-rs/keyring not available')),
     checkAvailability: vi.fn().mockResolvedValue({
       available: false,
-      reason: 'Keytar not available - cannot store credentials in system keychain',
+      reason: '@napi-rs/keyring not available - cannot store credentials in system keychain',
     }),
   });
 
