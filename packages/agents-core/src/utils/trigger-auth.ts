@@ -1,9 +1,22 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { Context } from 'hono';
 import type { z } from 'zod';
-import type { TriggerAuthenticationSchema } from '../validation/schemas';
+import type {
+  TriggerAuthenticationStoredSchema,
+  TriggerAuthHeaderInputSchema,
+  TriggerAuthHeaderStoredSchema,
+} from '../validation/schemas';
 
-type TriggerAuthentication = z.infer<typeof TriggerAuthenticationSchema>;
+const scryptAsync = promisify(scrypt);
+
+const SALT_LENGTH = 32;
+const KEY_LENGTH = 64;
+const VALUE_PREFIX_LENGTH = 8;
+
+type TriggerAuthHeaderInput = z.infer<typeof TriggerAuthHeaderInputSchema>;
+type TriggerAuthHeaderStored = z.infer<typeof TriggerAuthHeaderStoredSchema>;
+type TriggerAuthenticationStored = z.infer<typeof TriggerAuthenticationStoredSchema>;
 
 export interface TriggerAuthResult {
   success: boolean;
@@ -11,135 +24,117 @@ export interface TriggerAuthResult {
   message?: string;
 }
 
+export interface HashedHeaderValue {
+  valueHash: string;
+  valuePrefix: string;
+}
+
 /**
- * Verifies incoming webhook requests using the configured authentication method.
- * Supports api_key, basic_auth, bearer_token, and none authentication types.
+ * Hash a header value using scrypt for secure storage.
+ * Returns the hash and a prefix for display purposes.
+ *
+ * @param value - The plaintext header value to hash
+ * @returns Object containing valueHash (for storage) and valuePrefix (for display)
+ */
+export async function hashTriggerHeaderValue(value: string): Promise<HashedHeaderValue> {
+  const salt = randomBytes(SALT_LENGTH);
+  const hashedBuffer = (await scryptAsync(value, salt, KEY_LENGTH)) as Buffer;
+  const combined = Buffer.concat([salt, hashedBuffer]);
+
+  return {
+    valueHash: combined.toString('base64'),
+    valuePrefix: value.substring(0, VALUE_PREFIX_LENGTH),
+  };
+}
+
+/**
+ * Validate a header value against its stored hash using timing-safe comparison.
+ *
+ * @param value - The plaintext header value from the incoming request
+ * @param storedHash - The hash stored in the database
+ * @returns True if the value matches the hash
+ */
+export async function validateTriggerHeaderValue(
+  value: string,
+  storedHash: string
+): Promise<boolean> {
+  try {
+    const combined = Buffer.from(storedHash, 'base64');
+    const salt = combined.subarray(0, SALT_LENGTH);
+    const storedHashBuffer = combined.subarray(SALT_LENGTH);
+
+    const hashedBuffer = (await scryptAsync(value, salt, KEY_LENGTH)) as Buffer;
+
+    return timingSafeEqual(storedHashBuffer, hashedBuffer);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Transform authentication input (plaintext values) to stored format (hashed values).
+ * Used when creating or updating triggers.
+ *
+ * @param headers - Array of header inputs with plaintext values
+ * @returns Array of headers with hashed values for storage
+ */
+export async function hashAuthenticationHeaders(
+  headers: TriggerAuthHeaderInput[]
+): Promise<TriggerAuthHeaderStored[]> {
+  return Promise.all(
+    headers.map(async (header) => {
+      const { valueHash, valuePrefix } = await hashTriggerHeaderValue(header.value);
+      return {
+        name: header.name,
+        valueHash,
+        valuePrefix,
+      };
+    })
+  );
+}
+
+/**
+ * Verifies incoming webhook requests using the configured authentication headers.
+ * Each configured header must be present and match its expected value (via hash comparison).
  *
  * @param c - Hono context containing the request headers
- * @param authentication - Trigger authentication configuration
+ * @param authentication - Trigger authentication configuration with hashed header values
  * @returns TriggerAuthResult indicating success/failure with appropriate HTTP status
  */
-export function verifyTriggerAuth(
+export async function verifyTriggerAuth(
   c: Context,
-  authentication?: TriggerAuthentication | null
-): TriggerAuthResult {
-  // No authentication configured - allow all requests
-  if (!authentication || authentication.type === 'none') {
+  authentication?: TriggerAuthenticationStored | null
+): Promise<TriggerAuthResult> {
+  // No authentication configured or no headers - allow all requests
+  if (!authentication || !authentication.headers || authentication.headers.length === 0) {
     return { success: true };
   }
 
-  switch (authentication.type) {
-    case 'api_key': {
-      const headerName = authentication.data.name.toLowerCase();
-      const expectedValue = authentication.data.value;
-      const actualValue = c.req.header(headerName);
+  // Verify each configured header
+  for (const header of authentication.headers) {
+    const headerName = header.name.toLowerCase();
+    const actualValue = c.req.header(headerName);
 
-      if (!actualValue) {
-        return {
-          success: false,
-          status: 401,
-          message: `Missing authentication header: ${authentication.data.name}`,
-        };
-      }
-
-      if (actualValue !== expectedValue) {
-        return {
-          success: false,
-          status: 403,
-          message: 'Invalid API key',
-        };
-      }
-
-      return { success: true };
-    }
-
-    case 'basic_auth': {
-      const authHeader = c.req.header('authorization');
-
-      if (!authHeader) {
-        return {
-          success: false,
-          status: 401,
-          message: 'Missing Authorization header',
-        };
-      }
-
-      if (!authHeader.startsWith('Basic ')) {
-        return {
-          success: false,
-          status: 401,
-          message: 'Invalid Authorization header format (expected Basic)',
-        };
-      }
-
-      const base64Credentials = authHeader.slice(6); // Remove 'Basic ' prefix
-      let credentials: string;
-      try {
-        credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-      } catch {
-        return {
-          success: false,
-          status: 401,
-          message: 'Invalid Base64 encoding in Authorization header',
-        };
-      }
-
-      const expectedCredentials = `${authentication.data.username}:${authentication.data.password}`;
-
-      if (credentials !== expectedCredentials) {
-        return {
-          success: false,
-          status: 403,
-          message: 'Invalid username or password',
-        };
-      }
-
-      return { success: true };
-    }
-
-    case 'bearer_token': {
-      const authHeader = c.req.header('authorization');
-
-      if (!authHeader) {
-        return {
-          success: false,
-          status: 401,
-          message: 'Missing Authorization header',
-        };
-      }
-
-      if (!authHeader.startsWith('Bearer ')) {
-        return {
-          success: false,
-          status: 401,
-          message: 'Invalid Authorization header format (expected Bearer)',
-        };
-      }
-
-      const token = authHeader.slice(7); // Remove 'Bearer ' prefix
-      const expectedToken = authentication.data.token;
-
-      if (token !== expectedToken) {
-        return {
-          success: false,
-          status: 403,
-          message: 'Invalid bearer token',
-        };
-      }
-
-      return { success: true };
-    }
-
-    default: {
-      // TypeScript exhaustiveness check
-      const _exhaustive: never = authentication;
+    if (!actualValue) {
       return {
         success: false,
-        status: 500,
-        message: 'Unknown authentication type',
+        status: 401,
+        message: `Missing authentication header: ${header.name}`,
+      };
+    }
+
+    const isValid = await validateTriggerHeaderValue(actualValue, header.valueHash);
+
+    if (!isValid) {
+      return {
+        success: false,
+        status: 403,
+        message: `Invalid value for header: ${header.name}`,
       };
     }
   }
+
+  return { success: true };
 }
 
 /**
