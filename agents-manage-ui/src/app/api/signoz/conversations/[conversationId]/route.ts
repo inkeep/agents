@@ -520,6 +520,10 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
+              key: SPAN_KEYS.MESSAGE_PARTS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
               key: SPAN_KEYS.MESSAGE_TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
@@ -1257,6 +1261,7 @@ export async function GET(
       aiResponseText?: string;
       // user
       messageContent?: string;
+      messageParts?: string;
       // trigger/invocation attributes
       invocationType?: string;
       triggerId?: string;
@@ -1469,6 +1474,7 @@ export async function GET(
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
+        messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
         // Trigger-specific attributes
         invocationType: invocationType || undefined,
         triggerId: triggerId || undefined,

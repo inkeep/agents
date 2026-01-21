@@ -41,7 +41,7 @@ const triggerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().default(''),
   enabled: z.boolean(),
-  messageTemplate: z.string().min(1, 'Message template is required'),
+  messageTemplate: z.string().default(''),
   inputSchemaJson: z.string().default(''),
   transformType: z.enum(['none', 'object_transformation', 'jmespath']),
   jmespath: z.string().default(''),
@@ -131,7 +131,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       name: trigger.name,
       description: trigger.description || '',
       enabled: trigger.enabled,
-      messageTemplate: trigger.messageTemplate,
+      messageTemplate: trigger.messageTemplate || '',
       inputSchemaJson: trigger.inputSchema ? JSON.stringify(trigger.inputSchema, null, 2) : '',
       transformType,
       jmespath: trigger.outputTransform?.jmespath || '',
@@ -234,7 +234,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         name: data.name,
         description: data.description || undefined,
         enabled: data.enabled,
-        messageTemplate: data.messageTemplate,
+        messageTemplate: data.messageTemplate || undefined,
         inputSchema,
         outputTransform,
         authentication,
@@ -311,10 +311,11 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         {/* Message Template */}
         <Card>
           <CardHeader>
-            <CardTitle>Message Template</CardTitle>
+            <CardTitle>Message Template (Optional)</CardTitle>
             <CardDescription>
-              Define the message template sent to the agent. Use {'{{placeholder}}'} syntax to
-              reference fields from the transformed payload.
+              Define an optional text message sent to the agent. Use {'{{placeholder}}'} syntax to
+              reference fields from the transformed payload. The webhook payload is always included
+              as structured data.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -324,7 +325,6 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               label="Template"
               placeholder="e.g., New issue created: {{issue.title}}"
               rows={4}
-              isRequired
             />
           </CardContent>
         </Card>

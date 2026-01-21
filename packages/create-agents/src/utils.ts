@@ -109,6 +109,7 @@ export const createAgents = async (
     localTemplatesPrefix?: string;
     skipInkeepCli?: boolean;
     skipInkeepMcp?: boolean;
+    skipInstall?: boolean;
   } = {}
 ) => {
   let {
@@ -124,6 +125,7 @@ export const createAgents = async (
     localTemplatesPrefix,
     skipInkeepCli,
     skipInkeepMcp,
+    skipInstall,
   } = args;
 
   const tenantId = 'default';
@@ -426,8 +428,10 @@ export const createAgents = async (
     s.message('Creating inkeep.config.ts...');
     await createInkeepConfig(config);
 
-    s.message('Installing dependencies (this may take a while)...');
-    await installDependencies();
+    if (!skipInstall) {
+      s.message('Installing dependencies (this may take a while)...');
+      await installDependencies();
+    }
 
     if (!config.disableGit) {
       await initializeGit();

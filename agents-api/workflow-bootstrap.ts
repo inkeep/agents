@@ -41,7 +41,7 @@ loadEnvironmentFiles();
 
 // Set PORT for workflow library - local world needs PORT to know where to send HTTP requests
 if (!process.env.PORT) {
-  process.env.PORT = '3005';
+  process.env.PORT = '3002';
 }
 
 // Only set postgres-specific vars if using postgres world

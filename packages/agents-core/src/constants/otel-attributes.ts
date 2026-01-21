@@ -83,6 +83,8 @@ export const SPAN_KEYS = {
 
   // Message attributes
   MESSAGE_CONTENT: 'message.content',
+  MESSAGE_PARTS: 'message.parts',
+  MESSAGE_PARTS_COUNT: 'message.parts.count',
   MESSAGE_TIMESTAMP: 'message.timestamp',
   MCP_TOOL_DESCRIPTION: 'mcp.tool.description',
 

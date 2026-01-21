@@ -219,7 +219,7 @@ function LoginForm() {
                     className="w-full"
                   >
                     <InkeepIcon />
-                    Continue with Inkeep
+                    Continue with Inkeep SSO
                   </Button>
                 )}
                 {PUBLIC_GOOGLE_CLIENT_ID && (

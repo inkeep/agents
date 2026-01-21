@@ -133,7 +133,7 @@ export const triggers = pgTable(
       jmespath?: string;
       objectTransformation?: Record<string, string>;
     }>(),
-    messageTemplate: text('message_template').notNull(),
+    messageTemplate: text('message_template'),
     authentication: jsonb('authentication').$type<unknown>(),
     signingSecret: text('signing_secret'),
     ...timestamps,
