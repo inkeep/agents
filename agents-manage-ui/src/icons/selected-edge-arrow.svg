@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <marker
+      class="react-flow__arrowhead"
+      id="marker-selected"
+      markerWidth="12.5"
+      markerHeight="12.5"
+      viewBox="-10 -10 20 20"
+      markerUnits="strokeWidth"
+      orient="auto-start-reverse"
+      refX="0"
+      refY="0"
+    >
+      <polyline
+        class="stroke-primary!"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+        points="-5,-4 0,0 -5,4"
+        stroke-width="1.5"
+      />
+    </marker>
+  </defs>
+</svg>

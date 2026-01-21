@@ -1,58 +1,20 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { fetchMCPTools } from '@/lib/api/tools';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
 import { MCPSelectorLoading } from './loading';
 import { MCPServerItem } from './mcp-server-item';
 
-interface MCPSelectorState {
-  tools: MCPTool[];
-  isLoading: boolean;
-  error: string | null;
-}
-
-const useFetchAvailableMCPs = (): MCPSelectorState => {
-  const [tools, setTools] = useState<MCPTool[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-
-  useEffect(() => {
-    const loadTools = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const mcpTools = await fetchMCPTools(tenantId, projectId);
-        setTools(mcpTools);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load MCP tools';
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTools();
-  }, [tenantId, projectId]);
-
-  return { tools, isLoading, error };
-};
-
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
+  'use memo';
   const { updateNode } = useReactFlow();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-  const { tools, isLoading, error } = useFetchAvailableMCPs();
+  const { data: tools, isFetching, error } = useMcpToolsQuery(tenantId, projectId);
 
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {
@@ -61,7 +23,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     });
   };
 
-  if (isLoading) {
+  if (isFetching) {
     return <MCPSelectorLoading title="Select MCP server" />;
   }
 
