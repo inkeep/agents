@@ -100,3 +100,23 @@ Started: Wed Jan 21 08:04:38 UTC 2026
 
 ## Iteration 4 - Wed Jan 21 08:20:55 UTC 2026
 
+### Story: US-005 - Update integration tests for KeyChainStore
+
+**Implementation:**
+- Updated module availability check from keytar to @napi-rs/keyring
+- Changed module import test to check for @napi-rs/keyring availability
+- Updated error handling comments to reference keyring instead of keytar
+- All existing test cases remain functionally unchanged (CRUD operations, service isolation, special characters, unicode support, error recovery)
+- Verified typecheck passes
+
+**Files Changed:**
+- packages/agents-core/src/__tests__/credentials/keychain-store.integration.test.ts
+
+**Learnings:**
+- Integration tests primarily test the KeyChainStore abstraction layer, not the underlying library
+- The only library-specific code was the availability check at the top of the file
+- Tests remain agnostic to the underlying implementation thanks to the KeyChainStore abstraction
+- Comments needed updating to reference the new library for future developers
+
+---
+
