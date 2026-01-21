@@ -1651,21 +1651,6 @@ export class Agent {
       'System prompt configuration'
     );
     const clientCurrentTime = this.getClientCurrentTime();
-    const hasStructuredOutput = Boolean(
-      this.config.dataComponents && this.config.dataComponents.length > 0
-    );
-    const includeDataComponents = hasStructuredOutput && !excludeDataComponents;
-
-    logger.info(
-      {
-        agentId: this.config.id,
-        hasStructuredOutput,
-        excludeDataComponents,
-        includeDataComponents,
-        dataComponentsCount: this.config.dataComponents?.length || 0,
-      },
-      'System prompt configuration'
-    );
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
@@ -1679,7 +1664,6 @@ export class Agent {
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
       includeDataComponents,
       clientCurrentTime,
-      includeDataComponents,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }
