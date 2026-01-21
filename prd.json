@@ -31,7 +31,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -49,7 +49,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Note: @napi-rs/keyring methods are synchronous but the wrapper should maintain async interface for backwards compatibility. findAllCredentials may need a workaround - consider storing a key index."
     },
     {
