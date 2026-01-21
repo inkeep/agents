@@ -1,0 +1,175 @@
+import { describe, expect, it, vi } from 'vitest';
+
+// Logger mock is now in setup.ts globally
+
+vi.mock('../../../../domains/run/handlers/executionHandler', () => {
+  return {
+    ExecutionHandler: vi.fn().mockImplementation(() => ({
+      execute: vi.fn().mockImplementation(async (args: any) => {
+        if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
+          await args.sseHelper.writeRole();
+          await args.sseHelper.writeContent('[{"type":"text", "text":"Test response from agent"}]');
+        }
+        return { success: true, iterations: 1 };
+      }),
+    })),
+  };
+});
+
+import { makeRequest } from '../../../utils/testRequest';
+
+// Mock context exports used by the chat data stream routes
+vi.mock('../../../../domains/run/context', () => ({
+  handleContextResolution: vi.fn().mockResolvedValue({}),
+  contextValidationMiddleware: vi.fn().mockImplementation(async (c: any, next: any) => {
+    c.set('validatedContext', {
+      agentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
+    await next();
+  }),
+}));
+
+// Mock project config returned by ManagementApiClient
+const mockProjectConfig = {
+  id: 'default',
+  tenantId: 'test-tenant',
+  name: 'Test Project',
+  agents: {
+    'test-agent': {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+      name: 'Test Agent',
+      description: 'Test agent',
+      defaultSubAgentId: 'test-agent',
+      subAgents: {
+        'test-agent': {
+          id: 'test-agent',
+          tenantId: 'test-tenant',
+          projectId: 'default',
+          name: 'Test Agent',
+          description: 'A helpful assistant',
+          prompt: 'You are a helpful assistant.',
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [],
+          dataComponents: [],
+          artifactComponents: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      tools: {},
+      externalAgents: {},
+      teamAgents: {},
+      transferRelations: {},
+      delegateRelations: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contextConfigId: null,
+      contextConfig: null,
+      statusUpdates: { enabled: false },
+    },
+  },
+  tools: {},
+  functions: {},
+  dataComponents: {},
+  artifactComponents: {},
+  externalAgents: {},
+  credentialReferences: {},
+  statusUpdates: null,
+};
+
+// Mock @inkeep/agents-core functions that are used by the chat data stream routes
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    // projectConfigMiddleware now loads project config via withRef + getFullProjectWithRelationIds
+    withRef: vi.fn(async (_pool: any, _resolvedRef: any, fn: any) => await fn({})),
+    getFullProjectWithRelationIds: vi.fn(() => vi.fn().mockResolvedValue(mockProjectConfig)),
+    // Ensure auth middleware doesn't try to hit real DB/JWT paths in tests
+    validateAndGetApiKey: vi.fn().mockResolvedValue(null),
+    verifyServiceToken: vi.fn().mockResolvedValue({ valid: false, error: 'Invalid token' }),
+    createMessage: vi.fn().mockReturnValue(
+      vi.fn().mockResolvedValue({
+        id: 'msg-123',
+        tenantId: 'test-tenant',
+        conversationId: 'conv-123',
+        role: 'user',
+        content: { text: 'test message' },
+      })
+    ),
+    getActiveAgentForConversation: vi.fn().mockReturnValue(
+      vi.fn().mockResolvedValue({
+        activeSubAgentId: 'test-agent',
+      })
+    ),
+    setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
+  };
+});
+
+// No longer need beforeAll/afterAll since ExecutionHandler is mocked at module level
+
+describe('Chat Data Stream Route', () => {
+  it('should stream response using Vercel data stream protocol', async () => {
+    // Ensure project exists first
+    // await createTestProject(dbClient, tenantId, projectId);
+
+    // Create agent first
+    // await createAgent(dbClient)({
+    //   id: agentId,
+    //   tenantId,
+    //   projectId,
+    //   name: 'Test Agent',
+    //   description: 'Test agent for data chat',
+    //   defaultSubAgentId: subAgentId,
+    // });
+
+    // // Then create agent with agentId
+    // await createSubAgent(dbClient)({
+    //   id: subAgentId,
+    //   tenantId,
+    //   projectId,
+    //   agentId: agentId,
+    //   name: 'Test Agent',
+    //   description: 'Test agent for streaming',
+    //   prompt: 'You are a helpful assistant.',
+    // });
+
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Hello, world!',
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    if (res.status !== 200) {
+      const errorText = await res.text();
+      console.error('Request failed:', {
+        status: res.status,
+        error: errorText,
+        body,
+      });
+    }
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+
+    const text = await res.text();
+    // Check for UI Message Stream format
+    expect(text).toMatch(/data: {"type":"data-component/);
+    expect(text).toMatch(/"data":{"type":"text"/);
+    // Check that the mock text is included in the stream
+    expect(text).toMatch(/Test/);
+    expect(text).toMatch(/response/);
+  });
+});

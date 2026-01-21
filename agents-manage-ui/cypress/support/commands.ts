@@ -37,7 +37,7 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
 
   cy.request({
     method: 'DELETE',
-    url: `${managementApiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
+    url: `${managementApiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
     failOnStatusCode: false,
   }).then((response) => {
     cy.log(`Delete agent ${agentId}: ${response.status}`);

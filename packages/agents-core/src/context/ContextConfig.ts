@@ -292,7 +292,7 @@ export class ContextConfigBuilder<
 
     try {
       const updateResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs/${this.getId()}`,
+        `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs/${this.getId()}`,
         {
           method: 'PUT',
           headers: {
@@ -321,7 +321,7 @@ export class ContextConfigBuilder<
         );
 
         const createResponse = await fetch(
-          `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs`,
+          `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs`,
           {
             method: 'POST',
             headers: {

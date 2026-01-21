@@ -356,30 +356,6 @@
       "offset": 89,
       "type": "string",
     },
-    Token {
-      "_tokenBrand": undefined,
-      "language": "json",
-      "offset": 90,
-      "type": "constant.other.placeholder",
-    },
-    Token {
-      "_tokenBrand": undefined,
-      "language": "json",
-      "offset": 92,
-      "type": "string",
-    },
-    Token {
-      "_tokenBrand": undefined,
-      "language": "json",
-      "offset": 165,
-      "type": "constant.other.placeholder",
-    },
-    Token {
-      "_tokenBrand": undefined,
-      "language": "json",
-      "offset": 167,
-      "type": "string",
-    },
   ],
   [
     Token {

@@ -22,12 +22,8 @@ runCommand(
   'Upgrading core and sdk packages'
 );
 
-runCommand('pnpm update @inkeep/agents-run-api --latest', 'Upgrading run-api package', {
-  cwd: './apps/run-api',
-});
-
-runCommand('pnpm update @inkeep/agents-manage-api --latest', 'Upgrading manage-api package', {
-  cwd: './apps/manage-api',
+runCommand('pnpm update @inkeep/agents-api --latest', 'Upgrading agents-api package', {
+  cwd: './apps/agents-api',
 });
 
 runCommand('pnpm update @inkeep/agents-ui --latest', 'Upgrading agents-ui package', {

@@ -16,9 +16,8 @@ export async function statusCommand(options: StatusOptions = {}): Promise<void> 
   // Resolve profile to use
   let profileName: string;
   let credentialKey: string;
-  let manageApiUrl: string;
+  let agentsApiUrl: string;
   let manageUiUrl: string;
-  let runApiUrl: string;
   let environment: string;
 
   try {
@@ -31,17 +30,15 @@ export async function statusCommand(options: StatusOptions = {}): Promise<void> 
       }
       profileName = options.profile;
       credentialKey = profile.credential;
-      manageApiUrl = profile.remote.manageApi;
+      agentsApiUrl = profile.remote.api;
       manageUiUrl = profile.remote.manageUi;
-      runApiUrl = profile.remote.runApi;
       environment = profile.environment;
     } else {
       const activeProfile = profileManager.getActiveProfile();
       profileName = activeProfile.name;
       credentialKey = activeProfile.credential;
-      manageApiUrl = activeProfile.remote.manageApi;
+      agentsApiUrl = activeProfile.remote.api;
       manageUiUrl = activeProfile.remote.manageUi;
-      runApiUrl = activeProfile.remote.runApi;
       environment = activeProfile.environment;
     }
   } catch {
@@ -102,9 +99,8 @@ export async function statusCommand(options: StatusOptions = {}): Promise<void> 
 
   // Show remote URLs
   console.log(chalk.bold('Remote:'));
-  console.log(chalk.gray(`  Manage API: ${manageApiUrl}`));
+  console.log(chalk.gray(`  Agents API:  ${agentsApiUrl}`));
   console.log(chalk.gray(`  Manage UI:  ${manageUiUrl}`));
-  console.log(chalk.gray(`  Run API:    ${runApiUrl}`));
   console.log();
 
   // Show environment

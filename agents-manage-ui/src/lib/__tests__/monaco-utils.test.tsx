@@ -21,8 +21,7 @@ const obj = {
   ],
   string: 'hello',
   emptyString: '',
-  multipleQuotes:
-    '["/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node","/Users/Inkeep/Desktop/agents/agents-run-api/node_modules/vite/bin/vite.js"]',
+  multipleQuotes: '["/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node"]',
 };
 
 describe('Monaco-Editor Functionality', async () => {
@@ -139,7 +138,7 @@ describe('Monaco-Editor Functionality', async () => {
   ],
   "string": "hello",❌
   "emptyString": "",❌
-  "multipleQuotes": "[\\"/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node\\",\\"/Users/Inkeep/Desktop/agents/agents-run-api/node_modules/vite/bin/vite.js\\"]"❌
+  "multipleQuotes": "[\\"/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node\\"]"❌
 }`;
     expect(addDecorationsToString(modelValue)).toBe(expectedContentWithDecorations);
   });

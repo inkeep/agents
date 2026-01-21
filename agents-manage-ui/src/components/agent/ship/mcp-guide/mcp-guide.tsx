@@ -56,8 +56,8 @@ const tabItems: TabItem[] = [
 ];
 
 export function McpGuide() {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const mcpServerUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/v1/mcp`;
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
+  const mcpServerUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/mcp`;
   const metadata = useAgentStore((state) => state.metadata);
   const agentName = toCamelCase(metadata?.name || 'agentName');
 

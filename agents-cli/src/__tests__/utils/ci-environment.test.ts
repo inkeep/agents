@@ -26,8 +26,7 @@ describe('CI Environment', () => {
 
     it('should load config from environment variables', () => {
       process.env.INKEEP_API_KEY = 'test-api-key';
-      process.env.INKEEP_MANAGE_API_URL = 'https://custom-api.example.com';
-      process.env.INKEEP_RUN_API_URL = 'https://custom-run.example.com';
+      process.env.INKEEP_AGENTS_API_URL = 'https://custom-api.example.com';
       process.env.INKEEP_ENVIRONMENT = 'staging';
       process.env.INKEEP_TENANT_ID = 'test-tenant';
 
@@ -35,23 +34,20 @@ describe('CI Environment', () => {
 
       expect(config).not.toBeNull();
       expect(config?.apiKey).toBe('test-api-key');
-      expect(config?.manageApiUrl).toBe('https://custom-api.example.com');
-      expect(config?.runApiUrl).toBe('https://custom-run.example.com');
+      expect(config?.agentsApiUrl).toBe('https://custom-api.example.com');
       expect(config?.environment).toBe('staging');
       expect(config?.tenantId).toBe('test-tenant');
     });
 
     it('should use default values when optional env vars are not set', () => {
       process.env.INKEEP_API_KEY = 'test-api-key';
-      delete process.env.INKEEP_MANAGE_API_URL;
-      delete process.env.INKEEP_RUN_API_URL;
+      delete process.env.INKEEP_AGENTS_API_URL;
       delete process.env.INKEEP_ENVIRONMENT;
 
       const config = loadCIEnvironmentConfig();
 
       expect(config).not.toBeNull();
-      expect(config?.manageApiUrl).toBe('https://manage-api.inkeep.com');
-      expect(config?.runApiUrl).toBe('https://run-api.inkeep.com');
+      expect(config?.agentsApiUrl).toBe('https://agents-api.inkeep.com');
       expect(config?.environment).toBe('production');
     });
   });

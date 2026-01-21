@@ -133,7 +133,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
 
     // First try to update (in case artifact component exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/artifact-components/${this.getId()}`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/artifact-components/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -171,7 +171,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/artifact-components`,
+        `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/artifact-components`,
         {
           method: 'POST',
           headers: {

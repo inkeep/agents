@@ -172,7 +172,7 @@ describe('create-agents quickstart e2e', () => {
 
       console.log('Testing API requests');
       // Test API requests
-      const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
+      const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`);
 
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');

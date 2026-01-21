@@ -319,17 +319,17 @@ git worktree prune
 - **Agent Discovery**: Agents register capabilities via `/.well-known/{subAgentId}/agent.json` endpoints
 
 ### File Locations
-- **Core Agents**: `/execution/src/agents/Agent.ts`, `/inkeep-chat/src/agents/generateTaskHandler.ts`
-- **A2A Communication**: `/execution/src/a2a/`, `/inkeep-chat/src/handlers/executionHandler.ts`
-- **Database Layer**: `/packages/agents-core/src/data-access/` (agents, tasks, conversations, tools)
-- **Builder Patterns**: `/configuration/src/builder/` (agent.ts, graph.ts, tool.ts)
-- **Schemas**: `/packages/agents-core/src/data/db/schema.ts` (Drizzle), `/agents-run-api/src/schemas/` (Zod validation)
-- **Tests**: `/inkeep-chat/src/__tests__/` (unit and integration tests)
-- **UI Components**: `/agents-manage-ui/src/components/` (React components)
-- **UI Pages**: `/agents-manage-ui/src/app/` (Next.js pages and routing)
-- **Documentation**: `/agents-docs/` (Next.js/Fumadocs public documentation site)
-- **Legacy Documentation**: `/docs-legacy/` (internal/development notes)
-- **Examples**: `/agents-cookbook/` for reference implementations
+- **Core Agents**: `agents-api/src/domains/run/agents/Agent.ts`, `agents-api/src/domains/run/agents/generateTaskHandler.ts`
+- **A2A Communication**: `agents-api/src/domains/run/a2a/`, `agents-api/src/domains/run/handlers/executionHandler.ts`
+- **Database Layer**: `packages/agents-core/src/data-access/` (agents, tasks, conversations, tools)
+- **Builder Patterns**: `packages/agents-sdk/src/` (agent.ts, subAgent.ts, tool.ts, project.ts)
+- **Schemas**: `packages/agents-core/src/db/manage/manage-schema.ts`, `packages/agents-core/src/db/run/run-schema.ts` (Drizzle), `packages/agents-core/src/validation/` (Zod validation)
+- **Tests**: `agents-api/src/__tests__/` (unit and integration tests)
+- **UI Components**: `agents-manage-ui/src/components/` (React components)
+- **UI Pages**: `agents-manage-ui/src/app/` (Next.js pages and routing)
+- **Documentation**: `agents-docs/` (Next.js/Fumadocs public documentation site)
+- **Legacy Documentation**: `docs-legacy/` (internal/development notes)
+- **Examples**: `agents-cookbook/` for reference implementations
 
 ## Feature Development Examples
 
@@ -337,7 +337,7 @@ git worktree prune
 
 #### 1. Unit Test Example
 ```typescript
-// agents-manage-api/src/builder/__tests__/newFeature.test.ts
+// agents-api/src/__tests__/manage/newFeature.test.ts
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NewFeature } from '../newFeature';
 

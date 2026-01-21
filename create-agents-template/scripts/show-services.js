@@ -28,21 +28,12 @@ const services = [
     healthEndpoint: '/',
   },
   {
-    name: 'Management API',
+    name: 'Agents API',
     emoji: '🚀',
     color: blue,
     url: 'http://localhost:3002',
     port: 3002,
-    description: 'Manage agents and configurations',
-    healthEndpoint: '/health',
-  },
-  {
-    name: 'Run API',
-    emoji: '⚡',
-    color: yellow,
-    url: 'http://localhost:3003',
-    port: 3003,
-    description: 'Execute agents and handle requests',
+    description: 'API for managing, executing and monitoring agents',
     healthEndpoint: '/health',
   },
 ];

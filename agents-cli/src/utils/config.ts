@@ -16,11 +16,8 @@ export function maskSensitiveConfig(config: any): any {
   const masked = { ...config };
 
   // Mask API keys - show last 4 characters only
-  if (masked.agentsManageApiKey) {
-    masked.agentsManageApiKey = `***${masked.agentsManageApiKey.slice(-4)}`;
-  }
-  if (masked.agentsRunApiKey) {
-    masked.agentsRunApiKey = `***${masked.agentsRunApiKey.slice(-4)}`;
+  if (masked.agentsApiKey) {
+    masked.agentsApiKey = `***${masked.agentsApiKey.slice(-4)}`;
   }
 
   return masked;
@@ -29,26 +26,21 @@ export function maskSensitiveConfig(config: any): any {
 // Internal normalized configuration (supports both formats)
 export interface InkeepConfig {
   tenantId?: string;
-  agentsManageApiUrl?: string;
-  agentsRunApiUrl?: string;
-  agentsManageApiKey?: string;
-  agentsRunApiKey?: string;
+  agentsApiUrl?: string;
+  agentsApiKey?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
 }
 
 export interface ValidatedConfiguration {
   tenantId: string;
-  agentsManageApiUrl: string;
-  agentsRunApiUrl: string;
-  agentsManageApiKey?: string;
-  agentsRunApiKey?: string;
+  agentsApiUrl: string;
+  agentsApiKey?: string;
   manageUiUrl?: string;
   outputDirectory?: string;
   sources: {
     tenantId: string;
-    agentsManageApiUrl: string;
-    agentsRunApiUrl: string;
+    agentsApiUrl: string;
     configFile?: string;
   };
 }
@@ -58,12 +50,11 @@ export interface ValidatedConfiguration {
  */
 function isNestedConfig(config: any): config is {
   tenantId?: string;
-  agentsManageApi?: { url?: string; apiKey?: string };
-  agentsRunApi?: { url?: string; apiKey?: string };
+  agentsApi?: { url?: string; apiKey?: string };
   manageUiUrl?: string;
   outputDirectory?: string;
 } {
-  return config && (config.agentsManageApi !== undefined || config.agentsRunApi !== undefined);
+  return config && config.agentsApi !== undefined;
 }
 
 /**
@@ -74,10 +65,8 @@ function normalizeConfig(config: any): InkeepConfig {
     // New nested format
     return {
       tenantId: config.tenantId,
-      agentsManageApiUrl: config.agentsManageApi?.url,
-      agentsRunApiUrl: config.agentsRunApi?.url,
-      agentsManageApiKey: config.agentsManageApi?.apiKey,
-      agentsRunApiKey: config.agentsRunApi?.apiKey,
+      agentsApiUrl: config.agentsApi?.url,
+      agentsApiKey: config.agentsApi?.apiKey,
       manageUiUrl: config.manageUiUrl,
       outputDirectory: config.outputDirectory,
     };
@@ -85,8 +74,7 @@ function normalizeConfig(config: any): InkeepConfig {
   // Legacy flat format
   return {
     tenantId: config.tenantId,
-    agentsManageApiUrl: config.agentsManageApiUrl,
-    agentsRunApiUrl: config.agentsRunApiUrl,
+    agentsApiUrl: config.agentsApiUrl,
     manageUiUrl: config.manageUiUrl,
     outputDirectory: config.outputDirectory,
   };
@@ -334,7 +322,7 @@ export async function loadConfigFromFile(
  * @returns Normalized configuration with defaults applied
  */
 export async function loadConfig(configPath?: string, tag?: string): Promise<InkeepConfig> {
-  // IMPORTANT: URL configuration (agentsManageApiUrl, agentsRunApiUrl) is loaded ONLY from
+  // IMPORTANT: URL configuration (agentsApiUrl) is loaded ONLY from
   // the config file or CLI flags, NOT from environment variables or .env files.
   //
   // Note: .env files ARE loaded by env.ts for secrets (API keys, bypass tokens), but those
@@ -342,8 +330,7 @@ export async function loadConfig(configPath?: string, tag?: string): Promise<Ink
 
   // 1. Start with default config (lowest priority)
   const config: InkeepConfig = {
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3003',
+    agentsApiUrl: 'http://localhost:3002',
     manageUiUrl: 'http://localhost:3000',
   };
 
@@ -376,7 +363,7 @@ export async function loadConfig(configPath?: string, tag?: string): Promise<Ink
  * Configuration priority:
  * 1. Config file (inkeep.config.ts or --config path/to/config.ts)
  * 2. CLI credentials (from `inkeep login`) - for API key and tenant ID fallback
- * 3. Default values (http://localhost:3002, http://localhost:3003)
+ * 3. Default values (http://localhost:3002)
  *
  * Note: API URLs and keys are loaded ONLY from the config file, NOT from environment
  * variables or CLI flags. This ensures explicit control over where the CLI connects.
@@ -386,7 +373,7 @@ export async function loadConfig(configPath?: string, tag?: string): Promise<Ink
  *
  * @param configPath - explicit path to config file (from --config parameter)
  * @param tag - optional tag for environment-specific config (e.g., 'prod', 'staging')
- * @returns configuration with tenantId, agentsManageApiUrl, agentsRunApiUrl, and source info
+ * @returns configuration with tenantId, agentsApiUrl, and source info
  */
 export async function validateConfiguration(
   configPath?: string,
@@ -421,8 +408,8 @@ export async function validateConfiguration(
   }
 
   // Use CLI credentials as fallback for API key if not specified in config
-  if (!config.agentsManageApiKey && cliCredentials) {
-    config.agentsManageApiKey = cliCredentials.accessToken;
+  if (!config.agentsApiKey && cliCredentials) {
+    config.agentsApiKey = cliCredentials.accessToken;
     logger.info({}, 'Using CLI session token as API key');
   }
 
@@ -449,17 +436,10 @@ export async function validateConfiguration(
     );
   }
 
-  if (!config.agentsManageApiUrl) {
+  if (!config.agentsApiUrl) {
     throw new Error(
-      `Agents Management API URL is missing from config file${actualConfigFile ? `: ${actualConfigFile}` : ''}\n` +
-        'Please add agentsManageApiUrl to your configuration file'
-    );
-  }
-
-  if (!config.agentsRunApiUrl) {
-    throw new Error(
-      `Agents Run API URL is missing from config file${actualConfigFile ? `: ${actualConfigFile}` : ''}\n` +
-        'Please add agentsRunApiUrl to your configuration file'
+      `Agents API URL is missing from config file${actualConfigFile ? `: ${actualConfigFile}` : ''}\n` +
+        'Please add agentsApiUrl to your configuration file'
     );
   }
 
@@ -471,8 +451,7 @@ export async function validateConfiguration(
         : actualConfigFile
           ? `config file (${actualConfigFile})`
           : 'default',
-    agentsManageApiUrl: actualConfigFile ? `config file (${actualConfigFile})` : 'default value',
-    agentsRunApiUrl: actualConfigFile ? `config file (${actualConfigFile})` : 'default value',
+    agentsApiUrl: actualConfigFile ? `config file (${actualConfigFile})` : 'default value',
   };
 
   if (actualConfigFile) {
@@ -481,10 +460,8 @@ export async function validateConfiguration(
 
   return {
     tenantId: config.tenantId,
-    agentsManageApiUrl: config.agentsManageApiUrl,
-    agentsRunApiUrl: config.agentsRunApiUrl,
-    agentsManageApiKey: config.agentsManageApiKey,
-    agentsRunApiKey: config.agentsRunApiKey,
+    agentsApiUrl: config.agentsApiUrl,
+    agentsApiKey: config.agentsApiKey,
     manageUiUrl: config.manageUiUrl,
     sources,
   };

@@ -19,7 +19,7 @@ node scripts/generate-mcp-package.mjs <api-name>
 - `eval-api` - Evaluation API (port 3005)
 - `manage-api` - Manage API (port 3002)
 
-> **Note**: The Run API (port 3003) already has a built-in `/mcp` endpoint and doesn't need a separate MCP package.
+> **Note**: The Execution Engine already has a built-in `/mcp` endpoint and doesn't need a separate MCP package.
 
 ### Example
 

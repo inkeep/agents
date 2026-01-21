@@ -37,9 +37,8 @@ describe('Profile Configuration', () => {
           },
           staging: {
             remote: {
-              manageApi: 'https://staging-api.example.com',
+              api: 'https://staging-api.example.com',
               manageUi: 'https://staging.example.com',
-              runApi: 'https://staging-run.example.com',
             },
             credential: 'inkeep-staging',
             environment: 'staging',
@@ -51,7 +50,7 @@ describe('Profile Configuration', () => {
 
       const active = profileManager.getActiveProfile();
       expect(active.name).toBe('staging');
-      expect(active.remote.manageApi).toBe('https://staging-api.example.com');
+      expect(active.remote.api).toBe('https://staging-api.example.com');
       expect(active.environment).toBe('staging');
     });
 
@@ -68,9 +67,8 @@ describe('Profile Configuration', () => {
           },
           staging: {
             remote: {
-              manageApi: 'https://staging-api.example.com',
+              api: 'https://staging-api.example.com',
               manageUi: 'https://staging.example.com',
-              runApi: 'https://staging-run.example.com',
             },
             credential: 'inkeep-staging',
             environment: 'staging',
@@ -82,7 +80,7 @@ describe('Profile Configuration', () => {
 
       const profile = profileManager.getProfile('production');
       expect(profile?.name).toBe('production');
-      expect(profile?.remote.manageApi).toBe('https://manage-api.inkeep.com');
+      expect(profile?.remote.api).toBe('https://agents-api.inkeep.com');
       expect(profile?.environment).toBe('production');
     });
 
@@ -125,9 +123,8 @@ describe('Profile Configuration', () => {
       writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(config));
 
       const profile = profileManager.getActiveProfile();
-      expect(profile.remote.manageApi).toBe('https://manage-api.inkeep.com');
+      expect(profile.remote.api).toBe('https://agents-api.inkeep.com');
       expect(profile.remote.manageUi).toBe('https://manage.inkeep.com');
-      expect(profile.remote.runApi).toBe('https://run-api.inkeep.com');
     });
 
     it('should use explicit URLs when provided', () => {
@@ -138,9 +135,8 @@ describe('Profile Configuration', () => {
         profiles: {
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -151,9 +147,8 @@ describe('Profile Configuration', () => {
       writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(config));
 
       const profile = profileManager.getActiveProfile();
-      expect(profile.remote.manageApi).toBe('http://localhost:3002');
+      expect(profile.remote.api).toBe('http://localhost:3002');
       expect(profile.remote.manageUi).toBe('http://localhost:3000');
-      expect(profile.remote.runApi).toBe('http://localhost:3003');
     });
   });
 

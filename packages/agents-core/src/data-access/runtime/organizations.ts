@@ -105,3 +105,34 @@ export const addUserToOrganization =
       createdAt: new Date(),
     });
   };
+
+export const upsertOrganization =
+  (db: AgentsRunDatabaseClient) =>
+  async (data: {
+    organizationId: string;
+    name: string;
+    slug: string;
+    logo?: string | null;
+    metadata?: string | null;
+  }): Promise<{ created: boolean }> => {
+    const existingOrg = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.id, data.organizationId))
+      .limit(1);
+
+    if (existingOrg.length > 0) {
+      return { created: false };
+    }
+
+    await db.insert(organization).values({
+      id: data.organizationId,
+      name: data.name,
+      slug: data.slug,
+      createdAt: new Date(),
+      logo: data.logo ?? null,
+      metadata: data.metadata ?? null,
+    });
+
+    return { created: true };
+  };

@@ -1,0 +1,65 @@
+import { type ResolvedRef, setActiveAgentForThread } from '@inkeep/agents-core';
+import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
+
+const logger = getLogger('Transfer');
+/**
+ * Executes a transfer by sending the original message to the target agent
+ */
+export async function executeTransfer({
+  tenantId,
+  threadId,
+  projectId,
+  agentId,
+  targetSubAgentId,
+  ref,
+}: {
+  tenantId: string;
+  threadId: string;
+  projectId: string;
+  agentId: string;
+  targetSubAgentId: string;
+  ref: ResolvedRef;
+}): Promise<{
+  success: boolean;
+  targetSubAgentId: string;
+}> {
+  logger.info(
+    {
+      targetAgent: targetSubAgentId,
+      threadId,
+      tenantId,
+      projectId,
+    },
+    'Executing transfer - calling setActiveAgentForThread'
+  );
+
+  try {
+    await setActiveAgentForThread(runDbClient)({
+      scopes: { tenantId, projectId },
+      threadId,
+      subAgentId: targetSubAgentId,
+      agentId,
+      ref,
+    });
+
+    logger.info(
+      { targetAgent: targetSubAgentId, threadId, agentId },
+      'Successfully updated active_sub_agent_id in database'
+    );
+  } catch (error) {
+    logger.error(
+      { error, targetAgent: targetSubAgentId, threadId, agentId },
+      'Failed to update active_sub_agent_id'
+    );
+    throw error;
+  }
+
+  return { success: true, targetSubAgentId };
+}
+
+/**
+ * Checks if a response is a transfer response
+ * Re-exported from types.ts for backward compatibility
+ */
+export { extractTransferData, isTransferTask as isTransferResponse } from './types';

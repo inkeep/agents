@@ -169,7 +169,7 @@ export class Tool implements ToolInterface {
 
     // First try to update (in case tool exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/tools/${this.getId()}`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/tools/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -201,7 +201,7 @@ export class Tool implements ToolInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/tools`,
+        `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/tools`,
         {
           method: 'POST',
           headers: {
