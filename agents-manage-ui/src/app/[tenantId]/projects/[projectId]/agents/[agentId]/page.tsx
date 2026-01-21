@@ -6,6 +6,7 @@ import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
+import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { createLookup } from '@/lib/utils';
 import { Agent } from './page.client';
 
@@ -65,6 +66,17 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
 
+  let sandboxEnabled = false;
+  try {
+    const res = await fetch(`${getAgentsApiUrl()}/capabilities`, { cache: 'no-store' });
+    if (res.ok) {
+      const json = (await res.json()) as { sandbox?: { configured?: boolean } };
+      sandboxEnabled = Boolean(json?.sandbox?.configured);
+    }
+  } catch {
+    sandboxEnabled = false;
+  }
+
   return (
     <Agent
       agent={agent.data}
@@ -72,6 +84,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       artifactComponentLookup={artifactComponentLookup}
       toolLookup={toolLookup}
       credentialLookup={credentialLookup}
+      sandboxEnabled={sandboxEnabled}
     />
   );
 };
