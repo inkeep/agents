@@ -58,10 +58,7 @@ export function CredentialFormInkeepCloud({
     projectId
   );
 
-  const availableExternalAgents = useMemo(
-    () => externalAgents.filter((agent) => !agent.credentialReferenceId),
-    [externalAgents]
-  );
+  const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
 
   // loadAvailableTools
   useEffect(() => {
@@ -128,43 +125,37 @@ export function CredentialFormInkeepCloud({
     }
   };
 
-  const serverOptions = useMemo(
-    () => [
-      ...(toolsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading MCP servers...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableMCPServers.map((tool) => ({
-        value: tool.id,
-        label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
-      })),
-    ],
-    [availableMCPServers, toolsLoading]
-  );
+  const serverOptions = [
+    ...(toolsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading MCP servers...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableMCPServers.map((tool) => ({
+      value: tool.id,
+      label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
+    })),
+  ];
 
-  const externalAgentOptions = useMemo(
-    () => [
-      ...(externalAgentsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading external agents...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableExternalAgents.map((agent) => ({
-        value: agent.id,
-        label: `${agent.name} - ${agent.baseUrl}`,
-      })),
-    ],
-    [availableExternalAgents, externalAgentsLoading]
-  );
+  const externalAgentOptions = [
+    ...(externalAgentsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading external agents...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableExternalAgents.map((agent) => ({
+      value: agent.id,
+      label: `${agent.name} - ${agent.baseUrl}`,
+    })),
+  ];
 
   return (
     <Form {...form}>
