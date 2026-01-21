@@ -10,12 +10,12 @@ import {
 } from '@inkeep/agents-core';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
+import type { SandboxConfig } from 'src/types';
 import { createAgentsHono } from './createApp';
 import { env } from './env';
 import { createAgentsAuth } from './factory';
 import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './ssoHelpers';
-import type { SandboxConfig } from 'src/types';
 
 export type { AppConfig, AppVariables } from './types';
 

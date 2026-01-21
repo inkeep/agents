@@ -54,12 +54,12 @@ interface MessagePart {
   };
 }
 
-function MessagePartsDisplay({ 
-  messageParts, 
+function MessagePartsDisplay({
+  messageParts,
   messageContent,
-  activityId 
-}: { 
-  messageParts?: string; 
+  activityId,
+}: {
+  messageParts?: string;
   messageContent?: string;
   activityId: string;
 }) {
@@ -93,7 +93,7 @@ function MessagePartsDisplay({
             </Bubble>
           );
         }
-        
+
         if (part.kind === 'data' && part.data != null) {
           const source = part.metadata?.source;
           return (
@@ -111,7 +111,7 @@ function MessagePartsDisplay({
             </div>
           );
         }
-        
+
         return null;
       })}
     </div>
@@ -270,13 +270,14 @@ export function TimelineItem({
           </div>
 
           {/* user message bubble - render parts if available, otherwise fall back to messageContent */}
-          {activity.type === ACTIVITY_TYPES.USER_MESSAGE && (activity.messageParts || activity.messageContent) && (
-            <MessagePartsDisplay 
-              messageParts={activity.messageParts} 
-              messageContent={activity.messageContent}
-              activityId={activity.id}
-            />
-          )}
+          {activity.type === ACTIVITY_TYPES.USER_MESSAGE &&
+            (activity.messageParts || activity.messageContent) && (
+              <MessagePartsDisplay
+                messageParts={activity.messageParts}
+                messageContent={activity.messageContent}
+                activityId={activity.id}
+              />
+            )}
 
           {/* assistant message bubble */}
           {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.aiResponseContent && (
