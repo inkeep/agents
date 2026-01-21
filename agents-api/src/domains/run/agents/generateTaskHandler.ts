@@ -1,6 +1,7 @@
 import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
+  type DataPart,
   type FullExecutionContext,
   generateId,
   getMcpToolById,
@@ -8,6 +9,7 @@ import {
   type Part,
   type SubAgentApiSelect,
   TaskState,
+  type TextPart,
   withRef,
 } from '@inkeep/agents-core';
 import manageDbPool from 'src/data/db/manageDbPool';
@@ -56,10 +58,31 @@ export const createTaskHandler = (
     let agent: Agent | undefined; // Declare agent outside try block for cleanup access
 
     try {
-      const userMessage = task.input.parts
-        .filter((part) => part.text)
+      // Extract text parts (TextPart.text is required by the A2A spec)
+      const textParts = task.input.parts
+        .filter((part): part is TextPart => part.kind === 'text')
         .map((part) => part.text)
         .join(' ');
+
+      // Extract data parts (e.g., from trigger payloads)
+      const dataParts = task.input.parts.filter(
+        (part): part is DataPart => part.kind === 'data' && part.data != null
+      );
+
+      // Build user message: combine text with any structured data
+      let userMessage = textParts;
+
+      // If there are data parts, append them as structured context for the LLM
+      if (dataParts.length > 0) {
+        const dataContext = dataParts
+          .map((part) => {
+            const metadata = part.metadata as Record<string, unknown> | undefined;
+            const source = metadata?.source ? ` (source: ${metadata.source})` : '';
+            return `\n\n<structured_data${source}>\n${JSON.stringify(part.data, null, 2)}\n</structured_data>`;
+          })
+          .join('');
+        userMessage = `${textParts}${dataContext}`;
+      }
 
       if (!userMessage.trim()) {
         return {
@@ -337,7 +360,16 @@ export const createTaskHandler = (
       }
 
       logger.info({ contextId }, 'Context ID');
-      logger.info({ userMessage }, 'User Message');
+      logger.info(
+        {
+          userMessage: userMessage.substring(0, 500), // Truncate for logging
+          inputPartsCount: task.input.parts.length,
+          textPartsCount: task.input.parts.filter((p) => p.kind === 'text').length,
+          dataPartsCount: task.input.parts.filter((p) => p.kind === 'data').length,
+          hasDataParts: task.input.parts.some((p) => p.kind === 'data'),
+        },
+        'User Message with parts breakdown'
+      );
 
       const response = await agent.generate(userMessage, {
         contextId,

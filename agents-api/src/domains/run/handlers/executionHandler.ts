@@ -6,6 +6,7 @@ import {
   generateId,
   getActiveAgentForConversation,
   getTask,
+  type Part,
   type SendMessageResponse,
   setSpanWithError,
   updateTask,
@@ -32,6 +33,8 @@ interface ExecutionHandlerParams {
   executionContext: FullExecutionContext;
   conversationId: string;
   userMessage: string;
+  /** Optional message parts for rich content (text + data). Used on first iteration only. */
+  messageParts?: Part[];
   initialAgentId: string;
   requestId: string;
   sseHelper: StreamHelper;
@@ -70,6 +73,7 @@ export class ExecutionHandler {
       executionContext,
       conversationId,
       userMessage,
+      messageParts,
       initialAgentId,
       requestId,
       sseHelper,
@@ -276,15 +280,18 @@ export class ExecutionHandler {
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;
         }
+
+        // On the first iteration, use the original message parts if provided (includes data parts from triggers)
+        // On subsequent iterations (after transfers), use text-only since currentMessage is updated
+        const partsToSend: Part[] =
+          iterations === 1 && messageParts && messageParts.length > 0
+            ? messageParts
+            : [{ kind: 'text', text: currentMessage }];
+
         messageResponse = await a2aClient.sendMessage({
           message: {
             role: 'user',
-            parts: [
-              {
-                kind: 'text',
-                text: currentMessage,
-              },
-            ],
+            parts: partsToSend,
             messageId: `${requestId}-iter-${iterations}`,
             kind: 'message',
             contextId: conversationId,
