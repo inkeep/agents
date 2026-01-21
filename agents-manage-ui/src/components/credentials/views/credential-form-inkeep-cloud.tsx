@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import { fetchMCPTools } from '@/lib/api/tools';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
-import type { MCPTool } from '@/lib/types/tools';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
 
 interface CredentialFormProps {
@@ -42,8 +41,6 @@ export function CredentialFormInkeepCloud({
   projectId,
 }: CredentialFormProps) {
   'use memo';
-  const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
 
@@ -53,29 +50,17 @@ export function CredentialFormInkeepCloud({
   });
 
   const { isSubmitting } = form.formState;
-  const { data: externalAgents = [], isLoading: externalAgentsLoading } = useExternalAgentsQuery(
-    tenantId,
-    projectId
-  );
+  const {
+    data: externalAgents,
+    isLoading: externalAgentsLoading,
+  } = useExternalAgentsQuery(tenantId, projectId);
+  const {
+    data: mcpTools,
+    isLoading: toolsLoading,
+  } = useMcpToolsQuery(tenantId, projectId);
 
   const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
-
-  // loadAvailableTools
-  useEffect(() => {
-    const loadAvailableTools = async () => {
-      try {
-        const allTools = await fetchMCPTools(tenantId, projectId);
-        const toolsWithoutCredentials = allTools.filter((tool) => !tool.credentialReferenceId);
-        setAvailableMCPServers(toolsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load MCP tools:', err);
-      } finally {
-        setToolsLoading(false);
-      }
-    };
-
-    loadAvailableTools();
-  }, [tenantId, projectId]);
+  const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);
 
   // Handle checkbox state changes
   useEffect(() => {
