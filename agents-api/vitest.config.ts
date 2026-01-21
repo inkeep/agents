@@ -1,21 +1,9 @@
-import fs from 'node:fs/promises';
 import { defineProject } from 'vitest/config';
+import packageJson from './package.json' with { type: 'json' };
 
 export default defineProject({
-  plugins: [
-    {
-      name: 'xml-as-string',
-      enforce: 'pre',
-      async load(id) {
-        if (id.endsWith('.xml') || id.endsWith('.md')) {
-          const code = await fs.readFile(id, 'utf8');
-          return `export default ${JSON.stringify(code)};`;
-        }
-      },
-    },
-  ],
   test: {
-    name: 'agents-api',
+    name: packageJson.name,
     setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     environment: 'node',
