@@ -15,6 +15,7 @@ export function useCredentialStoresQuery(tenantId: string, projectId: string) {
     enabled: Boolean(tenantId && projectId),
     staleTime: 30_000,
     initialData: [],
+    // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     meta: {
       defaultError: 'Failed to load credential stores',
