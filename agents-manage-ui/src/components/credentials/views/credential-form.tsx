@@ -13,9 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
-import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { fetchMCPTools } from '@/lib/api/tools';
-import type { ExternalAgent } from '@/lib/types/external-agents';
+import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
 
@@ -42,8 +41,6 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
-  const [availableExternalAgents, setAvailableExternalAgents] = useState<ExternalAgent[]>([]);
-  const [externalAgentsLoading, setExternalAgentsLoading] = useState(true);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
   const [credentialStores, setCredentialStores] = useState<CredentialStoreStatus[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
@@ -54,6 +51,15 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   });
 
   const { isSubmitting } = form.formState;
+  const { data: externalAgents, isLoading: externalAgentsLoading } = useExternalAgentsQuery(
+    tenantId,
+    projectId
+  );
+
+  const availableExternalAgents = useMemo(
+    () => externalAgents.filter((agent) => !agent.credentialReferenceId),
+    [externalAgents]
+  );
 
   // loadAvailableTools
   useEffect(() => {
@@ -70,25 +76,6 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     };
 
     loadAvailableTools();
-  }, [tenantId, projectId]);
-
-  // loadAvailableExternalAgents
-  useEffect(() => {
-    const loadAvailableExternalAgents = async () => {
-      try {
-        const allExternalAgents = await fetchExternalAgents(tenantId, projectId);
-        const externalAgentsWithoutCredentials = allExternalAgents.filter(
-          (agent) => !agent.credentialReferenceId
-        );
-        setAvailableExternalAgents(externalAgentsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load external agents:', err);
-      } finally {
-        setExternalAgentsLoading(false);
-      }
-    };
-
-    loadAvailableExternalAgents();
   }, [tenantId, projectId]);
 
   // loadCredentialStores
