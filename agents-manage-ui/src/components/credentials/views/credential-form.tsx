@@ -38,8 +38,6 @@ const defaultValues: CredentialFormData = {
 
 export function CredentialForm({ onCreateCredential, tenantId, projectId }: CredentialFormProps) {
   'use memo';
-  const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
   const [credentialStores, setCredentialStores] = useState<CredentialStoreStatus[]>([]);
@@ -49,31 +47,18 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
   });
+  const credentialStoreId = useWatch({ control: form.control, name: 'credentialStoreId' });
+  const credentialStoreType = useWatch({ control: form.control, name: 'credentialStoreType' });
 
   const { isSubmitting } = form.formState;
-  const { data: externalAgents = [], isLoading: externalAgentsLoading } = useExternalAgentsQuery(
+  const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery(
     tenantId,
     projectId
   );
+  const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery(tenantId, projectId);
 
   const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
-
-  // loadAvailableTools
-  useEffect(() => {
-    const loadAvailableTools = async () => {
-      try {
-        const allTools = await fetchMCPTools(tenantId, projectId);
-        const toolsWithoutCredentials = allTools.filter((tool) => !tool.credentialReferenceId);
-        setAvailableMCPServers(toolsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load MCP tools:', err);
-      } finally {
-        setToolsLoading(false);
-      }
-    };
-
-    loadAvailableTools();
-  }, [tenantId, projectId]);
+  const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);
 
   // loadCredentialStores
   useEffect(() => {
@@ -102,9 +87,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         }
       } catch (err) {
         console.error('Failed to load credential stores:', err);
-      } finally {
-        setStoresLoading(false);
       }
+      setStoresLoading(false);
     };
 
     loadCredentialStores();
