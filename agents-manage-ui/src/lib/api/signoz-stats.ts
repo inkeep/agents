@@ -162,7 +162,7 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    // Call Next.js route which validates and forwards to agents-api
+    // Call Next.js route which validates and forwards to manage-api
     const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {

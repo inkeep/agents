@@ -396,6 +396,9 @@ async function invokeAgentAsync(params: {
             });
           }
 
+          // Add agent.name to span - needed for SigNoz conversation queries which group by agent.name
+          span.setAttribute('agent.name', fullAgent.name || '');
+
           // Determine default sub-agent
           logger.debug(
             {
