@@ -56,10 +56,31 @@ export const createTaskHandler = (
     let agent: Agent | undefined; // Declare agent outside try block for cleanup access
 
     try {
-      const userMessage = task.input.parts
-        .filter((part) => part.text)
+      // Extract text parts
+      const textParts = task.input.parts
+        .filter((part) => part.kind === 'text' && part.text)
         .map((part) => part.text)
         .join(' ');
+
+      // Extract data parts (e.g., from trigger payloads)
+      const dataParts = task.input.parts.filter(
+        (part) => part.kind === 'data' && 'data' in part && part.data != null
+      );
+
+      // Build user message: combine text with any structured data
+      let userMessage = textParts;
+
+      // If there are data parts, append them as structured context for the LLM
+      if (dataParts.length > 0) {
+        const dataContext = dataParts
+          .map((part) => {
+            const metadata = 'metadata' in part ? part.metadata : undefined;
+            const source = metadata?.source ? ` (source: ${metadata.source})` : '';
+            return `\n\n<structured_data${source}>\n${JSON.stringify((part as any).data, null, 2)}\n</structured_data>`;
+          })
+          .join('');
+        userMessage = `${textParts}${dataContext}`;
+      }
 
       if (!userMessage.trim()) {
         return {
