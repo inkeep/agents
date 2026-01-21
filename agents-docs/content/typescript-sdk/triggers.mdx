@@ -7,6 +7,28 @@ icon: LuWebhook
 
 Triggers create webhook endpoints that allow external services (like GitHub, Slack, Stripe, or custom applications) to invoke your agents. When a webhook is received, the payload is validated, transformed, and used to start a new conversation with the agent.
 
+## Message Format
+
+When a trigger invokes an agent, it sends a **multi-part message** containing:
+
+- **Text part** (optional): Generated from the `messageTemplate` using the payload data
+- **Data part** (when payload exists): The transformed webhook payload as structured data
+
+This allows agents to access both a human-readable summary via the text part and the full structured payload for detailed processing.
+
+```json
+{
+  "parts": [
+    { "kind": "text", "text": "New order received: #12345" },
+    { "kind": "data", "data": { "orderId": "12345", "total": 99.99 }, "metadata": { "source": "trigger" } }
+  ]
+}
+```
+
+<Note>
+The data part is included whenever the webhook payload is not null/undefined. Even an empty object `{}` is included as a data part.
+</Note>
+
 ## Overview
 
 Triggers are useful for:
@@ -39,6 +61,32 @@ export default agent({
   }),
   triggers: () => [slackTrigger],
 });
+```
+
+### Trigger with Structured Data Only
+
+If you don't need a human-readable text message, you can omit `messageTemplate` and the agent will receive only the structured payload data:
+
+```typescript
+const dataTrigger = trigger({
+  name: "Data Webhook",
+  description: "Receives structured data for processing",
+  // No messageTemplate - agent receives only the data part
+  inputSchema: z.object({
+    eventType: z.string(),
+    payload: z.record(z.unknown()),
+  }),
+});
+```
+
+The agent will receive:
+
+```json
+{
+  "parts": [
+    { "kind": "data", "data": { "eventType": "order.created", "payload": { ... } }, "metadata": { "source": "trigger" } }
+  ]
+}
 ```
 
 ### Trigger with Input Validation
@@ -129,7 +177,7 @@ Header values are securely hashed before storage. The original values are never 
 | `description` | `string` | No | Description of what the trigger does |
 | `enabled` | `boolean` | No | Whether the trigger is active (default: `true`) |
 | `inputSchema` | `object \| ZodObject` | No | JSON Schema or Zod schema for payload validation |
-| `messageTemplate` | `string` | Yes | Template for the message sent to the agent |
+| `messageTemplate` | `string` | No | Optional template for the text part of the message sent to the agent |
 | `authentication` | `object` | No | Header-based authentication configuration |
 | `signingSecret` | `string` | No | HMAC-SHA256 secret for signature verification |
 | `outputTransform` | `object` | No | Payload transformation configuration |
@@ -149,7 +197,7 @@ Each incoming request must include all configured headers with matching values. 
 
 ### Message Templates
 
-Message templates use `{{placeholder}}` syntax to interpolate values from the webhook payload:
+Message templates are **optional** and use `{{placeholder}}` syntax to interpolate values from the webhook payload. When provided, the interpolated text is included as a text part in the message alongside the structured data part:
 
 ```typescript
 const trigger = trigger({

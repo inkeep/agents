@@ -391,7 +391,9 @@ app.openapi(
           // If no existing header found, skip this one
         } else if (header.value) {
           // Hash the new value
-          const hashed = await hashAuthenticationHeaders([{ name: header.name, value: header.value }]);
+          const hashed = await hashAuthenticationHeaders([
+            { name: header.name, value: header.value },
+          ]);
           hashedHeaders.push(hashed[0]);
         }
         // If neither keepExisting nor value, skip this header

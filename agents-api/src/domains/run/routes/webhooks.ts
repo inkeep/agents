@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type {
   CredentialStoreRegistry,
   FullExecutionContext,
+  Part,
   ResolvedRef,
 } from '@inkeep/agents-core';
 import {
@@ -213,8 +214,26 @@ app.openapi(triggerWebhookRoute, async (c) => {
       }
     }
 
-    // Interpolate message template with transformed payload
-    const interpolatedMessage = trigger.messageTemplate
+    // Build message parts array
+    const messageParts: Part[] = [];
+
+    // Add text part if messageTemplate exists
+    if (trigger.messageTemplate) {
+      const interpolatedMessage = interpolateTemplate(trigger.messageTemplate, transformedPayload);
+      messageParts.push({ kind: 'text', text: interpolatedMessage });
+    }
+
+    // Add data part if payload is not null/undefined (empty {} is still included)
+    if (transformedPayload != null) {
+      messageParts.push({
+        kind: 'data',
+        data: transformedPayload,
+        metadata: { source: 'trigger', triggerId },
+      });
+    }
+
+    // Text representation for execution handler (use template or JSON stringify)
+    const userMessageText = trigger.messageTemplate
       ? interpolateTemplate(trigger.messageTemplate, transformedPayload)
       : JSON.stringify(transformedPayload);
 
@@ -249,7 +268,8 @@ app.openapi(triggerWebhookRoute, async (c) => {
       triggerId,
       invocationId,
       conversationId,
-      userMessage: interpolatedMessage,
+      userMessage: userMessageText,
+      messageParts,
       resolvedRef,
     }).catch((error) => {
       // Log error but don't throw (fire-and-forget)
@@ -291,6 +311,7 @@ async function invokeAgentAsync(params: {
   invocationId: string;
   conversationId: string;
   userMessage: string;
+  messageParts: Part[];
   resolvedRef: ResolvedRef;
 }) {
   const {
@@ -301,6 +322,7 @@ async function invokeAgentAsync(params: {
     invocationId,
     conversationId,
     userMessage,
+    messageParts,
     resolvedRef,
   } = params;
 
@@ -322,6 +344,8 @@ async function invokeAgentAsync(params: {
         'trigger.invocation.id': invocationId,
         // User message attributes for SigNoz conversation queries
         'message.content': userMessage,
+        'message.parts': JSON.stringify(messageParts),
+        'message.parts.count': messageParts.length,
         'message.timestamp': new Date().toISOString(),
       },
     },
@@ -440,7 +464,7 @@ async function invokeAgentAsync(params: {
             'Conversation created and agent set'
           );
 
-          // Create user message in conversation
+          // Create user message in conversation with multi-part content
           await createMessage(runDbClient)({
             id: generateId(),
             tenantId,
@@ -448,7 +472,7 @@ async function invokeAgentAsync(params: {
             conversationId,
             role: 'user',
             content: {
-              text: userMessage,
+              parts: messageParts,
             },
             visibility: 'user-facing',
             messageType: 'chat',
@@ -477,6 +501,7 @@ async function invokeAgentAsync(params: {
             executionContext,
             conversationId,
             userMessage,
+            messageParts,
             initialAgentId: agentId,
             requestId,
             sseHelper: noOpStreamHelper,
