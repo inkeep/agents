@@ -1,6 +1,6 @@
 'use client';
 
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
 
@@ -24,7 +24,6 @@ export function useProjectsQuery(tenantId: string) {
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     staleTime: 30_000,
-    placeholderData: keepPreviousData,
     meta: {
       defaultError: 'Failed to load projects',
     },
