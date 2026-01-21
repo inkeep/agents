@@ -1,12 +1,21 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+<<<<<<< HEAD
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 import dataComponentTemplate from '../../../../templates/v1/shared/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../templates/v1/shared/data-components.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+=======
+import dataComponentTemplate from '../../../../../../templates/v1/phase2/data-component.xml?raw';
+import dataComponentsTemplate from '../../../../../../templates/v1/phase2/data-components.xml?raw';
+import systemPromptTemplate from '../../../../../../templates/v1/phase1/system-prompt.xml?raw';
+import toolTemplate from '../../../../../../templates/v1/phase1/tool.xml?raw';
+import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
+import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+>>>>>>> 98ae1627d (fixed agents api)
 
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 import {
@@ -189,6 +198,22 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     breakdown.components['dataComponentsSection'] = estimateTokens(dataComponentsSection);
     systemPrompt = systemPrompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD:agents-api/src/domains/run/agents/versions/v1/Phase1Config.ts
+    const thinkingPreparationSection = this.generateThinkingPreparationSection(
+      templates,
+      config.isThinkingPreparation
+    );
+    breakdown.components.thinkingPreparation = estimateTokens(thinkingPreparationSection);
+    systemPrompt = systemPrompt.replace(
+      '{{THINKING_PREPARATION_INSTRUCTIONS}}',
+      thinkingPreparationSection
+    );
+
+=======
+>>>>>>> 8647f4102 (updated):agents-run-api/src/agents/versions/v1/Phase1Config.ts
+>>>>>>> 98ae1627d (fixed agents api)
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
     breakdown.components.transferInstructions = estimateTokens(transferSection);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
