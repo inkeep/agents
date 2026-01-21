@@ -20,9 +20,9 @@ if (fs.existsSync(packageEnv)) {
   dotenv.config({ path: packageEnv, override: true, quiet: true });
 }
 
-const apiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
+const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 const openapiUrl = `${apiUrl}/openapi.json`;
-const pidFile = path.resolve(__dirname, '../.speakeasy/manage-api.pid');
+const pidFile = path.resolve(__dirname, '../.speakeasy/agents-api.pid');
 
 async function checkApiRunning() {
   try {
@@ -35,8 +35,8 @@ async function checkApiRunning() {
   }
 }
 
-async function startManageApi() {
-  console.log('🔄 Starting agents-manage-api...\n');
+async function startAgentsApi() {
+  console.log('🔄 Starting agents-api...\n');
 
   const projectRoot = findUpSync('pnpm-workspace.yaml', { cwd: __dirname, type: 'file' });
   if (!projectRoot) {
@@ -46,7 +46,7 @@ async function startManageApi() {
   const rootDir = path.dirname(projectRoot);
 
   return new Promise((resolve, reject) => {
-    const proc = spawn('pnpm', ['--filter', '@inkeep/agents-manage-api', 'dev'], {
+    const proc = spawn('pnpm', ['--filter', '@inkeep/agents-api', 'dev'], {
       cwd: rootDir,
       stdio: 'ignore',
       detached: true,
@@ -56,7 +56,7 @@ async function startManageApi() {
     proc.unref();
 
     proc.on('error', (err) => {
-      reject(new Error(`Failed to start manage-api: ${err.message}`));
+      reject(new Error(`Failed to start agents-api: ${err.message}`));
     });
 
     // Give it time to start and poll for readiness
@@ -68,7 +68,7 @@ async function startManageApi() {
 
       if (await checkApiRunning()) {
         clearInterval(checkInterval);
-        console.log('✓ agents-manage-api is ready\n');
+        console.log('✓ agents-api is ready\n');
         resolve(proc);
       } else if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
@@ -77,7 +77,7 @@ async function startManageApi() {
         } catch {
           // best-effort cleanup
         }
-        reject(new Error('Timeout waiting for manage-api to start'));
+        reject(new Error('Timeout waiting for agents-api to start'));
       }
     }, 1000);
   });
@@ -85,7 +85,7 @@ async function startManageApi() {
 
 async function main() {
   try {
-    // Check if manage-api is already running
+    // Check if agents-api is already running
     const isRunning = await checkApiRunning();
 
     // Clear any stale pid file
@@ -94,23 +94,23 @@ async function main() {
     }
 
     if (!isRunning) {
-      console.log('⚠️  agents-manage-api is not running');
-      console.log('💡 To avoid auto-starting, run: pnpm --filter @inkeep/agents-manage-api dev\n');
+      console.log('⚠️  agents-api is not running');
+      console.log('💡 To avoid auto-starting, run: pnpm --filter @inkeep/agents-api dev\n');
 
-      const manageApiProc = await startManageApi();
+      const agentsApiProc = await startAgentsApi();
 
       // Record the process id so callers can shut it down after generation
       fs.mkdirSync(path.dirname(pidFile), { recursive: true });
-      fs.writeFileSync(pidFile, String(manageApiProc.pid), 'utf8');
+      fs.writeFileSync(pidFile, String(agentsApiProc.pid), 'utf8');
 
       console.log(`PID recorded at ${pidFile}`);
-      console.log('Manage API will remain running until the caller stops it.\n');
+      console.log('Agents API will remain running until the caller stops it.\n');
     } else {
-      console.log('✓ agents-manage-api already running. No action needed.\n');
+      console.log('✓ agents-api already running. No action needed.\n');
     }
   } catch (error) {
     if (error.cause) {
-      console.error('\n✗ Error ensuring manage-api is running:', error.message);
+      console.error('\n✗ Error ensuring agents-api is running:', error.message);
       console.error('  Cause:', error.cause.message || error.cause);
       console.error(`\n  Make sure ${apiUrl} is running and accessible.`);
     } else {
