@@ -8,6 +8,7 @@ import { ExternalAgentItem } from './external-agent-item';
 import { ExternalAgentSelectorLoading } from './loading';
 
 export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) {
+  'use memo';
   const { updateNode } = useReactFlow();
   const { tenantId, projectId } = useParams<{
     tenantId: string;

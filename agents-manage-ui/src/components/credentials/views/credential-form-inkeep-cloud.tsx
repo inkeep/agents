@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
@@ -41,6 +41,7 @@ export function CredentialFormInkeepCloud({
   tenantId,
   projectId,
 }: CredentialFormProps) {
+  'use memo';
   const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);

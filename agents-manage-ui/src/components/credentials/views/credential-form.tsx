@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
@@ -38,6 +38,7 @@ const defaultValues: CredentialFormData = {
 };
 
 export function CredentialForm({ onCreateCredential, tenantId, projectId }: CredentialFormProps) {
+  'use memo';
   const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
@@ -56,10 +57,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     projectId
   );
 
-  const availableExternalAgents = useMemo(
-    () => externalAgents.filter((agent) => !agent.credentialReferenceId),
-    [externalAgents]
-  );
+  const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
 
   // loadAvailableTools
   useEffect(() => {
@@ -175,45 +173,39 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     }
   };
 
-  const serverOptions = useMemo(
-    () => [
-      ...(toolsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading MCP servers...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableMCPServers.map((tool) => ({
-        value: tool.id,
-        label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
-      })),
-    ],
-    [availableMCPServers, toolsLoading]
-  );
+  const serverOptions = [
+    ...(toolsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading MCP servers...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableMCPServers.map((tool) => ({
+      value: tool.id,
+      label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
+    })),
+  ];
 
-  const externalAgentOptions = useMemo(
-    () => [
-      ...(externalAgentsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading external agents...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableExternalAgents.map((agent) => ({
-        value: agent.id,
-        label: `${agent.name} - ${agent.baseUrl}`,
-      })),
-    ],
-    [availableExternalAgents, externalAgentsLoading]
-  );
+  const externalAgentOptions = [
+    ...(externalAgentsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading external agents...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableExternalAgents.map((agent) => ({
+      value: agent.id,
+      label: `${agent.name} - ${agent.baseUrl}`,
+    })),
+  ];
 
-  const credentialStoreOptions = useMemo(() => {
+  const credentialStoreOptions = (() => {
     if (storesLoading) {
       return [
         {
@@ -244,7 +236,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     }));
 
     return options;
-  }, [credentialStores, storesLoading]);
+  })();
 
   return (
     <Form {...form}>
