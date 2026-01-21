@@ -17,11 +17,8 @@ export function useEvaluatorsQuery(
   return useQuery<Evaluator[]>({
     queryKey: evaluatorQueryKeys.list(tenantId, projectId),
     async queryFn() {
-      if (!tenantId || !projectId) {
-        throw new Error('tenantId and projectId are required');
-      }
       const response = await fetchEvaluators(tenantId, projectId);
-      return response.data || [];
+      return response.data;
     },
     enabled,
     staleTime: 30_000,

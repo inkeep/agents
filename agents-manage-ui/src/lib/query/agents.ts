@@ -18,11 +18,8 @@ export function useAgentsQuery(
   return useQuery<Agent[]>({
     queryKey: agentQueryKeys.list(tenantId, projectId),
     async queryFn() {
-      if (!tenantId || !projectId) {
-        throw new Error('tenantId and projectId are required');
-      }
       const response = await getAllAgentsAction(tenantId, projectId);
-      if (!response.success || !response.data) {
+      if (!response.success) {
         throw new Error(response.error);
       }
       return response.data;
