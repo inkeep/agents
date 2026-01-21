@@ -41,6 +41,27 @@ runs:
       shell: bash
       run: pnpm dev --filter='@inkeep/agents-api' & # & means run job in background
 
+    - name: Wait for API server to be ready
+      shell: bash
+      run: |
+        echo "Waiting for API server to be ready on port 3002..."
+        timeout=120
+        elapsed=0
+        while true; do
+          status_code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3002/health 2>/dev/null || echo "000")
+          if [ "$status_code" = "204" ] || [ "$status_code" = "200" ]; then
+            echo "API server is ready! (HTTP $status_code)"
+            break
+          fi
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for API server (last status: $status_code)"
+            exit 1
+          fi
+          echo "Waiting... ($elapsed seconds, status: $status_code)"
+          sleep 2
+          elapsed=$((elapsed + 2))
+        done
+
     - name: Build dashboard and cookbook monorepo dependencies
       shell: bash
       run: npx turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
