@@ -26,7 +26,7 @@ export function useProjectsQuery(tenantId: string) {
     staleTime: 30_000,
     placeholderData: keepPreviousData,
     meta: {
-      defaultError: 'Unable to fetch projects',
+      defaultError: 'Failed to load projects',
     },
   });
 }
