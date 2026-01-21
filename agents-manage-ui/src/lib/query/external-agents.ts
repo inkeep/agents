@@ -14,6 +14,7 @@ export function useExternalAgentsQuery(tenantId: string, projectId: string) {
     queryFn: () => fetchExternalAgents(tenantId, projectId),
     enabled: Boolean(tenantId && projectId),
     staleTime: 30_000,
+    initialData: [],
     meta: {
       defaultError: 'Failed to load external agents',
     },

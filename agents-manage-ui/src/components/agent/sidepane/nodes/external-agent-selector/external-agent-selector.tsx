@@ -1,50 +1,11 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { fetchExternalAgents } from '@/lib/api/external-agents';
+import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
 import { ExternalAgentItem } from './external-agent-item';
 import { ExternalAgentSelectorLoading } from './loading';
-
-interface ExternalAgentSelectorState {
-  externalAgents: ExternalAgent[];
-  isLoading: boolean;
-  error: string | null;
-}
-
-const useFetchAvailableExternalAgents = (): ExternalAgentSelectorState => {
-  const [externalAgents, setExternalAgents] = useState<ExternalAgent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
-
-  useEffect(() => {
-    const loadExternalAgents = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const agents = await fetchExternalAgents(tenantId, projectId);
-        setExternalAgents(agents);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load external agents';
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadExternalAgents();
-  }, [tenantId, projectId]);
-
-  return { externalAgents, isLoading, error };
-};
 
 export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) {
   const { updateNode } = useReactFlow();
@@ -52,7 +13,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     tenantId: string;
     projectId: string;
   }>();
-  const { externalAgents, isLoading, error } = useFetchAvailableExternalAgents();
+  const { data: externalAgents, isLoading, error } = useExternalAgentsQuery(tenantId, projectId);
 
   const handleSelect = (externalAgent: ExternalAgent) => {
     updateNode(selectedNode.id, {
