@@ -127,12 +127,7 @@ export function EvaluationRunConfigFormDialog({
   });
 
   useEffect(() => {
-    if (
-      !isOpen ||
-      !suiteConfig ||
-      suiteConfigFetching ||
-      suiteConfigEvaluatorsFetching
-    ) {
+    if (!isOpen || !suiteConfig || suiteConfigFetching || suiteConfigEvaluatorsFetching) {
       return;
     }
 
