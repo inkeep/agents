@@ -7,6 +7,9 @@ import { ProfileError, ProfileManager } from '../../../utils/profiles/profile-ma
 import {
   CLOUD_REMOTE,
   DEFAULT_PROFILES_CONFIG,
+  isLegacyRemote,
+  migrateLegacyRemote,
+  type LegacyExplicitRemote,
   type Profile,
   type ProfilesConfig,
 } from '../../../utils/profiles/types';
@@ -499,5 +502,212 @@ describe('Profile Schema Validation', () => {
     writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(config));
     const loaded = profileManager.loadProfiles();
     expect(loaded.profiles['my-profile']).toBeDefined();
+  });
+});
+
+describe('Legacy Profile Migration', () => {
+  let testDir: string;
+  let profileManager: ProfileManager;
+
+  beforeEach(() => {
+    testDir = join(tmpdir(), `inkeep-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(testDir, { recursive: true });
+    profileManager = new ProfileManager({ profilesDir: testDir });
+  });
+
+  afterEach(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true });
+    }
+  });
+
+  describe('isLegacyRemote', () => {
+    it('should detect legacy remote format with manageApi', () => {
+      const legacy = {
+        manageApi: 'http://localhost:3002',
+        manageUi: 'http://localhost:3000',
+        runApi: 'http://localhost:3003',
+      };
+      expect(isLegacyRemote(legacy)).toBe(true);
+    });
+
+    it('should not detect new format as legacy', () => {
+      const newFormat = {
+        api: 'http://localhost:3002',
+        manageUi: 'http://localhost:3000',
+      };
+      expect(isLegacyRemote(newFormat)).toBe(false);
+    });
+
+    it('should not detect cloud string as legacy', () => {
+      expect(isLegacyRemote('cloud')).toBe(false);
+    });
+
+    it('should not detect null/undefined as legacy', () => {
+      expect(isLegacyRemote(null)).toBe(false);
+      expect(isLegacyRemote(undefined)).toBe(false);
+    });
+  });
+
+  describe('migrateLegacyRemote', () => {
+    it('should migrate manageApi to api', () => {
+      const legacy: LegacyExplicitRemote = {
+        manageApi: 'http://localhost:3002',
+        manageUi: 'http://localhost:3000',
+        runApi: 'http://localhost:3003',
+      };
+
+      const migrated = migrateLegacyRemote(legacy);
+      expect(migrated).toEqual({
+        api: 'http://localhost:3002',
+        manageUi: 'http://localhost:3000',
+      });
+    });
+
+    it('should migrate without runApi (optional field)', () => {
+      const legacy: LegacyExplicitRemote = {
+        manageApi: 'https://api.example.com',
+        manageUi: 'https://manage.example.com',
+      };
+
+      const migrated = migrateLegacyRemote(legacy);
+      expect(migrated).toEqual({
+        api: 'https://api.example.com',
+        manageUi: 'https://manage.example.com',
+      });
+    });
+  });
+
+  describe('loadProfiles with legacy format', () => {
+    it('should load and migrate legacy profile format', () => {
+      const legacyConfig = {
+        activeProfile: 'local',
+        profiles: {
+          cloud: {
+            remote: 'cloud',
+            credential: 'inkeep-cloud',
+            environment: 'production',
+          },
+          local: {
+            remote: {
+              manageApi: 'http://localhost:3002',
+              manageUi: 'http://localhost:3000',
+              runApi: 'http://localhost:3003',
+            },
+            credential: 'inkeep-local',
+            environment: 'development',
+          },
+        },
+      };
+
+      writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(legacyConfig));
+
+      const loaded = profileManager.loadProfiles();
+
+      // Should have migrated the remote format
+      expect(loaded.profiles.local.remote).toEqual({
+        api: 'http://localhost:3002',
+        manageUi: 'http://localhost:3000',
+      });
+
+      // Cloud profile should remain unchanged
+      expect(loaded.profiles.cloud.remote).toBe('cloud');
+    });
+
+    it('should persist migrated profile to disk', () => {
+      const legacyConfig = {
+        activeProfile: 'legacy',
+        profiles: {
+          legacy: {
+            remote: {
+              manageApi: 'https://api.example.com',
+              manageUi: 'https://manage.example.com',
+              runApi: 'https://run.example.com',
+            },
+            credential: 'legacy-cred',
+            environment: 'staging',
+          },
+        },
+      };
+
+      writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(legacyConfig));
+
+      // First load triggers migration
+      profileManager.loadProfiles();
+
+      // Read the file directly to verify it was saved with new format
+      const savedContent = readFileSync(join(testDir, 'profiles.yaml'), 'utf-8');
+      const savedConfig = yaml.parse(savedContent);
+
+      expect(savedConfig.profiles.legacy.remote).toEqual({
+        api: 'https://api.example.com',
+        manageUi: 'https://manage.example.com',
+      });
+      // runApi should be removed
+      expect(savedConfig.profiles.legacy.remote.runApi).toBeUndefined();
+      expect(savedConfig.profiles.legacy.remote.manageApi).toBeUndefined();
+    });
+
+    it('should handle mixed legacy and new format profiles', () => {
+      const mixedConfig = {
+        activeProfile: 'new-format',
+        profiles: {
+          'new-format': {
+            remote: {
+              api: 'http://new:3002',
+              manageUi: 'http://new:3000',
+            },
+            credential: 'new-cred',
+            environment: 'production',
+          },
+          'legacy-format': {
+            remote: {
+              manageApi: 'http://legacy:3002',
+              manageUi: 'http://legacy:3000',
+              runApi: 'http://legacy:3003',
+            },
+            credential: 'legacy-cred',
+            environment: 'development',
+          },
+        },
+      };
+
+      writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(mixedConfig));
+
+      const loaded = profileManager.loadProfiles();
+
+      // New format should remain unchanged
+      expect(loaded.profiles['new-format'].remote).toEqual({
+        api: 'http://new:3002',
+        manageUi: 'http://new:3000',
+      });
+
+      // Legacy format should be migrated
+      expect(loaded.profiles['legacy-format'].remote).toEqual({
+        api: 'http://legacy:3002',
+        manageUi: 'http://legacy:3000',
+      });
+    });
+
+    it('should not re-migrate already migrated profiles', () => {
+      const newFormatConfig: ProfilesConfig = {
+        activeProfile: 'local',
+        profiles: {
+          local: {
+            remote: {
+              api: 'http://localhost:3002',
+              manageUi: 'http://localhost:3000',
+            },
+            credential: 'local-cred',
+            environment: 'development',
+          },
+        },
+      };
+
+      writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(newFormatConfig));
+
+      const loaded = profileManager.loadProfiles();
+      expect(loaded).toEqual(newFormatConfig);
+    });
   });
 });
