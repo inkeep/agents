@@ -559,7 +559,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -582,7 +583,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -605,7 +607,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -639,7 +642,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -1526,17 +1530,9 @@ describe('Agent Model Settings', () => {
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Called twice: once for text generation with custom model, once for structured output with OpenAI model
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-3-5-haiku-latest',
-      providerOptions: {
-        anthropic: {
-          temperature: 0.5,
-        },
-      },
-    });
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
+    // Single-phase generation: uses structuredOutput model when data components are present
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'openai/gpt-4.1-mini',
     });
   });
@@ -1558,13 +1554,9 @@ describe('Agent Model Settings', () => {
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Called twice: once for text generation, once for structured output (both use base model)
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-sonnet-4-5',
-      providerOptions: undefined,
-    });
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
+    // Single-phase generation: falls back to base model when no structuredOutput model configured
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });

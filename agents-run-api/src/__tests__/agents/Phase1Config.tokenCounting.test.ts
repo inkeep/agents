@@ -17,7 +17,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -46,7 +45,6 @@ describe('Phase1Config Token Counting', () => {
             ],
           },
         ],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -63,7 +61,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -97,7 +94,6 @@ describe('Phase1Config Token Counting', () => {
             },
           },
         ],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -114,7 +110,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -161,7 +156,6 @@ describe('Phase1Config Token Counting', () => {
             parts: [{ kind: 'data', data: { summary: { title: 'First' } } }],
           },
         ],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -198,7 +192,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: false,
       };
 

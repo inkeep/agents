@@ -40,13 +40,12 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
       expect(result).toBeDefined();
       expect(builder.isLoaded()).toBe(true);
-      expect(builder.getLoadedTemplates()).toHaveLength(5);
+      expect(builder.getLoadedTemplates()).toHaveLength(4);
     });
 
     test('should handle invalid configuration', () => {
@@ -82,7 +81,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -120,7 +118,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -152,7 +149,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -195,7 +191,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -230,7 +225,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -253,7 +247,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -269,7 +262,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -301,7 +293,6 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -356,7 +347,6 @@ describe('SystemPromptBuilder', () => {
             createdAt: '2024-01-15T19:30:00.000Z',
           },
         ],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -373,7 +363,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -404,7 +393,6 @@ describe('SystemPromptBuilder', () => {
             createdAt: '2024-01-15T20:30:00.000Z',
           },
         ],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);

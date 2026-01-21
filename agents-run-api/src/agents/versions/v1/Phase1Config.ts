@@ -3,10 +3,10 @@ import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
-import dataComponentTemplate from '../../../../templates/v1/shared/data-component.xml?raw';
-import dataComponentsTemplate from '../../../../templates/v1/shared/data-components.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+import dataComponentTemplate from '../../../../templates/v1/shared/data-component.xml?raw';
+import dataComponentsTemplate from '../../../../templates/v1/shared/data-components.xml?raw';
 
 import { getLogger } from '../../../logger';
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';

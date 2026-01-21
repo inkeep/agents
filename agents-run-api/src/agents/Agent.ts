@@ -2451,12 +2451,8 @@ ${output}`;
           span.setAttributes(breakdownAttributes);
 
           // Configure model settings and behavior
-          const {
-            primaryModelSettings,
-            modelSettings,
-            hasStructuredOutput,
-            timeoutMs,
-          } = this.configureModelSettings();
+          const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
+            this.configureModelSettings();
           let response: any;
           let textResponse: string;
 
@@ -2484,7 +2480,9 @@ ${output}`;
           const shouldStream = this.getStreamingHelper();
 
           // Build data components schema once if needed
-          const dataComponentsSchema = hasStructuredOutput ? this.buildDataComponentsSchema() : null;
+          const dataComponentsSchema = hasStructuredOutput
+            ? this.buildDataComponentsSchema()
+            : null;
 
           // Build base config
           const baseConfig = this.buildBaseGenerationConfig(
@@ -2668,42 +2666,37 @@ ${output}`;
   ) {
     // Load all tools and system prompt in parallel
     // Note: getDefaultTools needs to be called after streamHelper is set above
-    const [
-      mcpTools,
-      systemPromptResult,
-      functionTools,
-      relationTools,
-      defaultTools,
-    ] = await tracer.startActiveSpan(
-      'agent.load_tools',
-      {
-        attributes: {
-          'subAgent.name': this.config.name,
-          'session.id': sessionId || 'none',
+    const [mcpTools, systemPromptResult, functionTools, relationTools, defaultTools] =
+      await tracer.startActiveSpan(
+        'agent.load_tools',
+        {
+          attributes: {
+            'subAgent.name': this.config.name,
+            'session.id': sessionId || 'none',
+          },
         },
-      },
-      async (childSpan: Span) => {
-        try {
-          const result = await Promise.all([
-            this.getMcpTools(sessionId, streamRequestId),
-            this.buildSystemPrompt(runtimeContext, false), // System prompt with data components
-            this.getFunctionTools(sessionId, streamRequestId),
-            Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
-            this.getDefaultTools(streamRequestId),
-          ]);
+        async (childSpan: Span) => {
+          try {
+            const result = await Promise.all([
+              this.getMcpTools(sessionId, streamRequestId),
+              this.buildSystemPrompt(runtimeContext, false), // System prompt with data components
+              this.getFunctionTools(sessionId, streamRequestId),
+              Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
+              this.getDefaultTools(streamRequestId),
+            ]);
 
-          childSpan.setStatus({ code: SpanStatusCode.OK });
-          return result;
-        } catch (err) {
-          // Use helper function for consistent error handling
-          const errorObj = err instanceof Error ? err : new Error(String(err));
-          setSpanWithError(childSpan, errorObj);
-          throw err;
-        } finally {
-          childSpan.end();
+            childSpan.setStatus({ code: SpanStatusCode.OK });
+            return result;
+          } catch (err) {
+            // Use helper function for consistent error handling
+            const errorObj = err instanceof Error ? err : new Error(String(err));
+            setSpanWithError(childSpan, errorObj);
+            throw err;
+          } finally {
+            childSpan.end();
+          }
         }
-      }
-    );
+      );
 
     // Extract prompt and breakdown from results
     const systemPrompt = systemPromptResult.prompt;
@@ -2795,14 +2788,16 @@ ${output}`;
    * Configure model settings, timeouts, and streaming behavior
    */
   private configureModelSettings() {
-    // Use the primary model for text generation
-    const primaryModelSettings = this.getPrimaryModel();
-    const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
-
     // Check if we have structured output components
     const hasStructuredOutput = Boolean(
       this.config.dataComponents && this.config.dataComponents.length > 0
     );
+
+    // Use structured output model when data components are present, otherwise use primary model
+    const primaryModelSettings = hasStructuredOutput
+      ? this.getStructuredOutputModel()
+      : this.getPrimaryModel();
+    const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
 
     // Extract maxDuration from config and convert to milliseconds, or use defaults
     // Always use streaming timeout since we always stream
@@ -3247,7 +3242,7 @@ ${output}`;
     // Format response with collected parts
     const collectedParts = parser.getCollectedParts();
     if (collectedParts.length > 0) {
-      response.formattedContent = {
+      (response as any).formattedContent = {
         parts: collectedParts.map((part: any) => ({
           kind: part.kind,
           ...(part.kind === 'text' && { text: part.text }),
