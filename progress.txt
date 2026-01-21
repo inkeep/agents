@@ -145,3 +145,26 @@ Started: Wed Jan 21 08:04:38 UTC 2026
 
 ---
 
+## Iteration 6 - $(date -u)
+
+### Story: US-007 - Update documentation and error messages
+
+**Implementation:**
+- Reviewed getKeychainUnavailableMessage() in agents-cli/src/utils/credentials.ts - no keytar references (uses generic terms)
+- Verified no inline comments referencing keytar in modified files (keychain-store.ts, test files)
+- Updated packages/agents-sdk/README.md to replace two keytar references with @napi-rs/keyring
+  - Updated credential provider types table
+  - Updated optional dependencies table
+- Verified AGENTS.md has no keytar references
+
+**Files Changed:**
+- packages/agents-sdk/README.md
+
+**Learnings:**
+- The error messages were already well-designed using generic terms (keychain, credential manager) rather than library-specific names
+- This makes the error messages resilient to implementation changes
+- Only the README documentation needed updates to reflect the new package name
+- CHANGELOG files contain historical references which should not be modified
+
+---
+
