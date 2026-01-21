@@ -203,6 +203,7 @@ export class Agent {
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
   private currentCompressor: MidGenerationCompressor | null = null;
   private executionContext: FullExecutionContext;
+  private functionToolRelationshipIdByName: Map<string, string> = new Map();
 
   constructor(
     config: AgentConfig,
@@ -331,6 +332,10 @@ export class Agent {
       });
 
       return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'tool') {
+      return this.functionToolRelationshipIdByName.get(toolName);
     }
 
     if (toolType === 'delegation') {
@@ -1252,6 +1257,12 @@ export class Agent {
       if (functionToolsData.length === 0) {
         return functionTools;
       }
+
+      this.functionToolRelationshipIdByName = new Map(
+        (functionToolsData as Array<{ name: string; relationshipId?: string }>).flatMap((t) => {
+          return t.relationshipId ? ([[t.name, t.relationshipId]] as Array<[string, string]>) : [];
+        })
+      );
 
       const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
       const sandboxExecutor = SandboxExecutorFactory.getInstance();
