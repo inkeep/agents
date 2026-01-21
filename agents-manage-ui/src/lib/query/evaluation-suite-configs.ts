@@ -6,6 +6,7 @@ import {
   fetchEvaluationSuiteConfigEvaluators,
   type EvaluationSuiteConfig,
 } from '@/lib/api/evaluation-suite-configs';
+import { useParams } from 'next/navigation';
 
 const evaluationSuiteConfigQueryKeys = {
   detail: (tenantId: string, projectId: string, configId: string) =>
@@ -14,21 +15,23 @@ const evaluationSuiteConfigQueryKeys = {
     ['evaluation-suite-config-evaluators', tenantId, projectId, configId] as const,
 };
 
-export function useEvaluationSuiteConfigQuery(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  options?: { enabled?: boolean }
-) {
-  const enabled =
-    Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
+export function useEvaluationSuiteConfigQuery(configId: string, options?: { enabled?: boolean }) {
+  'use memo';
+
+  const { tenantId, projectId } = useParams<{
+    tenantId?: string;
+    projectId?: string;
+  }>();
+
+  if (!tenantId || !projectId || !configId) {
+    throw new Error('tenantId, projectId, and configId are required');
+  }
+
+  const enabled = Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
 
   return useQuery<EvaluationSuiteConfig | null>({
     queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, configId),
     async queryFn() {
-      if (!tenantId || !projectId || !configId) {
-        throw new Error('tenantId, projectId, and configId are required');
-      }
       const response = await fetchEvaluationSuiteConfig(tenantId, projectId, configId);
       return response.data ?? null;
     },
@@ -40,13 +43,21 @@ export function useEvaluationSuiteConfigQuery(
 }
 
 export function useEvaluationSuiteConfigEvaluatorsQuery(
-  tenantId: string,
-  projectId: string,
   configId: string,
   options?: { enabled?: boolean }
 ) {
-  const enabled =
-    Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
+  'use memo';
+
+  const { tenantId, projectId } = useParams<{
+    tenantId?: string;
+    projectId?: string;
+  }>();
+
+  if (!tenantId || !projectId || !configId) {
+    throw new Error('tenantId, projectId, and configId are required');
+  }
+
+  const enabled = Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
 
   return useQuery<{ evaluatorId: string }[]>({
     queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, configId),

@@ -43,9 +43,7 @@ export function EvaluationJobFormDialog({
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
-  const { data: evaluators, isFetching } = useEvaluatorsQuery({
-    enabled: isOpen,
-  });
+  const { data: evaluators, isFetching } = useEvaluatorsQuery({ enabled: isOpen });
 
   const defaultFormData: EvaluationJobConfigFormData = {
     jobFilters: null,
@@ -77,8 +75,8 @@ export function EvaluationJobFormDialog({
     );
   }, [evaluators]);
 
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const datePickerValue =
     customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;
