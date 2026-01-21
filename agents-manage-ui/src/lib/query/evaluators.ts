@@ -27,5 +27,8 @@ export function useEvaluatorsQuery(
     staleTime: 30_000,
     initialData: [],
     initialDataUpdatedAt: 0,
+    meta: {
+      defaultError: 'Failed to load evaluators',
+    },
   });
 }

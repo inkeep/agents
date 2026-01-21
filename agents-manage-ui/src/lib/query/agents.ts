@@ -23,7 +23,7 @@ export function useAgentsQuery(
       }
       const response = await getAllAgentsAction(tenantId, projectId);
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'Unable to fetch agents');
+        throw new Error(response.error);
       }
       return response.data;
     },
@@ -31,5 +31,8 @@ export function useAgentsQuery(
     staleTime: 30_000,
     initialData: [],
     initialDataUpdatedAt: 0,
+    meta: {
+      defaultError: 'Failed to load agents',
+    },
   });
 }
