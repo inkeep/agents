@@ -1,8 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -10,6 +11,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,17 +23,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
-
-// Authentication type options
-const authTypeOptions: SelectOption[] = [
-  { value: 'none', label: 'None' },
-  { value: 'api_key', label: 'API Key' },
-  { value: 'basic_auth', label: 'Basic Auth' },
-  { value: 'bearer_token', label: 'Bearer Token' },
-];
 
 // Transform type options
 const transformTypeOptions: SelectOption[] = [
@@ -51,17 +46,21 @@ const triggerFormSchema = z.object({
   transformType: z.enum(['none', 'object_transformation', 'jmespath']),
   jmespath: z.string().default(''),
   objectTransformationJson: z.string().default(''),
-  authType: z.enum(['none', 'api_key', 'basic_auth', 'bearer_token']),
-  // API Key fields
-  apiKeyName: z.string().default(''),
-  apiKeyValue: z.string().default(''),
-  // Basic Auth fields
-  basicAuthUsername: z.string().default(''),
-  basicAuthPassword: z.string().default(''),
-  // Bearer Token fields
-  bearerToken: z.string().default(''),
+  // Authentication headers - array of name/value pairs
+  // existingValuePrefix is used to show that an existing value is configured (display only)
+  authHeaders: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Header name is required'),
+        value: z.string(), // Can be empty if keeping existing value
+        existingValuePrefix: z.string().optional(), // First 8 chars of existing value for display
+      })
+    )
+    .default([]),
   // Signing secret
   signingSecret: z.string().default(''),
+  // Track if signing secret is configured (for display)
+  hasExistingSigningSecret: z.boolean().default(false),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -89,37 +88,35 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         transformType: 'none',
         jmespath: '',
         objectTransformationJson: '',
-        authType: 'none',
-        apiKeyName: '',
-        apiKeyValue: '',
-        basicAuthUsername: '',
-        basicAuthPassword: '',
-        bearerToken: '',
+        authHeaders: [],
         signingSecret: '',
+        hasExistingSigningSecret: false,
       };
     }
 
-    // Extract authentication details
-    const auth = trigger.authentication as any;
-    let authType: 'none' | 'api_key' | 'basic_auth' | 'bearer_token' = 'none';
-    let apiKeyName = '';
-    let apiKeyValue = '';
-    let basicAuthUsername = '';
-    let basicAuthPassword = '';
-    let bearerToken = '';
+    // Extract authentication headers from stored format
+    // Stored format has: { headers: [{ name, valueHash, valuePrefix }] }
+    // We show the prefix for display but require new value on edit
+    const auth = trigger.authentication as {
+      headers?: Array<{ name: string; valuePrefix?: string }>;
+      signingSecretHash?: string;
+    } | null;
+    const authHeaders: Array<{ name: string; value: string; existingValuePrefix?: string }> = [];
 
-    if (auth && typeof auth === 'object' && 'type' in auth) {
-      authType = auth.type;
-      if (auth.type === 'api_key' && auth.data) {
-        apiKeyName = auth.data.name || '';
-        apiKeyValue = auth.data.value || '';
-      } else if (auth.type === 'basic_auth' && auth.data) {
-        basicAuthUsername = auth.data.username || '';
-        basicAuthPassword = auth.data.password || '';
-      } else if (auth.type === 'bearer_token' && auth.data) {
-        bearerToken = auth.data.token || '';
+    if (auth?.headers && Array.isArray(auth.headers)) {
+      for (const header of auth.headers) {
+        // When editing, we show the header name and prefix indicator
+        // Value is empty - user can optionally re-enter to update
+        authHeaders.push({
+          name: header.name,
+          value: '', // User can optionally re-enter value to update
+          existingValuePrefix: header.valuePrefix, // Shows first 8 chars as indicator
+        });
       }
     }
+
+    // Check if signing secret is configured
+    const hasExistingSigningSecret = Boolean(auth?.signingSecretHash);
 
     // Determine transform type from existing data
     let transformType: 'none' | 'object_transformation' | 'jmespath' = 'none';
@@ -141,13 +138,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       objectTransformationJson: trigger.outputTransform?.objectTransformation
         ? JSON.stringify(trigger.outputTransform.objectTransformation, null, 2)
         : '',
-      authType,
-      apiKeyName,
-      apiKeyValue,
-      basicAuthUsername,
-      basicAuthPassword,
-      bearerToken,
-      signingSecret: trigger.signingSecret || '',
+      authHeaders,
+      signingSecret: '', // User can optionally re-enter to update
+      hasExistingSigningSecret,
     };
   };
 
@@ -158,8 +151,12 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
     defaultValues,
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'authHeaders',
+  });
+
   const { isSubmitting } = form.formState;
-  const authType = form.watch('authType');
   const transformType = form.watch('transformType');
 
   const onSubmit = async (data: TriggerFormData) => {
@@ -195,53 +192,36 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         }
       }
 
-      // Build authentication object
-      let authentication: any;
-      if (data.authType !== 'none') {
-        switch (data.authType) {
-          case 'api_key':
-            if (!data.apiKeyName || !data.apiKeyValue) {
-              toast.error('API Key name and value are required');
-              return;
-            }
-            authentication = {
-              type: 'api_key',
-              data: {
-                name: data.apiKeyName,
-                value: data.apiKeyValue,
-              },
-              add_position: 'header',
-            };
-            break;
-          case 'basic_auth':
-            if (!data.basicAuthUsername || !data.basicAuthPassword) {
-              toast.error('Username and password are required');
-              return;
-            }
-            authentication = {
-              type: 'basic_auth',
-              data: {
-                username: data.basicAuthUsername,
-                password: data.basicAuthPassword,
-              },
-              add_position: 'header',
-            };
-            break;
-          case 'bearer_token':
-            if (!data.bearerToken) {
-              toast.error('Bearer token is required');
-              return;
-            }
-            authentication = {
-              type: 'bearer_token',
-              data: {
-                token: data.bearerToken,
-              },
-              add_position: 'header',
-            };
-            break;
+      // Build authentication object with headers
+      // For edit mode: headers with existingValuePrefix but no new value should keep existing
+      // Headers with new values will update, headers with no value and no existing will be skipped
+      const headersToSend: Array<{ name: string; value?: string; keepExisting?: boolean }> = [];
+
+      for (const h of data.authHeaders) {
+        if (!h.name) continue; // Skip headers without a name
+
+        if (h.value) {
+          // User provided a new value - update it
+          headersToSend.push({ name: h.name, value: h.value });
+        } else if (h.existingValuePrefix) {
+          // Existing value, no new value - keep existing
+          headersToSend.push({ name: h.name, keepExisting: true });
         }
+        // If no value and no existing prefix, skip this header entirely
       }
+
+      // Build authentication payload
+      const authentication =
+        headersToSend.length > 0
+          ? { headers: headersToSend.map((h) => ({ name: h.name, value: h.value, keepExisting: h.keepExisting })) }
+          : undefined;
+
+      // Handle signing secret - if not provided but existing, keep existing
+      const signingSecretPayload = data.signingSecret
+        ? { signingSecret: data.signingSecret }
+        : defaultValues.hasExistingSigningSecret
+          ? { keepExistingSigningSecret: true }
+          : {};
 
       const payload: any = {
         id: data.id,
@@ -252,7 +232,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         inputSchema,
         outputTransform,
         authentication,
-        signingSecret: data.signingSecret || undefined,
+        ...signingSecretPayload,
       };
 
       let result: { success: boolean; error?: string };
@@ -444,81 +424,120 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           <CardHeader>
             <CardTitle>Authentication</CardTitle>
             <CardDescription>
-              Configure authentication for incoming webhook requests.
+              Configure header-based authentication for incoming webhook requests. Add one or more
+              headers that must be present and match the expected values.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <GenericSelect
-              control={form.control}
-              name="authType"
-              label="Authentication Type"
-              options={authTypeOptions}
-              placeholder="Select authentication type"
-              isRequired
-            />
+            {/* Header list */}
+            <div className="space-y-3">
+              {fields.map((field, index) => {
+                const existingPrefix = form.getValues(`authHeaders.${index}.existingValuePrefix`);
+                const hasExistingValue = Boolean(existingPrefix);
 
-            {authType === 'api_key' && (
-              <>
-                <GenericInput
-                  control={form.control}
-                  name="apiKeyName"
-                  label="Header Name"
-                  placeholder="e.g., X-API-Key"
-                  isRequired
-                />
-                <GenericInput
-                  control={form.control}
-                  name="apiKeyValue"
-                  label="API Key Value"
-                  placeholder="Enter the expected API key"
-                  type="password"
-                  isRequired
-                />
-              </>
-            )}
+                return (
+                  <div key={field.id} className="space-y-2">
+                    <div className="flex gap-3 items-start">
+                      <FormField
+                        control={form.control}
+                        name={`authHeaders.${index}.name`}
+                        render={({ field: inputField }) => (
+                          <FormItem className="flex-1">
+                            {index === 0 && <FormLabel>Header Name</FormLabel>}
+                            <FormControl>
+                              <Input {...inputField} placeholder="e.g., X-API-Key" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`authHeaders.${index}.value`}
+                        render={({ field: inputField }) => (
+                          <FormItem className="flex-1">
+                            {index === 0 && <FormLabel>Header Value</FormLabel>}
+                            <FormControl>
+                              <Input
+                                {...inputField}
+                                type="password"
+                                placeholder={
+                                  hasExistingValue
+                                    ? 'Enter new value to update'
+                                    : 'Enter expected value'
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(index)}
+                        className={index === 0 ? 'mt-8' : ''}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {hasExistingValue && (
+                      <div className="flex items-center gap-2 ml-1">
+                        <Badge variant="secondary" className="text-xs font-normal gap-1.5">
+                          <KeyRound className="h-3 w-3" />
+                          <span>
+                            Configured: <code className="font-mono">{existingPrefix}••••</code>
+                          </span>
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Leave blank to keep existing value
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
-            {authType === 'basic_auth' && (
-              <>
-                <GenericInput
-                  control={form.control}
-                  name="basicAuthUsername"
-                  label="Username"
-                  placeholder="Enter username"
-                  isRequired
-                />
-                <GenericInput
-                  control={form.control}
-                  name="basicAuthPassword"
-                  label="Password"
-                  placeholder="Enter password"
-                  type="password"
-                  isRequired
-                />
-              </>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Required Header
+            </Button>
 
-            {authType === 'bearer_token' && (
+            <div className="pt-4 border-t space-y-3">
               <GenericInput
                 control={form.control}
-                name="bearerToken"
-                label="Bearer Token"
-                placeholder="Enter bearer token"
+                name="signingSecret"
+                label="Signing Secret (Optional)"
+                placeholder={
+                  defaultValues.hasExistingSigningSecret
+                    ? 'Enter new secret to update'
+                    : 'HMAC-SHA256 signing secret'
+                }
                 type="password"
-                isRequired
               />
-            )}
-
-            <GenericInput
-              control={form.control}
-              name="signingSecret"
-              label="Signing Secret (Optional)"
-              placeholder="HMAC-SHA256 signing secret"
-              type="password"
-            />
-            <FormDescription>
-              If provided, webhook requests must include a valid X-Signature-256 header for
-              verification.
-            </FormDescription>
+              {defaultValues.hasExistingSigningSecret && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs font-normal gap-1.5">
+                    <KeyRound className="h-3 w-3" />
+                    <span>Signing secret configured</span>
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Leave blank to keep existing secret
+                  </span>
+                </div>
+              )}
+              <FormDescription>
+                If provided, webhook requests must include a valid X-Signature-256 header for
+                verification.
+              </FormDescription>
+            </div>
           </CardContent>
         </Card>
 
