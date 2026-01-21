@@ -1,0 +1,130 @@
+{
+  "project": "Agents",
+  "branchName": "ralph/replace-keytar-with-napi-keyring",
+  "description": "Replace deprecated keytar package with @napi-rs/keyring across all packages for secure credential storage without native compilation requirements",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Update package.json dependencies",
+      "description": "As a developer, I need the package dependencies updated so the new library is installed correctly.",
+      "acceptanceCriteria": [
+        "Remove `keytar` from `packages/agents-core/package.json` optionalDependencies",
+        "Remove `keytar` from `agents-cli/package.json` dependencies",
+        "Remove `keytar` from `create-agents-template/package.json` if present",
+        "Add `@napi-rs/keyring: ^1.2.0` to `packages/agents-core/package.json` as optionalDependencies",
+        "Add `@napi-rs/keyring: ^1.2.0` to `agents-cli/package.json` as dependencies",
+        "Run `pnpm install` successfully",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Must be done first - other stories depend on the new package being available"
+    },
+    {
+      "id": "US-002",
+      "title": "Remove keytar build script",
+      "description": "As a developer, I want to remove the keytar-specific build automation since the new library has prebuilt binaries.",
+      "acceptanceCriteria": [
+        "Delete `agents-cli/scripts/ensure-keytar.mjs`",
+        "Remove postinstall script from `agents-cli/package.json` if it only runs ensure-keytar.mjs",
+        "Verify `pnpm install` completes without errors",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Update KeyChainStore to use @napi-rs/keyring",
+      "description": "As a developer, I need the core KeyChainStore class to use the new keyring library so all dependent packages inherit the change.",
+      "acceptanceCriteria": [
+        "Replace `keytar` import with `@napi-rs/keyring` Entry class in `packages/agents-core/src/credential-stores/keychain-store.ts`",
+        "Update dynamic import to use `@napi-rs/keyring` package name",
+        "Adapt get() method to use Entry-based API: `new Entry(service, account).getPassword()`",
+        "Adapt set() method to use Entry-based API: `new Entry(service, account).setPassword(value)`",
+        "Adapt delete() method to use Entry-based API: `new Entry(service, account).deletePassword()`",
+        "Maintain existing public interface (get, set, has, delete, findAllCredentials, clearAll)",
+        "Update error handling for new library's error types",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Note: @napi-rs/keyring methods are synchronous but the wrapper should maintain async interface for backwards compatibility. findAllCredentials may need a workaround - consider storing a key index."
+    },
+    {
+      "id": "US-004",
+      "title": "Update unit tests for KeyChainStore",
+      "description": "As a developer, I need the unit tests updated to mock the new library's API.",
+      "acceptanceCriteria": [
+        "Update mocks in `packages/agents-core/src/__tests__/credentials/keychain-store.test.ts`",
+        "Replace keytar API mocks with @napi-rs/keyring Entry class mocks",
+        "Mock Entry constructor and instance methods (getPassword, setPassword, deletePassword)",
+        "All unit tests pass (`pnpm test` in packages/agents-core)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Update integration tests for KeyChainStore",
+      "description": "As a developer, I need integration tests to verify the new library works with real system keychains.",
+      "acceptanceCriteria": [
+        "Update `packages/agents-core/src/__tests__/credentials/keychain-store.integration.test.ts`",
+        "Verify CRUD operations work with real keychain",
+        "Verify service isolation between stores",
+        "Verify special character and unicode support in keys and values",
+        "All integration tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Update CLI credentials utility",
+      "description": "As a developer, I need the CLI credentials utility to work with the updated KeyChainStore.",
+      "acceptanceCriteria": [
+        "Review `agents-cli/src/utils/credentials.ts` and remove any keytar-specific code",
+        "Ensure KeyChainStore is imported from @inkeep/agents-core (no direct keytar imports)",
+        "Verify CLI builds successfully (`pnpm build` in agents-cli)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "The credentials utility should already use KeyChainStore abstraction, so changes may be minimal"
+    },
+    {
+      "id": "US-007",
+      "title": "Update documentation and error messages",
+      "description": "As a user, I need updated error messages and documentation that reference the correct library.",
+      "acceptanceCriteria": [
+        "Update `getKeychainUnavailableMessage()` in `agents-cli/src/utils/credentials.ts` to remove keytar references",
+        "Update any inline comments referencing keytar in modified files",
+        "Search for and update any AGENTS.md or README references to keytar setup requirements",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Update template project",
+      "description": "As a developer using the template, I need it to use the new library.",
+      "acceptanceCriteria": [
+        "Verify `create-agents-template/apps/shared/credential-stores.ts` has no direct keytar imports",
+        "Verify template uses createKeyChainStore from @inkeep/agents-core",
+        "No direct keytar references in template code",
+        "Template typecheck passes",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Template should use agents-core abstraction, so this may just be verification"
+    }
+  ]
+}

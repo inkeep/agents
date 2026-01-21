@@ -1,0 +1,35 @@
+# Progress Log - feat/PRD-5609-keytar
+
+Started: Wed Jan 21 08:04:38 UTC 2026
+
+---
+
+## Iteration 1 - Wed Jan 21 08:04:38 UTC 2026
+
+### Story: US-001 - Update package.json dependencies
+
+**Implementation:**
+- Removed keytar from packages/agents-core/package.json optionalDependencies
+- Removed keytar from agents-cli/package.json dependencies
+- Removed keytar from create-agents-template/package.json pnpm.onlyBuiltDependencies
+- Added @napi-rs/keyring ^1.2.0 to packages/agents-core optionalDependencies
+- Added @napi-rs/keyring ^1.2.0 to agents-cli dependencies
+- Verified typecheck passes in both packages/agents-core and agents-cli
+
+**Files Changed:**
+- packages/agents-core/package.json
+- agents-cli/package.json
+- create-agents-template/package.json
+
+**Learnings:**
+- The repository uses pnpm workspaces with workspace protocol (workspace:^)
+- Network restrictions in the environment prevented running pnpm install, but existing node_modules were sufficient for typecheck validation
+- TypeScript is available in package-specific node_modules (e.g., agents-cli/node_modules/.bin/tsc)
+- The create-agents-template had keytar in pnpm.onlyBuiltDependencies config, which also needed to be removed
+
+---
+
+
+## COMPLETED - Wed Jan 21 08:08:03 UTC 2026
+## Iteration 1 - Wed Jan 21 08:12:14 UTC 2026
+
