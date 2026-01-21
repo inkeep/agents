@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'next/navigation';
 import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import type { Agent } from '@/lib/types/agent-full';
 
@@ -8,11 +9,16 @@ const agentQueryKeys = {
   list: (tenantId: string, projectId: string) => ['agents', tenantId, projectId] as const,
 };
 
-export function useAgentsQuery(
-  tenantId: string,
-  projectId: string,
-  options?: { enabled?: boolean }
-) {
+export function useAgentsQuery(options?: { enabled?: boolean }) {
+  const { tenantId, projectId } = useParams<{
+    tenantId?: string;
+    projectId?: string;
+  }>();
+
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
+  }
+
   const enabled = Boolean(tenantId && projectId) && (options?.enabled ?? true);
 
   return useQuery<Agent[]>({

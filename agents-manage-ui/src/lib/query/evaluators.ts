@@ -1,17 +1,23 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'next/navigation';
 import { type Evaluator, fetchEvaluators } from '@/lib/api/evaluators';
 
 const evaluatorQueryKeys = {
   list: (tenantId: string, projectId: string) => ['evaluators', tenantId, projectId] as const,
 };
 
-export function useEvaluatorsQuery(
-  tenantId: string,
-  projectId: string,
-  options?: { enabled?: boolean }
-) {
+export function useEvaluatorsQuery(options?: { enabled?: boolean }) {
+  const { tenantId, projectId } = useParams<{
+    tenantId?: string;
+    projectId?: string;
+  }>();
+
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
+  }
+
   const enabled = Boolean(tenantId && projectId) && (options?.enabled ?? true);
 
   return useQuery<Evaluator[]>({
