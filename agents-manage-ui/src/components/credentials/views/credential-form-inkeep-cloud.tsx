@@ -50,14 +50,11 @@ export function CredentialFormInkeepCloud({
   });
 
   const { isSubmitting } = form.formState;
-  const {
-    data: externalAgents,
-    isLoading: externalAgentsLoading,
-  } = useExternalAgentsQuery(tenantId, projectId);
-  const {
-    data: mcpTools,
-    isLoading: toolsLoading,
-  } = useMcpToolsQuery(tenantId, projectId);
+  const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery(
+    tenantId,
+    projectId
+  );
+  const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery(tenantId, projectId);
 
   const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
   const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);

@@ -14,7 +14,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     tenantId: string;
     projectId: string;
   }>();
-  const { data: tools, isLoading, error } = useMcpToolsQuery(tenantId, projectId);
+  const { data: tools, isFetching, error } = useMcpToolsQuery(tenantId, projectId);
 
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {
@@ -23,7 +23,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     });
   };
 
-  if (isLoading) {
+  if (isFetching) {
     return <MCPSelectorLoading title="Select MCP server" />;
   }
 

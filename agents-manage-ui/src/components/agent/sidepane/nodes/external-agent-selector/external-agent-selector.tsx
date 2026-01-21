@@ -14,7 +14,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     tenantId: string;
     projectId: string;
   }>();
-  const { data: externalAgents, isLoading, error } = useExternalAgentsQuery(tenantId, projectId);
+  const { data: externalAgents, isFetching, error } = useExternalAgentsQuery(tenantId, projectId);
 
   const handleSelect = (externalAgent: ExternalAgent) => {
     updateNode(selectedNode.id, {
@@ -33,7 +33,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     });
   };
 
-  if (isLoading) {
+  if (isFetching) {
     return <ExternalAgentSelectorLoading title="Select external agent" />;
   }
 
