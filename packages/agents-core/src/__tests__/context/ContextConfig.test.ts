@@ -523,7 +523,7 @@ describe('ContextConfig', () => {
     });
 
     it('should use environment variable for baseURL', () => {
-      process.env.INKEEP_AGENTS_MANAGE_API_URL = 'https://custom-url.com';
+      process.env.INKEEP_AGENTS_API_URL = 'https://custom-url.com';
 
       const config = new ContextConfigBuilder({
         id: 'test-config',
