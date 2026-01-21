@@ -20,6 +20,7 @@ export function useProjectsQuery(tenantId: string) {
       return response.data;
     },
     enabled: !!tenantId,
+    initialData: [],
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
