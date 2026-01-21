@@ -120,3 +120,28 @@ Started: Wed Jan 21 08:04:38 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 5 - Wed Jan 21 08:22:13 UTC 2026
+
+### Story: US-006 - Update CLI credentials utility
+
+**Implementation:**
+- Reviewed agents-cli/src/utils/credentials.ts
+- Verified no keytar-specific code exists in the file
+- Confirmed KeyChainStore is imported from @inkeep/agents-core/credential-stores
+- No direct keytar imports found anywhere in agents-cli/src/
+- The file already uses the KeyChainStore abstraction properly
+
+**Files Changed:**
+- None (verification only - file already uses correct abstraction)
+
+**Learnings:**
+- The credentials utility was already correctly implemented using the KeyChainStore abstraction
+- No code changes were needed - the abstraction layer isolated this file from the underlying library change
+- All credential operations go through the KeyChainStore API (get, set, delete, checkAvailability)
+- This demonstrates the value of the abstraction layer - higher-level code didn't need modifications
+
+---
+
