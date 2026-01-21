@@ -33,6 +33,7 @@ export function useAgentsQuery(options?: { enabled?: boolean }) {
     enabled,
     staleTime: 30_000,
     initialData: [],
+    // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     meta: {
       defaultError: 'Failed to load agents',
