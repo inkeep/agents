@@ -45,14 +45,14 @@ export const ProjectSwitcher: FC = () => {
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile, state } = useSidebar();
-  const { data: projects = [], isPending } = useProjectsQuery(tenantId);
+  const { data: projects, isFetching } = useProjectsQuery(tenantId);
   const invalidateProjects = useProjectsInvalidation(tenantId);
 
   const handleCreateProject = useCallback(() => {
     setIsProjectDialogOpen(true);
   }, []);
 
-  if (isPending) {
+  if (isFetching) {
     return <Skeleton className="h-12" />;
   }
 

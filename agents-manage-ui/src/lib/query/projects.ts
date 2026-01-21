@@ -1,7 +1,6 @@
 'use client';
 
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
 
@@ -10,31 +9,32 @@ const projectQueryKeys = {
 };
 
 export function useProjectsQuery(tenantId: string) {
+  'use memo';
   return useQuery<Project[]>({
     queryKey: projectQueryKeys.list(tenantId),
     async queryFn() {
-      if (!tenantId) {
-        throw new Error('tenantId is required');
-      }
       const response = await fetchProjectsAction(tenantId);
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'Unable to fetch projects');
+        throw new Error(response.error);
       }
       return response.data;
     },
     enabled: !!tenantId,
+    initialData: [],
+    // force `queryFn` still runs on mount
+    initialDataUpdatedAt: 0,
     staleTime: 30_000,
-    placeholderData: keepPreviousData,
+    meta: {
+      defaultError: 'Failed to load projects',
+    },
   });
 }
 
-export function useProjectsInvalidation(tenantId?: string) {
+export function useProjectsInvalidation(tenantId: string) {
+  'use memo';
   const queryClient = useQueryClient();
 
-  return useCallback(async () => {
-    if (!tenantId) {
-      return;
-    }
+  return async () => {
     await queryClient.invalidateQueries({ queryKey: projectQueryKeys.list(tenantId) });
-  }, [queryClient, tenantId]);
+  };
 }

@@ -1,8 +1,14 @@
 'use client';
 
-import { QueryClient, type QueryClientConfig, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryCache,
+  QueryClient,
+  type QueryClientConfig,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import type { FC, ReactNode } from 'react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const QUERY_CONFIG: QueryClientConfig = {
   defaultOptions: {
@@ -11,6 +17,14 @@ const QUERY_CONFIG: QueryClientConfig = {
       refetchOnWindowFocus: false,
     },
   },
+  queryCache: new QueryCache({
+    onError(error, query) {
+      const errorMessage = error.message || (query.meta?.defaultError as string | undefined);
+      if (errorMessage) {
+        toast.error(errorMessage);
+      }
+    },
+  }),
 };
 
 export const QueryProvider: FC<{ children: ReactNode }> = ({ children }) => {
