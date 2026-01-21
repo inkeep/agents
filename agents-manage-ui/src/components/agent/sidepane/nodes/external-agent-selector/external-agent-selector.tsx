@@ -14,7 +14,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     tenantId: string;
     projectId: string;
   }>();
-  const { data: externalAgents, isLoading, error } = useExternalAgentsQuery(tenantId, projectId);
+  const { data: externalAgents = [], isLoading, error } = useExternalAgentsQuery(tenantId, projectId);
 
   const handleSelect = (externalAgent: ExternalAgent) => {
     updateNode(selectedNode.id, {
@@ -47,7 +47,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     );
   }
 
-  if (!externalAgents?.length) {
+  if (!externalAgents.length) {
     return (
       <EmptyState
         message="No external agents found."

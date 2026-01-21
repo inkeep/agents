@@ -53,7 +53,7 @@ export function CredentialFormInkeepCloud({
   });
 
   const { isSubmitting } = form.formState;
-  const { data: externalAgents, isLoading: externalAgentsLoading } = useExternalAgentsQuery(
+  const { data: externalAgents = [], isLoading: externalAgentsLoading } = useExternalAgentsQuery(
     tenantId,
     projectId
   );
