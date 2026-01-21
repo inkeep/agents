@@ -30,8 +30,6 @@ import {
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
-import { DefaultMarker } from '@/components/agent/markers/default-marker';
-import { SelectedMarker } from '@/components/agent/markers/selected-marker';
 import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
@@ -56,6 +54,7 @@ import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
@@ -976,8 +975,8 @@ export const Agent: FC<AgentProps> = ({
         className="relative"
       >
         {isCopilotStreaming && <CopilotStreamingOverlay />}
-        <DefaultMarker />
-        <SelectedMarker />
+        <EdgeArrow className="absolute" />
+        <SelectedEdgeArrow className="absolute" />
         <ReactFlow
           defaultEdgeOptions={{
             // Built-in 'default' edges ignore the `data` prop.
