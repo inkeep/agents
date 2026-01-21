@@ -1036,7 +1036,7 @@ export const Agent: FC<AgentProps> = ({
             </Panel>
           )}
           {errors && showErrors && (
-            <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
+            <Panel position="bottom-left" className="max-w-sm left-8! mb-4">
               <AgentErrorSummary
                 errorSummary={errors}
                 onClose={() => setShowErrors(false)}

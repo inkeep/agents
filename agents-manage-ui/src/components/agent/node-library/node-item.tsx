@@ -1,10 +1,12 @@
 import { GripVertical, type LucideIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type NodeItem = {
   type: string;
   name: string;
   Icon: LucideIcon;
   disabled?: boolean;
+  disabledTooltip?: React.ReactNode;
 };
 
 interface NodeItemProps {
@@ -12,18 +14,26 @@ interface NodeItemProps {
 }
 
 export function NodeItem({ node }: NodeItemProps) {
-  const { type, name, Icon, disabled } = node;
+  const { type, name, Icon, disabled, disabledTooltip } = node;
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, node: NodeItem) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify(node));
     event.dataTransfer.effectAllowed = 'move';
   };
-  return (
+  const content = (
     <div
       key={type}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
-      className="backdrop-blur-3xl border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 flex font-medium items-center text-sm rounded-md p-2 justify-between gap-2 text-left h-auto w-full group group-hover:bg-muted/50 transition-all ease-in-out duration-200 cursor-grab active:cursor-grabbing"
+      className={[
+        'backdrop-blur-3xl border bg-background shadow-xs',
+        'dark:bg-input/30 dark:border-input',
+        'flex font-medium items-center text-sm rounded-md p-2 justify-between gap-2 text-left h-auto w-full',
+        'group group-hover:bg-muted/50 transition-all ease-in-out duration-200',
+        disabled
+          ? 'cursor-not-allowed opacity-60'
+          : 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-input/50 cursor-grab active:cursor-grabbing',
+      ].join(' ')}
       draggable={!disabled}
       onDragStart={(e) => onDragStart(e, node)}
     >
@@ -36,4 +46,17 @@ export function NodeItem({ node }: NodeItemProps) {
       <GripVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all ease-in-out duration-200" />
     </div>
   );
+
+  if (disabled && disabledTooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>
+          {disabledTooltip}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
 }
