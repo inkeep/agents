@@ -25,10 +25,9 @@ export interface SystemPromptV1 {
   dataComponents: DataComponentApiInsert[];
   artifactComponents?: ArtifactComponentApiInsert[];
   hasAgentArtifactComponents?: boolean; // Whether any agent in the agent has artifact components
-  isThinkingPreparation?: boolean; // Flag for thinking/preparation mode (first pass of 2-phase generation)
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities
-  includeSinglePhaseDataComponents?: boolean; // Include data components in single-phase mode
+  includeDataComponents?: boolean; // Include data components in system prompt
   clientCurrentTime?: string; // Client's current time in their timezone
 }
 

@@ -2,7 +2,6 @@ import type { Artifact, McpTool } from '@inkeep/agents-core';
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
-import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
@@ -32,7 +31,6 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     templates.set('tool', toolTemplate);
     templates.set('artifact', artifactTemplate);
     templates.set('artifact-retrieval-guidance', artifactRetrievalGuidance);
-    templates.set('thinking-preparation', thinkingPreparationTemplate);
 
     return templates;
   }
@@ -106,7 +104,6 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
         .replace('{{ARTIFACTS_SECTION}}', '')
         .replace('{{TOOLS_SECTION}}', '')
-        .replace('{{THINKING_PREPARATION_INSTRUCTIONS}}', '')
         .replace('{{TRANSFER_INSTRUCTIONS}}', '')
         .replace('{{DELEGATION_INSTRUCTIONS}}', '')
     );
@@ -189,22 +186,12 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     const dataComponentsSection = this.generateDataComponentsSection(
       config.dataComponents,
-      config.includeSinglePhaseDataComponents,
+      config.includeDataComponents,
       hasArtifactComponents,
       config.artifactComponents
     );
     breakdown.components['dataComponentsSection'] = estimateTokens(dataComponentsSection);
     systemPrompt = systemPrompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
-
-    const thinkingPreparationSection = this.generateThinkingPreparationSection(
-      templates,
-      config.isThinkingPreparation
-    );
-    breakdown.components['thinkingPreparation'] = estimateTokens(thinkingPreparationSection);
-    systemPrompt = systemPrompt.replace(
-      '{{THINKING_PREPARATION_INSTRUCTIONS}}',
-      thinkingPreparationSection
-    );
 
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
     breakdown.components['transferInstructions'] = estimateTokens(transferSection);
@@ -245,22 +232,6 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
     IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
   </current_time>`;
-  }
-
-  private generateThinkingPreparationSection(
-    templates: Map<string, string>,
-    isThinkingPreparation?: boolean
-  ): string {
-    if (!isThinkingPreparation) {
-      return '';
-    }
-
-    const thinkingPreparationTemplate = templates.get('thinking-preparation');
-    if (!thinkingPreparationTemplate) {
-      throw new Error('Thinking preparation template not loaded');
-    }
-
-    return thinkingPreparationTemplate;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {
@@ -716,11 +687,11 @@ ${creationInstructions}
 
   private generateDataComponentsSection(
     dataComponents: any[],
-    includeSinglePhaseDataComponents?: boolean,
+    includeDataComponents?: boolean,
     hasArtifactComponents?: boolean,
     artifactComponents?: any[]
   ): string {
-    if (!includeSinglePhaseDataComponents || dataComponents.length === 0) {
+    if (!includeDataComponents || dataComponents.length === 0) {
       return '';
     }
 
