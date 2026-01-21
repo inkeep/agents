@@ -15,6 +15,13 @@
       "when": 1768766675586,
       "tag": "0001_broken_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768957920900,
+      "tag": "0002_bent_sunfire",
+      "breakpoints": true
     }
   ]
 }

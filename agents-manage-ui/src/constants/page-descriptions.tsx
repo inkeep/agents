@@ -31,7 +31,7 @@ export const agentDescription = (
 
 export const apiKeyDescription = (
   <>
-    API keys are use to authenticate against the Inkeep Agents Run API. They are associated with an
+    API keys are use to authenticate against the Inkeep Agents API. They are associated with an
     agent and can be used to chat with the agent programmatically.
     {'\n'}
   </>

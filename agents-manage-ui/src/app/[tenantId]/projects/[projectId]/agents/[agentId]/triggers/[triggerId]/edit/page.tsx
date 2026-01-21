@@ -1,20 +1,12 @@
 import { notFound } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTrigger, type Trigger } from '@/lib/api/triggers';
 
-interface EditTriggerPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    triggerId: string;
-  }>;
-}
-
-export default async function EditTriggerPage({ params }: EditTriggerPageProps) {
+export default async function EditTriggerPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/edit'>) {
   const { tenantId, projectId, agentId, triggerId } = await params;
 
   // Fetch agent to verify it exists
@@ -33,23 +25,7 @@ export default async function EditTriggerPage({ params }: EditTriggerPageProps) 
   }
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: agent.data?.name || 'Agent',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}`,
-        },
-        {
-          label: 'Triggers',
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        {
-          label: trigger.name,
-          href: `/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
-        },
-        'Edit',
-      ]}
-    >
+    <>
       <PageHeader
         title={`Edit ${trigger.name}`}
         description="Update the webhook trigger configuration."
@@ -61,6 +37,6 @@ export default async function EditTriggerPage({ params }: EditTriggerPageProps) 
         trigger={trigger}
         mode="edit"
       />
-    </BodyTemplate>
+    </>
   );
 }

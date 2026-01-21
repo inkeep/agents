@@ -355,12 +355,12 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     s.start(`Fetching project: ${projectId}`);
 
     const apiClient = await ManagementApiClient.create(
-      config.agentsManageApiUrl,
+      config.agentsApiUrl,
       options.config,
       config.tenantId,
       projectId,
       isCI,
-      config.agentsManageApiKey
+      config.agentsApiKey
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
@@ -741,12 +741,12 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     // Fetch all projects from the API
     s.start('Fetching project list from API...');
     const apiClient = await ManagementApiClient.create(
-      config.agentsManageApiUrl,
+      config.agentsApiUrl,
       options.config,
       config.tenantId,
       undefined,
       isCI,
-      config.agentsManageApiKey
+      config.agentsApiKey
     );
 
     const projects = await apiClient.listAllProjects();
@@ -908,12 +908,12 @@ async function pullSingleProject(
 
     // Fetch project data from API
     const apiClient = await ManagementApiClient.create(
-      config.agentsManageApiUrl,
+      config.agentsApiUrl,
       options.config,
       config.tenantId,
       projectId,
       isCI,
-      config.agentsManageApiKey
+      config.agentsApiKey
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);

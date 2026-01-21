@@ -14,8 +14,7 @@ const sourceSupplementalPath = join(rootDir, 'SUPPLEMENTAL_TERMS.md');
 // Target packages that need LICENSE files for npm publishing
 const targetPackages = [
   './agents-cli',
-  './agents-manage-api',
-  './agents-run-api',
+  './agents-api',
   './agents-ui',
   './packages/agents-core',
   './packages/agents-sdk',
@@ -67,7 +66,6 @@ function syncLicenses() {
   targetPackages.forEach((packagePath) => {
     const licensePath = join(rootDir, packagePath, 'LICENSE.md');
     const supplementalPath = join(rootDir, packagePath, 'SUPPLEMENTAL_TERMS.md');
-    const packageName = packagePath.split('/').pop();
 
     try {
       // Write LICENSE.md with header indicating it's auto-generated

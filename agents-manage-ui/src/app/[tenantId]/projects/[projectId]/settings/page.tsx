@@ -1,5 +1,4 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { ProjectForm } from '@/components/projects/form/project-form';
 import type { ProjectFormData } from '@/components/projects/form/validation';
 import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
@@ -19,19 +18,18 @@ export default async function SettingsPage({
     ]);
 
     return (
-      <BodyTemplate breadcrumbs={['Settings']} className="max-w-2xl mx-auto">
-        <ProjectForm
-          projectId={projectData.data.id}
-          initialData={
-            {
-              ...projectData.data,
-              id: projectData.data.id as string,
-            } as ProjectFormData
-          }
-          tenantId={tenantId}
-          readOnly={!permissions.canEdit}
-        />
-      </BodyTemplate>
+      <ProjectForm
+        className="max-w-2xl mx-auto"
+        projectId={projectData.data.id}
+        initialData={
+          {
+            ...projectData.data,
+            id: projectData.data.id as string,
+          } as ProjectFormData
+        }
+        tenantId={tenantId}
+        readOnly={!permissions.canEdit}
+      />
     );
   } catch (error) {
     return (

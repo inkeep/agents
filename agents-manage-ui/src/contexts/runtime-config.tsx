@@ -19,6 +19,8 @@ export function RuntimeConfigProvider({
 
 export function useRuntimeConfig() {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useRuntimeConfig must be used within <RuntimeConfigProvider>');
+  if (!ctx) {
+    throw new Error('useRuntimeConfig must be used within a <RuntimeConfigProvider />');
+  }
   return ctx;
 }

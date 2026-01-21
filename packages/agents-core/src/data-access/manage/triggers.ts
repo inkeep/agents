@@ -1,50 +1,20 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { triggers } from '../../db/manage/manage-schema';
-import { getProjectBranchName, withBranch } from '../../dolt/branch';
 import type { TriggerInsert, TriggerSelect, TriggerUpdate } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 
 /**
  * Get a trigger by ID (agent-scoped)
- * Uses withBranch to checkout the project's main branch and query using Drizzle ORM,
- * which handles column name mapping automatically.
  */
 export const getTriggerById =
   (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     triggerId: string;
-    /** If true, uses withBranch to read from the project branch. Default: true for non-branch-scoped clients */
-    useBranchScope?: boolean;
   }): Promise<TriggerSelect | undefined> => {
-    const { scopes, triggerId, useBranchScope = true } = params;
+    const { scopes, triggerId } = params;
 
-    // If useBranchScope is enabled, use withBranch to checkout and query the correct branch
-    if (useBranchScope) {
-      const branchName = getProjectBranchName(scopes.tenantId, scopes.projectId);
-      try {
-        return await withBranch(db)({
-          branchName,
-          callback: async (txDb) => {
-            const result = await txDb.query.triggers.findFirst({
-              where: and(
-                eq(triggers.tenantId, scopes.tenantId),
-                eq(triggers.projectId, scopes.projectId),
-                eq(triggers.agentId, scopes.agentId),
-                eq(triggers.id, triggerId)
-              ),
-            });
-            return result as TriggerSelect | undefined;
-          },
-        });
-      } catch {
-        // If withBranch fails (branch doesn't exist), fall back to regular query
-        // This handles the case where we're already on the correct branch
-      }
-    }
-
-    // Fallback: regular query (for when connection is already branch-scoped)
     const result = await db.query.triggers.findFirst({
       where: and(
         eq(triggers.tenantId, scopes.tenantId),
@@ -53,6 +23,7 @@ export const getTriggerById =
         eq(triggers.id, triggerId)
       ),
     });
+
     return result as TriggerSelect | undefined;
   };
 

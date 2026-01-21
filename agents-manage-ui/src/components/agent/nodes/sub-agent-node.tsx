@@ -6,6 +6,7 @@ import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
+import { STATIC_LABELS } from '@/constants/theme';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
@@ -117,10 +118,18 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
             </Badge>
           ) : null}
           {dataComponentNames?.length > 0 && (
-            <ListSection title="Components" items={dataComponentNames} Icon={Component} />
+            <ListSection
+              title={STATIC_LABELS.components}
+              items={dataComponentNames}
+              Icon={Component}
+            />
           )}
           {artifactComponentNames?.length > 0 && (
-            <ListSection title="Artifacts" items={artifactComponentNames} Icon={Library} />
+            <ListSection
+              title={STATIC_LABELS.artifacts}
+              items={artifactComponentNames}
+              Icon={Library}
+            />
           )}
         </BaseNodeContent>
         <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />

@@ -4,26 +4,25 @@
  * Centralized configuration for API endpoints and settings
  */
 
-import { DEFAULT_INKEEP_AGENTS_MANAGE_API_URL } from '../runtime-config/defaults';
+import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
 import { ApiError } from '../types/errors';
 
 // Lazy initialization with runtime warnings
-let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
-let hasWarnedManageApi = false;
+let INKEEP_AGENTS_API_URL: string | null = null;
+let hasWarnedAgentsApi = false;
 
-export function getManageApiUrl(): string {
-  if (INKEEP_AGENTS_MANAGE_API_URL === null) {
-    INKEEP_AGENTS_MANAGE_API_URL =
-      process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
+export function getAgentsApiUrl(): string {
+  if (INKEEP_AGENTS_API_URL === null) {
+    INKEEP_AGENTS_API_URL = process.env.INKEEP_AGENTS_API_URL || DEFAULT_INKEEP_AGENTS_API_URL;
 
-    if (!process.env.INKEEP_AGENTS_MANAGE_API_URL && !hasWarnedManageApi) {
+    if (!process.env.INKEEP_AGENTS_API_URL && !hasWarnedAgentsApi) {
       console.warn(
-        `INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_MANAGE_API_URL}`
+        `INKEEP_AGENTS_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_API_URL}`
       );
-      hasWarnedManageApi = true;
+      hasWarnedAgentsApi = true;
     }
   }
-  return INKEEP_AGENTS_MANAGE_API_URL;
+  return INKEEP_AGENTS_API_URL;
 }
 
 async function makeApiRequestInternal<T>(
@@ -65,8 +64,8 @@ async function makeApiRequestInternal<T>(
     'Content-Type': 'application/json',
     ...options.headers,
     ...(cookieHeader && { Cookie: cookieHeader }),
-    ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-      Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+    ...(process.env.INKEEP_AGENTS_API_BYPASS_SECRET && {
+      Authorization: `Bearer ${process.env.INKEEP_AGENTS_API_BYPASS_SECRET}`,
     }),
   };
 
@@ -170,5 +169,5 @@ export async function makeManagementApiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
+  return makeApiRequestInternal<T>(getAgentsApiUrl(), `manage/${endpoint}`, options);
 }

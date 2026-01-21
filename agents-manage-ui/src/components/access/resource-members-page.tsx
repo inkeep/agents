@@ -132,7 +132,7 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-xl mx-auto">
       {/* Add Members Section */}
       {canManage && (
         <div className="space-y-3">

@@ -40,11 +40,11 @@ type AuthClientType = ReturnType<typeof createConfiguredAuthClient>;
 const AuthClientContext = createContext<AuthClientType | null>(null);
 
 export function AuthClientProvider({ children }: { children: ReactNode }) {
-  const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
 
   const authClient = useMemo(
-    () => createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL),
-    [PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]
+    () => createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_API_URL),
+    [PUBLIC_INKEEP_AGENTS_API_URL]
   );
 
   return <AuthClientContext value={authClient}>{children}</AuthClientContext>;
@@ -53,7 +53,7 @@ export function AuthClientProvider({ children }: { children: ReactNode }) {
 export function useAuthClient() {
   const client = useContext(AuthClientContext);
   if (!client) {
-    throw new Error('useAuthClient must be used within <AuthClientProvider>');
+    throw new Error('useAuthClient must be used within a <AuthClientProvider />');
   }
   return client;
 }

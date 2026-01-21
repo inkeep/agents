@@ -19,17 +19,18 @@ import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { cn } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { CredentialScopeEnum, type MCPToolFormData, mcpToolSchema } from './validation';
 
 interface MCPServerFormProps {
   initialData?: MCPToolFormData;
-  mode?: 'create' | 'update';
   tool?: MCPTool;
   credentials: Credential[];
   tenantId: string;
   projectId: string;
+  className?: string;
 }
 
 const defaultValues: MCPToolFormData = {
@@ -55,7 +56,7 @@ const defaultValues: MCPToolFormData = {
 
 export function MCPServerForm({
   initialData,
-  mode = 'create',
+  className,
   tool,
   credentials,
   tenantId,
@@ -89,6 +90,7 @@ export function MCPServerForm({
   };
 
   const onSubmit = async (data: MCPToolFormData) => {
+    const mode = tool ? 'update' : 'create';
     try {
       const mcpServerName = data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
@@ -187,7 +189,7 @@ export function MCPServerForm({
         },
       };
 
-      if (mode === 'update' && tool) {
+      if (tool) {
         await updateMCPTool(tenantId, projectId, tool.id, transformedData);
         toast.success('MCP server updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`);
@@ -227,7 +229,7 @@ export function MCPServerForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           <GenericInput
             control={form.control}
             name="name"
@@ -276,7 +278,7 @@ export function MCPServerForm({
               name="credentialScope"
               label="Credential Scope"
               placeholder="Select credential scope"
-              disabled={mode === 'update'}
+              disabled={!!tool}
               options={[
                 { value: CredentialScopeEnum.project, label: 'Project (shared team credential)' },
                 { value: CredentialScopeEnum.user, label: 'User (each user connects their own)' },
@@ -333,7 +335,7 @@ export function MCPServerForm({
             </div>
           )}
 
-          {mode === 'update' && (
+          {tool && (
             <>
               <ActiveToolsSelector
                 control={form.control}
@@ -362,9 +364,9 @@ export function MCPServerForm({
 
           <div className="flex w-full justify-between">
             <Button type="submit" disabled={isSubmitting}>
-              {mode === 'update' ? 'Save' : 'Create'}
+              {tool ? 'Save' : 'Create'}
             </Button>
-            {mode === 'update' && tool && (
+            {tool && (
               <DialogTrigger asChild>
                 <Button type="button" variant="destructive-outline">
                   Delete Server

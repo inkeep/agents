@@ -25,7 +25,7 @@ export async function createFullProjectViaAPI(
     'Creating full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/project-full`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/project-full`;
 
   // Build headers with optional Authorization
   const headers: Record<string, string> = {};
@@ -101,7 +101,7 @@ export async function updateFullProjectViaAPI(
     'Updating full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`;
 
   // Build headers with optional Authorization
   const headers: Record<string, string> = {};
@@ -176,7 +176,7 @@ export async function getFullProjectViaAPI(
     'Getting full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`;
 
   // Build headers with optional Authorization
   const headers: Record<string, string> = {};
@@ -245,7 +245,7 @@ export async function deleteFullProjectViaAPI(
     'Deleting full project via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/project-full/${projectId}`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`;
 
   // Build headers with optional Authorization
   const headers: Record<string, string> = {};

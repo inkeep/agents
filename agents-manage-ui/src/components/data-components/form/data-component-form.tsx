@@ -18,7 +18,7 @@ import {
   updateDataComponentAction,
 } from '@/lib/actions/data-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import { formatJsonField } from '@/lib/utils';
+import { cn, formatJsonField } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
@@ -30,6 +30,7 @@ interface DataComponentFormProps {
   id?: string;
   initialData?: DataComponentFormData;
   readOnly?: boolean;
+  className?: string;
 }
 
 const formatFormData = (data?: DataComponentFormData): DataComponentFormData => {
@@ -48,6 +49,7 @@ export function DataComponentForm({
   id,
   initialData,
   readOnly = false,
+  className,
 }: DataComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({
@@ -95,7 +97,7 @@ export function DataComponentForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           <GenericInput
             control={form.control}
             name="name"

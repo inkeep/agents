@@ -105,8 +105,7 @@ program
   .option('--config <path>', 'Path to configuration file')
   .option('--profile <name>', 'Profile to use for remote URLs and authentication')
   .option('--tenant-id <id>', 'Override tenant ID')
-  .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
-  .option('--agents-run-api-url <url>', 'Override agents run API URL')
+  .option('--agents-api-url <url>', 'Override agents API URL')
   .option(
     '--env <environment>',
     'Environment to use for credential resolution (e.g., development, production)'
@@ -155,7 +154,7 @@ program
   .description('List all available agents for a specific project')
   .requiredOption('--project <project-id>', 'Project ID to list agent for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--agents-manage-api-url <url>', 'Agents manage API URL')
+  .option('--agents-api-url <url>', 'Agents API URL')
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (options) => {

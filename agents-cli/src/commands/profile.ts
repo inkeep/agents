@@ -25,7 +25,7 @@ export async function profileListCommand(): Promise<void> {
       const name = isActive ? chalk.green.bold(profile.name) : profile.name;
 
       console.log(`${marker}${name}`);
-      console.log(chalk.gray(`    Remote: ${profile.remote.manageApi}`));
+      console.log(chalk.gray(`    Remote: ${profile.remote.api}`));
       console.log(chalk.gray(`    Environment: ${profile.environment}`));
       console.log(chalk.gray(`    Credential: ${profile.credential}`));
       console.log();
@@ -90,8 +90,8 @@ export async function profileAddCommand(name?: string): Promise<void> {
       remote = 'cloud';
     } else {
       // Get custom URLs
-      const manageApi = await p.text({
-        message: 'Manage API URL:',
+      const api = await p.text({
+        message: 'Agents API URL:',
         placeholder: 'http://localhost:3002',
         initialValue: 'http://localhost:3002',
         validate: (value) => {
@@ -104,7 +104,7 @@ export async function profileAddCommand(name?: string): Promise<void> {
         },
       });
 
-      if (p.isCancel(manageApi)) {
+      if (p.isCancel(api)) {
         p.cancel('Profile creation cancelled');
         process.exit(0);
       }
@@ -128,29 +128,9 @@ export async function profileAddCommand(name?: string): Promise<void> {
         process.exit(0);
       }
 
-      const runApi = await p.text({
-        message: 'Run API URL:',
-        placeholder: 'http://localhost:3003',
-        initialValue: 'http://localhost:3003',
-        validate: (value) => {
-          try {
-            new URL(value);
-            return undefined;
-          } catch {
-            return 'Invalid URL format';
-          }
-        },
-      });
-
-      if (p.isCancel(runApi)) {
-        p.cancel('Profile creation cancelled');
-        process.exit(0);
-      }
-
       remote = {
-        manageApi,
+        api,
         manageUi,
-        runApi,
       };
     }
 
@@ -251,9 +231,8 @@ export async function profileCurrentCommand(): Promise<void> {
     console.log(chalk.cyan(`  Name: ${profile.name}`));
     console.log();
     console.log(chalk.gray('  Remote URLs:'));
-    console.log(`    Manage API: ${profile.remote.manageApi}`);
+    console.log(`    Agents API: ${profile.remote.api}`);
     console.log(`    Manage UI:  ${profile.remote.manageUi}`);
-    console.log(`    Run API:    ${profile.remote.runApi}`);
     console.log();
     console.log(`  Environment: ${profile.environment}`);
     console.log(`  Credential:  ${profile.credential}`);

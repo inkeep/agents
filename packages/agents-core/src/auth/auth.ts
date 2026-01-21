@@ -202,6 +202,12 @@ export function createAuth(config: BetterAuthConfig) {
       requireEmailVerification: false,
       autoSignIn: true,
     },
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['auth0', 'google', 'email-password'],
+      },
+    },
     // Automatically set user's first organization as active when session is created
     // See: https://www.better-auth.com/docs/plugins/organization#active-organization
     databaseHooks: {
@@ -255,7 +261,7 @@ export function createAuth(config: BetterAuthConfig) {
       'http://localhost:3000',
       'http://localhost:3002',
       env.INKEEP_AGENTS_MANAGE_UI_URL,
-      env.INKEEP_AGENTS_MANAGE_API_URL,
+      env.INKEEP_AGENTS_API_URL,
       env.TRUSTED_ORIGIN,
     ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [

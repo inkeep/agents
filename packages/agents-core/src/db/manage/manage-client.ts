@@ -22,6 +22,28 @@ export interface AgentsManageDatabaseConfig {
   };
 }
 
+export function createAgentsManageDatabasePool(config: AgentsManageDatabaseConfig): Pool {
+  const connectionString = config.connectionString || env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error(
+      'INKEEP_AGENTS_MANAGE_DATABASE_URL environment variable is required. Please set it to your PostgreSQL connection string.'
+    );
+  }
+
+  const pool = new Pool({
+    connectionString,
+    max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 100,
+  });
+
+  // Handle pool errors
+  pool.on('error', (err) => {
+    console.error('Unexpected PostgreSQL pool error:', err);
+  });
+
+  return pool;
+}
+
 /**
  * Creates a PostgreSQL database client with connection pooling
  */

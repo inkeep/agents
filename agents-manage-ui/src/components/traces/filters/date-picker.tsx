@@ -36,6 +36,15 @@ interface DatePickerWithPresetsProps {
 
 export const CUSTOM = 'custom';
 
+/**
+ * Parse a date string (YYYY-MM-DD) as local time instead of UTC.
+ * new Date("2026-01-13") interprets as UTC midnight, which can shift days in local time.
+ * Adding T00:00:00 makes it parse as local midnight.
+ */
+function parseLocalDate(dateString: string): Date {
+  return new Date(`${dateString}T00:00:00`);
+}
+
 export function DatePickerWithPresets({
   onAdd,
   onRemove,
@@ -77,14 +86,14 @@ export function DatePickerWithPresets({
     }
 
     const initialDate: DateRange = {
-      from: value.from ? new Date(value.from) : undefined,
-      to: value.to ? new Date(value.to) : undefined,
+      from: value.from ? parseLocalDate(value.from) : undefined,
+      to: value.to ? parseLocalDate(value.to) : undefined,
     };
 
     const dateFormattedValue = value.from
       ? value.to
-        ? `${format(new Date(value.from), 'LLL dd, y')} - ${format(new Date(value.to), 'LLL dd, y')}`
-        : format(new Date(value.from), 'LLL dd, y')
+        ? `${format(parseLocalDate(value.from), 'LLL dd, y')} - ${format(parseLocalDate(value.to), 'LLL dd, y')}`
+        : format(parseLocalDate(value.from), 'LLL dd, y')
       : undefined;
 
     return { initialDate, dateFormattedValue };
@@ -174,8 +183,8 @@ export function DatePickerWithPresets({
                   if (date?.from) {
                     onAdd(CUSTOM);
                     setCustomDateRange(
-                      date.from.toISOString().split('T')[0],
-                      date.to?.toISOString().split('T')[0] || ''
+                      format(date.from, 'yyyy-MM-dd'),
+                      date.to ? format(date.to, 'yyyy-MM-dd') : ''
                     );
                   } else {
                     onRemove();

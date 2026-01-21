@@ -1,11 +1,11 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
-import { ExternalAgentsList } from '@/components/external-agents/external-agents-list';
-import { BodyTemplate } from '@/components/layout/body-template';
+import { ExternalAgentItem } from '@/components/external-agents/external-agent-item';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -26,10 +26,10 @@ async function ExternalAgentsPage({
 
     const canEdit = permissions.canEdit;
 
-    const content = externalAgents.length ? (
+    return externalAgents.length ? (
       <>
         <PageHeader
-          title="External agents"
+          title={STATIC_LABELS['external-agents']}
           description={externalAgentsDescription}
           action={
             canEdit ? (
@@ -45,7 +45,16 @@ async function ExternalAgentsPage({
             ) : undefined
           }
         />
-        <ExternalAgentsList externalAgents={externalAgents} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          {externalAgents.map((externalAgent) => (
+            <ExternalAgentItem
+              key={externalAgent.id}
+              tenantId={tenantId}
+              projectId={projectId}
+              externalAgent={externalAgent}
+            />
+          ))}
+        </div>
       </>
     ) : (
       <EmptyState
@@ -55,7 +64,6 @@ async function ExternalAgentsPage({
         linkText={canEdit ? 'Create external agent' : undefined}
       />
     );
-    return <BodyTemplate breadcrumbs={['External agents']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="external agents" />;
   }

@@ -160,7 +160,7 @@ export function ExternalAgentNodeEditor({
         onChange={handleInputChange}
         placeholder="https://api.example.com/agent"
         error={getFieldError('baseUrl')}
-        tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/tenants/:tenantId/projects/:projectId/agents/:agentId"
+        tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/manage/tenants/:tenantId/projects/:projectId/agents/:agentId"
         disabled
       />
       <div className="space-y-2">

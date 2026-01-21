@@ -1,6 +1,5 @@
 import { ProjectMembersWrapper } from '@/components/access/project-members-wrapper';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -15,13 +14,11 @@ export default async function MembersPage({
     const permissions = await fetchProjectPermissions(tenantId, projectId);
 
     return (
-      <BodyTemplate breadcrumbs={['Members']} className="max-w-xl mx-auto">
-        <ProjectMembersWrapper
-          projectId={projectId}
-          tenantId={tenantId}
-          canManage={permissions.canEdit}
+      <ProjectMembersWrapper
+        projectId={projectId}
+        tenantId={tenantId}
+        canManage={permissions.canEdit}
         />
-      </BodyTemplate>
     );
   } catch (error) {
     return (

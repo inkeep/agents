@@ -1,11 +1,11 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list';
+import { MCPToolItem } from '@/components/mcp-servers/mcp-tool-item';
 import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -23,10 +23,10 @@ async function MCPServersPage({
       fetchProjectPermissions(tenantId, projectId),
     ]);
     const canEdit = permissions.canEdit;
-    const content = tools.length ? (
+    return tools.length ? (
       <>
         <PageHeader
-          title="MCP servers"
+          title={STATIC_LABELS['mcp-servers']}
           description={mcpServerDescription}
           action={
             canEdit ? (
@@ -42,7 +42,11 @@ async function MCPServersPage({
             ) : undefined
           }
         />
-        <MCPToolsList tools={tools} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          {tools.map((tool) => (
+            <MCPToolItem key={tool.id} tenantId={tenantId} projectId={projectId} tool={tool} />
+          ))}
+        </div>
       </>
     ) : (
       <EmptyState
@@ -52,7 +56,6 @@ async function MCPServersPage({
         linkText={canEdit ? 'Create MCP server' : undefined}
       />
     );
-    return <BodyTemplate breadcrumbs={['MCP servers']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="MCP servers" />;
   }

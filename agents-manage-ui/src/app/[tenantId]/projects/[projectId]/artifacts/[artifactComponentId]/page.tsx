@@ -1,6 +1,5 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -20,29 +19,19 @@ export default async function ArtifactComponentPage({
     const { name, description, props, render } = artifact;
 
     return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Artifacts',
-            href: `/${tenantId}/projects/${projectId}/artifacts`,
-          },
+      <ArtifactComponentForm
+        tenantId={tenantId}
+        projectId={projectId}
+        id={artifactComponentId}
+        readOnly={!permissions.canEdit}
+        initialData={{
+          id: artifactComponentId,
           name,
-        ]}
-      >
-        <ArtifactComponentForm
-          tenantId={tenantId}
-          projectId={projectId}
-          id={artifactComponentId}
-          initialData={{
-            id: artifactComponentId,
-            name,
-            description: description ?? '',
-            props,
-            render,
-          }}
-          readOnly={!permissions.canEdit}
-        />
-      </BodyTemplate>
+          description: description ?? '',
+          props,
+          render,
+        }}
+      />
     );
   } catch (error) {
     return (

@@ -201,7 +201,7 @@ export const Agent: FC<AgentProps> = ({
 
     const lookup: AgentToolConfigLookup = {};
     Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if ('canUse' in subAgentData && subAgentData.canUse) {
+      if (subAgentData && 'canUse' in subAgentData && subAgentData.canUse) {
         const toolsMap: Record<string, AgentToolConfig> = {};
         subAgentData.canUse.forEach((tool) => {
           if (tool.agentToolRelationId) {
@@ -238,7 +238,7 @@ export const Agent: FC<AgentProps> = ({
     if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
     const lookup: SubAgentExternalAgentConfigLookup = {};
     Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if ('canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
+      if (subAgentData && 'canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
         const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
         subAgentData.canDelegateTo
           .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
@@ -963,7 +963,7 @@ export const Agent: FC<AgentProps> = ({
       id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
-      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
+      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
     >
       <CopilotChat
         agentId={agent.id}

@@ -52,6 +52,7 @@
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
     "db:reset": "pnpm --filter @inkeep/agents-core db:reset",
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
+    "db:migrate:cleanup-old-triggers": "pnpm --filter @inkeep/agents-core db:migrate:cleanup-old-triggers",
     "db:manage:generate": "pnpm --filter @inkeep/agents-core db:manage:generate",
     "db:manage:migrate": "pnpm --filter @inkeep/agents-core db:manage:migrate",
     "db:manage:drop": "pnpm --filter @inkeep/agents-core db:manage:drop",
@@ -99,11 +100,8 @@
     "*.{ts,tsx,js,jsx,json,md}": [
       "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
-    "agents-manage-api/**/*.{ts,tsx}": [
-      "bash -c 'cd agents-manage-api && pnpm test --passWithNoTests --reporter=verbose'"
-    ],
-    "agents-run-api/**/*.{ts,tsx}": [
-      "bash -c 'cd agents-run-api && pnpm test --passWithNoTests --reporter=verbose'"
+    "agents-api/**/*.{ts,tsx}": [
+      "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
     ]
   },
   "packageManager": "pnpm@10.10.0"

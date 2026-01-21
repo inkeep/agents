@@ -10,7 +10,7 @@ This document evaluates two workflow orchestration solutions for the Inkeep Agen
 
 ### Current Inngest Implementation
 
-**Location**: `agents-eval-api/src/inngest/`
+**Location**: `agents-eval-api/src/ingest/`
 
 **Key Usage**:
 1. **Event-driven evaluation jobs**: Fans out evaluation tasks to process multiple conversations in parallel

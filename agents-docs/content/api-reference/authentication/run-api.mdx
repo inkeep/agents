@@ -1,80 +1,79 @@
 ---
 title: Run API Authentication
-description: Authentication modes for Run API
+description: Authentication methods for the Run API
 icon: LuShield
 ---
 
-The Run API (`agents-run-api`) has three authentication modes depending on your environment configuration:
+The Run API (`agents-api` routes under `/run`) authenticates requests using a Bearer token in the `Authorization` header. Authentication is attempted in the following priority order:
 
-### Development Mode
 
-When `ENVIRONMENT=development`:
+## 1. JWT Temp Token
 
-- No API key required
-- Must include scope headers:
-  - `x-inkeep-tenant-id`
-  - `x-inkeep-project-id`
-  - `x-inkeep-agent-id`
+Short-lived JWT tokens generated from user session cookies (e.g., via the SDK or device authorization flow). These tokens are signed with `INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY`.
 
 ```bash
-curl -H "x-inkeep-tenant-id: tenant-123" \
-     -H "x-inkeep-project-id: project-456" \
-     -H "x-inkeep-agent-id: agent-789" \
-     https://localhost:3003/v1/chat/completions
+curl -H "Authorization: Bearer eyJ..." \
+  https://your-api/run/v1/chat/completions
 ```
 
-### Standard Mode
+The token payload includes `tenantId`, `projectId`, and `agentId`.
 
-When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is not set:
+## 2. Bypass Secret
 
-- Use API keys created from the Manage UI
-- No additional headers required (scope encoded in key)
-
-```bash
-curl -H "Authorization: Bearer sk_live_abc123..." \
-  https://localhost:3003/v1/chat/completions
-```
-
-### Bypass Mode
-
-When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is set:
-
-**Option 1: Bypass Secret**
-
-- Use the bypass secret as token
-- Must include scope headers
+When `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is set, you can use this secret as the Bearer token. **Requires scope headers:**
 
 ```bash
-curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
+curl -H "Authorization: Bearer $INKEEP_AGENTS_RUN_API_BYPASS_SECRET" \
      -H "x-inkeep-tenant-id: tenant-123" \
      -H "x-inkeep-project-id: project-456" \
      -H "x-inkeep-agent-id: agent-789" \
-     https://run-api.example.com/chat/completions
+     https://your-api/run/v1/chat/completions
 ```
 
-**Option 2: Standard API Keys remain valid**
+Useful for admin access, CI/CD pipelines, and internal services.
 
-- Use API keys from the Manage UI
+## 3. Database API Key
+
+API keys created from the Manage UI and stored in the database. The key encodes scope (tenant, project, agent), so no additional headers are required.
 
 ```bash
-curl -H "Authorization: Bearer sk_live_xyz789..." \
-  https://run-api.example.com/chat/completions
+curl -H "Authorization: Bearer ink_your_api_key" \
+  https://your-api/run/v1/chat/completions
 ```
 
-## Running Multiple Instances
+## 4. Team Agent Token
 
-You can run multiple Run API instances with different auth configurations. If you're deploying Inkeep Agents to production, it is common to only expose the deployment of Run API in standard mode and all other services remain internal.
+JWT tokens used for intra-tenant agent-to-agent delegation. These tokens specify an origin agent and target agent, enabling secure team collaboration between agents.
+
+The token's `aud` (audience) claim is validated against the `x-inkeep-sub-agent-id` header if provided.
+
+---
+
+## Development Mode
+
+When `ENVIRONMENT=development` or `ENVIRONMENT=test`:
+
+- Authentication is attempted but not required
+- If no valid auth is found, falls back to default context
+- You can specify scope via headers:
 
 ```bash
-# Instance 1: Port 3003 with bypass secret (intended for internal purposes)
-PORT=3003 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=secret123 pnpm dev
-
-# Instance 2: Port 3004 without bypass secret (intended for external purposes)
-PORT=3004 pnpm dev
+curl -H "x-inkeep-tenant-id: test-tenant" \
+     -H "x-inkeep-project-id: test-project" \
+     -H "x-inkeep-agent-id: test-agent" \
+     http://localhost:3002/run/v1/chat/completions
 ```
 
-## Security Best Practices
+If headers are omitted, defaults to `test-tenant`, `test-project`, `test-agent`.
 
-1. **Production**: Always use Standard API keys
-2. **Bypass Secret**: Use for internal services only
-3. **API Keys**: Rotate regularly and set expiration dates
+---
+
+## Request Headers
+
+| Header | Description |
+| --- | --- |
+| `Authorization` | Bearer token (required in production) |
+| `x-inkeep-tenant-id` | Tenant ID (required for bypass auth, optional for dev) |
+| `x-inkeep-project-id` | Project ID (required for bypass auth, optional for dev) |
+| `x-inkeep-agent-id` | Agent ID (required for bypass auth, optional for dev) |
+| `x-inkeep-sub-agent-id` | Sub-agent ID for team delegation validation |

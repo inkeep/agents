@@ -26,7 +26,7 @@ import {
   SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
-import { getManageApiUrl } from '@/lib/api/api-config';
+import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
 
@@ -78,7 +78,7 @@ function getSigNozEndpoint(): string {
   return `${signozUrl}/api/v4/query_range`;
 }
 
-// Call SigNoz directly for server-to-server calls, otherwise go through manage-api
+// Call SigNoz directly for server-to-server calls, otherwise go through agents-api
 async function signozQuery(
   payload: any,
   tenantId: string,
@@ -102,9 +102,9 @@ async function signozQuery(
         timeout: 30000,
       });
     } else {
-      // For browser calls, go through manage-api for auth
-      const manageApiUrl = getManageApiUrl();
-      const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+      // For browser calls, go through agents-api for auth
+      const agentsApiUrl = getAgentsApiUrl();
+      const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ async function signozQuery(
         headers.Cookie = cookieHeader;
       }
 
-      logger.debug({ endpoint }, 'Calling manage-api for conversation traces');
+      logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
       response = await axios.post(endpoint, payload, {
         headers,
@@ -288,7 +288,8 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // context resolution spans
@@ -346,7 +347,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // context handle spans
@@ -404,7 +406,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         agentGenerations: listQuery(
@@ -448,7 +451,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // Count spans with errors
@@ -473,7 +477,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // user messages
@@ -515,6 +520,10 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
+              key: SPAN_KEYS.MESSAGE_PARTS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
               key: SPAN_KEYS.MESSAGE_TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
@@ -524,7 +533,8 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // assistant messages
@@ -577,7 +587,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // AI generations
@@ -651,7 +662,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_PROMPT_MESSAGES,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // AI streaming text
@@ -726,7 +738,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         // context fetchers
@@ -776,7 +789,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         durationSpans: listQuery(
@@ -799,7 +813,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         artifactProcessing: listQuery(
@@ -859,7 +874,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         toolApprovalRequested: listQuery(
@@ -907,7 +923,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         toolApprovalApproved: listQuery(
@@ -955,7 +972,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         toolApprovalDenied: listQuery(
@@ -1003,7 +1021,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
 
         compression: listQuery(
@@ -1092,7 +1111,8 @@ function buildConversationListPayload(
               key: 'compression.result.summary',
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
       },
     },
@@ -1129,7 +1149,7 @@ export async function GET(
     // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
 
-    // Call secure manage-api
+    // Call secure agents-api
     const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
@@ -1241,6 +1261,7 @@ export async function GET(
       aiResponseText?: string;
       // user
       messageContent?: string;
+      messageParts?: string;
       // trigger/invocation attributes
       invocationType?: string;
       triggerId?: string;
@@ -1453,6 +1474,7 @@ export async function GET(
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
+        messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
         // Trigger-specific attributes
         invocationType: invocationType || undefined,
         triggerId: triggerId || undefined,

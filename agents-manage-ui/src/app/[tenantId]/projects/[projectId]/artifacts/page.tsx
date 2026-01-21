@@ -1,12 +1,12 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { ArtifactComponentsList } from '@/components/artifact-components/artifact-component-list';
+import { ArtifactComponentItem } from '@/components/artifact-components/artifact-component-item';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { artifactDescription } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
@@ -25,10 +25,10 @@ async function ArtifactComponentsPage({
 
     const canEdit = permissions.canEdit;
 
-    const content = data.length ? (
+    return data.length ? (
       <>
         <PageHeader
-          title="Artifacts"
+          title={STATIC_LABELS.artifacts}
           description={artifactDescription}
           action={
             canEdit ? (
@@ -40,7 +40,16 @@ async function ArtifactComponentsPage({
             ) : undefined
           }
         />
-        <ArtifactComponentsList tenantId={tenantId} projectId={projectId} artifacts={data} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          {data.map((artifact) => (
+            <ArtifactComponentItem
+              key={artifact.id}
+              {...artifact}
+              tenantId={tenantId}
+              projectId={projectId}
+            />
+          ))}
+        </div>
       </>
     ) : (
       <EmptyState
@@ -49,18 +58,6 @@ async function ArtifactComponentsPage({
         link={canEdit ? `/${tenantId}/projects/${projectId}/artifacts/new` : undefined}
         linkText={canEdit ? 'Create artifact' : undefined}
       />
-    );
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Artifacts',
-            href: `/${tenantId}/projects/${projectId}/artifacts`,
-          },
-        ]}
-      >
-        {content}
-      </BodyTemplate>
     );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="artifacts" />;

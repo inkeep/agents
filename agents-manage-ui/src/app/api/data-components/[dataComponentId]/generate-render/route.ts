@@ -3,7 +3,7 @@
  *
  * Generates a React/Tailwind component using AI based on a data component's schema.
  * This route:
- * 1. Fetches the data component from manage-api
+ * 1. Fetches the data component from agents-api
  * 2. Fetches the project to get base model configuration
  * 3. Uses AI SDK structured output streamText to generate component code and sample data
  * 4. Streams NDJSON response back to client
@@ -37,7 +37,7 @@ export async function POST(
       hasExistingCode: !!existingCode,
     });
 
-    // Fetch data component from manage-api
+    // Fetch data component from agents-api
     const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
 
     if (!dataComponent) {

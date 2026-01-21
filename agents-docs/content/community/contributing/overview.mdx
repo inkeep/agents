@@ -160,7 +160,7 @@ Navigate back to the root directory and paste the below command. Enter your Nang
 
 ```bash
 cd ../../
-printf "Enter your Nango API key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-manage-api/.env agents-run-api/.env agents-manage-ui/.env && echo "Application files updated with Nango API key"
+printf "Enter your Nango API key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-api/.env agents-manage-ui/.env && echo "Application files updated with Nango API key"
 ```
 
 ### Step 5: Start creating credentials!

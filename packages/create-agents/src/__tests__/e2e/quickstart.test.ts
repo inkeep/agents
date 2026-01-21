@@ -50,6 +50,7 @@ describe('create-agents quickstart e2e', () => {
         projectTemplatesPrefix,
         '--skip-inkeep-cli',
         '--skip-inkeep-mcp',
+        '--skip-install', // Skip initial install so we can link local packages first
       ],
       testDir
     );
@@ -67,8 +68,7 @@ describe('create-agents quickstart e2e', () => {
       'src',
       'src/inkeep.config.ts',
       `src/projects/${projectId}`,
-      'apps/manage-api',
-      'apps/run-api',
+      'apps/agents-api',
       'apps/mcp',
       'apps/manage-ui',
       '.env',
@@ -85,8 +85,7 @@ describe('create-agents quickstart e2e', () => {
       /OPENAI_API_KEY=test-openai-key/,
       /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
-      /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/127\.0\.0\.1:3002"/,
-      /INKEEP_AGENTS_RUN_API_URL="http:\/\/127\.0\.0\.1:3003"/,
+      /INKEEP_AGENTS_API_URL="http:\/\/127\.0\.0\.1:3002"/,
       /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
     ]);
     console.log('.env file verified');
@@ -96,14 +95,10 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
     console.log('inkeep.config.ts verified');
 
-    // Link to local monorepo packages
+    // Link to local monorepo packages (also runs pnpm install --no-frozen-lockfile)
     console.log('Linking local monorepo packages...');
     await linkLocalPackages(projectDir, monorepoRoot);
-    console.log('Local monorepo packages linked');
-
-    console.log('Installing dependencies...');
-    await runCommand('pnpm', ['install'], projectDir);
-    console.log('Dependencies installed');
+    console.log('Local monorepo packages linked and dependencies installed');
 
     console.log('Setting up project in database');
     await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
@@ -112,7 +107,7 @@ describe('create-agents quickstart e2e', () => {
     console.log('Starting dev servers');
     // Start dev servers in background with output monitoring
     const devProcess = execa('pnpm', ['dev'], {
-      cwd: path.join(projectDir, 'apps/manage-api'),
+      cwd: path.join(projectDir, 'apps/agents-api'),
       env: {
         ...process.env,
         FORCE_COLOR: '0',
@@ -172,7 +167,7 @@ describe('create-agents quickstart e2e', () => {
 
       console.log('Testing API requests');
       // Test API requests
-      const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
+      const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`);
 
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');

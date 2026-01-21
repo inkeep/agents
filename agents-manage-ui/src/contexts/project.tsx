@@ -41,4 +41,12 @@ export function useProjectPermissions(): ProjectPermissions {
     throw new Error('useProjectPermissions must be used within a ProjectProvider');
   }
   return context.permissions;
-}
+
+// export function useProject() {
+//   const ctx = useContext(ProjectContext);
+//   if (!ctx) {
+//     throw new Error('useProject must be used within a <ProjectProvider />');
+//   }
+
+//   return ctx;
+// }

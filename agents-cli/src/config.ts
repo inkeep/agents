@@ -14,13 +14,9 @@ export interface ApiConfig {
 export interface FlatInkeepConfig {
   tenantId: string;
   /**
-   * @deprecated Use the nested `agentsManageApi.url` format instead
+   * @deprecated Use the nested `agentsApi.url` format instead
    */
-  agentsManageApiUrl: string;
-  /**
-   * @deprecated Use the nested `agentsRunApi.url` format instead
-   */
-  agentsRunApiUrl: string;
+  agentsApiUrl: string;
   manageUiUrl?: string;
   outputDirectory?: string;
 }
@@ -32,15 +28,10 @@ export interface NestedInkeepConfig {
    */
   tenantId: string;
   /**
-   * Management API configuration
+   * API configuration
    * @default http://localhost:3002
    */
-  agentsManageApi: ApiConfig;
-  /**
-   * Runtime API configuration
-   * @default http://localhost:3002
-   */
-  agentsRunApi: ApiConfig;
+  agentsApi: ApiConfig;
   /**
    * Management UI URL
    * @default http://localhost:3000

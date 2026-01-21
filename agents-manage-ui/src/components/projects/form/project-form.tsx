@@ -11,6 +11,7 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
+import { cn } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
@@ -23,6 +24,7 @@ interface ProjectFormProps {
   onCancel?: () => void;
   initialData?: ProjectFormData;
   readOnly?: boolean;
+  className?: string;
 }
 
 const serializeData = (data: ProjectFormData) => {
@@ -96,6 +98,7 @@ export function ProjectForm({
   onCancel,
   initialData,
   readOnly = false,
+  className,
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -151,7 +154,7 @@ export function ProjectForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"

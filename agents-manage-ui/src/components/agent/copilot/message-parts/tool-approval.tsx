@@ -43,7 +43,7 @@ interface ToolApprovalProps {
   copilotAgentId?: string;
   copilotProjectId?: string;
   copilotTenantId?: string;
-  runApiUrl?: string;
+  apiUrl?: string;
   cookieHeader?: string;
   copilotToken?: string;
 }
@@ -112,7 +112,7 @@ export const ToolApproval = ({
   copilotAgentId,
   copilotProjectId,
   copilotTenantId,
-  runApiUrl,
+  apiUrl,
   cookieHeader,
   copilotToken,
 }: ToolApprovalProps) => {
@@ -130,7 +130,7 @@ export const ToolApproval = ({
   const handleApproval = async (approved: boolean) => {
     setSubmitted(true);
     try {
-      const response = await fetch(`${runApiUrl}/api/tool-approvals`, {
+      const response = await fetch(`${apiUrl}/run/api/tool-approvals`, {
         method: 'POST',
         headers: {
           ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
