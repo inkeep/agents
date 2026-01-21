@@ -8,6 +8,7 @@ import { MCPSelectorLoading } from './loading';
 import { MCPServerItem } from './mcp-server-item';
 
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
+  'use memo';
   const { updateNode } = useReactFlow();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
