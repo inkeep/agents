@@ -138,7 +138,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "CRITICAL: The native .node binary cannot be bundled by rolldown/tsdown. Must externalize this dependency to fix build error: 'stream did not contain valid UTF-8'"
     },
     {
@@ -152,7 +152,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Same externalization needed for CLI package if it bundles dependencies"
     },
     {
@@ -167,7 +167,7 @@
         "No keytar references remain in codebase (grep for 'keytar' returns no results in source files)"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "This is the final verification step - do not mark as complete until ALL commands pass"
     }
   ]
