@@ -97,15 +97,17 @@ function MessagePartsDisplay({
         if (part.kind === 'data' && part.data != null) {
           const source = part.metadata?.source;
           return (
-            <div key={`${activityId}-part-${index}`} className="mt-2">
+            <div key={`${activityId}-part-${index}`} className="mt-2 overflow-hidden max-w-full">
               <div className="text-xs text-muted-foreground mb-1">
                 Structured Data{source ? ` (${source})` : ''}
               </div>
-              <JsonEditorWithCopy
-                value={JSON.stringify(part.data, null, 2)}
-                title=""
-                uri={`message-data-${activityId}-${index}.json`}
-              />
+              <div className="overflow-x-auto">
+                <JsonEditorWithCopy
+                  value={JSON.stringify(part.data, null, 2)}
+                  title=""
+                  uri={`message-data-${activityId}-${index}.json`}
+                />
+              </div>
             </div>
           );
         }
@@ -233,7 +235,7 @@ export function TimelineItem({
         </div>
 
         <div
-          className={`space-y-1.5 px-3 py-2 w-full transition-all duration-200 rounded-lg ${
+          className={`space-y-1.5 px-3 py-2 w-full min-w-0 transition-all duration-200 rounded-lg ${
             isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
           }`}
         >
