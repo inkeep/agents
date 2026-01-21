@@ -9,12 +9,13 @@ const projectQueryKeys = {
 };
 
 export function useProjectsQuery(tenantId: string) {
+  'use memo';
   return useQuery<Project[]>({
     queryKey: projectQueryKeys.list(tenantId),
     async queryFn() {
       const response = await fetchProjectsAction(tenantId);
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'Unable to fetch projects');
+        throw new Error(response.error);
       }
       return response.data;
     },
@@ -24,6 +25,9 @@ export function useProjectsQuery(tenantId: string) {
     initialDataUpdatedAt: 0,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
+    meta: {
+      defaultError: 'Unable to fetch projects',
+    },
   });
 }
 
