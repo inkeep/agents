@@ -1,5 +1,30 @@
 # @inkeep/agents-core
 
+## 0.42.0
+
+### Minor Changes
+
+- a210291: Doltgres migration and evaluation system.
+- 0893319: Make trigger messageTemplate optional in schema and validation to support data-only trigger messages
+- ad01cd7: Add triggers feature with new database schemas for trigger configuration and invocation tracking, data access functions, validation schemas, and authentication utilities
+- 82afd5b: Simplify trigger authentication schema to use headers array format with hashed secrets. Add hashTriggerHeaderValue(), validateTriggerHeaderValue(), and hashAuthenticationHeaders() utilities. Breaking change: old auth types (api_key, basic_auth, bearer_token) removed.
+
+### Patch Changes
+
+- 3940062: added extra prompting optionally to mcp tools
+- 00fbaec: output schema filtering for evals
+- 91dad33: Removed `FIELD_MODIFIERS` and related logic from `drizzle-schema-helpers.ts`, simplifying schema creation functions.
+- 44461fe: trace default
+- 4f7f0d2: Cleanup orphaned function-tools during agent update
+- 14041da: pagination fix
+- 568c1b2: added timestamp
+- c422f89: bug fix for user message evals
+- 4c65924: process attributes removed
+- b241c06: vercel workflow
+- 3e656cd: simple refactor to reorder models
+- dc827b0: improve context breakdown
+- 82afd5b: Add keepExisting support for trigger authentication header updates
+
 ## 0.41.2
 
 ### Patch Changes

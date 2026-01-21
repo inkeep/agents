@@ -1,5 +1,67 @@
 # @inkeep/agents-cli
 
+## 0.42.0
+
+### Minor Changes
+
+- def71cc: add lint script and fix lint warnings
+- 82afd5b: Update trigger code generator to output new headers array authentication format
+
+### Patch Changes
+
+- 3940062: added extra prompting optionally to mcp tools
+- 00fbaec: output schema filtering for evals
+- 44461fe: trace default
+- 14041da: pagination fix
+- 568c1b2: added timestamp
+- c422f89: bug fix for user message evals
+- 4c65924: process attributes removed
+- b241c06: vercel workflow
+- 3e656cd: simple refactor to reorder models
+- a1126c1: enable `d.ts` files generation for `dev` script and set `"isolatedDeclarations": true` in `tsconfig.json`
+- dc827b0: improve context breakdown
+- Updated dependencies [82afd5b]
+- Updated dependencies [3940062]
+- Updated dependencies [00fbaec]
+- Updated dependencies [d6830a0]
+- Updated dependencies [4f05b56]
+- Updated dependencies [b336b0e]
+- Updated dependencies [91dad33]
+- Updated dependencies [322a6d6]
+- Updated dependencies [d7da349]
+- Updated dependencies [e7b571b]
+- Updated dependencies [c302c77]
+- Updated dependencies [7d46f27]
+- Updated dependencies [a0d4594]
+- Updated dependencies [44461fe]
+- Updated dependencies [4f7f0d2]
+- Updated dependencies [14041da]
+- Updated dependencies [568c1b2]
+- Updated dependencies [09768e3]
+- Updated dependencies [c422f89]
+- Updated dependencies [a5c9830]
+- Updated dependencies [a210291]
+- Updated dependencies [82afd5b]
+- Updated dependencies [4c65924]
+- Updated dependencies [0893319]
+- Updated dependencies [3c5aac4]
+- Updated dependencies [b68b15c]
+- Updated dependencies [468fb23]
+- Updated dependencies [b241c06]
+- Updated dependencies [3e656cd]
+- Updated dependencies [0893319]
+- Updated dependencies [a1126c1]
+- Updated dependencies [9109949]
+- Updated dependencies [ad01cd7]
+- Updated dependencies [a11bb6b]
+- Updated dependencies [2d0d77a]
+- Updated dependencies [dc827b0]
+- Updated dependencies [82afd5b]
+- Updated dependencies [82afd5b]
+  - @inkeep/agents-sdk@0.42.0
+  - @inkeep/agents-core@0.42.0
+  - @inkeep/agents-manage-ui@0.42.0
+
 ## 0.41.2
 
 ### Patch Changes
