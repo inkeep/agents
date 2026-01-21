@@ -83,19 +83,19 @@ export function CredentialFormInkeepCloud({
   };
 
   const onSubmit = async (data: CredentialFormData) => {
+    const isInvalidServerSelection =
+      shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
+    const isInvalidExternalAgentSelection =
+      shouldLinkToExternalAgent &&
+      (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error');
+
     try {
-      if (
-        shouldLinkToServer &&
-        (data.selectedTool === 'loading' || data.selectedTool === 'error')
-      ) {
+      if (isInvalidServerSelection) {
         toast('Please select a valid MCP server');
         return;
       }
 
-      if (
-        shouldLinkToExternalAgent &&
-        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
-      ) {
+      if (isInvalidExternalAgentSelection) {
         toast('Please select a valid external agent');
         return;
       }
