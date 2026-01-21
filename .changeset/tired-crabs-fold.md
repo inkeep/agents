@@ -1,5 +1,5 @@
 ---
-"@inkeep/agents-manage-api": patch
+"@inkeep/agents-api": patch
 "@inkeep/agents-manage-ui": patch
 ---
 
