@@ -17,11 +17,7 @@ const evaluationSuiteConfigQueryKeys = {
 
 export function useEvaluationSuiteConfigQuery(configId = '', options?: { enabled?: boolean }) {
   'use memo';
-
-  const { tenantId, projectId } = useParams<{
-    tenantId?: string;
-    projectId?: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
     throw new Error('tenantId and projectId are required');
@@ -48,11 +44,7 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
   options?: { enabled?: boolean }
 ) {
   'use memo';
-
-  const { tenantId, projectId } = useParams<{
-    tenantId?: string;
-    projectId?: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
     throw new Error('tenantId and projectId are required');

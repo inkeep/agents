@@ -7,11 +7,7 @@ import type { MCPTool } from '@/lib/types/tools';
 
 export function useMcpToolsQuery() {
   'use memo';
-
-  const { tenantId, projectId } = useParams<{
-    tenantId?: string;
-    projectId?: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
     throw new Error('tenantId and projectId are required');

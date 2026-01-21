@@ -10,10 +10,8 @@ const agentQueryKeys = {
 };
 
 export function useAgentsQuery(options?: { enabled?: boolean }) {
-  const { tenantId, projectId } = useParams<{
-    tenantId?: string;
-    projectId?: string;
-  }>();
+  'use memo';
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
     throw new Error('tenantId and projectId are required');
