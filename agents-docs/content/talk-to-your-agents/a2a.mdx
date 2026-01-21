@@ -21,15 +21,15 @@ Here are some example platforms that you can add Inkeep Agents to:
 <Snippet file="auth/RunApiAuthModes.mdx" />
 
 ## Endpoints
-- **Agent card discovery (agent or sub-agent-level):** `GET <INKEEP_AGENTS_RUN_API_URL>/agents/.well-known/agent.json`
-- **A2A protocol (agent or sub-agent-level):** `POST <INKEEP_AGENTS_RUN_API_URL>/agents/.well-known/agent.json`
+- **Agent card discovery (agent or sub-agent-level):** `GET <INKEEP_AGENTS_API_URL>/run/agents/.well-known/agent.json`
+- **A2A protocol (agent or sub-agent-level):** `POST <INKEEP_AGENTS_API_URL>/run/agents/.well-known/agent.json`
 
 Notes:
 - If you supply `x-inkeep-sub-agent-id` in headers, requests target that specific Sub Agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the Agent's default Sub Agent.
 
 ## Message Send (Blocking)
 
-- **Path:** `POST  <INKEEP_AGENTS_RUN_API_URL>/agents/a2a`
+- **Path:** `POST  <INKEEP_AGENTS_API_URL>/run/agents/a2a`
 - **Headers:** Per Authentication section (Standard API Key recommended)
 - **Body (JSON-RPC 2.0):**
 
@@ -120,7 +120,7 @@ Set `configuration.blocking` to `false`. The server immediately returns a `task`
 
 ## Streaming Messages (SSE)
 
-- **Path:** `POST /agents/a2a`
+- **Path:** `POST /run/agents/a2a`
 - **Headers:** include `Accept: text/event-stream` plus Authentication headers
 - **Body (JSON-RPC 2.0):** same as blocking, but method `"message/stream"`
 
@@ -161,9 +161,9 @@ data: {"jsonrpc":"2.0","result":{"kind":"task","id":"task-...","contextId":"conv
 
 ## Task APIs
 
-- **Get task:** `POST /agents/a2a` with method `"tasks/get"` and params `{ "id": "task-..." }` → returns the `task`
-- **Cancel task:** `POST /agents/a2a` with method `"tasks/cancel"` and params `{ "id": "task-..." }` → returns `{ "success": true }`
-- **Resubscribe (SSE, mock):** `POST /agents/a2a` with method `"tasks/resubscribe"` and params `{ "taskId": "task-..." }` → SSE with a task event
+- **Get task:** `POST /run/agents/a2a` with method `"tasks/get"` and params `{ "id": "task-..." }` → returns the `task`
+- **Cancel task:** `POST /run/agents/a2a` with method `"tasks/cancel"` and params `{ "id": "task-..." }` → returns `{ "success": true }`
+- **Resubscribe (SSE, mock):** `POST /run/agents/a2a` with method `"tasks/resubscribe"` and params `{ "taskId": "task-..." }` → SSE with a task event
 
 <Note>
 Currently, `tasks/get` and `tasks/cancel` return stubbed responses, and `tasks/resubscribe` returns a mock SSE event. For live progress updates, use `message/stream`.
@@ -171,7 +171,7 @@ Currently, `tasks/get` and `tasks/cancel` return stubbed responses, and `tasks/r
 
 ## Agent Card Discovery
 
-- **Agent-level:** `GET /agents/.well-known/agent.json` (uses Agent's default Sub Agent)
+- **Agent-level:** `GET /run/agents/.well-known/agent.json` (uses Agent's default Sub Agent)
 - **Agent-level (dev/bypass only):** Provide `x-inkeep-sub-agent-id` in headers to target a specific agent for discovery
 
 ## Notes & Behavior
@@ -182,6 +182,6 @@ Currently, `tasks/get` and `tasks/cancel` return stubbed responses, and `tasks/r
 
 ## Development Notes
 
-- **Base URL (local):** `http://localhost:3003`
-- **Route Mounting:** A2A routes are mounted under `/agents`; use `/agents/a2a` for RPC and `/agents/.well-known/agent.json` for discovery
+- **Base URL (local):** `http://localhost:3002`
+- **Route Mounting:** A2A routes are mounted under `/run/agents`; use `/run/agents/a2a` for RPC and `/run/agents/.well-known/agent.json` for discovery
 - **Streaming support:** Requires agent capabilities `streaming: true` in the agent card

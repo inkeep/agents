@@ -12,7 +12,7 @@ import {
   isRefWritable,
   isValidCommitHash,
   resolveRef,
-} from '../../dolt/ref';
+} from '../../dolt/ref-helpers';
 import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 

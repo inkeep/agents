@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
@@ -11,10 +11,12 @@ import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { Credential } from '@/lib/api/credentials';
+import { externalAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
+import { FieldLabel } from '../form-components/label';
 import { TextareaField } from '../form-components/text-area';
 
 interface ExternalAgentNodeEditorProps {
@@ -156,16 +158,19 @@ export function ExternalAgentNodeEditor({
         onChange={handleInputChange}
         placeholder="https://api.example.com/agent"
         error={getFieldError('baseUrl')}
-        tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/tenants/:tenantId/projects/:projectId/agents/:agentId"
+        tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/manage/tenants/:tenantId/projects/:projectId/agents/:agentId"
         disabled
       />
-      <ExpandableJsonEditor
-        name="headers"
-        label="Headers"
-        value={headersInputValue}
-        onChange={handleHeadersChange}
-        placeholder="{}"
-      />
+      <div className="space-y-2">
+        <FieldLabel id="headers" label="Headers" />
+        <StandaloneJsonEditor
+          name="headers"
+          value={headersInputValue}
+          onChange={handleHeadersChange}
+          placeholder="{}"
+          customTemplate={externalAgentHeadersTemplate}
+        />
+      </div>
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
       >

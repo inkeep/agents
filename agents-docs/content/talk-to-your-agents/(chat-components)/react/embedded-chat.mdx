@@ -36,7 +36,7 @@ pnpm add @inkeep/agents-ui
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
         aiChatSettings: {
-          agentUrl: "https://your-api.example.com/api/chat",
+          agentUrl: "https://your-api.example.com/run/api/chat",
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
       };
@@ -66,7 +66,7 @@ pnpm add @inkeep/agents-ui
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
         aiChatSettings: {
-          agentUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3002/run/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",

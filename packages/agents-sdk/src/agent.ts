@@ -10,6 +10,7 @@ import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/s
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import { getFullProjectViaAPI } from './projectFullClient';
+import type { Trigger } from './trigger';
 import type {
   AgentConfig,
   AgentInterface,
@@ -21,6 +22,7 @@ import type {
   StreamResponse,
   SubAgentInterface,
   subAgentTeamAgentInterface,
+  TriggerInterface,
 } from './types';
 
 const logger = getLogger('agent');
@@ -54,6 +56,8 @@ export class Agent implements AgentInterface {
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
+  private triggers: TriggerInterface[] = [];
+  private triggerMap: Map<string, Trigger> = new Map();
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -79,6 +83,12 @@ export class Agent implements AgentInterface {
     this.subAgents = resolveGetter(config.subAgents) || [];
     this.agentMap = new Map(this.subAgents.map((agent) => [agent.getId(), agent]));
 
+    // Initialize triggers
+    this.triggers = resolveGetter(config.triggers) || [];
+    this.triggerMap = new Map(
+      this.triggers.map((trigger) => [trigger.getId(), trigger as Trigger])
+    );
+
     // Add default agent to map if not already present
     if (this.defaultSubAgent) {
       const isAlreadyPresent = this.subAgents.some(
@@ -101,6 +111,7 @@ export class Agent implements AgentInterface {
         tenantId: this.tenantId,
         agentCount: this.subAgents.length,
         defaultSubAgent: this.defaultSubAgent?.getName(),
+        triggerCount: this.triggers.length,
       },
       'Agent created'
     );
@@ -365,6 +376,26 @@ export class Agent implements AgentInterface {
       }
     }
 
+    // Serialize triggers with Zod schema conversion
+    const triggersObject: Record<string, any> = {};
+    for (const [triggerId, trigger] of this.triggerMap.entries()) {
+      const config = trigger.getConfig();
+
+      // Convert Zod inputSchema to JSON Schema if needed
+      let processedInputSchema = config.inputSchema;
+      if (config.inputSchema && isZodSchema(config.inputSchema)) {
+        processedInputSchema = convertZodToJsonSchema(config.inputSchema) as Record<
+          string,
+          unknown
+        >;
+      }
+
+      triggersObject[triggerId] = {
+        ...config,
+        inputSchema: processedInputSchema,
+      };
+    }
+
     return {
       id: this.agentId,
       name: this.agentName,
@@ -376,6 +407,8 @@ export class Agent implements AgentInterface {
       // Include function tools at agent level
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
+      // Include triggers at agent level
+      ...(Object.keys(triggersObject).length > 0 && { triggers: triggersObject }),
       models: this.models,
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
@@ -712,6 +745,36 @@ export class Agent implements AgentInterface {
   }
 
   /**
+   * Get all triggers for this agent
+   */
+  getTriggers(): Record<string, Trigger> {
+    const triggersObject: Record<string, Trigger> = {};
+    for (const [id, trigger] of this.triggerMap.entries()) {
+      triggersObject[id] = trigger;
+    }
+    return triggersObject;
+  }
+
+  /**
+   * Add one or more triggers to the agent at runtime
+   */
+  addTrigger(...triggers: TriggerInterface[]): void {
+    for (const trigger of triggers) {
+      this.triggers.push(trigger);
+      this.triggerMap.set(trigger.getId(), trigger as Trigger);
+
+      logger.info(
+        {
+          agentId: this.agentId,
+          triggerId: trigger.getId(),
+          triggerName: trigger.getName(),
+        },
+        'Trigger added to agent'
+      );
+    }
+  }
+
+  /**
    * Get the agent ID
    */
   getId(): string {
@@ -1038,7 +1101,7 @@ export class Agent implements AgentInterface {
   ): Promise<string> {
     const normalizedMessages = this.normalizeMessages(input);
 
-    const url = `${this.baseURL}/tenants/${this.tenantId}/agent/${this.agentId}/v1/chat/completions`;
+    const url = `${this.baseURL}/run/v1/chat/completions`;
 
     logger.info({ url }, 'Executing with backend');
     const requestBody = {

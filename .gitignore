@@ -71,10 +71,13 @@ vite.config.d.ts
 .turbo
 
 # Generated workflow bundles
-agents-eval-api/.well-known/
+agents-api/.well-known/
 
 # Workflow runtime data
-agents-eval-api/.workflow-data/
+agents-api/.workflow-data/
 
 # Node compile cache
 node-compile-cache/
+
+# inkeep pull temp folder
+.temp-validation-*/

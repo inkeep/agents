@@ -292,20 +292,15 @@ async function validateProjectEquivalence(
     ]);
 
     // Apply the same canDelegateTo enrichment to temp project for fair comparison
-    enrichCanDelegateToWithTypes(tempProjectDefinition, false);
+    enrichCanDelegateToWithTypes(tempProjectDefinition);
 
     // Use existing project comparator instead of custom logic
 
     // Build a proper registry for the temp project (needed by compareProjects)
-    const tempRegistry = buildComponentRegistryFromParsing(tempDir, false);
+    buildComponentRegistryFromParsing(tempDir, false);
 
     // Compare using existing comparator
-    const comparison = await compareProjects(
-      tempProjectDefinition,
-      remoteProject,
-      tempRegistry,
-      true
-    );
+    const comparison = await compareProjects(tempProjectDefinition, remoteProject, true);
 
     // Check if there are any changes at all
     if (!comparison.hasChanges) {
@@ -615,7 +610,7 @@ function overwriteProjectFiles(
           mkdirSync(dirname(targetPath), { recursive: true });
           copyFileSync(sourcePath, targetPath);
           filesReplaced++;
-          const relativePath = targetPath.replace(originalProjectRoot + '/', '');
+          const relativePath = targetPath.replace(`${originalProjectRoot}/`, '');
           console.log(chalk.green(`   ✅ Replaced: ${relativePath}`));
         }
       }

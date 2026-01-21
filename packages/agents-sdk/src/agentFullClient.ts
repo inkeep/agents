@@ -28,7 +28,7 @@ export async function createFullAgentViaAPI(
     'Creating full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agent`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -85,7 +85,7 @@ export async function updateFullAgentViaAPI(
     'Updating full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -141,7 +141,7 @@ export async function getFullAgentViaAPI(
     'Getting full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -206,7 +206,7 @@ export async function deleteFullAgentViaAPI(
     'Deleting full agent via API'
   );
 
-  const url = `${apiUrl}/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
+  const url = `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agent/${agentId}`;
   const response = await fetch(url, {
     method: 'DELETE',
     headers: {

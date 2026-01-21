@@ -5,6 +5,10 @@ import {
   getModelInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
+import {
+  azureModelSummarizerProviderOptionsTemplate,
+  summarizerModelProviderOptionsTemplate,
+} from '@/lib/templates';
 import { createProviderOptionsHandler } from '@/lib/utils';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
@@ -130,16 +134,9 @@ export function ModelSection({
           editorNamePrefix="summarizer"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
-              return `{
-  "resourceName": "your-azure-resource",
-  "temperature": 0.3,
-  "maxOutputTokens": 1024
-}`;
+              return azureModelSummarizerProviderOptionsTemplate;
             }
-            return `{
-  "temperature": 0.3,
-  "maxOutputTokens": 1024
-}`;
+            return summarizerModelProviderOptionsTemplate;
           }}
         />
       </CollapsibleSettings>

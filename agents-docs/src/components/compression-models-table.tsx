@@ -4,7 +4,7 @@ import {
   OPENAI_MODELS,
 } from '@inkeep/agents-core/constants/models';
 import { ModelInfoMap } from 'llm-info';
-import { extractModelIdForLlmInfo } from '../../../agents-run-api/src/utils/model-context-utils';
+import { extractModelIdForLlmInfo } from '../../../agents-api/src/domains/run/utils/model-context-utils';
 
 // Select representative models from our supported set
 const FEATURED_MODELS = [

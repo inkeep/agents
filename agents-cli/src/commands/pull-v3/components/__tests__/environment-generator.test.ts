@@ -1,3 +1,5 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
+
 /**
  * Unit tests for environment settings generator
  */
@@ -55,7 +57,7 @@ describe('Environment Settings Generator', () => {
 
   describe('generateEnvironmentSettingsImports', () => {
     it('should generate basic imports', () => {
-      const imports = generateEnvironmentSettingsImports('development', developmentData);
+      const imports = generateEnvironmentSettingsImports(developmentData);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
@@ -64,14 +66,14 @@ describe('Environment Settings Generator', () => {
 
     it('should not include CredentialStoreType when not needed', () => {
       const emptyData = { credentials: {} };
-      const imports = generateEnvironmentSettingsImports('development', emptyData);
+      const imports = generateEnvironmentSettingsImports(emptyData);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateEnvironmentSettingsImports('development', developmentData, {
+      const imports = generateEnvironmentSettingsImports(developmentData, {
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
@@ -276,7 +278,7 @@ describe('Environment Settings Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate environment settings code that compiles', async () => {
-      const file = generateEnvironmentSettingsFile('development', developmentData);
+      generateEnvironmentSettingsFile('development', developmentData);
 
       // Extract just the definition (remove imports and export)
       const definition = generateEnvironmentSettingsDefinition('development', developmentData);
@@ -298,7 +300,7 @@ describe('Environment Settings Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -306,15 +308,15 @@ describe('Environment Settings Generator', () => {
       // Verify the resulting object has the correct structure
       expect(result).toBeDefined();
       expect(result.credentials).toBeDefined();
-      expect(result.credentials['stripe_api_key']).toBeDefined();
-      expect(result.credentials['stripe_api_key'].id).toBe('stripe-api-key');
-      expect(result.credentials['stripe_api_key'].type).toBe('memory');
-      expect(result.credentials['database_url']).toBeDefined();
-      expect(result.credentials['database_url'].type).toBe('env');
+      expect(result.credentials.stripe_api_key).toBeDefined();
+      expect(result.credentials.stripe_api_key.id).toBe('stripe-api-key');
+      expect(result.credentials.stripe_api_key.type).toBe('memory');
+      expect(result.credentials.database_url).toBeDefined();
+      expect(result.credentials.database_url.type).toBe('env');
     });
 
     it('should generate environment index code that compiles', () => {
-      const file = generateEnvironmentIndexFile(['development', 'production']);
+      generateEnvironmentIndexFile(['development', 'production']);
 
       // Extract just the definition
       const definition = generateEnvironmentIndexDefinition(['development', 'production']);
@@ -330,7 +332,7 @@ describe('Environment Settings Generator', () => {
         return envSettings;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -353,7 +355,7 @@ describe('Environment Settings Generator', () => {
         return minimal;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

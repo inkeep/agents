@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "concurrency": "15",
   "globalDependencies": ["**/.env", "**/.env.local", "**/.env.*"],
   "globalEnv": [
     "NODE_ENV",
@@ -50,12 +51,6 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": ["coverage/**"]
     },
-    "@inkeep/agents-run-api#test": {
-      "dependsOn": ["build"],
-      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
-      "outputs": [],
-      "env": ["CI"]
-    },
     "@inkeep/agents-cli#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
@@ -67,12 +62,7 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
-    "@inkeep/agents-manage-api#test": {
-      "dependsOn": ["build"],
-      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
-      "outputs": []
-    },
-    "@inkeep/agents-eval-api#test": {
+    "@inkeep/agents-api#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []

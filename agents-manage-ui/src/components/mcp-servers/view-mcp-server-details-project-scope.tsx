@@ -161,6 +161,18 @@ export function ViewMCPServerDetailsProjectScope({
           )}
         </div>
 
+        {/* Custom Prompt */}
+        {tool.config.type === 'mcp' && tool.config.mcp.prompt && (
+          <div className="space-y-2">
+            <ItemLabel>Custom Prompt</ItemLabel>
+            <ItemValue>
+              <div className="text-sm bg-muted/50 p-3 rounded border whitespace-pre-wrap">
+                {tool.config.mcp.prompt}
+              </div>
+            </ItemValue>
+          </div>
+        )}
+
         {/* Credential Scope and Created By */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -255,6 +267,7 @@ export function ViewMCPServerDetailsProjectScope({
           <AvailableToolsCard
             tools={tool.availableTools}
             activeTools={(tool.config as any).mcp.activeTools}
+            toolOverrides={(tool.config as any).mcp.toolOverrides}
           />
         )}
       </div>

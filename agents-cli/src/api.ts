@@ -102,12 +102,12 @@ export class ManagementApiClient extends BaseApiClient {
     const config = await validateConfiguration(configPath);
 
     // Allow overrides from parameters
-    const resolvedApiUrl = apiUrl || config.agentsManageApiUrl;
+    const resolvedApiUrl = apiUrl || config.agentsApiUrl;
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
     // Use explicit API key override if provided (e.g., from profile credentials)
-    const apiKey = apiKeyOverride || config.agentsManageApiKey;
+    const apiKey = apiKeyOverride || config.agentsApiKey;
 
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, apiKey, isCI ?? false);
   }
@@ -117,7 +117,7 @@ export class ManagementApiClient extends BaseApiClient {
     const projectId = this.getProjectId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents?limit=100`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=100`,
       {
         method: 'GET',
       }
@@ -125,7 +125,7 @@ export class ManagementApiClient extends BaseApiClient {
 
     if (!response.ok) {
       throw new Error(
-        `Failed to list agents: ${response.statusText}. ${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`
+        `Failed to list agents: ${response.statusText}. ${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents`
       );
     }
 
@@ -155,7 +155,7 @@ export class ManagementApiClient extends BaseApiClient {
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
         method: 'PUT',
         body: JSON.stringify({
@@ -178,7 +178,7 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
       {
         method: 'GET',
       }
@@ -224,7 +224,7 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects?page=${page}&limit=${limit}`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects?page=${page}&limit=${limit}`,
       {
         method: 'GET',
       }
@@ -299,7 +299,7 @@ export class ExecutionApiClient extends BaseApiClient {
     const config = await validateConfiguration(configPath);
 
     // Allow overrides from parameters
-    const resolvedApiUrl = apiUrl || config.agentsRunApiUrl;
+    const resolvedApiUrl = apiUrl || config.agentsApiUrl;
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
@@ -307,7 +307,7 @@ export class ExecutionApiClient extends BaseApiClient {
       resolvedApiUrl,
       tenantId,
       projectId,
-      config.agentsRunApiKey,
+      config.agentsApiKey,
       isCI ?? false
     );
   }
@@ -318,7 +318,7 @@ export class ExecutionApiClient extends BaseApiClient {
     conversationId?: string,
     emitOperations?: boolean
   ): Promise<ReadableStream<Uint8Array> | string> {
-    const response = await this.authenticatedFetch(`${this.apiUrl}/v1/chat/completions`, {
+    const response = await this.authenticatedFetch(`${this.apiUrl}/run/v1/chat/completions`, {
       method: 'POST',
       headers: {
         Accept: 'text/event-stream',

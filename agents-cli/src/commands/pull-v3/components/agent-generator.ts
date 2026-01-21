@@ -373,6 +373,27 @@ export function generateAgentDefinition(
     lines.push(`${indentation}credentials: () => ${credentialsArray},`);
   }
 
+  // triggers - function returning array of trigger references
+  if (
+    agentData.triggers &&
+    typeof agentData.triggers === 'object' &&
+    Object.keys(agentData.triggers).length > 0
+  ) {
+    if (!registry) {
+      throw new Error('Registry is required for triggers generation');
+    }
+
+    // triggers is an object with IDs as keys, extract the keys
+    const triggerIds = Object.keys(agentData.triggers);
+    const triggersArray = registry.formatReferencesForCode(triggerIds, 'triggers', style, 2);
+
+    if (!triggersArray) {
+      throw new Error(`Failed to resolve variable names for triggers: ${triggerIds.join(', ')}`);
+    }
+
+    lines.push(`${indentation}triggers: () => ${triggersArray},`);
+  }
+
   // stopWhen - stopping conditions for the agent (only supports transferCountIs)
   if (agentData.stopWhen) {
     const stopWhenFormatted = formatStopWhen(agentData.stopWhen, style, 1);
@@ -412,7 +433,6 @@ export function generateAgentImports(
   agentData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
-  contextConfigData?: any,
   actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
@@ -437,8 +457,7 @@ export function generateAgentImports(
 
     // Status component references
     if (
-      agentData.statusUpdates &&
-      agentData.statusUpdates.statusComponents &&
+      agentData.statusUpdates?.statusComponents &&
       Array.isArray(agentData.statusUpdates.statusComponents)
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {
@@ -463,6 +482,14 @@ export function generateAgentImports(
       referencedComponents.push({ id: agentData.defaultSubAgentId, type: 'subAgents' });
     }
 
+    // Trigger references (triggers is an object with IDs as keys)
+    if (agentData.triggers && typeof agentData.triggers === 'object') {
+      const triggerIds = Object.keys(agentData.triggers);
+      referencedComponents.push(
+        ...triggerIds.map((id) => ({ id, type: 'triggers' as ComponentType }))
+      );
+    }
+
     // Get import statements for all referenced components
     const componentImports = registry.getImportsForFile(currentFilePath, referencedComponents);
     imports.push(...componentImports);
@@ -483,14 +510,7 @@ export function generateAgentFile(
   projectModels?: any,
   actualFilePath?: string
 ): string {
-  const imports = generateAgentImports(
-    agentId,
-    agentData,
-    style,
-    registry,
-    contextConfigData,
-    actualFilePath
-  );
+  const imports = generateAgentImports(agentId, agentData, style, registry, actualFilePath);
   const definition = generateAgentDefinition(
     agentId,
     agentData,

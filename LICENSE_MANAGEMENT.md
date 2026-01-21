@@ -17,8 +17,7 @@ These are the **authoritative versions** - all changes should be made to these r
 ### Distribution
 The following packages automatically receive copies of both license files:
 - `agents-cli`
-- `agents-manage-api`
-- `agents-run-api`
+- `agents-api`
 - `agents-ui`
 - `packages/agents-core`
 - `packages/agents-sdk`

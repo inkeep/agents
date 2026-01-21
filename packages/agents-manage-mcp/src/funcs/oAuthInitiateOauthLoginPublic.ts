@@ -87,7 +87,7 @@ async function $do(
   }
   const payload$ = parsed$.value;
   const body$ = null;
-  const path$ = pathToFunc("/oauth/login")();
+  const path$ = pathToFunc("/manage/oauth/login")();
   const query$ = encodeFormQuery({
     "projectId": payload$.projectId,
     "tenantId": payload$.tenantId,

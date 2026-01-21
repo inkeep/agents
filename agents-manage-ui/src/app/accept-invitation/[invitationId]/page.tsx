@@ -1,21 +1,22 @@
 'use client';
 
 import { AlertCircleIcon, CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
-import { useAuthClient } from '@/lib/auth-client';
 
-export default function AcceptInvitationPage() {
-  const params = useParams();
+export default function AcceptInvitationPage({
+  params,
+}: PageProps<'/accept-invitation/[invitationId]'>) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuthSession();
-  const invitationId = params.invitationId as string;
+  const { invitationId } = use(params);
   const authClient = useAuthClient();
 
   const [invitation, setInvitation] = useState<any>(null);
@@ -57,7 +58,7 @@ export default function AcceptInvitationPage() {
     }
 
     fetchInvitation();
-  }, [invitationId, user, authClient.organization.getInvitation]);
+  }, [invitationId, user, authClient]);
 
   const handleAccept = async () => {
     if (!user) {

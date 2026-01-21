@@ -1,6 +1,8 @@
+import { logger } from '@composio/core';
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltHashOf } from './commit';
+import { resolveRef } from './ref-helpers';
 
 export type branchScopes = {
   tenantId: string;
@@ -84,4 +86,36 @@ export const doltActiveBranch = (db: AgentsManageDatabaseClient) => async (): Pr
 
 export const doltGetBranchNamespace = (scopes: branchScopes) => (): string => {
   return `${scopes.tenantId}_${scopes.projectId}_${scopes.branchName}`;
+};
+
+/**
+ * Create a branch if it doesn't exist, handling race conditions gracefully.
+ * If multiple concurrent requests try to create the same branch, only one will succeed.
+ */
+export const ensureBranchExists = async (
+  db: AgentsManageDatabaseClient,
+  branchName: string
+): Promise<void> => {
+  const existingBranch = await resolveRef(db)(branchName);
+  if (existingBranch) {
+    logger.debug({ branchName }, 'Branch already exists, skipping creation');
+    return;
+  }
+
+  try {
+    await doltBranch(db)({ name: branchName });
+    logger.debug({ branchName }, 'Branch created successfully');
+  } catch (error) {
+    const branchNowExists = await resolveRef(db)(branchName);
+    if (branchNowExists) {
+      logger.debug(
+        { branchName },
+        'Branch creation failed but branch exists (concurrent creation), continuing'
+      );
+      return;
+    }
+
+    logger.error({ branchName, error }, 'Branch creation failed and branch does not exist');
+    throw error;
+  }
 };

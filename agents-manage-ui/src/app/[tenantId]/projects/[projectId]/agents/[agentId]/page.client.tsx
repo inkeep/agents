@@ -13,7 +13,7 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
@@ -27,7 +27,6 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import { useCopilotContext } from '@/components/agent/copilot/copilot-context';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
@@ -39,6 +38,7 @@ import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useCopilotContext } from '@/contexts/copilot';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
@@ -127,6 +127,7 @@ export const Agent: FC<AgentProps> = ({
   toolLookup = {},
   credentialLookup = {},
 }) => {
+  'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
     isOpen: isCopilotChatOpen,
@@ -143,142 +144,121 @@ export const Agent: FC<AgentProps> = ({
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
-  const initialNode = useMemo<Node>(
-    () => ({
-      id: generateId(),
-      type: NodeType.SubAgent,
-      position: { x: 0, y: 0 },
-      data: { name: '', isDefault: true },
-      deletable: false,
-    }),
-    []
-  );
+  const initialNode: Node = {
+    id: generateId(),
+    type: NodeType.SubAgent,
+    position: { x: 0, y: 0 },
+    data: { name: '', isDefault: true },
+    deletable: false,
+  };
 
-  const initialNodes = useMemo<Node[]>(() => [initialNode], [initialNode]);
+  const initialNodes = [initialNode];
 
   // Helper to enrich MCP nodes with tool data
-  const enrichNodes = useCallback(
-    (nodes: Node[]): Node[] => {
-      return nodes.map((node) => {
-        if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
-          const tool = toolLookup[node.data.toolId as string];
-          if (tool) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                name: tool.name,
-                imageUrl: tool.imageUrl,
-              },
-            };
-          }
-        }
-        return node;
-      });
-    },
-    [toolLookup]
-  );
-
-  const { nodes: agentNodes, edges: agentEdges } = useMemo(() => {
-    const result = agent
-      ? deserializeAgentData(agent)
-      : { nodes: initialNodes, edges: initialEdges };
-    return {
-      ...result,
-      nodes: nodeId
-        ? enrichNodes(result.nodes).map((node) => ({
+  const enrichNodes = (nodes: Node[]): Node[] => {
+    return nodes.map((node) => {
+      if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
+        const tool = toolLookup[node.data.toolId as string];
+        if (tool) {
+          return {
             ...node,
-            selected: node.id === nodeId,
-          }))
-        : enrichNodes(result.nodes),
-      edges: edgeId
-        ? result.edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : result.edges,
-    };
-  }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
+            data: {
+              ...node.data,
+              name: tool.name,
+              imageUrl: tool.imageUrl,
+            },
+          };
+        }
+      }
+      return node;
+    });
+  };
+
+  const result = agent ? deserializeAgentData(agent) : { nodes: initialNodes, edges: initialEdges };
+
+  const agentNodes = nodeId
+    ? enrichNodes(result.nodes).map((node) => ({
+        ...node,
+        selected: node.id === nodeId,
+      }))
+    : enrichNodes(result.nodes);
+
+  const agentEdges = edgeId
+    ? result.edges.map((edge) => ({
+        ...edge,
+        selected: edge.id === edgeId,
+      }))
+    : result.edges;
 
   // Helper functions to compute lookups from agent data
-  const computeAgentToolConfigLookup = useCallback(
-    (agentData: ExtendedFullAgentDefinition | null | undefined): AgentToolConfigLookup => {
-      if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
+  const computeAgentToolConfigLookup = (
+    agentData?: ExtendedFullAgentDefinition | null
+  ): AgentToolConfigLookup => {
+    if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
 
-      const lookup: AgentToolConfigLookup = {};
-      Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-        if ('canUse' in subAgentData && subAgentData.canUse) {
-          const toolsMap: Record<string, AgentToolConfig> = {};
-          subAgentData.canUse.forEach((tool) => {
-            if (tool.agentToolRelationId) {
-              const config: AgentToolConfig = {
-                toolId: tool.toolId,
-              };
+    const lookup: AgentToolConfigLookup = {};
+    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
+      if ('canUse' in subAgentData && subAgentData.canUse) {
+        const toolsMap: Record<string, AgentToolConfig> = {};
+        subAgentData.canUse.forEach((tool) => {
+          if (tool.agentToolRelationId) {
+            const config: AgentToolConfig = {
+              toolId: tool.toolId,
+            };
 
-              if (tool.toolSelection !== undefined) {
-                config.toolSelection = tool.toolSelection;
-              }
-
-              if (tool.headers) {
-                config.headers = tool.headers;
-              }
-
-              if (tool.toolPolicies) {
-                config.toolPolicies = tool.toolPolicies;
-              }
-
-              toolsMap[tool.agentToolRelationId] = config;
+            if (tool.toolSelection !== undefined) {
+              config.toolSelection = tool.toolSelection;
             }
+
+            if (tool.headers) {
+              config.headers = tool.headers;
+            }
+
+            if (tool.toolPolicies) {
+              config.toolPolicies = tool.toolPolicies;
+            }
+
+            toolsMap[tool.agentToolRelationId] = config;
+          }
+        });
+        if (Object.keys(toolsMap).length > 0) {
+          lookup[subAgentId] = toolsMap;
+        }
+      }
+    });
+    return lookup;
+  };
+
+  const computeSubAgentExternalAgentConfigLookup = (
+    agentData?: ExtendedFullAgentDefinition | null
+  ): SubAgentExternalAgentConfigLookup => {
+    if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
+    const lookup: SubAgentExternalAgentConfigLookup = {};
+    Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
+      if ('canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
+        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
+        subAgentData.canDelegateTo
+          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
+          .forEach((delegate) => {
+            externalAgentConfigs[delegate.externalAgentId] = {
+              externalAgentId: delegate.externalAgentId,
+              headers: delegate.headers ?? undefined,
+            };
           });
-          if (Object.keys(toolsMap).length > 0) {
-            lookup[subAgentId] = toolsMap;
-          }
+        if (Object.keys(externalAgentConfigs).length > 0) {
+          lookup[subAgentId] = externalAgentConfigs;
         }
-      });
-      return lookup;
-    },
-    []
-  );
+      }
+    });
+    return lookup;
+  };
 
-  const computeSubAgentExternalAgentConfigLookup = useCallback(
-    (
-      agentData: ExtendedFullAgentDefinition | null | undefined
-    ): SubAgentExternalAgentConfigLookup => {
-      if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
-      const lookup: SubAgentExternalAgentConfigLookup = {};
-      Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-        if ('canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
-          const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
-          subAgentData.canDelegateTo
-            .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
-            .forEach((delegate) => {
-              externalAgentConfigs[delegate.externalAgentId] = {
-                externalAgentId: delegate.externalAgentId,
-                headers: delegate.headers ?? undefined,
-              };
-            });
-          if (Object.keys(externalAgentConfigs).length > 0) {
-            lookup[subAgentId] = externalAgentConfigs;
-          }
-        }
-      });
-      return lookup;
-    },
-    []
-  );
+  const agentToolConfigLookup = computeAgentToolConfigLookup(agent);
 
-  const agentToolConfigLookup = useMemo(
-    () => computeAgentToolConfigLookup(agent),
-    [agent, computeAgentToolConfigLookup]
-  );
+  const subAgentExternalAgentConfigLookup = computeSubAgentExternalAgentConfigLookup(agent);
 
-  const subAgentExternalAgentConfigLookup = useMemo(
-    () => computeSubAgentExternalAgentConfigLookup(agent),
-    [agent, computeSubAgentExternalAgentConfigLookup]
-  );
-
-  const subAgentTeamAgentConfigLookup = useMemo((): SubAgentTeamAgentConfigLookup => {
-    if (!agent.subAgents) return {} as SubAgentTeamAgentConfigLookup;
+  const subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup = (() => {
+    if (!agent.subAgents) return {};
     const lookup: SubAgentTeamAgentConfigLookup = {};
     Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
       if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
@@ -298,7 +278,7 @@ export const Agent: FC<AgentProps> = ({
       }
     });
     return lookup;
-  }, [agent.subAgents]);
+  })();
 
   const { screenToFlowPosition, updateNodeData, fitView, getEdges, getIntersectingNodes } =
     useReactFlow();
@@ -323,43 +303,58 @@ export const Agent: FC<AgentProps> = ({
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
   // Always use enriched nodes for ReactFlow
-  const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
+  const nodes = enrichNodes(storeNodes);
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   /**
    * Custom `onNodesChange` handler that relayouts the agent using Dagre
    * when a `replace` change causes node intersections.
    **/
-  const onNodesChange: typeof storeOnNodesChange = useCallback(
-    (changes) => {
-      storeOnNodesChange(changes);
+  const onNodesChange: typeof storeOnNodesChange = (changes) => {
+    storeOnNodesChange(changes);
 
-      const replaceChanges = changes.filter((change) => change.type === 'replace');
-      if (!replaceChanges.length) {
-        return;
-      }
-      // Using `setTimeout` instead of `requestAnimationFrame` ensures updated node positions are available,
-      // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
-      setTimeout(() => {
-        setNodes((prev) => {
-          for (const change of replaceChanges) {
-            const node = prev.find((n) => n.id === change.id);
-            if (!node) {
-              continue;
-            }
-            // Use React Flow's intersection detection
-            const intersectingNodes = getIntersectingNodes(node);
-            if (intersectingNodes.length > 0) {
-              // Apply Dagre layout to resolve intersections
-              return applyDagreLayout(prev, getEdges());
-            }
+    const replaceChanges = changes.filter((change) => change.type === 'replace');
+    if (!replaceChanges.length) {
+      return;
+    }
+    // Using `setTimeout` instead of `requestAnimationFrame` ensures updated node positions are available,
+    // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
+    setTimeout(() => {
+      setNodes((prev) => {
+        for (const change of replaceChanges) {
+          const node = prev.find((n) => n.id === change.id);
+          if (!node) {
+            continue;
           }
-          return prev;
-        });
-      }, 0);
-    },
-    [getEdges, getIntersectingNodes, setNodes, storeOnNodesChange]
-  );
+          // Use React Flow's intersection detection
+          const intersectingNodes = getIntersectingNodes(node);
+          if (intersectingNodes.length > 0) {
+            // Apply Dagre layout to resolve intersections
+            return applyDagreLayout(prev, getEdges());
+          }
+        }
+        return prev;
+      });
+    }, 0);
+  };
+
+  const onAddInitialNode = () => {
+    const newNode = {
+      ...initialNode,
+      selected: true,
+    };
+    clearSelection();
+    markUnsaved();
+    commandManager.execute(new AddNodeCommand(newNode as Node));
+    // Wait for sidebar to open (350ms for CSS transition) then center the node
+    setTimeout(() => {
+      fitView({
+        maxZoom: 1,
+        duration: 200,
+        nodes: [newNode],
+      });
+    }, 350);
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
@@ -430,99 +425,91 @@ export const Agent: FC<AgentProps> = ({
   }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = useCallback(
-    async (options?: { fetchTools?: boolean }) => {
-      if (!agent.id) {
+  const refreshAgentGraph = async (options?: { fetchTools?: boolean }) => {
+    if (!agent.id) {
+      return;
+    }
+
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest(): Promise<void> {
+      const [fullProjectResult, toolsResult] = await Promise.all([
+        getFullProjectAction(tenantId, projectId),
+        options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
+      ]);
+
+      if (!fullProjectResult.success) {
+        console.error('Failed to refresh agent graph:', fullProjectResult.error);
         return;
       }
+      const fullProject = fullProjectResult.data;
+      const updatedAgent = fullProject?.agents?.[
+        agent.id as keyof typeof fullProject.agents
+      ] as ExtendedFullAgentDefinition;
 
-      try {
-        const [fullProjectResult, toolsResult] = await Promise.all([
-          getFullProjectAction(tenantId, projectId),
-          options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
-        ]);
+      // Update tool lookup if tools were fetched
+      const updatedToolLookup = toolsResult?.success
+        ? createLookup(toolsResult.data)
+        : fullProject.tools || {};
 
-        if (!fullProjectResult.success) {
-          console.error('Failed to refresh agent graph:', fullProjectResult.error);
-          return;
-        }
-        const fullProject = fullProjectResult.data;
-        const updatedAgent = fullProject?.agents?.[
-          agent.id as keyof typeof fullProject.agents
-        ] as ExtendedFullAgentDefinition;
+      // Deserialize agent data to nodes and edges
+      const { nodes, edges } = deserializeAgentData(updatedAgent);
 
-        // Update tool lookup if tools were fetched
-        const updatedToolLookup = toolsResult?.success
-          ? createLookup(toolsResult.data)
-          : fullProject.tools || {};
+      // Preserve selection state based on current URL state
+      const nodesWithSelection = nodeId
+        ? nodes.map((node) => ({
+            ...node,
+            selected: node.id === nodeId,
+          }))
+        : nodes;
 
-        // Deserialize agent data to nodes and edges
-        const { nodes, edges } = deserializeAgentData(updatedAgent);
+      const edgesWithSelection = edgeId
+        ? edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === edgeId,
+          }))
+        : edges;
 
-        // Preserve selection state based on current URL state
-        const nodesWithSelection = nodeId
-          ? nodes.map((node) => ({
-              ...node,
-              selected: node.id === nodeId,
-            }))
-          : nodes;
+      // Extract metadata
+      const metadata = extractAgentMetadata(updatedAgent);
 
-        const edgesWithSelection = edgeId
-          ? edges.map((edge) => ({
-              ...edge,
-              selected: edge.id === edgeId,
-            }))
-          : edges;
+      // Create lookups from full project data
+      const updatedDataComponentLookup = fullProject.dataComponents || {};
+      const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
+      const updatedExternalAgentLookup = fullProject.externalAgents || {};
 
-        // Extract metadata
-        const metadata = extractAgentMetadata(updatedAgent);
+      // Recompute agent-specific lookups from the updated agent data
+      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
+      const updatedSubAgentExternalAgentConfigLookup =
+        computeSubAgentExternalAgentConfigLookup(updatedAgent);
 
-        // Create lookups from full project data
-        const updatedDataComponentLookup = fullProject.dataComponents || {};
-        const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
-        const updatedExternalAgentLookup = fullProject.externalAgents || {};
+      // Update the store with all refreshed data
+      setInitial(
+        enrichNodes(nodesWithSelection),
+        edgesWithSelection,
+        metadata,
+        updatedDataComponentLookup as Record<string, DataComponent>,
+        updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
+        updatedToolLookup as unknown as Record<string, MCPTool>,
+        updatedAgentToolConfigLookup,
+        updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
+        updatedSubAgentExternalAgentConfigLookup
+      );
 
-        // Recompute agent-specific lookups from the updated agent data
-        const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
-        const updatedSubAgentExternalAgentConfigLookup =
-          computeSubAgentExternalAgentConfigLookup(updatedAgent);
+      // Update project data in store so components using useProjectData get fresh data
+      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
 
-        // Update the store with all refreshed data
-        setInitial(
-          enrichNodes(nodesWithSelection),
-          edgesWithSelection,
-          metadata,
-          updatedDataComponentLookup as Record<string, DataComponent>,
-          updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
-          updatedToolLookup as unknown as Record<string, MCPTool>,
-          updatedAgentToolConfigLookup,
-          updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
-          updatedSubAgentExternalAgentConfigLookup
-        );
+      setProjectStore(convertedProject);
+    }
 
-        // Update project data in store so components using useProjectData get fresh data
-        const convertedProject = convertFullProjectToProject(fullProject, tenantId);
-        setProjectStore(convertedProject);
-      } catch (error) {
-        console.error('Failed to refresh agent graph:', error);
-      }
-    },
-    [
-      agent.id,
-      tenantId,
-      projectId,
-      nodeId,
-      edgeId,
-      setInitial,
-      computeAgentToolConfigLookup,
-      computeSubAgentExternalAgentConfigLookup,
-      enrichNodes,
-      setProjectStore,
-    ]
-  );
+    try {
+      await doRequest();
+    } catch (error) {
+      console.error('Failed to refresh agent graph:', error);
+    }
+  };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
-  const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
+  const onConnectWrapped: ReactFlowProps['onConnect'] = (params) => {
     markUnsaved();
     const isSelfLoop = params.source === params.target;
     const id = isSelfLoop ? `edge-self-${params.source}` : getEdgeId(params.source, params.target);
@@ -617,91 +604,67 @@ export const Agent: FC<AgentProps> = ({
         new AddPreparedEdgeCommand(newEdge, { deselectOtherEdgesIfA2A: true })
       );
     });
-  }, []);
+  };
 
-  const isValidConnection: ReactFlowProps['isValidConnection'] = useCallback(
-    ({ sourceHandle, targetHandle }) => {
-      // we don't want to allow connections between MCP nodes
-      if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-        return false;
-      }
-      return true;
-    },
-    []
-  );
+  const isValidConnection: ReactFlowProps['isValidConnection'] = ({
+    sourceHandle,
+    targetHandle,
+  }) => {
+    // we don't want to allow connections between MCP nodes
+    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+      return false;
+    }
+    return true;
+  };
 
-  const onDragOver: ReactFlowProps['onDragOver'] = useCallback((event) => {
+  const onDragOver: ReactFlowProps['onDragOver'] = (event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
-  }, []);
+  };
 
-  const onDrop: ReactFlowProps['onDrop'] = useCallback(
-    (event) => {
-      event.preventDefault();
-      const node = event.dataTransfer.getData('application/reactflow');
-      if (!node) {
-        return;
-      }
-      const nodeData = JSON.parse(node);
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-      const nodeId = generateId();
-      const newNode = {
-        id: nodeId,
-        type: nodeData.type,
-        position,
-        selected: true,
-        data: {
-          ...newNodeDefaults[nodeData.type as keyof typeof newNodeDefaults],
-        },
-      };
-
-      clearSelection();
-      commandManager.execute(new AddNodeCommand(newNode as Node));
-    },
-    [screenToFlowPosition, clearSelection]
-  );
-
-  const onAddInitialNode = useCallback(() => {
+  const onDrop: ReactFlowProps['onDrop'] = (event) => {
+    event.preventDefault();
+    const node = event.dataTransfer.getData('application/reactflow');
+    if (!node) {
+      return;
+    }
+    const nodeData = JSON.parse(node);
+    const position = screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    const nodeId = generateId();
     const newNode = {
-      ...initialNode,
+      id: nodeId,
+      type: nodeData.type,
+      position,
       selected: true,
+      data: {
+        ...newNodeDefaults[nodeData.type as keyof typeof newNodeDefaults],
+      },
     };
-    clearSelection();
-    markUnsaved();
-    commandManager.execute(new AddNodeCommand(newNode as Node));
-    // Wait for sidebar to open (350ms for CSS transition) then center the node
-    setTimeout(() => {
-      fitView({
-        maxZoom: 1,
-        duration: 200,
-        nodes: [newNode],
-      });
-    }, 350);
-  }, [clearSelection, initialNode, fitView, markUnsaved]);
 
-  const onSelectionChange = useCallback(
-    ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
-      const node = nodes.length === 1 ? nodes[0] : null;
-      const edge =
-        edges.length === 1 &&
-        (edges[0]?.type === EdgeType.A2A || edges[0]?.type === EdgeType.SelfLoop)
-          ? edges[0]
-          : null;
-      const defaultPane = isOpen ? 'agent' : null;
-      setQueryState(
-        {
-          pane: node ? 'node' : edge ? 'edge' : defaultPane,
-          nodeId: node ? node.id : null,
-          edgeId: edge ? edge.id : null,
-        },
-        { history: 'replace' }
-      );
-    },
-    [setQueryState, isOpen]
-  );
+    clearSelection();
+    commandManager.execute(new AddNodeCommand(newNode as Node));
+  };
+
+  const onSelectionChange = ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
+    const node = nodes.length === 1 ? nodes[0] : null;
+    const edge =
+      edges.length === 1 &&
+      (edges[0]?.type === EdgeType.A2A || edges[0]?.type === EdgeType.SelfLoop)
+        ? edges[0]
+        : null;
+    const defaultPane = isOpen ? 'agent' : null;
+    setQueryState(
+      {
+        pane: node ? 'node' : edge ? 'edge' : defaultPane,
+        nodeId: node ? node.id : null,
+        edgeId: edge ? edge.id : null,
+      },
+      { history: 'replace' }
+    );
+  };
 
   useOnSelectionChange({
     onChange: onSelectionChange,
@@ -709,7 +672,7 @@ export const Agent: FC<AgentProps> = ({
 
   useAgentShortcuts();
 
-  const closeSidePane = useCallback(() => {
+  const closeSidePane = () => {
     setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
     setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
     setQueryState({
@@ -717,9 +680,9 @@ export const Agent: FC<AgentProps> = ({
       nodeId: null,
       edgeId: null,
     });
-  }, [setQueryState, setEdges, setNodes]);
+  };
 
-  const backToAgent = useCallback(() => {
+  const backToAgent = () => {
     setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
     setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
     setQueryState({
@@ -727,66 +690,60 @@ export const Agent: FC<AgentProps> = ({
       nodeId: null,
       edgeId: null,
     });
-  }, [setQueryState, setEdges, setNodes]);
+  };
 
-  const handleNavigateToNode = useCallback(
-    (nodeId: string) => {
-      // The nodeId parameter is actually the agent ID from error parsing
-      // We need to find the React Flow node that has this agent ID
-      const targetNode = nodes.find(
-        (node) =>
-          node.id === nodeId || // Direct match (no custom ID set)
-          (node.data as any)?.id === nodeId // Custom agent ID match
+  const handleNavigateToNode = (nodeId: string) => {
+    // The nodeId parameter is actually the agent ID from error parsing
+    // We need to find the React Flow node that has this agent ID
+    const targetNode = nodes.find(
+      (node) =>
+        node.id === nodeId || // Direct match (no custom ID set)
+        (node.data as any)?.id === nodeId // Custom agent ID match
+    );
+
+    if (targetNode) {
+      // Clear selection and select the target node
+      setNodes((nodes) =>
+        nodes.map((node) => ({
+          ...node,
+          selected: node.id === targetNode.id,
+        }))
       );
+      setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
+      // Open the sidepane for the selected node
+      setQueryState({
+        pane: 'node',
+        nodeId: targetNode.id,
+        edgeId: null,
+      });
+    }
+  };
 
-      if (targetNode) {
-        // Clear selection and select the target node
-        setNodes((nodes) =>
-          nodes.map((node) => ({
-            ...node,
-            selected: node.id === targetNode.id,
-          }))
-        );
-        setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-        // Open the sidepane for the selected node
-        setQueryState({
-          pane: 'node',
-          nodeId: targetNode.id,
-          edgeId: null,
-        });
-      }
-    },
-    [setNodes, setEdges, nodes, setQueryState]
-  );
+  const handleNavigateToEdge = (edgeId: string) => {
+    // The edgeId parameter is from error parsing
+    // We need to find the React Flow edge that has this ID
+    const targetEdge = edges.find((edge) => edge.id === edgeId);
 
-  const handleNavigateToEdge = useCallback(
-    (edgeId: string) => {
-      // The edgeId parameter is from error parsing
-      // We need to find the React Flow edge that has this ID
-      const targetEdge = edges.find((edge) => edge.id === edgeId);
+    if (targetEdge) {
+      // Clear selection and select the target edge
+      setEdges((edges) =>
+        edges.map((edge) => ({
+          ...edge,
+          selected: edge.id === targetEdge.id,
+        }))
+      );
+      setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
 
-      if (targetEdge) {
-        // Clear selection and select the target edge
-        setEdges((edges) =>
-          edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === targetEdge.id,
-          }))
-        );
-        setNodes((nodes) => nodes.map((node) => ({ ...node, selected: false })));
+      // Open the sidepane for the selected edge
+      setQueryState({
+        pane: 'edge',
+        nodeId: null,
+        edgeId: targetEdge.id,
+      });
+    }
+  };
 
-        // Open the sidepane for the selected edge
-        setQueryState({
-          pane: 'edge',
-          nodeId: null,
-          edgeId: targetEdge.id,
-        });
-      }
-    },
-    [setEdges, setNodes, edges, setQueryState]
-  );
-
-  const onSubmit = useCallback(async (): Promise<boolean> => {
+  const onSubmit = async (): Promise<boolean> => {
     // Check for orphaned tools before saving
     const warningMessage = detectOrphanedToolsAndGetWarning(
       nodes,
@@ -933,14 +890,19 @@ export const Agent: FC<AgentProps> = ({
       });
       return false;
     }
-
-    // Handle validation errors (422 status - unprocessable_entity)
-    try {
-      const errorSummary = parseAgentValidationErrors(res.error);
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function parseErrors(error: string) {
+      const errorSummary = parseAgentValidationErrors(error);
       setErrors(errorSummary);
 
       const summaryMessage = getErrorSummaryMessage(errorSummary);
       toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
+    }
+
+    // Handle validation errors (422 status - unprocessable_entity)
+    try {
+      parseErrors(res.error);
     } catch (parseError) {
       // Fallback for unparseable errors
       console.error('Failed to parse validation errors:', parseError);
@@ -949,26 +911,7 @@ export const Agent: FC<AgentProps> = ({
       });
     }
     return false;
-  }, [
-    nodes,
-    edges,
-    metadata,
-    dataComponentLookup,
-    artifactComponentLookup,
-    markSaved,
-    setMetadata,
-    setNodes,
-    router,
-    agent.id,
-    tenantId,
-    projectId,
-    clearErrors,
-    setErrors,
-    agentToolConfigLookup,
-    toolLookup,
-    subAgentExternalAgentConfigLookup,
-    subAgentTeamAgentConfigLookup,
-  ]);
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
@@ -989,30 +932,24 @@ export const Agent: FC<AgentProps> = ({
     };
   }, []);
 
-  const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
-    (_, node) => {
-      if (isOpen) {
-        return;
-      }
-      setTimeout(() => {
-        fitView({
-          maxZoom: 1,
-          duration: 200,
-          nodes: [node],
-        });
-      }, 350);
-    },
-    [fitView, isOpen]
-  );
+  const onNodeClick: ReactFlowProps['onNodeClick'] = (_, node) => {
+    if (isOpen) {
+      return;
+    }
+    setTimeout(() => {
+      fitView({
+        maxZoom: 1,
+        duration: 200,
+        nodes: [node],
+      });
+    }, 350);
+  };
 
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
 
-  const showEmptyState = useMemo(
-    () =>
-      nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE,
-    [nodes, agentNodes, isCopilotConfigured]
-  );
+  const showEmptyState =
+    nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
   return (
     <ResizablePanelGroup
@@ -1020,7 +957,7 @@ export const Agent: FC<AgentProps> = ({
       id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
-      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
+      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
     >
       <CopilotChat
         agentId={agent.id}

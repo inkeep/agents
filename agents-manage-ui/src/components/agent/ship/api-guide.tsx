@@ -1,13 +1,13 @@
 import { useParams } from 'next/navigation';
 import { Streamdown } from 'streamdown';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { DocsLink, Header } from './guide-header';
 
 export function ApiGuide() {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { agentId } = useParams();
-  const apiUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const apiUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   return (
     <div>
       <Header.Container>

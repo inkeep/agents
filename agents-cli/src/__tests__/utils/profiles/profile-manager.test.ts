@@ -54,9 +54,8 @@ describe('ProfileManager', () => {
         profiles: {
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'local-cred',
             environment: 'development',
@@ -170,9 +169,8 @@ describe('ProfileManager', () => {
 
     it('should return explicit URLs as-is', () => {
       const customUrls = {
-        manageApi: 'http://custom:3002',
+        api: 'http://custom:3002',
         manageUi: 'http://custom:3000',
-        runApi: 'http://custom:3003',
       };
 
       const profile: Profile = {
@@ -221,9 +219,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -237,8 +234,8 @@ describe('ProfileManager', () => {
     it('should return profile by name', () => {
       const profile = profileManager.getProfile('local');
       expect(profile).not.toBeNull();
-      expect(profile!.name).toBe('local');
-      expect(profile!.environment).toBe('development');
+      expect(profile?.name).toBe('local');
+      expect(profile?.environment).toBe('development');
     });
 
     it('should return null for nonexistent profile', () => {
@@ -259,9 +256,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -286,9 +282,8 @@ describe('ProfileManager', () => {
     it('should add a new profile', () => {
       const profile: Profile = {
         remote: {
-          manageApi: 'http://localhost:3002',
+          api: 'http://localhost:3002',
           manageUi: 'http://localhost:3000',
-          runApi: 'http://localhost:3003',
         },
         credential: 'new-cred',
         environment: 'development',
@@ -333,9 +328,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -370,9 +364,8 @@ describe('ProfileManager', () => {
           },
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -387,7 +380,7 @@ describe('ProfileManager', () => {
       profileManager.removeProfile('local');
 
       const loaded = profileManager.loadProfiles();
-      expect(loaded.profiles['local']).toBeUndefined();
+      expect(loaded.profiles.local).toBeUndefined();
       expect(Object.keys(loaded.profiles)).toEqual(['cloud']);
     });
 
@@ -440,9 +433,8 @@ describe('Profile Schema Validation', () => {
       profiles: {
         local: {
           remote: {
-            manageApi: 'https://api.example.com',
+            api: 'https://api.example.com',
             manageUi: 'https://manage.example.com',
-            runApi: 'https://run.example.com',
           },
           credential: 'custom-cred',
           environment: 'staging',
@@ -461,9 +453,8 @@ describe('Profile Schema Validation', () => {
       profiles: {
         bad: {
           remote: {
-            manageApi: 'not-a-url',
+            api: 'not-a-url',
             manageUi: 'http://valid.com',
-            runApi: 'http://valid.com',
           },
           credential: 'cred',
           environment: 'dev',

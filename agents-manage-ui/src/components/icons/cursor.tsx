@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 
-export const CursorIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
-  <SvgIcon ref={ref} {...props} strokeWidth={0}>
+export const CursorIcon: FC<IconComponentProps> = (props) => (
+  <SvgIcon {...props} strokeWidth={0}>
     <title>Cursor icon</title>
     <path
       xmlns="http://www.w3.org/2000/svg"
@@ -10,6 +10,4 @@ export const CursorIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, 
       fill="currentColor"
     />
   </SvgIcon>
-));
-
-CursorIcon.displayName = 'CursorIcon';
+);

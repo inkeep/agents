@@ -36,7 +36,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -151,11 +151,7 @@ export function generateCredentialDefinition(
 /**
  * Generate imports needed for a credential file
  */
-export function generateCredentialImports(
-  credentialId: string,
-  credentialData: any,
-  style: CodeStyle = DEFAULT_STYLE
-): string[] {
+export function generateCredentialImports(style: CodeStyle = DEFAULT_STYLE): string[] {
   const { quotes, semicolons } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -175,8 +171,8 @@ export function generateCredentialFile(
   credentialData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateCredentialImports(credentialId, credentialData, style);
+  const imports = generateCredentialImports(style);
   const definition = generateCredentialDefinition(credentialId, credentialData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

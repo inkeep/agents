@@ -1,5 +1,6 @@
 import type { MCPToolConfig, ToolApiInsert } from '@inkeep/agents-core';
 import { getLogger, normalizeToolSelections } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import type { AgentMcpConfig, AgentMcpConfigInput } from './builders';
 
 const logger = getLogger('tool');
@@ -104,6 +105,43 @@ export class Tool implements ToolInterface {
 
   // Private method to upsert tool (create or update)
   private async upsertTool(): Promise<void> {
+    // Convert any Zod schemas in toolOverrides to JSON Schema format before storing
+    const convertedToolOverrides = this.config.toolOverrides
+      ? Object.fromEntries(
+          Object.entries(this.config.toolOverrides).map(([toolName, config]) => {
+            const originalSchema = (config as any).schema;
+            const isZod = isZodSchema(originalSchema);
+
+            logger.info(
+              {
+                toolName,
+                isZod,
+                originalSchema: JSON.stringify(originalSchema, null, 2),
+              },
+              'SDK: Converting schema before storage'
+            );
+
+            const convertedSchema = isZod ? convertZodToJsonSchema(originalSchema) : originalSchema;
+
+            logger.info(
+              {
+                toolName,
+                convertedSchema: JSON.stringify(convertedSchema, null, 2),
+              },
+              'SDK: Schema after conversion'
+            );
+
+            return [
+              toolName,
+              {
+                ...config,
+                schema: convertedSchema,
+              },
+            ];
+          })
+        )
+      : this.config.toolOverrides;
+
     const toolDataForUpdate: Omit<ToolApiInsert, 'id'> & { id?: string } = {
       id: this.getId(),
       name: this.config.name,
@@ -118,6 +156,7 @@ export class Tool implements ToolInterface {
           },
           transport: this.config.transport,
           activeTools: this.config.activeTools,
+          toolOverrides: convertedToolOverrides,
         },
       },
     };
@@ -130,7 +169,7 @@ export class Tool implements ToolInterface {
 
     // First try to update (in case tool exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/tools/${this.getId()}`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/tools/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -162,7 +201,7 @@ export class Tool implements ToolInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/tools`,
+        `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/tools`,
         {
           method: 'POST',
           headers: {

@@ -7,9 +7,6 @@
  * 2. File path tracking for imports
  * 3. Reference resolution for code generation
  */
-
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 export type ComponentType =
@@ -28,6 +25,7 @@ export type ComponentType =
   | 'fetchDefinitions'
   | 'headers'
   | 'models'
+  | 'triggers'
   | 'project';
 
 export interface ComponentInfo {
@@ -383,6 +381,8 @@ export class ComponentRegistry {
         return 'header';
       case 'models':
         return 'model';
+      case 'triggers':
+        return 'trigger';
       case 'project':
         return 'project';
       default:
@@ -457,7 +457,7 @@ export class ComponentRegistry {
     if (relativePath.startsWith('../')) {
       return relativePath;
     }
-    return './' + relativePath;
+    return `./${relativePath}`;
   }
 
   /**
@@ -593,6 +593,18 @@ export function registerAllComponents(
     }
   }
 
+  // Register triggers (agent-scoped)
+  if (project.agents) {
+    for (const agentData of Object.values(project.agents)) {
+      const agentTriggers = (agentData as any).triggers;
+      if (agentTriggers) {
+        for (const triggerId of Object.keys(agentTriggers)) {
+          registry.register(triggerId, 'triggers', `agents/triggers/${triggerId}.ts`);
+        }
+      }
+    }
+  }
+
   // Register extracted sub-agents
   const subAgents = extractSubAgents(project);
   for (const subAgentId of Object.keys(subAgents)) {
@@ -613,8 +625,8 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
   const statusComponents: Record<string, any> = {};
 
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
+    for (const agentData of Object.values(project.agents)) {
+      if (agentData.statusUpdates?.statusComponents) {
         // statusComponents is an array that can contain strings or objects
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let statusId: string;
@@ -655,7 +667,7 @@ export function extractSubAgents(project: FullProjectDefinition): Record<string,
   const subAgents: Record<string, any> = {};
 
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
+    for (const agentData of Object.values(project.agents)) {
       if (agentData.subAgents) {
         for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
           subAgents[subAgentId] = subAgentData;
@@ -699,7 +711,7 @@ export function findSubAgentWithParent(
 ): { subAgentData: any; parentAgentId: string; contextConfigData?: any } | undefined {
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.subAgents && agentData.subAgents[subAgentId]) {
+      if (agentData.subAgents?.[subAgentId]) {
         // Get contextConfig data if parent agent has one with an ID
         const contextConfigData = agentData.contextConfig?.id ? agentData.contextConfig : undefined;
 

@@ -4,29 +4,30 @@ import { z } from 'zod';
  * Baked-in URLs for Inkeep Cloud deployment
  */
 export const CLOUD_REMOTE = {
-  manageApi: 'https://manage-api.inkeep.com',
+  api: 'https://agents-api.inkeep.com',
   manageUi: 'https://manage.inkeep.com',
-  runApi: 'https://run-api.inkeep.com',
 } as const;
 
 /**
  * Schema for explicit remote URLs (custom/local deployments)
  */
-export const explicitRemoteSchema = z.object({
-  manageApi: z.string().url('manageApi must be a valid URL'),
+export const explicitRemoteSchema: z.ZodType<ExplicitRemote> = z.object({
+  api: z.string().url('api must be a valid URL'),
   manageUi: z.string().url('manageUi must be a valid URL'),
-  runApi: z.string().url('runApi must be a valid URL'),
 });
 
 /**
  * Schema for remote configuration - either 'cloud' shorthand or explicit URLs
  */
-export const remoteSchema = z.union([z.literal('cloud'), explicitRemoteSchema]);
+export const remoteSchema: z.ZodType<RemoteConfig> = z.union([
+  z.literal('cloud'),
+  explicitRemoteSchema,
+]);
 
 /**
  * Profile name validation - alphanumeric + hyphens only
  */
-export const profileNameSchema = z
+export const profileNameSchema: z.ZodType<string> = z
   .string()
   .min(1, 'Profile name cannot be empty')
   .max(64, 'Profile name too long (max 64 characters)')
@@ -35,7 +36,7 @@ export const profileNameSchema = z
 /**
  * Schema for a single profile configuration
  */
-export const profileSchema = z.object({
+export const profileSchema: z.ZodType<Profile> = z.object({
   remote: remoteSchema,
   credential: z.string().min(1, 'Credential reference cannot be empty'),
   environment: z.string().min(1, 'Environment cannot be empty'),
@@ -46,7 +47,7 @@ export const profileSchema = z.object({
  * Note: We use z.record(z.string(), profileSchema) for Zod v4 compatibility
  * Profile name validation is done separately in addProfile
  */
-export const profilesConfigSchema = z.object({
+export const profilesConfigSchema: z.ZodType<ProfilesConfig> = z.object({
   activeProfile: z.string().min(1, 'activeProfile cannot be empty'),
   profiles: z.record(z.string(), profileSchema),
 });
@@ -54,30 +55,39 @@ export const profilesConfigSchema = z.object({
 /**
  * Explicit remote URLs type
  */
-export type ExplicitRemote = z.infer<typeof explicitRemoteSchema>;
+export interface ExplicitRemote {
+  api: string;
+  manageUi: string;
+}
 
 /**
  * Remote configuration type - either 'cloud' or explicit URLs
  */
-export type RemoteConfig = z.infer<typeof remoteSchema>;
+export type RemoteConfig = 'cloud' | ExplicitRemote;
 
 /**
  * Single profile configuration type
  */
-export type Profile = z.infer<typeof profileSchema>;
+export interface Profile {
+  remote: RemoteConfig;
+  credential: string;
+  environment: string;
+}
 
 /**
  * Full profiles configuration type
  */
-export type ProfilesConfig = z.infer<typeof profilesConfigSchema>;
+export interface ProfilesConfig {
+  activeProfile: string;
+  profiles: Record<string, Profile>;
+}
 
 /**
  * Resolved remote URLs - always explicit, never 'cloud'
  */
 export interface ResolvedRemoteUrls {
-  manageApi: string;
+  api: string;
   manageUi: string;
-  runApi: string;
 }
 
 /**
@@ -113,9 +123,8 @@ export const DEFAULT_PROFILES_CONFIG: ProfilesConfig = {
  * Baked-in URLs for local development deployment
  */
 export const LOCAL_REMOTE = {
-  manageApi: 'http://localhost:3002',
+  api: 'http://localhost:3002',
   manageUi: 'http://localhost:3001',
-  runApi: 'http://localhost:3003',
 } as const;
 
 /**

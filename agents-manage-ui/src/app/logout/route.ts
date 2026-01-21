@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
-import { getManageApiUrl } from '@/lib/api/api-config';
+import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { getLogger } from '@/lib/logger';
 
 /**
@@ -52,10 +52,10 @@ export async function GET(request: NextRequest) {
   const authCookies = allCookies.filter((c) => c.name.includes('better-auth'));
   const cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
-  // Call the better-auth sign-out endpoint on the manage API
+  // Call the better-auth sign-out endpoint on the agents API
   try {
-    const manageApiUrl = getManageApiUrl();
-    await fetch(`${manageApiUrl}/api/auth/sign-out`, {
+    const agentsApiUrl = getAgentsApiUrl();
+    await fetch(`${agentsApiUrl}/manage/api/auth/sign-out`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

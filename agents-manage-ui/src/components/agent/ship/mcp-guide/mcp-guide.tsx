@@ -6,7 +6,7 @@ import { VSCodeIcon } from '@/components/icons/vs-code';
 import { WindsurfIcon } from '@/components/icons/windsurf';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { DocsLink, Header } from '../guide-header';
 import { replaceTemplatePlaceholders, toCamelCase } from '../utils';
@@ -56,8 +56,8 @@ const tabItems: TabItem[] = [
 ];
 
 export function McpGuide() {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const mcpServerUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/v1/mcp`;
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
+  const mcpServerUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/mcp`;
   const metadata = useAgentStore((state) => state.metadata);
   const agentName = toCamelCase(metadata?.name || 'agentName');
 

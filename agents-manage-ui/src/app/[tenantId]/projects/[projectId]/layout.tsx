@@ -1,5 +1,5 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { ProjectProvider } from '@/contexts/project-context';
+import { ProjectProvider } from '@/contexts/project';
 import { fetchProject } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -13,8 +13,8 @@ export default async function ProjectLayout({
 
   try {
     // Verify project exists
-    const project = await fetchProject(tenantId, projectId);
-    return <ProjectProvider value={project.data}>{children}</ProjectProvider>;
+    const { data } = await fetchProject(tenantId, projectId);
+    return <ProjectProvider value={data}>{children}</ProjectProvider>;
   } catch (error) {
     return (
       <FullPageError

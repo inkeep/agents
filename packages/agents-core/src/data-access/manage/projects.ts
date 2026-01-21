@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   agents,
@@ -26,19 +26,30 @@ import type {
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables
+ * @param projectIds - Optional array of project IDs to filter by. If undefined, returns all projects.
  */
 export const listProjects =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { tenantId: string }): Promise<ProjectInfo[]> => {
+  async (params: { tenantId: string; projectIds?: string[] }): Promise<ProjectInfo[]> => {
+    // If projectIds filter is provided and empty, return empty result
+    if (params.projectIds !== undefined && params.projectIds.length === 0) {
+      return [];
+    }
+
+    const whereClause = params.projectIds
+      ? and(eq(projects.tenantId, params.tenantId), inArray(projects.id, params.projectIds))
+      : eq(projects.tenantId, params.tenantId);
+
     const projectsFromTable = await db
       .select({ projectId: projects.id }) // id IS the project ID
       .from(projects)
-      .where(eq(projects.tenantId, params.tenantId));
+      .where(whereClause);
 
     if (projectsFromTable.length > 0) {
       return projectsFromTable.map((p) => ({ projectId: p.projectId }));
     }
 
+    // Fallback: scan resource tables (only if no projectIds filter or projects table is empty)
     const projectIdSets = await Promise.all([
       db
         .selectDistinct({ projectId: subAgents.projectId })
@@ -94,7 +105,10 @@ export const listProjects =
     projectIdSets.forEach((results) => {
       results.forEach((row) => {
         if (row.projectId) {
-          allProjectIds.add(row.projectId);
+          // Apply projectIds filter if provided
+          if (!params.projectIds || params.projectIds.includes(row.projectId)) {
+            allProjectIds.add(row.projectId);
+          }
         }
       });
     });
@@ -108,12 +122,14 @@ export const listProjects =
 
 /**
  * List all unique project IDs within a tenant with pagination
+ * Optionally filter by a list of project IDs (for access control)
  */
 export const listProjectsPaginated =
   (db: AgentsManageDatabaseClient) =>
   async (params: {
     tenantId: string;
     pagination?: PaginationConfig;
+    projectIds?: string[];
   }): Promise<{
     data: ProjectSelect[];
     pagination: PaginationResult;
@@ -122,15 +138,20 @@ export const listProjectsPaginated =
     const limit = params.pagination?.limit || 10;
     const offset = (page - 1) * limit;
 
+    // Build WHERE clause: always filter by tenantId, optionally by projectIds
+    const whereClause = params.projectIds
+      ? and(eq(projects.tenantId, params.tenantId), inArray(projects.id, params.projectIds))
+      : eq(projects.tenantId, params.tenantId);
+
     const [data, totalResult] = await Promise.all([
       db
         .select()
         .from(projects)
-        .where(eq(projects.tenantId, params.tenantId))
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(projects.createdAt)),
-      db.select({ count: count() }).from(projects).where(eq(projects.tenantId, params.tenantId)),
+      db.select({ count: count() }).from(projects).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;

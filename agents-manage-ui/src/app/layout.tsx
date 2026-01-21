@@ -4,11 +4,11 @@ import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
-import { AuthClientProvider } from '@/lib/auth-client';
+import { AuthClientProvider } from '@/contexts/auth-client';
+import { PostHogProvider } from '@/contexts/posthog';
+import { RuntimeConfigProvider } from '@/contexts/runtime-config';
 import {
-  DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
-  DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+  DEFAULT_INKEEP_AGENTS_API_URL,
   DEFAULT_NANGO_CONNECT_BASE_URL,
   DEFAULT_NANGO_SERVER_URL,
   DEFAULT_SIGNOZ_URL,
@@ -16,7 +16,6 @@ import {
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
 import './globals.css';
-import { PostHogProvider } from './providers';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -39,14 +38,10 @@ const runtimeConfig: RuntimeConfig = {
   PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET:
     process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET ||
     process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
-  PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:
-    process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL ||
-    process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL ||
-    DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
-  PUBLIC_INKEEP_AGENTS_RUN_API_URL:
-    process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
-    process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
-    DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+  PUBLIC_INKEEP_AGENTS_API_URL:
+    process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
+    process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL ||
+    DEFAULT_INKEEP_AGENTS_API_URL,
   PUBLIC_SIGNOZ_URL:
     process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
   PUBLIC_NANGO_SERVER_URL:

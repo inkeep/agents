@@ -1,30 +1,346 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { ConversationDetail } from '@/components/traces/conversation-detail';
+import {
+  Activity,
+  ArrowLeft,
+  ExternalLink as ExternalLinkIcon,
+  MessageSquare,
+  TriangleAlert,
+} from 'lucide-react';
+import NextLink from 'next/link';
+import { use, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { formatDateTime, formatDuration } from '@/app/utils/format-date';
+import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
+import { SignozLink } from '@/components/traces/signoz-link';
+import { InfoRow } from '@/components/traces/timeline/blocks';
+import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
+import type {
+  ActivityItem,
+  ConversationDetail as ConversationDetailType,
+} from '@/components/traces/timeline/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
+import { ResizablePanelGroup } from '@/components/ui/resizable';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
+import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 
-export default function ConversationPage() {
-  const router = useRouter();
-  const { conversationId, tenantId, projectId } = useParams<{
-    conversationId: string;
-    tenantId: string;
-    projectId: string;
-  }>();
+export default function ConversationDetail({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/traces/conversations/[conversationId]'>) {
+  const { conversationId, tenantId, projectId } = use(params);
+  const backLink = `/${tenantId}/projects/${projectId}/traces` as const;
 
-  const handleBackToTraces = () => {
-    router.push(`/${tenantId}/projects/${projectId}/traces`);
+  const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+  const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+  const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
+
+  const handleCopyTrace = async () => {
+    if (!conversation) return;
+
+    setIsCopying(true);
+    try {
+      const result = await copyTraceToClipboard(conversation);
+      if (result.success) {
+        toast.success('Trace copied to clipboard', {
+          description: 'The OTEL trace has been copied successfully.',
+        });
+      } else {
+        toast.error('Failed to copy trace', {
+          description: result.error || 'An unknown error occurred',
+        });
+      }
+    } catch (err) {
+      toast.error('Failed to copy trace', {
+        description: err instanceof Error ? err.message : 'An unknown error occurred',
+      });
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setIsCopying(false);
+    }
   };
 
+  useEffect(() => {
+    const fetchConversationDetail = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(
+          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+        );
+
+        if (!response.ok) throw new Error('Failed to fetch conversation details');
+        const data = await response.json();
+        setConversation(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (conversationId && tenantId && projectId) fetchConversationDetail();
+  }, [conversationId, tenantId, projectId]);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4 mb-6">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-64" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  if (error || !conversation) {
+    return (
+      <Card className="shadow-none bg-background">
+        <CardHeader>
+          <CardTitle className="text-destructive">Error Loading Conversation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">{error || 'Conversation not found.'}</p>
+          <Button asChild variant="outline" className="mt-4">
+            <NextLink href={backLink}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Overview
+            </NextLink>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <BodyTemplate
-      disableScroll
-      breadcrumbs={[
-        { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        'Conversation',
-      ]}
-    >
-      <ConversationDetail conversationId={conversationId} onBack={handleBackToTraces} />
-    </BodyTemplate>
+    <div className="h-full flex flex-col no-parent-container p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="icon-sm">
+            <NextLink href={backLink}>
+              <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Back</span>
+            </NextLink>
+          </Button>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-light">Conversation Details</h3>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {(conversation.agentId || conversation.agentName) && (
+            <ExternalLink
+              href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
+            >
+              {conversation.agentName ? `${conversation.agentName}` : conversation.agentId}
+            </ExternalLink>
+          )}
+          <SignozLink conversationId={conversationId} />
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4 flex-shrink-0">
+        {/* Duration */}
+        <Card
+          className="shadow-none bg-background"
+          title={
+            conversation.conversationStartTime && conversation.conversationEndTime
+              ? `Start: ${conversation.conversationStartTime}\nEnd: ${conversation.conversationEndTime}`
+              : 'Timing data not available'
+          }
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Duration</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {conversation.conversationStartTime && conversation.conversationEndTime ? (
+                <>
+                  <div className="text-sm font-medium text-foreground">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">Start:</span>
+                      <span className="text-xs font-mono">
+                        {formatDateTime(conversation.conversationStartTime)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-muted-foreground">End:</span>
+                      <span className="text-xs font-mono">
+                        {formatDateTime(conversation.conversationEndTime)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1 mt-2">
+                    {conversation.conversationDuration && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Conversation Duration:</span>{' '}
+                        {formatDuration(conversation.conversationDuration)}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">Timing data not available</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* AI Calls summary grouped by model */}
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">AI Calls</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const ai = conversation?.activities?.filter(
+                (a: ActivityItem) =>
+                  a.type === 'ai_generation' || a.type === 'ai_model_streamed_text'
+              ) as ActivityItem[];
+              const models: Record<
+                string,
+                { inputTokens: number; outputTokens: number; count: number }
+              > = {};
+              ai.forEach((a: ActivityItem) => {
+                const model = a.aiModel || a.aiStreamTextModel || 'Unknown Model';
+                models[model] ||= { inputTokens: 0, outputTokens: 0, count: 0 };
+                models[model].inputTokens += a.inputTokens || 0;
+                models[model].outputTokens += a.outputTokens || 0;
+                models[model].count += 1;
+              });
+              const entries = Object.entries(models);
+              return (
+                <div className="space-y-3">
+                  {entries.length ? (
+                    entries.map(([model, data]) => (
+                      <div key={model} className="border border-border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">{model}</span>
+                          <span className="text-xs text-muted-foreground">{data.count} calls</span>
+                        </div>
+                        <div className="space-y-1">
+                          <InfoRow
+                            label="Total Input Tokens"
+                            value={data.inputTokens.toLocaleString()}
+                          />
+                          <InfoRow
+                            label="Total Output Tokens"
+                            value={data.outputTokens.toLocaleString()}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-muted-foreground mb-1">0</div>
+                      <p className="text-xs text-muted-foreground">No AI calls found.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* MCP Tools */}
+        <MCPBreakdownCard conversation={conversation} />
+
+        {/* Alerts */}
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Alerts</CardTitle>
+            <TriangleAlert className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const errors = conversation.errorCount ?? 0;
+              const warnings = conversation.warningCount ?? 0;
+              const total = errors + warnings;
+
+              return (
+                <>
+                  {total > 0 ? (
+                    <div className="space-y-1">
+                      {errors > 0 && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold font-mono text-red-600">
+                            {errors}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            error{errors > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                      {warnings > 0 && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold font-mono text-yellow-500">
+                            {warnings}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            warning{warnings > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-2xl font-bold font-mono text-green-600 mb-1">0</div>
+                      <p className="text-xs text-muted-foreground">No warnings or errors</p>
+                    </div>
+                  )}
+                  {total > 0 && !isCloudDeployment && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full flex items-center justify-center gap-1"
+                      onClick={() => {
+                        window.open(
+                          getSignozTracesExplorerUrl(conversationId, PUBLIC_SIGNOZ_URL),
+                          '_blank'
+                        );
+                      }}
+                    >
+                      <ExternalLinkIcon className="h-3 w-3" />
+                      View in SigNoz
+                    </Button>
+                  )}
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Timeline Panel - Takes remaining height */}
+      <div className="flex-1 min-h-0">
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="h-full border rounded-xl bg-background"
+        >
+          <TimelineWrapper
+            conversation={conversation}
+            conversationId={conversationId}
+            onCopyTrace={handleCopyTrace}
+            isCopying={isCopying}
+          />
+        </ResizablePanelGroup>
+      </div>
+    </div>
   );
 }

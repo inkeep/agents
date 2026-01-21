@@ -156,20 +156,20 @@ export async function loginCommand(options: LoginOptions = {}): Promise<void> {
       }
       profileName = options.profile;
       credentialKey = profile.credential;
-      manageApiUrl = profile.remote.manageApi;
+      manageApiUrl = profile.remote.api;
       manageUiUrl = profile.remote.manageUi;
     } else {
       const activeProfile = profileManager.getActiveProfile();
       profileName = activeProfile.name;
       credentialKey = activeProfile.credential;
-      manageApiUrl = activeProfile.remote.manageApi;
+      manageApiUrl = activeProfile.remote.api;
       manageUiUrl = activeProfile.remote.manageUi;
     }
   } catch {
     // No profile configured, use defaults
     profileName = 'default';
     credentialKey = 'inkeep-cloud';
-    manageApiUrl = 'https://manage-api.inkeep.com';
+    manageApiUrl = 'https://agents-api.inkeep.com';
     manageUiUrl = 'https://manage.inkeep.com';
   }
 

@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
@@ -10,10 +10,12 @@ import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import { teamAgentHeadersTemplate } from '@/lib/templates';
 import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
+import { FieldLabel } from '../form-components/label';
 import { TextareaField } from '../form-components/text-area';
 
 interface TeamAgentNodeEditorProps {
@@ -137,14 +139,16 @@ export function TeamAgentNodeEditor({
         disabled
       />
 
-      <ExpandableJsonEditor
-        name="headers"
-        label="Headers"
-        value={headersInputValue}
-        onChange={handleHeadersChange}
-        placeholder="{}"
-        className=""
-      />
+      <div className="space-y-2">
+        <FieldLabel id="headers" label="Headers" />
+        <StandaloneJsonEditor
+          name="headers"
+          value={headersInputValue}
+          onChange={handleHeadersChange}
+          placeholder="{}"
+          customTemplate={teamAgentHeadersTemplate}
+        />
+      </div>
       <ExternalLink href={`/${tenantId}/projects/${projectId}/agents/${selectedNode.data.id}`}>
         Edit Agent
       </ExternalLink>

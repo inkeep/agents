@@ -17,10 +17,11 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
+import { cn } from '@/lib/utils';
 
 // Edit-specific validation schema
 const editCredentialFormSchema = z.object({
@@ -39,6 +40,7 @@ interface EditCredentialFormProps {
   projectId: string;
   credential: Credential;
   initialFormData: EditCredentialFormData;
+  className?: string;
 }
 
 function getCredentialAuthenticationType(credential: Credential): string | undefined {
@@ -76,6 +78,7 @@ export function EditCredentialForm({
   projectId,
   credential,
   initialFormData,
+  className,
 }: EditCredentialFormProps) {
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -142,7 +145,7 @@ export function EditCredentialForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           {/* Credential Details Section */}
           <div className="space-y-8">
             <GenericInput

@@ -129,7 +129,7 @@ When creating a model instance, you can configure:
 
 ## API Endpoint
 
-This provider communicates with the `/api/chat` endpoint of your Inkeep Agents Run API.
+This provider communicates with the `/run/api/chat` endpoint of your Inkeep Agents Run API.
 
 - **Non-streaming** (`generateText`): Sends `stream: false` parameter - returns complete JSON response
 - **Streaming** (`streamText`): Sends `stream: true` parameter - returns Vercel AI SDK data stream

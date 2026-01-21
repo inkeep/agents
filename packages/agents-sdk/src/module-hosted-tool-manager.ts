@@ -430,7 +430,7 @@ process.on('SIGTERM', () => {
           );
           return;
         }
-      } catch (_error) {
+      } catch {
         // Server not ready yet
       }
 
@@ -442,4 +442,4 @@ process.on('SIGTERM', () => {
 }
 
 // Singleton instance
-export const moduleHostedToolManager = new ModuleHostedToolManager();
+export const moduleHostedToolManager: ModuleHostedToolManager = new ModuleHostedToolManager();

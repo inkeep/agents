@@ -1,7 +1,7 @@
 @import "@xyflow/react/dist/style.css";
 @import "tailwindcss";
 @import "tw-animate-css";
-@plugin 'tailwind-scrollbar';
+@plugin "tailwind-scrollbar";
 @source "../../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:is(.dark *));
@@ -330,4 +330,8 @@ li[data-sonner-toast][data-type="error"] {
   to {
     --xy-edge-stroke: unset;
   }
+}
+
+.mcp-needs-approval {
+  @apply hidden;
 }

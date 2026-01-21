@@ -9,6 +9,7 @@
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 import {
   ApiError,
   createAgent as apiCreateAgent,
@@ -16,6 +17,7 @@ import {
   deleteFullAgent as apiDeleteFullAgent,
   fetchAgents as apiFetchAgents,
   getFullAgent as apiGetFullAgent,
+  updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
 import type { Agent, FullAgentDefinition } from '../types/agent-full';
@@ -85,6 +87,39 @@ export async function createAgentAction(
   }
 }
 
+export async function updateAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
+  try {
+    const response = await apiUpdateAgent(tenantId, projectId, agentId, agentData);
+    // Revalidate relevant pages
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update agent',
+      code: 'validation_error',
+    };
+  }
+}
+
 /**
  * Create a new full agent
  */
@@ -124,7 +159,7 @@ export async function createFullAgentAction(
 /**
  * Get a full agent by ID
  */
-export async function getFullAgentAction(
+async function $getFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -152,6 +187,8 @@ export async function getFullAgentAction(
     };
   }
 }
+
+export const getFullAgentAction = cache($getFullAgentAction);
 
 /**
  * Update or create a full agent (upsert)

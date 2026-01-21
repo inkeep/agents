@@ -7,6 +7,7 @@
 
 'use server';
 
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -21,7 +22,7 @@ export interface EvaluationJobFilterCriteria {
   [key: string]: unknown;
 }
 
-export interface Filter<_T> {
+interface Filter<_T> {
   [key: string]: unknown;
 }
 
@@ -58,7 +59,7 @@ export async function fetchEvaluationJobConfigs(
 /**
  * Fetch a single evaluation job config by ID
  */
-export async function fetchEvaluationJobConfig(
+async function $fetchEvaluationJobConfig(
   tenantId: string,
   projectId: string,
   configId: string
@@ -72,6 +73,8 @@ export async function fetchEvaluationJobConfig(
 
   return response.data;
 }
+
+export const fetchEvaluationJobConfig = cache($fetchEvaluationJobConfig);
 
 /**
  * Create a new evaluation job config
@@ -114,7 +117,7 @@ export async function deleteEvaluationJobConfig(
   );
 }
 
-export interface EvaluationJobConfigEvaluatorRelation {
+interface EvaluationJobConfigEvaluatorRelation {
   id: string;
   tenantId: string;
   projectId: string;

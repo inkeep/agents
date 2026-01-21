@@ -4,11 +4,11 @@ import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inke
 import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useCopilotContext } from '@/contexts/copilot';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
-import { useCopilotContext } from '../copilot/copilot-context';
 import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
@@ -61,7 +61,7 @@ export function ChatWidget({
   dataComponentLookup = {},
   setShowTraces,
 }: ChatWidgetProps) {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
@@ -197,7 +197,7 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
+            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat` : undefined,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,

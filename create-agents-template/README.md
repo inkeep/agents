@@ -42,9 +42,8 @@ The `src/inkeep.config.ts` file defines workspace configuration for all projects
 This project follows a workspace structure with the following services:
 - **Agents Manage UI** (Port 3000): Web interface
   - The agent framework visual builder. From the builder you can create, manage and visualize all your graphs.
-- **Agents Manage API** (Port 3002): Agent configuration and management
+- **Agents API** (Port 3002): Agent configuration and management
   - Handles entity management and configuration endpoints.
-- **Agents Run API** (Port 3003): Agent execution and chat processing  
   - Handles agent communication. You can interact with your agents either over MCP from an MCP client or through our React UI components library
 - **MCP Service** (Port 3006): Custom MCP servers
   - Custom MCP servers for external tools and APIs. See [our guide](https://docs.inkeep.com/tutorials/mcp-servers/custom-mcp-servers#getting-started) for how to add MCP servers to your project.

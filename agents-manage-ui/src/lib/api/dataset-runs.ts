@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -16,7 +17,7 @@ export interface DatasetRun {
   updatedAt: string;
 }
 
-export interface DatasetRunConversation {
+interface DatasetRunConversation {
   id: string;
   conversationId: string;
   datasetRunId: string;
@@ -26,7 +27,7 @@ export interface DatasetRunConversation {
   updatedAt: string;
 }
 
-export interface DatasetRunItemWithConversations {
+interface DatasetRunItemWithConversations {
   id: string;
   tenantId: string;
   projectId: string;
@@ -65,7 +66,7 @@ export async function fetchDatasetRuns(
   );
 }
 
-export async function fetchDatasetRun(
+async function $fetchDatasetRun(
   tenantId: string,
   projectId: string,
   runId: string
@@ -77,3 +78,5 @@ export async function fetchDatasetRun(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}`
   );
 }
+
+export const fetchDatasetRun = cache($fetchDatasetRun);

@@ -42,11 +42,8 @@ describe('Init Command Utilities', () => {
 export default defineConfig({
   tenantId: '${tenantId}',
   projectId: '${projectId}',
-  agentsManageApi: {
-    url: 'https://manage-api.inkeep.com',
-  },
-  agentsRunApi: {
-    url: 'https://run-api.inkeep.com',
+  agentsApi: {
+    url: 'https://agents-api.inkeep.com',
   },
 });
 `;
@@ -57,8 +54,7 @@ export default defineConfig({
 
       expect(config).toContain("tenantId: 'tenant-123'");
       expect(config).toContain("projectId: 'project-456'");
-      expect(config).toContain('https://manage-api.inkeep.com');
-      expect(config).toContain('https://run-api.inkeep.com');
+      expect(config).toContain('https://agents-api.inkeep.com');
     });
   });
 

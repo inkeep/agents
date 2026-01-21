@@ -3,7 +3,7 @@ import { CodeIcon, EyeIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { DocsLink, Header } from '../guide-header';
 import { ChatUICode } from './chat-ui-code';
 import { ChatUIPreview } from './chat-ui-preview';
@@ -17,8 +17,8 @@ interface ChatUIProps {
 }
 
 export function ChatUIGuide() {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
+  const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const form = useForm<Partial<ChatUIProps>>({
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,

@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { useCopilotContext } from '../copilot/copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 
 interface FeedbackDialogProps {
   isOpen: boolean;

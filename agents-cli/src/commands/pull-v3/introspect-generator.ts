@@ -25,6 +25,7 @@ import { generateMcpToolFile } from './components/mcp-tool-generator';
 import { generateProjectFile } from './components/project-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
+import { generateTriggerFile } from './components/trigger-generator';
 import { ComponentRegistry, registerAllComponents } from './utils/component-registry';
 import { DEFAULT_STYLE } from './utils/generator-utils';
 
@@ -61,7 +62,7 @@ function ensureDir(filePath: string): void {
  * Check if an agent is complete enough for code generation
  * An agent needs a name, defaultSubAgentId, and at least one sub-agent
  */
-function isAgentComplete(agentId: string, agentData: any): { complete: boolean; reason?: string } {
+function isAgentComplete(agentData: any): { complete: boolean; reason?: string } {
   if (!agentData.name) {
     return { complete: false, reason: 'missing name' };
   }
@@ -171,9 +172,9 @@ export async function introspectGenerate(
 
     // Also check agent-level functionTools (each agent can have its own)
     if (project.agents) {
-      for (const [agentId, agentData] of Object.entries(project.agents)) {
-        const agentFunctionTools = (agentData as any).functionTools;
-        const agentFunctions = (agentData as any).functions;
+      for (const agentData of Object.values(project.agents)) {
+        const agentFunctionTools = agentData.functionTools;
+        const agentFunctions = agentData.functions;
 
         if (agentFunctionTools) {
           for (const [toolId, toolData] of Object.entries(agentFunctionTools)) {
@@ -211,7 +212,7 @@ export async function introspectGenerate(
     // Fallback: If there are functions without corresponding functionTools entries,
     // they may be orphaned or the data structure is different - skip them with a warning
     if (project.functions) {
-      for (const [funcId, funcData] of Object.entries(project.functions)) {
+      for (const funcId of Object.keys(project.functions)) {
         if (!functionToolsGenerated.has(funcId)) {
           // Check if this function is referenced by any functionTool
           const isReferenced =
@@ -334,7 +335,7 @@ export async function introspectGenerate(
     const completeAgentIds = new Set<string>();
     if (project.agents) {
       for (const [agentId, agentData] of Object.entries(project.agents)) {
-        const completeness = isAgentComplete(agentId, agentData);
+        const completeness = isAgentComplete(agentData);
         if (completeness.complete) {
           completeAgentIds.add(agentId);
         } else {
@@ -356,7 +357,7 @@ export async function introspectGenerate(
         if (!completeAgentIds.has(agentId)) continue;
 
         if (agentData.subAgents) {
-          for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+          for (const _subAgentId of Object.keys(agentData.subAgents)) {
             totalSubAgents++;
           }
         }
@@ -422,6 +423,18 @@ export async function introspectGenerate(
         ensureDir(agentFile);
         writeFileSync(agentFile, agentContent, 'utf-8');
         generatedFiles.push(agentFile);
+
+        // Generate triggers for this agent (if any)
+        if (agentData.triggers && Object.keys(agentData.triggers).length > 0) {
+          for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
+            const triggerFile = join(paths.agentsDir, 'triggers', `${triggerId}.ts`);
+            const triggerContent = generateTriggerFile(triggerId, triggerData, style);
+
+            ensureDir(triggerFile);
+            writeFileSync(triggerFile, triggerContent, 'utf-8');
+            generatedFiles.push(triggerFile);
+          }
+        }
       }
     }
 
@@ -488,7 +501,7 @@ export async function introspectGenerate(
  */
 function findContextConfigData(project: FullProjectDefinition, contextId: string): any | undefined {
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
+    for (const agentData of Object.values(project.agents)) {
       if (agentData.contextConfig) {
         // Check if this contextConfig matches by its actual ID
         if (agentData.contextConfig.id === contextId) {
@@ -508,8 +521,8 @@ function findStatusComponentData(
   statusId: string
 ): any | undefined {
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
+    for (const agentData of Object.values(project.agents)) {
+      if (agentData.statusUpdates?.statusComponents) {
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let compId: string | undefined;
 

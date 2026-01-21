@@ -45,6 +45,7 @@ import {
   subAgentTeamAgentRelations,
   subAgentToolRelations,
   tools,
+  triggers,
 } from '../db/manage/manage-schema';
 
 // Runtime DB imports (Postgres - not versioned)
@@ -61,6 +62,7 @@ import {
   projectMetadata,
   taskRelations,
   tasks,
+  triggerInvocations,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -347,6 +349,147 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .openapi('AgentCreate');
 export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
 
+// Trigger authentication schemas
+// Input schema: what users submit via API (plaintext header values)
+export const TriggerAuthHeaderInputSchema = z.object({
+  name: z.string().min(1).describe('Header name (e.g., X-API-Key, Authorization)'),
+  value: z.string().min(1).describe('Expected header value (plaintext)'),
+});
+
+// Update schema: allows keeping existing header values without re-entering
+export const TriggerAuthHeaderUpdateSchema = z.object({
+  name: z.string().min(1).describe('Header name (e.g., X-API-Key, Authorization)'),
+  value: z.string().optional().describe('New header value (plaintext). If omitted, existing value is kept.'),
+  keepExisting: z.boolean().optional().describe('If true, keep the existing hashed value for this header'),
+});
+
+export const TriggerAuthenticationInputSchema = z
+  .object({
+    headers: z
+      .array(TriggerAuthHeaderInputSchema)
+      .optional()
+      .describe('Array of headers to validate on incoming requests'),
+  })
+  .openapi('TriggerAuthenticationInput');
+
+// Update schema for authentication: supports keepExisting flag for headers
+export const TriggerAuthenticationUpdateSchema = z
+  .object({
+    headers: z
+      .array(TriggerAuthHeaderUpdateSchema)
+      .optional()
+      .describe('Array of headers. Use keepExisting:true to preserve existing hashed value.'),
+  })
+  .openapi('TriggerAuthenticationUpdate');
+
+// Stored schema: what gets saved in database (hashed values)
+export const TriggerAuthHeaderStoredSchema = z.object({
+  name: z.string().describe('Header name'),
+  valueHash: z.string().describe('Hash of the expected header value'),
+  valuePrefix: z.string().describe('First 8 chars of value for display'),
+});
+
+export const TriggerAuthenticationStoredSchema = z
+  .object({
+    headers: z
+      .array(TriggerAuthHeaderStoredSchema)
+      .optional()
+      .describe('Array of headers with hashed values'),
+  })
+  .openapi('TriggerAuthenticationStored');
+
+// For backwards compatibility, TriggerAuthenticationSchema is the input schema
+export const TriggerAuthenticationSchema = TriggerAuthenticationInputSchema;
+
+export const TriggerOutputTransformSchema = z
+  .object({
+    jmespath: z.string().optional().describe('JMESPath expression for payload transformation'),
+    objectTransformation: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Object transformation mapping'),
+  })
+  .openapi('TriggerOutputTransform');
+
+export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
+
+export const TriggerSelectSchema = createSelectSchema(triggers);
+
+export const TriggerInsertSchema = createInsertSchema(triggers, {
+  id: () => resourceIdSchema,
+  name: () => z.string().trim().nonempty().describe('Trigger name'),
+  description: () => z.string().optional().describe('Trigger description'),
+  enabled: () => z.boolean().default(true).describe('Whether the trigger is enabled'),
+  inputSchema: () =>
+    z.record(z.string(), z.unknown()).optional().describe('JSON Schema for input validation'),
+  outputTransform: () => TriggerOutputTransformSchema.optional(),
+  messageTemplate: () =>
+    z.string().trim().nonempty().describe('Message template with {{placeholder}} syntax'),
+  authentication: () => TriggerAuthenticationInputSchema.optional(),
+  signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
+});
+
+// For updates, we create a schema without defaults so that {} is detected as empty
+// (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
+export const TriggerUpdateSchema = z.object({
+  name: z.string().trim().nonempty().describe('Trigger name').optional(),
+  description: z.string().optional().describe('Trigger description'),
+  enabled: z.boolean().describe('Whether the trigger is enabled').optional(),
+  inputSchema: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('JSON Schema for input validation'),
+  outputTransform: TriggerOutputTransformSchema.optional(),
+  messageTemplate: z
+    .string()
+    .trim()
+    .nonempty()
+    .describe('Message template with {{placeholder}} syntax')
+    .optional(),
+  authentication: TriggerAuthenticationUpdateSchema.optional(),
+  signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
+  keepExistingSigningSecret: z.boolean().optional().describe('If true, keep existing signing secret'),
+});
+
+export const TriggerApiSelectSchema =
+  createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
+export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
+  .extend({
+    id: resourceIdSchema.optional(),
+  })
+  .openapi('TriggerCreate');
+export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
+
+// Trigger Invocation schemas
+export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
+
+export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
+  id: () => resourceIdSchema,
+  triggerId: () => resourceIdSchema,
+  conversationId: () => resourceIdSchema.optional(),
+  status: () => TriggerInvocationStatusEnum.default('pending'),
+  requestPayload: () => z.record(z.string(), z.unknown()).describe('Original webhook payload'),
+  transformedPayload: () =>
+    z.record(z.string(), z.unknown()).optional().describe('Transformed payload'),
+  errorMessage: () => z.string().optional().describe('Error message if status is failed'),
+});
+
+export const TriggerInvocationUpdateSchema = TriggerInvocationInsertSchema.partial();
+
+export const TriggerInvocationApiSelectSchema = createAgentScopedApiSchema(
+  TriggerInvocationSelectSchema
+).openapi('TriggerInvocation');
+export const TriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(
+  TriggerInvocationInsertSchema
+)
+  .extend({
+    id: resourceIdSchema,
+  })
+  .openapi('TriggerInvocationCreate');
+export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  TriggerInvocationUpdateSchema
+).openapi('TriggerInvocationUpdate');
+
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
   id: resourceIdSchema,
@@ -439,6 +582,23 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
         })
         .optional(),
       activeTools: z.array(z.string()).optional(),
+      toolOverrides: z
+        .record(
+          z.string(),
+          z.object({
+            displayName: z.string().optional(),
+            description: z.string().optional(),
+            schema: z.any().optional(),
+            transformation: z
+              .union([
+                z.string(), // JMESPath expression
+                z.record(z.string(), z.string()), // object mapping
+              ])
+              .optional(),
+          })
+        )
+        .optional(),
+      prompt: z.string().optional(),
     }),
   }),
 });
@@ -796,7 +956,6 @@ export const EvaluationJobFilterCriteriaSchema = z
       })
       .optional(),
   })
-  .loose()
   .openapi('EvaluationJobFilterCriteria');
 
 export const TriggerEvaluationJobSchema = z
@@ -1117,6 +1276,23 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   mcpType: z.enum(MCPServerType).optional(),
   transport: McpTransportConfigSchema.optional(),
   credential: CredentialReferenceApiInsertSchema.optional(),
+  toolOverrides: z
+    .record(
+      z.string(),
+      z.object({
+        displayName: z.string().optional(),
+        description: z.string().optional(),
+        schema: z.any().optional(),
+        transformation: z
+          .union([
+            z.string(), // JMESPath expression
+            z.record(z.string(), z.string()), // object mapping
+          ])
+          .optional(),
+      })
+    )
+    .optional(),
+  prompt: z.string().optional(),
 });
 
 export const ToolUpdateSchema = ToolInsertSchema.partial();
@@ -1456,6 +1632,7 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -1675,6 +1852,12 @@ export const ConversationResponse = z
 export const MessageResponse = z
   .object({ data: MessageApiSelectSchema })
   .openapi('MessageResponse');
+export const TriggerResponse = z
+  .object({ data: TriggerApiSelectSchema })
+  .openapi('TriggerResponse');
+export const TriggerInvocationResponse = z
+  .object({ data: TriggerInvocationApiSelectSchema })
+  .openapi('TriggerInvocationResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -1778,6 +1961,18 @@ export const MessageListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('MessageListResponse');
+export const TriggerListResponse = z
+  .object({
+    data: z.array(TriggerApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('TriggerListResponse');
+export const TriggerInvocationListResponse = z
+  .object({
+    data: z.array(TriggerInvocationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('TriggerInvocationListResponse');
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');

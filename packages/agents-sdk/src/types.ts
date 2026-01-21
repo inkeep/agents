@@ -19,6 +19,7 @@ import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './external-agent';
 import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
+import type { TriggerInterface } from './trigger';
 
 export interface ArtifactComponentWithZodProps {
   id: string;
@@ -34,6 +35,7 @@ export interface DataComponentWithZodProps {
   props?: z.ZodObject<any>;
 }
 export type { ModelSettings };
+export type { TriggerInterface };
 
 /**
  * Tool instance that may have additional metadata attached during agent processing
@@ -148,6 +150,16 @@ export interface MCPToolConfig {
   mcpType?: 'nango' | 'generic';
   transport?: McpTransportConfig;
   imageUrl?: string; // Optional image URL for custom tool icon
+  toolOverrides?: Record<
+    string,
+    {
+      displayName?: string;
+      description?: string;
+      schema?: any;
+      transformation?: string | Record<string, string>;
+    }
+  >;
+  prompt?: string; // Optional custom prompt/instructions for using this MCP server
 }
 
 export interface FetchDefinitionConfig {
@@ -252,6 +264,7 @@ export interface AgentConfig {
     summarizer?: ModelSettings;
   };
   statusUpdates?: StatusUpdateSettings;
+  triggers?: () => TriggerInterface[];
 }
 
 export class AgentError extends Error {

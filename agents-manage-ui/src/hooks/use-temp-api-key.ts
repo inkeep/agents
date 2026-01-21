@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 interface UseTempApiKeyParams {
   tenantId: string;
@@ -22,7 +21,7 @@ export function useTempApiKey({
   agentId,
   enabled = true,
 }: UseTempApiKeyParams): UseTempApiKeyResult {
-  const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +30,7 @@ export function useTempApiKey({
   const fetchToken = useCallback(async () => {
     try {
       const response = await fetch(
-        `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/tenants/${tenantId}/playground/token`,
+        `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/playground/token`,
         {
           method: 'POST',
           credentials: 'include',
@@ -58,7 +57,7 @@ export function useTempApiKey({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]);
+  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_API_URL]);
 
   // Initial fetch
   useEffect(() => {

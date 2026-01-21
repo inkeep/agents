@@ -162,7 +162,7 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    // Call Next.js route which validates and forwards to manage-api
+    // Call Next.js route which validates and forwards to agents-api
     const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {
@@ -1090,8 +1090,8 @@ class SigNozStatsAPI {
                     key: SPAN_KEYS.AI_OPERATION_ID,
                     ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
-                  op: OPERATORS.EQUALS,
-                  value: AI_OPERATIONS.GENERATE_TEXT,
+                  op: OPERATORS.IN,
+                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
                 },
                 {
                   key: {
@@ -1173,8 +1173,8 @@ class SigNozStatsAPI {
                     key: SPAN_KEYS.AI_OPERATION_ID,
                     ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
-                  op: OPERATORS.EQUALS,
-                  value: AI_OPERATIONS.GENERATE_TEXT,
+                  op: OPERATORS.IN,
+                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
                 },
                 {
                   key: {
@@ -2036,8 +2036,8 @@ class SigNozStatsAPI {
                     key: SPAN_KEYS.AI_OPERATION_ID,
                     ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
-                  op: OPERATORS.EQUALS,
-                  value: AI_OPERATIONS.GENERATE_TEXT,
+                  op: OPERATORS.IN,
+                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
                 },
                 ...conversationIdFilters,
               ],
@@ -2401,8 +2401,8 @@ class SigNozStatsAPI {
                     key: SPAN_KEYS.AI_OPERATION_ID,
                     ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
-                  op: OPERATORS.EQUALS,
-                  value: AI_OPERATIONS.GENERATE_TEXT,
+                  op: OPERATORS.IN,
+                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
                 },
               ]),
             },

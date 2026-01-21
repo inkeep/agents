@@ -55,7 +55,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
               <TableHead className="max-w-md">Description</TableHead>
               <TableHead>Model</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>

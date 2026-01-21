@@ -155,7 +155,7 @@ export class InkeepChatLanguageModel implements LanguageModelV2 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseURL}/api/chat`,
+      url: `${this.config.baseURL}/run/api/chat`,
       headers: this.config.headers(),
       body: {
         ...args,
@@ -205,7 +205,7 @@ export class InkeepChatLanguageModel implements LanguageModelV2 {
     const { args, warnings } = this.getArgs(options);
 
     const response = await postJsonToApi({
-      url: `${this.config.baseURL}/api/chat`,
+      url: `${this.config.baseURL}/run/api/chat`,
       headers: this.config.headers(),
       body: {
         ...args,

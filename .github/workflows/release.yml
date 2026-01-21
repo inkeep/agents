@@ -6,8 +6,7 @@ on:
       - ".changeset/**"
       - "packages/**"
       - "agents-cli/**"
-      - "agents-manage-api/**"
-      - "agents-run-api/**"
+      - "agents-api/**"
     branches:
       - main
       - chat-to-edit

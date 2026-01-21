@@ -28,7 +28,7 @@ function createHandlerForRequest(headers: Headers) {
     user: ['send_slack_message'],
   };
 
-  const toolsForRole = roleBasedTools[userRole] || roleBasedTools['user'];
+  const toolsForRole = roleBasedTools[userRole] || roleBasedTools.user;
 
   // Build capabilities object dynamically
   const capabilities: Record<string, any> = {

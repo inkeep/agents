@@ -2,17 +2,17 @@
 
 import { CredentialStoreType, DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import type { ApiProvider } from '@nangohq/types';
+import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { requiresCredentialForm } from '@/components/credentials/views/auth-form-config';
 import { GenericAuthForm } from '@/components/credentials/views/generic-auth-form';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { Button } from '@/components/ui/button';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
-import { useAuthClient } from '@/lib/auth-client';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
@@ -130,9 +130,7 @@ function ProviderSetupPage({
     }
   }, [provider, loading, hasAttempted, handleCreateCredential]);
 
-  const handleBack = () => {
-    router.push(`/${tenantId}/projects/${projectId}/credentials/new/providers`);
-  };
+  const backLink = `/${tenantId}/projects/${projectId}/credentials/new/providers` as const;
 
   if (providersLoading) {
     return <div className="flex items-center justify-center h-64">Loading provider...</div>;
@@ -145,9 +143,9 @@ function ProviderSetupPage({
         <p className="text-muted-foreground">
           The provider "{decodeURIComponent(providerId)}" was not found.
         </p>
-        <button type="button" onClick={handleBack} className="text-primary hover:underline">
-          ← Back to providers
-        </button>
+        <Button asChild>
+          <NextLink href={backLink}>Back to providers</NextLink>
+        </Button>
       </div>
     );
   }
@@ -162,38 +160,22 @@ function ProviderSetupPage({
           <p className="text-muted-foreground">
             Please wait while we connect to {provider.name}...
           </p>
-          <Button onClick={handleBack}>Back to providers</Button>
+          <Button asChild>
+            <NextLink href={backLink}>Back to providers</NextLink>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Credentials',
-          href: `/${tenantId}/projects/${projectId}/credentials`,
-        },
-        {
-          label: 'New credential',
-          href: `/${tenantId}/projects/${projectId}/credentials/new`,
-        },
-        {
-          label: 'Providers',
-          href: `/${tenantId}/projects/${projectId}/credentials/new/providers`,
-        },
-        provider.display_name,
-      ]}
+    <GenericAuthForm
       className="max-w-2xl mx-auto"
-    >
-      <GenericAuthForm
-        provider={provider}
-        onBack={handleBack}
-        onSubmit={handleCreateCredential}
-        loading={loading}
-      />
-    </BodyTemplate>
+      provider={provider}
+      backLink={backLink}
+      onSubmit={handleCreateCredential}
+      loading={loading}
+    />
   );
 }
 

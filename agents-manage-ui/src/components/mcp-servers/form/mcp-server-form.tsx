@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -18,17 +19,18 @@ import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { cn } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { CredentialScopeEnum, type MCPToolFormData, mcpToolSchema } from './validation';
 
 interface MCPServerFormProps {
   initialData?: MCPToolFormData;
-  mode?: 'create' | 'update';
   tool?: MCPTool;
   credentials: Credential[];
   tenantId: string;
   projectId: string;
+  className?: string;
 }
 
 const defaultValues: MCPToolFormData = {
@@ -43,6 +45,8 @@ const defaultValues: MCPToolFormData = {
         type: MCPTransportType.streamableHttp,
       },
       toolsConfig: { type: 'all' },
+      toolOverrides: {},
+      prompt: '',
     },
   },
   imageUrl: '', // Initialize as empty string to avoid uncontrolled/controlled warning
@@ -52,7 +56,7 @@ const defaultValues: MCPToolFormData = {
 
 export function MCPServerForm({
   initialData,
-  mode = 'create',
+  className,
   tool,
   credentials,
   tenantId,
@@ -86,6 +90,7 @@ export function MCPServerForm({
   };
 
   const onSubmit = async (data: MCPToolFormData) => {
+    const mode = tool ? 'update' : 'create';
     try {
       const mcpServerName = data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
@@ -104,6 +109,7 @@ export function MCPServerForm({
               transport: {
                 type: data.config.mcp.transport.type,
               },
+              prompt: data.config.mcp.prompt,
             },
           },
           credentialReferenceId: null,
@@ -147,6 +153,7 @@ export function MCPServerForm({
               transport: {
                 type: data.config.mcp.transport.type,
               },
+              prompt: data.config.mcp.prompt,
             },
           },
           credentialReferenceId: null,
@@ -182,7 +189,7 @@ export function MCPServerForm({
         },
       };
 
-      if (mode === 'update' && tool) {
+      if (tool) {
         await updateMCPTool(tenantId, projectId, tool.id, transformedData);
         toast.success('MCP server updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`);
@@ -222,7 +229,7 @@ export function MCPServerForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           <GenericInput
             control={form.control}
             name="name"
@@ -257,6 +264,12 @@ export function MCPServerForm({
             label="Image URL (optional)"
             placeholder="https://example.com/icon.png or data:image/png;base64,..."
           />
+          <GenericTextarea
+            control={form.control}
+            name="config.mcp.prompt"
+            label="Custom Prompt (optional)"
+            placeholder="Instructions for how agents should use these tools..."
+          />
 
           <div className="space-y-3">
             <GenericSelect
@@ -265,7 +278,7 @@ export function MCPServerForm({
               name="credentialScope"
               label="Credential Scope"
               placeholder="Select credential scope"
-              disabled={mode === 'update'}
+              disabled={!!tool}
               options={[
                 { value: CredentialScopeEnum.project, label: 'Project (shared team credential)' },
                 { value: CredentialScopeEnum.user, label: 'User (each user connects their own)' },
@@ -322,21 +335,38 @@ export function MCPServerForm({
             </div>
           )}
 
-          {mode === 'update' && (
-            <ActiveToolsSelector
-              control={form.control}
-              name="config.mcp.toolsConfig"
-              label="Tools"
-              availableTools={tool?.availableTools || []}
-              description="Select which tools should be enabled for this MCP server"
-            />
+          {tool && (
+            <>
+              <ActiveToolsSelector
+                control={form.control}
+                name="config.mcp.toolsConfig"
+                label="Tools"
+                availableTools={tool?.availableTools || []}
+                description="Select which tools should be enabled for this MCP server"
+                toolOverrides={form.watch('config.mcp.toolOverrides') || {}}
+                onToolOverrideChange={(toolName, override) => {
+                  const currentOverrides = form.watch('config.mcp.toolOverrides') || {};
+                  const newOverrides = { ...currentOverrides };
+
+                  if (Object.keys(override).length === 0) {
+                    // Remove override if empty
+                    delete newOverrides[toolName];
+                  } else {
+                    newOverrides[toolName] = override;
+                  }
+
+                  form.setValue('config.mcp.toolOverrides', newOverrides);
+                  form.trigger('config.mcp.toolOverrides');
+                }}
+              />
+            </>
           )}
 
           <div className="flex w-full justify-between">
             <Button type="submit" disabled={isSubmitting}>
-              {mode === 'update' ? 'Save' : 'Create'}
+              {tool ? 'Save' : 'Create'}
             </Button>
-            {mode === 'update' && tool && (
+            {tool && (
               <DialogTrigger asChild>
                 <Button type="button" variant="destructive-outline">
                   Delete Server

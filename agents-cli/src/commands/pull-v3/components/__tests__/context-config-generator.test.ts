@@ -1,8 +1,11 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 /**
  * Unit tests for context config generator
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateContextConfigDefinition,
   generateContextConfigFile,
@@ -13,7 +16,7 @@ import {
 
 // Mock registry for tests
 const mockRegistry = {
-  getVariableName: (id: string, type?: string) => {
+  getVariableName(id, _type) {
     // If already camelCase, return as-is, otherwise convert
     if (!/[-_]/.test(id)) {
       return id;
@@ -24,7 +27,7 @@ const mockRegistry = {
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Context Config Generator', () => {
   const headersData = {
@@ -356,7 +359,7 @@ describe('Context Config Generator', () => {
         return testHeaders;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -386,7 +389,7 @@ describe('Context Config Generator', () => {
         return testFetch;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -417,7 +420,7 @@ describe('Context Config Generator', () => {
         return testContext;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

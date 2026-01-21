@@ -74,7 +74,7 @@ export function DatasetItemsTable({
               <TableHead>Input</TableHead>
               <TableHead>Expected Output</TableHead>
               <TableHead>Simulation Agent</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>

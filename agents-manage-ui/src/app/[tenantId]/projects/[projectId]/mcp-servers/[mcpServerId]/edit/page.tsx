@@ -1,6 +1,5 @@
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
 import {
   type CredentialScope,
@@ -72,6 +71,8 @@ async function EditMCPPage({
                 type: 'selective' as const,
                 tools: mcpTool.config.mcp.activeTools,
               },
+        toolOverrides: mcpTool.config.mcp.toolOverrides || {},
+        prompt: mcpTool.config.mcp.prompt || '',
       },
     },
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',
@@ -80,29 +81,14 @@ async function EditMCPPage({
   };
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'MCP servers',
-          href: `/${tenantId}/projects/${projectId}/mcp-servers`,
-        },
-        {
-          label: mcpTool.name,
-          href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
-        },
-        'Edit',
-      ]}
+    <MCPServerForm
       className="max-w-2xl mx-auto"
-    >
-      <MCPServerForm
-        initialData={initialFormData}
-        mode="update"
-        tool={mcpTool}
-        credentials={credentials}
-        tenantId={tenantId}
-        projectId={projectId}
-      />
-    </BodyTemplate>
+      initialData={initialFormData}
+      tool={mcpTool}
+      credentials={credentials}
+      tenantId={tenantId}
+      projectId={projectId}
+    />
   );
 }
 

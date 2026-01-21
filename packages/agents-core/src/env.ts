@@ -51,7 +51,7 @@ const envSchema = z.object({
     .min(32, 'INKEEP_AGENTS_JWT_SIGNING_SECRET must be at least 32 characters')
     .optional(),
   INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
-  INKEEP_AGENTS_MANAGE_API_URL: z.string().optional(),
+  INKEEP_AGENTS_API_URL: z.string().optional(),
   BETTER_AUTH_SECRET: z.string().optional(),
   TRUSTED_ORIGIN: z.string().optional(), // for local/preview env
   OAUTH_PROXY_PRODUCTION_URL: z.string().optional(), // for local/preview env

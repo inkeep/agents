@@ -1,7 +1,5 @@
 import { DatasetPageClient } from '@/components/datasets/dataset-page-client';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { fetchDatasetItems } from '@/lib/api/dataset-items';
 import { fetchDataset } from '@/lib/api/datasets';
 
@@ -21,31 +19,19 @@ export default async function DatasetPage({
     ]);
 
     return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Test Suites',
-            href: `/${tenantId}/projects/${projectId}/datasets`,
-          },
-          dataset.name || 'Test Suite',
-        ]}
-      >
-        <MainContent>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold">{dataset.name || 'Test Suite'}</h1>
-              </div>
-            </div>
-            <DatasetPageClient
-              tenantId={tenantId}
-              projectId={projectId}
-              datasetId={datasetId}
-              items={items.data}
-            />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">{dataset.name || 'Test Suite'}</h1>
           </div>
-        </MainContent>
-      </BodyTemplate>
+        </div>
+        <DatasetPageClient
+          tenantId={tenantId}
+          projectId={projectId}
+          datasetId={datasetId}
+          items={items.data}
+        />
+      </div>
     );
   } catch (error) {
     return (

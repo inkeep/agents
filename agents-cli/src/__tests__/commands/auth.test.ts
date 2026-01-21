@@ -155,9 +155,8 @@ describe('CLI Authentication', () => {
           },
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-local',
             environment: 'development',
@@ -194,9 +193,8 @@ describe('CLI Authentication', () => {
           },
           development: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3000',
-              runApi: 'http://localhost:3003',
             },
             credential: 'inkeep-dev',
             environment: 'development',

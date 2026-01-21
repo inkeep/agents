@@ -7,6 +7,7 @@ import type {
   ToolApiInsert,
 } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 
 const logger = getLogger('project');
 
@@ -677,6 +678,32 @@ export class Project implements ProjectInterface {
               // Type guard to ensure this is a Tool (MCP tool)
               if ('config' in actualTool && 'serverUrl' in actualTool.config) {
                 const mcpTool = actualTool as any; // Cast to access MCP-specific properties
+                // Convert any Zod schemas in toolOverrides to JSON Schema format before storing
+                const convertedToolOverrides = mcpTool.config.toolOverrides
+                  ? Object.fromEntries(
+                      Object.entries(mcpTool.config.toolOverrides).map(([toolName, config]) => {
+                        const originalSchema = (config as any)?.schema;
+                        const convertedSchema = isZodSchema(originalSchema)
+                          ? convertZodToJsonSchema(originalSchema)
+                          : originalSchema;
+
+                        logger.info(
+                          {
+                            projectId: this.projectId,
+                            toolId,
+                            toolName,
+                            isZod: isZodSchema(originalSchema),
+                            originalType: typeof originalSchema,
+                            convertedType: typeof convertedSchema,
+                          },
+                          'Project: Converting toolOverride schema'
+                        );
+
+                        return [toolName, { ...(config || {}), schema: convertedSchema }];
+                      })
+                    )
+                  : mcpTool.config.toolOverrides;
+
                 const toolConfig: ToolApiInsert['config'] = {
                   type: 'mcp',
                   mcp: {
@@ -685,6 +712,7 @@ export class Project implements ProjectInterface {
                     },
                     transport: mcpTool.config.transport,
                     activeTools: mcpTool.config.activeTools,
+                    toolOverrides: convertedToolOverrides,
                   },
                 };
 
@@ -870,6 +898,7 @@ export class Project implements ProjectInterface {
             },
             transport: tool.config.transport,
             activeTools: tool.config.activeTools,
+            toolOverrides: tool.config.toolOverrides,
           },
         };
 
