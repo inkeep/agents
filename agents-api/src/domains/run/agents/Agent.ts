@@ -44,10 +44,8 @@ import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
   FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
-  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
   LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
   LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
-  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
 } from '../constants/execution-limits';
 import { ContextResolver } from '../context';
 import {
@@ -494,8 +492,7 @@ export class Agent {
         }
 
         const isInternalTool =
-          toolName.includes('save_tool_result') ||
-          toolName.startsWith('transfer_to_');
+          toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
         // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
         // Check if this tool needs approval first
@@ -3017,7 +3014,7 @@ ${output}`;
     }
 
     // Only check for tool errors in streaming mode (when includeThinkingComplete is false)
-    if (last && last.content && last.content.length > 0) {
+    if (last?.content && last.content.length > 0) {
       const lastContent = last.content[last.content.length - 1];
       if (lastContent.type === 'tool-error') {
         const error = lastContent.error;
@@ -3290,31 +3287,5 @@ ${output}`;
     }
 
     await parser.finalize();
-  }
-
-  private formatStreamingResponse(response: any, parser: any) {
-    const collectedParts = parser.getCollectedParts();
-    if (collectedParts.length > 0) {
-      response.formattedContent = {
-        parts: collectedParts.map((part: any) => ({
-          kind: part.kind,
-          ...(part.kind === 'text' && { text: part.text }),
-          ...(part.kind === 'data' && { data: part.data }),
-        })),
-      };
-    }
-
-    const streamedContent = parser.getAllStreamedContent();
-    if (streamedContent.length > 0) {
-      response.streamedContent = {
-        parts: streamedContent.map((part: any) => ({
-          kind: part.kind,
-          ...(part.kind === 'text' && { text: part.text }),
-          ...(part.kind === 'data' && { data: part.data }),
-        })),
-      };
-    }
-
-    return response;
   }
 }
