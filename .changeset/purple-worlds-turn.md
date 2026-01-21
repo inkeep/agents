@@ -1,9 +1,7 @@
 ---
 "@inkeep/agents-manage-ui": patch
-"@inkeep/agents-run-api": patch
 "@inkeep/agents-cli": patch
-"@inkeep/agents-eval-api": patch
-"@inkeep/agents-manage-api": patch
+"@inkeep/agents-api": patch
 "@inkeep/agents-core": patch
 "@inkeep/agents-manage-mcp": patch
 "@inkeep/agents-sdk": patch
