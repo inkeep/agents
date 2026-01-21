@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
@@ -13,9 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
-import { fetchMCPTools } from '@/lib/api/tools';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
-import type { MCPTool } from '@/lib/types/tools';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
 
 interface CredentialFormProps {
@@ -127,18 +126,19 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   }, [shouldLinkToExternalAgent, form]);
 
   useEffect(() => {
-    const subscription = form.watch((value: any, { name }: any) => {
-      if (name === 'credentialStoreId' && value.credentialStoreId) {
-        const selectedStore = credentialStores.find(
-          (store) => store.id === value.credentialStoreId
-        );
-        if (selectedStore && selectedStore.type !== 'memory') {
-          form.setValue('credentialStoreType', selectedStore.type);
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, credentialStores]);
+    if (!credentialStoreId) {
+      return;
+    }
+
+    const selectedStore = credentialStores.find((store) => store.id === credentialStoreId);
+    if (
+      selectedStore &&
+      selectedStore.type !== 'memory' &&
+      selectedStore.type !== credentialStoreType
+    ) {
+      form.setValue('credentialStoreType', selectedStore.type);
+    }
+  }, [credentialStoreId, credentialStoreType, credentialStores, form]);
 
   const handleLinkToServerChange = (checked: boolean | 'indeterminate') => {
     setShouldLinkToServer(checked === true);
@@ -205,38 +205,30 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     })),
   ];
 
-  const credentialStoreOptions = (() => {
-    if (storesLoading) {
-      return [
+  const availableStores = credentialStores.filter(
+    (store) => store.available && store.type !== 'memory'
+  );
+
+  const credentialStoreOptions = storesLoading
+    ? [
         {
           value: 'loading',
           label: 'Loading credential stores...',
           disabled: true,
         },
-      ];
-    }
-
-    const availableStores = credentialStores.filter(
-      (store) => store.available && store.type !== 'memory'
-    );
-
-    if (availableStores.length === 0) {
-      return [
-        {
-          value: 'none',
-          label: 'No credential stores available',
-          disabled: true,
-        },
-      ];
-    }
-
-    const options = availableStores.map((store) => ({
-      value: store.id,
-      label: `${store.type === 'keychain' ? 'Keychain Store' : 'Nango Store'} (${store.id})`,
-    }));
-
-    return options;
-  })();
+      ]
+    : availableStores.length
+      ? availableStores.map((store) => ({
+          value: store.id,
+          label: `${store.type === 'keychain' ? 'Keychain Store' : 'Nango Store'} (${store.id})`,
+        }))
+      : [
+          {
+            value: 'none',
+            label: 'No credential stores available',
+            disabled: true,
+          },
+        ];
 
   return (
     <Form {...form}>
@@ -273,7 +265,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             </InfoCard>
           </div>
 
-          {!storesLoading && form.watch('credentialStoreType') === CredentialStoreType.nango && (
+          {!storesLoading && credentialStoreType === CredentialStoreType.nango && (
             <div className="space-y-3">
               <GenericKeyValueInput
                 control={form.control}
