@@ -224,7 +224,7 @@ async function logStep(message: string, data: Record<string, unknown>) {
  * Main workflow function - processes a single dataset item through the chat API.
  * Optionally runs evaluators on the resulting conversation.
  */
-export async function runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
+async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
   'use workflow';
 
   const { datasetItemId, datasetRunId, agentId, evaluatorIds, evaluationRunId } = payload;
@@ -272,3 +272,9 @@ export async function runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     error: result.error || null,
   };
 }
+
+// This ID must match what workflow:build generates in .well-known/workflow/v1/flow.cjs
+export const runDatasetItemWorkflow = Object.assign(_runDatasetItemWorkflow, {
+  workflowId:
+    'workflow//src/domains/evals/workflow/functions/runDatasetItem.ts//_runDatasetItemWorkflow',
+});
