@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
+import { useCredentialStoresQuery } from '@/lib/query/credential-stores';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
@@ -40,8 +40,6 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   'use memo';
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
-  const [credentialStores, setCredentialStores] = useState<CredentialStoreStatus[]>([]);
-  const [storesLoading, setStoresLoading] = useState(true);
 
   const form = useForm({
     resolver: zodResolver(credentialFormSchema),
@@ -56,43 +54,38 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     projectId
   );
   const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery(tenantId, projectId);
+  const { data: credentialStores, isFetching: storesLoading } = useCredentialStoresQuery(
+    tenantId,
+    projectId
+  );
 
   const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
   const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);
 
-  // loadCredentialStores
   useEffect(() => {
-    const loadCredentialStores = async () => {
-      try {
-        const stores = await listCredentialStores(tenantId, projectId);
-        setCredentialStores(stores);
+    if (storesLoading) {
+      return;
+    }
 
-        // Auto-select preferred store: prioritize Nango, then other available non-memory stores
-        const availableStores = stores.filter(
-          (store) => store.available && store.type !== 'memory'
-        );
-        if (availableStores.length > 0) {
-          // First try to find Nango store
-          const nangoStore = availableStores.find((store) => store.type === 'nango');
-          const preferredStore = nangoStore || availableStores[0];
+    // Auto-select preferred store: prioritize Nango, then other available non-memory stores
+    const availableStores = credentialStores.filter(
+      (store) => store.available && store.type !== 'memory'
+    );
+    if (availableStores.length > 0) {
+      // First try to find Nango store
+      const nangoStore = availableStores.find((store) => store.type === 'nango');
+      const preferredStore = nangoStore || availableStores[0];
 
-          // Only set values if form doesn't already have a credentialStoreId value
-          const currentStoreId = form.getValues('credentialStoreId');
-          if (!currentStoreId) {
-            form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
-              shouldValidate: true,
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load credential stores:', err);
+      // Only set values if form doesn't already have a credentialStoreId value
+      const currentStoreId = form.getValues('credentialStoreId');
+      if (!currentStoreId) {
+        form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
+        form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
+          shouldValidate: true,
+        });
       }
-      setStoresLoading(false);
-    };
-
-    loadCredentialStores();
-  }, [tenantId, projectId, form.getValues, form.setValue]);
+    }
+  }, [form, credentialStores, storesLoading]);
 
   // Handle checkbox state changes
   useEffect(() => {
@@ -133,19 +126,18 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   };
 
   const onSubmit = async (data: CredentialFormData) => {
+    const isInvalidServerSelection =
+      shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
+    const isInvalidExternalAgentSelection =
+      shouldLinkToExternalAgent &&
+      (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error');
     try {
-      if (
-        shouldLinkToServer &&
-        (data.selectedTool === 'loading' || data.selectedTool === 'error')
-      ) {
+      if (isInvalidServerSelection) {
         toast('Please select a valid MCP server');
         return;
       }
 
-      if (
-        shouldLinkToExternalAgent &&
-        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
-      ) {
+      if (isInvalidExternalAgentSelection) {
         toast('Please select a valid external agent');
         return;
       }
