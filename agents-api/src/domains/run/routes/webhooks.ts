@@ -158,9 +158,9 @@ app.openapi(triggerWebhookRoute, async (c) => {
     const bodyText = await c.req.text();
     const payload = bodyText ? JSON.parse(bodyText) : {};
 
-    // Verify authentication
+    // Verify authentication (now async due to hash comparison)
     if (trigger.authentication) {
-      const authResult = verifyTriggerAuth(c, trigger.authentication as any);
+      const authResult = await verifyTriggerAuth(c, trigger.authentication as any);
       if (!authResult.success) {
         if (authResult.status === 401) {
           return c.json({ error: authResult.message || 'Unauthorized' }, 401);

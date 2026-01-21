@@ -7,6 +7,7 @@ import {
   generateId,
   getTriggerById,
   getTriggerInvocationById,
+  hashAuthenticationHeaders,
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
   PaginationQueryParamsSchema,
@@ -248,6 +249,17 @@ app.openapi(
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
 
+    // Hash authentication header values before storing
+    // The input schema uses { headers: [{name, value}] }, stored as { headers: [{name, valueHash, valuePrefix}] }
+    let hashedAuthentication: unknown;
+    const authInput = body.authentication as
+      | { headers?: Array<{ name: string; value: string }> }
+      | undefined;
+    if (authInput?.headers && authInput.headers.length > 0) {
+      const hashedHeaders = await hashAuthenticationHeaders(authInput.headers);
+      hashedAuthentication = { headers: hashedHeaders };
+    }
+
     const trigger = await createTrigger(db)({
       id,
       tenantId,
@@ -259,7 +271,7 @@ app.openapi(
       inputSchema: body.inputSchema,
       outputTransform: body.outputTransform,
       messageTemplate: body.messageTemplate,
-      authentication: body.authentication,
+      authentication: hashedAuthentication as any,
       signingSecret: body.signingSecret,
     });
 
@@ -332,7 +344,8 @@ app.openapi(
       body.outputTransform !== undefined ||
       body.messageTemplate !== undefined ||
       body.authentication !== undefined ||
-      body.signingSecret !== undefined;
+      body.signingSecret !== undefined ||
+      body.keepExistingSigningSecret !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -342,6 +355,56 @@ app.openapi(
     }
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Updating trigger');
+
+    // Handle authentication headers update
+    // The update schema supports { headers: [{name, value?, keepExisting?}] }
+    // If keepExisting is true, we preserve the existing hashed value
+    let hashedAuthentication: unknown;
+    const authInput = body.authentication as
+      | { headers?: Array<{ name: string; value?: string; keepExisting?: boolean }> }
+      | undefined;
+
+    if (authInput?.headers && authInput.headers.length > 0) {
+      // Get existing trigger to preserve keepExisting headers
+      const existingTrigger = await getTriggerById(db)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+      });
+
+      const existingAuth = existingTrigger?.authentication as {
+        headers?: Array<{ name: string; valueHash: string; valuePrefix: string }>;
+      } | null;
+
+      const hashedHeaders: Array<{ name: string; valueHash: string; valuePrefix: string }> = [];
+
+      for (const header of authInput.headers) {
+        if (header.keepExisting) {
+          // Find and preserve existing header hash
+          const existingHeader = existingAuth?.headers?.find((h) => h.name === header.name);
+          if (existingHeader) {
+            hashedHeaders.push({
+              name: header.name,
+              valueHash: existingHeader.valueHash,
+              valuePrefix: existingHeader.valuePrefix,
+            });
+          }
+          // If no existing header found, skip this one
+        } else if (header.value) {
+          // Hash the new value
+          const hashed = await hashAuthenticationHeaders([{ name: header.name, value: header.value }]);
+          hashedHeaders.push(hashed[0]);
+        }
+        // If neither keepExisting nor value, skip this header
+      }
+
+      hashedAuthentication = hashedHeaders.length > 0 ? { headers: hashedHeaders } : undefined;
+    } else if (body.authentication !== undefined) {
+      // Explicitly set to undefined/empty to clear authentication
+      hashedAuthentication = body.authentication;
+    }
+
+    // Handle signing secret: if keepExistingSigningSecret is true, don't update it
+    const signingSecretUpdate = body.keepExistingSigningSecret ? undefined : body.signingSecret;
 
     const updatedTrigger = await updateTrigger(db)({
       scopes: { tenantId, projectId, agentId },
@@ -353,8 +416,8 @@ app.openapi(
         inputSchema: body.inputSchema,
         outputTransform: body.outputTransform,
         messageTemplate: body.messageTemplate,
-        authentication: body.authentication,
-        signingSecret: body.signingSecret,
+        authentication: hashedAuthentication as any,
+        signingSecret: signingSecretUpdate,
       },
     });
 
