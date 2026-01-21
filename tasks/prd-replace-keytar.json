@@ -17,7 +17,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Must be done first - other stories depend on the new package being available"
     },
     {
@@ -31,7 +31,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -49,7 +49,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Note: @napi-rs/keyring methods are synchronous but the wrapper should maintain async interface for backwards compatibility. findAllCredentials may need a workaround - consider storing a key index."
     },
     {
@@ -64,7 +64,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -80,7 +80,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -94,7 +94,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "The credentials utility should already use KeyChainStore abstraction, so changes may be minimal"
     },
     {
@@ -108,7 +108,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -123,8 +123,52 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Template should use agents-core abstraction, so this may just be verification"
+    },
+    {
+      "id": "US-009",
+      "title": "Configure agents-core build to externalize native module",
+      "description": "As a developer, I need the build configuration updated to mark @napi-rs/keyring as an external dependency so the native .node binary is not bundled.",
+      "acceptanceCriteria": [
+        "Identify build configuration files for agents-core (tsdown.config.ts, tsup.config.ts, or similar)",
+        "Add `@napi-rs/keyring` to the external dependencies list in the build config",
+        "Ensure the native module is loaded at runtime, not bundled",
+        "`pnpm build` completes successfully in packages/agents-core",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "CRITICAL: The native .node binary cannot be bundled by rolldown/tsdown. Must externalize this dependency to fix build error: 'stream did not contain valid UTF-8'"
+    },
+    {
+      "id": "US-010",
+      "title": "Configure agents-cli build to externalize native module",
+      "description": "As a developer, I need the CLI build configuration updated to handle the native module correctly.",
+      "acceptanceCriteria": [
+        "Identify build configuration files for agents-cli",
+        "Add `@napi-rs/keyring` to the external dependencies list in the build config",
+        "`pnpm build` completes successfully in agents-cli",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Same externalization needed for CLI package if it bundles dependencies"
+    },
+    {
+      "id": "US-011",
+      "title": "Final verification - all commands pass",
+      "description": "As a developer, I need to verify that all standard development commands work correctly after the migration.",
+      "acceptanceCriteria": [
+        "`pnpm install` completes successfully (no native compilation errors)",
+        "`pnpm build` completes successfully across all packages",
+        "`pnpm test` completes successfully (all tests pass)",
+        "`pnpm typecheck` completes successfully (no type errors)",
+        "No keytar references remain in codebase (grep for 'keytar' returns no results in source files)"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "This is the final verification step - do not mark as complete until ALL commands pass"
     }
   ]
 }
