@@ -201,6 +201,12 @@ export function createAuth(config: BetterAuthConfig) {
       requireEmailVerification: false,
       autoSignIn: true,
     },
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['auth0', 'google', 'email-password'],
+      },
+    },
     // Automatically set user's first organization as active when session is created
     // See: https://www.better-auth.com/docs/plugins/organization#active-organization
     databaseHooks: {
