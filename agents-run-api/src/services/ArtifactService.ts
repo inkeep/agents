@@ -283,7 +283,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
@@ -354,7 +354,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactFullData(cached, artifactId, toolCallId);
     }
 
@@ -587,14 +587,6 @@ export class ArtifactService {
 
     // Block artifact creation if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {
-      const error = new Error(
-        `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
-          `for '${artifactType}' schema. ` +
-          `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
-          `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
-          `Consider using a different artifact component type that matches your data structure.`
-      );
-
       logger.error(
         {
           artifactId,
@@ -851,7 +843,9 @@ export class ArtifactService {
         tenantId,
         projectId,
       },
+      // biome-ignore lint/style/noNonNullAssertion: ignore
       contextId: this.context.contextId!,
+      // biome-ignore lint/style/noNonNullAssertion: ignore
       taskId: this.context.taskId!,
       toolCallId: artifact.toolCallId,
       artifact: artifactToSave,
@@ -876,7 +870,9 @@ export class ArtifactService {
       let cleaned = value;
 
       cleaned = cleaned
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: I am not sure if it's safe to remove
         .replace(/\u0000/g, '') // Remove null bytes
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: I am not sure if it's safe to remove
         .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // Remove control chars
 
       cleaned = cleaned
@@ -889,7 +885,7 @@ export class ArtifactService {
       // Handle the specific pattern we're seeing: \\\\\\n (4 backslashes + n)
       const maxIterations = 10;
       let iteration = 0;
-      let previousLength;
+      let previousLength: number;
 
       do {
         previousLength = cleaned.length;
@@ -942,7 +938,7 @@ export class ArtifactService {
         try {
           // Check if there's a custom selector for this field
           const customSelector = customSelectors[fieldName];
-          let rawValue;
+          let rawValue: any;
 
           if (customSelector) {
             // Use custom JMESPath selector

@@ -139,7 +139,7 @@ describe('Race Condition Prevention', () => {
 
     try {
       await compressConversationIfNeeded(messages, mockParams);
-    } catch (error) {
+    } catch {
       // Expected to fail
     }
 

@@ -31,6 +31,7 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
+  type FlexibleSchema,
   generateText,
   Output,
   type StreamTextResult,
@@ -341,7 +342,7 @@ export class Agent {
   }
 
   /**
-   * Get the primary model settings for text generation and thinking
+   * Get the primary model settings for text generation
    * Requires model to be configured at project level
    */
   private getPrimaryModel(): ModelSettings {
@@ -495,7 +496,6 @@ export class Agent {
 
         const isInternalTool =
           toolName.includes('save_tool_result') ||
-          toolName.includes('thinking_complete') ||
           toolName.startsWith('transfer_to_');
         // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
@@ -625,7 +625,6 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -652,7 +651,6 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -1851,7 +1849,7 @@ export class Agent {
           );
 
           // Use override schema if provided, otherwise use original
-          let inputSchema;
+          let inputSchema: FlexibleSchema;
           try {
             inputSchema = override.schema
               ? jsonSchemaToZod(override.schema)
@@ -1927,7 +1925,7 @@ export class Agent {
                       hasComplexArgs: !!complexArgs,
                       transformation:
                         typeof override.transformation === 'string'
-                          ? override.transformation.substring(0, 100) + '...'
+                          ? `${override.transformation.substring(0, 100)}...`
                           : 'object-transformation',
                     },
                     'Successfully transformed tool arguments'
@@ -2051,7 +2049,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedResult = JSON.parse(result);
-      } catch (e) {
+      } catch {
         // Keep as string if not valid JSON
       }
     }
@@ -2372,9 +2370,7 @@ ${output}`;
       if (!subAgents) {
         return false;
       }
-      return Object.values(subAgents).some(
-        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
-      );
+      return Object.values(subAgents).some((subAgent) => subAgent.artifactComponents?.length);
     } catch (error) {
       logger.error(
         { error, agentId: this.config.agentId },
@@ -3011,11 +3007,11 @@ ${output}`;
       }
     }
 
-    // Check for connection errors
-    if (last && last['content'] && last['content'].length > 0) {
-      const lastContent = last['content'][last['content'].length - 1];
-      if (lastContent['type'] === 'tool-error') {
-        const error = lastContent['error'];
+    // Only check for tool errors in streaming mode (when includeThinkingComplete is false)
+    if (last && last.content && last.content.length > 0) {
+      const lastContent = last.content[last.content.length - 1];
+      if (lastContent.type === 'tool-error') {
+        const error = lastContent.error;
         if (
           error &&
           typeof error === 'object' &&
