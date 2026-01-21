@@ -98,6 +98,8 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
+const USE_SINGLE_PHASE_GENERATION = process.env.USE_SINGLE_PHASE_GENERATION === 'true';
+
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
     throw new Error(
@@ -1653,6 +1655,23 @@ export class Agent {
       'System prompt configuration'
     );
     const clientCurrentTime = this.getClientCurrentTime();
+    const hasStructuredOutput = Boolean(
+      this.config.dataComponents && this.config.dataComponents.length > 0
+    );
+    const includeSinglePhaseDataComponents =
+      USE_SINGLE_PHASE_GENERATION && hasStructuredOutput && !excludeDataComponents;
+
+    logger.info(
+      {
+        agentId: this.config.id,
+        hasStructuredOutput,
+        USE_SINGLE_PHASE_GENERATION,
+        excludeDataComponents,
+        includeSinglePhaseDataComponents,
+        dataComponentsCount: this.config.dataComponents?.length || 0,
+      },
+      'Single-phase generation configuration'
+    );
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
@@ -1666,6 +1685,7 @@ export class Agent {
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
       includeDataComponents,
       clientCurrentTime,
+      includeSinglePhaseDataComponents,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }
