@@ -44,11 +44,11 @@ const ajv = new Ajv({ allErrors: true });
 
 /**
  * Webhook endpoint for trigger invocation
- * POST /tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId
+ * POST /tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}
  */
 const triggerWebhookRoute = createRoute({
   method: 'post',
-  path: '/tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId',
+  path: '/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}',
   tags: ['webhooks'],
   summary: 'Invoke agent via trigger webhook',
   description:
