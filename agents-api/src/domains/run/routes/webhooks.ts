@@ -499,6 +499,7 @@ async function invokeAgentAsync(params: {
             executionContext,
             conversationId,
             userMessage,
+            messageParts,
             initialAgentId: agentId,
             requestId,
             sseHelper: noOpStreamHelper,
