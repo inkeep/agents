@@ -5,11 +5,10 @@ import FullPageError from '@/components/errors/full-page-error';
 import { AgentsIcon } from '@/components/icons/empty-state/agents';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { STATIC_LABELS } from '@/constants/theme';
+import { ExternalLink } from '@/components/ui/external-link';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { ExternalLink } from '@/components/ui/external-link';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
 export const dynamic = 'force-dynamic';
 

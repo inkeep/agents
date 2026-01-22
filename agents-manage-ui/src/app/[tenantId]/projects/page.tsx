@@ -7,8 +7,7 @@ import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { ProjectItem } from '@/components/projects/project-item';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 

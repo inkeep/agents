@@ -7,8 +7,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchDataComponents } from '@/lib/api/data-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 

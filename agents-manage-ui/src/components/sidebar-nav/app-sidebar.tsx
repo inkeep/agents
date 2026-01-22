@@ -27,8 +27,7 @@ import {
   SidebarHeader,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';

@@ -9,8 +9,8 @@ import {
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ItemCardGrid } from '@/components/ui/item-card-grid';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { CredentialStoreType } from '@/constants/signoz';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 
 interface CredentialOption {

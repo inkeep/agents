@@ -1,16 +1,15 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArtifactComponentItem } from '@/components/artifact-components/artifact-component-item';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { ExternalLink } from '@/components/ui/external-link';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import type { Metadata } from 'next';
-import { ExternalLink } from '@/components/ui/external-link';
 
 export const dynamic = 'force-dynamic';
 
