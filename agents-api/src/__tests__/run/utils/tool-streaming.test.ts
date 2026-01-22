@@ -56,7 +56,7 @@ describe('tool streaming', () => {
       expect(JSON.parse(fourth.choices[0].delta.content)).toEqual({
         type: 'tool-output-error',
         toolCallId: 'call_1234xyz',
-        error: 'boom',
+        errorText: 'boom',
         output: null,
       });
 
@@ -126,7 +126,7 @@ describe('tool streaming', () => {
       expect(writer.write).toHaveBeenCalledWith({
         type: 'tool-output-error',
         toolCallId: 'call_1',
-        error: 'nope',
+        errorText: 'nope',
         output: null,
       });
       expect(writer.write).toHaveBeenCalledWith({
