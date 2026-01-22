@@ -48,16 +48,12 @@ describe('isLocalhostUrl', () => {
 });
 
 describe('confirmMigration', () => {
-  let mockExit: ReturnType<typeof vi.spyOn>;
-  let mockWarn: ReturnType<typeof vi.spyOn>;
-  let mockError: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit called');
+    vi.spyOn(process, 'exit').mockImplementation((code?: number | string | null) => {
+      throw new Error(`process.exit called with ${code}`);
     });
-    mockWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    mockError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -65,20 +61,20 @@ describe('confirmMigration', () => {
   });
 
   it('should exit with error if connectionString is undefined', async () => {
-    await expect(confirmMigration(undefined)).rejects.toThrow('process.exit called');
-    expect(mockError).toHaveBeenCalledWith('❌ Error: Database URL is not set.');
-    expect(mockExit).toHaveBeenCalledWith(1);
+    await expect(confirmMigration(undefined)).rejects.toThrow('process.exit called with 1');
+    expect(console.error).toHaveBeenCalledWith('❌ Error: Database URL is not set.');
+    expect(process.exit).toHaveBeenCalledWith(1);
   });
 
   it('should return true without prompting for localhost URL', async () => {
     const result = await confirmMigration('postgresql://user:pass@localhost:5432/db');
     expect(result).toBe(true);
-    expect(mockWarn).not.toHaveBeenCalled();
+    expect(console.warn).not.toHaveBeenCalled();
   });
 
   it('should return true without prompting for 127.0.0.1 URL', async () => {
     const result = await confirmMigration('postgresql://user:pass@127.0.0.1:5432/db');
     expect(result).toBe(true);
-    expect(mockWarn).not.toHaveBeenCalled();
+    expect(console.warn).not.toHaveBeenCalled();
   });
 });
