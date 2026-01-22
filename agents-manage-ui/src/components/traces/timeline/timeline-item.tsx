@@ -308,7 +308,11 @@ export function TimelineItem({
           {/* subagent badge for AI assistant message */}
           {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentId}</Badge>
+              <Badge variant="code">
+                {activity.subAgentName
+                  ? `${activity.subAgentName} (${activity.subAgentId})`
+                  : activity.subAgentId}
+              </Badge>
             </div>
           )}
 
@@ -353,7 +357,9 @@ export function TimelineItem({
           {activity.type === 'ai_model_streamed_text' && activity.subAgentId && (
             <div className="mb-1">
               <Badge variant="code" className="text-xs">
-                {activity.subAgentId}
+                {activity.subAgentName
+                  ? `${activity.subAgentName} (${activity.subAgentId})`
+                  : activity.subAgentId}
               </Badge>
             </div>
           )}
@@ -453,14 +459,22 @@ export function TimelineItem({
           {/* agent name for AI generation */}
           {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentId}</Badge>
+              <Badge variant="code">
+                {activity.subAgentName
+                  ? `${activity.subAgentName} (${activity.subAgentId})`
+                  : activity.subAgentId}
+              </Badge>
             </div>
           )}
 
           {/* agent ID for agent generation */}
           {activity.type === ACTIVITY_TYPES.AGENT_GENERATION && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentId}</Badge>
+              <Badge variant="code">
+                {activity.subAgentName
+                  ? `${activity.subAgentName} (${activity.subAgentId})`
+                  : activity.subAgentId}
+              </Badge>
             </div>
           )}
 
@@ -471,7 +485,9 @@ export function TimelineItem({
             activity.toolType !== 'transfer' && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
-                  {activity.subAgentId}
+                  {activity.subAgentName
+                    ? `${activity.subAgentName} (${activity.subAgentId})`
+                    : activity.subAgentId}
                 </Badge>
               </div>
             )}
@@ -483,34 +499,52 @@ export function TimelineItem({
             activity.subAgentId && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
-                  {activity.subAgentId}
+                  {activity.subAgentName
+                    ? `${activity.subAgentName} (${activity.subAgentId})`
+                    : activity.subAgentId}
                 </Badge>
               </div>
             )}
 
-          {/* Error display for failed AI/Agent generations */}
-          {activity.hasError && activity.otelStatusDescription && (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => onToggleAiMessageCollapse?.(activity.id)}
-                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
-                title={isAiMessageCollapsed ? 'Expand error message' : 'Collapse error message'}
-              >
-                {isAiMessageCollapsed ? (
-                  <ChevronRight className="h-3 w-3" />
-                ) : (
-                  <ChevronDown className="h-3 w-3" />
+          {/* Status message display for errors and warnings */}
+          {(activity.otelStatusDescription || activity.toolStatusMessage) &&
+            (activity.status === ACTIVITY_STATUS.ERROR ||
+              activity.status === ACTIVITY_STATUS.WARNING) && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => onToggleAiMessageCollapse?.(activity.id)}
+                  className={`flex items-center gap-1 text-xs transition-colors ${
+                    activity.status === ACTIVITY_STATUS.ERROR
+                      ? 'text-red-500 hover:text-red-600'
+                      : 'text-yellow-500 hover:text-yellow-600'
+                  }`}
+                  title={
+                    isAiMessageCollapsed
+                      ? `Expand ${activity.status} message`
+                      : `Collapse ${activity.status} message`
+                  }
+                >
+                  {isAiMessageCollapsed ? (
+                    <ChevronRight className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                  {activity.status === ACTIVITY_STATUS.ERROR ? 'Error Details' : 'Warning Details'}
+                </button>
+                {!isAiMessageCollapsed && (
+                  <Bubble
+                    className={
+                      activity.status === ACTIVITY_STATUS.ERROR
+                        ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+                        : 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300'
+                    }
+                  >
+                    {activity.otelStatusDescription || activity.toolStatusMessage}
+                  </Bubble>
                 )}
-                Error Details
-              </button>
-              {!isAiMessageCollapsed && (
-                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                  {activity.otelStatusDescription}
-                </Bubble>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
           <time
             className="text-xs mb-2 inline-block text-gray-500 dark:text-white/50"

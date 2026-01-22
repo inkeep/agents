@@ -1,4 +1,12 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FileText,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
@@ -15,6 +23,12 @@ import type {
 import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
@@ -67,7 +81,8 @@ interface TimelineWrapperProps {
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
   conversationId?: string;
-  onCopyTrace?: () => void;
+  onCopyFullTrace?: () => void;
+  onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
 }
 
@@ -158,7 +173,8 @@ export function TimelineWrapper({
   refreshOnce,
   showConversationTracesLink = false,
   conversationId,
-  onCopyTrace,
+  onCopyFullTrace,
+  onCopySummarizedTrace,
   isCopying = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
@@ -204,6 +220,51 @@ export function TimelineWrapper({
       })) || []
     );
   }, [conversation?.activities, conversation?.toolCalls]);
+
+  // Estimate token counts for copy options (~4 characters per token)
+  const estimatedTokens = useMemo(() => {
+    if (!conversation) return { summarized: 0, full: 0 };
+
+    // Estimate summarized trace size (basic metadata + simplified timeline)
+    const summarizedParts = [
+      conversation.conversationId,
+      conversation.agentName || '',
+      conversation.agentId || '',
+      ...(conversation.activities || []).flatMap((a) => [
+        a.type,
+        a.description,
+        a.status,
+        a.timestamp,
+        a.subAgentName || '',
+        a.subAgentId || '',
+        a.messageContent || '',
+        a.aiResponseContent || '',
+        a.aiStreamTextContent || '',
+        a.toolPurpose || '',
+        a.otelStatusDescription || '',
+        a.toolStatusMessage || '',
+      ]),
+    ];
+    const summarizedChars = summarizedParts.join('').length + 500; // Add overhead for JSON structure
+
+    // Estimate full trace size (includes all activity fields + agent definition placeholder)
+    const fullParts = [
+      ...summarizedParts,
+      ...(conversation.activities || []).flatMap((a) => [
+        a.toolCallArgs || '',
+        a.toolCallResult || '',
+        a.aiPromptMessages || '',
+        a.aiResponseToolCalls || '',
+      ]),
+    ];
+    // Agent definition and conversation history add significant size
+    const fullChars = fullParts.join('').length + 5000; // Add overhead for agent def + history
+
+    return {
+      summarized: Math.ceil(summarizedChars / 4),
+      full: Math.ceil(fullChars / 4),
+    };
+  }, [conversation]);
 
   // Memoize sorted activities to prevent re-sorting on every render
   const sortedActivities = useMemo(() => {
@@ -399,19 +460,42 @@ export function TimelineWrapper({
                 <div className="text-foreground text-md font-medium">Activity timeline</div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Copy JSON Button */}
-                {onCopyTrace && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onCopyTrace}
-                    disabled={isCopying}
-                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    title="Copy trace as JSON"
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    {isCopying ? 'Copying...' : 'Copy Trace'}
-                  </Button>
+                {/* Copy Trace Dropdown */}
+                {(onCopyFullTrace || onCopySummarizedTrace) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isCopying}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        {isCopying ? 'Copying...' : 'Copy Trace'}
+                        <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onCopySummarizedTrace && (
+                        <DropdownMenuItem onClick={onCopySummarizedTrace} disabled={isCopying}>
+                          <FileText className="h-3.5 w-3.5 mr-2" />
+                          <span className="flex-1">Copy Summarized Trace</span>
+                          <span className="text-muted-foreground text-xs ml-2">
+                            ~{estimatedTokens.summarized.toLocaleString()} tokens
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+                      {onCopyFullTrace && (
+                        <DropdownMenuItem onClick={onCopyFullTrace} disabled={isCopying}>
+                          <Copy className="h-3.5 w-3.5 mr-2" />
+                          <span className="flex-1">Copy Full Trace</span>
+                          <span className="text-muted-foreground text-xs ml-2">
+                            ~{estimatedTokens.full.toLocaleString()} tokens
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
                 {/* Expand/Collapse AI Messages Buttons */}
                 {sortedActivities.some(

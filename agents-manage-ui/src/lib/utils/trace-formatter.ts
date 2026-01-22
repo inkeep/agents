@@ -103,7 +103,7 @@ function formatConversationAsPrettifiedTrace(
 /**
  * Copies the prettified trace to clipboard with compact defaults
  */
-export async function copyTraceToClipboard(
+export async function copyFullTraceToClipboard(
   conversation: ConversationDetail,
   tenantId: string,
   projectId: string
@@ -121,6 +121,99 @@ export async function copyTraceToClipboard(
 
     const trace = formatConversationAsPrettifiedTrace(conversation, agentDefinition, conversationHistory);
     await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to copy trace',
+    };
+  }
+}
+
+interface SummarizedActivity {
+  agent?: string;
+  type: string;
+  description: string;
+  status: string;
+  timestamp: string;
+  content?: string;
+  errorDetails?: string;
+}
+
+/**
+ * Formats an activity into a summarized view (what's visible in the timeline)
+ */
+function formatActivityAsSummary(activity: ActivityItem): SummarizedActivity {
+  const summary: SummarizedActivity = {
+    type: activity.type,
+    description: activity.description,
+    status: activity.status,
+    timestamp: activity.timestamp,
+  };
+
+  // Add agent info if available
+  if (activity.subAgentName && activity.subAgentId) {
+    summary.agent = `${activity.subAgentName} (${activity.subAgentId})`;
+  } else if (activity.subAgentId) {
+    summary.agent = activity.subAgentId;
+  }
+
+  // Add content based on activity type
+  if (activity.type === 'user_message' && activity.messageContent) {
+    summary.content = activity.messageContent;
+  } else if (activity.type === 'ai_assistant_message' && activity.aiResponseContent) {
+    summary.content = activity.aiResponseContent;
+  } else if (activity.type === 'ai_model_streamed_text' && activity.aiStreamTextContent) {
+    summary.content = activity.aiStreamTextContent;
+  } else if (activity.type === 'tool_call' && activity.toolPurpose) {
+    summary.content = activity.toolPurpose;
+  }
+
+  // Add error/warning details if present
+  const statusMessage =
+    activity.otelStatusDescription ||
+    activity.toolStatusMessage ||
+    activity.contextStatusDescription;
+  if (statusMessage && (activity.status === 'error' || activity.status === 'warning')) {
+    summary.errorDetails = statusMessage;
+  }
+
+  return summary;
+}
+
+/**
+ * Copies a summarized trace (just what's visible in the timeline) to clipboard
+ */
+export async function copySummarizedTraceToClipboard(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Fetch agent definition and conversation history in parallel
+    const [agentResult, historyResult] = await Promise.all([
+      conversation.agentId
+        ? getFullAgentAction(tenantId, projectId, conversation.agentId)
+        : Promise.resolve(null),
+      fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
+    ]);
+
+    const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+    const conversationHistory = historyResult?.success ? historyResult.data?.formatted?.llmContext : '';
+
+    const summarizedTrace = {
+      metadata: {
+        conversationId: conversation.conversationId,
+        agentName: conversation.agentName,
+        agentId: conversation.agentId,
+        exportedAt: new Date().toISOString(),
+      },
+      agentDefinition: agentDefinition as Record<string, unknown> | undefined,
+      conversationHistory: conversationHistory || '',
+      timeline: (conversation.activities || []).map(formatActivityAsSummary),
+    };
+
+    await navigator.clipboard.writeText(JSON.stringify(summarizedTrace, null, 2));
     return { success: true };
   } catch (error) {
     return {
