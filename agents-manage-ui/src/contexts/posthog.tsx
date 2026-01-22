@@ -42,9 +42,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (PUBLIC_POSTHOG_SITE_TAG) {
-            posthog.register({
-              site: PUBLIC_POSTHOG_SITE_TAG,
-            });
+            posthog.register({ site: PUBLIC_POSTHOG_SITE_TAG });
           }
         }
 
