@@ -188,6 +188,7 @@ export interface ErrorEventData {
   code?: string;
   severity?: 'error' | 'warning' | 'info';
   context?: any;
+  relationshipId?: string;
 }
 
 interface StatusUpdateState {

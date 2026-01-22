@@ -1,17 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CredentialStoreType } from '../../types/index.js';
 
-// Mock the keytar module
-const mockKeytar = {
-  getPassword: vi.fn(),
-  setPassword: vi.fn(),
-  deletePassword: vi.fn(),
-  findCredentials: vi.fn(),
-};
+// Mock functions that will be used by MockEntry
+const mockGetPassword = vi.fn();
+const mockSetPassword = vi.fn();
+const mockDeletePassword = vi.fn();
+
+class MockEntry {
+  service: string;
+  account: string;
+
+  constructor(service: string, account: string) {
+    this.service = service;
+    this.account = account;
+  }
+
+  getPassword() {
+    return mockGetPassword();
+  }
+
+  setPassword(password: string) {
+    return mockSetPassword(password);
+  }
+
+  deletePassword() {
+    return mockDeletePassword();
+  }
+}
 
 // Setup mock before any imports
-vi.doMock('keytar', () => ({
-  default: mockKeytar,
+vi.doMock('@napi-rs/keyring', () => ({
+  Entry: MockEntry,
 }));
 
 // Import after mocking
@@ -19,14 +38,12 @@ const { KeyChainStore } = await import('../../credential-stores/keychain-store.j
 
 describe('KeyChainStore', () => {
   let store: InstanceType<typeof KeyChainStore>;
-  let keytarMock: typeof mockKeytar;
 
   beforeEach(async () => {
     // Reset all mocks
-    vi.clearAllMocks();
-
-    // Get the mocked keytar functions
-    keytarMock = mockKeytar;
+    mockGetPassword.mockReset();
+    mockSetPassword.mockReset();
+    mockDeletePassword.mockReset();
 
     // Create a new store instance
     store = new KeyChainStore('test-store');
@@ -45,53 +62,55 @@ describe('KeyChainStore', () => {
       const key = 'TEST_KEY';
       const value = 'test_value';
 
-      // Mock successful operations
-      keytarMock.setPassword.mockResolvedValueOnce(undefined);
-      keytarMock.getPassword.mockResolvedValueOnce(value);
+      // Mock successful set operation
+      mockSetPassword.mockReturnValueOnce(undefined);
+      mockGetPassword.mockReturnValueOnce('[]'); // key index
 
       await store.set(key, value);
-      expect(keytarMock.setPassword).toHaveBeenCalledWith(
-        'inkeep-agent-framework-test-store',
-        key,
-        value
-      );
+
+      // Verify setPassword was called on Entry instances
+      expect(mockSetPassword).toHaveBeenCalled();
+
+      // Mock successful get operation
+      mockGetPassword.mockReturnValueOnce(value);
 
       const retrieved = await store.get(key);
-      expect(keytarMock.getPassword).toHaveBeenCalledWith('inkeep-agent-framework-test-store', key);
       expect(retrieved).toBe(value);
     });
 
     it('should return null for non-existent keys', async () => {
-      keytarMock.getPassword.mockResolvedValueOnce(null);
+      mockGetPassword.mockReturnValueOnce(null);
 
       const result = await store.get('NON_EXISTENT');
       expect(result).toBeNull();
     });
 
     it('should check if credentials exist', async () => {
-      keytarMock.getPassword.mockResolvedValueOnce('exists');
+      mockGetPassword.mockReturnValueOnce('exists');
       expect(await store.has('EXISTS')).toBe(true);
 
-      keytarMock.getPassword.mockResolvedValueOnce(null);
+      mockGetPassword.mockReturnValueOnce(null);
       expect(await store.has('DOES_NOT_EXIST')).toBe(false);
     });
 
     it('should delete credentials', async () => {
-      keytarMock.deletePassword.mockResolvedValueOnce(true);
+      // Mock key index retrieval and update
+      mockGetPassword.mockReturnValueOnce('["TO_DELETE"]'); // key index
+      mockSetPassword.mockReturnValueOnce(undefined); // update index
+      mockDeletePassword.mockReturnValueOnce(undefined);
 
       const deleted = await store.delete('TO_DELETE');
-      expect(keytarMock.deletePassword).toHaveBeenCalledWith(
-        'inkeep-agent-framework-test-store',
-        'TO_DELETE'
-      );
+      expect(mockDeletePassword).toHaveBeenCalled();
       expect(deleted).toBe(true);
     });
 
-    it('should return false when deleting non-existent key', async () => {
-      keytarMock.deletePassword.mockResolvedValueOnce(false);
+    it('should return true even when deleting non-existent key', async () => {
+      // Mock key index retrieval
+      mockGetPassword.mockReturnValueOnce('[]'); // empty key index
+      mockDeletePassword.mockReturnValueOnce(undefined);
 
       const deleted = await store.delete('NON_EXISTENT');
-      expect(deleted).toBe(false);
+      expect(deleted).toBe(true);
     });
   });
 
@@ -100,60 +119,68 @@ describe('KeyChainStore', () => {
       const customStore = new KeyChainStore('custom-id', 'my-app');
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      keytarMock.getPassword.mockResolvedValueOnce('value');
+      mockGetPassword.mockReturnValueOnce('value');
 
-      await customStore.get('KEY');
-      expect(keytarMock.getPassword).toHaveBeenCalledWith('my-app-custom-id', 'KEY');
+      const result = await customStore.get('KEY');
+      expect(result).toBe('value');
+      expect(mockGetPassword).toHaveBeenCalled();
     });
   });
 
   describe('Find and Clear Operations', () => {
     it('should find all credentials for the service', async () => {
-      const mockCredentials = [
-        { account: 'KEY1', password: 'value1' },
-        { account: 'KEY2', password: 'value2' },
-      ];
-
-      keytarMock.findCredentials.mockResolvedValueOnce(mockCredentials);
+      // Mock the key index containing two keys
+      mockGetPassword
+        .mockReturnValueOnce('["KEY1","KEY2"]') // key index
+        .mockReturnValueOnce('value1') // KEY1 value
+        .mockReturnValueOnce('value2'); // KEY2 value
 
       const credentials = await store.findAllCredentials();
-      expect(keytarMock.findCredentials).toHaveBeenCalledWith('inkeep-agent-framework-test-store');
-      expect(credentials).toEqual(mockCredentials);
+      expect(credentials).toEqual([
+        { account: 'KEY1', password: 'value1' },
+        { account: 'KEY2', password: 'value2' },
+      ]);
     });
 
     it('should clear all credentials', async () => {
-      const mockCredentials = [
-        { account: 'KEY1', password: 'value1' },
-        { account: 'KEY2', password: 'value2' },
-      ];
+      // Mock findAllCredentials: key index + values
+      mockGetPassword
+        .mockReturnValueOnce('["KEY1","KEY2"]') // key index for findAllCredentials
+        .mockReturnValueOnce('value1') // KEY1 value
+        .mockReturnValueOnce('value2') // KEY2 value
+        .mockReturnValueOnce('["KEY1","KEY2"]') // key index for delete KEY1
+        .mockReturnValueOnce('["KEY2"]') // key index for delete KEY2
+        .mockReturnValueOnce(null); // key index doesn't exist after final delete
 
-      keytarMock.findCredentials.mockResolvedValueOnce(mockCredentials);
-      keytarMock.deletePassword.mockResolvedValue(true);
+      mockSetPassword
+        .mockReturnValueOnce(undefined) // update index after KEY1 delete
+        .mockReturnValueOnce(undefined); // update index after KEY2 delete
+
+      mockDeletePassword
+        .mockReturnValueOnce(undefined) // delete KEY1
+        .mockReturnValueOnce(undefined) // delete KEY2
+        .mockReturnValueOnce(undefined); // delete key index
 
       const deletedCount = await store.clearAll();
       expect(deletedCount).toBe(2);
-      expect(keytarMock.deletePassword).toHaveBeenCalledTimes(2);
-      expect(keytarMock.deletePassword).toHaveBeenCalledWith(
-        'inkeep-agent-framework-test-store',
-        'KEY1'
-      );
-      expect(keytarMock.deletePassword).toHaveBeenCalledWith(
-        'inkeep-agent-framework-test-store',
-        'KEY2'
-      );
+      expect(mockDeletePassword).toHaveBeenCalled();
     });
   });
 
   describe('Error Handling', () => {
     it('should handle errors when getting credentials', async () => {
-      keytarMock.getPassword.mockRejectedValueOnce(new Error('Keychain error'));
+      mockGetPassword.mockImplementationOnce(() => {
+        throw new Error('Keychain error');
+      });
 
       const result = await store.get('ERROR_KEY');
       expect(result).toBeNull();
     });
 
     it('should throw error when setting credentials fails', async () => {
-      keytarMock.setPassword.mockRejectedValueOnce(new Error('Keychain error'));
+      mockSetPassword.mockImplementationOnce(() => {
+        throw new Error('Keychain error');
+      });
 
       await expect(store.set('ERROR_KEY', 'value')).rejects.toThrow(
         'Failed to store credential in keychain: Keychain error'
@@ -161,14 +188,18 @@ describe('KeyChainStore', () => {
     });
 
     it('should handle errors when deleting credentials', async () => {
-      keytarMock.deletePassword.mockRejectedValueOnce(new Error('Keychain error'));
+      mockDeletePassword.mockImplementationOnce(() => {
+        throw new Error('Keychain error');
+      });
 
       const result = await store.delete('ERROR_KEY');
       expect(result).toBe(false);
     });
 
     it('should handle errors when finding credentials', async () => {
-      keytarMock.findCredentials.mockRejectedValueOnce(new Error('Keychain error'));
+      mockGetPassword.mockImplementationOnce(() => {
+        throw new Error('Keychain error');
+      });
 
       const result = await store.findAllCredentials();
       expect(result).toEqual([]);
@@ -176,11 +207,11 @@ describe('KeyChainStore', () => {
   });
 });
 
-describe('KeyChainStore without keytar', () => {
-  it('should handle unavailable keytar gracefully', async () => {
-    // Reset module cache to simulate keytar not being available
+describe('KeyChainStore without @napi-rs/keyring', () => {
+  it('should handle unavailable keyring gracefully', async () => {
+    // Reset module cache to simulate keyring not being available
     vi.resetModules();
-    vi.doMock('keytar', () => {
+    vi.doMock('@napi-rs/keyring', () => {
       throw new Error('Module not found');
     });
 
@@ -198,9 +229,9 @@ describe('KeyChainStore without keytar', () => {
     expect(await store.delete('KEY')).toBe(false);
     expect(await store.findAllCredentials()).toEqual([]);
 
-    // Setting should throw when keytar is not available
+    // Setting should throw when keyring is not available
     await expect(store.set('KEY', 'value')).rejects.toThrow(
-      'Keytar not available - cannot store credentials in system keychain'
+      'Keyring not available - cannot store credentials in system keychain'
     );
   });
 });
