@@ -2,6 +2,7 @@
 
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
+import { TEMPLATE_VARIABLE_REGEX } from '@/constants/theme';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
@@ -26,16 +27,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
     // Function to validate template variables and set markers
     const validateTemplateVariables = () => {
       const validVariables = new Set(agentStore.getState().variableSuggestions);
-      const regex = /\{\{([^}]+)}}/g;
       const markers: Monaco.editor.IMarkerData[] = [];
 
       for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
         const line = model.getLineContent(lineNumber);
-        let match: RegExpExecArray | null;
-
-        while ((match = regex.exec(line)) !== null) {
-          const variableName = match[1];
-
+        for (const match of line.matchAll(TEMPLATE_VARIABLE_REGEX)) {
+          const [variableName] = match;
           // Check if variable is valid (in suggestions) or reserved env
           const isValid =
             validVariables.has(variableName) ||
@@ -50,7 +47,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
               startLineNumber: lineNumber,
               startColumn: match.index + 3,
               endLineNumber: lineNumber,
-              endColumn: match.index + match[0].length - 1,
+              endColumn: match.index + variableName.length - 1,
               message: `Unknown variable: ${variableName}`,
               severity: monaco.MarkerSeverity.Error,
             });
