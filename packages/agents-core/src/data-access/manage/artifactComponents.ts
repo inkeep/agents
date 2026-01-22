@@ -187,8 +187,6 @@ export const deleteArtifactComponent =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
-      // Only return the id column to avoid parsing JSONB columns (render, props)
-      // which can fail if they contain invalid JSON escape sequences
       const result = await db
         .delete(artifactComponents)
         .where(
@@ -198,7 +196,7 @@ export const deleteArtifactComponent =
             eq(artifactComponents.id, params.id)
           )
         )
-        .returning({ id: artifactComponents.id });
+        .returning();
 
       return result.length > 0;
     } catch (error) {
