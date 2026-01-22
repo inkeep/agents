@@ -152,7 +152,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const reason = approvalPart.approval?.reason as string | undefined;
 
       // Validate that the conversation exists and belongs to this tenant/project
-      const conversation = await getConversation(dbClient)({
+      const conversation = await getConversation(runDbClient)({
         scopes: { tenantId, projectId },
         conversationId,
       });
