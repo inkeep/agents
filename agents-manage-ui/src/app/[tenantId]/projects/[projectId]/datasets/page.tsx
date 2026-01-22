@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { DatasetsList } from '@/components/datasets/datasets-list';
 import FullPageError from '@/components/errors/full-page-error';
 import { Database } from '@/components/icons/empty-state/database';
@@ -8,8 +9,10 @@ import { fetchDatasets } from '@/lib/api/datasets';
 
 export const dynamic = 'force-dynamic';
 
-const datasetDescription =
-  'Test suites are collections of test cases used for evaluating agent performance.';
+export const metadata = {
+  title: STATIC_LABELS.datasets,
+  description: 'Test suites are collections of test cases used for evaluating agent performance.',
+} satisfies Metadata;
 
 async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/datasets'>) {
   const { tenantId, projectId } = await params;
@@ -17,13 +20,13 @@ async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[project
     const datasets = await fetchDatasets(tenantId, projectId);
     return datasets.data.length ? (
       <>
-        <PageHeader title={STATIC_LABELS.datasets} description={datasetDescription} />
+        <PageHeader title={metadata.title} description={metadata.description} />
         <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
       </>
     ) : (
       <EmptyState
         title="No test suites yet."
-        description={datasetDescription}
+        description={metadata.description}
         link={`/${tenantId}/projects/${projectId}/datasets/new`}
         linkText="Create test suite"
         icon={<Database />}
