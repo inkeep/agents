@@ -12,16 +12,16 @@ import { createKeyChainStore, type KeyChainStore } from '../../credential-stores
 
 const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
-// Check if keytar is available at module level
-let keytarAvailable = false;
+// Check if @napi-rs/keyring is available at module level
+let keyringAvailable = false;
 try {
-  await import('keytar');
-  keytarAvailable = true;
+  await import('@napi-rs/keyring');
+  keyringAvailable = true;
 } catch {
-  console.warn('Keytar not available, integration tests will be skipped');
+  console.warn('@napi-rs/keyring not available, integration tests will be skipped');
 }
 
-const shouldSkip = isCI || !keytarAvailable;
+const shouldSkip = isCI || !keyringAvailable;
 
 describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
   let store: KeyChainStore;
@@ -115,9 +115,9 @@ describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
       expect(await store.has(key)).toBe(false);
       expect(await store.get(key)).toBeNull();
 
-      // Deleting again should return false
+      // Deleting again returns true (operation succeeds silently even for non-existent keys)
       const deletedAgain = await store.delete(key);
-      expect(deletedAgain).toBe(false);
+      expect(deletedAgain).toBe(true);
     });
 
     it('should handle special characters in keys and values', async () => {
@@ -220,22 +220,23 @@ describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
     it('should handle non-existent keys gracefully', async () => {
       expect(await store.get('NON_EXISTENT_KEY')).toBeNull();
       expect(await store.has('NON_EXISTENT_KEY')).toBe(false);
-      expect(await store.delete('NON_EXISTENT_KEY')).toBe(false);
+      // delete returns true even for non-existent keys (operation succeeds silently)
+      expect(await store.delete('NON_EXISTENT_KEY')).toBe(true);
     });
 
     it('should handle empty keys and values', async () => {
-      // Empty value might be rejected by keytar (requires non-empty password)
+      // Empty value might be rejected by keyring (requires non-empty password)
       try {
         await store.set('EMPTY_VALUE', '');
         expect(await store.get('EMPTY_VALUE')).toBe('');
         await store.delete('EMPTY_VALUE');
       } catch (error) {
-        // Keytar requires non-empty passwords, which is expected
+        // Keyring may require non-empty passwords, which is expected
         expect(error).toBeInstanceOf(Error);
         expect((error as Error).message).toContain('Password is required');
       }
 
-      // Empty key might be rejected by keytar, test the behavior
+      // Empty key might be rejected by keyring, test the behavior
       try {
         await store.set('', 'value_for_empty_key');
         const result = await store.get('');

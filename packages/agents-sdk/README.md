@@ -58,7 +58,7 @@ const token = await credentials.get('MY_TOKEN'); // Returns 'env-token'
 | Type | Description | Requirements |
 |------|-------------|--------------|
 | `memory` | In-memory storage with env var fallback | None (default) |
-| `keychain` | OS keychain storage | `keytar` package |
+| `keychain` | OS keychain storage | `@napi-rs/keyring` package |
 | `nango` | OAuth credential management | `@nangohq/node`, `@nangohq/types` |
 | `custom` | Your own implementation | Implement `CredentialStore` interface |
 
@@ -190,7 +190,7 @@ The SDK has minimal required dependencies. Advanced features require optional pa
 | Feature | Required Packages |
 |---------|------------------|
 | Nango credentials | `@nangohq/node`, `@nangohq/types` |
-| Keychain storage | `keytar` |
+| Keychain storage | `@napi-rs/keyring` |
 | OpenTelemetry | `@opentelemetry/api`, `@opentelemetry/sdk-node` |
 
 Install only what you need:

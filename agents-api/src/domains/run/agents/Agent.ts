@@ -645,7 +645,7 @@ export class Agent {
           }
 
           if (streamRequestId && streamHelper && !isInternalToolForUi) {
-            await streamHelper.writeToolOutputError({ toolCallId, error: errorMessage });
+            await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
           }
 
           throw error;
@@ -964,6 +964,7 @@ export class Agent {
                       errorMessage,
                       relationshipId,
                     },
+                    relationshipId,
                   });
                 }
 

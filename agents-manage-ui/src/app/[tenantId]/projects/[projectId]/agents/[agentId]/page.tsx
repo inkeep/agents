@@ -2,6 +2,7 @@ import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
+import { getCapabilitiesAction } from '@/lib/actions/capabilities';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
@@ -65,6 +66,11 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
 
+  const capabilities = await getCapabilitiesAction();
+  const sandboxEnabled = capabilities.success
+    ? Boolean(capabilities.data?.sandbox?.configured)
+    : false;
+
   return (
     <Agent
       agent={agent.data}
@@ -72,6 +78,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       artifactComponentLookup={artifactComponentLookup}
       toolLookup={toolLookup}
       credentialLookup={credentialLookup}
+      sandboxEnabled={sandboxEnabled}
     />
   );
 };

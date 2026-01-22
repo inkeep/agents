@@ -3,11 +3,7 @@
  * This modifies the query payload to ensure all builder queries include
  * a server-side project.id filter, preventing client-side filter bypass.
  */
-export function enforceSecurityFilters(
-  payload: any,
-  tenantId: string,
-  projectId?: string
-): any {
+export function enforceSecurityFilters(payload: any, tenantId: string, projectId?: string): any {
   const modifiedPayload = JSON.parse(JSON.stringify(payload));
 
   if (modifiedPayload.compositeQuery?.builderQueries) {
