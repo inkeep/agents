@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createSSEStreamHelper, createVercelStreamHelper } from '../../../domains/run/utils/stream-helpers';
+import {
+  createSSEStreamHelper,
+  createVercelStreamHelper,
+} from '../../../domains/run/utils/stream-helpers';
 
 describe('tool streaming', () => {
   describe('SSEStreamHelper (chat completions)', () => {
@@ -57,7 +60,10 @@ describe('tool streaming', () => {
         output: null,
       });
 
-      await helper.writeToolApprovalRequest({ approvalId: 'aitxt-call_1234xyz', toolCallId: 'call_1234xyz' });
+      await helper.writeToolApprovalRequest({
+        approvalId: 'aitxt-call_1234xyz',
+        toolCallId: 'call_1234xyz',
+      });
       const fifth = JSON.parse(sent[4]);
       expect(JSON.parse(fifth.choices[0].delta.content)).toEqual({
         type: 'tool-approval-request',
@@ -135,4 +141,3 @@ describe('tool streaming', () => {
     });
   });
 });
-

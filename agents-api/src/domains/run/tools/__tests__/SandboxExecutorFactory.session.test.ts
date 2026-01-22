@@ -21,4 +21,3 @@ describe('SandboxExecutorFactory session scoping', () => {
     expect(a).not.toBe(b);
   });
 });
-

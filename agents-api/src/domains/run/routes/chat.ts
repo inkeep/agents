@@ -499,8 +499,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           } catch (streamError) {
             logger.error({ streamError }, 'Failed to write error to stream');
           }
-        }
-        finally {
+        } finally {
           try {
             unsubscribe?.();
           } catch (_e) {}
