@@ -456,7 +456,8 @@ export const TriggerUpdateSchema = z.object({
     .trim()
     .nonempty()
     .describe('Message template with {{placeholder}} syntax')
-    .optional(),
+    .optional()
+    .nullable(),
   authentication: TriggerAuthenticationUpdateSchema.optional(),
   signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
   keepExistingSigningSecret: z
@@ -1323,8 +1324,11 @@ export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
-export const FunctionToolApiSelectSchema =
-  createApiSchema(FunctionToolSelectSchema).openapi('FunctionTool');
+export const FunctionToolApiSelectSchema = createApiSchema(FunctionToolSelectSchema)
+  .extend({
+    relationshipId: z.string().optional(),
+  })
+  .openapi('FunctionTool');
 export const FunctionToolApiInsertSchema =
   createAgentScopedApiInsertSchema(FunctionToolInsertSchema).openapi('FunctionToolCreate');
 export const FunctionToolApiUpdateSchema =

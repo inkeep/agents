@@ -211,16 +211,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       }
 
       // Build authentication payload
-      const authentication =
-        headersToSend.length > 0
-          ? {
-              headers: headersToSend.map((h) => ({
-                name: h.name,
-                value: h.value,
-                keepExisting: h.keepExisting,
-              })),
-            }
-          : undefined;
+      // Always send { headers: [...] } to ensure explicit update:
+      // - Non-empty array: update with new headers
+      // - Empty array: clear all authentication headers
+      const authentication = {
+        headers: headersToSend.map((h) => ({
+          name: h.name,
+          value: h.value,
+          keepExisting: h.keepExisting,
+        })),
+      };
 
       // Handle signing secret - if not provided but existing, keep existing
       const signingSecretPayload = data.signingSecret
@@ -229,12 +229,21 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           ? { keepExistingSigningSecret: true }
           : {};
 
+      // Trim messageTemplate to match backend validation behavior
+      const trimmedMessageTemplate = data.messageTemplate?.trim() || '';
+
       const payload: any = {
         id: data.id,
         name: data.name,
         description: data.description || undefined,
         enabled: data.enabled,
-        messageTemplate: data.messageTemplate || undefined,
+        // Send null to explicitly clear messageTemplate, undefined to keep existing
+        messageTemplate:
+          trimmedMessageTemplate === ''
+            ? mode === 'edit' && trigger?.messageTemplate
+              ? null // Explicitly clear if editing and had a value before
+              : undefined // Don't set if creating or never had a value
+            : trimmedMessageTemplate,
         inputSchema,
         outputTransform,
         authentication,

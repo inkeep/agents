@@ -54,7 +54,7 @@ export function ViewMCPServerDetailsUserScope({
   const thirdPartyConnectUrl = thirdPartyServer?.thirdPartyConnectAccountUrl;
 
   return (
-    <div className="max-w-2xl mx-auto py-4 space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

@@ -167,7 +167,7 @@ export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialForm
             <GenericKeyValueInput
               control={form.control}
               name="metadata"
-              label="Metadata (optional)"
+              label="Headers (optional)"
               keyPlaceholder="Header name (e.g., X-API-Key)"
               valuePlaceholder="Header value"
             />

@@ -174,7 +174,7 @@ export function ExternalAgentNodeEditor({
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
       >
-        Edit External Agent
+        View External Agent
       </ExternalLink>
       <Separator />
       <div className="flex justify-end">

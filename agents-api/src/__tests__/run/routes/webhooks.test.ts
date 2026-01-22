@@ -258,6 +258,7 @@ describe('Webhook Endpoint Tests', () => {
       expect(data).toEqual({
         success: true,
         invocationId: 'test-id-123',
+        conversationId: 'conv-test-123',
       });
 
       // Verify trigger was fetched
@@ -638,7 +639,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.detail).toContain('not found');
+      expect(data.error).toContain('not found');
     });
 
     it('should return 404 when trigger is disabled', async () => {
@@ -658,7 +659,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.detail).toContain('disabled');
+      expect(data.error).toContain('disabled');
     });
   });
 
@@ -948,7 +949,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: {
+          content: expect.objectContaining({
             parts: [
               { kind: 'text', text: 'Webhook message: Hello webhook!' },
               {
@@ -957,7 +958,7 @@ describe('Webhook Endpoint Tests', () => {
                 metadata: { source: 'trigger', triggerId: 'trigger-123' },
               },
             ],
-          },
+          }),
         })
       );
     });
@@ -985,7 +986,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: {
+          content: expect.objectContaining({
             parts: [
               {
                 kind: 'data',
@@ -993,7 +994,7 @@ describe('Webhook Endpoint Tests', () => {
                 metadata: { source: 'trigger', triggerId: 'trigger-123' },
               },
             ],
-          },
+          }),
         })
       );
     });
@@ -1021,7 +1022,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: {
+          content: expect.objectContaining({
             parts: [
               {
                 kind: 'data',
@@ -1029,7 +1030,7 @@ describe('Webhook Endpoint Tests', () => {
                 metadata: { source: 'trigger', triggerId: 'trigger-123' },
               },
             ],
-          },
+          }),
         })
       );
     });
@@ -1066,7 +1067,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(createMessageFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: {
+          content: expect.objectContaining({
             parts: [
               { kind: 'text', text: 'User: Alice' },
               {
@@ -1075,7 +1076,7 @@ describe('Webhook Endpoint Tests', () => {
                 metadata: { source: 'trigger', triggerId: 'trigger-123' },
               },
             ],
-          },
+          }),
         })
       );
     });

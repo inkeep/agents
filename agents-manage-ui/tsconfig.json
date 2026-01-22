@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "verbatimModuleSyntax": true,
-    "target": "ES2017",
+    "target": "ES2018",
     "lib": ["dom", "dom.iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
