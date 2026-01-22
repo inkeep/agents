@@ -130,3 +130,47 @@ Thu Jan 22 23:44:14 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 5 - Thu Jan 22 23:58:59 UTC 2026
+
+### Story: US-005 - Update TriggerInsertSchema with insert-time validation
+
+**Implementation:**
+- Added jmespath import to validation/schemas.ts
+- Created JMESPathExtended interface for TypeScript type compatibility with compile method
+- Restructured TriggerInsertSchema to use TriggerInsertSchemaBase + .superRefine() pattern
+- Added insert-time validation for signatureVerification configuration:
+  - Validates signature.regex patterns using new RegExp()
+  - Validates signature.key as JMESPath when source is 'body' using jmespathExt.compile()
+  - Validates each signedComponent's regex patterns
+  - Validates each signedComponent's key as JMESPath when source is 'body'
+  - Validates signedComponent.value as JMESPath for non-literal sources (heuristic check)
+- All validation errors include descriptive messages and proper path arrays for field location
+- Added comprehensive unit tests to schemas.test.ts covering:
+  - Valid trigger without signatureVerification
+  - Valid trigger with complete signatureVerification (GitHub pattern)
+  - Invalid regex in signature.regex
+  - Invalid JMESPath in signature.key
+  - Invalid regex in signedComponents[].regex
+  - Invalid JMESPath in signedComponents[].key
+  - Valid complex JMESPath expressions (nested paths)
+  - Valid regex patterns with capture groups
+
+**Files Changed:**
+- packages/agents-core/src/validation/schemas.ts (added jmespath import, JMESPathExtended interface, TriggerInsertSchemaBase, superRefine validation logic - 88 lines added)
+- packages/agents-core/src/__tests__/validation/schemas.test.ts (added TriggerInsertSchema import and 8 test cases - 206 lines added)
+
+**Learnings:**
+- The jmespath library's .compile() method is perfect for syntax validation without requiring sample data
+- TypeScript type definitions for jmespath are incomplete - missing .compile() method, requiring interface extension
+- Zod's .superRefine() must be applied to the full schema object, not inside factory functions within createInsertSchema
+- Best pattern: create base schema with createInsertSchema, then extend with .superRefine() for cross-field validation
+- ctx.addIssue() requires proper path arrays - must include parent field name ('signatureVerification') plus nested paths
+- Validating JMESPath in component.value is tricky since it might be a literal string - used heuristic (contains . or [) to avoid false positives
+- The jmespathExt.compile() method throws descriptive errors that we can catch and re-surface to users
+- All validation happens synchronously, which is appropriate for schema validation at API boundaries
+
+---
+
