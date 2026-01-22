@@ -194,9 +194,6 @@ export async function generateMetadata(
       console.log(crumbs);
       return {
         title: lastCrumb.label,
-        alternates: {
-          canonical: lastCrumb.href,
-        },
       };
     }
   }

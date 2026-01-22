@@ -35,32 +35,33 @@ export const metadata: Metadata = {
     default: `${APP_NAME} Agents`,
     template: `%s | ${APP_NAME}`,
   },
+  description:
+    "Inkeep's multi-agent framework enables multiple specialized AI agents to collaborate and solve complex problems through an agent-based architecture. You can define networks of agents, each with unique instructions, tools, and purposes.",
   metadataBase: new URL('https://pilot.inkeep.com'),
   keywords: ['agents', 'ai', 'framework', 'sdk', 'inkeep'],
   generator: 'Next.js',
   applicationName: APP_NAME,
-  // appleWebApp: {
-  //   title: 'Nextra',
-  // },
-  // openGraph: {
-  //   // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
-  //   url: './',
-  //   siteName: 'Nextra',
-  //   locale: 'en_US',
-  //   type: 'website'
-  // },
-  // other: {
-  //   'msapplication-TileColor': '#fff'
-  // },
-  // twitter: {
-  //   site: 'https://nextra.site'
-  // },
-  // alternates: {
-  //   // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
-  //   canonical: './'
-  // },
-  description:
-    "Inkeep's multi-agent framework enables multiple specialized AI agents to collaborate and solve complex problems through an agent-based architecture. You can define networks of agents, each with unique instructions, tools, and purposes.",
+  appleWebApp: {
+    title: APP_NAME,
+  },
+  openGraph: {
+    // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
+    url: './',
+    siteName: APP_NAME,
+    locale: 'en_US',
+    type: 'website',
+  },
+  other: {
+    'msapplication-TileColor': '#69a3ff',
+  },
+  twitter: {
+    creator: '@inkeep',
+    site: 'https://inkeep.com',
+  },
+  alternates: {
+    // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
+    canonical: './',
+  },
 };
 
 const runtimeConfig: RuntimeConfig = {
