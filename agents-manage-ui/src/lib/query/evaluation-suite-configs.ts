@@ -15,7 +15,13 @@ const evaluationSuiteConfigQueryKeys = {
     ['evaluation-suite-config-evaluators', tenantId, projectId, configId] as const,
 };
 
-export function useEvaluationSuiteConfigQuery(configId = '', options: { disabled?: boolean } = {}) {
+export function useEvaluationSuiteConfigQuery({
+  suiteConfigId = '',
+  disabled,
+}: {
+  suiteConfigId?: string;
+  disabled?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -23,12 +29,12 @@ export function useEvaluationSuiteConfigQuery(configId = '', options: { disabled
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && configId) && !options.disabled;
+  const enabled = Boolean(tenantId && projectId && suiteConfigId) && !disabled;
 
   return useQuery<EvaluationSuiteConfig | null>({
-    queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, configId),
+    queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, suiteConfigId),
     async queryFn() {
-      const response = await fetchEvaluationSuiteConfig(tenantId, projectId, configId);
+      const response = await fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId);
       return response.data;
     },
     enabled,
@@ -42,10 +48,13 @@ export function useEvaluationSuiteConfigQuery(configId = '', options: { disabled
   });
 }
 
-export function useEvaluationSuiteConfigEvaluatorsQuery(
-  configId = '',
-  options: { disabled?: boolean } = {}
-) {
+export function useEvaluationSuiteConfigEvaluatorsQuery({
+  suiteConfigId = '',
+  disabled,
+}: {
+  suiteConfigId?: string;
+  disabled?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -53,12 +62,16 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && configId) && !options.disabled;
+  const enabled = Boolean(tenantId && projectId && suiteConfigId) && !disabled;
 
   return useQuery<{ evaluatorId: string }[]>({
-    queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, configId),
+    queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, suiteConfigId),
     async queryFn() {
-      const response = await fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, configId);
+      const response = await fetchEvaluationSuiteConfigEvaluators(
+        tenantId,
+        projectId,
+        suiteConfigId
+      );
       return response.data;
     },
     enabled,

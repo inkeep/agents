@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 
-export function useExternalAgentsQuery(options: { disabled?: boolean } = {}) {
+export function useExternalAgentsQuery({ disabled }: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -13,7 +13,7 @@ export function useExternalAgentsQuery(options: { disabled?: boolean } = {}) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !options.disabled;
+  const enabled = Boolean(tenantId && projectId) && !disabled;
 
   return useQuery<ExternalAgent[]>({
     queryKey: ['external-agents', tenantId, projectId],

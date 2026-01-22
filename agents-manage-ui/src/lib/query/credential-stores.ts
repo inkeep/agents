@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
 
-export function useCredentialStoresQuery(options: { disabled?: boolean } = {}) {
+export function useCredentialStoresQuery({ disabled }: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -12,7 +12,7 @@ export function useCredentialStoresQuery(options: { disabled?: boolean } = {}) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !options.disabled;
+  const enabled = Boolean(tenantId && projectId) && !disabled;
 
   return useQuery<CredentialStoreStatus[]>({
     queryKey: ['credential-stores', tenantId, projectId],
