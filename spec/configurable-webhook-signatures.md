@@ -27,7 +27,8 @@ Replace the simple `signingSecret` field with:
 ```typescript
 // Fully generalized SignatureVerificationConfig schema
 {
-  algorithm: "sha256" | "sha1";      // HMAC algorithm
+  // HMAC algorithm - see "Algorithm Research" section for full list
+  algorithm: "sha256" | "sha1" | "sha512" | "sha384" | "sha3-256" | "sha3-384" | "sha3-512" | "md5" | "blake2b512" | "blake2s256";
   encoding: "hex" | "base64";        // Output encoding of computed signature
   
   // Where to extract the signature from the request
@@ -377,6 +378,7 @@ const customTrigger = trigger({
 
 ## Implementation Tasks
 
+### Core Implementation
 - [ ] Add `signatureVerification` and `signingSecretCredentialReferenceId` to triggers table schema
 - [ ] Generate database migration for new trigger columns
 - [ ] Create `SignatureVerificationConfigSchema` and update trigger schemas
@@ -386,7 +388,35 @@ const customTrigger = trigger({
 - [ ] Handle new fields in trigger create/update API routes
 - [ ] Add credential selector and verification config to trigger form UI
 - [ ] Add unit and integration tests for configurable signature verification
-- [ ] Update `triggers.mdx` with new configuration options and provider examples
+
+### Documentation Updates
+- [ ] Update `agents-docs/content/typescript-sdk/triggers.mdx` with new configuration options and provider examples
+- [ ] Update `packages/agents-sdk/README.md` with signature verification examples
+- [ ] Add inline JSDoc comments to new schema types and functions
+- [ ] Document migration path from deprecated `signingSecret` field
+
+### Package Versioning
+- [ ] Create changeset for affected packages using `pnpm bump` command:
+  - `agents-core` (minor) - new schema, validation, and verification logic
+  - `agents-sdk` (minor) - new trigger builder options
+  - `agents-manage-ui` (patch) - UI updates for signature config
+
+### Algorithm Research
+- [ ] Research and determine optimal algorithm support beyond sha256/sha1
+  - **Goal**: Support the 10 most common/useful HMAC algorithms
+  - **Candidates** (Node.js `crypto` module supported):
+    1. `sha256` - Most common (GitHub, Slack, Zendesk, Stripe, etc.)
+    2. `sha1` - Legacy support (older GitHub webhooks)
+    3. `sha512` - High security applications
+    4. `sha384` - Moderate security use
+    5. `sha3-256` - Modern, collision-resistant
+    6. `sha3-384` - Modern, higher security
+    7. `sha3-512` - Modern, highest SHA-3 security
+    8. `md5` - Deprecated but needed for legacy system compatibility (with warning)
+    9. `blake2b512` - Fast and secure alternative
+    10. `blake2s256` - Fast for smaller data
+  - **Decision needed**: Validate which algorithms are actually used by real webhook providers
+  - **Security note**: Consider adding deprecation warnings for weak algorithms (md5, sha1)
 
 ## References
 
