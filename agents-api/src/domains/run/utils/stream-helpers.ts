@@ -17,6 +17,22 @@ export interface StreamHelper {
   writeData(type: string, data: any): Promise<void>;
   writeOperation(operation: OperationEvent): Promise<void>;
   writeSummary(summary: SummaryEvent): Promise<void>;
+
+  // ============================================================================
+  // Tool streaming (user-visible tool call parts; NOT data-operations)
+  // ============================================================================
+  writeToolInputStart(params: { toolCallId: string; toolName: string }): Promise<void>;
+  writeToolInputDelta(params: { toolCallId: string; inputTextDelta: string }): Promise<void>;
+  writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: any;
+    providerMetadata?: any;
+  }): Promise<void>;
+  writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void>;
+  writeToolOutputError(params: { toolCallId: string; error: string; output?: any }): Promise<void>;
+  writeToolApprovalRequest(params: { approvalId: string; toolCallId: string }): Promise<void>;
+  writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
 }
 
 export interface HonoSSEStream {
@@ -34,6 +50,15 @@ export interface ChatCompletionChunk {
     delta: {
       role?: string;
       content?: string;
+      tool_calls?: Array<{
+        index: number;
+        id: string | null;
+        type: 'function' | null;
+        function: {
+          name: string | null;
+          arguments: string;
+        };
+      }>;
     };
     finish_reason: string | null;
   }>;
@@ -42,6 +67,7 @@ export interface ChatCompletionChunk {
 export class SSEStreamHelper implements StreamHelper {
   private isTextStreaming: boolean = false;
   private queuedEvents: { type: string; event: OperationEvent | SummaryEvent }[] = [];
+  private toolCallIndexById = new Map<string, number>();
 
   constructor(
     private stream: HonoSSEStream,
@@ -85,6 +111,35 @@ export class SSEStreamHelper implements StreamHelper {
             index: 0,
             delta: {
               content,
+            },
+            finish_reason: null,
+          },
+        ],
+      }),
+    });
+  }
+
+  private getToolIndex(toolCallId: string): number {
+    const existing = this.toolCallIndexById.get(toolCallId);
+    if (existing !== undefined) return existing;
+    const next = this.toolCallIndexById.size;
+    this.toolCallIndexById.set(toolCallId, next);
+    return next;
+  }
+
+  private async writeToolCallsDelta(
+    toolCalls: NonNullable<ChatCompletionChunk['choices'][number]['delta']['tool_calls']>
+  ): Promise<void> {
+    await this.stream.writeSSE({
+      data: JSON.stringify({
+        id: this.requestId,
+        object: 'chat.completion.chunk',
+        created: this.timestamp,
+        choices: [
+          {
+            index: 0,
+            delta: {
+              tool_calls: toolCalls,
             },
             finish_reason: null,
           },
@@ -164,6 +219,101 @@ export class SSEStreamHelper implements StreamHelper {
         ],
       }),
     });
+  }
+
+  // ============================================================================
+  // Tool streaming (Chat Completions style tool_calls + custom output envelopes)
+  // ============================================================================
+
+  async writeToolInputStart(params: { toolCallId: string; toolName: string }): Promise<void> {
+    const index = this.getToolIndex(params.toolCallId);
+    await this.writeToolCallsDelta([
+      {
+        index,
+        id: params.toolCallId,
+        type: 'function',
+        function: {
+          name: params.toolName,
+          arguments: '',
+        },
+      },
+    ]);
+  }
+
+  async writeToolInputDelta(params: { toolCallId: string; inputTextDelta: string }): Promise<void> {
+    const index = this.getToolIndex(params.toolCallId);
+    await this.writeToolCallsDelta([
+      {
+        index,
+        id: null,
+        type: null,
+        function: {
+          name: null,
+          arguments: params.inputTextDelta,
+        },
+      },
+    ]);
+  }
+
+  async writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: any;
+    providerMetadata?: any;
+  }): Promise<void> {
+    // For chat-completions, "available" is equivalent to ensuring full arguments are present.
+    const fullArgs = JSON.stringify(params.input ?? {});
+    if (fullArgs) {
+      await this.writeToolInputDelta({ toolCallId: params.toolCallId, inputTextDelta: fullArgs });
+    }
+  }
+
+  async writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void> {
+    // Custom JSON envelope inside delta.content
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-output-available',
+        toolCallId: params.toolCallId,
+        output: params.output,
+      })
+    );
+  }
+
+  async writeToolOutputError(params: {
+    toolCallId: string;
+    error: string;
+    output?: any;
+  }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-output-error',
+        toolCallId: params.toolCallId,
+        error: params.error,
+        output: params.output ?? null,
+      })
+    );
+  }
+
+  async writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+  }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-approval-request',
+        approvalId: params.approvalId,
+        toolCallId: params.toolCallId,
+      })
+    );
+  }
+
+  async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-output-denied',
+        toolCallId: params.toolCallId,
+      })
+    );
   }
 
   async writeSummary(summary: SummaryEvent): Promise<void> {
@@ -267,6 +417,8 @@ export class VercelDataStreamHelper implements StreamHelper {
       this.forceCleanup('Connection lifetime exceeded');
     }, STREAM_MAX_LIFETIME_MS);
   }
+
+  setSessionId(_sessionId: string): void {}
 
   async writeRole(_ = 'assistant'): Promise<void> {}
 
@@ -412,6 +564,87 @@ export class VercelDataStreamHelper implements StreamHelper {
         type: 'error',
       });
     }
+  }
+
+  // ============================================================================
+  // Tool streaming (Vercel AI SDK UI stream parts)
+  // ============================================================================
+
+  async writeToolInputStart(params: { toolCallId: string; toolName: string }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-input-start',
+      toolCallId: params.toolCallId,
+      toolName: params.toolName,
+    });
+  }
+
+  async writeToolInputDelta(params: { toolCallId: string; inputTextDelta: string }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-input-delta',
+      toolCallId: params.toolCallId,
+      inputTextDelta: params.inputTextDelta,
+    });
+  }
+
+  async writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: any;
+    providerMetadata?: any;
+  }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-input-available',
+      toolCallId: params.toolCallId,
+      toolName: params.toolName,
+      input: params.input,
+      ...(params.providerMetadata ? { providerMetadata: params.providerMetadata } : {}),
+    });
+  }
+
+  async writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-output-available',
+      toolCallId: params.toolCallId,
+      output: params.output,
+    });
+  }
+
+  async writeToolOutputError(params: {
+    toolCallId: string;
+    error: string;
+    output?: any;
+  }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-output-error',
+      toolCallId: params.toolCallId,
+      error: params.error,
+      output: params.output ?? null,
+    });
+  }
+
+  async writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+  }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-approval-request',
+      approvalId: params.approvalId,
+      toolCallId: params.toolCallId,
+    });
+  }
+
+  async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-output-denied',
+      toolCallId: params.toolCallId,
+    });
   }
 
   async streamData(data: any): Promise<void> {
@@ -684,6 +917,9 @@ export class BufferingStreamHelper implements StreamHelper {
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
+
+  setSessionId(_sessionId: string): void {}
+
   async writeRole(_role?: string): Promise<void> {
     // No-op for MCP
   }
@@ -724,6 +960,50 @@ export class BufferingStreamHelper implements StreamHelper {
   async writeError(error: string | ErrorEvent): Promise<void> {
     this.hasError = true;
     this.errorMessage = typeof error === 'string' ? error : error.message;
+  }
+
+  // ============================================================================
+  // Tool streaming (captured as data for non-streaming use-cases)
+  // ============================================================================
+
+  async writeToolInputStart(params: { toolCallId: string; toolName: string }): Promise<void> {
+    this.capturedData.push({ type: 'tool-input-start', ...params });
+  }
+
+  async writeToolInputDelta(params: { toolCallId: string; inputTextDelta: string }): Promise<void> {
+    this.capturedData.push({ type: 'tool-input-delta', ...params });
+  }
+
+  async writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: any;
+    providerMetadata?: any;
+  }): Promise<void> {
+    this.capturedData.push({ type: 'tool-input-available', ...params });
+  }
+
+  async writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void> {
+    this.capturedData.push({ type: 'tool-output-available', ...params });
+  }
+
+  async writeToolOutputError(params: {
+    toolCallId: string;
+    error: string;
+    output?: any;
+  }): Promise<void> {
+    this.capturedData.push({ type: 'tool-output-error', ...params, output: params.output ?? null });
+  }
+
+  async writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+  }): Promise<void> {
+    this.capturedData.push({ type: 'tool-approval-request', ...params });
+  }
+
+  async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    this.capturedData.push({ type: 'tool-output-denied', ...params });
   }
 
   async complete(): Promise<void> {
