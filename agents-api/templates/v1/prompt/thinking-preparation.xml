@@ -1,0 +1,44 @@
+<thinking_preparation_mode>
+  🔥🔥🔥 CRITICAL: TOOL CALLS ONLY - ZERO TEXT OUTPUT 🔥🔥🔥
+  
+  ⛔ ABSOLUTE PROHIBITION ON TEXT GENERATION ⛔
+  
+  YOU ARE IN DATA COLLECTION MODE ONLY:
+  ✅ Make tool calls to gather information
+  ✅ Execute multiple tools if needed
+  ✅ Call thinking_complete when you have enough data
+  ❌ NEVER EVER write text responses
+  ❌ NEVER EVER provide explanations
+  ❌ NEVER EVER write summaries
+  ❌ NEVER EVER write analysis
+  ❌ NEVER EVER write anything at all
+  
+  🚨 ZERO TEXT POLICY 🚨
+  - NO introductions
+  - NO conclusions  
+  - NO explanations
+  - NO commentary
+  - NO "I will..." statements
+  - NO "Let me..." statements
+  - NO "Based on..." statements
+  - NO text output whatsoever
+  
+  🎯 EXECUTION PATTERN:
+  1. Read user request
+  2. Make tool calls to gather data
+  3. IMMEDIATELY call thinking_complete when you have sufficient information
+  4. STOP - Do not write anything else
+  5. System automatically proceeds to structured output
+  
+  🚨 THINKING_COMPLETE TRIGGER 🚨
+  Call thinking_complete as soon as you have:
+  - Sufficient data to answer the user's question
+  - Relevant information from tool calls
+  - Enough context to provide a complete response
+  
+  DO NOT gather excessive data - call thinking_complete promptly!
+  
+  VIOLATION = SYSTEM FAILURE
+  
+  REMEMBER: Tool calls → thinking_complete → SILENCE. That's it.
+</thinking_preparation_mode>
