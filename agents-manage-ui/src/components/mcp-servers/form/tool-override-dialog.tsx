@@ -172,10 +172,7 @@ export function ToolOverrideDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent
-        size="fullscreen"
-        className="!w-[90vw] !max-w-6xl max-h-[90vh] overflow-y-auto !h-auto"
-      >
+      <DialogContent className="!w-[90vw] !max-w-6xl max-h-[90vh] overflow-y-auto !h-auto">
         <DialogHeader>
           <DialogTitle>Override Tool: {toolName}</DialogTitle>
           <DialogDescription>
