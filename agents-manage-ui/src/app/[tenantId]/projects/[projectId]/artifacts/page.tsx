@@ -5,12 +5,29 @@ import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { artifactDescription } from '@/constants/page-descriptions';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import type { Metadata } from 'next';
+import { ExternalLink } from '@/components/ui/external-link';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: STATIC_LABELS.artifacts,
+  description:
+    'Artifacts automatically capture and store source information from tool and agent interactions, providing a record of where data originates.',
+} satisfies Metadata;
+
+const artifactDescription = (
+  <>
+    {metadata.description}
+    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/artifact-components`}>
+      Learn more
+    </ExternalLink>
+  </>
+);
 
 async function ArtifactComponentsPage({
   params,
@@ -21,7 +38,7 @@ async function ArtifactComponentsPage({
     return data.length ? (
       <>
         <PageHeader
-          title={STATIC_LABELS.artifacts}
+          title={metadata.title}
           description={artifactDescription}
           action={
             <Button asChild>
