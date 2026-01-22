@@ -150,7 +150,7 @@ export function TeamAgentNodeEditor({
         />
       </div>
       <ExternalLink href={`/${tenantId}/projects/${projectId}/agents/${selectedNode.data.id}`}>
-        Edit Agent
+        View Agent
       </ExternalLink>
       <Separator />
       <div className="flex justify-end">
