@@ -103,9 +103,10 @@ export function EvaluationRunConfigFormDialog({
   const suiteConfigId = initialData?.suiteConfigIds?.[0];
   const { data: evaluators } = useEvaluatorsQuery({ disabled: !isOpen });
   const { data: agents } = useAgentsQuery({ disabled: !isOpen });
-  const { data: suiteConfig, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery(
-    { suiteConfigId, disabled: !isOpen }
-  );
+  const { data: suiteConfig, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery({
+    suiteConfigId,
+    disabled: !isOpen,
+  });
   const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
     useEvaluationSuiteConfigEvaluatorsQuery({
       suiteConfigId,

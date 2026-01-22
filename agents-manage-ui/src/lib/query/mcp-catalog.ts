@@ -33,16 +33,19 @@ export function useThirdPartyMCPServerQuery({
 
   const enabled = Boolean(tenantId && projectId && url) && !disabled;
 
-  return useQuery<ThirdPartyMCPServerResponse | null>({
+  return useQuery<ThirdPartyMCPServerResponse['data']>({
     queryKey: mcpCatalogQueryKeys.thirdPartyServer(tenantId, projectId, url, credentialScope),
-    queryFn: () => fetchThirdPartyMCPServer(tenantId, projectId, url, credentialScope),
+    async queryFn() {
+      const response = await fetchThirdPartyMCPServer(tenantId, projectId, url, credentialScope);
+      return response.data;
+    },
     enabled,
     staleTime: 30_000,
     initialData: null,
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     meta: {
-      defaultError: 'Failed to load MCP server details',
+      defaultError: 'Failed to load third-party MCP server details',
     },
   });
 }
