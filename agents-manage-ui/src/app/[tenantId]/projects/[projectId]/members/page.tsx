@@ -1,9 +1,15 @@
+import type { Metadata } from 'next';
 import { ProjectMembersWrapper } from '@/components/access/project-members-wrapper';
 import FullPageError from '@/components/errors/full-page-error';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchProject } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: STATIC_LABELS.members,
+} satisfies Metadata;
 
 export default async function MembersPage({
   params,

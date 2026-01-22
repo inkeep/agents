@@ -12,7 +12,7 @@ import { SpanFilters } from '@/components/traces/filters/span-filters';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';

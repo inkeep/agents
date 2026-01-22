@@ -10,10 +10,9 @@ import { STATIC_LABELS } from '@/constants/theme';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
-const mcpServerDescription = 'Create MCP servers that agents can use to access external services.';
-
 export const metadata = {
   title: STATIC_LABELS['mcp-servers'],
+  description: 'Create MCP servers that agents can use to access external services.',
 } satisfies Metadata;
 
 async function MCPServersPage({
@@ -27,7 +26,7 @@ async function MCPServersPage({
       <>
         <PageHeader
           title={metadata.title}
-          description={mcpServerDescription}
+          description={metadata.description}
           action={
             <Button asChild>
               <Link
@@ -49,7 +48,7 @@ async function MCPServersPage({
     ) : (
       <EmptyState
         title="No MCP servers yet."
-        description={mcpServerDescription}
+        description={metadata.description}
         link={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
         linkText="Create MCP server"
       />
