@@ -23,7 +23,7 @@ interface IkpMessageProps {
   copilotAgentId?: string;
   copilotProjectId?: string;
   copilotTenantId?: string;
-  runApiUrl?: string;
+  apiUrl?: string;
   targetTenantId?: string;
   targetProjectId?: string;
   targetAgentId?: string;
@@ -160,7 +160,7 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
   copilotAgentId,
   copilotProjectId,
   copilotTenantId,
-  runApiUrl,
+  apiUrl,
   targetTenantId,
   targetProjectId,
   targetAgentId,
@@ -309,7 +309,7 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
                               copilotAgentId={copilotAgentId}
                               copilotProjectId={copilotProjectId}
                               copilotTenantId={copilotTenantId}
-                              runApiUrl={runApiUrl}
+                              apiUrl={apiUrl}
                               cookieHeader={cookieHeader}
                               copilotToken={copilotToken}
                             />
@@ -327,7 +327,7 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
                               copilotAgentId={copilotAgentId}
                               copilotProjectId={copilotProjectId}
                               copilotTenantId={copilotTenantId}
-                              runApiUrl={runApiUrl}
+                              apiUrl={apiUrl}
                               targetTenantId={targetTenantId}
                               targetProjectId={targetProjectId}
                               targetAgentId={targetAgentId}
@@ -387,7 +387,7 @@ export const IkpMessage = (props: any) => {
         copilotAgentId={otherProps.copilotAgentId}
         copilotProjectId={otherProps.copilotProjectId}
         copilotTenantId={otherProps.copilotTenantId}
-        runApiUrl={otherProps.runApiUrl}
+        apiUrl={otherProps.apiUrl}
         targetTenantId={otherProps.targetTenantId}
         targetProjectId={otherProps.targetProjectId}
         targetAgentId={otherProps.targetAgentId}

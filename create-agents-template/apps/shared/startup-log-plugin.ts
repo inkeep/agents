@@ -22,7 +22,7 @@ export const startupLogPlugin = () => ({
         setTimeout(() => {
           console.log('');
           console.log(
-            `  ${green}➜${reset}  ${bold}Management API:${reset} ${cyan}${host}${port}${reset}`
+            `  ${green}➜${reset}  ${bold}Agents API:${reset} ${cyan}${host}${port}${reset}`
           );
           console.log(
             `  ${green}➜${reset}  ${bold}OpenAPI documentation:${reset} ${cyan}${host}${port}/openapi.json${reset}`

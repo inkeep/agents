@@ -1,5 +1,64 @@
 # @inkeep/agents-manage-ui
 
+## 0.42.0
+
+### Minor Changes
+
+- d6830a0: add sentry logs about unexpected behavior of data animations
+- c302c77: update `knip` to latest, enable `--files` flag to report unused files, cleanup unused files
+- 7d46f27: feat(dashboard): add `useMcpToolsQuery`, `useExternalAgentsQuery`, `useCredentialStoresQuery` without manual `useEffect`
+- a210291: Doltgres migration and evaluation system.
+- 82afd5b: Replace auth type dropdown with dynamic header list for trigger authentication configuration
+- a11bb6b: automatically generate and render breadcrumbs in dashboard with Next.js `/[tenantId]/@breadcrumbs/[...slug]/page.tsx` parallel route
+
+### Patch Changes
+
+- 3940062: added extra prompting optionally to mcp tools
+- 00fbaec: output schema filtering for evals
+- 4f05b56: Change the way subagents are selected
+- b336b0e: Fix bug with agent name and description not updating
+- 322a6d6: Remove throwOnError option from default QueryClient settings in tanstack
+- d7da349: move all React context Provider in `@/contexts` (except shadcn providers)
+
+  remove unnecessary `.Provider` suffix React context components. Starting in React 19, you can render `<SomeContext>` as a provider.
+
+- e7b571b: Add templates for json fields
+- a0d4594: setup React compiler for `/[tenantId]/projects/[projectId]/agents/[agentId]` page
+- 44461fe: trace default
+- 14041da: pagination fix
+- 568c1b2: added timestamp
+- 09768e3: remove `forwardRef` usages. In React 19, `forwardRef` is no longer necessary. Pass `ref` as a prop instead.
+- c422f89: bug fix for user message evals
+- a5c9830: Improve trigger form to show transform type selector with clear guidance on when to use Object Transformation vs JMESPath
+- 4c65924: process attributes removed
+- 0893319: Update trigger form to make messageTemplate optional with improved help text explaining data part inclusion
+- 3c5aac4: add log for data operation animation
+- b68b15c: fix(sentry): Enable wider client file upload for source maps
+- 468fb23: remove extra closing tags for components without `children` and lint check
+- b241c06: vercel workflow
+- 3e656cd: simple refactor to reorder models
+- 9109949: fix color for flow edge markers
+- 2d0d77a: Add ability to edit name and description from agent card
+- dc827b0: improve context breakdown
+- Updated dependencies [3940062]
+- Updated dependencies [00fbaec]
+- Updated dependencies [91dad33]
+- Updated dependencies [44461fe]
+- Updated dependencies [4f7f0d2]
+- Updated dependencies [14041da]
+- Updated dependencies [568c1b2]
+- Updated dependencies [c422f89]
+- Updated dependencies [a210291]
+- Updated dependencies [4c65924]
+- Updated dependencies [b241c06]
+- Updated dependencies [3e656cd]
+- Updated dependencies [0893319]
+- Updated dependencies [ad01cd7]
+- Updated dependencies [dc827b0]
+- Updated dependencies [82afd5b]
+- Updated dependencies [82afd5b]
+  - @inkeep/agents-core@0.42.0
+
 ## 0.41.2
 
 ### Patch Changes

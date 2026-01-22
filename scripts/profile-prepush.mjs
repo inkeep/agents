@@ -227,7 +227,7 @@ function runProfile() {
         cwd: process.cwd(),
       }
     );
-  } catch (error) {
+  } catch {
     console.error(`${colors.red}check:husky failed${colors.reset}`);
     process.exit(1);
   }

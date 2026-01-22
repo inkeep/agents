@@ -1,0 +1,126 @@
+{
+  "name": "@inkeep/agents-api",
+  "version": "0.42.0",
+  "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./manage": {
+      "types": "./dist/domains/manage/index.d.ts",
+      "import": "./dist/domains/manage/index.js"
+    },
+    "./run": {
+      "types": "./dist/domains/run/index.d.ts",
+      "import": "./dist/domains/run/index.js"
+    },
+    "./evals": {
+      "types": "./dist/domains/evals/index.d.ts",
+      "import": "./dist/domains/evals/index.js"
+    },
+    "./instrumentation": {
+      "types": "./dist/instrumentation.d.ts",
+      "import": "./dist/instrumentation.js"
+    },
+    "./factory": {
+      "types": "./dist/factory.d.ts",
+      "import": "./dist/factory.js"
+    }
+  },
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "scripts": {
+    "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
+    "well-known:copy": "tsx scripts/copy-well-known.ts",
+    "dev": "pnpm workflow:build && vite",
+    "build": "pnpm workflow:build && tsdown && pnpm well-known:copy",
+    "start": "node dist/index.js",
+    "test": "vitest --run --config vitest.config.ts",
+    "test:integration": "vitest --run --config vitest.integration.config.ts",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage",
+    "openapi:update-snapshot": "UPDATE_OPENAPI_SNAPSHOT=true vitest --run src/__tests__/openapi.test.ts",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome check --write"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "3.0.7",
+    "@ai-sdk/gateway": "3.0.9",
+    "@ai-sdk/google": "3.0.4",
+    "@ai-sdk/openai": "3.0.7",
+    "@ai-sdk/openai-compatible": "2.0.4",
+    "@hono/mcp": "^0.1.5",
+    "@hono/otel": "^0.4.0",
+    "@hono/swagger-ui": "^0.5.1",
+    "@hono/zod-openapi": "^1.1.5",
+    "@inkeep/agents-core": "workspace:^",
+    "@inkeep/agents-manage-mcp": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@openrouter/ai-sdk-provider": "^1.2.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.64.1",
+    "@opentelemetry/baggage-span-processor": "^0.4.0",
+    "@opentelemetry/context-async-hooks": "^2.1.0",
+    "@opentelemetry/core": "^2.1.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.205.0",
+    "@opentelemetry/resources": "^2.1.0",
+    "@opentelemetry/sdk-node": "^0.205.0",
+    "@opentelemetry/sdk-trace-base": "^2.1.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@vercel/sandbox": "^0.0.24",
+    "@workflow/builders": "4.0.1-beta.27",
+    "@workflow/world-local": "4.0.1-beta.19",
+    "@workflow/world-postgres": "4.1.0-beta.28",
+    "@workflow/world-vercel": "4.0.1-beta.21",
+    "ai": "6.0.14",
+    "ajv": "^8.17.1",
+    "axios": "^1.13.2",
+    "drizzle-orm": "^0.44.4",
+    "fetch-to-node": "^2.1.0",
+    "hono": "^4.10.4",
+    "hono-pino": "^0.10.1",
+    "jmespath": "^0.16.0",
+    "llm-info": "^1.0.69",
+    "openid-client": "^6.8.1",
+    "pg": "^8.16.3",
+    "workflow": "4.0.1-beta.33"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@hono/vite-dev-server": "^0.20.1",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
+    "@opentelemetry/sdk-metrics": "^2.1.0",
+    "@types/jmespath": "^0.15.2",
+    "@types/node": "^20.11.24",
+    "@types/pg": "^8.15.6",
+    "@vitest/coverage-v8": "^3.2.4",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vite": "^7.1.11",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md",
+    "SUPPLEMENTAL_TERMS.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "agents-api"
+  }
+}

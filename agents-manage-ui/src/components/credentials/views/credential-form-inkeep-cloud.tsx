@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
@@ -12,10 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import { fetchExternalAgents } from '@/lib/api/external-agents';
-import { fetchMCPTools } from '@/lib/api/tools';
-import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { MCPTool } from '@/lib/types/tools';
+import { useExternalAgentsQuery } from '@/lib/query/external-agents';
+import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
 
 interface CredentialFormProps {
@@ -42,11 +40,8 @@ export function CredentialFormInkeepCloud({
   tenantId,
   projectId,
 }: CredentialFormProps) {
-  const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
-  const [toolsLoading, setToolsLoading] = useState(true);
+  'use memo';
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
-  const [availableExternalAgents, setAvailableExternalAgents] = useState<ExternalAgent[]>([]);
-  const [externalAgentsLoading, setExternalAgentsLoading] = useState(true);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
 
   const form = useForm({
@@ -55,42 +50,14 @@ export function CredentialFormInkeepCloud({
   });
 
   const { isSubmitting } = form.formState;
+  const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery(
+    tenantId,
+    projectId
+  );
+  const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery(tenantId, projectId);
 
-  // loadAvailableTools
-  useEffect(() => {
-    const loadAvailableTools = async () => {
-      try {
-        const allTools = await fetchMCPTools(tenantId, projectId);
-        const toolsWithoutCredentials = allTools.filter((tool) => !tool.credentialReferenceId);
-        setAvailableMCPServers(toolsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load MCP tools:', err);
-      } finally {
-        setToolsLoading(false);
-      }
-    };
-
-    loadAvailableTools();
-  }, [tenantId, projectId]);
-
-  // loadAvailableExternalAgents
-  useEffect(() => {
-    const loadAvailableExternalAgents = async () => {
-      try {
-        const allExternalAgents = await fetchExternalAgents(tenantId, projectId);
-        const externalAgentsWithoutCredentials = allExternalAgents.filter(
-          (agent) => !agent.credentialReferenceId
-        );
-        setAvailableExternalAgents(externalAgentsWithoutCredentials);
-      } catch (err) {
-        console.error('Failed to load external agents:', err);
-      } finally {
-        setExternalAgentsLoading(false);
-      }
-    };
-
-    loadAvailableExternalAgents();
-  }, [tenantId, projectId]);
+  const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
+  const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);
 
   // Handle checkbox state changes
   useEffect(() => {
@@ -116,19 +83,19 @@ export function CredentialFormInkeepCloud({
   };
 
   const onSubmit = async (data: CredentialFormData) => {
+    const isInvalidServerSelection =
+      shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
+    const isInvalidExternalAgentSelection =
+      shouldLinkToExternalAgent &&
+      (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error');
+
     try {
-      if (
-        shouldLinkToServer &&
-        (data.selectedTool === 'loading' || data.selectedTool === 'error')
-      ) {
+      if (isInvalidServerSelection) {
         toast('Please select a valid MCP server');
         return;
       }
 
-      if (
-        shouldLinkToExternalAgent &&
-        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
-      ) {
+      if (isInvalidExternalAgentSelection) {
         toast('Please select a valid external agent');
         return;
       }
@@ -140,43 +107,37 @@ export function CredentialFormInkeepCloud({
     }
   };
 
-  const serverOptions = useMemo(
-    () => [
-      ...(toolsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading MCP servers...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableMCPServers.map((tool) => ({
-        value: tool.id,
-        label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
-      })),
-    ],
-    [availableMCPServers, toolsLoading]
-  );
+  const serverOptions = [
+    ...(toolsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading MCP servers...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableMCPServers.map((tool) => ({
+      value: tool.id,
+      label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
+    })),
+  ];
 
-  const externalAgentOptions = useMemo(
-    () => [
-      ...(externalAgentsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading external agents...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableExternalAgents.map((agent) => ({
-        value: agent.id,
-        label: `${agent.name} - ${agent.baseUrl}`,
-      })),
-    ],
-    [availableExternalAgents, externalAgentsLoading]
-  );
+  const externalAgentOptions = [
+    ...(externalAgentsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading external agents...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableExternalAgents.map((agent) => ({
+      value: agent.id,
+      label: `${agent.name} - ${agent.baseUrl}`,
+    })),
+  ];
 
   return (
     <Form {...form}>

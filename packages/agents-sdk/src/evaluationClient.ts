@@ -44,7 +44,7 @@ export class EvaluationClient {
   }
 
   private buildUrl(...pathSegments: string[]): string {
-    return `${this.apiUrl}/tenants/${this.tenantId}/projects/${this.projectId}/evals/${pathSegments.join('/')}`;
+    return `${this.apiUrl}/manage/tenants/${this.tenantId}/projects/${this.projectId}/evals/${pathSegments.join('/')}`;
   }
 
   private buildHeaders(): Record<string, string> {

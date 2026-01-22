@@ -167,9 +167,9 @@ The sandbox provider is configured at the application level when deploying. See 
 Configure execution settings in your application:
 
 ```typescript
-import { createExecutionApp } from "@inkeep/agents-run-api";
+import { createAgentsApp } from "@inkeep/agents-api";
 
-const app = createExecutionApp({
+const app = createAgentsApp({
   sandboxConfig: {
     provider: "native", // or 'vercel' for serverless
     runtime: "node22", // Node.js 22 or 'typescript'

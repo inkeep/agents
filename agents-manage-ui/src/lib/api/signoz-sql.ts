@@ -1,7 +1,7 @@
 import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
-import { getManageApiUrl } from './api-config';
+import { getAgentsApiUrl } from './api-config';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -46,7 +46,7 @@ type SpanRow = {
 };
 
 /**
- * Fetch all span attributes via secure manage-api
+ * Fetch all span attributes via secure agents-api
  */
 export async function fetchAllSpanAttributes_SQL(
   conversationId: string,
@@ -124,9 +124,9 @@ export async function fetchAllSpanAttributes_SQL(
           timeout: 30000,
         });
       } else {
-        // For browser calls, go through manage-api for auth
-        const manageApiUrl = getManageApiUrl();
-        const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+        // For browser calls, go through agents-api for auth
+        const agentsApiUrl = getAgentsApiUrl();
+        const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
         };

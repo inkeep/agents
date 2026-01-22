@@ -125,7 +125,7 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
 
 const discoverToolsFromServer = async (
   tool: ToolSelect,
-  dbClient: AgentsManageDatabaseClient,
+  credentialReference?: CredentialReferenceSelect,
   credentialStoreRegistry?: CredentialStoreRegistry,
   userId?: string
 ): Promise<McpToolDefinition[]> => {
@@ -135,21 +135,6 @@ const discoverToolsFromServer = async (
 
   try {
     let serverConfig: McpServerConfig;
-
-    // Look up credential reference based on scope
-    const credentialReference =
-      tool.credentialReferenceId && tool.credentialScope !== 'user'
-        ? await getCredentialReference(dbClient)({
-            scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
-            id: tool.credentialReferenceId,
-          })
-        : userId && tool.credentialScope === 'user'
-          ? await getUserScopedCredentialReference(dbClient)({
-              scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
-              toolId: tool.id,
-              userId,
-            })
-          : undefined;
 
     if (credentialReference) {
       const storeReference = {
@@ -287,7 +272,7 @@ export const dbResultToMcpTool = async (
   try {
     availableTools = await discoverToolsFromServer(
       dbResult,
-      dbClient,
+      credentialReference,
       credentialStoreRegistry,
       userId
     );
@@ -392,6 +377,28 @@ export const getToolById =
       ),
     });
     return result ?? null;
+  };
+
+export const getMcpToolById =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    toolId: string;
+    relationshipId?: string;
+    credentialStoreRegistry?: CredentialStoreRegistry;
+    userId?: string;
+  }): Promise<McpTool | null> => {
+    const tool = await getToolById(db)({ scopes: params.scopes, toolId: params.toolId });
+    if (!tool) {
+      return null;
+    }
+    return await dbResultToMcpTool(
+      tool,
+      db,
+      params.credentialStoreRegistry,
+      params.relationshipId,
+      params.userId
+    );
   };
 
 export const listTools =

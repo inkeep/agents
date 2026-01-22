@@ -331,3 +331,7 @@ li[data-sonner-toast][data-type="error"] {
     --xy-edge-stroke: unset;
   }
 }
+
+.mcp-needs-approval {
+  @apply hidden;
+}

@@ -206,7 +206,7 @@ describe('Project', () => {
       await project.init();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/project-full/test-project',
+        'http://localhost:3002/manage/tenants/test-tenant/project-full/test-project',
         expect.objectContaining({
           method: 'PUT',
           headers: {
@@ -233,7 +233,7 @@ describe('Project', () => {
       await project.init();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant/project-full/test-project',
+        'http://localhost:3002/manage/tenants/test-tenant/project-full/test-project',
         expect.objectContaining({
           method: 'PUT',
           headers: {

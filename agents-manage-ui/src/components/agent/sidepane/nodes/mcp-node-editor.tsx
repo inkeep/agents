@@ -318,7 +318,7 @@ export function MCPServerNodeEditor({
               <div>Tool</div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1 cursor-help">
+                  <div className="flex items-center gap-1 cursor-help mcp-needs-approval">
                     <Shield className="w-3 h-3" />
                     Needs Approval?
                   </div>

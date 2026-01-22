@@ -1,0 +1,27 @@
+{
+  "name": "agents-api-quickstart",
+  "version": "0.1.0",
+  "description": "InkeepAgents API",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc",
+    "start": "node dist/agents-api/src/server.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.5",
+    "@hono/zod-openapi": "^1.1.5",
+    "@inkeep/agents-api": "^0.42.0",
+    "hono": "^4.10.4",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@hono/vite-dev-server": "^0.23.0",
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0",
+    "vite": "^7.1.7"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

@@ -15,27 +15,37 @@ import {
 
 /**
  * Format authentication configuration
+ * New format uses headers array: { headers: [{ name, valueHash, valuePrefix }] }
+ * We generate code that uses environment variables for the secret values
  */
 function formatAuthentication(auth: any, style: CodeStyle, indentLevel: number): string {
   if (!auth) return '';
 
-  const { indentation } = style;
+  const { indentation, quotes } = style;
+  const q = quotes === 'single' ? "'" : '"';
   const indent = indentation.repeat(indentLevel);
   const innerIndent = indentation.repeat(indentLevel + 1);
+  const headerIndent = indentation.repeat(indentLevel + 2);
   const lines: string[] = [];
 
-  lines.push(`${indent}authentication: {`);
+  // New format: headers array
+  if (auth.headers && Array.isArray(auth.headers) && auth.headers.length > 0) {
+    lines.push(`${indent}authentication: {`);
+    lines.push(`${innerIndent}headers: [`);
 
-  if (auth.type) {
-    lines.push(`${innerIndent}type: '${auth.type}',`);
+    for (const header of auth.headers) {
+      // Generate environment variable name from header name
+      // e.g., "X-API-Key" -> "TRIGGER_AUTH_X_API_KEY"
+      const envVarName = `TRIGGER_AUTH_${header.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+      lines.push(`${headerIndent}{`);
+      lines.push(`${headerIndent}${indentation}name: ${q}${header.name}${q},`);
+      lines.push(`${headerIndent}${indentation}value: process.env.${envVarName} || ${q}${q},`);
+      lines.push(`${headerIndent}},`);
+    }
+
+    lines.push(`${innerIndent}],`);
+    lines.push(`${indent}},`);
   }
-
-  // Remove trailing comma from last line
-  if (lines.length > 1 && lines[lines.length - 1].endsWith(',')) {
-    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
-  }
-
-  lines.push(`${indent}},`);
 
   return lines.join('\n');
 }

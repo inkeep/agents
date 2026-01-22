@@ -98,7 +98,7 @@ export class ExternalAgent implements ExternalAgentInterface {
 
     // First try to update (in case external agent exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/external-agents/${this.getId()}`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/external-agents/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -128,7 +128,7 @@ export class ExternalAgent implements ExternalAgentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/external-agents`,
+        `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/external-agents`,
         {
           method: 'POST',
           headers: {

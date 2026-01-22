@@ -28,7 +28,7 @@ sequenceDiagram
 ```
 
 1. **External service sends a webhook** to your trigger's URL
-2. **Authentication is verified** (API key, bearer token, or signature)
+2. **Authentication is verified** (custom headers or signature)
 3. **Payload is validated** against the input schema (if configured)
 4. **Payload is transformed** using the message template
 5. **Invocation is logged** and the webhook returns immediately with `202 Accepted`
@@ -59,23 +59,35 @@ Each trigger is configured with:
 ### Optional
 
 - **Input Schema**: JSON Schema to validate incoming payloads
-- **Authentication**: API key, bearer token, or basic auth
+- **Authentication**: Custom headers with expected values
 - **Signing Secret**: HMAC-SHA256 signature verification (for GitHub, Slack, etc.)
-- **Output Transform**: JMESPath or object mapping to reshape payloads
+- **Output Transform**: Reshape payloads before interpolating the message template. Choose one approach:
+  - **Object Transformation**: Simple field remapping (recommended for basic use cases)
+  - **JMESPath**: Complex transformations like filtering arrays or restructuring nested data
 
 ## Authentication Options
 
-Triggers support multiple authentication methods:
+Triggers support flexible header-based authentication:
 
-| Type | Header | Use Case |
-| --- | --- | --- |
-| `api_key` | Custom header (e.g., `X-API-Key`) | Simple token auth |
-| `bearer_token` | `Authorization: Bearer <token>` | OAuth-style auth |
-| `basic_auth` | `Authorization: Basic <base64>` | Username/password |
-| `none` | No authentication | Public webhooks with signature verification |
+| Configuration | Use Case |
+| --- | --- |
+| Custom header (e.g., `X-API-Key`) | Simple API key authentication |
+| `Authorization` header with Bearer token | OAuth-style authentication |
+| Multiple headers | Multi-factor authentication |
+| Signing secret only | Webhooks from services that sign requests |
+| No authentication | Public webhooks (use with caution) |
+
+```typescript
+// Example: Require a custom API key header
+authentication: {
+  headers: [
+    { name: "X-API-Key", value: process.env.MY_API_KEY },
+  ],
+}
+```
 
 <Note>
-For services that sign webhooks (GitHub, Stripe, Slack), you can use `authentication: { type: 'none' }` combined with `signingSecret` for security.
+Header values are securely hashed before storage. For services that sign webhooks (GitHub, Stripe, Slack), you can rely on `signingSecret` alone for security.
 </Note>
 
 ## Webhook URL Format

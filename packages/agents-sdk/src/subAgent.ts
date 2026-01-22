@@ -400,7 +400,7 @@ export class SubAgent implements SubAgentInterface {
 
     // First try to update (in case agent exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/agents/${this.getId()}`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/agents/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -429,7 +429,7 @@ export class SubAgent implements SubAgentInterface {
         'Agent not found, creating new agent'
       );
 
-      const createResponse = await fetch(`${this.baseURL}/tenants/${this.tenantId}/agents`, {
+      const createResponse = await fetch(`${this.baseURL}/manage/tenants/${this.tenantId}/agents`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -691,7 +691,7 @@ export class SubAgent implements SubAgentInterface {
       const functionData = functionTool.serializeFunction();
       const toolData = functionTool.serializeTool();
 
-      const functionUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/functions`;
+      const functionUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/crud/projects/${this.projectId}/functions`;
       logger.info(
         {
           agentId: this.getId(),
@@ -740,7 +740,7 @@ export class SubAgent implements SubAgentInterface {
       }
 
       // Create a tool with type 'function' at project level
-      const toolUrl = `${this.baseURL}/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`;
+      const toolUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`;
       logger.info(
         {
           agentId: this.getId(),
@@ -976,7 +976,7 @@ export class SubAgent implements SubAgentInterface {
 
   private async createAgentDataComponentRelation(dataComponentId: string): Promise<void> {
     const relationResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/agent-data-components`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/agent-data-components`,
       {
         method: 'POST',
         headers: {
@@ -1008,7 +1008,7 @@ export class SubAgent implements SubAgentInterface {
 
   private async createAgentArtifactComponentRelation(artifactComponentId: string): Promise<void> {
     const relationResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/agent-artifact-components`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/agent-artifact-components`,
       {
         method: 'POST',
         headers: {
@@ -1077,7 +1077,7 @@ export class SubAgent implements SubAgentInterface {
     }
 
     const relationResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent-tool-relations`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/agent-tool-relations`,
       {
         method: 'POST',
         headers: {

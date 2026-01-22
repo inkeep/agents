@@ -110,14 +110,11 @@ export async function initializeCommand(
 
       // CI env vars take precedence over file config (if ciConfig is available)
       if (ciConfig) {
-        if (ciConfig.manageApiUrl) {
-          config.agentsManageApiUrl = ciConfig.manageApiUrl;
-        }
-        if (ciConfig.runApiUrl) {
-          config.agentsRunApiUrl = ciConfig.runApiUrl;
+        if (ciConfig.agentsApiUrl) {
+          config.agentsApiUrl = ciConfig.agentsApiUrl;
         }
         if (ciConfig.apiKey) {
-          config.agentsManageApiKey = ciConfig.apiKey;
+          config.agentsApiKey = ciConfig.apiKey;
         }
         if (ciConfig.tenantId) {
           config.tenantId = ciConfig.tenantId;
@@ -134,7 +131,7 @@ export async function initializeCommand(
         } else {
           console.log(chalk.yellow(`CI mode detected (${ciDetection.reason})`));
           console.log(chalk.gray(`  Using config file settings (no INKEEP_API_KEY set)`));
-          console.log(chalk.gray(`  Remote: ${config.agentsManageApiUrl}`));
+          console.log(chalk.gray(`  Remote: ${config.agentsApiUrl}`));
         }
       }
 
@@ -188,14 +185,13 @@ export async function initializeCommand(
     // Override config with profile values (profile takes precedence over config file)
     // Precedence: CLI flag > Profile credentials > Config file > Defaults
     if (profile) {
-      config.agentsManageApiUrl = profile.remote.manageApi;
-      config.agentsRunApiUrl = profile.remote.runApi;
+      config.agentsApiUrl = profile.remote.api;
       config.manageUiUrl = profile.remote.manageUi;
 
       // Profile credentials ALWAYS override config file values when using a profile
       // Config file values are intended for CI/CD scenarios without profiles
       if (profileAccessToken) {
-        config.agentsManageApiKey = profileAccessToken;
+        config.agentsApiKey = profileAccessToken;
       }
 
       // Use organization ID from authenticated session as tenantId
@@ -217,14 +213,13 @@ export async function initializeCommand(
           : chalk.yellow('not authenticated');
 
         console.log(chalk.gray(`Using profile: ${chalk.cyan(profile.name)}`));
-        console.log(chalk.gray(`  Remote: ${config.agentsManageApiUrl}`));
+        console.log(chalk.gray(`  Remote: ${config.agentsApiUrl}`));
         console.log(chalk.gray(`  Environment: ${profile.environment}`));
         console.log(chalk.gray(`  Auth: ${authStatus}`));
       } else {
         console.log(chalk.gray('Configuration:'));
         console.log(chalk.gray(`  • Tenant ID: ${config.tenantId}`));
-        console.log(chalk.gray(`  • Manage API URL: ${config.agentsManageApiUrl}`));
-        console.log(chalk.gray(`  • Run API URL: ${config.agentsRunApiUrl}`));
+        console.log(chalk.gray(`  • Agents API URL: ${config.agentsApiUrl}`));
         if (config.sources.configFile) {
           console.log(chalk.gray(`  • Config file: ${config.sources.configFile}`));
         }
@@ -249,8 +244,7 @@ export async function initializeCommand(
     } else if (error.message.includes('tenantId') || error.message.includes('API URL')) {
       console.log(chalk.yellow('\nHint: Ensure your inkeep.config.ts has all required fields:'));
       console.log(chalk.gray('  - tenantId'));
-      console.log(chalk.gray('  - agentsManageApiUrl (or agentsManageApi.url)'));
-      console.log(chalk.gray('  - agentsRunApiUrl (or agentsRunApi.url)'));
+      console.log(chalk.gray('  - agentsApiUrl (or agentsApi.url)'));
     }
 
     process.exit(1);

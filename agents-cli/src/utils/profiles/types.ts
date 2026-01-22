@@ -4,18 +4,16 @@ import { z } from 'zod';
  * Baked-in URLs for Inkeep Cloud deployment
  */
 export const CLOUD_REMOTE = {
-  manageApi: 'https://manage-api.inkeep.com',
+  api: 'https://agents-api.inkeep.com',
   manageUi: 'https://manage.inkeep.com',
-  runApi: 'https://run-api.inkeep.com',
 } as const;
 
 /**
  * Schema for explicit remote URLs (custom/local deployments)
  */
 export const explicitRemoteSchema: z.ZodType<ExplicitRemote> = z.object({
-  manageApi: z.string().url('manageApi must be a valid URL'),
+  api: z.string().url('api must be a valid URL'),
   manageUi: z.string().url('manageUi must be a valid URL'),
-  runApi: z.string().url('runApi must be a valid URL'),
 });
 
 /**
@@ -58,9 +56,8 @@ export const profilesConfigSchema: z.ZodType<ProfilesConfig> = z.object({
  * Explicit remote URLs type
  */
 export interface ExplicitRemote {
-  manageApi: string;
+  api: string;
   manageUi: string;
-  runApi: string;
 }
 
 /**
@@ -89,9 +86,8 @@ export interface ProfilesConfig {
  * Resolved remote URLs - always explicit, never 'cloud'
  */
 export interface ResolvedRemoteUrls {
-  manageApi: string;
+  api: string;
   manageUi: string;
-  runApi: string;
 }
 
 /**
@@ -127,9 +123,8 @@ export const DEFAULT_PROFILES_CONFIG: ProfilesConfig = {
  * Baked-in URLs for local development deployment
  */
 export const LOCAL_REMOTE = {
-  manageApi: 'http://localhost:3002',
+  api: 'http://localhost:3002',
   manageUi: 'http://localhost:3001',
-  runApi: 'http://localhost:3003',
 } as const;
 
 /**

@@ -381,7 +381,8 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
  * Creates a webhook trigger for external service integration.
  *
  * Triggers allow external services to invoke agents via webhooks.
- * They support authentication, payload transformation, and input validation.
+ * They support authentication via arbitrary header key-value pairs,
+ * payload transformation, and input validation.
  *
  * @param config - Trigger configuration
  * @returns A Trigger instance
@@ -390,7 +391,7 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
  * ```typescript
  * import { z } from 'zod';
  *
- * // GitHub webhook trigger
+ * // GitHub webhook trigger with header-based authentication
  * const githubTrigger = trigger({
  *   name: 'GitHub Events',
  *   description: 'Handle GitHub webhook events',
@@ -407,19 +408,31 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
  *   },
  *   messageTemplate: 'GitHub {{action}} on repository {{repo}}: {{url}}',
  *   authentication: {
- *     type: 'api_key',
- *     data: { name: 'X-GitHub-Token', value: process.env.GITHUB_TOKEN },
- *     add_position: 'header'
+ *     headers: [
+ *       { name: 'X-GitHub-Token', value: process.env.GITHUB_TOKEN }
+ *     ]
  *   },
  *   signingSecret: process.env.GITHUB_WEBHOOK_SECRET
+ * });
+ *
+ * // Multiple authentication headers
+ * const multiHeaderTrigger = trigger({
+ *   name: 'Secure Webhook',
+ *   description: 'Webhook with multiple auth headers',
+ *   messageTemplate: 'Received: {{data}}',
+ *   authentication: {
+ *     headers: [
+ *       { name: 'X-API-Key', value: process.env.API_KEY },
+ *       { name: 'X-Client-ID', value: process.env.CLIENT_ID }
+ *     ]
+ *   }
  * });
  *
  * // Simple webhook trigger with no auth
  * const simpleTrigger = trigger({
  *   name: 'Slack Message',
  *   description: 'Handle Slack messages',
- *   messageTemplate: 'New message: {{text}}',
- *   authentication: { type: 'none' }
+ *   messageTemplate: 'New message: {{text}}'
  * });
  * ```
  */

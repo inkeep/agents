@@ -86,6 +86,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
           NODE_OPTIONS: --max-old-space-size=4096
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           CI: true
           HUSKY: 0
 
@@ -201,8 +203,7 @@ jobs:
           pnpm --filter @inkeep/agents-core build
           pnpm --filter @inkeep/agents-manage-mcp build
           pnpm --filter @inkeep/agents-sdk build
-          pnpm --filter @inkeep/agents-manage-api build
-          pnpm --filter @inkeep/agents-run-api build
+          pnpm --filter @inkeep/agents-api build
           pnpm --filter @inkeep/agents-cli build
           pnpm --filter @inkeep/create-agents build
         env:
@@ -222,9 +223,9 @@ jobs:
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
-
-      - name: Run agents-manage-api integration tests
-        run: pnpm --filter @inkeep/agents-manage-api test:integration
+        
+      - name: Run agents-api integration tests
+        run: pnpm --filter @inkeep/agents-api test:integration 
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents

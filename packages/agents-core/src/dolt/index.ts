@@ -3,5 +3,7 @@ export * from './branches-api';
 export * from './commit';
 export * from './diff';
 export * from './merge';
-export * from './ref';
+export * from './ref-helpers';
+export * from './ref-middleware';
+export * from './ref-scope';
 export * from './schema-sync';

@@ -1133,7 +1133,7 @@ export class Agent implements AgentInterface {
   ): Promise<string> {
     const normalizedMessages = this.normalizeMessages(input);
 
-    const url = `${this.baseURL}/tenants/${this.tenantId}/agent/${this.agentId}/v1/chat/completions`;
+    const url = `${this.baseURL}/run/v1/chat/completions`;
 
     logger.info({ url }, 'Executing with backend');
     const requestBody = {

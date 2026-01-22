@@ -20,6 +20,7 @@ program
   .option('--local-templates-prefix <local-templates-prefix>', 'Local prefix for project templates')
   .option('--skip-inkeep-cli', 'Skip installing Inkeep CLI globally')
   .option('--skip-inkeep-mcp', 'Skip installing Inkeep MCP server')
+  .option('--skip-install', 'Skip installing dependencies')
   .parse();
 
 async function main() {
@@ -38,6 +39,7 @@ async function main() {
       localTemplatesPrefix: options.localTemplatesPrefix,
       skipInkeepCli: options.skipInkeepCli,
       skipInkeepMcp: options.skipInkeepMcp,
+      skipInstall: options.skipInstall,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);

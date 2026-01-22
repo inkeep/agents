@@ -70,8 +70,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant-123') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
-        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });
@@ -84,13 +83,11 @@ describe('Init Command', () => {
 
       // Verify all required parts are present
       expect(writtenContent).toContain("tenantId: 'test-tenant-123'");
-      expect(writtenContent).toContain('agentsManageApi:');
-      expect(writtenContent).toContain('agentsRunApi:');
+      expect(writtenContent).toContain('agentsApi:');
       expect(writtenContent).toContain("url: 'http://localhost:3002'");
 
       // Verify it's using nested format (not flat)
-      expect(writtenContent).not.toContain('agentsManageApiUrl:');
-      expect(writtenContent).not.toContain('agentsRunApiUrl:');
+      expect(writtenContent).not.toContain('agentsApiUrl:');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.any(String), // The checkmark
@@ -110,8 +107,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('new-tenant-456') // tenantId
-        .mockResolvedValueOnce('https://api.example.com') // manageApiUrl
-        .mockResolvedValueOnce('https://run.example.com'); // runApiUrl
+        .mockResolvedValueOnce('https://agents-api.example.com'); // apiUrl
       vi.mocked(p.confirm).mockResolvedValueOnce(true); // overwrite
       vi.mocked(p.isCancel).mockReturnValue(false);
 
@@ -160,7 +156,7 @@ describe('Init Command', () => {
           validateFn = options.validate;
           return 'valid-tenant';
         }
-        if (options.message.includes('Management API') || options.message.includes('Run API')) {
+        if (options.message.includes('Agents API')) {
           return 'http://localhost:3002';
         }
         return './inkeep.config.ts';
@@ -186,12 +182,9 @@ describe('Init Command', () => {
       // Mock clack prompts with validation
       let validateFn: any;
       vi.mocked(p.text).mockImplementation(async (options: any) => {
-        if (options.message.includes('Management API URL')) {
+        if (options.message.includes('Agents API URL')) {
           validateFn = options.validate;
           return 'http://localhost:3002';
-        }
-        if (options.message.includes('Run API URL')) {
-          return 'http://localhost:3003';
         }
         if (options.message.includes('tenant')) {
           return 'test-tenant';
@@ -206,7 +199,7 @@ describe('Init Command', () => {
       if (validateFn) {
         expect(validateFn('not-a-url')).toBe('Please enter a valid URL');
         expect(validateFn('http://localhost:3002')).toBe(undefined);
-        expect(validateFn('https://api.example.com')).toBe(undefined);
+        expect(validateFn('https://agents-api.example.com')).toBe(undefined);
       }
     });
 
@@ -218,8 +211,7 @@ describe('Init Command', () => {
       // Mock clack prompts
       vi.mocked(p.text)
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
-        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ path: './custom/path', local: true });
@@ -240,8 +232,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
-        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       vi.mocked(writeFileSync).mockImplementation(() => {
@@ -271,8 +262,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant-123') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
-        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });
@@ -282,9 +272,8 @@ describe('Init Command', () => {
         profiles: {
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3001',
-              runApi: 'http://localhost:3003',
             },
             credential: 'none',
             environment: 'development',
@@ -313,17 +302,15 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
-        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });
 
       expect(mockProfileManager.addProfile).toHaveBeenCalledWith('local', {
         remote: {
-          manageApi: 'http://localhost:3002',
+          api: 'http://localhost:3002',
           manageUi: 'http://localhost:3001',
-          runApi: 'http://localhost:3003',
         },
         credential: 'none',
         environment: 'development',
@@ -346,9 +333,8 @@ describe('Init Command', () => {
           cloud: { remote: 'cloud', credential: 'inkeep-cloud', environment: 'production' },
           local: {
             remote: {
-              manageApi: 'http://localhost:3002',
+              api: 'http://localhost:3002',
               manageUi: 'http://localhost:3001',
-              runApi: 'http://localhost:3003',
             },
             credential: 'none',
             environment: 'development',
@@ -360,8 +346,7 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
-        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       await initCommand({ local: true });

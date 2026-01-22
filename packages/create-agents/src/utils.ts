@@ -41,8 +41,7 @@ const agentsTemplateRepo = 'https://github.com/inkeep/agents/create-agents-templ
 const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/template-projects';
 const execAsync = promisify(exec);
 
-const manageApiPort = '3002';
-const runApiPort = '3003';
+const agentsApiPort = '3002';
 
 export const defaultGoogleModelConfigurations = {
   base: {
@@ -110,6 +109,7 @@ export const createAgents = async (
     localTemplatesPrefix?: string;
     skipInkeepCli?: boolean;
     skipInkeepMcp?: boolean;
+    skipInstall?: boolean;
   } = {}
 ) => {
   let {
@@ -125,6 +125,7 @@ export const createAgents = async (
     localTemplatesPrefix,
     skipInkeepCli,
     skipInkeepMcp,
+    skipInstall,
   } = args;
 
   const tenantId = 'default';
@@ -427,8 +428,10 @@ export const createAgents = async (
     s.message('Creating inkeep.config.ts...');
     await createInkeepConfig(config);
 
-    s.message('Installing dependencies (this may take a while)...');
-    await installDependencies();
+    if (!skipInstall) {
+      s.message('Installing dependencies (this may take a while)...');
+      await installDependencies();
+    }
 
     if (!config.disableGit) {
       await initializeGit();
@@ -475,8 +478,7 @@ export const createAgents = async (
         `  pnpm setup   # Setup project in database\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://127.0.0.1:3002\n` +
-        `  • Run API: http://127.0.0.1:3003\n` +
+        `  • Agents API: http://127.0.0.1:3002\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -525,9 +527,9 @@ async function createEnvironmentFiles(config: FileConfig) {
 ENVIRONMENT=development
 
 # Database Configuration (Split Database Setup)
-# Manage API uses DoltgreSQL on port 5432 for version control features
+# Management entities database uses DoltgreSQL on port 5432 for version control features
 INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
-# Run API uses PostgreSQL on port 5433 for runtime operations
+# Runtime entities database uses PostgreSQL on port 5433 for runtime operations
 INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
 
 # AI Provider Keys  
@@ -539,12 +541,10 @@ AZURE_API_KEY=${config.azureKey || 'your-azure-key-here'}
 # Inkeep API URLs
 # Internal URLs (server-side, Docker internal networking)
 # Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
-INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
-INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
+INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
 
 # Public URLs (client-side, browser accessible)
-PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
-PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
+PUBLIC_INKEEP_AGENTS_API_URL="http://127.0.0.1:3002"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
@@ -585,12 +585,9 @@ async function createInkeepConfig(config: FileConfig) {
     
 const config = defineConfig({
   tenantId: "${config.tenantId}",
-  agentsManageApi: {
+  agentsApi: {
     // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
     url: 'http://127.0.0.1:3002',
-  },
-  agentsRunApi: {
-    url: 'http://127.0.0.1:3003',
   },
 });
     
@@ -693,16 +690,10 @@ async function isPortAvailable(port: number): Promise<boolean> {
 /**
  * Display port conflict error and exit
  */
-function displayPortConflictError(unavailablePorts: {
-  runApi: boolean;
-  manageApi: boolean;
-}): never {
+function displayPortConflictError(unavailablePorts: { agentsApi: boolean }): never {
   let errorMessage = '';
-  if (unavailablePorts.runApi) {
-    errorMessage += `${color.red(`Run API port ${runApiPort} is already in use`)}\n`;
-  }
-  if (unavailablePorts.manageApi) {
-    errorMessage += `${color.red(`Manage API port ${manageApiPort} is already in use`)}\n`;
+  if (unavailablePorts.agentsApi) {
+    errorMessage += `${color.red(`Agents API port ${agentsApiPort} is already in use`)}\n`;
   }
 
   p.cancel(
@@ -717,15 +708,11 @@ function displayPortConflictError(unavailablePorts: {
  * Check port availability and display errors if needed
  */
 async function checkPortsAvailability(): Promise<void> {
-  const [runApiAvailable, manageApiAvailable] = await Promise.all([
-    isPortAvailable(Number(runApiPort)),
-    isPortAvailable(Number(manageApiPort)),
-  ]);
+  const [agentsApiAvailable] = await Promise.all([isPortAvailable(Number(agentsApiPort))]);
 
-  if (!runApiAvailable || !manageApiAvailable) {
+  if (!agentsApiAvailable) {
     displayPortConflictError({
-      runApi: !runApiAvailable,
-      manageApi: !manageApiAvailable,
+      agentsApi: !agentsApiAvailable,
     });
   }
 }

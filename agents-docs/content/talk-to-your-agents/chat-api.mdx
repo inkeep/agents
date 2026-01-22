@@ -1,7 +1,7 @@
 ---
 title: How to call your AI Agent using the Chat API
 sidebarTitle: Chat API
-description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/api/chat` API endpoint.
+description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/run/api/chat` API endpoint.
 icon: LuMessagesSquare
 keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
 ---
@@ -16,7 +16,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 
 ## Endpoint
 
-- **Path (mounted by the Run API):** `/api/chat`
+- **Path (mounted by the Run API):** `/run/api/chat`
 - **Method:** `POST`
 - **Protocol:** Server-Sent Events (SSE) encoded JSON, using Vercel AI SDK data-stream v2
 - **Content-Type (response):** `text/event-stream`
@@ -55,7 +55,7 @@ When using an API key for auth:
 
 ```bash
 curl -N \
-  -X POST "http://localhost:3003/api/chat" \
+  -X POST "http://localhost:3002/run/api/chat" \
   -H "Authorization: Bearer $INKEEP_API_KEY" \
   -H "Content-Type: application/json" \
   -H "x-emit-operations: true" \
@@ -183,10 +183,10 @@ Validation failures and other errors return JSON with an appropriate HTTP status
 
 ## Development Notes
 
-- **Default local base URL:** `http://localhost:3003`
+- **Default local base URL:** `http://localhost:3002`
 - **Endpoint mounting in the server:**
-  - `/api/chat` → Vercel data stream (this page)
-  - `/v1/mcp` → MCP JSON-RPC endpoint
+  - `/run/api/chat` → Vercel data stream (this page)
+  - `/run/v1/mcp` → MCP JSON-RPC endpoint
 
 <Note>
   To test quickly without a UI, use `curl -N` or a tool that supports Server-Sent Events.
