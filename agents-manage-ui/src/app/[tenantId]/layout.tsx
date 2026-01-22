@@ -30,7 +30,8 @@ const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
               'flex flex-col flex-1 @container',
               'overflow-y-auto',
               'scrollbar-thin scrollbar-track-transparent',
-              'scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50'
+              'scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50',
+              'bg-muted/20 dark:bg-background'
             )}
           >
             <div className="flex-1 p-6 [&:has(>.no-parent-container)]:contents">{children}</div>
