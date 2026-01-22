@@ -75,4 +75,3 @@ describe('VercelSandboxExecutor concurrency', () => {
     expect(writtenPaths[0]).not.toBe(writtenPaths[1]);
   });
 });
-

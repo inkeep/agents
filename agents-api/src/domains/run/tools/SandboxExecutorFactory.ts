@@ -85,7 +85,7 @@ export class SandboxExecutorFactory {
     config: FunctionToolConfig
   ): Promise<unknown> {
     if (!this.nativeExecutor) {
-      this.nativeExecutor = NativeSandboxExecutor.getInstance();
+      this.nativeExecutor = new NativeSandboxExecutor();
       logger.info({}, 'Native sandbox executor created');
     }
 
@@ -138,8 +138,10 @@ export class SandboxExecutorFactory {
   public async cleanup(): Promise<void> {
     logger.info({}, 'Cleaning up sandbox executors');
 
-    // Native executor doesn't require explicit cleanup
-    this.nativeExecutor = null;
+    if (this.nativeExecutor) {
+      await this.nativeExecutor.cleanup();
+      this.nativeExecutor = null;
+    }
 
     for (const [key, executor] of this.vercelExecutors.entries()) {
       await executor.cleanup();
