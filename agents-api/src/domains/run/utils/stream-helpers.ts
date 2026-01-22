@@ -30,7 +30,11 @@ export interface StreamHelper {
     providerMetadata?: any;
   }): Promise<void>;
   writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void>;
-  writeToolOutputError(params: { toolCallId: string; error: string; output?: any }): Promise<void>;
+  writeToolOutputError(params: {
+    toolCallId: string;
+    errorText: string;
+    output?: any;
+  }): Promise<void>;
   writeToolApprovalRequest(params: { approvalId: string; toolCallId: string }): Promise<void>;
   writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
 }
@@ -281,14 +285,14 @@ export class SSEStreamHelper implements StreamHelper {
 
   async writeToolOutputError(params: {
     toolCallId: string;
-    error: string;
+    errorText: string;
     output?: any;
   }): Promise<void> {
     await this.writeContent(
       JSON.stringify({
         type: 'tool-output-error',
         toolCallId: params.toolCallId,
-        error: params.error,
+        errorText: params.errorText,
         output: params.output ?? null,
       })
     );
@@ -615,14 +619,14 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   async writeToolOutputError(params: {
     toolCallId: string;
-    error: string;
+    errorText: string;
     output?: any;
   }): Promise<void> {
     if (this.isCompleted) return;
     this.writer.write({
       type: 'tool-output-error',
       toolCallId: params.toolCallId,
-      error: params.error,
+      errorText: params.errorText,
       output: params.output ?? null,
     });
   }
@@ -989,7 +993,7 @@ export class BufferingStreamHelper implements StreamHelper {
 
   async writeToolOutputError(params: {
     toolCallId: string;
-    error: string;
+    errorText: string;
     output?: any;
   }): Promise<void> {
     this.capturedData.push({ type: 'tool-output-error', ...params, output: params.output ?? null });
