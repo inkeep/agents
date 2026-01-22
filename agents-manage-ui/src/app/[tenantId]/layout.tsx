@@ -9,7 +9,7 @@ const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
   return (
     <AppSidebarProvider>
       <SidebarInset
-        // make rounded-b works on dark mode
+        // Ensures rounded bottom corners render correctly in dark mode
         className="overflow-hidden"
       >
         <div className="h-[calc(100vh-16px)] flex flex-col overflow-hidden">
