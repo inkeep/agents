@@ -31,12 +31,10 @@ export function SuiteConfigViewDialog({
 }: SuiteConfigViewDialogProps) {
   'use memo';
 
-  const {
-    data: suiteConfigData,
-    isFetching: suiteConfigFetching,
-  } = useEvaluationSuiteConfigQuery(suiteConfigId, {
-    enabled: isOpen,
-  });
+  const { data: suiteConfigData, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery(
+    suiteConfigId,
+    { enabled: isOpen }
+  );
   const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
     useEvaluationSuiteConfigEvaluatorsQuery(suiteConfigId, {
       enabled: isOpen,
