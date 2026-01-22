@@ -9,10 +9,13 @@ const credentialQueryKeys = {
     ['user-scoped-credential', tenantId, projectId, toolId] as const,
 };
 
-export function useUserScopedCredentialQuery(
+export function useUserScopedCredentialQuery({
   toolId = '',
-  options?: { disabled?: boolean }
-) {
+  disabled,
+}: {
+  toolId?: string;
+  disabled?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -20,7 +23,7 @@ export function useUserScopedCredentialQuery(
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && toolId) && !options?.disabled;
+  const enabled = Boolean(tenantId && projectId && toolId) && !disabled;
 
   return useQuery<Credential | null>({
     queryKey: credentialQueryKeys.userScoped(tenantId, projectId, toolId),
@@ -28,6 +31,7 @@ export function useUserScopedCredentialQuery(
     enabled,
     staleTime: 30_000,
     initialData: null,
+    // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     meta: {
       defaultError: 'Failed to load credential',
