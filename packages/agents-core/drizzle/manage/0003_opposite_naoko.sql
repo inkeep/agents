@@ -1,0 +1,1 @@
+ALTER TABLE "sub_agent_function_tool_relations" ADD COLUMN "tool_policies" jsonb;

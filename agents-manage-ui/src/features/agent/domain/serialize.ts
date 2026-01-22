@@ -280,10 +280,13 @@ export function serializeAgentData(
 
           functionTools[functionToolId] = functionToolData;
 
+          const tempToolPolicies = nodeData.tempToolPolicies;
+
           canUse.push({
             toolId: functionToolId,
             toolSelection: null,
             headers: null,
+            ...(tempToolPolicies !== undefined ? { toolPolicies: tempToolPolicies } : {}),
             ...(relationshipId && { agentToolRelationId: relationshipId }),
           });
         }
