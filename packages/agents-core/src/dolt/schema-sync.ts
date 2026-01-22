@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import * as readline from 'node:readline';
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltAddAndCommit, doltStatus } from './commit';
@@ -426,3 +427,18 @@ export const areBranchesSchemaCompatible =
       branchBDifferences: diffB,
     };
   };
+
+
+export const isLocalhostUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '::1'
+    );
+  } catch {
+    return url.includes('localhost') || url.includes('127.0.0.1');
+  }
+};

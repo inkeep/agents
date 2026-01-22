@@ -2,20 +2,8 @@ import { createAgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltCheckout, doltListBranches } from './branch';
 import { loadEnvironmentFiles } from '../env';
 import { syncSchemaFromMain } from './schema-sync';
+import { confirmMigration } from '../db/utils';
 
-const isLocalhostUrl = (url: string | undefined): boolean => {
-  if (!url) return false;
-  try {
-    const parsed = new URL(url);
-    return (
-      parsed.hostname === 'localhost' ||
-      parsed.hostname === '127.0.0.1' ||
-      parsed.hostname === '::1'
-    );
-  } catch {
-    return url.includes('localhost') || url.includes('127.0.0.1');
-  }
-};
 
 const ansi = {
   reset: '\u001b[0m',
@@ -42,20 +30,7 @@ export const main = async () => {
   loadEnvironmentFiles();
 
   const connectionString = process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
-  const hasProductionFlag = process.argv.includes('--production');
-
-  if (!isLocalhostUrl(connectionString) && !hasProductionFlag) {
-    console.error(
-      format.err('❌ Error: Database URL is not pointing to localhost.\n') +
-        '   To run schema sync on a non-localhost database, use the --production flag:\n' +
-        '   pnpm db:migrate:branches --production\n'
-    );
-    process.exit(1);
-  }
-
-  if (hasProductionFlag) {
-    console.log(format.warn('⚠️  Running schema sync on production database...\n'));
-  }
+  await confirmMigration(connectionString);
 
   const startedAt = Date.now();
   const db = createAgentsManageDatabaseClient({});
