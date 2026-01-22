@@ -283,12 +283,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         },
         messageTemplate: 'GitHub event: {{action}} on {{repo}}',
         authentication: {
-          type: 'api_key',
-          data: {
-            name: 'X-GitHub-Token',
-            value: 'test-secret',
-          },
-          add_position: 'header',
+          headers: [{ name: 'X-GitHub-Token', value: 'test-secret' }],
         },
       };
 
@@ -311,7 +306,11 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.inputSchema).toEqual(createData.inputSchema);
       expect(body.data.outputTransform).toEqual(createData.outputTransform);
       expect(body.data.messageTemplate).toBe(createData.messageTemplate);
-      expect(body.data.authentication).toEqual(createData.authentication);
+      // Authentication headers are stored with hashes, not raw values
+      expect(body.data.authentication.headers).toHaveLength(1);
+      expect(body.data.authentication.headers[0].name).toBe('X-GitHub-Token');
+      expect(body.data.authentication.headers[0].valueHash).toBeDefined();
+      expect(body.data.authentication.headers[0].valuePrefix).toBe('test-sec');
       expect(body.data.webhookUrl).toBeDefined();
       expect(body.data.createdAt).toBeDefined();
       expect(body.data.updatedAt).toBeDefined();
@@ -329,7 +328,6 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         enabled: true,
         inputSchema: { type: 'object' },
         messageTemplate: 'Test message',
-        authentication: { type: 'none' as const },
       };
 
       const res = await makeRequest(
@@ -446,7 +444,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
           body: JSON.stringify(createData),

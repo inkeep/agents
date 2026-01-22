@@ -1,4 +1,3 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import devServer from '@hono/vite-dev-server';
 import { defineConfig } from 'vite';
@@ -12,17 +11,6 @@ export default defineConfig({
     devServer({
       entry: 'src/index.ts',
     }),
-    {
-      name: 'xml-as-string',
-      enforce: 'pre',
-      async load(id) {
-        if (id.endsWith('.xml') || id.endsWith('.md')) {
-          const code = await fs.readFile(id, 'utf8');
-          // emit a JS module exporting the XML as a string
-          return `export default ${JSON.stringify(code)};`;
-        }
-      },
-    },
   ],
   resolve: {
     alias: {

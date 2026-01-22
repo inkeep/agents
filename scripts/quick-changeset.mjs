@@ -14,11 +14,10 @@ const __dirname = path.dirname(__filename);
 
 // Valid package short names mapped to full package names
 const VALID_PACKAGES = {
+  'agents-api': '@inkeep/agents-api',
   'agents-cli': '@inkeep/agents-cli',
   'agents-core': '@inkeep/agents-core',
-  'agents-manage-api': '@inkeep/agents-manage-api',
   'agents-manage-ui': '@inkeep/agents-manage-ui',
-  'agents-run-api': '@inkeep/agents-run-api',
   'agents-sdk': '@inkeep/agents-sdk',
   'create-agents': '@inkeep/create-agents',
   'ai-sdk-provider': '@inkeep/ai-sdk-provider',

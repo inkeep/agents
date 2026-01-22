@@ -15,7 +15,7 @@ import { env } from './env';
 import { createAgentsAuth } from './factory';
 import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './ssoHelpers';
-import type { SandboxConfig } from 'src/types';
+import type { SandboxConfig } from './types';
 
 export type { AppConfig, AppVariables } from './types';
 

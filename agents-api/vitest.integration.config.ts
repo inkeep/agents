@@ -37,6 +37,9 @@ export default defineProject({
       LOG_LEVEL: 'error',
       DISABLE_AUTH: 'true',
       TENANT_ID: 'test-tenant',
+      // Required by env.ts validation even though integration tests don't use these APIs
+      ANTHROPIC_API_KEY: 'test-api-key',
+      OPENAI_API_KEY: 'test-openai-key',
     },
   },
 });

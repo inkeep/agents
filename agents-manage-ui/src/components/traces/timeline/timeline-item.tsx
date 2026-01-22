@@ -43,6 +43,81 @@ function formatJsonSafely(content: string): string {
   }
 }
 
+interface MessagePart {
+  kind: 'text' | 'data';
+  text?: string;
+  data?: any;
+  metadata?: {
+    source?: string;
+    triggerId?: string;
+    [key: string]: any;
+  };
+}
+
+function MessagePartsDisplay({
+  messageParts,
+  messageContent,
+  activityId,
+}: {
+  messageParts?: string;
+  messageContent?: string;
+  activityId: string;
+}) {
+  // Try to parse messageParts JSON
+  let parts: MessagePart[] | null = null;
+  if (messageParts) {
+    try {
+      parts = JSON.parse(messageParts);
+    } catch {
+      // If parsing fails, fall back to messageContent
+      parts = null;
+    }
+  }
+
+  // If no valid parts, fall back to simple message content
+  if (!parts || !Array.isArray(parts) || parts.length === 0) {
+    return messageContent ? (
+      <Bubble>
+        <div className="line-clamp-2">{messageContent}</div>
+      </Bubble>
+    ) : null;
+  }
+
+  return (
+    <div className="space-y-2">
+      {parts.map((part, index) => {
+        if (part.kind === 'text' && part.text) {
+          return (
+            <Bubble key={`${activityId}-part-${index}`}>
+              <div className="line-clamp-2">{part.text}</div>
+            </Bubble>
+          );
+        }
+
+        if (part.kind === 'data' && part.data != null) {
+          const source = part.metadata?.source;
+          return (
+            <div key={`${activityId}-part-${index}`} className="mt-2 overflow-hidden max-w-full">
+              <div className="text-xs text-muted-foreground mb-1">
+                Structured Data{source ? ` (${source})` : ''}
+              </div>
+              <div className="overflow-x-auto">
+                <JsonEditorWithCopy
+                  value={JSON.stringify(part.data, null, 2)}
+                  title=""
+                  uri={`message-data-${activityId}-${index}.json`}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+}
+
 function statusIcon(
   type:
     | ActivityKind
@@ -160,7 +235,7 @@ export function TimelineItem({
         </div>
 
         <div
-          className={`space-y-1.5 px-3 py-2 w-full transition-all duration-200 rounded-lg ${
+          className={`space-y-1.5 px-3 py-2 w-full min-w-0 transition-all duration-200 rounded-lg ${
             isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
           }`}
         >
@@ -194,14 +269,15 @@ export function TimelineItem({
             )}
           </div>
 
-          {/* user message bubble */}
-          {activity.type === ACTIVITY_TYPES.USER_MESSAGE && activity.messageContent && (
-            <Bubble>
-              <div className="line-clamp-2"> {activity.messageContent}</div>
-              {/* {truncateWords(activity.messageContent, 100)} */}
-              {/* {activity.messageContent} */}
-            </Bubble>
-          )}
+          {/* user message bubble - render parts if available, otherwise fall back to messageContent */}
+          {activity.type === ACTIVITY_TYPES.USER_MESSAGE &&
+            (activity.messageParts || activity.messageContent) && (
+              <MessagePartsDisplay
+                messageParts={activity.messageParts}
+                messageContent={activity.messageContent}
+                activityId={activity.id}
+              />
+            )}
 
           {/* assistant message bubble */}
           {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.aiResponseContent && (

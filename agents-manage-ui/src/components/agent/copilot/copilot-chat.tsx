@@ -217,7 +217,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         copilotAgentId: PUBLIC_INKEEP_COPILOT_AGENT_ID,
                         copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
                         copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
-                        runApiUrl: PUBLIC_INKEEP_AGENTS_API_URL,
+                        apiUrl: PUBLIC_INKEEP_AGENTS_API_URL,
                         targetTenantId: tenantId,
                         targetProjectId: projectId,
                         targetAgentId: agentId,

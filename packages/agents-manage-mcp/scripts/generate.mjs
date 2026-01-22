@@ -37,9 +37,9 @@ async function checkSpeakeasyInstalled() {
   }
 }
 
-const pidFile = path.resolve(__dirname, '../.speakeasy/manage-api.pid');
+const pidFile = path.resolve(__dirname, '../.speakeasy/agents-api.pid');
 
-async function stopManageApiIfStarted() {
+async function stopAgentsApiIfStarted() {
   if (!existsSync(pidFile)) {
     return;
   }
@@ -62,17 +62,17 @@ async function stopManageApiIfStarted() {
     process.kill(pid, 'SIGTERM');
   } catch {}
 
-  console.log('🛑 Stopped agents-manage-api that was started for generation\n');
+  console.log('🛑 Stopped agents-api that was started for generation\n');
 }
 
 async function main() {
-  console.log('🔄 Step 1: Ensuring agents-manage-api is running...\n');
+  console.log('🔄 Step 1: Ensuring agents-api is running...\n');
 
   try {
     await runCommand('node', [path.resolve(__dirname, './fetch-openapi.mjs')]);
-    console.log('\n✓ agents-manage-api is ready\n');
+    console.log('\n✓ agents-api is ready\n');
   } catch (error) {
-    console.error('✗ Failed to start or detect agents-manage-api:', error.message);
+    console.error('✗ Failed to start or detect agents-api:', error.message);
     process.exit(1);
   }
 
@@ -100,15 +100,15 @@ async function main() {
     console.log('\n✓ Successfully generated MCP server code\n');
   } catch (error) {
     console.error('\n✗ Speakeasy generation failed:', error.message);
-    await stopManageApiIfStarted();
+    await stopAgentsApiIfStarted();
     process.exit(1);
   }
-  await stopManageApiIfStarted();
+  await stopAgentsApiIfStarted();
   console.log('✅ Generation complete!');
 }
 
 main().catch((error) => {
   console.error('Unexpected error:', error);
-  stopManageApiIfStarted().catch(() => {});
+  stopAgentsApiIfStarted().catch(() => {});
   process.exit(1);
 });
