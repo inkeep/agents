@@ -106,3 +106,27 @@ Thu Jan 22 23:44:14 UTC 2026
 - Manual migration creation is viable when tooling is unavailable, following the established patterns
 
 ---
+
+---
+
+## Iteration 4 - Thu Jan 22 23:54:47 UTC 2026
+
+### Story: US-004 - Update TriggerSelectSchema with new fields
+
+**Implementation:**
+- Added signingSecretCredentialReferenceId field to TriggerSelectSchema as z.string().nullable().optional()
+- signatureVerification field was already present from Iteration 2 work
+- signingSecret field was already removed in Iteration 2 work
+- TriggerSelectSchema now uses registerFieldSchemas with extended fields for both new columns
+
+**Files Changed:**
+- packages/agents-core/src/validation/schemas.ts (added signingSecretCredentialReferenceId to TriggerSelectSchema)
+
+**Learnings:**
+- TriggerSelectSchema was partially completed in Iteration 2 with signatureVerification field
+- registerFieldSchemas is used to properly register field schemas for SELECT operations
+- The schema now properly exposes both signingSecretCredentialReferenceId and signatureVerification as nullable optional fields
+- pnpm is not available in the execution environment, so validation must rely on git and manual verification
+
+---
+
