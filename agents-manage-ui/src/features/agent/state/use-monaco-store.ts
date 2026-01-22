@@ -199,7 +199,7 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
               'L:text.html.markdown': {
                 patterns: [
                   {
-                    // Template variable between [] (to take more priority over #link-ref-shortcut from Markdown highlighting)
+                    // Prioritize bracketed template variables over Markdown link-ref shortcut
                     match: `\\[+\\{*(${TEMPLATE_VARIABLE_REGEX.source})\\}*\\]+`,
                     captures: { 1: { name: token } },
                   },
