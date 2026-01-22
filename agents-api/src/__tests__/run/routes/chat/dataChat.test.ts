@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pendingToolApprovalManager } from '../../../services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../../../services/ToolApprovalUiBus';
+import { pendingToolApprovalManager } from '../../../../domains/run/services/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../../../../domains/run/services/ToolApprovalUiBus';
 
 // Logger mock is now in setup.ts globally
 
