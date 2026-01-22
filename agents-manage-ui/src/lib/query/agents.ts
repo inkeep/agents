@@ -9,7 +9,7 @@ const agentQueryKeys = {
   list: (tenantId: string, projectId: string) => ['agents', tenantId, projectId] as const,
 };
 
-export function useAgentsQuery(options?: { enabled?: boolean }) {
+export function useAgentsQuery(options: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -17,7 +17,7 @@ export function useAgentsQuery(options?: { enabled?: boolean }) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && (options?.enabled ?? true);
+  const enabled = Boolean(tenantId && projectId) && !options.disabled;
 
   return useQuery<Agent[]>({
     queryKey: agentQueryKeys.list(tenantId, projectId),

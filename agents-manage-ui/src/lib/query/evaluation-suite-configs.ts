@@ -15,7 +15,7 @@ const evaluationSuiteConfigQueryKeys = {
     ['evaluation-suite-config-evaluators', tenantId, projectId, configId] as const,
 };
 
-export function useEvaluationSuiteConfigQuery(configId = '', options?: { enabled?: boolean }) {
+export function useEvaluationSuiteConfigQuery(configId = '', options: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -23,7 +23,7 @@ export function useEvaluationSuiteConfigQuery(configId = '', options?: { enabled
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
+  const enabled = Boolean(tenantId && projectId && configId) && !options.disabled;
 
   return useQuery<EvaluationSuiteConfig | null>({
     queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, configId),
@@ -44,7 +44,7 @@ export function useEvaluationSuiteConfigQuery(configId = '', options?: { enabled
 
 export function useEvaluationSuiteConfigEvaluatorsQuery(
   configId = '',
-  options?: { enabled?: boolean }
+  options: { disabled?: boolean } = {}
 ) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
@@ -53,7 +53,7 @@ export function useEvaluationSuiteConfigEvaluatorsQuery(
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && configId) && (options?.enabled ?? true);
+  const enabled = Boolean(tenantId && projectId && configId) && !options.disabled;
 
   return useQuery<{ evaluatorId: string }[]>({
     queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, configId),

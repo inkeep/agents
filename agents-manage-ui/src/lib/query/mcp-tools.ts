@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
-export function useMcpToolsQuery() {
+export function useMcpToolsQuery(options: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -13,10 +13,12 @@ export function useMcpToolsQuery() {
     throw new Error('tenantId and projectId are required');
   }
 
+  const enabled = Boolean(tenantId && projectId) && !options.disabled;
+
   return useQuery<MCPTool[]>({
     queryKey: ['mcp-tools', tenantId, projectId],
     queryFn: () => fetchMCPTools(tenantId, projectId),
-    enabled: Boolean(tenantId && projectId),
+    enabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

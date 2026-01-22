@@ -101,15 +101,15 @@ export function EvaluationRunConfigFormDialog({
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
   const suiteConfigId = initialData?.suiteConfigIds?.[0];
-  const { data: evaluators } = useEvaluatorsQuery({ enabled: isOpen });
-  const { data: agents } = useAgentsQuery({ enabled: isOpen });
+  const { data: evaluators } = useEvaluatorsQuery({ disabled: !isOpen });
+  const { data: agents } = useAgentsQuery({ disabled: !isOpen });
   const { data: suiteConfig, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery(
     suiteConfigId,
-    { enabled: isOpen }
+    { disabled: !isOpen }
   );
   const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
     useEvaluationSuiteConfigEvaluatorsQuery(suiteConfigId, {
-      enabled: isOpen,
+      disabled: !isOpen,
     });
 
   const form = useForm<EvaluationRunConfigFormData>({

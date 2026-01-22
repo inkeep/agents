@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 
-export function useExternalAgentsQuery() {
+export function useExternalAgentsQuery(options: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -13,10 +13,12 @@ export function useExternalAgentsQuery() {
     throw new Error('tenantId and projectId are required');
   }
 
+  const enabled = Boolean(tenantId && projectId) && !options.disabled;
+
   return useQuery<ExternalAgent[]>({
     queryKey: ['external-agents', tenantId, projectId],
     queryFn: () => fetchExternalAgents(tenantId, projectId),
-    enabled: Boolean(tenantId && projectId),
+    enabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

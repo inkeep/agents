@@ -8,7 +8,7 @@ const evaluatorQueryKeys = {
   list: (tenantId: string, projectId: string) => ['evaluators', tenantId, projectId] as const,
 };
 
-export function useEvaluatorsQuery(options?: { enabled?: boolean }) {
+export function useEvaluatorsQuery(options: { disabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -16,7 +16,7 @@ export function useEvaluatorsQuery(options?: { enabled?: boolean }) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && (options?.enabled ?? true);
+  const enabled = Boolean(tenantId && projectId) && !options.disabled;
 
   return useQuery<Evaluator[]>({
     queryKey: evaluatorQueryKeys.list(tenantId, projectId),

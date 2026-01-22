@@ -33,15 +33,15 @@ export function SuiteConfigViewDialog({
 
   const { data: suiteConfigData, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery(
     suiteConfigId,
-    { enabled: isOpen }
+    { disabled: !isOpen }
   );
   const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
     useEvaluationSuiteConfigEvaluatorsQuery(suiteConfigId, {
-      enabled: isOpen,
+      disabled: !isOpen,
     });
-  const { data: agents, isFetching: agentsFetching } = useAgentsQuery({ enabled: isOpen });
+  const { data: agents, isFetching: agentsFetching } = useAgentsQuery({ disabled: !isOpen });
   const { data: allEvaluators, isFetching: evaluatorsFetching } = useEvaluatorsQuery({
-    enabled: isOpen,
+    disabled: !isOpen,
   });
   const suiteConfig = suiteConfigData && {
     filters: suiteConfigData.filters,
