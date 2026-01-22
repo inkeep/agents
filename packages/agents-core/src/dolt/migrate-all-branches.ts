@@ -1,4 +1,6 @@
 import { createAgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { confirmMigration } from '../db/utils';
+import { loadEnvironmentFiles } from '../env';
 import { doltCheckout, doltListBranches } from './branch';
 import { syncSchemaFromMain } from './schema-sync';
 
@@ -24,6 +26,11 @@ const format = {
 const ms = (start: number, end: number) => `${Math.max(0, end - start)}ms`;
 
 export const main = async () => {
+  loadEnvironmentFiles();
+
+  const connectionString = process.env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
+  await confirmMigration(connectionString);
+
   const startedAt = Date.now();
   const db = createAgentsManageDatabaseClient({});
   const branches = await doltListBranches(db)();

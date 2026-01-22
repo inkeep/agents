@@ -65,11 +65,13 @@ const chatDataStreamRoute = createRoute({
                         type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
                         toolCallId: z.string(),
                         state: z.any(),
-                        approval: z.object({
-                          id: z.string(),
-                          approved: z.boolean().optional(),
-                          reason: z.string().optional(),
-                        }),
+                        approval: z
+                          .object({
+                            id: z.string(),
+                            approved: z.boolean().optional(),
+                            reason: z.string().optional(),
+                          })
+                          .optional(),
                         input: z.any().optional(),
                         callProviderMetadata: z.any().optional(),
                       }),

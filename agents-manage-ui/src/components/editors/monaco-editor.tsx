@@ -96,6 +96,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const editorInstance = editor.create(container, {
       model,
       language,
+      // Shift the find widget left to avoid flicker when clicking its close button.
+      extraEditorClassName: '[&_.find-widget]:!right-11',
       automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
       overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll

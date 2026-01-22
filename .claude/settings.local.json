@@ -5,7 +5,8 @@
       "WebFetch(domain:a2a-protocol.org)",
       "Bash(pnpm:*)",
       "WebFetch(domain:docs.docker.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch"
     ]
   },
   "sandbox": {
