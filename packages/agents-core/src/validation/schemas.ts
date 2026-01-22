@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
+import * as jmespath from 'jmespath';
 
 // Destructure defaults for use in schemas
 const {
@@ -514,7 +515,15 @@ export const TriggerSelectSchema = registerFieldSchemas(
   })
 );
 
-export const TriggerInsertSchema = createInsertSchema(triggers, {
+// TypeScript workaround for missing compile method in type definitions
+interface JMESPathExtended {
+  search: typeof jmespath.search;
+  compile: (expression: string) => any;
+}
+
+const jmespathExt = jmespath as unknown as JMESPathExtended;
+
+const TriggerInsertSchemaBase = createInsertSchema(triggers, {
   id: () => resourceIdSchema,
   name: () => z.string().trim().nonempty().describe('Trigger name'),
   description: () => z.string().optional().describe('Trigger description'),
@@ -536,6 +545,84 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
     SignatureVerificationConfigSchema.nullable()
       .optional()
       .describe('Configuration for webhook signature verification'),
+});
+
+export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ctx) => {
+  const config = data.signatureVerification;
+  if (!config) return;
+
+  // Validate signature.regex if present
+  if (config.signature.regex) {
+    try {
+      new RegExp(config.signature.regex);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid regex pattern in signature.regex: ${error instanceof Error ? error.message : String(error)}`,
+        path: ['signatureVerification', 'signature', 'regex'],
+      });
+    }
+  }
+
+  // Validate signature.key as JMESPath if source is 'body'
+  if (config.signature.source === 'body' && config.signature.key) {
+    try {
+      jmespathExt.compile(config.signature.key);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid JMESPath expression in signature.key: ${error instanceof Error ? error.message : String(error)}`,
+        path: ['signatureVerification', 'signature', 'key'],
+      });
+    }
+  }
+
+  // Validate each signed component
+  config.signedComponents.forEach((component, index) => {
+    // Validate component.regex if present
+    if (component.regex) {
+      try {
+        new RegExp(component.regex);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid regex pattern in signedComponents[${index}].regex: ${error instanceof Error ? error.message : String(error)}`,
+          path: ['signatureVerification', 'signedComponents', index, 'regex'],
+        });
+      }
+    }
+
+    // Validate component.key as JMESPath if source is 'body'
+    if (component.source === 'body' && component.key) {
+      try {
+        jmespathExt.compile(component.key);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${error instanceof Error ? error.message : String(error)}`,
+          path: ['signatureVerification', 'signedComponents', index, 'key'],
+        });
+      }
+    }
+
+    // Validate component.value as JMESPath if provided (for header/body extraction)
+    if (component.value && component.source !== 'literal') {
+      // For non-literal sources, value might be a JMESPath expression
+      try {
+        jmespathExt.compile(component.value);
+      } catch (error) {
+        // Value might not be JMESPath, which is okay
+        // Only add issue if it looks like it's trying to be a JMESPath expression
+        if (component.value.includes('.') || component.value.includes('[')) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${error instanceof Error ? error.message : String(error)}`,
+            path: ['signatureVerification', 'signedComponents', index, 'value'],
+          });
+        }
+      }
+    }
+  });
 });
 
 // For updates, we create a schema without defaults so that {} is detected as empty
