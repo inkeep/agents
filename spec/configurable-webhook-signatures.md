@@ -46,6 +46,7 @@ Replace the simple `signingSecret` field with:
     key?: string;                    // Header name or JMESPath selector (for header/body)
     value?: string;                  // Static value (for literal)
     regex?: string;                  // Extract value using regex capture group (for complex header formats)
+    required?: boolean;              // Default: true. If false, missing component treated as empty string
   }>;
   
   // Component joining configuration - REQUIRED, be explicit
@@ -58,6 +59,13 @@ Replace the simple `signingSecret` field with:
                                      // Use ":" for colon-separated (Slack)
                                      // Use "." for dot-separated (Stripe)
   };
+  
+  // Validation options for edge case handling
+  validation?: {
+    headerCaseSensitive?: boolean;   // Default: false (HTTP headers are case-insensitive)
+    allowEmptyBody?: boolean;        // Default: true (some webhooks send empty bodies)
+    normalizeUnicode?: boolean;      // Default: false (apply NFC normalization before hashing)
+  };
 }
 ```
 
@@ -66,6 +74,216 @@ This schema is fully generalized:
 - **signature.source**: Extract signature from any header, query param, or body field (via JMESPath)
 - **signedComponents[].source**: Each component can come from a header, body field (JMESPath), or be a literal string
 - No hardcoded "timestamp" type - timestamps are just headers like any other
+
+## Security & Edge Case Handling
+
+### Critical: Timing Attack Prevention
+
+The existing `verifySigningSecret()` in `trigger-auth.ts` properly uses `crypto.timingSafeEqual()`. The new `verifySignatureWithConfig()` implementation **MUST** maintain this protection:
+
+```typescript
+import { timingSafeEqual } from 'crypto';
+
+function verifySignatureWithConfig(
+  computedSignature: string,
+  providedSignature: string
+): boolean {
+  // CRITICAL: Always use timing-safe comparison
+  const computedBuffer = Buffer.from(computedSignature, 'utf8');
+  const providedBuffer = Buffer.from(providedSignature, 'utf8');
+  
+  // Length check must also be constant-time
+  if (computedBuffer.length !== providedBuffer.length) {
+    // Still do a comparison to maintain constant time
+    return timingSafeEqual(computedBuffer, computedBuffer) && false;
+  }
+  
+  return timingSafeEqual(computedBuffer, providedBuffer);
+}
+```
+
+### Edge Cases
+
+| Edge Case | Default Behavior | Configurable? |
+|-----------|------------------|---------------|
+| **Header case sensitivity** | Case-insensitive lookup (HTTP standard) | `validation.headerCaseSensitive` |
+| **Missing required component** | Fail verification with 401 | `signedComponents[].required` |
+| **Missing optional component** | Treat as empty string `""` | `signedComponents[].required: false` |
+| **Empty request body** | Allow (some webhooks send empty) | `validation.allowEmptyBody` |
+| **Unicode normalization** | No normalization (raw bytes) | `validation.normalizeUnicode` |
+| **Missing signature header** | Fail with 401 "Missing signature" | N/A (always required) |
+| **Invalid regex pattern** | Fail at config validation time | N/A (validate on save) |
+| **Malformed JMESPath** | Fail at config validation time | N/A (validate on save) |
+
+### Error Response Patterns
+
+```typescript
+// Consistent error responses for signature verification failures
+type SignatureVerificationError = {
+  success: false;
+  status: 401 | 403;
+  message: string;
+  code: 
+    | 'MISSING_SIGNATURE'           // Signature header/param not present
+    | 'MISSING_COMPONENT'           // Required signed component not found
+    | 'INVALID_SIGNATURE_FORMAT'    // Couldn't parse signature (regex failed, etc.)
+    | 'SIGNATURE_MISMATCH'          // Computed != provided (use generic message for security)
+    | 'CREDENTIAL_RESOLUTION_FAILED'; // Couldn't retrieve signing secret
+};
+
+// IMPORTANT: For SIGNATURE_MISMATCH, use generic message to avoid leaking info
+// Bad:  "Expected sha256=abc123, got sha256=xyz789"
+// Good: "Invalid signature"
+```
+
+## Implementation Architecture
+
+### JMESPath Handling
+
+**Dependency**: Use `@metrichor/jmespath` (TypeScript, well-maintained) or Node.js built-in for simple paths.
+
+**Performance Considerations**:
+```typescript
+// Pre-compile JMESPath expressions at config save time, not at request time
+import { compile } from '@metrichor/jmespath';
+
+// During trigger create/update - validate and cache compiled expression
+function validateSignedComponent(component: SignedComponent): ValidationResult {
+  if (component.source === 'body' && component.key) {
+    try {
+      // Validate JMESPath syntax at config time
+      compile(component.key);
+      return { valid: true };
+    } catch (e) {
+      return { valid: false, error: `Invalid JMESPath: ${e.message}` };
+    }
+  }
+  return { valid: true };
+}
+
+// At request time - use compiled expression (consider caching in TriggerService)
+// For simple paths like "payload.data", consider using lodash.get() instead
+```
+
+**Security**: JMESPath is read-only and cannot modify data, so user-provided expressions are safe. However, deeply nested or complex expressions could be slow - consider adding a complexity limit.
+
+### Regex Handling
+
+**Security Considerations**:
+```typescript
+// Validate regex at config save time
+function validateRegex(pattern: string): ValidationResult {
+  try {
+    new RegExp(pattern);
+    // Check for ReDoS vulnerability (catastrophic backtracking)
+    // Consider using 'safe-regex' package or limiting pattern complexity
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: `Invalid regex: ${e.message}` };
+  }
+}
+
+// At request time - always use with timeout protection
+function extractWithRegex(value: string, pattern: string): string | null {
+  const regex = new RegExp(pattern);
+  const match = regex.exec(value);
+  return match?.[1] ?? null; // Return first capture group
+}
+```
+
+### Credential Resolution Integration
+
+The existing flow in `TriggerService.ts` needs modification:
+
+```typescript
+// Current flow (simplified):
+// 1. Get trigger from DB
+// 2. Call verifySigningSecret(signingSecret, body)
+
+// New flow:
+class TriggerService {
+  private credentialCache: Map<string, { secret: string; expiresAt: number }> = new Map();
+  
+  async processWebhook(trigger: Trigger, request: Request): Promise<Response> {
+    // 1. Resolve signing secret from credential reference
+    const signingSecret = await this.resolveSigningSecret(trigger);
+    
+    // 2. Check which verification method to use
+    if (trigger.signatureVerification) {
+      // New configurable verification
+      const result = await verifySignatureWithConfig(
+        request,
+        signingSecret,
+        trigger.signatureVerification
+      );
+      if (!result.success) {
+        return new Response(result.message, { status: result.status });
+      }
+    } else if (trigger.signingSecret) {
+      // Legacy verification (deprecated)
+      const result = verifySigningSecret(c, trigger.signingSecret, body);
+      if (!result.success) {
+        return new Response(result.message, { status: result.status });
+      }
+    }
+    
+    // 3. Continue processing...
+  }
+  
+  private async resolveSigningSecret(trigger: Trigger): Promise<string | null> {
+    if (!trigger.signingSecretCredentialReferenceId) {
+      return trigger.signingSecret ?? null; // Fallback to legacy field
+    }
+    
+    // Check cache first
+    const cached = this.credentialCache.get(trigger.signingSecretCredentialReferenceId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.secret;
+    }
+    
+    // Resolve from credential store
+    try {
+      const credential = await this.credentialStore.resolve(
+        trigger.signingSecretCredentialReferenceId
+      );
+      
+      // Cache for 5 minutes (configurable)
+      this.credentialCache.set(trigger.signingSecretCredentialReferenceId, {
+        secret: credential.value,
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+      
+      return credential.value;
+    } catch (error) {
+      logger.error('Failed to resolve signing secret credential', {
+        credentialReferenceId: trigger.signingSecretCredentialReferenceId,
+        error,
+      });
+      throw new SignatureVerificationError('CREDENTIAL_RESOLUTION_FAILED');
+    }
+  }
+}
+```
+
+### Header Lookup Normalization
+
+```typescript
+// HTTP headers are case-insensitive per RFC 7230
+function getHeader(headers: Headers, key: string, caseSensitive: boolean): string | null {
+  if (caseSensitive) {
+    return headers.get(key);
+  }
+  
+  // Normalize to lowercase for comparison
+  const normalizedKey = key.toLowerCase();
+  for (const [name, value] of headers.entries()) {
+    if (name.toLowerCase() === normalizedKey) {
+      return value;
+    }
+  }
+  return null;
+}
+```
 
 ## Files to Modify
 
@@ -422,12 +640,37 @@ const customTrigger = trigger({
 - [ ] Add `signatureVerification` and `signingSecretCredentialReferenceId` to triggers table schema
 - [ ] Generate database migration for new trigger columns
 - [ ] Create `SignatureVerificationConfigSchema` and update trigger schemas
+  - Include `validation` options (headerCaseSensitive, allowEmptyBody, normalizeUnicode)
+  - Include `required` field on signedComponents
 - [ ] Implement configurable `verifySignatureWithConfig()` in `trigger-auth.ts`
+  - **CRITICAL**: Use `crypto.timingSafeEqual()` for all signature comparisons
+  - Implement case-insensitive header lookup (default behavior)
+  - Handle missing required vs optional components
+  - Add Unicode normalization option (NFC)
 - [ ] Update `TriggerService` to resolve credentials and use new verification
+  - Implement credential caching (5 min TTL)
+  - Handle credential resolution failures gracefully
 - [ ] Update `trigger()` SDK builder to accept new configuration options
 - [ ] Handle new fields in trigger create/update API routes
 - [ ] Add credential selector and verification config to trigger form UI
 - [ ] Add unit and integration tests for configurable signature verification
+
+### Security & Validation
+- [ ] Validate JMESPath expressions at config save time (not request time)
+  - Use `@metrichor/jmespath` or similar for TypeScript support
+  - Return clear error messages for invalid expressions
+- [ ] Validate regex patterns at config save time
+  - Consider ReDoS protection (safe-regex or complexity limits)
+- [ ] Implement consistent error response codes (see Error Response Patterns)
+  - Never leak signature details in error messages
+- [ ] Add edge case tests:
+  - Missing signature header → 401 MISSING_SIGNATURE
+  - Missing required component → 401 MISSING_COMPONENT  
+  - Invalid signature format → 401 INVALID_SIGNATURE_FORMAT
+  - Signature mismatch → 403 SIGNATURE_MISMATCH (generic message)
+  - Empty body with allowEmptyBody: true/false
+  - Unicode content with normalizeUnicode: true/false
+  - Case-sensitive vs case-insensitive header lookup
 
 ### Documentation Updates
 - [ ] Update `agents-docs/content/typescript-sdk/triggers.mdx` with new configuration options and provider examples
