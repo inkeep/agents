@@ -66,7 +66,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
   }
 
   // 2. Parse payload
-  const payload = rawBody ? JSON.parse(rawBody) : {};
+  const payload: Record<string, unknown> = rawBody ? JSON.parse(rawBody) : {};
 
   // 3. Verify authentication
   const authResult = await verifyAuthentication(trigger, honoContext);
@@ -191,7 +191,7 @@ function validatePayload(
 
 async function transformPayload(
   trigger: { outputTransform?: unknown },
-  payload: unknown,
+  payload: Record<string, unknown>,
   context: { tenantId: string; projectId: string; triggerId: string }
 ): Promise<{ success: true; payload: unknown } | { success: false; error: string; status: 422 }> {
   if (!trigger.outputTransform) {
@@ -220,8 +220,12 @@ function buildMessage(
   const messageParts: Part[] = [];
 
   // Add text part if messageTemplate exists
+  // interpolateTemplate requires Record<string, unknown>, so only use it if payload is an object
   if (trigger.messageTemplate) {
-    const interpolatedMessage = interpolateTemplate(trigger.messageTemplate, transformedPayload);
+    const payloadForTemplate = typeof transformedPayload === 'object' && transformedPayload !== null && !Array.isArray(transformedPayload)
+      ? (transformedPayload as Record<string, unknown>)
+      : {};
+    const interpolatedMessage = interpolateTemplate(trigger.messageTemplate, payloadForTemplate);
     messageParts.push({ kind: 'text', text: interpolatedMessage });
   }
 
@@ -236,7 +240,12 @@ function buildMessage(
 
   // Text representation for execution handler
   const userMessageText = trigger.messageTemplate
-    ? interpolateTemplate(trigger.messageTemplate, transformedPayload)
+    ? (() => {
+        const payloadForTemplate = typeof transformedPayload === 'object' && transformedPayload !== null && !Array.isArray(transformedPayload)
+          ? (transformedPayload as Record<string, unknown>)
+          : {};
+        return interpolateTemplate(trigger.messageTemplate, payloadForTemplate);
+      })()
     : JSON.stringify(transformedPayload);
 
   return { messageParts, userMessageText };
@@ -248,7 +257,7 @@ async function dispatchExecution(params: {
   agentId: string;
   triggerId: string;
   resolvedRef: ResolvedRef;
-  payload: unknown;
+  payload: Record<string, unknown>;
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
@@ -269,6 +278,7 @@ async function dispatchExecution(params: {
   const invocationId = generateId();
 
   // Create invocation record (status: pending)
+  // Note: transformedPayload can be any JSON value (object, array, primitive) from JMESPath transforms
   await createTriggerInvocation(runDbClient)({
     id: invocationId,
     triggerId,
@@ -278,7 +288,7 @@ async function dispatchExecution(params: {
     conversationId,
     status: 'pending',
     requestPayload: payload,
-    transformedPayload,
+    transformedPayload: transformedPayload as Record<string, unknown> | undefined,
   });
 
   logger.info(
