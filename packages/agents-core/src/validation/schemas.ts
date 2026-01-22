@@ -1324,7 +1324,11 @@ export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
 export const FunctionToolApiSelectSchema =
-  createApiSchema(FunctionToolSelectSchema).openapi('FunctionTool');
+  createApiSchema(FunctionToolSelectSchema)
+    .extend({
+      relationshipId: z.string().optional(),
+    })
+    .openapi('FunctionTool');
 export const FunctionToolApiInsertSchema =
   createAgentScopedApiInsertSchema(FunctionToolInsertSchema).openapi('FunctionToolCreate');
 export const FunctionToolApiUpdateSchema =
