@@ -456,7 +456,8 @@ export const TriggerUpdateSchema = z.object({
     .trim()
     .nonempty()
     .describe('Message template with {{placeholder}} syntax')
-    .optional(),
+    .optional()
+    .nullable(),
   authentication: TriggerAuthenticationUpdateSchema.optional(),
   signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
   keepExistingSigningSecret: z
