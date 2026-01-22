@@ -15,11 +15,11 @@ import {
   TenantProjectParamsSchema,
   updateSkill,
 } from '@inkeep/agents-core';
-import { requirePermission } from '../middleware/require-permission';
-import type { BaseAppVariables } from '../types/app';
-import { speakeasyOffsetLimitPagination } from './shared';
+import { requirePermission } from '../../../middleware/requirePermission';
+import type { ManageAppVariables } from '../../../types';
+import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
-const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {

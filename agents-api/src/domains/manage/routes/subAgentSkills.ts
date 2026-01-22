@@ -13,11 +13,10 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   upsertSubAgentSkill,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
-import { requirePermission } from '../middleware/require-permission';
-import type { BaseAppVariables } from '../types/app';
+import { requirePermission } from '../../../middleware/requirePermission';
+import type { ManageAppVariables } from '../../../types/app';
 
-const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
@@ -57,8 +56,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
-
-    const skills = await getSkillsForSubAgents(dbClient)({
+    const db = c.get('db');
+    const skills = await getSkillsForSubAgents(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentIds: [subAgentId],
     });
@@ -99,10 +98,10 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { subAgentId, skillId, index, alwaysLoaded } = c.req.valid('json');
-
+    const db = c.get('db');
     const [subAgent, skill] = await Promise.all([
-      getSubAgentById(dbClient)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
-      getSkillById(dbClient)({ scopes: { tenantId, projectId }, skillId }),
+      getSubAgentById(db)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
+      getSkillById(db)({ scopes: { tenantId, projectId }, skillId }),
     ]);
 
     if (!subAgent) {
@@ -119,7 +118,7 @@ app.openapi(
       });
     }
 
-    const relation = await upsertSubAgentSkill(dbClient)({
+    const relation = await upsertSubAgentSkill(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       skillId,
       index,
@@ -152,8 +151,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId, skillId } = c.req.valid('param');
-
-    const existingSkills = await getSkillsForSubAgents(dbClient)({
+    const db = c.get('db');
+    const existingSkills = await getSkillsForSubAgents(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentIds: [subAgentId],
     });
@@ -167,7 +166,7 @@ app.openapi(
       });
     }
 
-    const removed = await deleteSubAgentSkill(dbClient)({
+    const removed = await deleteSubAgentSkill(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentSkillId: relation.subAgentSkillId,
     });
