@@ -190,12 +190,9 @@ export async function generateMetadata(
   if (parentMetadata.title?.template) {
     const crumbs = await getCrumbs(params);
     const lastCrumb = crumbs.at(-1);
-    if (lastCrumb) {
-      console.log(crumbs);
-      return {
-        title: lastCrumb.label,
-      };
-    }
+    return {
+      title: lastCrumb?.label,
+    };
   }
   return {};
 }

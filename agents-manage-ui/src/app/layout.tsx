@@ -22,7 +22,7 @@ const jetBrainsMono = JetBrains_Mono({
   subsets: ['latin'],
 });
 
-const APP_NAME = 'Inkeep';
+const APP_NAME = 'Inkeep Agents';
 
 const inter = Inter({
   display: 'swap',
@@ -32,7 +32,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: `${APP_NAME} Agents`,
+    default: APP_NAME,
     template: `%s | ${APP_NAME}`,
   },
   description:
