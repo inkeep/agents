@@ -509,6 +509,7 @@ export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed
 
 export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
+    signingSecretCredentialReferenceId: z.string().nullable().optional(),
     signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
   })
 );
