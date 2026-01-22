@@ -349,37 +349,63 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .openapi('AgentCreate');
 export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
 
-// Trigger schemas
-export const TriggerAuthenticationSchema = z
-  .discriminatedUnion('type', [
-    z.object({
-      type: z.literal('api_key'),
-      data: z.object({
-        name: z.string().describe('Header name for the API key'),
-        value: z.string().describe('Expected API key value'),
-      }),
-      add_position: z.literal('header'),
-    }),
-    z.object({
-      type: z.literal('basic_auth'),
-      data: z.object({
-        username: z.string().describe('Expected username'),
-        password: z.string().describe('Expected password'),
-      }),
-      add_position: z.literal('header'),
-    }),
-    z.object({
-      type: z.literal('bearer_token'),
-      data: z.object({
-        token: z.string().describe('Expected bearer token'),
-      }),
-      add_position: z.literal('header'),
-    }),
-    z.object({
-      type: z.literal('none'),
-    }),
-  ])
-  .openapi('TriggerAuthentication');
+// Trigger authentication schemas
+// Input schema: what users submit via API (plaintext header values)
+export const TriggerAuthHeaderInputSchema = z.object({
+  name: z.string().min(1).describe('Header name (e.g., X-API-Key, Authorization)'),
+  value: z.string().min(1).describe('Expected header value (plaintext)'),
+});
+
+// Update schema: allows keeping existing header values without re-entering
+export const TriggerAuthHeaderUpdateSchema = z.object({
+  name: z.string().min(1).describe('Header name (e.g., X-API-Key, Authorization)'),
+  value: z
+    .string()
+    .optional()
+    .describe('New header value (plaintext). If omitted, existing value is kept.'),
+  keepExisting: z
+    .boolean()
+    .optional()
+    .describe('If true, keep the existing hashed value for this header'),
+});
+
+export const TriggerAuthenticationInputSchema = z
+  .object({
+    headers: z
+      .array(TriggerAuthHeaderInputSchema)
+      .optional()
+      .describe('Array of headers to validate on incoming requests'),
+  })
+  .openapi('TriggerAuthenticationInput');
+
+// Update schema for authentication: supports keepExisting flag for headers
+export const TriggerAuthenticationUpdateSchema = z
+  .object({
+    headers: z
+      .array(TriggerAuthHeaderUpdateSchema)
+      .optional()
+      .describe('Array of headers. Use keepExisting:true to preserve existing hashed value.'),
+  })
+  .openapi('TriggerAuthenticationUpdate');
+
+// Stored schema: what gets saved in database (hashed values)
+export const TriggerAuthHeaderStoredSchema = z.object({
+  name: z.string().describe('Header name'),
+  valueHash: z.string().describe('Hash of the expected header value'),
+  valuePrefix: z.string().describe('First 8 chars of value for display'),
+});
+
+export const TriggerAuthenticationStoredSchema = z
+  .object({
+    headers: z
+      .array(TriggerAuthHeaderStoredSchema)
+      .optional()
+      .describe('Array of headers with hashed values'),
+  })
+  .openapi('TriggerAuthenticationStored');
+
+// For backwards compatibility, TriggerAuthenticationSchema is the input schema
+export const TriggerAuthenticationSchema = TriggerAuthenticationInputSchema;
 
 export const TriggerOutputTransformSchema = z
   .object({
@@ -404,8 +430,13 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
     z.record(z.string(), z.unknown()).optional().describe('JSON Schema for input validation'),
   outputTransform: () => TriggerOutputTransformSchema.optional(),
   messageTemplate: () =>
-    z.string().trim().nonempty().describe('Message template with {{placeholder}} syntax'),
-  authentication: () => TriggerAuthenticationSchema.optional(),
+    z
+      .string()
+      .trim()
+      .nonempty()
+      .describe('Message template with {{placeholder}} syntax')
+      .optional(),
+  authentication: () => TriggerAuthenticationInputSchema.optional(),
   signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
 });
 
@@ -425,9 +456,14 @@ export const TriggerUpdateSchema = z.object({
     .trim()
     .nonempty()
     .describe('Message template with {{placeholder}} syntax')
-    .optional(),
-  authentication: TriggerAuthenticationSchema.optional(),
-  signingSecret: z.string().optional().describe('HMAC-SHA256 signing secret'),
+    .optional()
+    .nullable(),
+  authentication: TriggerAuthenticationUpdateSchema.optional(),
+  signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
+  keepExistingSigningSecret: z
+    .boolean()
+    .optional()
+    .describe('If true, keep existing signing secret'),
 });
 
 export const TriggerApiSelectSchema =
@@ -1288,8 +1324,11 @@ export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
-export const FunctionToolApiSelectSchema =
-  createApiSchema(FunctionToolSelectSchema).openapi('FunctionTool');
+export const FunctionToolApiSelectSchema = createApiSchema(FunctionToolSelectSchema)
+  .extend({
+    relationshipId: z.string().optional(),
+  })
+  .openapi('FunctionTool');
 export const FunctionToolApiInsertSchema =
   createAgentScopedApiInsertSchema(FunctionToolInsertSchema).openapi('FunctionToolCreate');
 export const FunctionToolApiUpdateSchema =

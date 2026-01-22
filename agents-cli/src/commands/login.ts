@@ -113,7 +113,7 @@ async function fetchUserInfo(
   }
 
   // Get user's organization
-  const orgResponse = await fetch(`${cloudUrl}/api/cli/me`, {
+  const orgResponse = await fetch(`${cloudUrl}/manage/api/cli/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },

@@ -4759,6 +4759,9 @@
             "maxLength": 256,
             "type": "string"
           },
+          "relationshipId": {
+            "type": "string"
+          },
           "updatedAt": {
             "type": "string"
           }
@@ -7901,6 +7904,7 @@
             ]
           },
           "messageTemplate": {
+            "nullable": true,
             "type": "string"
           },
           "name": {
@@ -7961,143 +7965,69 @@
         ],
         "type": "object"
       },
-      "TriggerAuthentication": {
-        "oneOf": [
-          {
-            "properties": {
-              "add_position": {
-                "enum": [
-                  "header"
-                ],
-                "type": "string"
-              },
-              "data": {
-                "properties": {
-                  "name": {
-                    "description": "Header name for the API key",
-                    "type": "string"
-                  },
-                  "value": {
-                    "description": "Expected API key value",
-                    "type": "string"
-                  }
+      "TriggerAuthenticationInput": {
+        "nullable": true,
+        "properties": {
+          "headers": {
+            "description": "Array of headers to validate on incoming requests",
+            "items": {
+              "properties": {
+                "name": {
+                  "description": "Header name (e.g., X-API-Key, Authorization)",
+                  "minLength": 1,
+                  "type": "string"
                 },
-                "required": [
-                  "name",
-                  "value"
-                ],
-                "type": "object"
+                "value": {
+                  "description": "Expected header value (plaintext)",
+                  "minLength": 1,
+                  "type": "string"
+                }
               },
-              "type": {
-                "enum": [
-                  "api_key"
-                ],
-                "type": "string"
-              }
+              "required": [
+                "name",
+                "value"
+              ],
+              "type": "object"
             },
-            "required": [
-              "type",
-              "data",
-              "add_position"
-            ],
-            "type": "object"
-          },
-          {
-            "properties": {
-              "add_position": {
-                "enum": [
-                  "header"
-                ],
-                "type": "string"
-              },
-              "data": {
-                "properties": {
-                  "password": {
-                    "description": "Expected password",
-                    "type": "string"
-                  },
-                  "username": {
-                    "description": "Expected username",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "username",
-                  "password"
-                ],
-                "type": "object"
-              },
-              "type": {
-                "enum": [
-                  "basic_auth"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "data",
-              "add_position"
-            ],
-            "type": "object"
-          },
-          {
-            "properties": {
-              "add_position": {
-                "enum": [
-                  "header"
-                ],
-                "type": "string"
-              },
-              "data": {
-                "properties": {
-                  "token": {
-                    "description": "Expected bearer token",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "token"
-                ],
-                "type": "object"
-              },
-              "type": {
-                "enum": [
-                  "bearer_token"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "data",
-              "add_position"
-            ],
-            "type": "object"
-          },
-          {
-            "properties": {
-              "type": {
-                "enum": [
-                  "none"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "type": "object"
-          },
-          {
-            "nullable": true
+            "type": "array"
           }
-        ]
+        },
+        "type": "object"
+      },
+      "TriggerAuthenticationUpdate": {
+        "properties": {
+          "headers": {
+            "description": "Array of headers. Use keepExisting:true to preserve existing hashed value.",
+            "items": {
+              "properties": {
+                "keepExisting": {
+                  "description": "If true, keep the existing hashed value for this header",
+                  "type": "boolean"
+                },
+                "name": {
+                  "description": "Header name (e.g., X-API-Key, Authorization)",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "description": "New header value (plaintext). If omitted, existing value is kept.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
       },
       "TriggerCreate": {
         "properties": {
           "authentication": {
-            "$ref": "#/components/schemas/TriggerAuthentication"
+            "$ref": "#/components/schemas/TriggerAuthenticationInput"
           },
           "createdAt": {
             "type": "string"
@@ -8131,6 +8061,7 @@
           "messageTemplate": {
             "description": "Message template with {{placeholder}} syntax",
             "minLength": 1,
+            "nullable": true,
             "type": "string"
           },
           "name": {
@@ -8151,8 +8082,7 @@
           }
         },
         "required": [
-          "name",
-          "messageTemplate"
+          "name"
         ],
         "type": "object"
       },
@@ -8354,141 +8284,7 @@
       "TriggerUpdate": {
         "properties": {
           "authentication": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TriggerAuthentication"
-              },
-              {
-                "oneOf": [
-                  {
-                    "properties": {
-                      "add_position": {
-                        "enum": [
-                          "header"
-                        ],
-                        "type": "string"
-                      },
-                      "data": {
-                        "properties": {
-                          "name": {
-                            "description": "Header name for the API key",
-                            "type": "string"
-                          },
-                          "value": {
-                            "description": "Expected API key value",
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "value"
-                        ],
-                        "type": "object"
-                      },
-                      "type": {
-                        "enum": [
-                          "api_key"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "data",
-                      "add_position"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "properties": {
-                      "add_position": {
-                        "enum": [
-                          "header"
-                        ],
-                        "type": "string"
-                      },
-                      "data": {
-                        "properties": {
-                          "password": {
-                            "description": "Expected password",
-                            "type": "string"
-                          },
-                          "username": {
-                            "description": "Expected username",
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "username",
-                          "password"
-                        ],
-                        "type": "object"
-                      },
-                      "type": {
-                        "enum": [
-                          "basic_auth"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "data",
-                      "add_position"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "properties": {
-                      "add_position": {
-                        "enum": [
-                          "header"
-                        ],
-                        "type": "string"
-                      },
-                      "data": {
-                        "properties": {
-                          "token": {
-                            "description": "Expected bearer token",
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "token"
-                        ],
-                        "type": "object"
-                      },
-                      "type": {
-                        "enum": [
-                          "bearer_token"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "data",
-                      "add_position"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "properties": {
-                      "type": {
-                        "enum": [
-                          "none"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
-                  }
-                ]
-              }
-            ]
+            "$ref": "#/components/schemas/TriggerAuthenticationUpdate"
           },
           "description": {
             "description": "Trigger description",
@@ -8505,9 +8301,14 @@
             "description": "JSON Schema for input validation",
             "type": "object"
           },
+          "keepExistingSigningSecret": {
+            "description": "If true, keep existing signing secret",
+            "type": "boolean"
+          },
           "messageTemplate": {
             "description": "Message template with {{placeholder}} syntax",
             "minLength": 1,
+            "nullable": true,
             "type": "string"
           },
           "name": {
@@ -8519,7 +8320,7 @@
             "$ref": "#/components/schemas/TriggerOutputTransform"
           },
           "signingSecret": {
-            "description": "HMAC-SHA256 signing secret",
+            "description": "New HMAC-SHA256 signing secret",
             "type": "string"
           }
         },
@@ -30648,33 +30449,93 @@
                         },
                         "parts": {
                           "items": {
-                            "properties": {
-                              "text": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "anyOf": [
-                                  {
-                                    "enum": [
-                                      "text",
-                                      "image",
-                                      "audio",
-                                      "video",
-                                      "file"
-                                    ],
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "text": {
                                     "type": "string"
                                   },
-                                  {
-                                    "pattern": "^data-",
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "text",
+                                          "image",
+                                          "audio",
+                                          "video",
+                                          "file"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "pattern": "^data-",
+                                        "type": "string"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "approval": {
+                                    "properties": {
+                                      "approved": {
+                                        "type": "boolean"
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "reason": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  "callProviderMetadata": {
+                                    "nullable": true
+                                  },
+                                  "input": {
+                                    "nullable": true
+                                  },
+                                  "state": {
+                                    "nullable": true
+                                  },
+                                  "toolCallId": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "pattern": "^tool-",
                                     "type": "string"
                                   }
-                                ]
+                                },
+                                "required": [
+                                  "type",
+                                  "toolCallId"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "type": {
+                                    "enum": [
+                                      "step-start"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "type": "object"
                               }
-                            },
-                            "required": [
-                              "type"
-                            ],
-                            "type": "object"
+                            ]
                           },
                           "type": "array"
                         },
@@ -30939,7 +30800,7 @@
         ]
       }
     },
-    "/run/tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId": {
+    "/run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}": {
       "post": {
         "description": "Webhook endpoint for third-party services to invoke an agent via a configured trigger",
         "parameters": [
@@ -31003,6 +30864,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "conversationId": {
+                      "type": "string"
+                    },
                     "invocationId": {
                       "type": "string"
                     },
@@ -31012,7 +30876,8 @@
                   },
                   "required": [
                     "success",
-                    "invocationId"
+                    "invocationId",
+                    "conversationId"
                   ],
                   "type": "object"
                 }

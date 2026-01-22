@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -146,12 +146,8 @@ export function InvocationsTable({
               invocations.map((invocation) => {
                 const isExpanded = expandedRows.has(invocation.id);
                 return (
-                  <>
-                    <TableRow
-                      key={invocation.id}
-                      noHover
-                      className="cursor-pointer hover:bg-muted/50"
-                    >
+                  <Fragment key={invocation.id}>
+                    <TableRow noHover className="cursor-pointer hover:bg-muted/50">
                       <TableCell onClick={() => toggleRow(invocation.id)}>
                         <Button variant="ghost" size="icon-sm">
                           {isExpanded ? (
@@ -193,7 +189,7 @@ export function InvocationsTable({
 
                     {/* Expanded Details Row */}
                     {isExpanded && (
-                      <TableRow key={`${invocation.id}-details`} noHover>
+                      <TableRow noHover>
                         <TableCell colSpan={5} className="bg-muted/30 p-6">
                           <div className="space-y-4">
                             <div>
@@ -224,7 +220,7 @@ export function InvocationsTable({
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}

@@ -100,7 +100,7 @@ export interface UserAuthConfig {
 /**
  * Extracts the root domain from a URL for cross-subdomain cookie sharing.
  * For example:
- * - https://manage-api.pilot.inkeep.com -> .pilot.inkeep.com
+ * - https://api.pilot.inkeep.com -> .pilot.inkeep.com
  * - https://pilot.inkeep.com -> .pilot.inkeep.com
  * - http://localhost:3002 -> undefined (no domain for localhost)
  *
@@ -129,7 +129,7 @@ function extractCookieDomain(baseURL: string): string | undefined {
     // Extract the parent domain that can be shared across subdomains
     // Examples:
     // - pilot.inkeep.com (3 parts) -> take all 3 parts -> .pilot.inkeep.com
-    // - manage-api.pilot.inkeep.com (4 parts) -> take last 3 parts -> .pilot.inkeep.com
+    // - api.pilot.inkeep.com (4 parts) -> take last 3 parts -> .pilot.inkeep.com
     // - inkeep.com (2 parts) -> take both parts -> .inkeep.com
 
     let domainParts: string[];
@@ -137,7 +137,7 @@ function extractCookieDomain(baseURL: string): string | undefined {
       // For 3-part domains like pilot.inkeep.com, take all parts
       domainParts = parts;
     } else if (parts.length > 3) {
-      // For 4+ part domains like manage-api.pilot.inkeep.com, take everything except first
+      // For 4+ part domains like api.pilot.inkeep.com, take everything except first
       domainParts = parts.slice(1);
     } else {
       // For 2-part domains like inkeep.com, take both parts
@@ -201,6 +201,12 @@ export function createAuth(config: BetterAuthConfig) {
       requireEmailVerification: false,
       autoSignIn: true,
     },
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['auth0', 'google', 'email-password'],
+      },
+    },
     // Automatically set user's first organization as active when session is created
     // See: https://www.better-auth.com/docs/plugins/organization#active-organization
     databaseHooks: {
@@ -254,7 +260,7 @@ export function createAuth(config: BetterAuthConfig) {
       'http://localhost:3000',
       'http://localhost:3002',
       env.INKEEP_AGENTS_MANAGE_UI_URL,
-      env.INKEEP_AGENTS_MANAGE_API_URL,
+      env.INKEEP_AGENTS_API_URL,
       env.TRUSTED_ORIGIN,
     ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [

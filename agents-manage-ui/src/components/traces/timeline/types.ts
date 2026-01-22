@@ -76,6 +76,7 @@ export interface ActivityItem {
   aiResponseContent?: string;
   aiResponseTimestamp?: string;
   messageContent?: string;
+  messageParts?: string; // JSON string of message parts array
   delegationFromSubAgentId?: string;
   delegationToSubAgentId?: string;
   transferFromSubAgentId?: string;

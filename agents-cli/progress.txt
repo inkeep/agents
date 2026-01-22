@@ -1,0 +1,18 @@
+### Story: US-002 - Remove keytar build script
+
+**Implementation:**
+- Deleted agents-cli/scripts/ensure-keytar.mjs
+- Removed postinstall script from agents-cli/package.json that ran ensure-keytar.mjs
+- Verified typecheck passes
+
+**Files Changed:**
+- agents-cli/scripts/ensure-keytar.mjs (deleted)
+- agents-cli/package.json
+
+**Learnings:**
+- The postinstall script was set with `|| true` to prevent installation failures if keytar wasn't available
+- With @napi-rs/keyring, no build script is needed as it ships with prebuilt binaries
+- Removing build automation simplifies the installation process
+
+---
+

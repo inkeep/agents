@@ -283,12 +283,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         },
         messageTemplate: 'GitHub event: {{action}} on {{repo}}',
         authentication: {
-          type: 'api_key',
-          data: {
-            name: 'X-GitHub-Token',
-            value: 'test-secret',
-          },
-          add_position: 'header',
+          headers: [{ name: 'X-GitHub-Token', value: 'test-secret' }],
         },
       };
 
@@ -311,7 +306,11 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.inputSchema).toEqual(createData.inputSchema);
       expect(body.data.outputTransform).toEqual(createData.outputTransform);
       expect(body.data.messageTemplate).toBe(createData.messageTemplate);
-      expect(body.data.authentication).toEqual(createData.authentication);
+      // Authentication headers are stored with hashes, not raw values
+      expect(body.data.authentication.headers).toHaveLength(1);
+      expect(body.data.authentication.headers[0].name).toBe('X-GitHub-Token');
+      expect(body.data.authentication.headers[0].valueHash).toBeDefined();
+      expect(body.data.authentication.headers[0].valuePrefix).toBe('test-sec');
       expect(body.data.webhookUrl).toBeDefined();
       expect(body.data.createdAt).toBeDefined();
       expect(body.data.updatedAt).toBeDefined();
@@ -329,7 +328,6 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         enabled: true,
         inputSchema: { type: 'object' },
         messageTemplate: 'Test message',
-        authentication: { type: 'none' as const },
       };
 
       const res = await makeRequest(
@@ -345,64 +343,66 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.id).toBe(customId);
     });
 
-    it('should create trigger with different authentication types', async () => {
+    it('should create trigger with header authentication', async () => {
       const tenantId = await createTestTenantWithOrg('triggers-auth-types');
       const { agentId, projectId } = await createTestAgent(tenantId);
 
-      // Test basic_auth
-      const basicAuthData = {
-        name: 'Basic Auth Trigger',
-        description: 'Basic auth trigger',
+      // Test single header authentication
+      const singleHeaderData = {
+        name: 'Single Header Auth Trigger',
+        description: 'Trigger with single auth header',
         enabled: true,
         inputSchema: { type: 'object' },
         messageTemplate: 'Test',
         authentication: {
-          type: 'basic_auth',
-          data: {
-            username: 'testuser',
-            password: 'testpass',
-          },
-          add_position: 'header',
+          headers: [{ name: 'X-API-Key', value: 'test-secret-key' }],
         },
       };
 
-      const basicRes = await makeRequest(
+      const singleRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
-          body: JSON.stringify(basicAuthData),
+          body: JSON.stringify(singleHeaderData),
         }
       );
-      expect(basicRes.status).toBe(201);
-      const basicBody = await basicRes.json();
-      expect(basicBody.data.authentication.type).toBe('basic_auth');
+      expect(singleRes.status).toBe(201);
+      const singleBody = await singleRes.json();
+      // Verify headers are stored with hashed values
+      expect(singleBody.data.authentication.headers).toHaveLength(1);
+      expect(singleBody.data.authentication.headers[0].name).toBe('X-API-Key');
+      expect(singleBody.data.authentication.headers[0].valueHash).toBeDefined();
+      expect(singleBody.data.authentication.headers[0].valuePrefix).toBe('test-sec');
+      // Original value should not be stored
+      expect(singleBody.data.authentication.headers[0].value).toBeUndefined();
 
-      // Test bearer_token
-      const bearerData = {
-        name: 'Bearer Token Trigger',
-        description: 'Bearer token trigger',
+      // Test multiple headers authentication
+      const multiHeaderData = {
+        name: 'Multi Header Auth Trigger',
+        description: 'Trigger with multiple auth headers',
         enabled: true,
         inputSchema: { type: 'object' },
         messageTemplate: 'Test',
         authentication: {
-          type: 'bearer_token',
-          data: {
-            token: 'test-bearer-token',
-          },
-          add_position: 'header',
+          headers: [
+            { name: 'X-API-Key', value: 'api-key-123' },
+            { name: 'X-Client-ID', value: 'client-456' },
+          ],
         },
       };
 
-      const bearerRes = await makeRequest(
+      const multiRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
         {
           method: 'POST',
-          body: JSON.stringify(bearerData),
+          body: JSON.stringify(multiHeaderData),
         }
       );
-      expect(bearerRes.status).toBe(201);
-      const bearerBody = await bearerRes.json();
-      expect(bearerBody.data.authentication.type).toBe('bearer_token');
+      expect(multiRes.status).toBe(201);
+      const multiBody = await multiRes.json();
+      expect(multiBody.data.authentication.headers).toHaveLength(2);
+      expect(multiBody.data.authentication.headers[0].name).toBe('X-API-Key');
+      expect(multiBody.data.authentication.headers[1].name).toBe('X-Client-ID');
     });
 
     it('should create trigger with signing secret', async () => {
@@ -415,7 +415,6 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         enabled: true,
         inputSchema: { type: 'object' },
         messageTemplate: 'Test',
-        authentication: { type: 'none' },
         signingSecret: 'my-signing-secret-123',
       };
 
@@ -430,6 +429,31 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.data.signingSecret).toBe('my-signing-secret-123');
+    });
+
+    it('should create trigger with no authentication', async () => {
+      const tenantId = await createTestTenantWithOrg('triggers-no-auth');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const createData = {
+        name: 'No Auth Trigger',
+        description: 'Trigger without authentication',
+        enabled: true,
+        inputSchema: { type: 'object' },
+        messageTemplate: 'Test',
+      };
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+        {
+          method: 'POST',
+          body: JSON.stringify(createData),
+        }
+      );
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.authentication).toBeNull();
     });
   });
 
@@ -472,11 +496,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       const updateData = {
         authentication: {
-          type: 'bearer_token',
-          data: {
-            token: 'new-token',
-          },
-          add_position: 'header',
+          headers: [{ name: 'X-New-Key', value: 'new-secret-value' }],
         },
       };
 
@@ -490,8 +510,10 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.data.authentication.type).toBe('bearer_token');
-      expect(body.data.authentication.data.token).toBe('new-token');
+      expect(body.data.authentication.headers).toHaveLength(1);
+      expect(body.data.authentication.headers[0].name).toBe('X-New-Key');
+      expect(body.data.authentication.headers[0].valueHash).toBeDefined();
+      expect(body.data.authentication.headers[0].valuePrefix).toBe('new-secr');
     });
 
     it('should return 400 for empty update body', async () => {

@@ -7,6 +7,28 @@ icon: LuWebhook
 
 Triggers create webhook endpoints that allow external services (like GitHub, Slack, Stripe, or custom applications) to invoke your agents. When a webhook is received, the payload is validated, transformed, and used to start a new conversation with the agent.
 
+## Message Format
+
+When a trigger invokes an agent, it sends a **multi-part message** containing:
+
+- **Text part** (optional): Generated from the `messageTemplate` using the payload data
+- **Data part** (when payload exists): The transformed webhook payload as structured data
+
+This allows agents to access both a human-readable summary via the text part and the full structured payload for detailed processing.
+
+```json
+{
+  "parts": [
+    { "kind": "text", "text": "New order received: #12345" },
+    { "kind": "data", "data": { "orderId": "12345", "total": 99.99 }, "metadata": { "source": "trigger" } }
+  ]
+}
+```
+
+<Note>
+The data part is included whenever the webhook payload is not null/undefined. Even an empty object `{}` is included as a data part.
+</Note>
+
 ## Overview
 
 Triggers are useful for:
@@ -27,7 +49,6 @@ const slackTrigger = trigger({
   name: "Slack Messages",
   description: "Handle incoming Slack messages",
   messageTemplate: "New message from {{user.name}}: {{text}}",
-  authentication: { type: "none" },
 });
 
 export default agent({
@@ -40,6 +61,32 @@ export default agent({
   }),
   triggers: () => [slackTrigger],
 });
+```
+
+### Trigger with Structured Data Only
+
+If you don't need a human-readable text message, you can omit `messageTemplate` and the agent will receive only the structured payload data:
+
+```typescript
+const dataTrigger = trigger({
+  name: "Data Webhook",
+  description: "Receives structured data for processing",
+  // No messageTemplate - agent receives only the data part
+  inputSchema: z.object({
+    eventType: z.string(),
+    payload: z.record(z.unknown()),
+  }),
+});
+```
+
+The agent will receive:
+
+```json
+{
+  "parts": [
+    { "kind": "data", "data": { "eventType": "order.created", "payload": { ... } }, "metadata": { "source": "trigger" } }
+  ]
+}
 ```
 
 ### Trigger with Input Validation
@@ -63,64 +110,64 @@ const githubWebhookTrigger = trigger({
   }),
   messageTemplate:
     "GitHub event: {{action}} on {{repository.full_name}} by {{sender.login}}",
-  authentication: { type: "none" },
   signingSecret: process.env.GITHUB_WEBHOOK_SECRET,
 });
 ```
 
 ### Trigger with Authentication
 
-Triggers support multiple authentication methods:
+Triggers support flexible header-based authentication. You can require any headers with expected values:
 
 <Tabs>
-  <Tab title="API Key">
+  <Tab title="Single Header">
 ```typescript
 const apiKeyTrigger = trigger({
   name: "Authenticated Webhook",
   messageTemplate: "Webhook received: {{message}}",
   authentication: {
-    type: "api_key",
-    data: {
-      name: "X-API-Key",
-      value: process.env.WEBHOOK_API_KEY!,
-    },
-    add_position: "header",
+    headers: [
+      { name: "X-API-Key", value: process.env.WEBHOOK_API_KEY! },
+    ],
   },
 });
 ```
   </Tab>
-  <Tab title="Bearer Token">
+  <Tab title="Multiple Headers">
 ```typescript
+const multiAuthTrigger = trigger({
+  name: "Multi-Header Auth Webhook",
+  messageTemplate: "Webhook received: {{message}}",
+  authentication: {
+    headers: [
+      { name: "X-API-Key", value: process.env.WEBHOOK_API_KEY! },
+      { name: "X-Client-ID", value: process.env.WEBHOOK_CLIENT_ID! },
+    ],
+  },
+});
+```
+  </Tab>
+  <Tab title="Authorization Header">
+```typescript
+// For Bearer token or Basic auth, use the Authorization header
 const bearerTrigger = trigger({
   name: "Bearer Auth Webhook",
   messageTemplate: "Webhook received: {{message}}",
   authentication: {
-    type: "bearer_token",
-    data: {
-      token: process.env.WEBHOOK_BEARER_TOKEN!,
-    },
-    add_position: "header",
-  },
-});
-```
-  </Tab>
-  <Tab title="Basic Auth">
-```typescript
-const basicAuthTrigger = trigger({
-  name: "Basic Auth Webhook",
-  messageTemplate: "Webhook received: {{message}}",
-  authentication: {
-    type: "basic_auth",
-    data: {
-      username: process.env.WEBHOOK_USERNAME!,
-      password: process.env.WEBHOOK_PASSWORD!,
-    },
-    add_position: "header",
+    headers: [
+      { 
+        name: "Authorization", 
+        value: `Bearer ${process.env.WEBHOOK_BEARER_TOKEN!}` 
+      },
+    ],
   },
 });
 ```
   </Tab>
 </Tabs>
+
+<Note>
+Header values are securely hashed before storage. The original values are never stored in the database.
+</Note>
 
 ## Configuration Options
 
@@ -130,14 +177,27 @@ const basicAuthTrigger = trigger({
 | `description` | `string` | No | Description of what the trigger does |
 | `enabled` | `boolean` | No | Whether the trigger is active (default: `true`) |
 | `inputSchema` | `object \| ZodObject` | No | JSON Schema or Zod schema for payload validation |
-| `messageTemplate` | `string` | Yes | Template for the message sent to the agent |
-| `authentication` | `object` | No | Authentication configuration |
+| `messageTemplate` | `string` | No | Optional template for the text part of the message sent to the agent |
+| `authentication` | `object` | No | Header-based authentication configuration |
 | `signingSecret` | `string` | No | HMAC-SHA256 secret for signature verification |
 | `outputTransform` | `object` | No | Payload transformation configuration |
 
+### Authentication Configuration
+
+```typescript
+authentication: {
+  headers: [
+    { name: "Header-Name", value: "expected-value" },
+    // Add more headers as needed
+  ],
+}
+```
+
+Each incoming request must include all configured headers with matching values. If any header is missing or has an incorrect value, the request is rejected with a `401` or `403` status.
+
 ### Message Templates
 
-Message templates use `{{placeholder}}` syntax to interpolate values from the webhook payload:
+Message templates are **optional** and use `{{placeholder}}` syntax to interpolate values from the webhook payload. When provided, the interpolated text is included as a text part in the message alongside the structured data part:
 
 ```typescript
 const trigger = trigger({
@@ -151,7 +211,6 @@ New order received:
 
 Please process this order and send a confirmation.
   `.trim(),
-  authentication: { type: "none" },
 });
 ```
 
@@ -175,6 +234,16 @@ These options are **mutually exclusive**. Use either `jmespath` OR `objectTransf
 Use `objectTransformation` when you just need to remap fields from the payload. Each key becomes a field in the transformed output, and each value is a JMESPath path to extract from the input:
 
 ```typescript
+const transformingTrigger = trigger({
+  name: "Transformed Webhook",
+  messageTemplate: "Event: {{eventType}} - {{summary}}",
+  outputTransform: {
+    // JMESPath expression for complex transformations
+    jmespath: "{ eventType: type, summary: data.description }",
+  },
+});
+
+// Or use simple object mapping
 const mappingTrigger = trigger({
   name: "Mapped Webhook",
   messageTemplate: "User {{userName}} performed {{actionName}}",
@@ -184,7 +253,6 @@ const mappingTrigger = trigger({
       actionName: "payload.action.type",
     },
   },
-  authentication: { type: "none" },
 });
 
 // Input: { payload: { user: { display_name: "Alice" }, action: { type: "click" } } }
@@ -240,12 +308,15 @@ For services that sign webhooks (like GitHub, Stripe, Slack), use `signingSecret
 const githubTrigger = trigger({
   name: "GitHub Webhook",
   messageTemplate: "GitHub: {{action}} on {{repository.full_name}}",
-  authentication: { type: "none" },
   signingSecret: process.env.GITHUB_WEBHOOK_SECRET,
 });
 ```
 
-The framework automatically verifies HMAC-SHA256 signatures in the `X-Hub-Signature-256` header.
+The framework automatically verifies HMAC-SHA256 signatures in the `X-Signature-256` header.
+
+<Tip>
+For services like GitHub that sign webhooks, you often don't need header authentication—the signature verification provides security. Use `signingSecret` alone for these cases.
+</Tip>
 
 ## Webhook URL
 
@@ -321,7 +392,6 @@ GitHub Issue {{action}}:
 
 Please analyze this issue and provide a helpful response.
   `.trim(),
-  authentication: { type: "none" },
   signingSecret: process.env.GITHUB_WEBHOOK_SECRET,
 });
 
@@ -347,6 +417,8 @@ export default agent({
 
 1. **Always validate input** - Use `inputSchema` to ensure payloads match expected format
 2. **Use signing secrets** - Verify webhook authenticity when the source supports it
-3. **Write clear templates** - Make message templates readable and include relevant context
-4. **Handle errors gracefully** - Check invocation status and logs for failed webhooks
-5. **Use descriptive names** - Name triggers clearly to identify their purpose in dashboards
+3. **Use header auth for custom webhooks** - When the source doesn't sign webhooks, use header-based authentication
+4. **Write clear templates** - Make message templates readable and include relevant context
+5. **Handle errors gracefully** - Check invocation status and logs for failed webhooks
+6. **Use descriptive names** - Name triggers clearly to identify their purpose in dashboards
+7. **Store secrets in environment variables** - Never hardcode authentication values

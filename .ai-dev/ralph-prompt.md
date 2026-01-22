@@ -45,9 +45,9 @@ Append to `progress.txt`:
 When ALL user stories in `prd.json` have `passes: true`:
 
 1. Verify all tests pass one final time
-2. Output exactly: `<promise>COMPLETE</promise>`
+2. Output exactly this on its own line: `<promise>COMPLETE</promise>`
 
-If stories remain incomplete, do NOT output the completion signal.
+**CRITICAL**: If stories remain incomplete, simply end your response. Do NOT mention, quote, or reference the completion signal in your output - the detection is literal string matching, so even discussing it triggers false completion!
 
 ## Important Rules
 

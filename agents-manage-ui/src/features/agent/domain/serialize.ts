@@ -672,14 +672,15 @@ export function serializeAgentData(
     };
   }
 
-  // Add contextConfig if there's meaningful data
-  if (hasContextConfig && metadata?.contextConfig) {
-    const contextConfigId = metadata.contextConfig.id || generateId();
+  // Add contextConfig if there's meaningful data OR if there's an existing contextConfig that needs to be cleared
+  const existingContextConfigId = metadata?.contextConfig?.id;
+  if (hasContextConfig || existingContextConfigId) {
+    const contextConfigId = existingContextConfigId || generateId();
     (result as any).contextConfigId = contextConfigId;
     (result as any).contextConfig = {
       id: contextConfigId,
-      headersSchema: parsedHeadersSchema,
-      contextVariables: parsedContextVariables,
+      headersSchema: parsedHeadersSchema ?? null,
+      contextVariables: parsedContextVariables ?? null,
     };
   }
 

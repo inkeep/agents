@@ -3,7 +3,7 @@
  * This modifies the query payload to ensure all builder queries include
  * a server-side project.id filter, preventing client-side filter bypass.
  */
-export function enforceProjectFilter(payload: any, projectId: string): any {
+export function enforceSecurityFilters(payload: any, tenantId: string, projectId?: string): any {
   const modifiedPayload = JSON.parse(JSON.stringify(payload));
 
   if (modifiedPayload.compositeQuery?.builderQueries) {
@@ -14,15 +14,15 @@ export function enforceProjectFilter(payload: any, projectId: string): any {
         query.filters = { op: 'AND', items: [] };
       }
 
-      // Remove any existing project.id filters to prevent bypass
+      // Remove any existing tenant.id and project.id filters to prevent bypass
       query.filters.items = query.filters.items.filter(
-        (item: any) => item.key?.key !== 'project.id'
+        (item: any) => item.key?.key !== 'tenant.id' && item.key?.key !== 'project.id'
       );
 
-      // Add server-side project filter
+      // Always add server-side tenant filter
       query.filters.items.push({
         key: {
-          key: 'project.id',
+          key: 'tenant.id',
           dataType: 'string',
           type: 'tag',
           isColumn: false,
@@ -30,8 +30,24 @@ export function enforceProjectFilter(payload: any, projectId: string): any {
           id: 'false',
         },
         op: '=',
-        value: projectId,
+        value: tenantId,
       });
+
+      // Add server-side project filter if provided
+      if (projectId) {
+        query.filters.items.push({
+          key: {
+            key: 'project.id',
+            dataType: 'string',
+            type: 'tag',
+            isColumn: false,
+            isJSON: false,
+            id: 'false',
+          },
+          op: '=',
+          value: projectId,
+        });
+      }
     }
   }
 

@@ -143,4 +143,40 @@ function MyComponent(props) {
     const result = validateRender(preview);
     expect(result.isValid).toBe(true);
   });
+
+  it('should accept valid code with regex patterns containing escape sequences', () => {
+    // Code with regex patterns like \w, \d, \s should be valid
+    // because they are properly escaped in JavaScript strings
+    const preview = {
+      component: `function MyComponent(props) {
+  const urlPattern = /https?:\\/\\/[\\w.-]+/;
+  const isValid = urlPattern.test(props.url);
+  return <div>{isValid ? props.url : 'Invalid URL'}</div>;
+}`,
+      mockData: { url: 'https://example.com' },
+    };
+
+    const result = validateRender(preview);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should validate that render can be serialized to JSON', () => {
+    // This test ensures that the render object can round-trip through JSON
+    // which is required for storage in JSONB columns
+    const preview = {
+      component: `function MyComponent(props) {
+  return <div>{props.title}</div>;
+}`,
+      mockData: { title: 'Test with "quotes" and \\backslashes' },
+    };
+
+    const result = validateRender(preview);
+    expect(result.isValid).toBe(true);
+
+    // Verify round-trip
+    const serialized = JSON.stringify(preview);
+    const deserialized = JSON.parse(serialized);
+    expect(deserialized.component).toBe(preview.component);
+    expect(deserialized.mockData.title).toBe(preview.mockData.title);
+  });
 });

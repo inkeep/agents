@@ -63,6 +63,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     verifySigningSecret: actual.verifySigningSecret,
     interpolateTemplate: actual.interpolateTemplate,
     JsonTransformer: actual.JsonTransformer,
+    hashTriggerHeaderValue: actual.hashTriggerHeaderValue,
     generateId: () => 'test-id-123',
     getConversationId: () => 'conv-test-123',
   };
@@ -257,6 +258,7 @@ describe('Webhook Endpoint Tests', () => {
       expect(data).toEqual({
         success: true,
         invocationId: 'test-id-123',
+        conversationId: 'conv-test-123',
       });
 
       // Verify trigger was fetched
@@ -306,19 +308,24 @@ describe('Webhook Endpoint Tests', () => {
   });
 
   describe('Authentication', () => {
-    it('should accept request with valid API key authentication', async () => {
-      const triggerWithApiKey = {
+    it('should accept request with valid header authentication', async () => {
+      // Use the actual hash function to create proper test data
+      const { hashTriggerHeaderValue } = await import('@inkeep/agents-core');
+      const { valueHash, valuePrefix } = await hashTriggerHeaderValue('test-secret-key');
+
+      const triggerWithAuth = {
         ...testTrigger,
         authentication: {
-          type: 'api_key',
-          add_position: 'header',
-          data: {
-            name: 'X-API-Key',
-            value: 'test-secret-key',
-          },
+          headers: [
+            {
+              name: 'X-API-Key',
+              valueHash,
+              valuePrefix,
+            },
+          ],
         },
       };
-      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithApiKey));
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithAuth));
 
       const response = await app.request(
         '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
@@ -335,19 +342,23 @@ describe('Webhook Endpoint Tests', () => {
       expect(response.status).toBe(202);
     });
 
-    it('should return 401 for missing API key', async () => {
-      const triggerWithApiKey = {
+    it('should return 401 for missing required header', async () => {
+      const { hashTriggerHeaderValue } = await import('@inkeep/agents-core');
+      const { valueHash, valuePrefix } = await hashTriggerHeaderValue('test-secret-key');
+
+      const triggerWithAuth = {
         ...testTrigger,
         authentication: {
-          type: 'api_key',
-          add_position: 'header',
-          data: {
-            name: 'X-API-Key',
-            value: 'test-secret-key',
-          },
+          headers: [
+            {
+              name: 'X-API-Key',
+              valueHash,
+              valuePrefix,
+            },
+          ],
         },
       };
-      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithApiKey));
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithAuth));
 
       const response = await app.request(
         '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
@@ -365,19 +376,23 @@ describe('Webhook Endpoint Tests', () => {
       expect(data.error).toBeTruthy();
     });
 
-    it('should return 403 for invalid API key', async () => {
-      const triggerWithApiKey = {
+    it('should return 403 for invalid header value', async () => {
+      const { hashTriggerHeaderValue } = await import('@inkeep/agents-core');
+      const { valueHash, valuePrefix } = await hashTriggerHeaderValue('test-secret-key');
+
+      const triggerWithAuth = {
         ...testTrigger,
         authentication: {
-          type: 'api_key',
-          add_position: 'header',
-          data: {
-            name: 'X-API-Key',
-            value: 'test-secret-key',
-          },
+          headers: [
+            {
+              name: 'X-API-Key',
+              valueHash,
+              valuePrefix,
+            },
+          ],
         },
       };
-      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithApiKey));
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithAuth));
 
       const response = await app.request(
         '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
@@ -396,28 +411,65 @@ describe('Webhook Endpoint Tests', () => {
       expect(data.error).toBeTruthy();
     });
 
-    it('should accept request with valid Basic auth', async () => {
-      const triggerWithBasicAuth = {
+    it('should validate multiple headers', async () => {
+      const { hashTriggerHeaderValue } = await import('@inkeep/agents-core');
+      const hash1 = await hashTriggerHeaderValue('key1');
+      const hash2 = await hashTriggerHeaderValue('key2');
+
+      const triggerWithMultipleHeaders = {
         ...testTrigger,
         authentication: {
-          type: 'basic_auth',
-          add_position: 'header',
-          data: {
-            username: 'testuser',
-            password: 'testpass',
-          },
+          headers: [
+            { name: 'X-API-Key', valueHash: hash1.valueHash, valuePrefix: hash1.valuePrefix },
+            { name: 'X-Client-ID', valueHash: hash2.valueHash, valuePrefix: hash2.valuePrefix },
+          ],
         },
       };
-      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithBasicAuth));
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithMultipleHeaders));
 
-      const credentials = Buffer.from('testuser:testpass').toString('base64');
+      // Both headers valid
+      const validResponse = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'key1',
+            'X-Client-ID': 'key2',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+      expect(validResponse.status).toBe(202);
+
+      // Missing second header
+      const missingResponse = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'key1',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+      expect(missingResponse.status).toBe(401);
+    });
+
+    it('should accept request with no authentication configured', async () => {
+      const triggerNoAuth = {
+        ...testTrigger,
+        authentication: null,
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoAuth));
+
       const response = await app.request(
         '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Basic ${credentials}`,
           },
           body: JSON.stringify({ message: 'test' }),
         }
@@ -426,18 +478,12 @@ describe('Webhook Endpoint Tests', () => {
       expect(response.status).toBe(202);
     });
 
-    it('should accept request with valid Bearer token', async () => {
-      const triggerWithBearerAuth = {
+    it('should accept request with empty headers array', async () => {
+      const triggerEmptyHeaders = {
         ...testTrigger,
-        authentication: {
-          type: 'bearer_token',
-          add_position: 'header',
-          data: {
-            token: 'test-bearer-token',
-          },
-        },
+        authentication: { headers: [] },
       };
-      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithBearerAuth));
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerEmptyHeaders));
 
       const response = await app.request(
         '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
@@ -445,7 +491,6 @@ describe('Webhook Endpoint Tests', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: 'Bearer test-bearer-token',
           },
           body: JSON.stringify({ message: 'test' }),
         }
@@ -594,7 +639,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.detail).toContain('not found');
+      expect(data.error).toContain('not found');
     });
 
     it('should return 404 when trigger is disabled', async () => {
@@ -614,7 +659,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.detail).toContain('disabled');
+      expect(data.error).toContain('disabled');
     });
   });
 
@@ -878,6 +923,160 @@ describe('Webhook Endpoint Tests', () => {
           agentId: 'agent-123',
           status: 'pending',
           requestPayload: { message: 'test' },
+        })
+      );
+    });
+  });
+
+  describe('Multi-part message format', () => {
+    it('should create message with both text and data parts when messageTemplate is provided', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'Hello webhook!' }),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.objectContaining({
+            parts: [
+              { kind: 'text', text: 'Webhook message: Hello webhook!' },
+              {
+                kind: 'data',
+                data: { message: 'Hello webhook!' },
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          }),
+        })
+      );
+    });
+
+    it('should create message with only data part when messageTemplate is not provided', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      const triggerNoTemplate = { ...testTrigger, messageTemplate: null };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoTemplate));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test data' }),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.objectContaining({
+            parts: [
+              {
+                kind: 'data',
+                data: { message: 'test data' },
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          }),
+        })
+      );
+    });
+
+    it('should include data part even for empty object payload', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      const triggerNoSchema = { ...testTrigger, inputSchema: null, messageTemplate: null };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoSchema));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.objectContaining({
+            parts: [
+              {
+                kind: 'data',
+                data: {},
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          }),
+        })
+      );
+    });
+
+    it('should include transformed payload in data part when outputTransform is configured', async () => {
+      const createMessageFn = vi.fn().mockResolvedValue({});
+      createMessageMock.mockReturnValue(createMessageFn);
+
+      const triggerWithTransform = {
+        ...testTrigger,
+        inputSchema: null,
+        messageTemplate: 'User: {{userName}}',
+        outputTransform: {
+          objectTransformation: {
+            userName: 'user.name',
+          },
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithTransform));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user: { name: 'Alice' } }),
+        }
+      );
+
+      // Wait for async invocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(createMessageFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.objectContaining({
+            parts: [
+              { kind: 'text', text: 'User: Alice' },
+              {
+                kind: 'data',
+                data: { userName: 'Alice' },
+                metadata: { source: 'trigger', triggerId: 'trigger-123' },
+              },
+            ],
+          }),
         })
       );
     });
