@@ -258,6 +258,7 @@ describe('Webhook Endpoint Tests', () => {
       expect(data).toEqual({
         success: true,
         invocationId: 'test-id-123',
+        conversationId: 'conv-test-123',
       });
 
       // Verify trigger was fetched
