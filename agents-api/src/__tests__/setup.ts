@@ -58,26 +58,28 @@ vi.mock('../logger', () => {
   };
 });
 
-// Also mock the agents-core logger since api-key-auth imports from there
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    getPinoInstance: vi.fn().mockReturnValue({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      child: vi.fn().mockReturnThis(),
-    }),
-  };
+// Mock only the manageDbPool module to avoid creating a real PostgreSQL pool during tests
+// This is necessary because manageDbPool.ts calls createAgentsManageDatabasePool at import time
+vi.mock('../data/db/manageDbPool', () => {
   return {
-    ...actual,
-    getLogger: vi.fn(() => mockLogger),
+    default: {
+      connect: vi.fn(),
+      query: vi.fn(),
+      end: vi.fn(),
+      on: vi.fn(),
+    },
+  };
+});
+
+// Also mock with src/ path since some files use that import style
+vi.mock('src/data/db/manageDbPool', () => {
+  return {
+    default: {
+      connect: vi.fn(),
+      query: vi.fn(),
+      end: vi.fn(),
+      on: vi.fn(),
+    },
   };
 });
 

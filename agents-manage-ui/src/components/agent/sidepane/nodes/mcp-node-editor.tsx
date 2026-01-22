@@ -440,7 +440,7 @@ export function MCPServerNodeEditor({
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}/edit`}
       >
-        Edit MCP Server
+        View MCP Server
       </ExternalLink>
       <Separator />
       <div className="flex justify-end">

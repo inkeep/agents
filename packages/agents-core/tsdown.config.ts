@@ -8,7 +8,7 @@ export default defineConfig((options) => {
     dts: !options.watch,
     format: 'esm',
     entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
-    external: ['keytar', 'typescript'],
+    external: ['@napi-rs/keyring', 'typescript'],
     unbundle: true,
   };
 });

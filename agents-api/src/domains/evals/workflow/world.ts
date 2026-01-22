@@ -5,13 +5,15 @@
  * Vercel's NFT can't trace dynamic imports in bundled code.
  *
  * Set WORKFLOW_TARGET_WORLD to: 'local' | 'vercel' | '@workflow/world-postgres'
+ * Defaults to 'local' for development if not set.
  */
 import { createLocalWorld } from '@workflow/world-local';
 import { createWorld as createPostgresWorld } from '@workflow/world-postgres';
 import { createVercelWorld } from '@workflow/world-vercel';
 import { env } from '../../../env';
 
-const targetWorld = env.WORKFLOW_TARGET_WORLD;
+// Default to 'local' for development environments
+const targetWorld = env.WORKFLOW_TARGET_WORLD || 'local';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let world: any;
@@ -33,7 +35,8 @@ if (targetWorld === 'vercel') {
     jobPrefix: env.WORKFLOW_POSTGRES_JOB_PREFIX,
     queueConcurrency: Number(env.WORKFLOW_POSTGRES_WORKER_CONCURRENCY) || 10,
   });
-} else if (targetWorld === 'local') {
+} else {
+  // Default to local world for development and 'local' value
   world = createLocalWorld();
 }
 

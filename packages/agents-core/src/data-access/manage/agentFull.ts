@@ -1157,33 +1157,34 @@ export const updateFullAgentServerSide =
         );
       }
 
-      // Delete orphaned triggers
-      const incomingTriggerIds = new Set(
-        typedAgentDefinition.triggers ? Object.keys(typedAgentDefinition.triggers) : []
-      );
+      // Delete orphaned triggers - only if triggers field was explicitly provided
+      // If triggers is undefined, we preserve existing triggers (UI doesn't manage triggers via fullAgent endpoint)
+      if (typedAgentDefinition.triggers !== undefined) {
+        const incomingTriggerIds = new Set(Object.keys(typedAgentDefinition.triggers));
 
-      const existingTriggers = await listTriggers(db)({
-        scopes: { tenantId, projectId, agentId: finalAgentId },
-      });
+        const existingTriggers = await listTriggers(db)({
+          scopes: { tenantId, projectId, agentId: finalAgentId },
+        });
 
-      let deletedTriggerCount = 0;
-      for (const trigger of existingTriggers) {
-        if (!incomingTriggerIds.has(trigger.id)) {
-          try {
-            await deleteTrigger(db)({
-              scopes: { tenantId, projectId, agentId: finalAgentId },
-              triggerId: trigger.id,
-            });
-            deletedTriggerCount++;
-            logger.info({ triggerId: trigger.id }, 'Deleted orphaned trigger');
-          } catch (error) {
-            logger.error({ triggerId: trigger.id, error }, 'Failed to delete orphaned trigger');
+        let deletedTriggerCount = 0;
+        for (const trigger of existingTriggers) {
+          if (!incomingTriggerIds.has(trigger.id)) {
+            try {
+              await deleteTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                triggerId: trigger.id,
+              });
+              deletedTriggerCount++;
+              logger.info({ triggerId: trigger.id }, 'Deleted orphaned trigger');
+            } catch (error) {
+              logger.error({ triggerId: trigger.id, error }, 'Failed to delete orphaned trigger');
+            }
           }
         }
-      }
 
-      if (deletedTriggerCount > 0) {
-        logger.info({ deletedTriggerCount }, 'Deleted orphaned triggers from agent');
+        if (deletedTriggerCount > 0) {
+          logger.info({ deletedTriggerCount }, 'Deleted orphaned triggers from agent');
+        }
       }
 
       const subAgentPromises = Object.entries(typedAgentDefinition.subAgents).map(

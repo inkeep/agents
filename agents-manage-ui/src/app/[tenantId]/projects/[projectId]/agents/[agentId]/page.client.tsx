@@ -200,7 +200,7 @@ export const Agent: FC<AgentProps> = ({
 
     const lookup: AgentToolConfigLookup = {};
     Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
-      if (subAgentData && 'canUse' in subAgentData && subAgentData.canUse) {
+      if (subAgentData?.canUse) {
         const toolsMap: Record<string, AgentToolConfig> = {};
         subAgentData.canUse.forEach((tool) => {
           if (tool.agentToolRelationId) {
@@ -854,10 +854,7 @@ export const Agent: FC<AgentProps> = ({
                 const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if (
-                  'canUse' in res.data.subAgents[subAgentId] &&
-                  res.data.subAgents[subAgentId].canUse
-                ) {
+                if (res.data.subAgents[subAgentId]?.canUse) {
                   const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&

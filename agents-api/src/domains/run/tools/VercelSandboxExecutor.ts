@@ -23,6 +23,7 @@ export interface ExecutionResult {
 interface CachedSandbox {
   sandbox: Sandbox;
   createdAt: number;
+  timeoutMs: number;
   useCount: number;
   dependencies: Record<string, string>;
 }
@@ -33,12 +34,12 @@ interface CachedSandbox {
  * Caches and reuses sandboxes based on dependencies to improve performance
  */
 export class VercelSandboxExecutor {
-  private static instance: VercelSandboxExecutor;
   private config: VercelSandboxConfig;
   private sandboxPool: Map<string, CachedSandbox> = new Map();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private sandboxInitPromises: Map<string, Promise<Sandbox>> = new Map();
 
-  private constructor(config: VercelSandboxConfig) {
+  public constructor(config: VercelSandboxConfig) {
     this.config = config;
     logger.info(
       {
@@ -53,14 +54,112 @@ export class VercelSandboxExecutor {
     this.startPoolCleanup();
   }
 
-  /**
-   * Get singleton instance of VercelSandboxExecutor
-   */
-  public static getInstance(config: VercelSandboxConfig): VercelSandboxExecutor {
-    if (!VercelSandboxExecutor.instance) {
-      VercelSandboxExecutor.instance = new VercelSandboxExecutor(config);
+  private async getOrCreateSandbox(params: {
+    functionId: string;
+    toolName?: string;
+    dependencyHash: string;
+    dependencies: Record<string, string>;
+  }): Promise<Sandbox> {
+    const cached = this.getCachedSandbox(params.dependencyHash);
+    if (cached) return cached;
+
+    const existingInit = this.sandboxInitPromises.get(params.dependencyHash);
+    if (existingInit) {
+      await existingInit;
+      const afterInit = this.getCachedSandbox(params.dependencyHash);
+      if (!afterInit) {
+        throw new Error('Sandbox initialization finished but sandbox not found in pool');
+      }
+      return afterInit;
     }
-    return VercelSandboxExecutor.instance;
+
+    const initPromise = (async (): Promise<Sandbox> => {
+      let sandbox: Sandbox | null = null;
+      try {
+        sandbox = await Sandbox.create({
+          token: this.config.token,
+          teamId: this.config.teamId,
+          projectId: this.config.projectId,
+          timeout: this.config.timeout,
+          resources: {
+            vcpus: this.config.vcpus || 1,
+          },
+          runtime: this.config.runtime,
+        });
+
+        logger.info(
+          {
+            functionId: params.functionId,
+            functionName: params.toolName,
+            sandboxId: sandbox.sandboxId,
+            dependencyHash: params.dependencyHash,
+          },
+          'New sandbox created'
+        );
+
+        this.addToPool(params.dependencyHash, sandbox, params.dependencies);
+
+        if (Object.keys(params.dependencies).length > 0) {
+          logger.debug(
+            {
+              functionId: params.functionId,
+              functionName: params.toolName,
+              dependencyHash: params.dependencyHash,
+              dependencies: params.dependencies,
+            },
+            'Installing dependencies in new sandbox'
+          );
+
+          const packageJsonContent = JSON.stringify({ dependencies: params.dependencies }, null, 2);
+          await sandbox.writeFiles([
+            {
+              path: 'package.json',
+              content: Buffer.from(packageJsonContent, 'utf-8'),
+            },
+          ]);
+
+          const installCmd = await sandbox.runCommand({
+            cmd: 'npm',
+            args: ['install', '--omit=dev'],
+            cwd: '/vercel/sandbox',
+          });
+
+          const installStdout = await installCmd.stdout();
+          const installStderr = await installCmd.stderr();
+          if (installStdout) logger.debug({ functionId: params.functionId }, installStdout);
+          if (installStderr) logger.debug({ functionId: params.functionId }, installStderr);
+
+          if (installCmd.exitCode !== 0) {
+            throw new Error(`Failed to install dependencies: ${installStderr}`);
+          }
+
+          logger.info(
+            {
+              functionId: params.functionId,
+              dependencyHash: params.dependencyHash,
+            },
+            'Dependencies installed successfully'
+          );
+        }
+
+        return sandbox;
+      } catch (error) {
+        await this.removeSandbox(params.dependencyHash);
+        if (sandbox) {
+          try {
+            await sandbox.stop();
+          } catch {
+            // ignore
+          }
+        }
+        throw error;
+      } finally {
+        this.sandboxInitPromises.delete(params.dependencyHash);
+      }
+    })();
+
+    this.sandboxInitPromises.set(params.dependencyHash, initPromise);
+    return initPromise;
   }
 
   /**
@@ -83,11 +182,14 @@ export class VercelSandboxExecutor {
 
     const now = Date.now();
     const age = now - cached.createdAt;
+    const timeoutSafetyMs = 2_000;
+    const timeRemaining = cached.timeoutMs - age;
 
     // Check if sandbox is still valid
     if (
       age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
-      cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+      cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT ||
+      timeRemaining <= timeoutSafetyMs
     ) {
       logger.debug(
         {
@@ -96,6 +198,8 @@ export class VercelSandboxExecutor {
           useCount: cached.useCount,
           ttl: FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
           maxUseCount: FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
+          timeoutMs: cached.timeoutMs,
+          timeRemaining,
         },
         'Sandbox expired, will create new one'
       );
@@ -108,6 +212,8 @@ export class VercelSandboxExecutor {
         dependencyHash,
         useCount: cached.useCount,
         age,
+        timeoutMs: cached.timeoutMs,
+        timeRemaining,
       },
       'Reusing cached sandbox'
     );
@@ -126,6 +232,7 @@ export class VercelSandboxExecutor {
     this.sandboxPool.set(dependencyHash, {
       sandbox,
       createdAt: Date.now(),
+      timeoutMs: sandbox.timeout,
       useCount: 0,
       dependencies,
     });
@@ -155,13 +262,14 @@ export class VercelSandboxExecutor {
   private async removeSandbox(dependencyHash: string): Promise<void> {
     const cached = this.sandboxPool.get(dependencyHash);
     if (cached) {
+      // Remove from pool immediately to prevent concurrent re-use while we stop it.
+      this.sandboxPool.delete(dependencyHash);
       try {
         await cached.sandbox.stop();
         logger.debug({ dependencyHash }, 'Sandbox stopped');
       } catch (error) {
         logger.warn({ error, dependencyHash }, 'Error stopping sandbox');
       }
-      this.sandboxPool.delete(dependencyHash);
     }
   }
 
@@ -175,9 +283,12 @@ export class VercelSandboxExecutor {
 
       for (const [hash, cached] of this.sandboxPool.entries()) {
         const age = now - cached.createdAt;
+        const timeoutSafetyMs = 2_000;
+        const timeRemaining = cached.timeoutMs - age;
         if (
           age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
-          cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+          cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT ||
+          timeRemaining <= timeoutSafetyMs
         ) {
           toRemove.push(hash);
         }
@@ -215,6 +326,8 @@ export class VercelSandboxExecutor {
       'Cleaning up all sandboxes'
     );
 
+    this.sandboxInitPromises.clear();
+
     const promises = Array.from(this.sandboxPool.keys()).map((hash) => this.removeSandbox(hash));
     await Promise.all(promises);
   }
@@ -246,23 +359,6 @@ export class VercelSandboxExecutor {
   }
 
   /**
-   * Create .env file content from environment variables
-   * Note: Currently creates empty placeholders. Values will be populated in the future.
-   */
-  private createEnvFileContent(envVarNames: Set<string>): string {
-    const envLines: string[] = [];
-
-    for (const varName of envVarNames) {
-      // TODO: Populate with actual values from secure source e.g. credentials manager
-      // For now, just create empty placeholders
-      envLines.push(`${varName}=""`);
-      logger.debug({ varName }, 'Adding environment variable placeholder to sandbox');
-    }
-
-    return envLines.join('\n');
-  }
-
-  /**
    * Execute a function tool in Vercel Sandbox with pooling
    */
   public async executeFunctionTool(
@@ -274,6 +370,10 @@ export class VercelSandboxExecutor {
     const logs: string[] = [];
     const dependencies = toolConfig.dependencies || {};
     const dependencyHash = this.generateDependencyHash(dependencies);
+    const runId = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
+    const runRelDir = `runs/${runId}`;
+    const filename = this.config.runtime === 'typescript' ? 'execute.ts' : 'execute.js';
+    const runFilePath = `${runRelDir}/${filename}`;
 
     try {
       logger.info(
@@ -286,193 +386,69 @@ export class VercelSandboxExecutor {
         'Executing function in Vercel Sandbox'
       );
 
-      // Try to get cached sandbox
-      let sandbox = this.getCachedSandbox(dependencyHash);
-      let isNewSandbox = false;
+      const sandbox = await this.getOrCreateSandbox({
+        functionId,
+        toolName: toolConfig.name,
+        dependencyHash,
+        dependencies,
+      });
 
-      // Create new sandbox if not cached
-      if (!sandbox) {
-        isNewSandbox = true;
-        sandbox = await Sandbox.create({
-          token: this.config.token,
-          teamId: this.config.teamId,
-          projectId: this.config.projectId,
-          timeout: this.config.timeout,
-          resources: {
-            vcpus: this.config.vcpus || 1,
-          },
-          runtime: this.config.runtime,
-        });
-
-        logger.info(
-          {
-            functionId,
-            sandboxId: sandbox.sandboxId,
-            dependencyHash,
-          },
-          `New sandbox created for function ${functionId}`
-        );
-
-        // Add to pool for reuse
-        this.addToPool(dependencyHash, sandbox, dependencies);
-      } else {
-        logger.info(
-          {
-            functionId,
-            sandboxId: sandbox.sandboxId,
-            dependencyHash,
-          },
-          `Reusing cached sandbox for function ${functionId}`
-        );
-      }
-
-      // Increment use count
       this.incrementUseCount(dependencyHash);
 
       try {
-        // Install dependencies only for new sandboxes
-        if (
-          isNewSandbox &&
-          toolConfig.dependencies &&
-          Object.keys(toolConfig.dependencies).length > 0
-        ) {
-          logger.debug(
-            {
-              functionId,
-              functionName: toolConfig.name,
-              dependencies: toolConfig.dependencies,
-            },
-            'Installing dependencies in new sandbox'
-          );
-
-          const packageJson = {
-            dependencies: toolConfig.dependencies,
-          };
-
-          // Write package.json using writeFiles
-          const packageJsonContent = JSON.stringify(packageJson, null, 2);
-          await sandbox.writeFiles([
-            {
-              path: 'package.json',
-              content: Buffer.from(packageJsonContent, 'utf-8'),
-            },
-          ]);
-
-          // Run npm install
-          const installCmd = await sandbox.runCommand({
-            cmd: 'npm',
-            args: ['install', '--omit=dev'],
-          });
-
-          const installStdout = await installCmd.stdout();
-          const installStderr = await installCmd.stderr();
-
-          if (installStdout) {
-            logs.push(installStdout);
-          }
-          if (installStderr) {
-            logs.push(installStderr);
-          }
-
-          if (installCmd.exitCode !== 0) {
-            throw new Error(`Failed to install dependencies: ${installStderr}`);
-          }
-
-          logger.info(
-            {
-              functionId,
-              dependencyHash,
-            },
-            'Dependencies installed successfully'
-          );
-        }
-
-        // Create the execution wrapper
         const executionCode = createExecutionWrapper(toolConfig.executeCode, args);
-
-        // Detect and prepare environment variables
         const envVars = this.extractEnvVars(toolConfig.executeCode);
-        const filesToWrite: Array<{ path: string; content: Buffer }> = [];
+        const env =
+          envVars.size > 0 ? Object.fromEntries(Array.from(envVars).map((k) => [k, ''])) : {};
 
-        // Write the code file
-        const filename = this.config.runtime === 'typescript' ? 'execute.ts' : 'execute.js';
-        filesToWrite.push({
-          path: filename,
-          content: Buffer.from(executionCode, 'utf-8'),
+        const mkdirCmd = await sandbox.runCommand({
+          cmd: 'mkdir',
+          args: ['-p', runRelDir],
+          cwd: '/vercel/sandbox',
         });
-
-        // Write .env file if environment variables are detected
-        if (envVars.size > 0) {
-          const envFileContent = this.createEnvFileContent(envVars);
-          if (envFileContent) {
-            filesToWrite.push({
-              path: '.env',
-              content: Buffer.from(envFileContent, 'utf-8'),
-            });
-
-            logger.info(
-              {
-                functionId,
-                envVarCount: envVars.size,
-                envVars: Array.from(envVars),
-              },
-              'Creating environment variable placeholders in sandbox'
-            );
-          }
+        const mkdirStderr = await mkdirCmd.stderr();
+        if (mkdirCmd.exitCode !== 0) {
+          throw new Error(mkdirStderr || 'Failed to create run directory');
         }
 
-        // Write all files to sandbox
-        await sandbox.writeFiles(filesToWrite);
-
-        logger.info(
+        await sandbox.writeFiles([
           {
-            functionId,
-            runtime: this.config.runtime === 'typescript' ? 'tsx' : 'node',
-            hasEnvVars: envVars.size > 0,
+            path: runFilePath,
+            content: Buffer.from(executionCode, 'utf-8'),
           },
-          `Execution code written to file for runtime ${this.config.runtime}`
-        );
+        ]);
 
-        // Execute the code with dotenv if env vars exist
-        const executeCmd = await (async () => {
-          if (envVars.size > 0) {
-            // Use dotenv-cli to load .env file automatically
-            return sandbox.runCommand({
-              cmd: 'npx',
-              args:
-                this.config.runtime === 'typescript'
-                  ? ['--yes', 'dotenv-cli', '--', 'npx', 'tsx', filename]
-                  : ['--yes', 'dotenv-cli', '--', 'node', filename],
-            });
-          }
-          // Execute normally without dotenv
-          const runtime = this.config.runtime === 'typescript' ? 'tsx' : 'node';
-          return sandbox.runCommand({
-            cmd: runtime,
-            args: [filename],
-          });
-        })();
+        const runtime = this.config.runtime === 'typescript' ? 'tsx' : 'node';
+        const executeCmd =
+          this.config.runtime === 'typescript'
+            ? await sandbox.runCommand({
+                cmd: 'npx',
+                args: ['--yes', 'tsx', filename],
+                cwd: `/vercel/sandbox/${runRelDir}`,
+                env,
+              })
+            : await sandbox.runCommand({
+                cmd: runtime,
+                args: [filename],
+                cwd: `/vercel/sandbox/${runRelDir}`,
+                env,
+              });
 
-        // Collect logs
         const executeStdout = await executeCmd.stdout();
         const executeStderr = await executeCmd.stderr();
 
-        if (executeStdout) {
-          logs.push(executeStdout);
-        }
-        if (executeStderr) {
-          logs.push(executeStderr);
-        }
+        if (executeStdout) logs.push(executeStdout);
+        if (executeStderr) logs.push(executeStderr);
 
         const executionTime = Date.now() - startTime;
 
-        // Check for execution errors
         if (executeCmd.exitCode !== 0) {
           logger.error(
             {
               functionId,
               exitCode: executeCmd.exitCode,
               stderr: executeStderr,
+              logs,
             },
             'Function execution failed'
           );
@@ -485,13 +461,13 @@ export class VercelSandboxExecutor {
           };
         }
 
-        // Parse the result from stdout
         const result = parseExecutionResult(executeStdout, functionId, logger);
 
         logger.info(
           {
             functionId,
             executionTime,
+            logs,
           },
           'Function executed successfully in Vercel Sandbox'
         );
@@ -502,10 +478,16 @@ export class VercelSandboxExecutor {
           logs,
           executionTime,
         };
-      } catch (innerError) {
-        // On error, remove from pool so it doesn't get reused
-        await this.removeSandbox(dependencyHash);
-        throw innerError;
+      } finally {
+        try {
+          await sandbox.runCommand({
+            cmd: 'rm',
+            args: ['-rf', runRelDir],
+            cwd: '/vercel/sandbox',
+          });
+        } catch {
+          // ignore
+        }
       }
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -515,7 +497,9 @@ export class VercelSandboxExecutor {
         {
           functionId,
           error: errorMessage,
+          stack: error,
           executionTime,
+          logs,
         },
         'Vercel Sandbox execution error'
       );

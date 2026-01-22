@@ -2,7 +2,12 @@ import type * as Monaco from 'monaco-editor';
 import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
+import {
+  MONACO_THEME_NAME,
+  TEMPLATE_LANGUAGE,
+  TEMPLATE_VARIABLE_REGEX,
+  VARIABLE_TOKEN,
+} from '@/constants/theme';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 
 interface MonacoStateData {
@@ -136,7 +141,6 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
       });
       const token = `${VARIABLE_TOKEN}.${TEMPLATE_LANGUAGE}`;
       const [markdownShikiGrammar] = markdownShikiLangs;
-      const repo = markdownShikiGrammar.repository;
 
       /**
        * Create the highlighter
@@ -191,14 +195,19 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
             aliases: [],
             displayName: 'Template',
             name: TEMPLATE_LANGUAGE,
-            repository: {
-              ...(repo as Record<string, unknown>),
-              inline: {
-                ...repo.inline,
+            injections: {
+              'L:text.html.markdown': {
                 patterns: [
-                  { name: token, match: '\\{\\{[^}]+}}' },
-                  // @ts-expect-error -- exist
-                  ...repo.inline.patterns,
+                  {
+                    // Prioritize bracketed template variables over Markdown link-ref shortcut
+                    match: `\\[+\\{*(${TEMPLATE_VARIABLE_REGEX.source})}*\\]+`,
+                    captures: { 1: { name: token } },
+                  },
+                  {
+                    // Template variable
+                    match: TEMPLATE_VARIABLE_REGEX,
+                    name: token,
+                  },
                 ],
               },
             },

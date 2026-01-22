@@ -183,41 +183,63 @@ export const getFunctionToolsForSubAgent = (db: AgentsManageDatabaseClient) => {
   return async (params: {
     scopes: { tenantId: string; projectId: string; agentId: string };
     subAgentId: string;
+    pagination?: PaginationConfig;
   }) => {
-    const { scopes, subAgentId } = params;
-    const { tenantId, projectId, agentId } = scopes;
+    const page = params.pagination?.page || 1;
+    const limit = Math.min(params.pagination?.limit || 1000, 1000);
+    const offset = (page - 1) * limit;
+
+    const { tenantId, projectId, agentId } = params.scopes;
 
     try {
-      const functionToolsList = await listFunctionTools(db)({
-        scopes: { tenantId, projectId, agentId },
-        pagination: { page: 1, limit: 1000 },
-      });
-
-      const relations = await db
-        .select()
-        .from(subAgentFunctionToolRelations)
-        .where(
-          and(
-            eq(subAgentFunctionToolRelations.tenantId, tenantId),
-            eq(subAgentFunctionToolRelations.projectId, projectId),
-            eq(subAgentFunctionToolRelations.agentId, agentId),
-            eq(subAgentFunctionToolRelations.subAgentId, subAgentId)
-          )
-        );
-
-      // Filter function tools that are related to this agent
-      const relatedFunctionToolIds = new Set(relations.map((r) => r.functionToolId));
-      const agentFunctionTools = functionToolsList.data.filter((ft) =>
-        relatedFunctionToolIds.has(ft.id)
+      const whereClause = and(
+        eq(subAgentFunctionToolRelations.tenantId, tenantId),
+        eq(subAgentFunctionToolRelations.projectId, projectId),
+        eq(subAgentFunctionToolRelations.agentId, agentId),
+        eq(subAgentFunctionToolRelations.subAgentId, params.subAgentId)
       );
 
+      const [data, totalResult] = await Promise.all([
+        db
+          .select({
+            id: functionTools.id,
+            name: functionTools.name,
+            description: functionTools.description,
+            functionId: functionTools.functionId,
+            createdAt: functionTools.createdAt,
+            updatedAt: functionTools.updatedAt,
+            tenantId: functionTools.tenantId,
+            projectId: functionTools.projectId,
+            agentId: functionTools.agentId,
+            relationshipId: subAgentFunctionToolRelations.id,
+          })
+          .from(subAgentFunctionToolRelations)
+          .innerJoin(
+            functionTools,
+            and(
+              eq(subAgentFunctionToolRelations.functionToolId, functionTools.id),
+              eq(subAgentFunctionToolRelations.tenantId, functionTools.tenantId),
+              eq(subAgentFunctionToolRelations.projectId, functionTools.projectId),
+              eq(subAgentFunctionToolRelations.agentId, functionTools.agentId)
+            )
+          )
+          .where(whereClause)
+          .limit(limit)
+          .offset(offset)
+          .orderBy(desc(subAgentFunctionToolRelations.createdAt)),
+        db.select({ count: count() }).from(subAgentFunctionToolRelations).where(whereClause),
+      ]);
+
+      const total = totalResult[0]?.count || 0;
+      const pages = Math.ceil(total / limit);
+
       return {
-        data: agentFunctionTools,
-        pagination: functionToolsList.pagination,
+        data,
+        pagination: { page, limit, total, pages },
       };
     } catch (error) {
       logger.error(
-        { tenantId, projectId, agentId, subAgentId, error },
+        { tenantId, projectId, agentId, subAgentId: params.subAgentId, error },
         'Failed to get function tools for agent'
       );
       throw error;

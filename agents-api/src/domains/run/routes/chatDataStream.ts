@@ -20,6 +20,7 @@ import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import { errorOp } from '../utils/agent-operations';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
@@ -51,13 +52,34 @@ const chatDataStreamRoute = createRoute({
                 content: z.any(),
                 parts: z
                   .array(
-                    z.object({
-                      type: z.union([
-                        z.enum(['text', 'image', 'audio', 'video', 'file']),
-                        z.string().regex(/^data-/, 'Type must start with "data-"'),
-                      ]),
-                      text: z.string().optional(),
-                    })
+                    z.union([
+                      z.object({
+                        type: z.union([
+                          z.enum(['text', 'image', 'audio', 'video', 'file']),
+                          z.string().regex(/^data-/, 'Type must start with "data-"'),
+                        ]),
+                        text: z.string().optional(),
+                      }),
+                      // Special-case: tool approval response part (sent by client)
+                      z.object({
+                        type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
+                        toolCallId: z.string(),
+                        state: z.any(),
+                        approval: z
+                          .object({
+                            id: z.string(),
+                            approved: z.boolean().optional(),
+                            reason: z.string().optional(),
+                          })
+                          .optional(),
+                        input: z.any().optional(),
+                        callProviderMetadata: z.any().optional(),
+                      }),
+                      // Allow step markers used by client payloads
+                      z.object({
+                        type: z.literal('step-start'),
+                      }),
+                    ])
                   )
                   .optional(),
               })
@@ -102,7 +124,65 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
-    const conversationId = body.conversationId || getConversationId();
+
+    const approvalPart = (body.messages || [])
+      .flatMap((m: any) => m?.parts || [])
+      .find((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
+
+    const isApprovalResponse = !!approvalPart;
+
+    // For approval responses, require an explicit conversationId (do not auto-generate).
+    const conversationId = isApprovalResponse
+      ? body.conversationId
+      : body.conversationId || getConversationId();
+
+    // Fast-path: allow client to respond to tool approvals via the same /chat endpoint.
+    // This should NOT start a new agent execution. The original stream continues separately.
+    if (isApprovalResponse) {
+      if (!conversationId) {
+        return c.json(
+          {
+            success: false,
+            error: 'conversationId is required for approval response',
+          },
+          400
+        );
+      }
+
+      const toolCallId = approvalPart.toolCallId as string;
+      const approved = !!approvalPart.approval?.approved;
+      const reason = approvalPart.approval?.reason as string | undefined;
+
+      // Validate that the conversation exists and belongs to this tenant/project
+      const conversation = await getConversation(runDbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+
+      if (!conversation) {
+        return c.json({ success: false, error: 'Conversation not found' }, 404);
+      }
+
+      // Resolve the pending approval (in-memory). Idempotent: if already processed, return 200.
+      const ok = approved
+        ? pendingToolApprovalManager.approveToolCall(toolCallId)
+        : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+
+      if (!ok) {
+        return c.json({
+          success: true,
+          toolCallId,
+          approved,
+          alreadyProcessed: true,
+        });
+      }
+
+      return c.json({
+        success: true,
+        toolCallId,
+        approved,
+      });
+    }
 
     // Extract target context headers (for copilot/chat-to-edit scenarios)
     const targetTenantId = c.req.header('x-target-tenant-id');
@@ -326,6 +406,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
           const streamHelper = createVercelStreamHelper(writer);
+          let unsubscribe: (() => void) | undefined;
           try {
             // Check for emit operations header
             const emitOperationsHeader = c.req.header('x-emit-operations');
@@ -336,12 +417,67 @@ app.openapi(chatDataStreamRoute, async (c) => {
             // Check if this is a dataset run conversation via header
             const datasetRunId = c.req.header('x-inkeep-dataset-run-id');
 
+            const requestId = `chatds-${Date.now()}`;
+
+            const chunkString = (s: string, size = 16) => {
+              const out: string[] = [];
+              for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size));
+              return out;
+            };
+
+            const seenToolCalls = new Set<string>();
+            const seenOutputs = new Set<string>();
+
+            unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
+              if (event.type === 'approval-needed') {
+                if (seenToolCalls.has(event.toolCallId)) return;
+                seenToolCalls.add(event.toolCallId);
+
+                await streamHelper.writeToolInputStart({
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                });
+
+                const inputText = JSON.stringify(event.input ?? {});
+                for (const part of chunkString(inputText, 16)) {
+                  await streamHelper.writeToolInputDelta({
+                    toolCallId: event.toolCallId,
+                    inputTextDelta: part,
+                  });
+                }
+
+                await streamHelper.writeToolInputAvailable({
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                  input: event.input ?? {},
+                  providerMetadata: event.providerMetadata,
+                });
+
+                await streamHelper.writeToolApprovalRequest({
+                  approvalId: event.approvalId,
+                  toolCallId: event.toolCallId,
+                });
+              } else if (event.type === 'approval-resolved') {
+                if (seenOutputs.has(event.toolCallId)) return;
+                seenOutputs.add(event.toolCallId);
+
+                if (event.approved) {
+                  await streamHelper.writeToolOutputAvailable({
+                    toolCallId: event.toolCallId,
+                    output: { status: 'approved' },
+                  });
+                } else {
+                  await streamHelper.writeToolOutputDenied({ toolCallId: event.toolCallId });
+                }
+              }
+            });
+
             const result = await executionHandler.execute({
               executionContext,
               conversationId,
               userMessage: userText,
               initialAgentId: subAgentId,
-              requestId: `chatds-${Date.now()}`,
+              requestId,
               sseHelper: streamHelper,
               emitOperations,
               datasetRunId: datasetRunId || undefined,
@@ -355,6 +491,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
             logger.error({ err }, 'Streaming error');
             await streamHelper.writeOperation(errorOp('Internal server error', 'system'));
           } finally {
+            try {
+              unsubscribe?.();
+            } catch (_e) {}
             // Clean up stream helper resources if it has cleanup method
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();
