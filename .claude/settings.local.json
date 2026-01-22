@@ -6,7 +6,8 @@
       "Bash(pnpm:*)",
       "WebFetch(domain:docs.docker.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebSearch"
+      "WebSearch",
+      "Skill(prd)"
     ]
   },
   "sandbox": {
