@@ -8,8 +8,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { CredentialResourcesList } from '@/components/credentials/credential-resources-list';
+import { EditableKeyValueInput } from '@/components/form/editable-key-value-input';
 import { GenericInput } from '@/components/form/generic-input';
-import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -190,12 +190,12 @@ export function EditCredentialForm({
             {/* Metadata / Headers Section */}
             {credential.type === CredentialStoreType.nango && (
               <div className="space-y-3">
-                <GenericKeyValueInput
+                <EditableKeyValueInput
                   control={form.control}
                   name="metadata"
                   label="Headers (optional)"
-                  keyPlaceholder="Header name (e.g., X-API-Key)"
-                  valuePlaceholder="Header value"
+                  keyPlaceholder="Key (e.g. X-API-Key)"
+                  valuePlaceholder="Value (e.g. your-api-key)"
                 />
                 <InfoCard title="How this works">
                   <p className="mb-2">

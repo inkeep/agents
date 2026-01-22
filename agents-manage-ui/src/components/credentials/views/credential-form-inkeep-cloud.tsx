@@ -5,8 +5,8 @@ import { DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { EditableKeyValueInput } from '@/components/form/editable-key-value-input';
 import { GenericInput } from '@/components/form/generic-input';
-import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -175,12 +175,12 @@ export function CredentialFormInkeepCloud({
           </div>
 
           <div className="space-y-3">
-            <GenericKeyValueInput
+            <EditableKeyValueInput
               control={form.control}
               name="metadata"
               label="Headers (optional)"
-              keyPlaceholder="Header name (e.g., X-API-Key)"
-              valuePlaceholder="Header value"
+              keyPlaceholder="Key (e.g. X-API-Key)"
+              valuePlaceholder="Value (e.g. your-api-key)"
             />
             <InfoCard title="How this works">
               <p className="mb-2">Add extra headers to be included with authentication requests.</p>
