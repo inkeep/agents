@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "hono",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --dir ../packages/agents-core build && pnpm --dir ../packages/agents-manage-mcp build && pnpm build && pnpm --dir ../ prepack",
+  "outputDirectory": "dist",
+  "functions": {
+    "index.js": {
+      "maxDuration": 300,
+      "includeFiles": ".well-known/**/*",
+      "experimentalTriggers": [
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_workflow_*",
+          "consumer": "default"
+        },
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_step_*",
+          "consumer": "default"
+        }
+      ]
+    }
+  }
+}

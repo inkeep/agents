@@ -21,16 +21,16 @@
     "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.37.1",
-    "@inkeep/agents-manage-ui": "^0.37.1",
-    "@inkeep/agents-sdk": "^0.37.1",
+    "@inkeep/agents-core": "^0.42.0",
+    "@inkeep/agents-manage-ui": "^0.42.0",
+    "@inkeep/agents-sdk": "^0.42.0",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
     "tailwindcss": "^4.1.14",
     "zod": "^4.1.5"
   },
   "devDependencies": {
-    "@inkeep/agents-cli": "^0.37.1",
+    "@inkeep/agents-cli": "^0.42.0",
     "@types/node": "^22.13.14",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",

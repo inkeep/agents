@@ -58,6 +58,7 @@ import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
+import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
@@ -199,6 +200,7 @@ export class Agent {
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
   private currentCompressor: MidGenerationCompressor | null = null;
   private executionContext: FullExecutionContext;
+  private functionToolRelationshipIdByName: Map<string, string> = new Map();
 
   constructor(
     config: AgentConfig,
@@ -327,6 +329,10 @@ export class Agent {
       });
 
       return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'tool') {
+      return this.functionToolRelationshipIdByName.get(toolName);
     }
 
     if (toolType === 'delegation') {
@@ -469,6 +475,13 @@ export class Agent {
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
         const toolCallId = context?.toolCallId || generateToolId();
+        const streamHelper = this.getStreamingHelper();
+
+        const chunkString = (s: string, size = 16) => {
+          const out: string[] = [];
+          for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size));
+          return out;
+        };
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
@@ -493,12 +506,33 @@ export class Agent {
 
         const isInternalTool =
           toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
-        // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
+        // Note: delegate_to_ tools are internal for streaming/UI purposes.
+        // We only stream tools that should surface in the user-facing UI.
+        const isInternalToolForUi = isInternalTool || toolName.startsWith('delegate_to_');
 
         // Check if this tool needs approval first
         const needsApproval = options?.needsApproval || false;
 
-        if (streamRequestId && !isInternalTool) {
+        // Stream tool parts to the user-facing stream (delegated agents are intentionally suppressed)
+        // This is separate from "data operations" / AgentSession events.
+        if (streamRequestId && streamHelper && !isInternalToolForUi) {
+          const inputText = JSON.stringify(args ?? {});
+
+          await streamHelper.writeToolInputStart({ toolCallId, toolName });
+
+          for (const part of chunkString(inputText, 16)) {
+            await streamHelper.writeToolInputDelta({ toolCallId, inputTextDelta: part });
+          }
+
+          await streamHelper.writeToolInputAvailable({
+            toolCallId,
+            toolName,
+            input: args ?? {},
+            providerMetadata: context?.providerMetadata,
+          });
+        }
+
+        if (streamRequestId && !isInternalToolForUi) {
           const toolCallData: ToolCallData = {
             toolName,
             input: args,
@@ -527,7 +561,7 @@ export class Agent {
           // Store tool result in conversation history
           const toolResultConversationId = this.getToolResultConversationId();
 
-          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+          if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
             try {
               const messageId = generateId();
               const messagePayload = {
@@ -562,7 +596,7 @@ export class Agent {
             }
           }
 
-          if (streamRequestId && !isInternalTool) {
+          if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: result,
@@ -573,12 +607,26 @@ export class Agent {
             });
           }
 
+          const isDeniedResult =
+            !!result &&
+            typeof result === 'object' &&
+            '__inkeepToolDenied' in (result as any) &&
+            (result as any).__inkeepToolDenied === true;
+
+          if (streamRequestId && streamHelper && !isInternalToolForUi) {
+            if (isDeniedResult) {
+              await streamHelper.writeToolOutputDenied({ toolCallId });
+            } else {
+              await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
+            }
+          }
+
           return result;
         } catch (error) {
           const duration = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          if (streamRequestId && !isInternalTool) {
+          if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: null,
@@ -588,6 +636,10 @@ export class Agent {
               relationshipId,
               needsApproval,
             });
+          }
+
+          if (streamRequestId && streamHelper && !isInternalToolForUi) {
+            await streamHelper.writeToolOutputError({ toolCallId, error: errorMessage });
           }
 
           throw error;
@@ -715,7 +767,7 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
-          execute: async (args, { toolCallId }) => {
+          execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
             let processedArgs: typeof args;
@@ -774,6 +826,27 @@ export class Agent {
                 }
               );
 
+              // Emit a user-facing approval request stream part (tools in delegated agents are hidden)
+              const streamHelper = this.getStreamingHelper();
+              if (streamHelper) {
+                await streamHelper.writeToolApprovalRequest({
+                  approvalId: `aitxt-${toolCallId}`,
+                  toolCallId,
+                });
+              } else if (this.isDelegatedAgent) {
+                const streamRequestId = this.getStreamRequestId();
+                if (streamRequestId) {
+                  await toolApprovalUiBus.publish(streamRequestId, {
+                    type: 'approval-needed',
+                    toolCallId,
+                    toolName,
+                    input: finalArgs,
+                    providerMetadata,
+                    approvalId: `aitxt-${toolCallId}`,
+                  });
+                }
+              }
+
               // Wait for approval (this promise resolves when user responds via API)
               const approvalResult = await pendingToolApprovalManager.waitForApproval(
                 toolCallId,
@@ -784,6 +857,16 @@ export class Agent {
               );
 
               if (!approvalResult.approved) {
+                if (!streamHelper && this.isDelegatedAgent) {
+                  const streamRequestId = this.getStreamRequestId();
+                  if (streamRequestId) {
+                    await toolApprovalUiBus.publish(streamRequestId, {
+                      type: 'approval-resolved',
+                      toolCallId,
+                      approved: false,
+                    });
+                  }
+                }
                 // User denied approval - return a message instead of executing the tool
                 return tracer.startActiveSpan(
                   'tool.approval_denied',
@@ -804,7 +887,11 @@ export class Agent {
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
 
-                    return `User denied approval to run this tool: ${approvalResult.reason}`;
+                    return {
+                      __inkeepToolDenied: true,
+                      toolCallId,
+                      reason: approvalResult.reason,
+                    };
                   }
                 );
               }
@@ -826,6 +913,17 @@ export class Agent {
                   approvedSpan.end();
                 }
               );
+
+              if (!streamHelper && this.isDelegatedAgent) {
+                const streamRequestId = this.getStreamRequestId();
+                if (streamRequestId) {
+                  await toolApprovalUiBus.publish(streamRequestId, {
+                    type: 'approval-resolved',
+                    toolCallId,
+                    approved: true,
+                  });
+                }
+              }
             }
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
@@ -892,7 +990,7 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return { result: enhancedResult, toolCallId };
+              return enhancedResult;
             } catch (error) {
               logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
               throw error;
@@ -1247,8 +1345,16 @@ export class Agent {
         return functionTools;
       }
 
+      this.functionToolRelationshipIdByName = new Map(
+        (functionToolsData as Array<{ name: string; relationshipId?: string }>).flatMap((t) => {
+          return t.relationshipId ? ([[t.name, t.relationshipId]] as Array<[string, string]>) : [];
+        })
+      );
+
       const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
-      const sandboxExecutor = SandboxExecutorFactory.getInstance();
+      const sandboxExecutor = sessionId
+        ? SandboxExecutorFactory.getForSession(sessionId)
+        : new SandboxExecutorFactory();
 
       for (const functionToolDef of functionToolsData) {
         const functionId = functionToolDef.functionId;
@@ -1331,7 +1437,7 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return { result, toolCallId };
+              return result;
             } catch (error) {
               logger.error(
                 {

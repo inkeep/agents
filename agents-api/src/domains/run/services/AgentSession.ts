@@ -666,6 +666,20 @@ export class AgentSession {
       toolSessionManager.endSession(this.sessionId);
     }
 
+    // Clean up any session-scoped sandbox executors (Vercel/native).
+    // This scopes sandbox pooling to a single message/session.
+    if (this.sessionId) {
+      try {
+        const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
+        await SandboxExecutorFactory.cleanupSession(this.sessionId);
+      } catch (error) {
+        logger.warn(
+          { sessionId: this.sessionId, error },
+          'Failed to cleanup session-scoped sandbox executors'
+        );
+      }
+    }
+
     // Clear any scheduled timeouts to prevent race conditions
     if (this.scheduledTimeouts) {
       for (const timeoutId of this.scheduledTimeouts) {

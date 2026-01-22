@@ -132,7 +132,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
   let selectedTenantName: string;
 
   try {
-    const response = await fetch('https://agents-api.inkeep.com/api/cli/me', {
+    const response = await fetch('https://api.pilot.inkeep.com/manage/api/cli/me', {
       headers: {
         Authorization: `Bearer ${credentials?.accessToken}`,
       },

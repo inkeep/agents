@@ -52,7 +52,6 @@
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
     "db:reset": "pnpm --filter @inkeep/agents-core db:reset",
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
-    "db:migrate:cleanup-old-triggers": "pnpm --filter @inkeep/agents-core db:migrate:cleanup-old-triggers",
     "db:manage:generate": "pnpm --filter @inkeep/agents-core db:manage:generate",
     "db:manage:migrate": "pnpm --filter @inkeep/agents-core db:manage:migrate",
     "db:manage:drop": "pnpm --filter @inkeep/agents-core db:manage:drop",

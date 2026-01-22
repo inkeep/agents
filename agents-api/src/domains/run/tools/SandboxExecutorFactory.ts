@@ -11,10 +11,11 @@ const logger = getLogger('SandboxExecutorFactory');
  */
 export class SandboxExecutorFactory {
   private static instance: SandboxExecutorFactory;
+  private static sessionFactories: Map<string, SandboxExecutorFactory> = new Map();
   private nativeExecutor: NativeSandboxExecutor | null = null;
   private vercelExecutors: Map<string, VercelSandboxExecutor> = new Map();
 
-  private constructor() {
+  public constructor() {
     logger.info({}, 'SandboxExecutorFactory initialized');
   }
 
@@ -26,6 +27,28 @@ export class SandboxExecutorFactory {
       SandboxExecutorFactory.instance = new SandboxExecutorFactory();
     }
     return SandboxExecutorFactory.instance;
+  }
+
+  /**
+   * Get a session-scoped instance of SandboxExecutorFactory.
+   * Intended to scope Vercel sandbox pooling to a single message/session.
+   */
+  public static getForSession(sessionId: string): SandboxExecutorFactory {
+    const existing = SandboxExecutorFactory.sessionFactories.get(sessionId);
+    if (existing) return existing;
+    const created = new SandboxExecutorFactory();
+    SandboxExecutorFactory.sessionFactories.set(sessionId, created);
+    return created;
+  }
+
+  /**
+   * Cleanup and remove a session-scoped SandboxExecutorFactory.
+   */
+  public static async cleanupSession(sessionId: string): Promise<void> {
+    const factory = SandboxExecutorFactory.sessionFactories.get(sessionId);
+    if (!factory) return;
+    await factory.cleanup();
+    SandboxExecutorFactory.sessionFactories.delete(sessionId);
   }
 
   /**
@@ -62,7 +85,7 @@ export class SandboxExecutorFactory {
     config: FunctionToolConfig
   ): Promise<unknown> {
     if (!this.nativeExecutor) {
-      this.nativeExecutor = NativeSandboxExecutor.getInstance();
+      this.nativeExecutor = new NativeSandboxExecutor();
       logger.info({}, 'Native sandbox executor created');
     }
 
@@ -84,7 +107,7 @@ export class SandboxExecutorFactory {
 
     // Get or create Vercel executor for this configuration
     if (!this.vercelExecutors.has(configKey)) {
-      const executor = VercelSandboxExecutor.getInstance(vercelConfig);
+      const executor = new VercelSandboxExecutor(vercelConfig);
       this.vercelExecutors.set(configKey, executor);
       logger.info(
         {
@@ -115,8 +138,10 @@ export class SandboxExecutorFactory {
   public async cleanup(): Promise<void> {
     logger.info({}, 'Cleaning up sandbox executors');
 
-    // Native executor doesn't require explicit cleanup
-    this.nativeExecutor = null;
+    if (this.nativeExecutor) {
+      await this.nativeExecutor.cleanup();
+      this.nativeExecutor = null;
+    }
 
     for (const [key, executor] of this.vercelExecutors.entries()) {
       await executor.cleanup();

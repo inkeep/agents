@@ -16,6 +16,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
+import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { ContentItem, Message } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
@@ -333,10 +334,64 @@ app.openapi(chatCompletionsRoute, async (c) => {
       }
 
       return streamSSE(c, async (stream) => {
+        const chunkString = (s: string, size = 16) => {
+          const out: string[] = [];
+          for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size));
+          return out;
+        };
+
+        let unsubscribe: (() => void) | undefined;
         try {
           const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
 
           await sseHelper.writeRole();
+
+          const seenToolCalls = new Set<string>();
+          const seenOutputs = new Set<string>();
+
+          unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
+            if (event.type === 'approval-needed') {
+              if (seenToolCalls.has(event.toolCallId)) return;
+              seenToolCalls.add(event.toolCallId);
+
+              await sseHelper.writeToolInputStart({
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+              });
+
+              const inputText = JSON.stringify(event.input ?? {});
+              for (const part of chunkString(inputText, 16)) {
+                await sseHelper.writeToolInputDelta({
+                  toolCallId: event.toolCallId,
+                  inputTextDelta: part,
+                });
+              }
+
+              await sseHelper.writeToolInputAvailable({
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                input: event.input ?? {},
+                providerMetadata: event.providerMetadata,
+              });
+
+              await sseHelper.writeToolApprovalRequest({
+                approvalId: event.approvalId,
+                toolCallId: event.toolCallId,
+              });
+            } else if (event.type === 'approval-resolved') {
+              if (seenOutputs.has(event.toolCallId)) return;
+              seenOutputs.add(event.toolCallId);
+
+              if (event.approved) {
+                await sseHelper.writeToolOutputAvailable({
+                  toolCallId: event.toolCallId,
+                  output: { status: 'approved' },
+                });
+              } else {
+                await sseHelper.writeToolOutputDenied({ toolCallId: event.toolCallId });
+              }
+            }
+          });
 
           logger.info({ subAgentId }, 'Starting execution');
 
@@ -444,6 +499,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
           } catch (streamError) {
             logger.error({ streamError }, 'Failed to write error to stream');
           }
+        } finally {
+          try {
+            unsubscribe?.();
+          } catch (_e) {}
         }
       });
     });
