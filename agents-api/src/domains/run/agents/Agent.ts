@@ -1254,7 +1254,9 @@ export class Agent {
       }
 
       const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
-      const sandboxExecutor = SandboxExecutorFactory.getInstance();
+      const sandboxExecutor = sessionId
+        ? SandboxExecutorFactory.getForSession(sessionId)
+        : new SandboxExecutorFactory();
 
       for (const functionToolDef of functionToolsData) {
         const functionId = functionToolDef.functionId;
