@@ -27,8 +27,9 @@ Replace the simple `signingSecret` field with:
 ```typescript
 // Fully generalized SignatureVerificationConfig schema
 {
-  // HMAC algorithm - see "Algorithm Research" section for full list
-  algorithm: "sha256" | "sha1" | "sha512" | "sha384" | "sha3-256" | "sha3-384" | "sha3-512" | "md5" | "blake2b512" | "blake2s256";
+  // HMAC algorithm - uses Node.js built-in crypto.createHmac()
+  // See "Algorithm Support" section for details on each
+  algorithm: "sha256" | "sha512" | "sha384" | "sha1" | "md5";
   encoding: "hex" | "base64";        // Output encoding of computed signature
   
   // Where to extract the signature from the request
@@ -121,7 +122,8 @@ This schema is fully generalized:
 - `agents-manage-ui/src/components/triggers/trigger-form.tsx`
   - Add credential reference selector for signing secret
   - Add signature verification configuration section with:
-    - Algorithm dropdown (sha256, sha1, sha512, etc.)
+    - Algorithm dropdown: sha256 (default), sha512, sha384, sha1⚠️, md5⚠️
+      - Show deprecation warning for sha1/md5: "This algorithm is considered weak"
     - Encoding dropdown (hex, base64)
     - Signature source configuration
     - Signed components builder (add/remove/reorder)
@@ -439,22 +441,33 @@ const customTrigger = trigger({
   - `agents-sdk` (minor) - new trigger builder options
   - `agents-manage-ui` (patch) - UI updates for signature config
 
-### Algorithm Research
-- [ ] Research and determine optimal algorithm support beyond sha256/sha1
-  - **Goal**: Support the 10 most common/useful HMAC algorithms
-  - **Candidates** (Node.js `crypto` module supported):
-    1. `sha256` - Most common (GitHub, Slack, Zendesk, Stripe, etc.)
-    2. `sha1` - Legacy support (older GitHub webhooks)
-    3. `sha512` - High security applications
-    4. `sha384` - Moderate security use
-    5. `sha3-256` - Modern, collision-resistant
-    6. `sha3-384` - Modern, higher security
-    7. `sha3-512` - Modern, highest SHA-3 security
-    8. `md5` - Deprecated but needed for legacy system compatibility (with warning)
-    9. `blake2b512` - Fast and secure alternative
-    10. `blake2s256` - Fast for smaller data
-  - **Decision needed**: Validate which algorithms are actually used by real webhook providers
-  - **Security note**: Consider adding deprecation warnings for weak algorithms (md5, sha1)
+### Algorithm Support (RESOLVED)
+
+**Decision**: Support the **5 most common** HMAC algorithms used by webhook providers.
+
+**Implementation**: Use Node.js built-in `crypto` module (`crypto.createHmac(algorithm, secret)`). 
+- ✅ No third-party packages required
+- ✅ Stable across Node.js versions (LTS supported)
+- ✅ Well-maintained by Node.js core team
+- ✅ FIPS-compliant when needed
+
+**Supported Algorithms:**
+
+| Algorithm | Usage | Notes |
+|-----------|-------|-------|
+| `sha256` | ⭐ Primary | Most common - GitHub, Slack, Stripe, Zendesk, Shopify, etc. |
+| `sha512` | High security | Used by security-focused systems |
+| `sha384` | Moderate security | TLS cipher suites, some enterprise systems |
+| `sha1` | ⚠️ Legacy | Older GitHub webhooks, Twilio, Facebook (legacy). **Show deprecation warning in UI** |
+| `md5` | ⚠️ Legacy | Some very old systems. **Show deprecation warning in UI** |
+
+**Excluded algorithms** (not commonly used for webhooks):
+- SHA-3 variants (sha3-256, sha3-384, sha3-512) - Rarely used by webhook providers
+- BLAKE2 variants - Not used by any major webhook provider
+- RIPEMD - Not used for webhooks
+
+**Security warnings**: When users select `sha1` or `md5`, display a warning in the UI:
+> "This algorithm is considered weak for new implementations. Consider using sha256 or sha512 if your webhook provider supports it."
 
 ## References
 
