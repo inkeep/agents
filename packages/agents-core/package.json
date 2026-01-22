@@ -159,14 +159,14 @@
     "pino-pretty": "^13.1.1",
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
-    "ts-pattern": "^5.7.1"
+    "ts-pattern": "^5.7.1",
+    "@napi-rs/keyring": "^1.2.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
     "zod": "^4.1.11"
   },
   "optionalDependencies": {
-    "@napi-rs/keyring": "^1.2.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
     "@opentelemetry/baggage-span-processor": "^0.4.0",
     "@opentelemetry/exporter-jaeger": "^2.0.1",
