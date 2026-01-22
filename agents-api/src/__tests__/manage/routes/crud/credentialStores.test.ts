@@ -161,7 +161,7 @@ describe('Credential Stores - CRUD Operations', () => {
             id: 'keychain-default',
             type: CredentialStoreType.keychain,
             available: false,
-            reason: 'Keytar not available - cannot store credentials in system keychain',
+            reason: '@napi-rs/keyring not available - cannot store credentials in system keychain',
           },
           {
             id: 'memory-default',

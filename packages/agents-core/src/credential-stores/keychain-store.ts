@@ -232,7 +232,10 @@ export class KeyChainStore implements CredentialStore {
     await this.initializationPromise;
 
     if (!this.keyringAvailable || !this.EntryClass) {
-      this.logger.warn({ storeId: this.id, key }, 'Keyring not available, cannot delete credential');
+      this.logger.warn(
+        { storeId: this.id, key },
+        'Keyring not available, cannot delete credential'
+      );
       return false;
     }
 
