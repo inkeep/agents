@@ -1,4 +1,5 @@
 import { KeyRound, Search } from 'lucide-react';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import {
   PageHeader,
@@ -21,6 +22,11 @@ interface CredentialOption {
   href: string;
   isDisabled?: boolean;
 }
+
+export const metadata = {
+  title: 'New credential',
+  description: 'Create credentials for your MCP servers.',
+} satisfies Metadata;
 
 async function NewCredentialsPage({
   params,
@@ -74,13 +80,13 @@ async function NewCredentialsPage({
   );
 
   const pageHeaderComponent = isNangoReady ? (
-    <PageHeader title="New credential" description="Create credentials for your MCP servers." />
+    <PageHeader title={metadata.title} description={metadata.description} />
   ) : (
     <PageHeaderRoot>
       <PageHeaderContent>
-        <PageHeaderTitle>New credential</PageHeaderTitle>
+        <PageHeaderTitle>{metadata.title}</PageHeaderTitle>
         <div className="text-muted-foreground text-sm font-normal space-y-2">
-          <p className="mb-8">Create credentials for your MCP servers.</p>
+          <p className="mb-8">{metadata.description}</p>
           <p>
             Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is
             available.
