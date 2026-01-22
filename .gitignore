@@ -83,15 +83,9 @@ node-compile-cache/
 .temp-validation-*/
 
 
-<<<<<<< HEAD
 tasks
 prd.json
 progress.txt
 
 # PID files from auto-started services
 .pid
-=======
-progress.txt
-tasks/prd-*.md
-tasks/prd-*.json
->>>>>>> a9e21567d (gitignore)
