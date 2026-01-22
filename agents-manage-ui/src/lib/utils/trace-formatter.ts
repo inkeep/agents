@@ -8,11 +8,6 @@ import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
 import type { FullAgentDefinition } from '@/lib/types/agent-full';
 
-interface SimpleMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 interface PrettifiedTrace {
   metadata: {
     conversationId: string;
@@ -27,7 +22,7 @@ interface PrettifiedTrace {
     durationMs: number;
   };
   agentDefinition?: Record<string, unknown>;
-  conversationHistory: SimpleMessage[];
+  conversationHistory: string;
   timeline: Omit<ActivityItem, 'id' | 'parentSpanId'>[];
 }
 
@@ -71,25 +66,15 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
   return result;
 }
 
-function extractTextContent(
-  content: string | Array<{ type: string; text?: string }>
-): string {
-  if (typeof content === 'string') return content;
-  return content
-    .filter((part) => part.type === 'text' && part.text)
-    .map((part) => part.text)
-    .join('');
-}
-
 /**
  * Formats conversation detail data into a prettified OTEL trace structure
  */
 function formatConversationAsPrettifiedTrace(
   conversation: ConversationDetail,
   agentDefinition?: FullAgentDefinition,
-  messages?: SimpleMessage[]
+  conversationHistory?: string
 ): PrettifiedTrace {
-  const trace: PrettifiedTrace = {
+  return {
     metadata: {
       conversationId: conversation.conversationId,
       traceId: conversation.traceId,
@@ -107,14 +92,12 @@ function formatConversationAsPrettifiedTrace(
       durationMs: conversation.duration,
     },
     agentDefinition: agentDefinition as Record<string, unknown> | undefined,
-    conversationHistory: messages || [],
+    conversationHistory: conversationHistory || '',
     timeline: (conversation.activities || []).map((activity) => {
       const { id: _id, parentSpanId: _parentSpanId, ...rest } = activity;
       return orderObjectKeys(rest);
     }),
   };
-
-  return trace;
 }
 
 /**
@@ -134,21 +117,9 @@ export async function copyTraceToClipboard(
     ]);
 
     const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+    const conversationHistory = historyResult?.success ? historyResult.data?.formatted?.llmContext : '';
 
-    // Extract just user/assistant messages
-    const messages: SimpleMessage[] = [];
-    if (historyResult?.success && historyResult.data?.messages) {
-      for (const msg of historyResult.data.messages) {
-        if (msg.role === 'user' || msg.role === 'assistant') {
-          const content = extractTextContent(msg.content);
-          if (content) {
-            messages.push({ role: msg.role, content });
-          }
-        }
-      }
-    }
-
-    const trace = formatConversationAsPrettifiedTrace(conversation, agentDefinition, messages);
+    const trace = formatConversationAsPrettifiedTrace(conversation, agentDefinition, conversationHistory);
     await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
     return { success: true };
   } catch (error) {
