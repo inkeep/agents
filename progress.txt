@@ -38,3 +38,37 @@ Thu Jan 22 23:44:14 UTC 2026
 
 ## Iteration 2 - Thu Jan 22 23:44:33 UTC 2026
 
+
+## Iteration 2 - $(date -u)
+
+### Story: US-002 - Update database schema for signature verification
+
+**Implementation:**
+- Added signingSecretCredentialReferenceId varchar(256) column to triggers table in manage-schema.ts
+- Added signatureVerification jsonb column with .$type<SignatureVerificationConfig | null>()
+- Added foreign key constraint triggers_credential_reference_fk to credentialReferences.id with onDelete('set null')
+- Removed signingSecret text column from triggers table
+- Imported SignatureVerificationConfig type into manage-schema.ts
+- Updated TriggerSelectSchema to use registerFieldSchemas with extended signatureVerification field
+- Updated TriggerInsertSchema with new fields: signingSecretCredentialReferenceId and signatureVerification
+- Updated TriggerUpdateSchema with new fields (removed signingSecret and keepExistingSigningSecret)
+- Updated agents.ts data-access to include new fields in trigger objects
+- Added type assertions (as any) in triggers.ts data-access for Drizzle/Zod type compatibility
+- TypeScript compilation passes
+
+**Files Changed:**
+- packages/agents-core/src/db/manage/manage-schema.ts (added imports, updated triggers table)
+- packages/agents-core/src/validation/schemas.ts (updated TriggerSelectSchema, TriggerInsertSchema, TriggerUpdateSchema)
+- packages/agents-core/src/data-access/manage/agents.ts (updated getFullAgentDefinitionInternal)
+- packages/agents-core/src/data-access/manage/triggers.ts (added type assertions for insert/update operations)
+
+**Learnings:**
+- Drizzle ORM's .$type<T>() annotation on JSONB columns creates strict type expectations
+- When using createInsertSchema/createSelectSchema, field overrides must be provided for custom types
+- registerFieldSchemas is needed for SELECT schemas to properly extend with custom field types
+- Type assertions (as any) are sometimes necessary when passing Zod-inferred types to Drizzle ORM operations due to subtle type mismatches between Json and custom types
+- The credentialReferences table already has a unique constraint on id column, making it safe to reference with simple foreign keys
+- Database schema changes and validation schema changes are tightly coupled and should be done together
+
+---
+
