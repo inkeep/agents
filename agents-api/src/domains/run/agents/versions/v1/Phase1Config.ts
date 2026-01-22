@@ -1,14 +1,11 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
-import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
-import toolTemplate from '../../../../../../templates/v1/prompt/tool.xml?raw';
+import systemPromptTemplate from '../../../../../../templates/v1/phase1/system-prompt.xml?raw';
+import thinkingPreparationTemplate from '../../../../../../templates/v1/phase1/thinking-preparation.xml?raw';
+import toolTemplate from '../../../../../../templates/v1/phase1/tool.xml?raw';
 import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
-import dataComponentTemplate from '../../../../../../templates/v1/shared/data-component.xml?raw';
-import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
-
-import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
+import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.md?raw';
 import {
   type AssembleResult,
   type BreakdownComponentDef,
@@ -20,7 +17,7 @@ import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 // Re-export for Agent.ts
 export { V1_BREAKDOWN_SCHEMA };
-export class PromptConfig implements VersionConfig<SystemPromptV1> {
+export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
     const templates = new Map<string, string>();
 
@@ -28,6 +25,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     templates.set('tool', toolTemplate);
     templates.set('artifact', artifactTemplate);
     templates.set('artifact-retrieval-guidance', artifactRetrievalGuidance);
+    templates.set('thinking-preparation', thinkingPreparationTemplate);
 
     return templates;
   }
@@ -101,6 +99,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
         .replace('{{ARTIFACTS_SECTION}}', '')
         .replace('{{TOOLS_SECTION}}', '')
+        .replace('{{THINKING_PREPARATION_INSTRUCTIONS}}', '')
         .replace('{{TRANSFER_INSTRUCTIONS}}', '')
         .replace('{{DELEGATION_INSTRUCTIONS}}', '')
     );
@@ -130,7 +129,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
-      : PromptConfig.convertMcpToolsToToolData(config.tools as McpTool[]);
+      : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
     // Normalize any Zod schemas to JSON schemas
     const toolData = rawToolData.map((tool) => ({
@@ -180,14 +179,15 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     breakdown.components.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
-    const dataComponentsSection = this.generateDataComponentsSection(
-      config.dataComponents,
-      config.includeDataComponents,
-      hasArtifactComponents,
-      config.artifactComponents
+    const thinkingPreparationSection = this.generateThinkingPreparationSection(
+      templates,
+      config.isThinkingPreparation
     );
-    breakdown.components.dataComponentsSection = estimateTokens(dataComponentsSection);
-    systemPrompt = systemPrompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
+    breakdown.components.thinkingPreparation = estimateTokens(thinkingPreparationSection);
+    systemPrompt = systemPrompt.replace(
+      '{{THINKING_PREPARATION_INSTRUCTIONS}}',
+      thinkingPreparationSection
+    );
 
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
     breakdown.components.transferInstructions = estimateTokens(transferSection);
@@ -228,6 +228,22 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
     IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
   </current_time>`;
+  }
+
+  private generateThinkingPreparationSection(
+    templates: Map<string, string>,
+    isThinkingPreparation?: boolean
+  ): string {
+    if (!isThinkingPreparation) {
+      return '';
+    }
+
+    const thinkingPreparationTemplate = templates.get('thinking-preparation');
+    if (!thinkingPreparationTemplate) {
+      throw new Error('Thinking preparation template not loaded');
+    }
+
+    return thinkingPreparationTemplate;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {
@@ -678,63 +694,5 @@ ${creationInstructions}
       .join('\n');
 
     return `<type>${schemaType}</type>\n      <properties>\n${propertiesXml}\n      </properties>\n      <required>${JSON.stringify(required)}</required>`;
-  }
-
-  private generateDataComponentsSection(
-    dataComponents: any[],
-    includeDataComponents?: boolean,
-    hasArtifactComponents?: boolean,
-    artifactComponents?: any[]
-  ): string {
-    if (!includeDataComponents || dataComponents.length === 0) {
-      return '';
-    }
-
-    // Include ArtifactCreate components in data components when artifacts are available
-    let allDataComponents = [...dataComponents];
-    if (hasArtifactComponents && artifactComponents) {
-      const artifactCreateComponents = ArtifactCreateSchema.getDataComponents(
-        'tenant', // placeholder - not used in PromptConfig
-        '', // placeholder - not used in PromptConfig
-        artifactComponents
-      );
-      allDataComponents = [...dataComponents, ...artifactCreateComponents];
-    }
-
-    const dataComponentsDescription = allDataComponents
-      .map((dc) => `${dc.name}: ${dc.description}`)
-      .join(', ');
-
-    const dataComponentsXml = allDataComponents
-      .map((dataComponent) => this.generateDataComponentXml(dataComponent))
-      .join('\n  ');
-
-    let dataComponentsSection = dataComponentsTemplate;
-    dataComponentsSection = dataComponentsSection.replace(
-      '{{DATA_COMPONENTS_LIST}}',
-      dataComponentsDescription
-    );
-    dataComponentsSection = dataComponentsSection.replace(
-      '{{DATA_COMPONENTS_XML}}',
-      dataComponentsXml
-    );
-
-    return dataComponentsSection;
-  }
-
-  private generateDataComponentXml(dataComponent: any): string {
-    let dataComponentXml = dataComponentTemplate;
-
-    dataComponentXml = dataComponentXml.replace('{{COMPONENT_NAME}}', dataComponent.name);
-    dataComponentXml = dataComponentXml.replace(
-      '{{COMPONENT_DESCRIPTION}}',
-      dataComponent.description || ''
-    );
-    dataComponentXml = dataComponentXml.replace(
-      '{{COMPONENT_PROPS_SCHEMA}}',
-      this.generateParametersXml(dataComponent.props)
-    );
-
-    return dataComponentXml;
   }
 }

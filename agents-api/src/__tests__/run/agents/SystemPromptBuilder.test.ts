@@ -2,7 +2,7 @@ import type { McpTool } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
 import type { SystemPromptV1 } from '../../../domains/run/agents/types';
-import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
+import { Phase1Config } from '../../../domains/run/agents/versions/v1/Phase1Config';
 
 // Helper to create mock McpTool
 function createMockMcpTool(name: string, availableTools: any[]): McpTool {
@@ -30,26 +30,27 @@ describe('SystemPromptBuilder', () => {
 
   describe('Generic Builder Functionality', () => {
     test('should successfully create builder with version config', () => {
-      expect(() => new SystemPromptBuilder('v1', new PromptConfig())).not.toThrow();
+      expect(() => new SystemPromptBuilder('v1', new Phase1Config())).not.toThrow();
     });
 
     test('should successfully load templates on first buildSystemPrompt call', () => {
-      const builder = new SystemPromptBuilder('v1', new PromptConfig());
+      const builder = new SystemPromptBuilder('v1', new Phase1Config());
       const config: SystemPromptV1 = {
         corePrompt: 'Test instructions',
         tools: [],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
       expect(result).toBeDefined();
       expect(builder.isLoaded()).toBe(true);
-      expect(builder.getLoadedTemplates()).toHaveLength(4);
+      expect(builder.getLoadedTemplates()).toHaveLength(5);
     });
 
     test('should handle invalid configuration', () => {
-      const builder = new SystemPromptBuilder('v1', new PromptConfig());
+      const builder = new SystemPromptBuilder('v1', new Phase1Config());
 
       expect(() => builder.buildSystemPrompt(null as any)).toThrow(
         'Configuration object is required'
@@ -63,7 +64,7 @@ describe('SystemPromptBuilder', () => {
     });
 
     test('should handle version parameter correctly', () => {
-      const builder = new SystemPromptBuilder('v2', new PromptConfig());
+      const builder = new SystemPromptBuilder('v2', new Phase1Config());
       expect(builder.isLoaded()).toBe(false);
     });
   });
@@ -72,7 +73,7 @@ describe('SystemPromptBuilder', () => {
     let builder: SystemPromptBuilder<SystemPromptV1>;
 
     beforeEach(() => {
-      builder = new SystemPromptBuilder('v1', new PromptConfig());
+      builder = new SystemPromptBuilder('v1', new Phase1Config());
     });
 
     test('should generate basic system prompt with no tools', () => {
@@ -81,6 +82,7 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -118,6 +120,7 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -149,6 +152,7 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -191,6 +195,7 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -225,6 +230,7 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -247,6 +253,7 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -262,6 +269,7 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -293,6 +301,7 @@ describe('SystemPromptBuilder', () => {
         tools: [mockTool],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -347,6 +356,7 @@ describe('SystemPromptBuilder', () => {
             createdAt: '2024-01-15T19:30:00.000Z',
           },
         ],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -363,6 +373,7 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -393,6 +404,7 @@ describe('SystemPromptBuilder', () => {
             createdAt: '2024-01-15T20:30:00.000Z',
           },
         ],
+        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
