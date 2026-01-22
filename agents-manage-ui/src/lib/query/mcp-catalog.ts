@@ -15,11 +15,15 @@ const mcpCatalogQueryKeys = {
 
 type ThirdPartyMCPServerResponse = Awaited<ReturnType<typeof fetchThirdPartyMCPServer>>;
 
-export function useThirdPartyMCPServerQuery(
+export function useThirdPartyMCPServerQuery({
   url = '',
-  credentialScope: 'project' | 'user' = 'project',
-  options?: { disabled?: boolean }
-) {
+  credentialScope = 'project',
+  disabled,
+}: {
+  url?: string;
+  credentialScope?: 'project' | 'user';
+  disabled?: boolean;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -27,7 +31,7 @@ export function useThirdPartyMCPServerQuery(
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && url) && !options?.disabled;
+  const enabled = Boolean(tenantId && projectId && url) && !disabled;
 
   return useQuery<ThirdPartyMCPServerResponse | null>({
     queryKey: mcpCatalogQueryKeys.thirdPartyServer(tenantId, projectId, url, credentialScope),
