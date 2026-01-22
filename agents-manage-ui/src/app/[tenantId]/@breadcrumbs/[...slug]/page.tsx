@@ -186,15 +186,15 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const parentMetadata = await parent;
-
-  if (parentMetadata.title?.template) {
-    const crumbs = await getCrumbs(params);
-    const lastCrumb = crumbs.at(-1);
-    return {
-      title: lastCrumb?.label,
-    };
+  const hasParentTitle = !parentMetadata.title?.template;
+  if (hasParentTitle) {
+    return {};
   }
-  return {};
+  const crumbs = await getCrumbs(params);
+  const lastCrumb = crumbs.at(-1);
+  return {
+    title: lastCrumb?.label,
+  };
 }
 
 export default BreadcrumbSlot;
