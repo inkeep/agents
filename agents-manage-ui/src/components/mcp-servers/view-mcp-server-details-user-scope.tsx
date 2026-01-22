@@ -32,11 +32,11 @@ export function ViewMCPServerDetailsUserScope({
   tenantId: string;
   projectId: string;
 }) {
-  'use memo'
+  'use memo';
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
-    onFinish: () => {
+    onFinish() {
       window.location.reload();
     },
   });

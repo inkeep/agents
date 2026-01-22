@@ -31,7 +31,7 @@ export function useThirdPartyMCPServerQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && url) && !disabled;
+  const enabled = Boolean(url) && !disabled;
 
   return useQuery<ThirdPartyMCPServerResponse['data']>({
     queryKey: mcpCatalogQueryKeys.thirdPartyServer(tenantId, projectId, url, credentialScope),

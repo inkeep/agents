@@ -23,7 +23,7 @@ export function useUserScopedCredentialQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && toolId) && !disabled;
+  const enabled = Boolean(toolId) && !disabled;
 
   return useQuery<Credential | null>({
     queryKey: credentialQueryKeys.userScoped(tenantId, projectId, toolId),

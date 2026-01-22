@@ -19,7 +19,7 @@ export function useProjectsQuery({ tenantId, disabled }: { tenantId: string; dis
       }
       return response.data;
     },
-    enabled: Boolean(tenantId) && !disabled,
+    enabled: !disabled,
     initialData: [],
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,

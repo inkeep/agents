@@ -16,15 +16,13 @@ export function useEvaluatorsQuery({ disabled }: { disabled?: boolean } = {}) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !disabled;
-
   return useQuery<Evaluator[]>({
     queryKey: evaluatorQueryKeys.list(tenantId, projectId),
     async queryFn() {
       const response = await fetchEvaluators(tenantId, projectId);
       return response.data;
     },
-    enabled,
+    enabled: !disabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

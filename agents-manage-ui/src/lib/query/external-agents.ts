@@ -13,12 +13,10 @@ export function useExternalAgentsQuery({ disabled }: { disabled?: boolean } = {}
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !disabled;
-
   return useQuery<ExternalAgent[]>({
     queryKey: ['external-agents', tenantId, projectId],
     queryFn: () => fetchExternalAgents(tenantId, projectId),
-    enabled,
+    enabled: !disabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

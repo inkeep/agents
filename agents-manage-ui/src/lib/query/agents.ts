@@ -17,8 +17,6 @@ export function useAgentsQuery({ disabled }: { disabled?: boolean } = {}) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !disabled;
-
   return useQuery<Agent[]>({
     queryKey: agentQueryKeys.list(tenantId, projectId),
     async queryFn() {
@@ -28,7 +26,7 @@ export function useAgentsQuery({ disabled }: { disabled?: boolean } = {}) {
       }
       return response.data;
     },
-    enabled,
+    enabled: !disabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

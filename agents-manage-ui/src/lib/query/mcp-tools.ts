@@ -13,12 +13,10 @@ export function useMcpToolsQuery({ disabled }: { disabled?: boolean } = {}) {
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !disabled;
-
   return useQuery<MCPTool[]>({
     queryKey: ['mcp-tools', tenantId, projectId],
     queryFn: () => fetchMCPTools(tenantId, projectId),
-    enabled,
+    enabled: !disabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

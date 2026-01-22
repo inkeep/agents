@@ -29,7 +29,7 @@ export function useEvaluationSuiteConfigQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && suiteConfigId) && !disabled;
+  const enabled = Boolean(suiteConfigId) && !disabled;
 
   return useQuery<EvaluationSuiteConfig | null>({
     queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, suiteConfigId),
@@ -62,7 +62,7 @@ export function useEvaluationSuiteConfigEvaluatorsQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId && suiteConfigId) && !disabled;
+  const enabled = Boolean(suiteConfigId) && !disabled;
 
   return useQuery<{ evaluatorId: string }[]>({
     queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, suiteConfigId),

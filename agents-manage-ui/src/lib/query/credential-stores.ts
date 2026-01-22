@@ -12,12 +12,10 @@ export function useCredentialStoresQuery({ disabled }: { disabled?: boolean } = 
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(tenantId && projectId) && !disabled;
-
   return useQuery<CredentialStoreStatus[]>({
     queryKey: ['credential-stores', tenantId, projectId],
     queryFn: () => listCredentialStores(tenantId, projectId),
-    enabled,
+    enabled: !disabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount
