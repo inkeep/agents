@@ -30736,7 +30736,7 @@
         ]
       }
     },
-    "/run/tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId": {
+    "/run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}": {
       "post": {
         "description": "Webhook endpoint for third-party services to invoke an agent via a configured trigger",
         "parameters": [

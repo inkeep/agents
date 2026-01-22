@@ -211,16 +211,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       }
 
       // Build authentication payload
-      const authentication =
-        headersToSend.length > 0
-          ? {
-              headers: headersToSend.map((h) => ({
-                name: h.name,
-                value: h.value,
-                keepExisting: h.keepExisting,
-              })),
-            }
-          : undefined;
+      // Always send { headers: [...] } to ensure explicit update:
+      // - Non-empty array: update with new headers
+      // - Empty array: clear all authentication headers
+      const authentication = {
+        headers: headersToSend.map((h) => ({
+          name: h.name,
+          value: h.value,
+          keepExisting: h.keepExisting,
+        })),
+      };
 
       // Handle signing secret - if not provided but existing, keep existing
       const signingSecretPayload = data.signingSecret
