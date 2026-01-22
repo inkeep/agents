@@ -99,7 +99,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
                 <QueryProvider>
                   <AuthClientProvider>
                     {children}
-                    <Toaster />
+                    <Toaster closeButton />
                   </AuthClientProvider>
                 </QueryProvider>
               </PostHogProvider>

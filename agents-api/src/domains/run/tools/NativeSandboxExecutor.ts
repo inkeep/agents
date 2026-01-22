@@ -42,12 +42,11 @@
  * - Works in Docker, Kubernetes, serverless (Vercel, Lambda)
  * - No files left in project directory (no git pollution)
  *
- * The singleton pattern here is important - we need one shared pool
- * across all tool executions, otherwise caching doesn't work.
+ * Note: In this repo, sandbox pooling is scoped to a single message/session via SandboxExecutorFactory.
  */
 
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -144,14 +143,16 @@ interface SandboxPool {
     lastUsed: number;
     useCount: number;
     dependencies: Record<string, string>;
+    activeCount: number;
   };
 }
 
 export class NativeSandboxExecutor {
   private tempDir: string;
   private sandboxPool: SandboxPool = {};
-  private static instance: NativeSandboxExecutor | null = null;
   private executionSemaphores: Map<number, ExecutionSemaphore> = new Map();
+  private poolCleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private sandboxInitPromises: Map<string, Promise<string>> = new Map();
 
   constructor() {
     this.tempDir = join(tmpdir(), 'inkeep-sandboxes');
@@ -159,11 +160,18 @@ export class NativeSandboxExecutor {
     this.startPoolCleanup();
   }
 
-  static getInstance(): NativeSandboxExecutor {
-    if (!NativeSandboxExecutor.instance) {
-      NativeSandboxExecutor.instance = new NativeSandboxExecutor();
+  async cleanup(): Promise<void> {
+    if (this.poolCleanupInterval) {
+      clearInterval(this.poolCleanupInterval);
+      this.poolCleanupInterval = null;
     }
-    return NativeSandboxExecutor.instance;
+
+    this.sandboxInitPromises.clear();
+
+    for (const sandbox of Object.values(this.sandboxPool)) {
+      this.cleanupSandbox(sandbox.sandboxDir);
+    }
+    this.sandboxPool = {};
   }
 
   private getSemaphore(vcpus: number): ExecutionSemaphore {
@@ -221,19 +229,23 @@ export class NativeSandboxExecutor {
       ) {
         sandbox.lastUsed = now;
         sandbox.useCount++;
+        sandbox.activeCount++;
         logger.debug(
           {
             poolKey,
             useCount: sandbox.useCount,
             sandboxDir: sandbox.sandboxDir,
             lastUsed: new Date(sandbox.lastUsed),
+            activeCount: sandbox.activeCount,
           },
           'Reusing cached sandbox'
         );
         return sandbox.sandboxDir;
       }
-      this.cleanupSandbox(sandbox.sandboxDir);
-      delete this.sandboxPool[poolKey];
+      if (sandbox.activeCount === 0) {
+        this.cleanupSandbox(sandbox.sandboxDir);
+        delete this.sandboxPool[poolKey];
+      }
     }
 
     return null;
@@ -255,6 +267,7 @@ export class NativeSandboxExecutor {
       lastUsed: Date.now(),
       useCount: 1,
       dependencies,
+      activeCount: 0,
     };
 
     logger.debug({ poolKey, sandboxDir }, 'Added sandbox to pool');
@@ -270,14 +283,15 @@ export class NativeSandboxExecutor {
   }
 
   private startPoolCleanup() {
-    setInterval(() => {
+    this.poolCleanupInterval = setInterval(() => {
       const now = Date.now();
       const keysToDelete: string[] = [];
 
       for (const [key, sandbox] of Object.entries(this.sandboxPool)) {
         if (
-          now - sandbox.lastUsed > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
-          sandbox.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+          sandbox.activeCount === 0 &&
+          (now - sandbox.lastUsed > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+            sandbox.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT)
         ) {
           this.cleanupSandbox(sandbox.sandboxDir);
           keysToDelete.push(key);
@@ -377,54 +391,73 @@ export class NativeSandboxExecutor {
       'Executing function tool'
     );
 
-    let sandboxDir = this.getCachedSandbox(dependencyHash);
-    let isNewSandbox = false;
+    const sandboxDir = await (async (): Promise<string> => {
+      const cachedDir = this.getCachedSandbox(dependencyHash);
+      if (cachedDir) return cachedDir;
 
-    if (!sandboxDir) {
-      sandboxDir = join(this.tempDir, `sandbox-${dependencyHash}-${Date.now()}`);
-      mkdirSync(sandboxDir, { recursive: true });
-      isNewSandbox = true;
-
-      logger.debug(
-        {
-          toolId,
-          dependencyHash,
-          sandboxDir,
-          dependencies,
-        },
-        'Creating new sandbox'
-      );
-
-      const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
-
-      const packageJson = {
-        name: `function-tool-${toolId}`,
-        version: '1.0.0',
-        ...(moduleType === 'esm' && { type: 'module' }),
-        dependencies,
-        scripts: {
-          start: moduleType === 'esm' ? 'node index.mjs' : 'node index.js',
-        },
-      };
-
-      writeFileSync(join(sandboxDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
-
-      if (Object.keys(dependencies).length > 0) {
-        await this.installDependencies(sandboxDir);
+      const existingInit = this.sandboxInitPromises.get(dependencyHash);
+      if (existingInit) {
+        const dir = await existingInit;
+        const poolEntry = this.sandboxPool[dependencyHash];
+        if (poolEntry) {
+          poolEntry.activeCount++;
+        }
+        return dir;
       }
 
-      this.addToPool(dependencyHash, sandboxDir, dependencies);
-    }
+      const initPromise = (async () => {
+        const dir = join(this.tempDir, `sandbox-${dependencyHash}-${Date.now()}`);
+        mkdirSync(dir, { recursive: true });
 
+        logger.debug(
+          {
+            toolId,
+            dependencyHash,
+            sandboxDir: dir,
+            dependencies,
+          },
+          'Creating new sandbox'
+        );
+
+        const packageJson = {
+          name: `function-tool-${toolId}`,
+          version: '1.0.0',
+          dependencies,
+        };
+
+        writeFileSync(join(dir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
+
+        if (Object.keys(dependencies).length > 0) {
+          await this.installDependencies(dir);
+        }
+
+        this.addToPool(dependencyHash, dir, dependencies);
+        this.sandboxPool[dependencyHash].activeCount++;
+
+        return dir;
+      })();
+
+      this.sandboxInitPromises.set(dependencyHash, initPromise);
+      try {
+        return await initPromise;
+      } finally {
+        this.sandboxInitPromises.delete(dependencyHash);
+      }
+    })();
+
+    let runDir: string | null = null;
     try {
       const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
       const executionCode = createExecutionWrapper(config.executeCode, args);
-      const fileExtension = moduleType === 'esm' ? 'mjs' : 'js';
-      writeFileSync(join(sandboxDir, `index.${fileExtension}`), executionCode, 'utf8');
+      const runId = `${Date.now()}-${createHash('sha256').update(randomUUID()).digest('hex').substring(0, 8)}`;
+      runDir = join(sandboxDir, 'runs', runId);
+      mkdirSync(runDir, { recursive: true });
+      const fileExtension = moduleType === 'esm' ? 'mjs' : 'cjs';
+      writeFileSync(join(runDir, `index.${fileExtension}`), executionCode, 'utf8');
 
       const result = await this.executeInSandbox(
-        sandboxDir,
+        runDir,
         config.sandboxConfig?.timeout || FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
         moduleType,
         config.sandboxConfig
@@ -432,12 +465,17 @@ export class NativeSandboxExecutor {
 
       return result;
     } catch (error) {
-      if (isNewSandbox) {
-        this.cleanupSandbox(sandboxDir);
-        const poolKey = dependencyHash;
-        delete this.sandboxPool[poolKey];
-      }
       throw error;
+    } finally {
+      if (runDir) {
+        try {
+          rmSync(runDir, { recursive: true, force: true });
+        } catch {}
+      }
+      const poolEntry = this.sandboxPool[dependencyHash];
+      if (poolEntry) {
+        poolEntry.activeCount = Math.max(0, poolEntry.activeCount - 1);
+      }
     }
   }
 
@@ -495,7 +533,7 @@ export class NativeSandboxExecutor {
     _sandboxConfig?: FunctionToolConfig['sandboxConfig']
   ): Promise<any> {
     return new Promise((resolve, reject) => {
-      const fileExtension = moduleType === 'esm' ? 'mjs' : 'js';
+      const fileExtension = moduleType === 'esm' ? 'mjs' : 'cjs';
 
       const spawnOptions = {
         cwd: sandboxDir,

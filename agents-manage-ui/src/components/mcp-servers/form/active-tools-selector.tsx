@@ -225,7 +225,7 @@ export function ActiveToolsSelector<
                         <div key={tool.name} className="border-b last:border-b-0">
                           {/* Tool Header */}
                           <div className="flex items-start gap-4 py-4 px-6">
-                            <div className="flex items-center h-[22px]">
+                            <div className="flex items-center h-[22px] relative">
                               <Checkbox
                                 checked={isChecked}
                                 disabled={disabled}
