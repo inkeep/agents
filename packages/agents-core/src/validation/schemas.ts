@@ -507,7 +507,11 @@ export type SignatureValidationOptions = z.infer<typeof SignatureValidationOptio
 
 export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
 
-export const TriggerSelectSchema = createSelectSchema(triggers);
+export const TriggerSelectSchema = registerFieldSchemas(
+  createSelectSchema(triggers).extend({
+    signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
+  })
+);
 
 export const TriggerInsertSchema = createInsertSchema(triggers, {
   id: () => resourceIdSchema,
@@ -525,7 +529,12 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
       .describe('Message template with {{placeholder}} syntax')
       .optional(),
   authentication: () => TriggerAuthenticationInputSchema.optional(),
-  signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
+  signingSecretCredentialReferenceId: () =>
+    z.string().optional().describe('Reference to credential containing signing secret'),
+  signatureVerification: () =>
+    SignatureVerificationConfigSchema.nullable()
+      .optional()
+      .describe('Configuration for webhook signature verification'),
 });
 
 // For updates, we create a schema without defaults so that {} is detected as empty
@@ -547,11 +556,13 @@ export const TriggerUpdateSchema = z.object({
     .optional()
     .nullable(),
   authentication: TriggerAuthenticationUpdateSchema.optional(),
-  signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
-  keepExistingSigningSecret: z
-    .boolean()
+  signingSecretCredentialReferenceId: z
+    .string()
     .optional()
-    .describe('If true, keep existing signing secret'),
+    .describe('Reference to credential containing signing secret'),
+  signatureVerification: SignatureVerificationConfigSchema.nullable()
+    .optional()
+    .describe('Configuration for webhook signature verification'),
 });
 
 export const TriggerApiSelectSchema =
