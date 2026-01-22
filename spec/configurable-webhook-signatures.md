@@ -140,19 +140,20 @@ type SignatureVerificationError = {
 
 ### JMESPath Handling
 
-**Dependency**: Use `@metrichor/jmespath` (TypeScript, well-maintained) or Node.js built-in for simple paths.
+**Dependency**: Use existing [`jmespath`](https://github.com/jmespath/jmespath.js) package (already in codebase at `^0.16.0`).
 
 **Performance Considerations**:
 ```typescript
 // Pre-compile JMESPath expressions at config save time, not at request time
-import { compile } from '@metrichor/jmespath';
+import jmespath from 'jmespath';
 
-// During trigger create/update - validate and cache compiled expression
+// During trigger create/update - validate JMESPath syntax
 function validateSignedComponent(component: SignedComponent): ValidationResult {
   if (component.source === 'body' && component.key) {
     try {
-      // Validate JMESPath syntax at config time
-      compile(component.key);
+      // Validate JMESPath syntax at config time by doing a test search
+      // jmespath.js throws on invalid expressions
+      jmespath.search({}, component.key);
       return { valid: true };
     } catch (e) {
       return { valid: false, error: `Invalid JMESPath: ${e.message}` };
@@ -161,8 +162,9 @@ function validateSignedComponent(component: SignedComponent): ValidationResult {
   return { valid: true };
 }
 
-// At request time - use compiled expression (consider caching in TriggerService)
-// For simple paths like "payload.data", consider using lodash.get() instead
+// At request time - use jmespath.search()
+// The library is lightweight and fast for typical webhook payloads
+// For simple dot-notation paths like "payload.data", lodash.get() is also an option
 ```
 
 **Security**: JMESPath is read-only and cannot modify data, so user-provided expressions are safe. However, deeply nested or complex expressions could be slow - consider adding a complexity limit.
@@ -657,7 +659,7 @@ const customTrigger = trigger({
 
 ### Security & Validation
 - [ ] Validate JMESPath expressions at config save time (not request time)
-  - Use `@metrichor/jmespath` or similar for TypeScript support
+  - Use existing `jmespath` package (already in codebase)
   - Return clear error messages for invalid expressions
 - [ ] Validate regex patterns at config save time
   - Consider ReDoS protection (safe-regex or complexity limits)
