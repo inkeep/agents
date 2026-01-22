@@ -24,7 +24,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: [
-      'keytar',
+      '@napi-rs/keyring',
       'workflow',
       '@workflow/world-local',
       '@workflow/world-postgres',

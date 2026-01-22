@@ -46,9 +46,6 @@
   "pnpm": {
     "overrides": {
       "@modelcontextprotocol/sdk": "1.24.3"
-    },
-    "onlyBuiltDependencies": [
-      "keytar"
-    ]
+    }
   }
 }
