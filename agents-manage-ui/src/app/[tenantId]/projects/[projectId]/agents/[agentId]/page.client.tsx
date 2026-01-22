@@ -104,6 +104,7 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
+  sandboxEnabled: boolean;
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
@@ -125,6 +126,7 @@ export const Agent: FC<AgentProps> = ({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
+  sandboxEnabled,
 }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
@@ -1004,7 +1006,7 @@ export const Agent: FC<AgentProps> = ({
           <Controls className="text-foreground" showInteractive={false} />
           {!showEmptyState && (
             <Panel position="top-left">
-              <NodeLibrary />
+              <NodeLibrary sandboxEnabled={sandboxEnabled} />
             </Panel>
           )}
 
@@ -1030,7 +1032,7 @@ export const Agent: FC<AgentProps> = ({
             </Panel>
           )}
           {errors && showErrors && (
-            <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
+            <Panel position="bottom-left" className="max-w-sm left-8! mb-4">
               <AgentErrorSummary
                 errorSummary={errors}
                 onClose={() => setShowErrors(false)}
