@@ -23,7 +23,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
+import { propagation, ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
@@ -408,6 +408,17 @@ async function executeAgentAsync(params: {
 
   const tracer = trace.getTracer('trigger-service');
 
+  // Create baggage for context propagation to child spans
+  const baggage = propagation
+    .createBaggage()
+    .setEntry('tenant.id', { value: tenantId })
+    .setEntry('project.id', { value: projectId })
+    .setEntry('agent.id', { value: agentId })
+    .setEntry('conversation.id', { value: conversationId });
+
+  // Start with ROOT_CONTEXT (fresh trace) but add baggage for child span propagation
+  const contextWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
+
   return tracer.startActiveSpan(
     'trigger.execute_async',
     {
@@ -421,7 +432,7 @@ async function executeAgentAsync(params: {
         'invocation.type': 'trigger',
       },
     },
-    ROOT_CONTEXT,
+    contextWithBaggage,
     async (span) => {
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
