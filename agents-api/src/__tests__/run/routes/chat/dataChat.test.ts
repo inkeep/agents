@@ -207,7 +207,7 @@ describe('Chat Data Stream Route', () => {
       ],
     };
 
-    const res = await makeRequest('/api/chat', {
+    const res = await makeRequest('/run/api/chat', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -257,7 +257,7 @@ describe('Chat Data Stream Route', () => {
       ],
     };
 
-    const res = await makeRequest('/api/chat', {
+    const res = await makeRequest('/run/api/chat', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -292,7 +292,7 @@ describe('Chat Data Stream Route', () => {
       ],
     };
 
-    const res = await makeRequest('/api/chat', {
+    const res = await makeRequest('/run/api/chat', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -305,5 +305,52 @@ describe('Chat Data Stream Route', () => {
       approved: true,
       alreadyProcessed: true,
     });
+  });
+
+  it('should accept approval requested tool part (approval.id only) without failing schema validation', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'What is the geocode of San Francisco?',
+          parts: [{ type: 'text', text: 'What is the geocode of San Francisco?' }],
+        },
+        {
+          role: 'assistant',
+          content: null,
+          parts: [
+            {
+              type: 'data-operation',
+              data: {
+                type: 'tool_call',
+                details: {
+                  data: {
+                    toolName: 'get_coordinates',
+                    input: { address: 'San Francisco' },
+                    toolCallId: 'call_P96kiVrliAgL7bDZXOpsKbPX',
+                    needsApproval: true,
+                  },
+                },
+              },
+            },
+            {
+              type: 'tool-get_coordinates',
+              toolCallId: 'call_P96kiVrliAgL7bDZXOpsKbPX',
+              state: 'approval-requested',
+              input: { address: 'San Francisco' },
+              approval: { id: 'aitxt-call_P96kiVrliAgL7bDZXOpsKbPX' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
   });
 });
