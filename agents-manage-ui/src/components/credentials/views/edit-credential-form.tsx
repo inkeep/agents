@@ -8,8 +8,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { CredentialResourcesList } from '@/components/credentials/credential-resources-list';
-import { EditableKeyValueInput } from '@/components/form/editable-key-value-input';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -22,6 +22,7 @@ import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
+import { keyValuePairSchema, keyValuePairsToRecord } from './credential-form-validation';
 
 // Edit-specific validation schema
 const editCredentialFormSchema = z.object({
@@ -30,7 +31,7 @@ const editCredentialFormSchema = z.object({
     .min(1, 'Name is required')
     .refine((val) => val.length > 0, 'Name cannot be empty after transformation')
     .refine((val) => val.length <= 50, 'Name must be 50 characters or less'),
-  metadata: z.record(z.string(), z.string()).default({}),
+  metadata: z.array(keyValuePairSchema).default([]),
 });
 
 export type EditCredentialFormData = z.output<typeof editCredentialFormSchema>;
@@ -98,16 +99,18 @@ export function EditCredentialForm({
         name: formData.name.trim(),
       });
 
+      // Convert metadata array to record for API
+      const metadataRecord = keyValuePairsToRecord(formData.metadata);
+
       if (
         credential.retrievalParams?.providerConfigKey &&
         credential.retrievalParams?.connectionId &&
-        formData.metadata &&
-        Object.keys(formData.metadata).length > 0
+        Object.keys(metadataRecord).length > 0
       ) {
         await setNangoConnectionMetadata({
           providerConfigKey: credential.retrievalParams.providerConfigKey as string,
           connectionId: credential.retrievalParams.connectionId as string,
-          metadata: formData.metadata as Record<string, string>,
+          metadata: metadataRecord,
         });
       }
 
@@ -190,7 +193,7 @@ export function EditCredentialForm({
             {/* Metadata / Headers Section */}
             {credential.type === CredentialStoreType.nango && (
               <div className="space-y-3">
-                <EditableKeyValueInput
+                <GenericKeyValueInput
                   control={form.control}
                   name="metadata"
                   label="Headers (optional)"

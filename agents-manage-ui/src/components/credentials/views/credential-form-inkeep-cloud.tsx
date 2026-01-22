@@ -5,8 +5,8 @@ import { DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { EditableKeyValueInput } from '@/components/form/editable-key-value-input';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,11 +14,16 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
-import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
+import {
+  type CredentialFormData,
+  type CredentialFormOutput,
+  credentialFormSchema,
+  keyValuePairsToRecord,
+} from './credential-form-validation';
 
 interface CredentialFormProps {
-  /** Handler for creating new credentials */
-  onCreateCredential: (data: CredentialFormData) => Promise<void>;
+  /** Handler for creating new credentials (receives metadata as record) */
+  onCreateCredential: (data: CredentialFormOutput) => Promise<void>;
   /** Tenant ID */
   tenantId: string;
   /** Project ID */
@@ -28,7 +33,7 @@ interface CredentialFormProps {
 const defaultValues: CredentialFormData = {
   name: '',
   apiKeyToSet: '',
-  metadata: {},
+  metadata: [{ key: '', value: '' }],
   credentialStoreId: DEFAULT_NANGO_STORE_ID,
   credentialStoreType: 'nango',
   selectedTool: undefined,
@@ -100,7 +105,13 @@ export function CredentialFormInkeepCloud({
         return;
       }
 
-      await onCreateCredential(data);
+      // Convert metadata array to record for API
+      const submitData: CredentialFormOutput = {
+        ...data,
+        metadata: keyValuePairsToRecord(data.metadata),
+      };
+
+      await onCreateCredential(submitData);
     } catch (err) {
       console.error('Failed to create credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to create credential');
@@ -175,7 +186,7 @@ export function CredentialFormInkeepCloud({
           </div>
 
           <div className="space-y-3">
-            <EditableKeyValueInput
+            <GenericKeyValueInput
               control={form.control}
               name="metadata"
               label="Headers (optional)"

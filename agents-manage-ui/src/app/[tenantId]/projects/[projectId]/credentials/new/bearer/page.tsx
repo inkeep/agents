@@ -7,7 +7,7 @@ import { use } from 'react';
 import { toast } from 'sonner';
 import { CredentialForm } from '@/components/credentials/views/credential-form';
 import { CredentialFormInkeepCloud } from '@/components/credentials/views/credential-form-inkeep-cloud';
-import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
+import type { CredentialFormOutput } from '@/components/credentials/views/credential-form-validation';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
@@ -23,7 +23,7 @@ export default function NewCredentialForm({
   const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const { tenantId, projectId } = use(params);
   const { user } = useAuthSession();
-  const handleCreateCredential = async (data: CredentialFormData) => {
+  const handleCreateCredential = async (data: CredentialFormOutput) => {
     try {
       const newCredentialId = generateId();
 
@@ -69,7 +69,7 @@ export default function NewCredentialForm({
         storeId: data.credentialStoreId,
         key: credentialKeyToSet,
         value: credentialValueToSet,
-        metadata: data.metadata as Record<string, string>,
+        metadata: data.metadata,
       });
 
       newCredential = await findOrCreateCredential(tenantId, projectId, {

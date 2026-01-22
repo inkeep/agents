@@ -2,6 +2,7 @@ import {
   EditCredentialForm,
   type EditCredentialFormData,
 } from '@/components/credentials/views/edit-credential-form';
+import { recordToKeyValuePairs } from '@/components/credentials/views/credential-form-validation';
 import FullPageError from '@/components/errors/full-page-error';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
 import { getNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
@@ -19,7 +20,7 @@ async function credentialToFormData(credential: Credential): Promise<EditCredent
 
   return {
     name: credential.name,
-    metadata: connectionMetadata,
+    metadata: recordToKeyValuePairs(connectionMetadata),
   };
 }
 
