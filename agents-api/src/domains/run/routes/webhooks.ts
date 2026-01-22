@@ -22,7 +22,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { context as otelContext, propagation, trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
@@ -44,11 +44,11 @@ const ajv = new Ajv({ allErrors: true });
 
 /**
  * Webhook endpoint for trigger invocation
- * POST /tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}
+ * POST /tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId
  */
 const triggerWebhookRoute = createRoute({
   method: 'post',
-  path: '/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}',
+  path: '/tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId',
   tags: ['webhooks'],
   summary: 'Invoke agent via trigger webhook',
   description:
@@ -348,25 +348,26 @@ async function invokeAgentAsync(params: {
         'message.timestamp': new Date().toISOString(),
       },
     },
+    ROOT_CONTEXT,
     async (span) => {
+      const spanCtx = trace.setSpan(ROOT_CONTEXT, span);
+
       // Set up baggage so all child spans inherit the key attributes
       // The BaggageSpanProcessor will automatically copy these to span attributes
-      let currentBag = propagation.getBaggage(otelContext.active());
-      if (!currentBag) {
-        currentBag = propagation.createBaggage();
-      }
-      currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
-      currentBag = currentBag.setEntry('tenant.id', { value: tenantId });
-      currentBag = currentBag.setEntry('project.id', { value: projectId });
-      currentBag = currentBag.setEntry('agent.id', { value: agentId });
-      // Trigger-specific baggage entries - propagate to all child spans
-      currentBag = currentBag.setEntry('invocation.type', { value: 'trigger' });
-      currentBag = currentBag.setEntry('trigger.id', { value: triggerId });
-      currentBag = currentBag.setEntry('trigger.invocation.id', { value: invocationId });
-      const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+      let bag = propagation.getBaggage(spanCtx) ?? propagation.createBaggage();
+      bag = bag
+        .setEntry('conversation.id', { value: conversationId })
+        .setEntry('tenant.id', { value: tenantId })
+        .setEntry('project.id', { value: projectId })
+        .setEntry('agent.id', { value: agentId })
+        .setEntry('invocation.type', { value: 'trigger' })
+        .setEntry('trigger.id', { value: triggerId })
+        .setEntry('trigger.invocation.id', { value: invocationId });
+
+      const ctx = propagation.setBaggage(spanCtx, bag);
 
       // Execute the entire invocation within the traced context
-      return await otelContext.with(ctxWithBaggage, async () => {
+      return await otelContext.with(ctx, async () => {
         try {
           logger.info(
             { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
@@ -425,14 +426,13 @@ async function invokeAgentAsync(params: {
           }
 
           // Build execution context for trigger invocation
-          // Use bypass secret for internal A2A calls (triggers don't have user API keys)
           const executionContext: FullExecutionContext = {
             tenantId,
             projectId,
             agentId,
             baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
-            apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
-            apiKeyId: 'trigger-invocation',
+            apiKey: '', // Triggers don't use API keys
+            apiKeyId: 'trigger-invocation', // Placeholder since triggers don't use API keys
             resolvedRef,
             project,
             metadata: {
