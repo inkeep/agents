@@ -5,7 +5,7 @@
  * On Vercel, uses waitUntil to ensure execution completes after response.
  * Locally, the process stays alive so standard async execution works.
  */
-import type { Context } from 'hono';
+
 import type { FullExecutionContext, Part, ResolvedRef } from '@inkeep/agents-core';
 import {
   createMessage,
@@ -23,8 +23,9 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
+import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
@@ -47,7 +48,12 @@ export type TriggerWebhookParams = {
 
 export type TriggerWebhookResult =
   | { success: true; invocationId: string; conversationId: string }
-  | { success: false; error: string; status: 400 | 401 | 403 | 404 | 422; validationErrors?: string[] };
+  | {
+      success: false;
+      error: string;
+      status: 400 | 401 | 403 | 404 | 422;
+      validationErrors?: string[];
+    };
 
 /**
  * Process a trigger webhook request.
@@ -88,7 +94,11 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
   }
 
   // 6. Transform payload
-  const transformResult = await transformPayload(trigger, payload, { tenantId, projectId, triggerId });
+  const transformResult = await transformPayload(trigger, payload, {
+    tenantId,
+    projectId,
+    triggerId,
+  });
   if (!transformResult.success) {
     return transformResult;
   }
@@ -226,9 +236,12 @@ function buildMessage(
   // Add text part if messageTemplate exists
   // interpolateTemplate requires Record<string, unknown>, so only use it if payload is an object
   if (trigger.messageTemplate) {
-    const payloadForTemplate = typeof transformedPayload === 'object' && transformedPayload !== null && !Array.isArray(transformedPayload)
-      ? (transformedPayload as Record<string, unknown>)
-      : {};
+    const payloadForTemplate =
+      typeof transformedPayload === 'object' &&
+      transformedPayload !== null &&
+      !Array.isArray(transformedPayload)
+        ? (transformedPayload as Record<string, unknown>)
+        : {};
     const interpolatedMessage = interpolateTemplate(trigger.messageTemplate, payloadForTemplate);
     messageParts.push({ kind: 'text', text: interpolatedMessage });
   }
@@ -245,9 +258,12 @@ function buildMessage(
   // Text representation for execution handler
   const userMessageText = trigger.messageTemplate
     ? (() => {
-        const payloadForTemplate = typeof transformedPayload === 'object' && transformedPayload !== null && !Array.isArray(transformedPayload)
-          ? (transformedPayload as Record<string, unknown>)
-          : {};
+        const payloadForTemplate =
+          typeof transformedPayload === 'object' &&
+          transformedPayload !== null &&
+          !Array.isArray(transformedPayload)
+            ? (transformedPayload as Record<string, unknown>)
+            : {};
         return interpolateTemplate(trigger.messageTemplate, payloadForTemplate);
       })()
     : JSON.stringify(transformedPayload);
@@ -336,11 +352,13 @@ async function dispatchExecution(params: {
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
   if (process.env.VERCEL) {
-    import('@vercel/functions').then(({ waitUntil }) => {
-      waitUntil(executionPromise);
-    }).catch((err) => {
-      logger.error({ err }, 'Failed to import @vercel/functions');
-    });
+    import('@vercel/functions')
+      .then(({ waitUntil }) => {
+        waitUntil(executionPromise);
+      })
+      .catch((err) => {
+        logger.error({ err }, 'Failed to import @vercel/functions');
+      });
   } else {
     // For local/non-Vercel: fire-and-forget with error logging
     executionPromise.catch((error) => {
@@ -388,159 +406,184 @@ async function executeAgentAsync(params: {
     resolvedRef,
   } = params;
 
-  logger.info(
-    { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
-    'Starting async trigger execution'
-  );
+  const tracer = trace.getTracer('trigger-service');
 
-  try {
-    // Load project
-    const project = await withRef(manageDbPool, resolvedRef, async (db) => {
-      return await getFullProjectWithRelationIds(db)({
-        scopes: { tenantId, projectId },
-      });
-    });
-
-    if (!project) {
-      throw new Error(`Project ${projectId} not found`);
-    }
-
-    // Find the agent's default sub-agent
-    const agent = project.agents?.[agentId];
-    if (!agent) {
-      throw new Error(`Agent ${agentId} not found in project`);
-    }
-    const defaultSubAgentId = agent.defaultSubAgentId;
-    if (!defaultSubAgentId) {
-      throw new Error(`Agent ${agentId} has no default sub-agent configured`);
-    }
-
-    // Create conversation and set active agent
-    await createOrGetConversation(runDbClient)({
-      id: conversationId,
-      tenantId,
-      projectId,
-      agentId,
-      activeSubAgentId: defaultSubAgentId,
-      ref: resolvedRef,
-    });
-
-    await setActiveAgentForConversation(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      subAgentId: defaultSubAgentId,
-      agentId,
-      ref: resolvedRef,
-    });
-
-    await createMessage(runDbClient)({
-      id: generateId(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'user',
-      content: {
-        text: userMessage,
-        parts: messageParts,
+  return tracer.startActiveSpan(
+    'trigger.execute_async',
+    {
+      attributes: {
+        'tenant.id': tenantId,
+        'project.id': projectId,
+        'agent.id': agentId,
+        'trigger.id': triggerId,
+        'trigger.invocation.id': invocationId,
+        'conversation.id': conversationId,
+        'invocation.type': 'trigger',
       },
-      metadata: {
-        a2a_metadata: {
+    },
+    async (span) => {
+      logger.info(
+        { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+        'Starting async trigger execution'
+      );
+
+      try {
+        // Load project
+        const project = await withRef(manageDbPool, resolvedRef, async (db) => {
+          return await getFullProjectWithRelationIds(db)({
+            scopes: { tenantId, projectId },
+          });
+        });
+
+        if (!project) {
+          throw new Error(`Project ${projectId} not found`);
+        }
+
+        // Find the agent's default sub-agent
+        const agent = project.agents?.[agentId];
+        if (!agent) {
+          throw new Error(`Agent ${agentId} not found in project`);
+        }
+        const defaultSubAgentId = agent.defaultSubAgentId;
+        if (!defaultSubAgentId) {
+          throw new Error(`Agent ${agentId} has no default sub-agent configured`);
+        }
+
+        // Create conversation and set active agent
+        await createOrGetConversation(runDbClient)({
+          id: conversationId,
+          tenantId,
+          projectId,
+          agentId,
+          activeSubAgentId: defaultSubAgentId,
+          ref: resolvedRef,
+        });
+
+        await setActiveAgentForConversation(runDbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          subAgentId: defaultSubAgentId,
+          agentId,
+          ref: resolvedRef,
+        });
+
+        await createMessage(runDbClient)({
+          id: generateId(),
+          tenantId,
+          projectId,
+          conversationId,
+          role: 'user',
+          content: {
+            text: userMessage,
+            parts: messageParts,
+          },
+          metadata: {
+            a2a_metadata: {
+              triggerId,
+              invocationId,
+            },
+          },
+        });
+
+        // Build execution context
+        const executionContext: FullExecutionContext = {
+          tenantId,
+          projectId,
+          agentId,
+          baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
+          apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
+          apiKeyId: 'trigger-invocation',
+          resolvedRef,
+          project,
+          metadata: {
+            initiatedBy: {
+              type: 'api_key',
+              id: triggerId,
+            },
+          },
+        };
+
+        const requestId = `trigger-${invocationId}`;
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        // Create no-op stream helper (we're not streaming to client)
+        const noOpStreamHelper = createSSEStreamHelper(
+          {
+            writeSSE: async () => {},
+            sleep: async () => {},
+          },
+          requestId,
+          timestamp
+        );
+
+        // Execute the agent
+        const executionHandler = new ExecutionHandler();
+        await executionHandler.execute({
+          executionContext,
+          conversationId,
+          userMessage,
+          messageParts,
+          initialAgentId: agentId,
+          requestId,
+          sseHelper: noOpStreamHelper,
+          emitOperations: false,
+        });
+
+        // Update status to success
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
           triggerId,
           invocationId,
-        },
-      },
-    });
+          data: { status: 'success' },
+        });
 
-    // Build execution context
-    const executionContext: FullExecutionContext = {
-      tenantId,
-      projectId,
-      agentId,
-      baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
-      apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
-      apiKeyId: 'trigger-invocation',
-      resolvedRef,
-      project,
-      metadata: {
-        initiatedBy: {
-          type: 'api_key',
-          id: triggerId,
-        },
-      },
-    };
+        span.setStatus({ code: SpanStatusCode.OK });
 
-    const requestId = `trigger-${invocationId}`;
-    const timestamp = Math.floor(Date.now() / 1000);
+        logger.info(
+          { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+          'Async trigger execution completed successfully'
+        );
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
 
-    // Create no-op stream helper (we're not streaming to client)
-    const noOpStreamHelper = createSSEStreamHelper(
-      {
-        writeSSE: async () => {},
-        sleep: async () => {},
-      },
-      requestId,
-      timestamp
-    );
+        span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+        span.recordException(error instanceof Error ? error : new Error(errorMessage));
 
-    // Execute the agent
-    const executionHandler = new ExecutionHandler();
-    await executionHandler.execute({
-      executionContext,
-      conversationId,
-      userMessage,
-      messageParts,
-      initialAgentId: agentId,
-      requestId,
-      sseHelper: noOpStreamHelper,
-      emitOperations: false,
-    });
+        logger.error(
+          {
+            err: errorMessage,
+            errorStack,
+            tenantId,
+            projectId,
+            agentId,
+            triggerId,
+            invocationId,
+          },
+          'Async trigger execution failed'
+        );
 
-    // Update status to success
-    await updateTriggerInvocationStatus(runDbClient)({
-      scopes: { tenantId, projectId, agentId },
-      triggerId,
-      invocationId,
-      data: { status: 'success' },
-    });
+        // Update status to failed
+        try {
+          await updateTriggerInvocationStatus(runDbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: { status: 'failed', errorMessage },
+          });
+        } catch (updateError) {
+          const updateErrorMessage =
+            updateError instanceof Error ? updateError.message : String(updateError);
+          logger.error(
+            { err: updateErrorMessage, invocationId },
+            'Failed to update invocation status to failed'
+          );
+        }
 
-    logger.info(
-      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
-      'Async trigger execution completed successfully'
-    );
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    logger.error(
-      {
-        err: errorMessage,
-        errorStack,
-        tenantId,
-        projectId,
-        agentId,
-        triggerId,
-        invocationId,
-      },
-      'Async trigger execution failed'
-    );
-
-    // Update status to failed
-    try {
-      await updateTriggerInvocationStatus(runDbClient)({
-        scopes: { tenantId, projectId, agentId },
-        triggerId,
-        invocationId,
-        data: { status: 'failed', errorMessage },
-      });
-    } catch (updateError) {
-      const updateErrorMessage =
-        updateError instanceof Error ? updateError.message : String(updateError);
-      logger.error(
-        { err: updateErrorMessage, invocationId },
-        'Failed to update invocation status to failed'
-      );
+        throw error;
+      } finally {
+        span.end();
+      }
     }
-
-    throw error;
-  }
+  );
 }

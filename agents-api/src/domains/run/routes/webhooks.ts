@@ -1,5 +1,9 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, FullExecutionContext, ResolvedRef } from '@inkeep/agents-core';
+import type {
+  CredentialStoreRegistry,
+  FullExecutionContext,
+  ResolvedRef,
+} from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { processWebhook } from '../services/TriggerService';
 
@@ -118,17 +122,30 @@ app.openapi(triggerWebhookRoute, async (c) => {
 
   if (!result.success) {
     if (result.validationErrors) {
-      return c.json({ error: result.error, validationErrors: result.validationErrors }, result.status);
+      return c.json(
+        { error: result.error, validationErrors: result.validationErrors },
+        result.status
+      );
     }
     return c.json({ error: result.error }, result.status);
   }
 
   logger.info(
-    { tenantId, projectId, agentId, triggerId, invocationId: result.invocationId, conversationId: result.conversationId },
+    {
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      invocationId: result.invocationId,
+      conversationId: result.conversationId,
+    },
     'Trigger webhook accepted, workflow dispatched'
   );
 
-  return c.json({ success: true, invocationId: result.invocationId, conversationId: result.conversationId }, 202);
+  return c.json(
+    { success: true, invocationId: result.invocationId, conversationId: result.conversationId },
+    202
+  );
 });
 
 export default app;
