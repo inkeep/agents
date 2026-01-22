@@ -4759,6 +4759,9 @@
             "maxLength": 256,
             "type": "string"
           },
+          "relationshipId": {
+            "type": "string"
+          },
           "updatedAt": {
             "type": "string"
           }
@@ -8305,6 +8308,7 @@
           "messageTemplate": {
             "description": "Message template with {{placeholder}} syntax",
             "minLength": 1,
+            "nullable": true,
             "type": "string"
           },
           "name": {
@@ -30445,33 +30449,94 @@
                         },
                         "parts": {
                           "items": {
-                            "properties": {
-                              "text": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "anyOf": [
-                                  {
-                                    "enum": [
-                                      "text",
-                                      "image",
-                                      "audio",
-                                      "video",
-                                      "file"
-                                    ],
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "text": {
                                     "type": "string"
                                   },
-                                  {
-                                    "pattern": "^data-",
+                                  "type": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "text",
+                                          "image",
+                                          "audio",
+                                          "video",
+                                          "file"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "pattern": "^data-",
+                                        "type": "string"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "approval": {
+                                    "properties": {
+                                      "approved": {
+                                        "type": "boolean"
+                                      },
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "reason": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  "callProviderMetadata": {
+                                    "nullable": true
+                                  },
+                                  "input": {
+                                    "nullable": true
+                                  },
+                                  "state": {
+                                    "nullable": true
+                                  },
+                                  "toolCallId": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "pattern": "^tool-",
                                     "type": "string"
                                   }
-                                ]
+                                },
+                                "required": [
+                                  "type",
+                                  "toolCallId",
+                                  "approval"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "type": {
+                                    "enum": [
+                                      "step-start"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ],
+                                "type": "object"
                               }
-                            },
-                            "required": [
-                              "type"
-                            ],
-                            "type": "object"
+                            ]
                           },
                           "type": "array"
                         },
