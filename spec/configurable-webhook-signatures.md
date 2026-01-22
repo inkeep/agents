@@ -35,6 +35,7 @@ Replace the simple `signingSecret` field with:
     source: "header" | "query" | "body";
     key: string;                     // Header name, query param, or JMESPath for body
     prefix?: string;                 // Strip this prefix before comparison (e.g., "sha256=", "v0=")
+    regex?: string;                  // Extract signature using regex capture group (for complex formats like Stripe)
   };
   
   // Ordered array of components to hash
@@ -42,6 +43,7 @@ Replace the simple `signingSecret` field with:
     source: "header" | "body" | "literal";
     key?: string;                    // Header name or JMESPath selector (for header/body)
     value?: string;                  // Static value (for literal)
+    regex?: string;                  // Extract value using regex capture group (for complex header formats)
   }>;
   
   componentSeparator?: string;       // How to join components (default: "")
@@ -130,6 +132,151 @@ This schema is fully generalized:
   - Edge cases (missing headers, invalid signatures, etc.)
 - `agents-api/src/__tests__/run/routes/webhooks.test.ts`
   - Integration tests with credential store resolution
+
+## Provider Examples
+
+### GitHub
+
+**Example Request:**
+```http
+POST /webhook HTTP/1.1
+Host: example.com
+Content-Type: application/json
+X-Hub-Signature-256: sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17
+X-GitHub-Event: push
+X-GitHub-Delivery: 72d3162e-cc78-11e3-81ab-4c9367dc0958
+
+{"action":"opened","issue":{"number":1,"title":"Test"}}
+```
+
+**How it's signed:** `HMAC-SHA256(secret, body)` → hex encoded with `sha256=` prefix
+
+**Signature Config:**
+```typescript
+{
+  algorithm: "sha256",
+  encoding: "hex",
+  signature: {
+    source: "header",
+    key: "X-Hub-Signature-256",
+    prefix: "sha256=",
+  },
+  signedComponents: [
+    { source: "body" },
+  ],
+}
+```
+
+---
+
+### Zendesk
+
+**Example Request:**
+```http
+POST /webhook HTTP/1.1
+Host: example.com
+Content-Type: application/json
+X-Zendesk-Webhook-Signature: t4hmyqtP0tED7M3B4jGOwQ7BG1EGhKYpn0tz64ul8zw=
+X-Zendesk-Webhook-Signature-Timestamp: 2021-03-18T19:25:00Z
+
+{"ticket":{"id":12345,"subject":"Help needed"}}
+```
+
+**How it's signed:** `HMAC-SHA256(secret, timestamp + body)` → base64 encoded
+
+**Signature Config:**
+```typescript
+{
+  algorithm: "sha256",
+  encoding: "base64",
+  signature: {
+    source: "header",
+    key: "X-Zendesk-Webhook-Signature",
+  },
+  signedComponents: [
+    { source: "header", key: "X-Zendesk-Webhook-Signature-Timestamp" },
+    { source: "body" },
+  ],
+  componentSeparator: "",
+}
+```
+
+---
+
+### Slack
+
+**Example Request:**
+```http
+POST /webhook HTTP/1.1
+Host: example.com
+Content-Type: application/x-www-form-urlencoded
+X-Slack-Signature: v0=a2114d57b48eac39b9ad189dd8316235a7b4a8d21a10bd27519666489c69b503
+X-Slack-Request-Timestamp: 1531420618
+
+token=xyzz0WbapA4vBCDEFasx0q6G&team_id=T1DC2JH3J&channel_id=C12345
+```
+
+**How it's signed:** `HMAC-SHA256(secret, "v0:" + timestamp + ":" + body)` → hex encoded with `v0=` prefix
+
+**Signature Config:**
+```typescript
+{
+  algorithm: "sha256",
+  encoding: "hex",
+  signature: {
+    source: "header",
+    key: "X-Slack-Signature",
+    prefix: "v0=",
+  },
+  signedComponents: [
+    { source: "literal", value: "v0" },
+    { source: "header", key: "X-Slack-Request-Timestamp" },
+    { source: "body" },
+  ],
+  componentSeparator: ":",
+}
+```
+
+---
+
+### Stripe
+
+**Example Request:**
+```http
+POST /webhook HTTP/1.1
+Host: example.com
+Content-Type: application/json
+Stripe-Signature: t=1492774577,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd
+
+{"id":"evt_123","type":"payment_intent.succeeded"}
+```
+
+**How it's signed:** `HMAC-SHA256(secret, timestamp + "." + body)` → hex encoded, header format `t={timestamp},v1={signature}`
+
+**Signature Config:**
+```typescript
+{
+  algorithm: "sha256",
+  encoding: "hex",
+  signature: {
+    source: "header",
+    key: "Stripe-Signature",
+    // Note: Stripe's format requires custom parsing to extract v1 value
+    // The header is: t=1492774577,v1=5257a869...
+    // We need to parse out the v1= portion
+    regex: "v1=([a-f0-9]+)",  // Extract signature using regex
+  },
+  signedComponents: [
+    { source: "header", key: "Stripe-Signature", regex: "t=([0-9]+)" },  // Extract timestamp
+    { source: "body" },
+  ],
+  componentSeparator: ".",
+}
+```
+
+> **Note:** Stripe's format is more complex with embedded timestamp. This may require adding a `regex` option to extract values from composite header formats, or we document that Stripe requires a specialized handler.
+
+---
 
 ## Example SDK Usage
 
