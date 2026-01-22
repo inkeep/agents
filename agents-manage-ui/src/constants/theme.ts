@@ -35,4 +35,5 @@ export const STATIC_LABELS = Object.freeze({
   runs: 'Runs',
   triggers: 'Triggers',
   invocations: 'Invocations',
+  'no-organization-found': 'No organization found',
 });

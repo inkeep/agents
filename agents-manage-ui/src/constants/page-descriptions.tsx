@@ -13,14 +13,6 @@ export const artifactDescription = (
   </>
 );
 
-export const dataComponentDescription = (
-  <>
-    Components are structured components that agents can use to display rich data.
-    {'\n'}
-    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/data-components`}>Learn more</ExternalLink>
-  </>
-);
-
 export const agentDescription = (
   <>
     Agents are visual representations of the data flow between sub agents and tools.
@@ -34,17 +26,5 @@ export const apiKeyDescription = (
     API keys are use to authenticate against the Inkeep Agents API. They are associated with an
     agent and can be used to chat with the agent programmatically.
     {'\n'}
-  </>
-);
-
-export const projectDescription = (
-  <>Projects help you organize your agents, tools, and configurations.</>
-);
-
-export const emptyStateProjectDescription = (
-  <>
-    {projectDescription} Create your first project to get started.
-    {'\n'}
-    <ExternalLink href={`${DOCS_BASE_URL}/`}>Check out the docs</ExternalLink>
   </>
 );

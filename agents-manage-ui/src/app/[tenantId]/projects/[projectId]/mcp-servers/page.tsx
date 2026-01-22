@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
@@ -11,6 +12,10 @@ import { getErrorCode } from '@/lib/utils/error-serialization';
 
 const mcpServerDescription = 'Create MCP servers that agents can use to access external services.';
 
+export const metadata = {
+  title: STATIC_LABELS['mcp-servers'],
+} satisfies Metadata;
+
 async function MCPServersPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers'>) {
@@ -21,7 +26,7 @@ async function MCPServersPage({
     return tools.length ? (
       <>
         <PageHeader
-          title={STATIC_LABELS['mcp-servers']}
+          title={metadata.title}
           description={mcpServerDescription}
           action={
             <Button asChild>

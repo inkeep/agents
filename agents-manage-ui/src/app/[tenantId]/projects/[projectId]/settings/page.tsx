@@ -1,10 +1,16 @@
+import type { Metadata } from 'next';
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectForm } from '@/components/projects/form/project-form';
 import type { ProjectFormData } from '@/components/projects/form/validation';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchProject } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: STATIC_LABELS.settings,
+} satisfies Metadata;
 
 export default async function SettingsPage({
   params,

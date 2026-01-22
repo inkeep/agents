@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { AgentItem } from '@/components/agents/agent-item';
 import { NewAgentDialog, NewAgentItem } from '@/components/agents/new-agent-item';
 import FullPageError from '@/components/errors/full-page-error';
@@ -11,13 +12,17 @@ import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata = {
+  title: STATIC_LABELS.agents,
+} satisfies Metadata;
+
 async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;
   try {
     const { data } = await fetchAgents(tenantId, projectId);
     return data.length ? (
       <>
-        <PageHeader title={STATIC_LABELS.agents} description={agentDescription} />
+        <PageHeader title={metadata.title} description={agentDescription} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
           <NewAgentItem tenantId={tenantId} projectId={projectId} />
           {data.map((agent) => (

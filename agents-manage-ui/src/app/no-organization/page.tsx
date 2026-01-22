@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
+import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
 
@@ -23,7 +24,7 @@ export default function NoOrganizationPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <ErrorContent
-        title="  No organization found"
+        title={STATIC_LABELS['no-organization-found']}
         icon={XCircle}
         showRetry={false}
         description={

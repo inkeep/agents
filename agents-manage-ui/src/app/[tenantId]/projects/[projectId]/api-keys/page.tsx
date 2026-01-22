@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { ApiKeysTable } from '@/components/api-keys/api-keys-table';
 import { NewApiKeyDialog } from '@/components/api-keys/new-api-key-dialog';
 import FullPageError from '@/components/errors/full-page-error';
@@ -12,6 +13,10 @@ import { createLookup } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: STATIC_LABELS['api-keys'],
+} satisfies Metadata;
 
 const createAgentOptions = (agent: Agent[]): SelectOption[] => {
   return agent.map((agent) => ({
@@ -33,7 +38,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
     return (
       <>
         <PageHeader
-          title={STATIC_LABELS['api-keys']}
+          title={metadata.title}
           description={apiKeyDescription}
           action={
             <NewApiKeyDialog

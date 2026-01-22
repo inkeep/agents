@@ -29,7 +29,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Inkeep Agents',
+  title: {
+    default: 'Inkeep Agents',
+    template: '%s | Inkeep',
+  },
   description:
     "Inkeep's multi-agent framework enables multiple specialized AI agents to collaborate and solve complex problems through an agent-based architecture. You can define networks of agents, each with unique instructions, tools, and purposes.",
 };
