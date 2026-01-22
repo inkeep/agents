@@ -31,12 +31,13 @@ export function SuiteConfigViewDialog({
 }: SuiteConfigViewDialogProps) {
   'use memo';
 
-  const { data: suiteConfigData, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery(
+  const { data: suiteConfigData, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery({
     suiteConfigId,
-    { disabled: !isOpen }
-  );
+    disabled: !isOpen,
+  });
   const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
-    useEvaluationSuiteConfigEvaluatorsQuery(suiteConfigId, {
+    useEvaluationSuiteConfigEvaluatorsQuery({
+      suiteConfigId,
       disabled: !isOpen,
     });
   const { data: agents, isFetching: agentsFetching } = useAgentsQuery({ disabled: !isOpen });
