@@ -6,7 +6,7 @@
   "outputDirectory": "dist",
   "functions": {
     "index.js": {
-      "maxDuration": 300,
+      "maxDuration": 900,
       "includeFiles": ".well-known/**/*",
       "experimentalTriggers": [
         {
