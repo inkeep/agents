@@ -69,7 +69,7 @@ const chatDataStreamRoute = createRoute({
                           id: z.string(),
                           approved: z.boolean().optional(),
                           reason: z.string().optional(),
-                        }),
+                        }).optional(),
                         input: z.any().optional(),
                         callProviderMetadata: z.any().optional(),
                       }),
