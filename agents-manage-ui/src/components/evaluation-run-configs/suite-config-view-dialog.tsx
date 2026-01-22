@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,76 +29,33 @@ export function SuiteConfigViewDialog({
   isOpen,
   onOpenChange,
 }: SuiteConfigViewDialogProps) {
-  const [loading, setLoading] = useState(false);
-  const [suiteConfig, setSuiteConfig] = useState<{
-    filters: Record<string, unknown> | null;
-    sampleRate: number | null;
-  } | null>(null);
-  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  'use memo';
 
-  const loadSuiteConfigDetails = useCallback(async () => {
-    if (!suiteConfigId || !tenantId || !projectId) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const [suiteConfigRes, evaluatorsRes, agentsRes] = await Promise.all([
-        fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId).catch((err) => {
-          console.error('Error fetching suite config:', err);
-          throw err;
-        }),
-        fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId).catch((err) => {
-          console.error('Error fetching suite config evaluators:', err);
-          return { data: [] };
-        }),
-        fetchAgents(tenantId, projectId).catch((err) => {
-          console.error('Error fetching agents:', err);
-          return { data: [] };
-        }),
-      ]);
-
-      if (!suiteConfigRes?.data) {
-        console.error('No suite config data returned');
-        return;
-      }
-
-      const suiteConfigData = suiteConfigRes.data;
-      setSuiteConfig({
-        filters: suiteConfigData.filters,
-        sampleRate: suiteConfigData.sampleRate,
-      });
-
-      // Get evaluator IDs from relations
-      const evaluatorIds =
-        evaluatorsRes.data?.map((rel: { evaluatorId: string }) => rel.evaluatorId) || [];
-
-      // Fetch full evaluator details
-      if (evaluatorIds.length > 0) {
-        const allEvaluatorsRes = await fetchEvaluators(tenantId, projectId);
-        const matchedEvaluators = (allEvaluatorsRes.data || []).filter((evaluator) =>
-          evaluatorIds.includes(evaluator.id)
-        );
-        setEvaluators(matchedEvaluators);
-      }
-
-      setAgents(agentsRes.data || []);
-    } catch (error) {
-      console.error('Error loading suite config details:', error);
-      setSuiteConfig(null);
-      setEvaluators([]);
-      setAgents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [suiteConfigId, tenantId, projectId]);
-
-  useEffect(() => {
-    if (isOpen && suiteConfigId && tenantId && projectId) {
-      loadSuiteConfigDetails();
-    }
-  }, [isOpen, suiteConfigId, tenantId, projectId, loadSuiteConfigDetails]);
+  const {
+    data: suiteConfigData,
+    isFetching: suiteConfigFetching,
+  } = useEvaluationSuiteConfigQuery(suiteConfigId, {
+    enabled: isOpen,
+  });
+  const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
+    useEvaluationSuiteConfigEvaluatorsQuery(suiteConfigId, {
+      enabled: isOpen,
+    });
+  const { data: agents, isFetching: agentsFetching } = useAgentsQuery({ enabled: isOpen });
+  const { data: allEvaluators, isFetching: evaluatorsFetching } = useEvaluatorsQuery({
+    enabled: isOpen,
+  });
+  const suiteConfig = suiteConfigData && {
+    filters: suiteConfigData.filters,
+    sampleRate: suiteConfigData.sampleRate,
+  };
+  // Get evaluator IDs from relations
+  const evaluatorIds = suiteConfigEvaluators.map((rel) => rel.evaluatorId);
+  const evaluators = evaluatorIds.length
+    ? allEvaluators.filter((evaluator) => evaluatorIds.includes(evaluator.id))
+    : [];
+  const isLoading =
+    suiteConfigFetching || suiteConfigEvaluatorsFetching || evaluatorsFetching || agentsFetching;
 
   const getAgentNames = (agentIds?: string[]): string[] => {
     if (!agentIds || agentIds.length === 0) {
@@ -123,7 +79,7 @@ export function SuiteConfigViewDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
