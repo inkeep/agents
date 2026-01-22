@@ -2,12 +2,11 @@
 
 import { AlertCircle, Lock, Pencil, User } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { InfoCard } from '@/components/ui/info-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { type Credential, fetchUserScopedCredential } from '@/lib/api/credentials';
+import { useUserScopedCredentialQuery } from '@/lib/query/credentials';
 import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
 import { Button } from '../ui/button';
@@ -33,9 +32,7 @@ export function ViewMCPServerDetailsUserScope({
   tenantId: string;
   projectId: string;
 }) {
-  const [userCredential, setUserCredential] = useState<Credential | null>(null);
-  const [isLoadingCredential, setIsLoadingCredential] = useState(true);
-
+  'use memo'
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
@@ -44,6 +41,9 @@ export function ViewMCPServerDetailsUserScope({
     },
   });
 
+  const { data: userCredential, isFetching: isLoadingCredential } = useUserScopedCredentialQuery({
+    toolId: tool.id,
+  });
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
   const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';
   const { data: thirdPartyServer, isFetching: isLoadingThirdParty } = useThirdPartyMCPServerQuery({
@@ -52,24 +52,6 @@ export function ViewMCPServerDetailsUserScope({
     disabled: !shouldFetchThirdParty,
   });
   const thirdPartyConnectUrl = thirdPartyServer?.thirdPartyConnectAccountUrl;
-
-  // Fetch user's credential for this tool
-  useEffect(() => {
-    const loadUserCredential = async () => {
-      setIsLoadingCredential(true);
-      try {
-        const credential = await fetchUserScopedCredential(tenantId, projectId, tool.id);
-        setUserCredential(credential);
-      } catch (error) {
-        console.error('Failed to fetch user credential:', error);
-        setUserCredential(null);
-      } finally {
-        setIsLoadingCredential(false);
-      }
-    };
-
-    loadUserCredential();
-  }, [tenantId, projectId, tool.id]);
 
   return (
     <div className="max-w-2xl mx-auto py-4 space-y-8">

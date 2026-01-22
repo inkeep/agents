@@ -34,7 +34,7 @@ export function useUserScopedCredentialQuery({
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     meta: {
-      defaultError: 'Failed to load credential',
+      defaultError: 'Failed to load user credential',
     },
   });
 }
