@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import * as readline from 'node:readline';
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltAddAndCommit, doltStatus } from './commit';
