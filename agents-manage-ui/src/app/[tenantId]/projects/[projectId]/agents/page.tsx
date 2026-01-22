@@ -5,16 +5,25 @@ import FullPageError from '@/components/errors/full-page-error';
 import { AgentsIcon } from '@/components/icons/empty-state/agents';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { agentDescription } from '@/constants/page-descriptions';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { ExternalLink } from '@/components/ui/external-link';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: STATIC_LABELS.agents,
+  description: 'Agents are visual representations of the data flow between sub agents and tools.',
 } satisfies Metadata;
+
+const agentDescription = (
+  <>
+    {metadata.description}
+    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/agent`}>Learn more</ExternalLink>
+  </>
+);
 
 async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;

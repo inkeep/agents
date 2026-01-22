@@ -4,7 +4,6 @@ import { NewApiKeyDialog } from '@/components/api-keys/new-api-key-dialog';
 import FullPageError from '@/components/errors/full-page-error';
 import type { SelectOption } from '@/components/form/generic-select';
 import { PageHeader } from '@/components/layout/page-header';
-import { apiKeyDescription } from '@/constants/page-descriptions';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchApiKeys } from '@/lib/api/api-keys';
@@ -16,6 +15,8 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: STATIC_LABELS['api-keys'],
+  description:
+    'API keys are use to authenticate against the Inkeep Agents API. They are associated with an agent and can be used to chat with the agent programmatically.',
 } satisfies Metadata;
 
 const createAgentOptions = (agent: Agent[]): SelectOption[] => {
@@ -39,7 +40,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
       <>
         <PageHeader
           title={metadata.title}
-          description={apiKeyDescription}
+          description={metadata.description}
           action={
             <NewApiKeyDialog
               tenantId={tenantId}
