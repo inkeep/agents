@@ -40,7 +40,7 @@ pnpm bump patch --pkg agents-core "Fix race condition in agent message queue"
 pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
 ```
 
-**Valid package names:** `agents-cli`, `agents-core`, `agents-manage-api`, `agents-manage-ui`, `agents-run-api`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
+**Valid package names:** `agents-cli`, `agents-core`, `agents-api`, `agents-manage-ui`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
 
 **Semver guidance:**
 - **Major**: Reserved - do not use without explicit approval
@@ -116,6 +116,12 @@ pnpm build           # Build documentation for production
 This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
 
 ### Core Components
+
+#### Unified API (`agents-api`)
+The `agents-api` package contains all API domains under a single service:
+- **`/domains/manage/`** - Agent configuration, projects, tools, and administrative operations
+- **`/domains/run/`** - Agent execution, conversations, A2A communication, and runtime operations
+- **`/domains/evals/`** - Evaluation workflows, dataset management, and evaluation triggers
 
 #### Multi-Agent Framework
 
@@ -319,8 +325,11 @@ git worktree prune
 - **Agent Discovery**: Agents register capabilities via `/.well-known/{subAgentId}/agent.json` endpoints
 
 ### File Locations
+- **API Domains**: `agents-api/src/domains/` (unified API with manage/, run/, evals/ domains)
 - **Core Agents**: `agents-api/src/domains/run/agents/Agent.ts`, `agents-api/src/domains/run/agents/generateTaskHandler.ts`
 - **A2A Communication**: `agents-api/src/domains/run/a2a/`, `agents-api/src/domains/run/handlers/executionHandler.ts`
+- **Evaluations**: `agents-api/src/domains/evals/` (evaluation workflows, dataset runs, triggers)
+- **Management Routes**: `agents-api/src/domains/manage/routes/` (agent config, projects, tools, credentials)
 - **Database Layer**: `packages/agents-core/src/data-access/` (agents, tasks, conversations, tools)
 - **Builder Patterns**: `packages/agents-sdk/src/` (agent.ts, subAgent.ts, tool.ts, project.ts)
 - **Schemas**: `packages/agents-core/src/db/manage/manage-schema.ts`, `packages/agents-core/src/db/run/run-schema.ts` (Drizzle), `packages/agents-core/src/validation/` (Zod validation)
