@@ -8,12 +8,12 @@ Implement fully configurable HMAC signature verification for triggers, allowing 
 
 The current trigger implementation only supports a single hardcoded signature pattern (`X-Signature-256` header, `sha256={hex}` format, body-only signing). Different webhook providers use different patterns:
 
-| Provider | Signature Header | Timestamp Header | Format | What's Signed |
-|----------|------------------|------------------|--------|---------------|
-| GitHub | `X-Hub-Signature-256` | N/A | `sha256={hex}` | body |
-| Zendesk | `X-Zendesk-Webhook-Signature` | `X-Zendesk-Webhook-Signature-Timestamp` | base64 | timestamp + body |
-| Slack | `X-Slack-Signature` | `X-Slack-Request-Timestamp` | `v0={hex}` | `v0:{timestamp}:{body}` |
-| Stripe | `t={ts},v1={sig}` in header | (embedded) | hex | timestamp + body |
+| Provider | Signature Header | Timestamp Header | Format | What's Signed | Docs |
+|----------|------------------|------------------|--------|---------------|------|
+| GitHub | `X-Hub-Signature-256` | N/A | `sha256={hex}` | body | [Validating webhook deliveries](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) |
+| Zendesk | `X-Zendesk-Webhook-Signature` | `X-Zendesk-Webhook-Signature-Timestamp` | base64 | timestamp + body | [Verifying webhook authenticity](https://developer.zendesk.com/documentation/webhooks/verifying/) |
+| Slack | `X-Slack-Signature` | `X-Slack-Request-Timestamp` | `v0={hex}` | `v0:{timestamp}:{body}` | [Verifying requests from Slack](https://api.slack.com/authentication/verifying-requests-from-slack) |
+| Stripe | `Stripe-Signature` | (embedded in header) | hex | timestamp + body | [Check the signatures](https://docs.stripe.com/webhooks#verify-official-libraries) |
 
 ## Solution
 
