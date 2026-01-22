@@ -47,6 +47,7 @@ const triggerWebhookRoute = createRoute({
           schema: z.object({
             success: z.boolean(),
             invocationId: z.string(),
+            conversationId: z.string(),
           }),
         },
       },
@@ -127,7 +128,7 @@ app.openapi(triggerWebhookRoute, async (c) => {
     'Trigger webhook accepted, workflow dispatched'
   );
 
-  return c.json({ success: true, invocationId: result.invocationId }, 202);
+  return c.json({ success: true, invocationId: result.invocationId, conversationId: result.conversationId }, 202);
 });
 
 export default app;

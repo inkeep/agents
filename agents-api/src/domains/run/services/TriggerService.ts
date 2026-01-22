@@ -137,7 +137,10 @@ async function verifyAuthentication(
     return { success: true };
   }
 
-  const authResult = await verifyTriggerAuth(honoContext, trigger.authentication as any);
+  const authResult = await verifyTriggerAuth(
+    honoContext,
+    trigger.authentication as Parameters<typeof verifyTriggerAuth>[1]
+  );
   if (!authResult.success) {
     if (authResult.status === 401) {
       return { success: false, error: authResult.message || 'Unauthorized', status: 401 };
