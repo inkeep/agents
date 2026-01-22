@@ -417,6 +417,94 @@ export const TriggerOutputTransformSchema = z
   })
   .openapi('TriggerOutputTransform');
 
+// Signature verification schemas
+export const SignatureSourceSchema = z
+  .object({
+    source: z
+      .enum(['header', 'query', 'body'])
+      .describe('Location of the signature in the incoming request'),
+    key: z.string().describe('Key name for the signature (header name, query param, or JMESPath)'),
+    prefix: z
+      .string()
+      .optional()
+      .describe('Optional prefix to strip from signature value (e.g., "sha256=", "v0=")'),
+    regex: z
+      .string()
+      .optional()
+      .describe('Optional regex pattern to extract signature from value (first capture group used)'),
+  })
+  .openapi('SignatureSource');
+
+export const SignedComponentSchema = z
+  .object({
+    source: z
+      .enum(['header', 'body', 'literal'])
+      .describe('Source of the component: header value, body via JMESPath, or literal string'),
+    key: z
+      .string()
+      .optional()
+      .describe('Key for header name or JMESPath expression (required for header/body sources)'),
+    value: z.string().optional().describe('Literal string value (required for literal source)'),
+    regex: z
+      .string()
+      .optional()
+      .describe('Optional regex pattern to extract from component value (first capture group)'),
+    required: z
+      .boolean()
+      .default(true)
+      .describe('If false, missing component results in empty string instead of error'),
+  })
+  .openapi('SignedComponent');
+
+export const ComponentJoinSchema = z
+  .object({
+    strategy: z.enum(['concatenate']).describe('Strategy for joining components'),
+    separator: z.string().describe('String to insert between joined components'),
+  })
+  .openapi('ComponentJoin');
+
+export const SignatureValidationOptionsSchema = z
+  .object({
+    headerCaseSensitive: z
+      .boolean()
+      .default(false)
+      .describe('If true, header names are matched case-sensitively'),
+    allowEmptyBody: z
+      .boolean()
+      .default(true)
+      .describe('If true, allow empty request body for verification'),
+    normalizeUnicode: z
+      .boolean()
+      .default(false)
+      .describe('If true, normalize Unicode strings to NFC form before signing'),
+  })
+  .openapi('SignatureValidationOptions');
+
+export const SignatureVerificationConfigSchema = z
+  .object({
+    algorithm: z
+      .enum(['sha256', 'sha512', 'sha384', 'sha1', 'md5'])
+      .describe('HMAC algorithm to use for signature verification'),
+    encoding: z
+      .enum(['hex', 'base64'])
+      .describe('Encoding format of the signature (hex or base64)'),
+    signature: SignatureSourceSchema.describe('Configuration for extracting the signature'),
+    signedComponents: z
+      .array(SignedComponentSchema)
+      .min(1)
+      .describe('Array of components that are signed (order matters)'),
+    componentJoin: ComponentJoinSchema.describe('How to join signed components'),
+    validation: SignatureValidationOptionsSchema.optional().describe('Advanced validation options'),
+  })
+  .openapi('SignatureVerificationConfig');
+
+// Inferred TypeScript types for export
+export type SignatureVerificationConfig = z.infer<typeof SignatureVerificationConfigSchema>;
+export type SignatureSource = z.infer<typeof SignatureSourceSchema>;
+export type SignedComponent = z.infer<typeof SignedComponentSchema>;
+export type ComponentJoin = z.infer<typeof ComponentJoinSchema>;
+export type SignatureValidationOptions = z.infer<typeof SignatureValidationOptionsSchema>;
+
 export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
 
 export const TriggerSelectSchema = createSelectSchema(triggers);
