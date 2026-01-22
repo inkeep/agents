@@ -8,9 +8,12 @@ import { cn } from '@/lib/utils';
 const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
   return (
     <AppSidebarProvider>
-      <SidebarInset>
+      <SidebarInset
+        // make rounded-b works on dark mode
+        className="overflow-hidden"
+      >
         <div className="h-[calc(100vh-16px)] flex flex-col overflow-hidden">
-          <header className="h-(--header-height) shrink-0 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) bg-muted/20 dark:bg-background rounded-t-[14px] flex items-center gap-1 px-4 lg:gap-2 lg:px-6">
+          <header className="h-(--header-height) shrink-0 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) flex items-center gap-1 px-4 lg:gap-2 lg:px-6">
             <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground hover:bg-accent dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-accent/50" />
             <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
             <nav aria-label="Breadcrumb">
@@ -31,7 +34,7 @@ const Layout: FC<LayoutProps<'/[tenantId]'>> = ({ children, breadcrumbs }) => {
               'overflow-y-auto',
               'scrollbar-thin scrollbar-track-transparent',
               'scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50',
-              'bg-muted/20 dark:bg-background'
+              'not-dark:bg-muted/20'
             )}
           >
             <div className="flex-1 p-6 [&:has(>.no-parent-container)]:contents">{children}</div>
