@@ -30,7 +30,11 @@ export interface StreamHelper {
     providerMetadata?: any;
   }): Promise<void>;
   writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void>;
-  writeToolOutputError(params: { toolCallId: string; errorText: string; output?: any }): Promise<void>;
+  writeToolOutputError(params: {
+    toolCallId: string;
+    errorText: string;
+    output?: any;
+  }): Promise<void>;
   writeToolApprovalRequest(params: { approvalId: string; toolCallId: string }): Promise<void>;
   writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
 }
