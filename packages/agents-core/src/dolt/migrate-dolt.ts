@@ -1,9 +1,9 @@
 import { execSync } from 'node:child_process';
 
 import { createAgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { confirmMigration } from '../db/utils';
 import { loadEnvironmentFiles } from '../env';
 import { doltAddAndCommit, doltStatus } from './commit';
-import { confirmMigration } from '../db/utils';
 
 const commitMigrations = async () => {
   loadEnvironmentFiles();

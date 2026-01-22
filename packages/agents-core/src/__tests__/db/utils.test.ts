@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { isLocalhostUrl, confirmMigration } from '../../db/utils';
+import { confirmMigration, isLocalhostUrl } from '../../db/utils';
 
 describe('isLocalhostUrl', () => {
   it('should return true for localhost URL', () => {

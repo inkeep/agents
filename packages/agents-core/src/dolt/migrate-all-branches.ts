@@ -1,8 +1,8 @@
 import { createAgentsManageDatabaseClient } from '../db/manage/manage-client';
-import { doltCheckout, doltListBranches } from './branch';
-import { loadEnvironmentFiles } from '../env';
-import { syncSchemaFromMain } from './schema-sync';
 import { confirmMigration } from '../db/utils';
+import { loadEnvironmentFiles } from '../env';
+import { doltCheckout, doltListBranches } from './branch';
+import { syncSchemaFromMain } from './schema-sync';
 
 const ansi = {
   reset: '\u001b[0m',
