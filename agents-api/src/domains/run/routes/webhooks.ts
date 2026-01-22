@@ -426,13 +426,14 @@ async function invokeAgentAsync(params: {
           }
 
           // Build execution context for trigger invocation
+          // Use bypass secret for internal A2A calls (triggers don't have user API keys)
           const executionContext: FullExecutionContext = {
             tenantId,
             projectId,
             agentId,
             baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
-            apiKey: '', // Triggers don't use API keys
-            apiKeyId: 'trigger-invocation', // Placeholder since triggers don't use API keys
+            apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
+            apiKeyId: 'trigger-invocation',
             resolvedRef,
             project,
             metadata: {
