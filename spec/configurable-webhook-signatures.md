@@ -47,7 +47,16 @@ Replace the simple `signingSecret` field with:
     regex?: string;                  // Extract value using regex capture group (for complex header formats)
   }>;
   
-  componentSeparator?: string;       // How to join components (default: "")
+  // Component joining configuration - REQUIRED, be explicit
+  componentJoin: {
+    strategy: "concatenate";         // How to join components before hashing
+                                     // "concatenate" - join with separator string
+                                     // Future: "json_array", "custom" for extensibility
+    separator: string;               // REQUIRED - the string to join components with
+                                     // Use "" for direct concatenation (Zendesk)
+                                     // Use ":" for colon-separated (Slack)
+                                     // Use "." for dot-separated (Stripe)
+  };
 }
 ```
 
@@ -112,11 +121,13 @@ This schema is fully generalized:
 - `agents-manage-ui/src/components/triggers/trigger-form.tsx`
   - Add credential reference selector for signing secret
   - Add signature verification configuration section with:
-    - Algorithm dropdown (sha256, sha1)
+    - Algorithm dropdown (sha256, sha1, sha512, etc.)
     - Encoding dropdown (hex, base64)
     - Signature source configuration
     - Signed components builder (add/remove/reorder)
-    - Component separator input
+    - Component join configuration:
+      - Strategy dropdown (concatenate, with future options)
+      - Separator input (required, with clear labeling for "" = direct concatenation)
 
 ### 9. Documentation
 
@@ -165,6 +176,10 @@ X-GitHub-Delivery: 72d3162e-cc78-11e3-81ab-4c9367dc0958
   signedComponents: [
     { source: "body" },
   ],
+  componentJoin: {
+    strategy: "concatenate",
+    separator: "",  // Single component, separator doesn't matter
+  },
 }
 ```
 
@@ -198,7 +213,10 @@ X-Zendesk-Webhook-Signature-Timestamp: 2021-03-18T19:25:00Z
     { source: "header", key: "X-Zendesk-Webhook-Signature-Timestamp" },
     { source: "body" },
   ],
-  componentSeparator: "",
+  componentJoin: {
+    strategy: "concatenate",
+    separator: "",  // Direct concatenation: timestamp + body
+  },
 }
 ```
 
@@ -234,7 +252,10 @@ token=xyzz0WbapA4vBCDEFasx0q6G&team_id=T1DC2JH3J&channel_id=C12345
     { source: "header", key: "X-Slack-Request-Timestamp" },
     { source: "body" },
   ],
-  componentSeparator: ":",
+  componentJoin: {
+    strategy: "concatenate",
+    separator: ":",  // Colon-separated: "v0:{timestamp}:{body}"
+  },
 }
 ```
 
@@ -271,7 +292,10 @@ Stripe-Signature: t=1492774577,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56
     { source: "header", key: "Stripe-Signature", regex: "t=([0-9]+)" },  // Extract timestamp
     { source: "body" },
   ],
-  componentSeparator: ".",
+  componentJoin: {
+    strategy: "concatenate",
+    separator: ".",  // Dot-separated: "{timestamp}.{body}"
+  },
 }
 ```
 
@@ -308,6 +332,10 @@ const githubTrigger = trigger({
     signedComponents: [
       { source: "body" },  // Raw request body
     ],
+    componentJoin: {
+      strategy: "concatenate",
+      separator: "",  // Single component, separator not used
+    },
   },
 });
 
@@ -326,7 +354,10 @@ const zendeskTrigger = trigger({
       { source: "header", key: "X-Zendesk-Webhook-Signature-Timestamp" },
       { source: "body" },
     ],
-    componentSeparator: "",  // Direct concatenation
+    componentJoin: {
+      strategy: "concatenate",
+      separator: "",  // Direct concatenation: timestamp + body
+    },
   },
 });
 
@@ -347,7 +378,10 @@ const slackTrigger = trigger({
       { source: "header", key: "X-Slack-Request-Timestamp" },
       { source: "body" },
     ],
-    componentSeparator: ":",
+    componentJoin: {
+      strategy: "concatenate",
+      separator: ":",  // Colon-separated: "v0:{timestamp}:{body}"
+    },
   },
 });
 
@@ -365,6 +399,10 @@ const customTrigger = trigger({
     signedComponents: [
       { source: "body", key: "payload.data" },  // JMESPath selector
     ],
+    componentJoin: {
+      strategy: "concatenate",
+      separator: "",  // Single component, separator not used
+    },
   },
 });
 ```
