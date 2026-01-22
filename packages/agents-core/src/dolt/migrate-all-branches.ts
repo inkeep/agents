@@ -4,7 +4,6 @@ import { loadEnvironmentFiles } from '../env';
 import { syncSchemaFromMain } from './schema-sync';
 import { confirmMigration } from '../db/utils';
 
-
 const ansi = {
   reset: '\u001b[0m',
   dim: '\u001b[2m',

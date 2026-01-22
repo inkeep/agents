@@ -427,7 +427,6 @@ export const areBranchesSchemaCompatible =
     };
   };
 
-
 export const isLocalhostUrl = (url: string | undefined): boolean => {
   if (!url) return false;
   try {
