@@ -6,7 +6,7 @@ export const MONACO_THEME_NAME = Object.freeze({
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';
 
-export const TEMPLATE_VARIABLE_REGEX = /\{\{(?!\{)[^{}]+}}/g;
+export const TEMPLATE_VARIABLE_REGEX = /\{\{(?!\{)(?<variableName>[^{}]+)}}/g;
 
 /**
  * Used in `/[tenantId]/@breadcrumbs/[...slug]/page.tsx` parallel route and sidebar-nav/app-sidebar

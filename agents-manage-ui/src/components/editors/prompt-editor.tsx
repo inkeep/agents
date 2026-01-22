@@ -32,7 +32,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
       for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
         const line = model.getLineContent(lineNumber);
         for (const match of line.matchAll(TEMPLATE_VARIABLE_REGEX)) {
-          const [variableName] = match;
+          const { variableName } = match.groups as { variableName: string };
           // Check if variable is valid (in suggestions) or reserved env
           const isValid =
             validVariables.has(variableName) ||
@@ -47,7 +47,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
               startLineNumber: lineNumber,
               startColumn: match.index + 3,
               endLineNumber: lineNumber,
-              endColumn: match.index + variableName.length - 1,
+              endColumn: match.index + match[0].length - 1,
               message: `Unknown variable: ${variableName}`,
               severity: monaco.MarkerSeverity.Error,
             });
