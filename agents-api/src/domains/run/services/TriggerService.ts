@@ -23,6 +23,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
+import { trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
@@ -279,6 +280,26 @@ async function dispatchExecution(params: {
 
   const conversationId = getConversationId();
   const invocationId = generateId();
+
+  // Set trigger-related attributes on the HTTP request span
+  // These attributes are used by the trace UI to identify trigger invocations
+  const activeSpan = trace.getActiveSpan();
+  if (activeSpan) {
+    activeSpan.setAttributes({
+      'conversation.id': conversationId,
+      'tenant.id': tenantId,
+      'project.id': projectId,
+      'agent.id': agentId,
+      // Trigger-specific attributes used by the trace UI
+      'invocation.type': 'trigger',
+      'trigger.id': triggerId,
+      'trigger.invocation.id': invocationId,
+      // Message attributes for display in traces
+      'message.content': userMessageText,
+      'message.timestamp': new Date().toISOString(),
+      'message.parts': JSON.stringify(messageParts),
+    });
+  }
 
   // Create invocation record (status: pending)
   // Note: transformedPayload can be any JSON value (object, array, primitive) from JMESPath transforms
