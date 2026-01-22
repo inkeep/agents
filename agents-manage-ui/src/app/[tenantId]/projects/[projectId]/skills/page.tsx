@@ -17,10 +17,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { STATIC_LABELS } from '@/constants/theme';
 import { fetchSkills } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { STATIC_LABELS } from '@/constants/theme';
 
 const colClass = 'align-top whitespace-pre-wrap';
 const description = (

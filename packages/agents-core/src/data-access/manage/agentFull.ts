@@ -2,8 +2,8 @@ import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   projects,
-  subAgentSkills,
   subAgentFunctionToolRelations,
+  subAgentSkills,
   subAgents,
   subAgentToolRelations,
 } from '../../db/manage/manage-schema';

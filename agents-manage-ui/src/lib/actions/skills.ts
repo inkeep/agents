@@ -2,6 +2,7 @@
 
 import type { SkillApiInsert, SkillApiUpdate } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 import {
   createSkill,
   deleteSkill,
@@ -12,7 +13,6 @@ import {
 } from '@/lib/api/skills';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
-import { cache } from 'react';
 
 export async function fetchSkillsAction(
   tenantId: string,

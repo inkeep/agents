@@ -1943,11 +1943,11 @@ export const SubAgentToolRelationResponse = z
   .object({ data: SubAgentToolRelationApiSelectSchema })
   .openapi('SubAgentToolRelationResponse');
 export const TriggerResponse = z
-    .object({ data: TriggerApiSelectSchema })
-    .openapi('TriggerResponse');
+  .object({ data: TriggerApiSelectSchema })
+  .openapi('TriggerResponse');
 export const TriggerInvocationResponse = z
-    .object({ data: TriggerInvocationApiSelectSchema })
-    .openapi('TriggerInvocationResponse');
+  .object({ data: TriggerInvocationApiSelectSchema })
+  .openapi('TriggerInvocationResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -2041,17 +2041,17 @@ export const SubAgentToolRelationListResponse = z
   })
   .openapi('SubAgentToolRelationListResponse');
 export const TriggerListResponse = z
-    .object({
-        data: z.array(TriggerApiSelectSchema),
-        pagination: PaginationSchema,
-    })
-    .openapi('TriggerListResponse');
+  .object({
+    data: z.array(TriggerApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('TriggerListResponse');
 export const TriggerInvocationListResponse = z
-    .object({
-        data: z.array(TriggerInvocationApiSelectSchema),
-        pagination: PaginationSchema,
-    })
-    .openapi('TriggerInvocationListResponse');
+  .object({
+    data: z.array(TriggerInvocationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('TriggerInvocationListResponse');
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');

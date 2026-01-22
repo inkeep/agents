@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
 import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { fetchSkillAction } from '@/lib/actions/skills';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchCredential } from '@/lib/api/credentials';
 import { fetchDataComponent } from '@/lib/api/data-components';
@@ -16,7 +17,6 @@ import { getTrigger } from '@/lib/api/triggers';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
-import { fetchSkillAction } from '@/lib/actions/skills';
 
 type LabelKey = keyof typeof STATIC_LABELS;
 
