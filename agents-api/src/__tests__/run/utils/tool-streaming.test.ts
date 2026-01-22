@@ -51,7 +51,7 @@ describe('tool streaming', () => {
         output: { ok: true },
       });
 
-      await helper.writeToolOutputError({ toolCallId: 'call_1234xyz', error: 'boom' });
+      await helper.writeToolOutputError({ toolCallId: 'call_1234xyz', errorText: 'boom' });
       const fourth = JSON.parse(sent[3]);
       expect(JSON.parse(fourth.choices[0].delta.content)).toEqual({
         type: 'tool-output-error',
@@ -98,7 +98,7 @@ describe('tool streaming', () => {
         input: { filePath: 'user/none.md' },
       });
       await helper.writeToolOutputAvailable({ toolCallId: 'call_1', output: { success: true } });
-      await helper.writeToolOutputError({ toolCallId: 'call_1', error: 'nope' });
+      await helper.writeToolOutputError({ toolCallId: 'call_1', errorText: 'nope' });
       await helper.writeToolApprovalRequest({ approvalId: 'aitxt-call_1', toolCallId: 'call_1' });
       await helper.writeToolOutputDenied({ toolCallId: 'call_1' });
 
