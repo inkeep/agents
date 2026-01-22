@@ -115,9 +115,9 @@ describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
       expect(await store.has(key)).toBe(false);
       expect(await store.get(key)).toBeNull();
 
-      // Deleting again should return false
+      // Deleting again returns true (operation succeeds silently even for non-existent keys)
       const deletedAgain = await store.delete(key);
-      expect(deletedAgain).toBe(false);
+      expect(deletedAgain).toBe(true);
     });
 
     it('should handle special characters in keys and values', async () => {
@@ -220,7 +220,8 @@ describe.skipIf(shouldSkip)('KeyChainStore Integration', () => {
     it('should handle non-existent keys gracefully', async () => {
       expect(await store.get('NON_EXISTENT_KEY')).toBeNull();
       expect(await store.has('NON_EXISTENT_KEY')).toBe(false);
-      expect(await store.delete('NON_EXISTENT_KEY')).toBe(false);
+      // delete returns true even for non-existent keys (operation succeeds silently)
+      expect(await store.delete('NON_EXISTENT_KEY')).toBe(true);
     });
 
     it('should handle empty keys and values', async () => {

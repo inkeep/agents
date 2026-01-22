@@ -1,16 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CredentialStoreType } from '../../types/index.js';
 
-// Mock Entry class instance methods
-class MockEntry {
-  constructor(
-    public service: string,
-    public account: string
-  ) {}
+// Mock functions that will be used by MockEntry
+const mockGetPassword = vi.fn();
+const mockSetPassword = vi.fn();
+const mockDeletePassword = vi.fn();
 
-  getPassword = vi.fn();
-  setPassword = vi.fn();
-  deletePassword = vi.fn();
+class MockEntry {
+  service: string;
+  account: string;
+
+  constructor(service: string, account: string) {
+    this.service = service;
+    this.account = account;
+  }
+
+  getPassword() {
+    return mockGetPassword();
+  }
+
+  setPassword(password: string) {
+    return mockSetPassword(password);
+  }
+
+  deletePassword() {
+    return mockDeletePassword();
+  }
 }
 
 // Setup mock before any imports
@@ -26,7 +41,9 @@ describe('KeyChainStore', () => {
 
   beforeEach(async () => {
     // Reset all mocks
-    vi.clearAllMocks();
+    mockGetPassword.mockReset();
+    mockSetPassword.mockReset();
+    mockDeletePassword.mockReset();
 
     // Create a new store instance
     store = new KeyChainStore('test-store');
@@ -46,51 +63,51 @@ describe('KeyChainStore', () => {
       const value = 'test_value';
 
       // Mock successful set operation
-      MockEntry.prototype.setPassword.mockReturnValueOnce(undefined);
-      MockEntry.prototype.getPassword.mockReturnValueOnce('[]'); // key index
+      mockSetPassword.mockReturnValueOnce(undefined);
+      mockGetPassword.mockReturnValueOnce('[]'); // key index
 
       await store.set(key, value);
 
       // Verify setPassword was called on Entry instances
-      expect(MockEntry.prototype.setPassword).toHaveBeenCalled();
+      expect(mockSetPassword).toHaveBeenCalled();
 
       // Mock successful get operation
-      MockEntry.prototype.getPassword.mockReturnValueOnce(value);
+      mockGetPassword.mockReturnValueOnce(value);
 
       const retrieved = await store.get(key);
       expect(retrieved).toBe(value);
     });
 
     it('should return null for non-existent keys', async () => {
-      MockEntry.prototype.getPassword.mockReturnValueOnce(null);
+      mockGetPassword.mockReturnValueOnce(null);
 
       const result = await store.get('NON_EXISTENT');
       expect(result).toBeNull();
     });
 
     it('should check if credentials exist', async () => {
-      MockEntry.prototype.getPassword.mockReturnValueOnce('exists');
+      mockGetPassword.mockReturnValueOnce('exists');
       expect(await store.has('EXISTS')).toBe(true);
 
-      MockEntry.prototype.getPassword.mockReturnValueOnce(null);
+      mockGetPassword.mockReturnValueOnce(null);
       expect(await store.has('DOES_NOT_EXIST')).toBe(false);
     });
 
     it('should delete credentials', async () => {
       // Mock key index retrieval and update
-      MockEntry.prototype.getPassword.mockReturnValueOnce('["TO_DELETE"]'); // key index
-      MockEntry.prototype.setPassword.mockReturnValueOnce(undefined); // update index
-      MockEntry.prototype.deletePassword.mockReturnValueOnce(undefined);
+      mockGetPassword.mockReturnValueOnce('["TO_DELETE"]'); // key index
+      mockSetPassword.mockReturnValueOnce(undefined); // update index
+      mockDeletePassword.mockReturnValueOnce(undefined);
 
       const deleted = await store.delete('TO_DELETE');
-      expect(MockEntry.prototype.deletePassword).toHaveBeenCalled();
+      expect(mockDeletePassword).toHaveBeenCalled();
       expect(deleted).toBe(true);
     });
 
     it('should return true even when deleting non-existent key', async () => {
       // Mock key index retrieval
-      MockEntry.prototype.getPassword.mockReturnValueOnce('[]'); // empty key index
-      MockEntry.prototype.deletePassword.mockReturnValueOnce(undefined);
+      mockGetPassword.mockReturnValueOnce('[]'); // empty key index
+      mockDeletePassword.mockReturnValueOnce(undefined);
 
       const deleted = await store.delete('NON_EXISTENT');
       expect(deleted).toBe(true);
@@ -102,18 +119,18 @@ describe('KeyChainStore', () => {
       const customStore = new KeyChainStore('custom-id', 'my-app');
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      MockEntry.prototype.getPassword.mockReturnValueOnce('value');
+      mockGetPassword.mockReturnValueOnce('value');
 
       const result = await customStore.get('KEY');
       expect(result).toBe('value');
-      expect(MockEntry.prototype.getPassword).toHaveBeenCalled();
+      expect(mockGetPassword).toHaveBeenCalled();
     });
   });
 
   describe('Find and Clear Operations', () => {
     it('should find all credentials for the service', async () => {
       // Mock the key index containing two keys
-      MockEntry.prototype.getPassword
+      mockGetPassword
         .mockReturnValueOnce('["KEY1","KEY2"]') // key index
         .mockReturnValueOnce('value1') // KEY1 value
         .mockReturnValueOnce('value2'); // KEY2 value
@@ -127,7 +144,7 @@ describe('KeyChainStore', () => {
 
     it('should clear all credentials', async () => {
       // Mock findAllCredentials: key index + values
-      MockEntry.prototype.getPassword
+      mockGetPassword
         .mockReturnValueOnce('["KEY1","KEY2"]') // key index for findAllCredentials
         .mockReturnValueOnce('value1') // KEY1 value
         .mockReturnValueOnce('value2') // KEY2 value
@@ -135,24 +152,24 @@ describe('KeyChainStore', () => {
         .mockReturnValueOnce('["KEY2"]') // key index for delete KEY2
         .mockReturnValueOnce(null); // key index doesn't exist after final delete
 
-      MockEntry.prototype.setPassword
+      mockSetPassword
         .mockReturnValueOnce(undefined) // update index after KEY1 delete
         .mockReturnValueOnce(undefined); // update index after KEY2 delete
 
-      MockEntry.prototype.deletePassword
+      mockDeletePassword
         .mockReturnValueOnce(undefined) // delete KEY1
         .mockReturnValueOnce(undefined) // delete KEY2
         .mockReturnValueOnce(undefined); // delete key index
 
       const deletedCount = await store.clearAll();
       expect(deletedCount).toBe(2);
-      expect(MockEntry.prototype.deletePassword).toHaveBeenCalled();
+      expect(mockDeletePassword).toHaveBeenCalled();
     });
   });
 
   describe('Error Handling', () => {
     it('should handle errors when getting credentials', async () => {
-      MockEntry.prototype.getPassword.mockImplementationOnce(() => {
+      mockGetPassword.mockImplementationOnce(() => {
         throw new Error('Keychain error');
       });
 
@@ -161,7 +178,7 @@ describe('KeyChainStore', () => {
     });
 
     it('should throw error when setting credentials fails', async () => {
-      MockEntry.prototype.setPassword.mockImplementationOnce(() => {
+      mockSetPassword.mockImplementationOnce(() => {
         throw new Error('Keychain error');
       });
 
@@ -171,7 +188,7 @@ describe('KeyChainStore', () => {
     });
 
     it('should handle errors when deleting credentials', async () => {
-      MockEntry.prototype.deletePassword.mockImplementationOnce(() => {
+      mockDeletePassword.mockImplementationOnce(() => {
         throw new Error('Keychain error');
       });
 
@@ -180,7 +197,7 @@ describe('KeyChainStore', () => {
     });
 
     it('should handle errors when finding credentials', async () => {
-      MockEntry.prototype.getPassword.mockImplementationOnce(() => {
+      mockGetPassword.mockImplementationOnce(() => {
         throw new Error('Keychain error');
       });
 
