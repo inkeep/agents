@@ -30517,8 +30517,7 @@
                                 },
                                 "required": [
                                   "type",
-                                  "toolCallId",
-                                  "approval"
+                                  "toolCallId"
                                 ],
                                 "type": "object"
                               },
@@ -30865,6 +30864,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "conversationId": {
+                      "type": "string"
+                    },
                     "invocationId": {
                       "type": "string"
                     },
@@ -30874,7 +30876,8 @@
                   },
                   "required": [
                     "success",
-                    "invocationId"
+                    "invocationId",
+                    "conversationId"
                   ],
                   "type": "object"
                 }
