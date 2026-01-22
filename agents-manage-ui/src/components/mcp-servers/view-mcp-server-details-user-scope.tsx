@@ -8,7 +8,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { InfoCard } from '@/components/ui/info-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { type Credential, fetchUserScopedCredential } from '@/lib/api/credentials';
-import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
+import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
@@ -45,8 +45,13 @@ export function ViewMCPServerDetailsUserScope({
   });
 
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
-  const [thirdPartyConnectUrl, setThirdPartyConnectUrl] = useState<string>();
-  const [isLoadingThirdParty, setIsLoadingThirdParty] = useState(false);
+  const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';
+  const { data: thirdPartyServer, isFetching: isLoadingThirdParty } = useThirdPartyMCPServerQuery({
+    url: tool.config.mcp.server.url,
+    credentialScope: 'user',
+    disabled: !shouldFetchThirdParty,
+  });
+  const thirdPartyConnectUrl = thirdPartyServer?.thirdPartyConnectAccountUrl;
 
   // Fetch user's credential for this tool
   useEffect(() => {
@@ -65,32 +70,6 @@ export function ViewMCPServerDetailsUserScope({
 
     loadUserCredential();
   }, [tenantId, projectId, tool.id]);
-
-  // Fetch third-party connect URL if needed (user-scoped)
-  useEffect(() => {
-    if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
-      const fetchServerDetails = async () => {
-        setIsLoadingThirdParty(true);
-        try {
-          const response = await fetchThirdPartyMCPServer(
-            tenantId,
-            projectId,
-            tool.config.mcp.server.url,
-            'user'
-          );
-          if (response.data?.thirdPartyConnectAccountUrl) {
-            setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
-          }
-        } catch (error) {
-          console.error('Failed to fetch third-party MCP server details:', error);
-        } finally {
-          setIsLoadingThirdParty(false);
-        }
-      };
-
-      fetchServerDetails();
-    }
-  }, [isThirdPartyMCPServer, tool.config.mcp.server.url, tenantId, projectId, tool.status]);
 
   return (
     <div className="max-w-2xl mx-auto py-4 space-y-8">
