@@ -23,7 +23,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
@@ -421,6 +421,7 @@ async function executeAgentAsync(params: {
         'invocation.type': 'trigger',
       },
     },
+    ROOT_CONTEXT,
     async (span) => {
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
