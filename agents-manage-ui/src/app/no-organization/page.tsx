@@ -32,12 +32,12 @@ export default function NoOrganizationPage() {
             {isSigningOut ? (
               <p>Signing out...</p>
             ) : (
-              <div>
+              <p>
                 Your account{' '}
                 {user?.email ? <span className="font-semibold">{user?.email}</span> : ''} is not
                 associated with any organization. Please contact your organization administrator to
                 request access.
-              </div>
+              </p>
             )}
             <Button
               onClick={handleSignOut}
