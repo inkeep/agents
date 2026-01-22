@@ -78,7 +78,7 @@ import { createDelegateToAgentTool, createTransferToAgentTool } from './relation
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
-import { Phase1Config, V1_BREAKDOWN_SCHEMA } from './versions/v1/Phase1Config';
+import { PromptConfig, V1_BREAKDOWN_SCHEMA } from './versions/v1/PromptConfig';
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
@@ -186,7 +186,7 @@ function isValidTool(
 
 export class Agent {
   private config: AgentConfig;
-  private systemPromptBuilder = new SystemPromptBuilder('v1', new Phase1Config());
+  private systemPromptBuilder = new SystemPromptBuilder('v1', new PromptConfig());
   private credentialStuffer?: CredentialStuffer;
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;

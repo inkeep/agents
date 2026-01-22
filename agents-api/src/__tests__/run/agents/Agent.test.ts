@@ -7,7 +7,7 @@ import {
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { Phase1Config } from '../../../domains/run/agents/versions/v1/Phase1Config';
+import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
 // Mock the AI SDK functions
 vi.mock('ai', () => ({
@@ -653,14 +653,14 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
-    // Verify the SystemPromptBuilder was instantiated with 'v1' and Phase1Config
+    // Verify the SystemPromptBuilder was instantiated with 'v1' and PromptConfig
     expect(systemPromptBuilder).toBeDefined();
-    // The constructor should have been called with 'v1' and a Phase1Config instance
+    // The constructor should have been called with 'v1' and a PromptConfig instance
     // This is tested implicitly by the fact that the agent creates successfully
   });
 });
 
-describe('Phase1Config Tool Conversion', () => {
+describe('PromptConfig Tool Conversion', () => {
   test('should convert McpTool availableTools to ToolData format correctly', () => {
     const mockTools: McpTool[] = [
       {
@@ -709,7 +709,7 @@ describe('Phase1Config Tool Conversion', () => {
       } as McpTool,
     ];
 
-    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
+    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -739,8 +739,8 @@ describe('Phase1Config Tool Conversion', () => {
   });
 
   test('should handle empty or undefined McpTool arrays', () => {
-    expect(Phase1Config.convertMcpToolsToToolData([])).toEqual([]);
-    expect(Phase1Config.convertMcpToolsToToolData(undefined)).toEqual([]);
+    expect(PromptConfig.convertMcpToolsToToolData([])).toEqual([]);
+    expect(PromptConfig.convertMcpToolsToToolData(undefined)).toEqual([]);
   });
 
   test('should handle McpTools without availableTools', () => {
@@ -768,7 +768,7 @@ describe('Phase1Config Tool Conversion', () => {
       } as McpTool,
     ];
 
-    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
+    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
     expect(result).toEqual([]);
   });
 });
