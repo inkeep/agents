@@ -33,29 +33,16 @@ const {
   setActiveAgentForConversationMock,
   createMessageMock,
   withRefMock,
-  getCredentialReferenceMock,
-  createKeyChainStoreMock,
-  keychainGetMock,
-} = vi.hoisted(() => {
-  const keychainGetMock = vi.fn();
-  return {
-    getTriggerByIdMock: vi.fn(),
-    createTriggerInvocationMock: vi.fn(),
-    updateTriggerInvocationStatusMock: vi.fn(),
-    getFullProjectWithRelationIdsMock: vi.fn(),
-    createOrGetConversationMock: vi.fn(),
-    setActiveAgentForConversationMock: vi.fn(),
-    createMessageMock: vi.fn(),
-    withRefMock: vi.fn(),
-    getCredentialReferenceMock: vi.fn(),
-    createKeyChainStoreMock: vi.fn(() => ({
-      get: keychainGetMock,
-      set: vi.fn(),
-      delete: vi.fn(),
-    })),
-    keychainGetMock,
-  };
-});
+} = vi.hoisted(() => ({
+  getTriggerByIdMock: vi.fn(),
+  createTriggerInvocationMock: vi.fn(),
+  updateTriggerInvocationStatusMock: vi.fn(),
+  getFullProjectWithRelationIdsMock: vi.fn(),
+  createOrGetConversationMock: vi.fn(),
+  setActiveAgentForConversationMock: vi.fn(),
+  createMessageMock: vi.fn(),
+  withRefMock: vi.fn(),
+}));
 
 // Mock @inkeep/agents-core
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -71,14 +58,12 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForConversation: setActiveAgentForConversationMock,
     createMessage: createMessageMock,
     withRef: withRefMock,
-    getCredentialReference: getCredentialReferenceMock,
-    createKeyChainStore: createKeyChainStoreMock,
     createApiError: actual.createApiError,
     verifyTriggerAuth: actual.verifyTriggerAuth,
+    verifySigningSecret: actual.verifySigningSecret,
     interpolateTemplate: actual.interpolateTemplate,
     JsonTransformer: actual.JsonTransformer,
     hashTriggerHeaderValue: actual.hashTriggerHeaderValue,
-    verifySignatureWithConfig: actual.verifySignatureWithConfig,
     generateId: () => 'test-id-123',
     getConversationId: () => 'conv-test-123',
   };
@@ -184,8 +169,7 @@ describe('Webhook Endpoint Tests', () => {
     outputTransform: null,
     messageTemplate: 'Webhook message: {{message}}',
     authentication: null,
-    signingSecretCredentialReferenceId: null,
-    signatureVerification: null,
+    signingSecret: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -254,8 +238,6 @@ describe('Webhook Endpoint Tests', () => {
     createOrGetConversationMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     setActiveAgentForConversationMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     createMessageMock.mockReturnValue(vi.fn().mockResolvedValue({}));
-    getCredentialReferenceMock.mockReturnValue(vi.fn().mockResolvedValue(null));
-    keychainGetMock.mockResolvedValue(null);
   });
 
   describe('Success path', () => {
@@ -518,43 +500,12 @@ describe('Webhook Endpoint Tests', () => {
     });
   });
 
-  describe('Signing secret verification (basic pattern)', () => {
+  describe('Signing secret verification', () => {
     it('should accept request with valid signature', async () => {
       const signingSecret = 'my-secret-key';
-
-      // Setup credential reference mock
-      getCredentialReferenceMock.mockReturnValue(
-        vi.fn().mockResolvedValue({
-          id: 'cred-ref-basic',
-          type: 'keychain',
-          credentialStoreId: 'keychain-default',
-          retrievalParams: { key: 'basic-secret-key' },
-        })
-      );
-      keychainGetMock.mockResolvedValue(signingSecret);
-
       const triggerWithSignature = {
         ...testTrigger,
-        signingSecretCredentialReferenceId: 'cred-ref-basic',
-        signatureVerification: {
-          algorithm: 'sha256' as const,
-          encoding: 'hex' as const,
-          signature: {
-            source: 'header' as const,
-            key: 'X-Signature-256',
-            prefix: 'sha256=',
-          },
-          signedComponents: [
-            {
-              source: 'body' as const,
-              required: true,
-            },
-          ],
-          componentJoin: {
-            strategy: 'concatenate' as const,
-            separator: '',
-          },
-        },
+        signingSecret,
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
 
@@ -577,41 +528,9 @@ describe('Webhook Endpoint Tests', () => {
     });
 
     it('should return 403 for invalid signature', async () => {
-      const signingSecret = 'my-secret-key';
-
-      // Setup credential reference mock
-      getCredentialReferenceMock.mockReturnValue(
-        vi.fn().mockResolvedValue({
-          id: 'cred-ref-basic',
-          type: 'keychain',
-          credentialStoreId: 'keychain-default',
-          retrievalParams: { key: 'basic-secret-key' },
-        })
-      );
-      keychainGetMock.mockResolvedValue(signingSecret);
-
       const triggerWithSignature = {
         ...testTrigger,
-        signingSecretCredentialReferenceId: 'cred-ref-basic',
-        signatureVerification: {
-          algorithm: 'sha256' as const,
-          encoding: 'hex' as const,
-          signature: {
-            source: 'header' as const,
-            key: 'X-Signature-256',
-            prefix: 'sha256=',
-          },
-          signedComponents: [
-            {
-              source: 'body' as const,
-              required: true,
-            },
-          ],
-          componentJoin: {
-            strategy: 'concatenate' as const,
-            separator: '',
-          },
-        },
+        signingSecret: 'my-secret-key',
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
 
@@ -633,41 +552,9 @@ describe('Webhook Endpoint Tests', () => {
     });
 
     it('should return 403 for missing signature when signing secret is configured', async () => {
-      const signingSecret = 'my-secret-key';
-
-      // Setup credential reference mock
-      getCredentialReferenceMock.mockReturnValue(
-        vi.fn().mockResolvedValue({
-          id: 'cred-ref-basic',
-          type: 'keychain',
-          credentialStoreId: 'keychain-default',
-          retrievalParams: { key: 'basic-secret-key' },
-        })
-      );
-      keychainGetMock.mockResolvedValue(signingSecret);
-
       const triggerWithSignature = {
         ...testTrigger,
-        signingSecretCredentialReferenceId: 'cred-ref-basic',
-        signatureVerification: {
-          algorithm: 'sha256' as const,
-          encoding: 'hex' as const,
-          signature: {
-            source: 'header' as const,
-            key: 'X-Signature-256',
-            prefix: 'sha256=',
-          },
-          signedComponents: [
-            {
-              source: 'body' as const,
-              required: true,
-            },
-          ],
-          componentJoin: {
-            strategy: 'concatenate' as const,
-            separator: '',
-          },
-        },
+        signingSecret: 'my-secret-key',
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
 
@@ -683,576 +570,6 @@ describe('Webhook Endpoint Tests', () => {
       );
 
       expect(response.status).toBe(403);
-    });
-  });
-
-  describe('Signature verification with credential references', () => {
-    describe('GitHub pattern', () => {
-      it('should accept request with valid GitHub-style signature', async () => {
-        const secret = 'github-webhook-secret';
-        const payload = JSON.stringify({ action: 'opened', issue: { id: 1 } });
-        const signature = createHmac('sha256', secret).update(payload).digest('hex');
-
-        // Setup credential reference mock with keychain type
-        getCredentialReferenceMock.mockReturnValue(
-          vi.fn().mockResolvedValue({
-            id: 'cred-ref-123',
-            tenantId: 'tenant-123',
-            projectId: 'project-123',
-            name: 'GitHub Webhook Secret',
-            type: 'keychain',
-            credentialStoreId: 'keychain-default',
-            retrievalParams: { key: 'github-secret-key' },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-        );
-
-        // Setup keychain mock to return the actual secret
-        keychainGetMock.mockResolvedValue(secret);
-
-        const triggerWithNewVerification = {
-          ...testTrigger,
-          inputSchema: null, // Override inputSchema to accept any payload
-          signingSecretCredentialReferenceId: 'cred-ref-123',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Hub-Signature-256',
-              prefix: 'sha256=',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-            validation: {
-              headerCaseSensitive: false,
-              allowEmptyBody: false,
-              normalizeUnicode: false,
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithNewVerification));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Hub-Signature-256': `sha256=${signature}`,
-            },
-            body: payload,
-          }
-        );
-
-        expect(response.status).toBe(202);
-        expect(getCredentialReferenceMock).toHaveBeenCalled();
-      });
-
-      it('should return 403 for invalid signature with credential verification', async () => {
-        const secret = 'github-webhook-secret';
-
-        getCredentialReferenceMock.mockReturnValue(
-          vi.fn().mockResolvedValue({
-            id: 'cred-ref-123',
-            tenantId: 'tenant-123',
-            projectId: 'project-123',
-            type: 'keychain',
-            credentialStoreId: 'keychain-default',
-            retrievalParams: { key: 'github-secret-key' },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-        );
-
-        // Setup keychain mock to return the actual secret
-        keychainGetMock.mockResolvedValue(secret);
-
-        const triggerWithNewVerification = {
-          ...testTrigger,
-          inputSchema: null, // Override inputSchema to accept any payload
-          signingSecretCredentialReferenceId: 'cred-ref-123',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Hub-Signature-256',
-              prefix: 'sha256=',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithNewVerification));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Hub-Signature-256': 'sha256=invalid-signature-here',
-            },
-            body: JSON.stringify({ action: 'opened' }),
-          }
-        );
-
-        expect(response.status).toBe(403);
-        const data = await response.json();
-        expect(data.error).toBeTruthy();
-      });
-
-      it('should return 403 for missing signature header', async () => {
-        const secret = 'github-webhook-secret';
-
-        getCredentialReferenceMock.mockReturnValue(
-          vi.fn().mockResolvedValue({
-            id: 'cred-ref-123',
-            type: 'keychain',
-            credentialStoreId: 'keychain-default',
-            retrievalParams: { key: 'github-secret-key' },
-          })
-        );
-
-        // Setup keychain mock to return the actual secret
-        keychainGetMock.mockResolvedValue(secret);
-
-        const triggerWithNewVerification = {
-          ...testTrigger,
-          inputSchema: null, // Override inputSchema to accept any payload
-          signingSecretCredentialReferenceId: 'cred-ref-123',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Hub-Signature-256',
-              prefix: 'sha256=',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithNewVerification));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ action: 'opened' }),
-          }
-        );
-
-        expect(response.status).toBe(403);
-      });
-    });
-
-    describe('Slack pattern', () => {
-      it('should accept request with valid Slack-style signature', async () => {
-        const secret = 'slack-signing-secret';
-        const timestamp = '1234567890';
-        const payload = JSON.stringify({ type: 'event_callback' });
-        const signedData = `v0:${timestamp}:${payload}`;
-        const signature = createHmac('sha256', secret).update(signedData).digest('hex');
-
-        getCredentialReferenceMock.mockReturnValue(
-          vi.fn().mockResolvedValue({
-            id: 'cred-ref-slack',
-            type: 'keychain',
-            credentialStoreId: 'keychain-default',
-            retrievalParams: { key: 'slack-secret-key' },
-          })
-        );
-
-        // Setup keychain mock to return the actual secret
-        keychainGetMock.mockResolvedValue(secret);
-
-        const triggerWithSlackVerification = {
-          ...testTrigger,
-          inputSchema: null, // Override inputSchema to accept any payload
-          signingSecretCredentialReferenceId: 'cred-ref-slack',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Slack-Signature',
-              prefix: 'v0=',
-            },
-            signedComponents: [
-              {
-                source: 'literal' as const,
-                value: 'v0',
-                required: true,
-              },
-              {
-                source: 'header' as const,
-                key: 'X-Slack-Request-Timestamp',
-                required: true,
-              },
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: ':',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSlackVerification));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Slack-Signature': `v0=${signature}`,
-              'X-Slack-Request-Timestamp': timestamp,
-            },
-            body: payload,
-          }
-        );
-
-        expect(response.status).toBe(202);
-      });
-
-      it('should return 403 for invalid Slack signature', async () => {
-        const secret = 'slack-signing-secret';
-        const timestamp = '1234567890';
-
-        getCredentialReferenceMock.mockReturnValue(
-          vi.fn().mockResolvedValue({
-            id: 'cred-ref-slack',
-            type: 'keychain',
-            credentialStoreId: 'keychain-default',
-            retrievalParams: { key: 'slack-secret-key' },
-          })
-        );
-
-        // Setup keychain mock to return the actual secret
-        keychainGetMock.mockResolvedValue(secret);
-
-        const triggerWithSlackVerification = {
-          ...testTrigger,
-          signingSecretCredentialReferenceId: 'cred-ref-slack',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Slack-Signature',
-              prefix: 'v0=',
-            },
-            signedComponents: [
-              {
-                source: 'literal' as const,
-                value: 'v0',
-                required: true,
-              },
-              {
-                source: 'header' as const,
-                key: 'X-Slack-Request-Timestamp',
-                required: true,
-              },
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: ':',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSlackVerification));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Slack-Signature': 'v0=wrong-signature',
-              'X-Slack-Request-Timestamp': timestamp,
-            },
-            body: JSON.stringify({ type: 'event_callback' }),
-          }
-        );
-
-        expect(response.status).toBe(403);
-      });
-    });
-
-    describe('Credential resolution and caching', () => {
-      it('should return 500 when credential reference not found', async () => {
-        getCredentialReferenceMock.mockReturnValue(vi.fn().mockResolvedValue(null));
-
-        const triggerWithMissingCredential = {
-          ...testTrigger,
-          signingSecretCredentialReferenceId: 'nonexistent-cred',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Signature',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithMissingCredential));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Signature': 'some-signature',
-            },
-            body: JSON.stringify({ test: 'data' }),
-          }
-        );
-
-        expect(response.status).toBe(500);
-        const data = await response.json();
-        expect(data.error).toContain('Failed to resolve signing secret');
-      });
-
-      it('should return 500 when credential has no secret in retrievalParams', async () => {
-        // Use a unique credential reference ID to avoid cache hits from previous tests
-        getCredentialReferenceMock.mockReturnValue(
-          vi.fn().mockResolvedValue({
-            id: 'cred-ref-no-secret',
-            type: 'keychain',
-            credentialStoreId: 'keychain-default',
-            retrievalParams: {}, // No key field
-          })
-        );
-
-        // Mock keychain to return null when no key is provided
-        keychainGetMock.mockResolvedValue(null);
-
-        const triggerWithBadCredential = {
-          ...testTrigger,
-          inputSchema: null, // Override inputSchema to accept any payload
-          signingSecretCredentialReferenceId: 'cred-ref-no-secret',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Signature',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithBadCredential));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Signature': 'some-signature',
-            },
-            body: JSON.stringify({ test: 'data' }),
-          }
-        );
-
-        expect(response.status).toBe(500);
-      });
-
-      it('should cache credential references for subsequent requests', async () => {
-        const secret = 'cached-secret';
-        const payload = JSON.stringify({ test: 'data' });
-        const signature = createHmac('sha256', secret).update(payload).digest('hex');
-
-        // First call returns credential
-        const getCredentialFn = vi.fn().mockResolvedValue({
-          id: 'cred-ref-cache',
-          type: 'keychain',
-          credentialStoreId: 'keychain-default',
-          retrievalParams: { key: 'cache-secret-key' },
-        });
-        getCredentialReferenceMock.mockReturnValue(getCredentialFn);
-
-        // Setup keychain mock to return the actual secret
-        keychainGetMock.mockResolvedValue(secret);
-
-        const triggerConfig = {
-          ...testTrigger,
-          inputSchema: null, // Override inputSchema to accept any payload
-          signingSecretCredentialReferenceId: 'cred-ref-cache',
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Signature',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerConfig));
-
-        // First request
-        const response1 = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Signature': signature,
-            },
-            body: payload,
-          }
-        );
-        expect(response1.status).toBe(202);
-        expect(getCredentialFn).toHaveBeenCalledTimes(1);
-
-        // Second request (should use cache)
-        const response2 = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Signature': signature,
-            },
-            body: payload,
-          }
-        );
-        expect(response2.status).toBe(202);
-        // Cache prevents second call to getCredentialReference
-        expect(getCredentialFn).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    describe('Error handling', () => {
-      it('should skip verification when no signatureVerification config', async () => {
-        const triggerNoVerification = {
-          ...testTrigger,
-          signingSecretCredentialReferenceId: null,
-          signatureVerification: null,
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoVerification));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: 'test' }),
-          }
-        );
-
-        expect(response.status).toBe(202);
-        expect(getCredentialReferenceMock).not.toHaveBeenCalled();
-      });
-
-      it('should skip verification when no credentialReferenceId', async () => {
-        const triggerNoCredentialRef = {
-          ...testTrigger,
-          signingSecretCredentialReferenceId: null,
-          signatureVerification: {
-            algorithm: 'sha256' as const,
-            encoding: 'hex' as const,
-            signature: {
-              source: 'header' as const,
-              key: 'X-Signature',
-            },
-            signedComponents: [
-              {
-                source: 'body' as const,
-                required: true,
-              },
-            ],
-            componentJoin: {
-              strategy: 'concatenate' as const,
-              separator: '',
-            },
-          },
-        };
-        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoCredentialRef));
-
-        const response = await app.request(
-          '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: 'test' }),
-          }
-        );
-
-        expect(response.status).toBe(202);
-        expect(getCredentialReferenceMock).not.toHaveBeenCalled();
-      });
     });
   });
 

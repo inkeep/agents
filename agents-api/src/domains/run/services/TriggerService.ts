@@ -6,28 +6,20 @@
  * Locally, the process stays alive so standard async execution works.
  */
 
-import type {
-  FullExecutionContext,
-  Part,
-  ResolvedRef,
-  SignatureVerificationConfig,
-} from '@inkeep/agents-core';
+import type { FullExecutionContext, Part, ResolvedRef } from '@inkeep/agents-core';
 import {
-  createKeyChainStore,
   createMessage,
   createOrGetConversation,
   createTriggerInvocation,
   generateId,
   getConversationId,
-  getCredentialReference,
-  getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
   interpolateTemplate,
   JsonTransformer,
   setActiveAgentForConversation,
   updateTriggerInvocationStatus,
-  verifySignatureWithConfig,
+  verifySigningSecret,
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
@@ -44,10 +36,6 @@ import { createSSEStreamHelper } from '../utils/stream-helpers';
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
 
-// Credential cache with 5-minute TTL
-const credentialCache = new Map<string, { secret: string; expiresAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
 export type TriggerWebhookParams = {
   tenantId: string;
   projectId: string;
@@ -63,7 +51,7 @@ export type TriggerWebhookResult =
   | {
       success: false;
       error: string;
-      status: 400 | 401 | 403 | 404 | 422 | 500;
+      status: 400 | 401 | 403 | 404 | 422;
       validationErrors?: string[];
     };
 
@@ -94,14 +82,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
   }
 
   // 4. Verify signature
-  const signatureResult = await verifySignature({
-    trigger,
-    tenantId,
-    projectId,
-    resolvedRef,
-    honoContext,
-    rawBody,
-  });
+  const signatureResult = verifySignature(trigger, honoContext, rawBody);
   if (!signatureResult.success) {
     return signatureResult;
   }
@@ -181,176 +162,21 @@ async function verifyAuthentication(
   return { success: true };
 }
 
-/**
- * Resolve signing secret from credential reference with caching
- */
-async function resolveSigningSecret(params: {
-  tenantId: string;
-  projectId: string;
-  credentialReferenceId: string;
-  resolvedRef: ResolvedRef;
-}): Promise<string | null> {
-  const { tenantId, projectId, credentialReferenceId, resolvedRef } = params;
-  const cacheKey = `${tenantId}:${projectId}:${credentialReferenceId}`;
-
-  // Check cache first
-  const cached = credentialCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.secret;
-  }
-
-  // Fetch credential reference from database
-  const credentialRef = await withRef(manageDbPool, resolvedRef, (db) =>
-    getCredentialReference(db)({
-      scopes: { tenantId, projectId },
-      id: credentialReferenceId,
-    })
-  );
-
-  if (!credentialRef) {
-    logger.warn({ tenantId, projectId, credentialReferenceId }, 'Credential reference not found');
-    return null;
-  }
-
-  // Get the lookup key from retrieval params
-  const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
-    retrievalParams: credentialRef.retrievalParams ?? {},
-    credentialStoreType: credentialRef.type as 'keychain' | 'nango' | 'memory',
-  });
-
-  if (!lookupKey) {
-    logger.warn(
-      {
-        tenantId,
-        projectId,
-        credentialReferenceId,
-        retrievalParams: credentialRef.retrievalParams,
-      },
-      'Could not determine lookup key from credential reference'
-    );
-    return null;
-  }
-
-  // Create the credential store and fetch the secret
-  // For now we support keychain store - the credential store registry should be used for more flexibility
-  let secret: string | null = null;
-
-  if (
-    credentialRef.type === 'keychain' ||
-    credentialRef.credentialStoreId?.startsWith('keychain')
-  ) {
-    const keychainStore = createKeyChainStore(
-      credentialRef.credentialStoreId ?? 'keychain-default'
-    );
-    secret = await keychainStore.get(lookupKey);
-  } else {
-    logger.warn(
-      {
-        credentialStoreType: credentialRef.type,
-        credentialStoreId: credentialRef.credentialStoreId,
-      },
-      'Unsupported credential store type for signing secret'
-    );
-    return null;
-  }
-
-  if (!secret) {
-    logger.warn(
-      { tenantId, projectId, credentialReferenceId, lookupKey },
-      'No secret found in credential store'
-    );
-    return null;
-  }
-
-  // Handle case where secret is stored as JSON (e.g., {"access_token": "actual-secret"})
-  if (secret.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(secret);
-      // Try common fields: access_token, secret, value, token
-      const extractedSecret =
-        parsed.access_token || parsed.secret || parsed.value || parsed.token || parsed.key;
-      if (extractedSecret && typeof extractedSecret === 'string') {
-        secret = extractedSecret;
-      }
-    } catch {
-      // Not valid JSON, use as-is
-    }
-  }
-
-  // Cache the secret with TTL
-  credentialCache.set(cacheKey, {
-    secret,
-    expiresAt: Date.now() + CACHE_TTL_MS,
-  });
-
-  return secret;
-}
-
-async function verifySignature(params: {
-  trigger: {
-    signingSecretCredentialReferenceId?: string | null;
-    signatureVerification?: SignatureVerificationConfig | null;
-    [key: string]: unknown;
-  };
-  tenantId: string;
-  projectId: string;
-  resolvedRef: ResolvedRef;
-  honoContext: Context;
-  rawBody: string;
-}): Promise<{ success: true } | { success: false; error: string; status: 403 | 500 }> {
-  const { trigger, tenantId, projectId, resolvedRef, honoContext, rawBody } = params;
-
-  // Skip verification if no signature verification is configured
-  if (!trigger.signatureVerification || !trigger.signingSecretCredentialReferenceId) {
+function verifySignature(
+  trigger: { signingSecret?: string | null },
+  honoContext: Context,
+  rawBody: string
+): { success: true } | { success: false; error: string; status: 403 } {
+  if (!trigger.signingSecret) {
     return { success: true };
   }
 
-  try {
-    // Resolve signing secret from credential reference
-    const secret = await resolveSigningSecret({
-      tenantId,
-      projectId,
-      credentialReferenceId: trigger.signingSecretCredentialReferenceId,
-      resolvedRef,
-    });
-
-    if (!secret) {
-      return {
-        success: false,
-        error: 'Failed to resolve signing secret from credential reference',
-        status: 500,
-      };
-    }
-
-    // Use new verification function
-    const result = verifySignatureWithConfig(
-      honoContext,
-      trigger.signatureVerification,
-      secret,
-      rawBody
-    );
-
-    if (!result.success) {
-      return {
-        success: false,
-        error: result.message || 'Invalid signature',
-        status: 403,
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(
-      { error: errorMessage, tenantId, projectId },
-      'Error during signature verification'
-    );
-    return {
-      success: false,
-      error: 'Signature verification failed',
-      status: 500,
-    };
+  const signatureResult = verifySigningSecret(honoContext, trigger.signingSecret, rawBody);
+  if (!signatureResult.success) {
+    return { success: false, error: signatureResult.message || 'Invalid signature', status: 403 };
   }
+
+  return { success: true };
 }
 
 function validatePayload(

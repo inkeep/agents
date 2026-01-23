@@ -29,7 +29,6 @@ import type {
 import type {
   AgentStopWhen,
   ModelSettings,
-  SignatureVerificationConfig,
   SimulationAgent,
   StopWhen,
   SubAgentStopWhen,
@@ -129,19 +128,14 @@ export const triggers = pgTable(
     ...agentScoped,
     ...uiProperties,
     enabled: boolean('enabled').notNull().default(true),
-    inputSchema: jsonb('input_schema').$type<Record<string, unknown> | null>(),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
     outputTransform: jsonb('output_transform').$type<{
       jmespath?: string;
       objectTransformation?: Record<string, string>;
-    } | null>(),
+    }>(),
     messageTemplate: text('message_template'),
     authentication: jsonb('authentication').$type<unknown>(),
-    signingSecretCredentialReferenceId: varchar('signing_secret_credential_reference_id', {
-      length: 256,
-    }),
-    signatureVerification: jsonb('signature_verification')
-      .$type<SignatureVerificationConfig | null>()
-      .default(null),
+    signingSecret: text('signing_secret'),
     ...timestamps,
   },
   (table) => [
@@ -151,11 +145,6 @@ export const triggers = pgTable(
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'triggers_agent_fk',
     }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.signingSecretCredentialReferenceId],
-      foreignColumns: [credentialReferences.id],
-      name: 'triggers_credential_reference_fk',
-    }).onDelete('set null'),
   ]
 );
 

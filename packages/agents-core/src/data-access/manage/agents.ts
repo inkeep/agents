@@ -838,8 +838,7 @@ const getFullAgentDefinitionInternal =
             outputTransform: trigger.outputTransform,
             messageTemplate: trigger.messageTemplate,
             authentication: trigger.authentication,
-            signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
-            signatureVerification: trigger.signatureVerification,
+            signingSecret: trigger.signingSecret,
           };
         }
         result.triggers = triggersObject;
