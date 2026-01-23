@@ -1,6 +1,7 @@
 import { OrgRoles } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 /**
  * Hook to check if the current user is an org owner or admin.
@@ -8,12 +9,21 @@ import { useAuthClient } from '@/contexts/auth-client';
  */
 export function useIsOrgAdmin(): { isAdmin: boolean; isLoading: boolean } {
   const authClient = useAuthClient();
+  const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
+  const isAuthDisabled = PUBLIC_DISABLE_AUTH === 'true';
+
   const [state, setState] = useState<{ isAdmin: boolean; isLoading: boolean }>({
     isAdmin: false,
     isLoading: true,
   });
 
   useEffect(() => {
+    // When auth is disabled, grant admin access (matches server-side behavior)
+    if (isAuthDisabled) {
+      setState({ isAdmin: true, isLoading: false });
+      return;
+    }
+
     async function checkRole() {
       try {
         const memberResult = await authClient.organization.getActiveMember();
@@ -28,7 +38,7 @@ export function useIsOrgAdmin(): { isAdmin: boolean; isLoading: boolean } {
       }
     }
     checkRole();
-  }, [authClient]);
+  }, [authClient, isAuthDisabled]);
 
   return state;
 }

@@ -35,31 +35,49 @@ const logger = getLogger('projectFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Authorization:
-//   POST   /project-full            → org 'project:create'
-//   GET    /project-full/:id/*      → project 'view'
-//   PUT    /project-full/:id (new)  → org 'project:create'
-//   PUT    /project-full/:id (edit) → project 'edit'
-//   DELETE /project-full/:id        → org 'project:delete'
-app.use('/project-full', async (c, next) =>
-  c.req.method === 'POST' ? requirePermission({ project: ['create'] })(c, next) : next()
-);
-app.use('/project-full/:projectId{.*}', async (c, next) => {
-  const method = c.req.method;
-  if (method === 'GET') return requireProjectPermission('view')(c, next);
-  if (method === 'DELETE') return requirePermission({ project: ['delete'] })(c, next);
-  if (method === 'PUT') {
-    const tenantId = c.get('tenantId');
-    const projectId = c.req.param('projectId');
-    if (!tenantId || !projectId) return next();
-    const exists = await getProjectMetadata(runDbClient)({ tenantId, projectId });
-    c.set('isProjectCreate', !exists);
-    return exists
-      ? requireProjectPermission('edit')(c, next)
-      : requirePermission({ project: ['create'] })(c, next);
-  }
+// ============================================================================
+// Authorization Middleware (explicit per-route)
+// ============================================================================
+
+// POST /project-full → org 'project:create'
+app.use('/project-full', async (c, next) => {
+  if (c.req.method === 'POST') return requirePermission({ project: ['create'] })(c, next);
   return next();
 });
+
+// GET /project-full/:projectId/* → project 'view'
+app.use('/project-full/:projectId', async (c, next) => {
+  if (c.req.method === 'GET') return requireProjectPermission('view')(c, next);
+  return next();
+});
+app.use('/project-full/:projectId/with-relation-ids', async (c, next) => {
+  if (c.req.method === 'GET') return requireProjectPermission('view')(c, next);
+  return next();
+});
+
+// PUT /project-full/:projectId → dynamic: 'project:create' (new) or 'edit' (existing)
+const requireProjectUpsertPermission = async (
+  c: Parameters<ReturnType<typeof requireProjectPermission>>[0],
+  next: Parameters<ReturnType<typeof requireProjectPermission>>[1]
+) => {
+  const tenantId = c.get('tenantId');
+  const projectId = c.req.param('projectId');
+  if (!tenantId || !projectId) {
+    throw createApiError({ code: 'bad_request', message: 'Missing tenantId or projectId' });
+  }
+  const exists = await getProjectMetadata(runDbClient)({ tenantId, projectId });
+  c.set('isProjectCreate', !exists);
+  return exists
+    ? requireProjectPermission('edit')(c, next)
+    : requirePermission({ project: ['create'] })(c, next);
+};
+
+// DELETE /project-full/:projectId → org 'project:delete'
+// Note: Registered after PUT to avoid path conflicts
+
+// ============================================================================
+// Routes
+// ============================================================================
 
 app.openapi(
   createRoute({
@@ -276,6 +294,12 @@ app.openapi(
 );
 
 // Update/upsert full project
+// Authorization: dynamic - 'project:create' (new) or 'edit' (existing)
+app.use('/project-full/:projectId', async (c, next) => {
+  if (c.req.method === 'PUT') return requireProjectUpsertPermission(c, next);
+  return next();
+});
+
 app.openapi(
   createRoute({
     method: 'put',
@@ -386,6 +410,12 @@ app.openapi(
     }
   }
 );
+
+// Authorization: org 'project:delete'
+app.use('/project-full/:projectId', async (c, next) => {
+  if (c.req.method === 'DELETE') return requirePermission({ project: ['delete'] })(c, next);
+  return next();
+});
 
 app.openapi(
   createRoute({
