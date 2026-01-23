@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { getGitHubAppConfig, isGitHubAppConfigured } from '../config';
+import { isGitHubAppConfigured } from '../config';
 import { validateOidcToken } from '../oidcToken';
+import { lookupInstallationForRepo } from '../installation';
 import { getLogger } from '../../../logger';
 
 const app = new OpenAPIHono();
@@ -107,9 +108,6 @@ app.openapi(tokenExchangeRoute, async (c) => {
     );
   }
 
-  const config = getGitHubAppConfig();
-  logger.info({ appId: config.appId }, 'Using GitHub App for token exchange');
-
   const validationResult = await validateOidcToken(body.oidc_token);
   if (!validationResult.success) {
     const errorType = validationResult.errorType;
@@ -129,14 +127,59 @@ app.openapi(tokenExchangeRoute, async (c) => {
   const { claims } = validationResult;
   logger.info({ repository: claims.repository, actor: claims.actor }, 'OIDC token validated successfully');
 
-  // TODO: Implement installation lookup and token generation in subsequent stories
+  const installationResult = await lookupInstallationForRepo(
+    claims.repository_owner,
+    claims.repository.split('/')[1]
+  );
+
+  if (!installationResult.success) {
+    const { errorType, message } = installationResult;
+
+    if (errorType === 'not_installed') {
+      logger.warn(
+        { repository: claims.repository },
+        'GitHub App not installed on repository'
+      );
+      return c.json(
+        {
+          type: 'https://api.inkeep.com/problems/app-not-installed',
+          title: 'GitHub App Not Installed',
+          status: 403,
+          detail: message,
+        },
+        403
+      );
+    }
+
+    logger.error(
+      { errorType, message, repository: claims.repository },
+      'Failed to look up GitHub App installation'
+    );
+    return c.json(
+      {
+        type: 'https://api.inkeep.com/problems/installation-lookup-error',
+        title: 'Installation Lookup Failed',
+        status: 500,
+        detail: message,
+      },
+      500
+    );
+  }
+
+  const { installation } = installationResult;
+  logger.info(
+    { installationId: installation.installationId, repository: claims.repository },
+    'Found GitHub App installation'
+  );
+
+  // TODO: Implement token generation in subsequent story (US-006)
 
   return c.json(
     {
       token: 'placeholder',
       expires_at: new Date(Date.now() + 3600000).toISOString(),
       repository: claims.repository,
-      installation_id: 0,
+      installation_id: installation.installationId,
     },
     200
   );

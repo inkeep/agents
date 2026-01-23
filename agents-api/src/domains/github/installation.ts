@@ -1,0 +1,140 @@
+import { SignJWT, importPKCS8 } from 'jose';
+import { getGitHubAppConfig } from './config';
+import { getLogger } from '../../logger';
+
+const logger = getLogger('github-installation');
+
+const GITHUB_API_BASE = 'https://api.github.com';
+
+export interface InstallationInfo {
+  installationId: number;
+  accountLogin: string;
+  accountType: 'User' | 'Organization';
+}
+
+export interface LookupInstallationResult {
+  success: true;
+  installation: InstallationInfo;
+}
+
+export interface LookupInstallationError {
+  success: false;
+  errorType: 'not_installed' | 'api_error' | 'jwt_error';
+  message: string;
+}
+
+export type LookupInstallationForRepoResult = LookupInstallationResult | LookupInstallationError;
+
+async function createAppJwt(): Promise<string> {
+  const config = getGitHubAppConfig();
+
+  const privateKey = await importPKCS8(config.privateKey, 'RS256');
+
+  const now = Math.floor(Date.now() / 1000);
+
+  const jwt = await new SignJWT({})
+    .setProtectedHeader({ alg: 'RS256' })
+    .setIssuedAt(now - 60)
+    .setExpirationTime(now + 600)
+    .setIssuer(config.appId)
+    .sign(privateKey);
+
+  return jwt;
+}
+
+export async function lookupInstallationForRepo(
+  repositoryOwner: string,
+  repositoryName: string
+): Promise<LookupInstallationForRepoResult> {
+  let appJwt: string;
+  try {
+    appJwt = await createAppJwt();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error({ error: message }, 'Failed to create GitHub App JWT');
+    return {
+      success: false,
+      errorType: 'jwt_error',
+      message: `Failed to create GitHub App authentication: ${message}`,
+    };
+  }
+
+  const url = `${GITHUB_API_BASE}/repos/${repositoryOwner}/${repositoryName}/installation`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${appJwt}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'inkeep-agents-api',
+      },
+    });
+
+    if (response.status === 404) {
+      logger.info(
+        { repositoryOwner, repositoryName },
+        'GitHub App not installed on repository'
+      );
+      return {
+        success: false,
+        errorType: 'not_installed',
+        message: `GitHub App is not installed on repository ${repositoryOwner}/${repositoryName}. Please install the Inkeep Agents GitHub App on the repository to enable token exchange.`,
+      };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(
+        { status: response.status, error: errorText, repositoryOwner, repositoryName },
+        'GitHub API error looking up installation'
+      );
+      return {
+        success: false,
+        errorType: 'api_error',
+        message: `GitHub API error (${response.status}): Failed to look up installation for repository`,
+      };
+    }
+
+    const data = await response.json();
+
+    const installationId = data.id;
+    const accountLogin = data.account?.login;
+    const accountType = data.account?.type;
+
+    if (typeof installationId !== 'number' || typeof accountLogin !== 'string') {
+      logger.error({ data }, 'Unexpected response format from GitHub API');
+      return {
+        success: false,
+        errorType: 'api_error',
+        message: 'Unexpected response format from GitHub API',
+      };
+    }
+
+    logger.info(
+      { installationId, accountLogin, accountType, repositoryOwner, repositoryName },
+      'Found GitHub App installation for repository'
+    );
+
+    return {
+      success: true,
+      installation: {
+        installationId,
+        accountLogin,
+        accountType: accountType === 'Organization' ? 'Organization' : 'User',
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(
+      { error: message, repositoryOwner, repositoryName },
+      'Error calling GitHub API to look up installation'
+    );
+    return {
+      success: false,
+      errorType: 'api_error',
+      message: `Failed to connect to GitHub API: ${message}`,
+    };
+  }
+}

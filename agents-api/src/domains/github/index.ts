@@ -30,3 +30,10 @@ export {
   type ValidateTokenError,
   type ValidateOidcTokenResult,
 } from './oidcToken';
+export {
+  lookupInstallationForRepo,
+  type InstallationInfo,
+  type LookupInstallationResult,
+  type LookupInstallationError,
+  type LookupInstallationForRepoResult,
+} from './installation';
