@@ -1,5 +1,5 @@
 ---
-"@inkeep/agents-sdk": major
+"@inkeep/agents-sdk": minor
 ---
 
 BREAKING: Replace hardcoded webhook signature verification with flexible, provider-agnostic configuration
