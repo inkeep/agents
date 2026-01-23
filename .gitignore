@@ -91,3 +91,5 @@ progress.txt
 .pid
 
 .ralph-archives/
+
+.claude/settings.local.json
