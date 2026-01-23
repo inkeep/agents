@@ -17,7 +17,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Test (package)**: `cd <package> && pnpm test --run`
 
 ### Database Operations (run from monorepo root)
-- **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema.ts changes
+- **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
 - **Apply migrations**: `pnpm db:migrate` - Apply generated migrations to database
 - **Drop migrations**: `pnpm db:drop` - Drop migration files (use this to remove migrations, don't manually delete)
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
@@ -125,15 +125,16 @@ The `agents-api` package contains all API domains under a single service:
 
 #### Multi-Agent Framework
 
-#### Database Schema (SQLite + Drizzle ORM)
-[schema.ts](./packages/agents-core/src/db/schema.ts)
+#### Database Schema (PostgreSQL + Drizzle ORM)
+- [manage-schema.ts](./packages/agents-core/src/db/manage/manage-schema.ts) - Config tables (Doltgres)
+- [runtime-schema.ts](./packages/agents-core/src/db/runtime/runtime-schema.ts) - Runtime tables (Postgres)
 
 ## Key Implementation Details
 
 ### Database Migration Workflow
 
 #### Standard Workflow
-1. Edit `packages/agents-core/src/db/schema.ts`
+1. Edit `packages/agents-core/src/db/manage/manage-schema.ts` or `packages/agents-core/src/db/runtime/runtime-schema.ts`
 2. Run `pnpm db:generate` to create migration files in `drizzle/`
 3. (Optional) Make minor edits to the newly generated SQL file if needed due to drizzle-kit limitations
 4. Run `pnpm db:migrate` to apply the migration to the database
@@ -206,7 +207,7 @@ LOG_LEVEL=debug|info|warn|error
 ✅ **3. Documentation**
 - Create or update documentation in `/agents-docs/content/docs/` (public-facing docs)
 - Documentation should be in MDX format (`.mdx` files)
-- Update `/agents-docs/navigation.ts` to include new pages in the navigation
+- Update `/agents-docs/source.config.ts` to include new pages in the navigation
 - Follow existing Fumadocs structure and patterns
 - Add code examples and diagrams where helpful
 - Note: `/agents-docs/` is a Next.js documentation site for public consumption
@@ -332,7 +333,7 @@ git worktree prune
 - **Management Routes**: `agents-api/src/domains/manage/routes/` (agent config, projects, tools, credentials)
 - **Database Layer**: `packages/agents-core/src/data-access/` (agents, tasks, conversations, tools)
 - **Builder Patterns**: `packages/agents-sdk/src/` (agent.ts, subAgent.ts, tool.ts, project.ts)
-- **Schemas**: `packages/agents-core/src/db/manage/manage-schema.ts`, `packages/agents-core/src/db/run/run-schema.ts` (Drizzle), `packages/agents-core/src/validation/` (Zod validation)
+- **Schemas**: `packages/agents-core/src/db/manage/manage-schema.ts`, `packages/agents-core/src/db/runtime/runtime-schema.ts` (Drizzle), `packages/agents-core/src/validation/` (Zod validation)
 - **Tests**: `agents-api/src/__tests__/` (unit and integration tests)
 - **UI Components**: `agents-manage-ui/src/components/` (React components)
 - **UI Pages**: `agents-manage-ui/src/app/` (Next.js pages and routing)
@@ -426,21 +427,7 @@ await feature.execute();
 [Include practical examples here]
 ```
 
-// Also update agents-docs/navigation.ts to include the new page:
-```typescript
-export default {
-  docs: [
-    // ... existing entries
-    {
-      group: "Features",
-      pages: [
-        "features/new-feature",  // Add this line
-        // ... other feature pages
-      ],
-    },
-  ],
-};
-```
+// Also update agents-docs/source.config.ts to include the new page in navigation
 
 ## Debugging Commands
 

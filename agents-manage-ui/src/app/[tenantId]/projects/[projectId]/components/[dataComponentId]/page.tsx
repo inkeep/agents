@@ -1,6 +1,7 @@
 import { DataComponentForm } from '@/components/data-components/form/data-component-form';
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchDataComponent } from '@/lib/api/data-components';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -11,14 +12,20 @@ export default async function DataComponentPage({
   const { tenantId, projectId, dataComponentId } = await params;
 
   try {
-    const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
+    const [dataComponent, permissions] = await Promise.all([
+      fetchDataComponent(tenantId, projectId, dataComponentId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
     const { name, description, props, render } = dataComponent;
+
     return (
       <DataComponentForm
         className="max-w-2xl mx-auto"
         tenantId={tenantId}
         projectId={projectId}
         id={dataComponentId}
+        readOnly={!permissions.canEdit}
         initialData={{
           id: dataComponentId,
           name,

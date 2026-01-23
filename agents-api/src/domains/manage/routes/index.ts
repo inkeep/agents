@@ -10,6 +10,7 @@ import conversationsRoutes from './conversations';
 import credentialStoresRoutes from './credentialStores';
 import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
+import evalsRoutes from './evals';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
@@ -32,6 +33,7 @@ import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
 import triggersRoutes from './triggers';
+import userProjectMembershipsRoutes from './userProjectMemberships';
 
 const app = new OpenAPIHono();
 
@@ -100,5 +102,11 @@ app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
 app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
+
+// Evaluation routes (datasets, evaluators, etc.)
+app.route('/projects/:projectId/evals', evalsRoutes);
+
+// User-level routes (not project-scoped)
+app.route('/users/:userId/project-memberships', userProjectMembershipsRoutes);
 
 export default app;

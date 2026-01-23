@@ -429,7 +429,7 @@ export async function introspectGenerate(
         if (agentData.triggers && Object.keys(agentData.triggers).length > 0) {
           for (const [triggerId, triggerData] of Object.entries(agentData.triggers)) {
             const triggerFile = join(paths.agentsDir, 'triggers', `${triggerId}.ts`);
-            const triggerContent = generateTriggerFile(triggerId, triggerData, style);
+            const triggerContent = generateTriggerFile(triggerId, triggerData, style, registry);
 
             ensureDir(triggerFile);
             writeFileSync(triggerFile, triggerContent, 'utf-8');

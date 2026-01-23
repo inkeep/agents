@@ -9,6 +9,7 @@ import {
   SubAgentApiUpdateSchema,
   SubAgentInsertSchema,
   TaskInsertSchema,
+  TriggerInsertSchema,
 } from '../../validation/schemas';
 
 describe('Validation Schemas', () => {
@@ -310,6 +311,258 @@ describe('Validation Schemas', () => {
       } as any;
 
       expect(() => PaginationQueryParamsSchema.parse(invalidParams)).toThrow();
+    });
+  });
+
+  describe('TriggerInsertSchema', () => {
+    it('should validate trigger without signatureVerification', () => {
+      const validTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        description: 'A test trigger',
+        enabled: true,
+      };
+
+      expect(() => TriggerInsertSchema.parse(validTrigger)).not.toThrow();
+    });
+
+    it('should validate trigger with valid signatureVerification config', () => {
+      const validTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'GitHub Webhook Trigger',
+        description: 'GitHub webhook',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'header',
+            key: 'x-hub-signature-256',
+            prefix: 'sha256=',
+          },
+          signedComponents: [
+            {
+              source: 'body',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(validTrigger)).not.toThrow();
+    });
+
+    it('should reject trigger with invalid regex in signature', () => {
+      const invalidTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'header',
+            key: 'x-signature',
+            regex: '[invalid(regex',
+          },
+          signedComponents: [
+            {
+              source: 'body',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(invalidTrigger)).toThrow(/Invalid regex pattern/);
+    });
+
+    it('should reject trigger with invalid JMESPath in signature.key', () => {
+      const invalidTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'body',
+            key: 'invalid[[[jmespath',
+          },
+          signedComponents: [
+            {
+              source: 'body',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(invalidTrigger)).toThrow(
+        /Invalid JMESPath expression/
+      );
+    });
+
+    it('should reject trigger with invalid regex in signedComponent', () => {
+      const invalidTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'header',
+            key: 'x-signature',
+          },
+          signedComponents: [
+            {
+              source: 'header',
+              key: 'x-timestamp',
+              regex: '**invalid**',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(invalidTrigger)).toThrow(/Invalid regex pattern/);
+    });
+
+    it('should reject trigger with invalid JMESPath in signedComponent.key', () => {
+      const invalidTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'header',
+            key: 'x-signature',
+          },
+          signedComponents: [
+            {
+              source: 'body',
+              key: 'data[[invalid',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(invalidTrigger)).toThrow(
+        /Invalid JMESPath expression/
+      );
+    });
+
+    it('should validate trigger with valid JMESPath expressions', () => {
+      const validTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'base64',
+          signature: {
+            source: 'body',
+            key: 'signature.value',
+          },
+          signedComponents: [
+            {
+              source: 'body',
+              key: 'data.timestamp',
+              required: true,
+            },
+            {
+              source: 'body',
+              key: 'payload.body',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '.',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(validTrigger)).not.toThrow();
+    });
+
+    it('should validate trigger with valid regex patterns', () => {
+      const validTrigger = {
+        id: 'trigger-1',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        name: 'Test Trigger',
+        enabled: true,
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'header',
+            key: 'x-signature',
+            regex: '^v0=([a-f0-9]+)$',
+          },
+          signedComponents: [
+            {
+              source: 'header',
+              key: 'x-timestamp',
+              regex: '^t=([0-9]+)$',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: ':',
+          },
+        },
+      };
+
+      expect(() => TriggerInsertSchema.parse(validTrigger)).not.toThrow();
     });
   });
 });

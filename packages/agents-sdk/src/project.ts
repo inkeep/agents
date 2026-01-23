@@ -173,7 +173,7 @@ export class Project implements ProjectInterface {
         tenantId: this.tenantId,
         agentCount: this.agents.length,
       },
-      'Project created'
+      'Project loaded'
     );
   }
 
@@ -213,7 +213,7 @@ export class Project implements ProjectInterface {
         hasModels: !!this.models,
         hasApiKey: !!this.apiKey,
       },
-      'Project configuration updated'
+      'Project configured'
     );
   }
 

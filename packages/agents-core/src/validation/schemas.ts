@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import * as jmespath from 'jmespath';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 
 // Destructure defaults for use in schemas
@@ -419,11 +420,256 @@ export const TriggerOutputTransformSchema = z
   })
   .openapi('TriggerOutputTransform');
 
+/**
+ * Configuration for extracting the webhook signature from an incoming request.
+ *
+ * The signature can be located in HTTP headers, query parameters, or the request body.
+ * Supports prefix stripping and regex extraction for complex signature formats.
+ *
+ * @example
+ * // GitHub: Extract from header with prefix
+ * { source: 'header', key: 'X-Hub-Signature-256', prefix: 'sha256=' }
+ *
+ * @example
+ * // Stripe: Extract from header using regex
+ * { source: 'header', key: 'Stripe-Signature', regex: 'v1=([a-f0-9]+)' }
+ *
+ * @example
+ * // Custom: Extract from body using JMESPath
+ * { source: 'body', key: 'metadata.signature' }
+ */
+export const SignatureSourceSchema = z
+  .object({
+    source: z
+      .enum(['header', 'query', 'body'])
+      .describe('Location of the signature in the incoming request'),
+    key: z.string().describe('Key name for the signature (header name, query param, or JMESPath)'),
+    prefix: z
+      .string()
+      .optional()
+      .describe('Optional prefix to strip from signature value (e.g., "sha256=", "v0=")'),
+    regex: z
+      .string()
+      .optional()
+      .describe(
+        'Optional regex pattern to extract signature from value (first capture group used)'
+      ),
+  })
+  .openapi('SignatureSource');
+
+/**
+ * Configuration for a single component that is part of the signed data.
+ *
+ * Webhook providers often sign multiple pieces of data together (e.g., timestamp + body).
+ * Components are extracted from the request and joined in order before verification.
+ *
+ * @example
+ * // GitHub: Sign only the body
+ * { source: 'body', required: true }
+ *
+ * @example
+ * // Slack: Sign literal version + timestamp header + body
+ * { source: 'literal', value: 'v0', required: true }
+ * { source: 'header', key: 'X-Slack-Request-Timestamp', required: true }
+ * { source: 'body', required: true }
+ *
+ * @example
+ * // Stripe: Extract timestamp from header using regex
+ * { source: 'header', key: 'Stripe-Signature', regex: 't=([0-9]+)', required: true }
+ */
+export const SignedComponentSchema = z
+  .object({
+    source: z
+      .enum(['header', 'body', 'literal'])
+      .describe('Source of the component: header value, body via JMESPath, or literal string'),
+    key: z
+      .string()
+      .optional()
+      .describe('Key for header name or JMESPath expression (required for header/body sources)'),
+    value: z.string().optional().describe('Literal string value (required for literal source)'),
+    regex: z
+      .string()
+      .optional()
+      .describe('Optional regex pattern to extract from component value (first capture group)'),
+    required: z
+      .boolean()
+      .default(true)
+      .describe('If false, missing component results in empty string instead of error'),
+  })
+  .openapi('SignedComponent');
+
+/**
+ * Configuration for how to join multiple signed components into a single string.
+ *
+ * Different webhook providers use different separators between components.
+ *
+ * @example
+ * // GitHub/Zendesk: Direct concatenation (empty separator)
+ * { strategy: 'concatenate', separator: '' }
+ *
+ * @example
+ * // Slack: Colon separator
+ * { strategy: 'concatenate', separator: ':' }
+ *
+ * @example
+ * // Stripe: Dot separator
+ * { strategy: 'concatenate', separator: '.' }
+ */
+export const ComponentJoinSchema = z
+  .object({
+    strategy: z.enum(['concatenate']).describe('Strategy for joining components'),
+    separator: z.string().describe('String to insert between joined components'),
+  })
+  .openapi('ComponentJoin');
+
+/**
+ * Advanced validation options for fine-grained control over signature verification.
+ *
+ * These options control edge case behavior and should generally use default values.
+ *
+ * @example
+ * // Strict validation for security-critical webhooks
+ * {
+ *   headerCaseSensitive: true,
+ *   allowEmptyBody: false,
+ *   normalizeUnicode: true
+ * }
+ */
+export const SignatureValidationOptionsSchema = z
+  .object({
+    headerCaseSensitive: z
+      .boolean()
+      .default(false)
+      .describe('If true, header names are matched case-sensitively'),
+    allowEmptyBody: z
+      .boolean()
+      .default(true)
+      .describe('If true, allow empty request body for verification'),
+    normalizeUnicode: z
+      .boolean()
+      .default(false)
+      .describe('If true, normalize Unicode strings to NFC form before signing'),
+  })
+  .openapi('SignatureValidationOptions');
+
+/**
+ * Complete configuration for webhook HMAC signature verification.
+ *
+ * Supports flexible, provider-agnostic signature verification for webhooks from
+ * GitHub, Slack, Stripe, Zendesk, and other providers.
+ *
+ * SECURITY: Always use credential references to store signing secrets. Never hardcode
+ * secrets in your configuration. Prefer sha256 or stronger algorithms.
+ *
+ * @example
+ * // GitHub webhook verification
+ * {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'X-Hub-Signature-256', prefix: 'sha256=' },
+ *   signedComponents: [{ source: 'body', required: true }],
+ *   componentJoin: { strategy: 'concatenate', separator: '' }
+ * }
+ *
+ * @example
+ * // Slack webhook verification with multi-component signing
+ * {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'X-Slack-Signature', prefix: 'v0=' },
+ *   signedComponents: [
+ *     { source: 'literal', value: 'v0', required: true },
+ *     { source: 'header', key: 'X-Slack-Request-Timestamp', required: true },
+ *     { source: 'body', required: true }
+ *   ],
+ *   componentJoin: { strategy: 'concatenate', separator: ':' }
+ * }
+ *
+ * @example
+ * // Stripe webhook verification with regex extraction
+ * {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'Stripe-Signature', regex: 'v1=([a-f0-9]+)' },
+ *   signedComponents: [
+ *     { source: 'header', key: 'Stripe-Signature', regex: 't=([0-9]+)', required: true },
+ *     { source: 'body', required: true }
+ *   ],
+ *   componentJoin: { strategy: 'concatenate', separator: '.' }
+ * }
+ */
+export const SignatureVerificationConfigSchema = z
+  .object({
+    algorithm: z
+      .enum(['sha256', 'sha512', 'sha384', 'sha1', 'md5'])
+      .describe('HMAC algorithm to use for signature verification'),
+    encoding: z
+      .enum(['hex', 'base64'])
+      .describe('Encoding format of the signature (hex or base64)'),
+    signature: SignatureSourceSchema.describe('Configuration for extracting the signature'),
+    signedComponents: z
+      .array(SignedComponentSchema)
+      .min(1)
+      .describe('Array of components that are signed (order matters)'),
+    componentJoin: ComponentJoinSchema.describe('How to join signed components'),
+    validation: SignatureValidationOptionsSchema.optional().describe('Advanced validation options'),
+  })
+  .openapi('SignatureVerificationConfig');
+
+/**
+ * Complete configuration for webhook HMAC signature verification.
+ *
+ * Use this type when working with signature verification in TypeScript.
+ * See SignatureVerificationConfigSchema for detailed examples and validation.
+ */
+export type SignatureVerificationConfig = z.infer<typeof SignatureVerificationConfigSchema>;
+
+/**
+ * Configuration for extracting the webhook signature from an incoming request.
+ *
+ * See SignatureSourceSchema for detailed examples and validation.
+ */
+export type SignatureSource = z.infer<typeof SignatureSourceSchema>;
+
+/**
+ * Configuration for a single component that is part of the signed data.
+ *
+ * See SignedComponentSchema for detailed examples and validation.
+ */
+export type SignedComponent = z.infer<typeof SignedComponentSchema>;
+
+/**
+ * Configuration for how to join multiple signed components into a single string.
+ *
+ * See ComponentJoinSchema for detailed examples and validation.
+ */
+export type ComponentJoin = z.infer<typeof ComponentJoinSchema>;
+
+/**
+ * Advanced validation options for fine-grained control over signature verification.
+ *
+ * See SignatureValidationOptionsSchema for detailed examples and validation.
+ */
+export type SignatureValidationOptions = z.infer<typeof SignatureValidationOptionsSchema>;
+
 export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
 
-export const TriggerSelectSchema = createSelectSchema(triggers);
+export const TriggerSelectSchema = registerFieldSchemas(
+  createSelectSchema(triggers).extend({
+    signingSecretCredentialReferenceId: z.string().nullable().optional(),
+    signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
+  })
+);
 
-export const TriggerInsertSchema = createInsertSchema(triggers, {
+// TypeScript workaround for missing compile method in type definitions
+interface JMESPathExtended {
+  search: typeof jmespath.search;
+  compile: (expression: string) => any;
+}
+
+const jmespathExt = jmespath as unknown as JMESPathExtended;
+
+const TriggerInsertSchemaBase = createInsertSchema(triggers, {
   id: () => resourceIdSchema,
   name: () => z.string().trim().nonempty().describe('Trigger name'),
   description: () => z.string().optional().describe('Trigger description'),
@@ -439,34 +685,99 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
       .describe('Message template with {{placeholder}} syntax')
       .optional(),
   authentication: () => TriggerAuthenticationInputSchema.optional(),
-  signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
+  signingSecretCredentialReferenceId: () =>
+    z.string().optional().describe('Reference to credential containing signing secret'),
+  signatureVerification: () =>
+    SignatureVerificationConfigSchema.nullable()
+      .optional()
+      .describe('Configuration for webhook signature verification'),
+});
+
+export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ctx) => {
+  const config = data.signatureVerification as SignatureVerificationConfig | null | undefined;
+  if (!config) return;
+
+  // Validate signature.regex if present
+  if (config.signature.regex) {
+    try {
+      new RegExp(config.signature.regex);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid regex pattern in signature.regex: ${error instanceof Error ? error.message : String(error)}`,
+        path: ['signatureVerification', 'signature', 'regex'],
+      });
+    }
+  }
+
+  // Validate signature.key as JMESPath if source is 'body'
+  if (config.signature.source === 'body' && config.signature.key) {
+    try {
+      jmespathExt.compile(config.signature.key);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid JMESPath expression in signature.key: ${error instanceof Error ? error.message : String(error)}`,
+        path: ['signatureVerification', 'signature', 'key'],
+      });
+    }
+  }
+
+  // Validate each signed component
+  config.signedComponents.forEach((component, index) => {
+    // Validate component.regex if present
+    if (component.regex) {
+      try {
+        new RegExp(component.regex);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid regex pattern in signedComponents[${index}].regex: ${error instanceof Error ? error.message : String(error)}`,
+          path: ['signatureVerification', 'signedComponents', index, 'regex'],
+        });
+      }
+    }
+
+    // Validate component.key as JMESPath if source is 'body'
+    if (component.source === 'body' && component.key) {
+      try {
+        jmespathExt.compile(component.key);
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${error instanceof Error ? error.message : String(error)}`,
+          path: ['signatureVerification', 'signedComponents', index, 'key'],
+        });
+      }
+    }
+
+    // Validate component.value as JMESPath if provided (for header/body extraction)
+    if (component.value && component.source !== 'literal') {
+      // For non-literal sources, value might be a JMESPath expression
+      try {
+        jmespathExt.compile(component.value);
+      } catch (error) {
+        // Value might not be JMESPath, which is okay
+        // Only add issue if it looks like it's trying to be a JMESPath expression
+        if (component.value.includes('.') || component.value.includes('[')) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${error instanceof Error ? error.message : String(error)}`,
+            path: ['signatureVerification', 'signedComponents', index, 'value'],
+          });
+        }
+      }
+    }
+  });
 });
 
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
-export const TriggerUpdateSchema = z.object({
-  name: z.string().trim().nonempty().describe('Trigger name').optional(),
-  description: z.string().optional().describe('Trigger description'),
-  enabled: z.boolean().describe('Whether the trigger is enabled').optional(),
-  inputSchema: z
-    .record(z.string(), z.unknown())
-    .optional()
-    .describe('JSON Schema for input validation'),
-  outputTransform: TriggerOutputTransformSchema.optional(),
-  messageTemplate: z
-    .string()
-    .trim()
-    .nonempty()
-    .describe('Message template with {{placeholder}} syntax')
-    .optional()
-    .nullable(),
-  authentication: TriggerAuthenticationUpdateSchema.optional(),
-  signingSecret: z.string().optional().describe('New HMAC-SHA256 signing secret'),
-  keepExistingSigningSecret: z
-    .boolean()
-    .optional()
-    .describe('If true, keep existing signing secret'),
-});
+// We use .removeDefault() to strip the default from enabled field
+export const TriggerUpdateSchema = TriggerInsertSchemaBase.extend({
+  // Override enabled to remove the default so {} doesn't become {enabled: true}
+  enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+}).partial();
 
 export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
@@ -476,6 +787,12 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
   })
   .openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
+
+// Extended Trigger schema with webhookUrl (for manage API responses)
+// Note: This extends the base TriggerApiSelectSchema to add the computed webhookUrl field
+export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
+  webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
+}).openapi('TriggerWithWebhookUrl');
 
 // Trigger Invocation schemas
 export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
@@ -2056,6 +2373,17 @@ export const TriggerInvocationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerInvocationListResponse');
+export const TriggerWithWebhookUrlResponse = z
+  .object({
+    data: TriggerWithWebhookUrlSchema,
+  })
+  .openapi('TriggerWithWebhookUrlResponse');
+export const TriggerWithWebhookUrlListResponse = z
+  .object({
+    data: z.array(TriggerWithWebhookUrlSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('TriggerWithWebhookUrlListResponse');
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');

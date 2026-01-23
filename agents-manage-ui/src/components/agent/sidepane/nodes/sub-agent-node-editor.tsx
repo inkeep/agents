@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
@@ -69,6 +70,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
     tenantId: string;
     projectId: string;
   }>();
+  const { canEdit } = useProjectPermissions();
   const selectedDataComponents = selectedNode.data.dataComponents ?? [];
   const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
   const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
@@ -245,7 +247,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         placeholder="Select artifacts..."
         commandInputPlaceholder="Search artifacts..."
       />
-      {!isDefaultSubAgent && (
+      {!isDefaultSubAgent && canEdit && (
         <>
           <Separator />
           <div className="flex justify-end">

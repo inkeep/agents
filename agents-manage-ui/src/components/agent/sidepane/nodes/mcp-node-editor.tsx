@@ -3,7 +3,6 @@ import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-rea
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { getActiveTools } from '@/app/utils/active-tools';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,10 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
+import { getActiveTools } from '@/lib/utils/active-tools';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
@@ -36,6 +37,7 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
@@ -442,13 +444,17 @@ export function MCPServerNodeEditor({
       >
         View MCP Server
       </ExternalLink>
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

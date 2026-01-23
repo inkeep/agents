@@ -35,10 +35,7 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
+  if (c.req.method === 'PATCH' || c.req.method === 'DELETE' || c.req.method === 'PUT') {
     return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
   }
   return next();

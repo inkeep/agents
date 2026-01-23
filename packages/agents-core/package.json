@@ -66,6 +66,10 @@
       "types": "./dist/utils/schema-conversion.d.ts",
       "import": "./dist/utils/schema-conversion.js"
     },
+    "./utils/signature-validation": {
+      "types": "./dist/utils/signature-validation.d.ts",
+      "import": "./dist/utils/signature-validation.js"
+    },
     "./auth": {
       "types": "./dist/auth/auth.d.ts",
       "import": "./dist/auth/auth.js"
@@ -197,6 +201,7 @@
   "files": [
     "dist",
     "drizzle",
+    "spicedb",
     "README.md",
     "LICENSE.md",
     "SUPPLEMENTAL_TERMS.md"

@@ -1,19 +1,19 @@
 'use client';
 
 import type * as PostHogReact from '@posthog/react';
-import type { PostHog } from 'posthog-js';
-import { createContext, useContext, useEffect, useState } from 'react';
+import type { PostHog as PostHogClient } from 'posthog-js';
+import { createContext, use, useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 type PosthogModules = {
-  posthog: PostHog;
+  posthog: PostHogClient;
   PostHogProvider: typeof PostHogReact.PostHogProvider;
 };
 
-const PostHogContext = createContext<PostHog | null>(null);
+const PostHogContext = createContext<PostHogClient | null>(null);
 
 export function usePostHog() {
-  return useContext(PostHogContext);
+  return use(PostHogContext);
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
@@ -42,9 +42,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (PUBLIC_POSTHOG_SITE_TAG) {
-            posthog.register({
-              site: PUBLIC_POSTHOG_SITE_TAG,
-            });
+            posthog.register({ site: PUBLIC_POSTHOG_SITE_TAG });
           }
         }
 
@@ -62,7 +60,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
   // Analytics disabled → behave like a passthrough provider
   if (!PUBLIC_POSTHOG_KEY || !modules) {
-    return <PostHogContext value={null}>{children}</PostHogContext>;
+    return children;
   }
 
   const { posthog, PostHogProvider: PHProvider } = modules;

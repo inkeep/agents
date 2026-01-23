@@ -28,6 +28,7 @@ interface ArtifactComponentFormProps {
   projectId: string;
   id?: string;
   initialData?: ArtifactComponentFormData;
+  readOnly?: boolean;
 }
 
 const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentFormData => {
@@ -46,6 +47,7 @@ export function ArtifactComponentForm({
   tenantId,
   projectId,
   initialData,
+  readOnly = false,
 }: ArtifactComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<ArtifactComponentFormData>({
@@ -106,13 +108,14 @@ export function ArtifactComponentForm({
             label="Name"
             placeholder="Document Artifact"
             isRequired
+            disabled={readOnly}
           />
           <GenericInput
             control={form.control}
             name="id"
             label="Id"
             placeholder="my-artifact"
-            disabled={!!id}
+            disabled={!!id || readOnly}
             isRequired
             description={
               !id &&
@@ -125,6 +128,7 @@ export function ArtifactComponentForm({
             label="Description"
             placeholder="Structured factual information extracted from search results"
             className="min-h-[80px]"
+            disabled={readOnly}
           />
           <JsonSchemaInput
             control={form.control}
@@ -134,9 +138,10 @@ export function ArtifactComponentForm({
             description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
             uri="custom-json-schema-artifact-component.json"
             hasInPreview
+            readOnly={readOnly}
           />
 
-          {id && (
+          {id && !readOnly && (
             <ComponentRenderGenerator
               tenantId={tenantId}
               projectId={projectId}
@@ -148,18 +153,20 @@ export function ArtifactComponentForm({
             />
           )}
 
-          <div className="flex w-full justify-between">
-            <Button type="submit" disabled={isSubmitting}>
-              Save
-            </Button>
-            {id && (
-              <DialogTrigger asChild>
-                <Button type="button" variant="destructive-outline">
-                  Delete Artifact
-                </Button>
-              </DialogTrigger>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="flex w-full justify-between">
+              <Button type="submit" disabled={isSubmitting}>
+                Save
+              </Button>
+              {id && (
+                <DialogTrigger asChild>
+                  <Button type="button" variant="destructive-outline">
+                    Delete Artifact
+                  </Button>
+                </DialogTrigger>
+              )}
+            </div>
+          )}
         </form>
       </Form>
       {isDeleteOpen && id && (

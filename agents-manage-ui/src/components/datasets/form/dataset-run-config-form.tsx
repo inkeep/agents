@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -17,14 +17,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import {
   createDatasetRunConfigAction,
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
 import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
-import { fetchEvaluators } from '@/lib/api/evaluators';
+import { useAgentsQuery } from '@/lib/query/agents';
+import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
 import {
   type DatasetRunConfigFormData,
@@ -55,10 +55,8 @@ export function DatasetRunConfigForm({
   onSuccess,
   onCancel,
 }: DatasetRunConfigFormProps) {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
-  const [loadingAgents, setLoadingAgents] = useState(true);
-  const [loadingEvaluators, setLoadingEvaluators] = useState(true);
+  const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
+  const { data: evaluators, isFetching: loadingEvaluators } = useEvaluatorsQuery();
 
   const form = useForm<DatasetRunConfigFormData>({
     resolver: zodResolver(datasetRunConfigSchema) as any,
@@ -78,33 +76,6 @@ export function DatasetRunConfigForm({
     control: form.control,
     defaultValue: [],
   });
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoadingAgents(true);
-        setLoadingEvaluators(true);
-        const [agentsResult, evaluatorsResult] = await Promise.all([
-          getAllAgentsAction(tenantId, projectId),
-          fetchEvaluators(tenantId, projectId),
-        ]);
-        if (agentsResult.success && agentsResult.data) {
-          setAgents(agentsResult.data);
-        }
-        if (evaluatorsResult.data) {
-          setEvaluators(evaluatorsResult.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        toast.error('Failed to load data');
-      } finally {
-        setLoadingAgents(false);
-        setLoadingEvaluators(false);
-      }
-    };
-
-    fetchData();
-  }, [tenantId, projectId]);
 
   useEffect(() => {
     if (initialData) {

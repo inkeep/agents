@@ -1,6 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { formatDateTimeTable } from '@/app/utils/format-date';
 import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationJobResults } from '@/components/evaluation-jobs/evaluation-job-results';
 import { PageHeader } from '@/components/layout/page-header';
@@ -13,6 +12,7 @@ import type {
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 export const dynamic = 'force-dynamic';
 

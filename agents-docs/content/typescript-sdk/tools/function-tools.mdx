@@ -6,6 +6,11 @@ icon: LuCode
 
 Function tools allow you to create custom JavaScript functions that agents can execute in secure, isolated sandboxes. Unlike [MCP servers](/typescript-sdk/tools/mcp-tools) that connect to external services, function tools run your own code directly within the agent framework.
 
+<Tip>
+  For sensitive function tools (write/delete actions), require explicit user approval before execution. See
+  [Tool approvals](/typescript-sdk/tools/tool-approvals).
+</Tip>
+
 ## Overview
 
 Function tools are perfect for:
@@ -160,7 +165,7 @@ The framework supports multiple sandbox providers:
 - **Native** (default) - Uses Node.js child processes, works in most environments including cloud VMs, Docker, Kubernetes, and traditional hosting
 - **Vercel** - Uses Vercel Sandbox MicroVMs for serverless environments where child process spawning is restricted (Vercel, AWS Lambda, etc.)
 
-The sandbox provider is configured at the application level when deploying. See [Deploy to Vercel](/self-hosting/vercel#function-tools-with-vercel-sandbox) for serverless deployment configuration.
+The sandbox provider is configured at the application level when deploying. See [Deploy to Vercel](/deployment/vercel#step-2-configure-sandbox-in-your-application) for serverless deployment configuration.
 
 ### Runtime Configuration
 

@@ -46,6 +46,7 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   name?: string;
   imageUrl?: string;
   provider?: string;
+  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
 }
 
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
@@ -75,6 +76,7 @@ export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedN
   toolId?: string;
   agentId?: string | null;
   relationshipId?: string;
+  tempToolPolicies?: Record<string, { needsApproval?: boolean }>;
   name?: string;
   description?: string;
   code?: string;

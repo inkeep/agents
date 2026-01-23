@@ -528,6 +528,7 @@ export const createFullAgentServerSide =
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
                       functionToolId: toolId,
+                      toolPolicies,
                       relationId: agentToolRelationId,
                     });
                     logger.info(
@@ -1562,6 +1563,7 @@ export const updateFullAgentServerSide =
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
                       functionToolId: toolId,
+                      toolPolicies,
                       relationId: agentToolRelationId,
                     });
                     logger.info(

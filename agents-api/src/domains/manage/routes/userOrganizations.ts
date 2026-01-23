@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { addUserToOrganization, getUserOrganizations } from '@inkeep/agents-core';
+import { addUserToOrganization, getUserOrganizationsFromDb } from '@inkeep/agents-core';
 import {
   AddUserToOrganizationRequestSchema,
   AddUserToOrganizationResponseSchema,
@@ -36,7 +36,7 @@ userOrganizationsRoutes.openapi(
   }),
   async (c) => {
     const { userId } = c.req.valid('param');
-    const orgs = await getUserOrganizations(runDbClient)(userId);
+    const orgs = await getUserOrganizationsFromDb(runDbClient)(userId);
     // Transform Date to string for API response
     const userOrganizations = orgs.map((org) => ({
       ...org,

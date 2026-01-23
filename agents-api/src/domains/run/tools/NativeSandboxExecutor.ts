@@ -464,8 +464,6 @@ export class NativeSandboxExecutor {
       );
 
       return result;
-    } catch (error) {
-      throw error;
     } finally {
       if (runDir) {
         try {

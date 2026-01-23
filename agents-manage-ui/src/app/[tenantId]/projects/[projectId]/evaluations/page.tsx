@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationsTabs } from '@/components/evaluations/evaluations-tabs';
 import { PageHeader } from '@/components/layout/page-header';
@@ -8,8 +9,11 @@ import { fetchEvaluators } from '@/lib/api/evaluators';
 
 export const dynamic = 'force-dynamic';
 
-const evaluationsDescription =
-  'Evaluators are LLM-based assessment tools that analyze conversations and provide structured feedback.';
+export const metadata = {
+  title: STATIC_LABELS.evaluations,
+  description:
+    'Evaluators are LLM-based assessment tools that analyze conversations and provide structured feedback.',
+} satisfies Metadata;
 
 async function EvaluationsPage({
   params,
@@ -24,7 +28,7 @@ async function EvaluationsPage({
     ]);
     return (
       <>
-        <PageHeader title={STATIC_LABELS.evaluations} description={evaluationsDescription} />
+        <PageHeader title={metadata.title} description={metadata.description} />
         <EvaluationsTabs
           tenantId={tenantId}
           projectId={projectId}

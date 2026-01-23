@@ -484,6 +484,7 @@ const getFullAgentDefinitionInternal =
             projectId: functionTools.projectId,
             agentId: functionTools.agentId,
             agentToolRelationId: subAgentFunctionToolRelations.id,
+            toolPolicies: subAgentFunctionToolRelations.toolPolicies,
           })
           .from(subAgentFunctionToolRelations)
           .innerJoin(
@@ -535,7 +536,7 @@ const getFullAgentDefinitionInternal =
           toolId: tool.id,
           toolSelection: null, // Function tools don't have tool selection
           headers: null, // Function tools don't have headers
-          toolPolicies: null, // Function tools don't have tool policies (yet)
+          toolPolicies: tool.toolPolicies || null,
         }));
 
         const canUse = [...mcpToolCanUse, ...functionToolCanUse];
@@ -873,7 +874,8 @@ const getFullAgentDefinitionInternal =
             outputTransform: trigger.outputTransform,
             messageTemplate: trigger.messageTemplate,
             authentication: trigger.authentication,
-            signingSecret: trigger.signingSecret,
+            signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
+            signatureVerification: trigger.signatureVerification,
           };
         }
         result.triggers = triggersObject;

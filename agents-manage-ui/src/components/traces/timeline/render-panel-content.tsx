@@ -1,7 +1,6 @@
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
 import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
-import { formatDateTime } from '@/app/utils/format-date';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -22,6 +21,7 @@ import {
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/utils/format-date';
 
 function formatJsonSafely(content: string): string {
   try {

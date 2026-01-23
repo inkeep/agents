@@ -88,7 +88,6 @@ app.openapi(
     // Check SpiceDB 'use' permission for this project
     // This allows project_admin and project_member roles, but not project_viewer
     const canUse = await canUseProject({
-      tenantId,
       userId,
       projectId,
       orgRole: tenantRole,

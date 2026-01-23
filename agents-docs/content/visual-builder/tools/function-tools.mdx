@@ -19,6 +19,11 @@ Function tools are ideal for:
 
 Function tools are created within an Agent and can be used by multiple Sub Agents in that Agent.
 
+<Tip>
+  If a function tool performs sensitive actions, require explicit user approval before it runs. See
+  [Tool approvals](/typescript-sdk/tools/tool-approvals).
+</Tip>
+
 ### In an Agent
 
 1. **Add a Function Tool Node**: In the Agent editor, drag a "Function Tool" node from the node palette onto the canvas
@@ -176,7 +181,7 @@ When deploying, you can configure:
 - **Timeout**: Maximum execution time per function call
 - **Concurrency**: Number of simultaneous function executions
 
-See [Deploy to Vercel](/self-hosting/vercel#function-tools-with-vercel-sandbox) for deployment-specific configuration.
+See [Deploy to Vercel](/deployment/vercel#step-2-configure-sandbox-in-your-application) for deployment-specific configuration.
 
 ### Best Practices
 

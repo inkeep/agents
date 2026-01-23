@@ -48,6 +48,8 @@ export type ManageAppVariables = AppVariables & {
   db: AgentsManageDatabaseClient;
   auth: ReturnType<typeof createAuth> | null;
   resolvedRef: ResolvedRef;
+  /** Cached by projectFull middleware to avoid duplicate DB lookup for PUT upsert */
+  isProjectCreate?: boolean;
 };
 
 export type AppConfig = {

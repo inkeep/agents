@@ -1,3 +1,4 @@
+import type { Metadata, ResolvingMetadata } from 'next';
 import Link from 'next/link';
 import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
@@ -31,7 +32,9 @@ function getStaticLabel(segment: string) {
   return segment in STATIC_LABELS ? STATIC_LABELS[segment as LabelKey] : undefined;
 }
 
-const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }) => {
+type BreadcrumbsProps = PageProps<'/[tenantId]/[...slug]'>;
+
+async function getCrumbs(params: BreadcrumbsProps['params']) {
   const { tenantId, slug } = await params;
   const crumbs: BreadcrumbItem[] = [];
   let href = `/${tenantId}`;
@@ -159,6 +162,11 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     addCrumb({ segment, label });
   }
 
+  return crumbs;
+}
+
+const BreadcrumbSlot: FC<BreadcrumbsProps> = async ({ params }) => {
+  const crumbs = await getCrumbs(params);
   return crumbs.map(({ label, href }, idx, arr) => {
     const isLast = idx === arr.length - 1;
     return (
@@ -183,5 +191,21 @@ const BreadcrumbSlot: FC<PageProps<'/[tenantId]/[...slug]'>> = async ({ params }
     );
   });
 };
+
+export async function generateMetadata(
+  { params }: BreadcrumbsProps,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const parentMetadata = await parent;
+  const hasParentTitle = !parentMetadata.title?.template;
+  if (hasParentTitle) {
+    return {};
+  }
+  const crumbs = await getCrumbs(params);
+  const lastCrumb = crumbs.at(-1);
+  return {
+    title: lastCrumb?.label,
+  };
+}
 
 export default BreadcrumbSlot;

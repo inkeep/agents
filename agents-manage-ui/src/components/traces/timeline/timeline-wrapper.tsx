@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { DOCS_BASE_URL } from '@/constants/theme';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {

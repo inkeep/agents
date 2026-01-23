@@ -4,8 +4,6 @@ import { MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { getActiveTools } from '@/app/utils/active-tools';
-import { formatDate } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -22,8 +20,11 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { getActiveTools } from '@/lib/utils/active-tools';
+import { formatDate } from '@/lib/utils/format-date';
 
 import { Badge } from '../ui/badge';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
@@ -123,6 +124,7 @@ export function MCPToolItem({
   projectId: string;
   tool: MCPTool;
 }) {
+  const { canEdit } = useProjectPermissions();
   const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`;
 
   const activeTools = getActiveTools({
@@ -144,7 +146,7 @@ export function MCPToolItem({
             <span className="flex-1 min-w-0 text-base font-medium truncate">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />
+        {canEdit && <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />}
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">

@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -20,7 +20,7 @@ import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { createEvaluationJobConfigAction } from '@/lib/actions/evaluation-job-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
-import { fetchEvaluators } from '@/lib/api/evaluators';
+import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 import { type EvaluationJobConfigFormData, evaluationJobConfigSchema } from './validation';
 
 interface EvaluationJobFormDialogProps {
@@ -40,11 +40,10 @@ export function EvaluationJobFormDialog({
 }: EvaluationJobFormDialogProps) {
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
+  const { data: evaluators, isFetching } = useEvaluatorsQuery({ enabled: isOpen });
 
   const defaultFormData: EvaluationJobConfigFormData = {
     jobFilters: null,
@@ -56,25 +55,11 @@ export function EvaluationJobFormDialog({
     defaultValues: defaultFormData,
   });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
-      setEvaluators(evaluatorsRes.data || []);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, projectId]);
-
   useEffect(() => {
     if (isOpen) {
       form.reset(defaultFormData);
-      loadData();
     }
-  }, [isOpen, form, loadData]);
+  }, [isOpen, form]);
 
   const { isSubmitting } = form.formState;
   const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
@@ -90,8 +75,8 @@ export function EvaluationJobFormDialog({
     );
   }, [evaluators]);
 
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const datePickerValue =
     customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;
@@ -187,7 +172,7 @@ export function EvaluationJobFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {isFetching ? (
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
         ) : (
           <Form {...form}>

@@ -115,7 +115,7 @@ export class Agent implements AgentInterface {
         defaultSubAgent: this.defaultSubAgent?.getName(),
         triggerCount: this.triggers.length,
       },
-      'Agent created'
+      'Agent initialized'
     );
   }
 
@@ -166,7 +166,7 @@ export class Agent implements AgentInterface {
         projectId: this.projectId,
         apiUrl: this.baseURL,
       },
-      'Agent configuration updated'
+      'Agent configured'
     );
   }
 
