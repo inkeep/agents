@@ -197,6 +197,7 @@
   "files": [
     "dist",
     "drizzle",
+    "spicedb",
     "README.md",
     "LICENSE.md",
     "SUPPLEMENTAL_TERMS.md"

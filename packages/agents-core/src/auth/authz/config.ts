@@ -10,12 +10,17 @@ export function isAuthzEnabled(): boolean {
 
 /**
  * Get SpiceDB connection configuration from environment variables.
+ * TLS is auto-detected: disabled for localhost, enabled for remote endpoints.
  */
 export function getSpiceDbConfig() {
+  const endpoint = process.env.SPICEDB_ENDPOINT || 'localhost:50051';
+  const isLocalhost =
+    endpoint.startsWith('localhost') || endpoint.startsWith('127.0.0.1');
+
   return {
-    endpoint: process.env.SPICEDB_ENDPOINT || 'localhost:50051',
+    endpoint,
     token: process.env.SPICEDB_PRESHARED_KEY || '',
-    tlsEnabled: process.env.SPICEDB_TLS_ENABLED === 'true',
+    tlsEnabled: !isLocalhost,
   };
 }
 
