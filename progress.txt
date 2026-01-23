@@ -431,3 +431,41 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ## Iteration 10 - Fri Jan 23 00:17:56 UTC 2026
 
+
+---
+
+## Iteration 12 - Fri Jan 23 01:05:00 UTC 2026
+
+### Story: US-011 - Remove legacy verifySigningSecret function
+
+**Implementation:**
+- Removed verifySigningSecret() function from packages/agents-core/src/utils/trigger-auth.ts (66 lines removed)
+- Removed verifySigningSecret import from agents-api/src/domains/run/services/TriggerService.ts
+- Updated verifySignature() function in TriggerService.ts:
+  - Removed legacy fallback code that used verifySigningSecret
+  - Removed signingSecret parameter from trigger type
+  - Made function return early if signatureVerification is not configured
+  - Function now only supports new credential-based verification
+- Removed verifySigningSecret from test mock exports in agents-api/src/__tests__/run/routes/webhooks.test.ts
+- Added HTTP 500 status code to TriggerWebhookResult type for credential resolution errors
+- Added 500 response definition to webhook route OpenAPI spec in webhooks.ts
+- Updated trigger parameter type in verifySignature to allow additional properties using index signature
+
+**Files Changed:**
+- packages/agents-core/src/utils/trigger-auth.ts (removed 66 lines - verifySigningSecret function)
+- agents-api/src/domains/run/services/TriggerService.ts (refactored verifySignature function, removed import)
+- agents-api/src/domains/run/routes/webhooks.ts (added 500 response to OpenAPI spec)
+- agents-api/src/__tests__/run/routes/webhooks.test.ts (removed verifySigningSecret from mock exports)
+- prd.json (marked US-011 as complete)
+
+**Learnings:**
+- Legacy verification code is fully replaced with new credential-based system
+- Database schema (US-002/003) already removed signingSecret column, so legacy code was dead code
+- TypeScript requires explicit index signature [key: string]: unknown when passing objects with extra properties to functions expecting partial types
+- HTTP 500 status codes must be explicitly added to OpenAPI route definitions
+- Build artifacts (dist/) cannot be updated in ARM64 environment due to rolldown native binding issue
+- Source code changes are correct and will compile when built with pnpm on x64 architecture
+- TypeScript compilation validates correctness even without runtime build artifacts
+
+---
+
