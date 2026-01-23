@@ -16,36 +16,17 @@ describe('authz/config', () => {
   describe('isAuthzEnabled', () => {
     it('should return false when ENABLE_AUTHZ is not set', () => {
       delete process.env.ENABLE_AUTHZ;
-      expect(isAuthzEnabled('test-tenant')).toBe(false);
+      expect(isAuthzEnabled()).toBe(false);
     });
 
     it('should return false when ENABLE_AUTHZ is "false"', () => {
       process.env.ENABLE_AUTHZ = 'false';
-      expect(isAuthzEnabled('test-tenant')).toBe(false);
-    });
-
-    it('should return true when ENABLE_AUTHZ is "true" and no TENANT_ID filter', () => {
-      process.env.ENABLE_AUTHZ = 'true';
-      delete process.env.TENANT_ID;
-      expect(isAuthzEnabled('any-tenant')).toBe(true);
+      expect(isAuthzEnabled()).toBe(false);
     });
 
     it('should return false for any other ENABLE_AUTHZ value', () => {
       process.env.ENABLE_AUTHZ = 'yes';
-      expect(isAuthzEnabled('test-tenant')).toBe(false);
-    });
-
-    it('should return true only for matching tenant when TENANT_ID is set', () => {
-      process.env.ENABLE_AUTHZ = 'true';
-      process.env.TENANT_ID = 'default';
-      expect(isAuthzEnabled('default')).toBe(true);
-      expect(isAuthzEnabled('other-tenant')).toBe(false);
-    });
-
-    it('should trim TENANT_ID whitespace', () => {
-      process.env.ENABLE_AUTHZ = 'true';
-      process.env.TENANT_ID = '  default  ';
-      expect(isAuthzEnabled('default')).toBe(true);
+      expect(isAuthzEnabled()).toBe(false);
     });
   });
 

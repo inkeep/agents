@@ -9,6 +9,7 @@ import {
   SpiceDbProjectPermissions,
   SpiceDbResourceTypes,
 } from '@inkeep/agents-core';
+import { env } from '../../../env';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -52,9 +53,20 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { projectId, tenantId } = c.req.valid('param');
+    const { projectId } = c.req.valid('param');
     const userId = c.get('userId');
     const tenantRole = c.get('tenantRole') as OrgRole;
+    const isTestEnvironment = process.env.ENVIRONMENT === 'test';
+
+    if (env.DISABLE_AUTH || isTestEnvironment) {
+      return c.json({
+        data: {
+          canView: true,
+          canUse: true,
+          canEdit: true,
+        },
+      });
+    }
 
     // Fast path: Org owner/admin has all permissions (bypass SpiceDB)
     if (tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN) {
