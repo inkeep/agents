@@ -1,8 +1,13 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { InvocationsTable } from '@/components/triggers/invocations-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchTriggerInvocations, getTrigger, type Trigger } from '@/lib/api/triggers';
+
+export const metadata = {
+  description: 'View the history of webhook invocations for this trigger.',
+} satisfies Metadata;
 
 export default async function InvocationsPage({
   params,
@@ -47,10 +52,7 @@ export default async function InvocationsPage({
 
   return (
     <>
-      <PageHeader
-        title={`Invocations for ${trigger.name}`}
-        description="View the history of webhook invocations for this trigger."
-      />
+      <PageHeader title={`Invocations for ${trigger.name}`} description={metadata.description} />
       <InvocationsTable
         invocations={invocationsResponse.data}
         metadata={{

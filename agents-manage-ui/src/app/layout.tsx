@@ -22,6 +22,8 @@ const jetBrainsMono = JetBrains_Mono({
   subsets: ['latin'],
 });
 
+const APP_NAME = 'Inkeep Agents';
+
 const inter = Inter({
   display: 'swap',
   subsets: ['latin'],
@@ -29,9 +31,37 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Inkeep Agents',
+  title: {
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
+  },
   description:
     "Inkeep's multi-agent framework enables multiple specialized AI agents to collaborate and solve complex problems through an agent-based architecture. You can define networks of agents, each with unique instructions, tools, and purposes.",
+  metadataBase: new URL('https://pilot.inkeep.com'),
+  keywords: ['agents', 'ai', 'framework', 'sdk', 'inkeep'],
+  generator: 'Next.js',
+  applicationName: APP_NAME,
+  appleWebApp: {
+    title: APP_NAME,
+  },
+  openGraph: {
+    // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
+    url: './',
+    siteName: APP_NAME,
+    locale: 'en_US',
+    type: 'website',
+  },
+  other: {
+    'msapplication-TileColor': '#69a3ff',
+  },
+  twitter: {
+    creator: '@inkeep',
+    site: 'https://inkeep.com',
+  },
+  alternates: {
+    // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
+    canonical: './',
+  },
 };
 
 const runtimeConfig: RuntimeConfig = {
