@@ -418,7 +418,24 @@ export const TriggerOutputTransformSchema = z
   })
   .openapi('TriggerOutputTransform');
 
-// Signature verification schemas
+/**
+ * Configuration for extracting the webhook signature from an incoming request.
+ *
+ * The signature can be located in HTTP headers, query parameters, or the request body.
+ * Supports prefix stripping and regex extraction for complex signature formats.
+ *
+ * @example
+ * // GitHub: Extract from header with prefix
+ * { source: 'header', key: 'X-Hub-Signature-256', prefix: 'sha256=' }
+ *
+ * @example
+ * // Stripe: Extract from header using regex
+ * { source: 'header', key: 'Stripe-Signature', regex: 'v1=([a-f0-9]+)' }
+ *
+ * @example
+ * // Custom: Extract from body using JMESPath
+ * { source: 'body', key: 'metadata.signature' }
+ */
 export const SignatureSourceSchema = z
   .object({
     source: z
@@ -436,6 +453,26 @@ export const SignatureSourceSchema = z
   })
   .openapi('SignatureSource');
 
+/**
+ * Configuration for a single component that is part of the signed data.
+ *
+ * Webhook providers often sign multiple pieces of data together (e.g., timestamp + body).
+ * Components are extracted from the request and joined in order before verification.
+ *
+ * @example
+ * // GitHub: Sign only the body
+ * { source: 'body', required: true }
+ *
+ * @example
+ * // Slack: Sign literal version + timestamp header + body
+ * { source: 'literal', value: 'v0', required: true }
+ * { source: 'header', key: 'X-Slack-Request-Timestamp', required: true }
+ * { source: 'body', required: true }
+ *
+ * @example
+ * // Stripe: Extract timestamp from header using regex
+ * { source: 'header', key: 'Stripe-Signature', regex: 't=([0-9]+)', required: true }
+ */
 export const SignedComponentSchema = z
   .object({
     source: z
@@ -457,6 +494,23 @@ export const SignedComponentSchema = z
   })
   .openapi('SignedComponent');
 
+/**
+ * Configuration for how to join multiple signed components into a single string.
+ *
+ * Different webhook providers use different separators between components.
+ *
+ * @example
+ * // GitHub/Zendesk: Direct concatenation (empty separator)
+ * { strategy: 'concatenate', separator: '' }
+ *
+ * @example
+ * // Slack: Colon separator
+ * { strategy: 'concatenate', separator: ':' }
+ *
+ * @example
+ * // Stripe: Dot separator
+ * { strategy: 'concatenate', separator: '.' }
+ */
 export const ComponentJoinSchema = z
   .object({
     strategy: z.enum(['concatenate']).describe('Strategy for joining components'),
@@ -464,6 +518,19 @@ export const ComponentJoinSchema = z
   })
   .openapi('ComponentJoin');
 
+/**
+ * Advanced validation options for fine-grained control over signature verification.
+ *
+ * These options control edge case behavior and should generally use default values.
+ *
+ * @example
+ * // Strict validation for security-critical webhooks
+ * {
+ *   headerCaseSensitive: true,
+ *   allowEmptyBody: false,
+ *   normalizeUnicode: true
+ * }
+ */
 export const SignatureValidationOptionsSchema = z
   .object({
     headerCaseSensitive: z
@@ -481,6 +548,52 @@ export const SignatureValidationOptionsSchema = z
   })
   .openapi('SignatureValidationOptions');
 
+/**
+ * Complete configuration for webhook HMAC signature verification.
+ *
+ * Supports flexible, provider-agnostic signature verification for webhooks from
+ * GitHub, Slack, Stripe, Zendesk, and other providers.
+ *
+ * SECURITY: Always use credential references to store signing secrets. Never hardcode
+ * secrets in your configuration. Prefer sha256 or stronger algorithms.
+ *
+ * @example
+ * // GitHub webhook verification
+ * {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'X-Hub-Signature-256', prefix: 'sha256=' },
+ *   signedComponents: [{ source: 'body', required: true }],
+ *   componentJoin: { strategy: 'concatenate', separator: '' }
+ * }
+ *
+ * @example
+ * // Slack webhook verification with multi-component signing
+ * {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'X-Slack-Signature', prefix: 'v0=' },
+ *   signedComponents: [
+ *     { source: 'literal', value: 'v0', required: true },
+ *     { source: 'header', key: 'X-Slack-Request-Timestamp', required: true },
+ *     { source: 'body', required: true }
+ *   ],
+ *   componentJoin: { strategy: 'concatenate', separator: ':' }
+ * }
+ *
+ * @example
+ * // Stripe webhook verification with regex extraction
+ * {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'Stripe-Signature', regex: 'v1=([a-f0-9]+)' },
+ *   signedComponents: [
+ *     { source: 'header', key: 'Stripe-Signature', regex: 't=([0-9]+)', required: true },
+ *     { source: 'body', required: true }
+ *   ],
+ *   componentJoin: { strategy: 'concatenate', separator: '.' }
+ * }
+ */
 export const SignatureVerificationConfigSchema = z
   .object({
     algorithm: z
@@ -499,11 +612,40 @@ export const SignatureVerificationConfigSchema = z
   })
   .openapi('SignatureVerificationConfig');
 
-// Inferred TypeScript types for export
+/**
+ * Complete configuration for webhook HMAC signature verification.
+ *
+ * Use this type when working with signature verification in TypeScript.
+ * See SignatureVerificationConfigSchema for detailed examples and validation.
+ */
 export type SignatureVerificationConfig = z.infer<typeof SignatureVerificationConfigSchema>;
+
+/**
+ * Configuration for extracting the webhook signature from an incoming request.
+ *
+ * See SignatureSourceSchema for detailed examples and validation.
+ */
 export type SignatureSource = z.infer<typeof SignatureSourceSchema>;
+
+/**
+ * Configuration for a single component that is part of the signed data.
+ *
+ * See SignedComponentSchema for detailed examples and validation.
+ */
 export type SignedComponent = z.infer<typeof SignedComponentSchema>;
+
+/**
+ * Configuration for how to join multiple signed components into a single string.
+ *
+ * See ComponentJoinSchema for detailed examples and validation.
+ */
 export type ComponentJoin = z.infer<typeof ComponentJoinSchema>;
+
+/**
+ * Advanced validation options for fine-grained control over signature verification.
+ *
+ * See SignatureValidationOptionsSchema for detailed examples and validation.
+ */
 export type SignatureValidationOptions = z.infer<typeof SignatureValidationOptionsSchema>;
 
 export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
