@@ -1,11 +1,11 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Skill } from '@/lib/types/skills';
-import { createSkill, updateSkill } from '@/lib/api/skills';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { parseMetadataField, type SkillFormData } from '@/components/skills/form/validation';
+import { createSkill, updateSkill } from '@/lib/api/skills';
+import type { Skill } from '@/lib/types/skills';
 
 const skillQueryKeys = {
   list: (tenantId: string, projectId: string) => ['skills', tenantId, projectId] as const,
@@ -52,4 +52,3 @@ export function useUpsertSkillMutation() {
     },
   });
 }
-

@@ -4,10 +4,10 @@
 'use server';
 
 import type { SkillApiInsert, SkillApiSelect, SkillApiUpdate } from '@inkeep/agents-core';
+import { revalidatePath } from 'next/cache';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
-import { revalidatePath } from 'next/cache';
 
 export type Skill = SkillApiSelect;
 

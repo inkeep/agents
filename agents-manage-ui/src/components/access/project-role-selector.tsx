@@ -77,4 +77,3 @@ export const ProjectRoleSelector: FC<ProjectRoleSelectorProps> = ({
     </DropdownMenu>
   );
 };
-
