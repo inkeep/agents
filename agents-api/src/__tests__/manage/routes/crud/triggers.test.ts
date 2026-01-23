@@ -405,17 +405,35 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(multiBody.data.authentication.headers[1].name).toBe('X-Client-ID');
     });
 
-    it('should create trigger with signing secret', async () => {
+    it('should create trigger with signature verification config', async () => {
       const tenantId = await createTestTenantWithOrg('triggers-signing-secret');
       const { agentId, projectId } = await createTestAgent(tenantId);
 
       const createData = {
         name: 'Signed Trigger',
-        description: 'Trigger with signing secret',
+        description: 'Trigger with signature verification',
         enabled: true,
         inputSchema: { type: 'object' },
         messageTemplate: 'Test',
-        signingSecret: 'my-signing-secret-123',
+        signatureVerification: {
+          algorithm: 'sha256',
+          encoding: 'hex',
+          signature: {
+            source: 'header',
+            key: 'X-Signature',
+            prefix: 'sha256=',
+          },
+          signedComponents: [
+            {
+              source: 'body',
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate',
+            separator: '',
+          },
+        },
       };
 
       const res = await makeRequest(
@@ -428,7 +446,8 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.signingSecret).toBe('my-signing-secret-123');
+      expect(body.data.signatureVerification).toBeDefined();
+      expect(body.data.signatureVerification.algorithm).toBe('sha256');
     });
 
     it('should create trigger with no authentication', async () => {
