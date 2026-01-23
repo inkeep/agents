@@ -1,4 +1,5 @@
 import { KeyRound, Search } from 'lucide-react';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import {
   PageHeader,
@@ -9,8 +10,8 @@ import {
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ItemCardGrid } from '@/components/ui/item-card-grid';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { CredentialStoreType } from '@/constants/signoz';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
@@ -22,6 +23,11 @@ interface CredentialOption {
   href: string;
   isDisabled?: boolean;
 }
+
+export const metadata = {
+  title: 'New credential',
+  description: 'Create credentials for your MCP servers.',
+} satisfies Metadata;
 
 async function NewCredentialsPage({
   params,
@@ -82,13 +88,13 @@ async function NewCredentialsPage({
   );
 
   const pageHeaderComponent = isNangoReady ? (
-    <PageHeader title="New credential" description="Create credentials for your MCP servers." />
+    <PageHeader title={metadata.title} description={metadata.description} />
   ) : (
     <PageHeaderRoot>
       <PageHeaderContent>
-        <PageHeaderTitle>New credential</PageHeaderTitle>
+        <PageHeaderTitle>{metadata.title}</PageHeaderTitle>
         <div className="text-muted-foreground text-sm font-normal space-y-2">
-          <p className="mb-8">Create credentials for your MCP servers.</p>
+          <p className="mb-8">{metadata.description}</p>
           <p>
             Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is
             available.

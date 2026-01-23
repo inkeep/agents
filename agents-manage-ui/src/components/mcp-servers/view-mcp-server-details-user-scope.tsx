@@ -2,14 +2,13 @@
 
 import { AlertCircle, Lock, Pencil, User } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { InfoCard } from '@/components/ui/info-card';
 import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { type Credential, fetchUserScopedCredential } from '@/lib/api/credentials';
-import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
+import { useUserScopedCredentialQuery } from '@/lib/query/credentials';
+import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
@@ -34,65 +33,27 @@ export function ViewMCPServerDetailsUserScope({
   tenantId: string;
   projectId: string;
 }) {
-  const [userCredential, setUserCredential] = useState<Credential | null>(null);
-  const [isLoadingCredential, setIsLoadingCredential] = useState(true);
-  const { canEdit } = useProjectPermissions();
+  const { canEdit } = useProjectPermissions(); 
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
-    onFinish: () => {
+    onFinish() {
       window.location.reload();
     },
   });
 
+  const { data: userCredential, isFetching: isLoadingCredential } = useUserScopedCredentialQuery({
+    toolId: tool.id,
+  });
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
-  const [thirdPartyConnectUrl, setThirdPartyConnectUrl] = useState<string>();
-  const [isLoadingThirdParty, setIsLoadingThirdParty] = useState(false);
-
-  // Fetch user's credential for this tool
-  useEffect(() => {
-    const loadUserCredential = async () => {
-      setIsLoadingCredential(true);
-      try {
-        const credential = await fetchUserScopedCredential(tenantId, projectId, tool.id);
-        setUserCredential(credential);
-      } catch (error) {
-        console.error('Failed to fetch user credential:', error);
-        setUserCredential(null);
-      } finally {
-        setIsLoadingCredential(false);
-      }
-    };
-
-    loadUserCredential();
-  }, [tenantId, projectId, tool.id]);
-
-  // Fetch third-party connect URL if needed (user-scoped)
-  useEffect(() => {
-    if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
-      const fetchServerDetails = async () => {
-        setIsLoadingThirdParty(true);
-        try {
-          const response = await fetchThirdPartyMCPServer(
-            tenantId,
-            projectId,
-            tool.config.mcp.server.url,
-            'user'
-          );
-          if (response.data?.thirdPartyConnectAccountUrl) {
-            setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
-          }
-        } catch (error) {
-          console.error('Failed to fetch third-party MCP server details:', error);
-        } finally {
-          setIsLoadingThirdParty(false);
-        }
-      };
-
-      fetchServerDetails();
-    }
-  }, [isThirdPartyMCPServer, tool.config.mcp.server.url, tenantId, projectId, tool.status]);
+  const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';
+  const { data: thirdPartyServer, isFetching: isLoadingThirdParty } = useThirdPartyMCPServerQuery({
+    url: tool.config.mcp.server.url,
+    credentialScope: 'user',
+    enabled: shouldFetchThirdParty,
+  });
+  const thirdPartyConnectUrl = thirdPartyServer?.thirdPartyConnectAccountUrl;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">

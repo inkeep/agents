@@ -47,7 +47,7 @@ export const ProjectSwitcher: FC = () => {
   const { isAdmin: canCreateProject } = useIsOrgAdmin();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile, state } = useSidebar();
-  const { data: projects, isFetching } = useProjectsQuery(tenantId);
+  const { data: projects, isFetching } = useProjectsQuery({ tenantId });
   const invalidateProjects = useProjectsInvalidation(tenantId);
 
   const handleCreateProject = useCallback(() => {

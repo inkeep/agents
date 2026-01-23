@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CredentialItem } from '@/components/credentials/credential-item';
 import FullPageError from '@/components/errors/full-page-error';
@@ -13,8 +14,10 @@ import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
-const credentialDescription =
-  'Create credentials that MCP servers can use to access external services.';
+export const metadata = {
+  title: STATIC_LABELS.credentials,
+  description: 'Create credentials that MCP servers can use to access external services.',
+} satisfies Metadata;
 
 async function CredentialsPage({
   params,
@@ -30,8 +33,8 @@ async function CredentialsPage({
     return credentials.length ? (
       <>
         <PageHeader
-          title={STATIC_LABELS.credentials}
-          description={credentialDescription}
+          title={metadata.title}
+          description={metadata.description}
           action={
             canEdit ? (
               <Button asChild>
@@ -63,7 +66,7 @@ async function CredentialsPage({
     ) : (
       <EmptyState
         title="No credentials yet."
-        description={credentialDescription}
+        description={metadata.description}
         link={canEdit ? `/${tenantId}/projects/${projectId}/credentials/new` : undefined}
         linkText={canEdit ? 'Create credential' : undefined}
         icon={<CredentialsIcon />}

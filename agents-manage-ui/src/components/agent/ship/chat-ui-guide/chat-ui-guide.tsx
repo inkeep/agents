@@ -2,7 +2,7 @@ import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui
 import { CodeIcon, EyeIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { DocsLink, Header } from '../guide-header';
 import { ChatUICode } from './chat-ui-code';

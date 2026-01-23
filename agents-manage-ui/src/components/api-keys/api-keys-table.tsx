@@ -1,6 +1,3 @@
-'use client';
-
-import { formatDateAgo } from '@/app/utils/format-date';
 import {
   Table,
   TableBody,
@@ -9,19 +6,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useProjectPermissions } from '@/contexts/project';
 import type { ApiKey } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { ApiKeyItemMenu } from './api-key-item-menu';
 import { ExpirationIndicator } from './expiration-indicator';
 
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
   agentLookup: Record<string, Agent>;
+  canUse: boolean;
 }
 
-export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
-  const { canEdit } = useProjectPermissions();
+export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps) {
 
   return (
     <div className="rounded-lg border">
@@ -69,7 +66,7 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
                 <TableCell className="text-sm text-muted-foreground">
                   {apiKey.createdAt ? formatDateAgo(apiKey.createdAt) : ''}
                 </TableCell>
-                <TableCell>{canEdit && <ApiKeyItemMenu apiKey={apiKey} />}</TableCell>
+                <TableCell>{canUse && <ApiKeyItemMenu apiKey={apiKey} />}</TableCell>
               </TableRow>
             ))
           )}

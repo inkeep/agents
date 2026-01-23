@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDate } from '@/app/utils/format-date';
 import {
   ItemCardContent,
   ItemCardDescription,
@@ -11,6 +10,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { Project } from '@/lib/types/project';
+import { formatDate } from '@/lib/utils/format-date';
 import type { ProjectFormData } from './form/validation';
 import { ProjectItemMenu } from './project-item-menu';
 

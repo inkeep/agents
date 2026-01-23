@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
 import { ExternalAgentItem } from '@/components/external-agents/external-agent-item';
@@ -10,8 +11,10 @@ import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
-const externalAgentsDescription =
-  'Create external agents that can be delegated to from your internal agents.';
+export const metadata = {
+  title: STATIC_LABELS['external-agents'],
+  description: 'Create external agents that can be delegated to from your internal agents.',
+} satisfies Metadata;
 
 async function ExternalAgentsPage({
   params,
@@ -29,8 +32,8 @@ async function ExternalAgentsPage({
     return externalAgents.length ? (
       <>
         <PageHeader
-          title={STATIC_LABELS['external-agents']}
-          description={externalAgentsDescription}
+          title={metadata.title}
+          description={metadata.description}
           action={
             canEdit ? (
               <Button asChild>
@@ -59,7 +62,7 @@ async function ExternalAgentsPage({
     ) : (
       <EmptyState
         title="No external agents yet."
-        description={externalAgentsDescription}
+        description={metadata.description}
         link={canEdit ? `/${tenantId}/projects/${projectId}/external-agents/new` : undefined}
         linkText={canEdit ? 'Create external agent' : undefined}
       />

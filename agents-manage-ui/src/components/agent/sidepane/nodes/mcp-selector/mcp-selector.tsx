@@ -14,7 +14,7 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     tenantId: string;
     projectId: string;
   }>();
-  const { data: tools, isFetching, error } = useMcpToolsQuery(tenantId, projectId);
+  const { data: tools, isFetching, error } = useMcpToolsQuery();
 
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {

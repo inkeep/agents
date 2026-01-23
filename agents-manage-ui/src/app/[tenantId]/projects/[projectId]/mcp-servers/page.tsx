@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
@@ -10,7 +11,10 @@ import { fetchProjectPermissions } from '@/lib/api/projects';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
-const mcpServerDescription = 'Create MCP servers that agents can use to access external services.';
+export const metadata = {
+  title: STATIC_LABELS['mcp-servers'],
+  description: 'Create MCP servers that agents can use to access external services.',
+} satisfies Metadata;
 
 async function MCPServersPage({
   params,
@@ -26,8 +30,8 @@ async function MCPServersPage({
     return tools.length ? (
       <>
         <PageHeader
-          title={STATIC_LABELS['mcp-servers']}
-          description={mcpServerDescription}
+          title={metadata.title}
+          description={metadata.description}
           action={
             canEdit ? (
               <Button asChild>
@@ -51,7 +55,7 @@ async function MCPServersPage({
     ) : (
       <EmptyState
         title="No MCP servers yet."
-        description={mcpServerDescription}
+        description={metadata.description}
         link={canEdit ? `/${tenantId}/projects/${projectId}/mcp-servers/new` : undefined}
         linkText={canEdit ? 'Create MCP server' : undefined}
       />
