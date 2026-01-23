@@ -1,13 +1,13 @@
 'use client';
-
 import { generateIdFromName } from '@inkeep/agents-core/client-exports';
 import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import { toast } from 'sonner';
 import { CredentialForm } from '@/components/credentials/views/credential-form';
 import { CredentialFormInkeepCloud } from '@/components/credentials/views/credential-form-inkeep-cloud';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
+import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
@@ -23,6 +23,15 @@ export default function NewCredentialForm({
   const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const { tenantId, projectId } = use(params);
   const { user } = useAuthSession();
+  const { canEdit } = useProjectPermissions();
+
+  // Redirect if user doesn't have edit permission
+  useEffect(() => {
+    if (canEdit) {
+      router.replace(`/${tenantId}/projects/${projectId}/credentials`);
+    }
+  }, [canEdit, router, tenantId, projectId]);
+
   const handleCreateCredential = async (data: CredentialFormData) => {
     try {
       const newCredentialId = generateId();

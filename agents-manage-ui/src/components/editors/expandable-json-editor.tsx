@@ -10,7 +10,7 @@ const noop = () => {};
 
 type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor>;
 
-interface ExpandableJsonEditorCommonProps {
+interface ExpandableJsonEditorProps {
   name: string;
   value: NonNullable<JsonEditorProps['value']>;
   className?: JsonEditorProps['className'];
@@ -18,22 +18,10 @@ interface ExpandableJsonEditorCommonProps {
   error?: string;
   placeholder?: JsonEditorProps['placeholder'];
   editorOptions?: JsonEditorProps['editorOptions'];
+  readOnly?: boolean;
+  onChange?: JsonEditorProps['onChange'];
   defaultOpen?: boolean;
 }
-
-interface ExpandableJsonEditorEditableProps extends ExpandableJsonEditorCommonProps {
-  readOnly?: false;
-  onChange: NonNullable<JsonEditorProps['onChange']>;
-}
-
-interface ExpandableJsonEditorReadOnlyProps extends ExpandableJsonEditorCommonProps {
-  readOnly: true;
-  onChange?: never;
-}
-
-type ExpandableJsonEditorProps =
-  | ExpandableJsonEditorEditableProps
-  | ExpandableJsonEditorReadOnlyProps;
 
 // Shared JSON validation logic
 const useJsonValidation = (value = '') => {

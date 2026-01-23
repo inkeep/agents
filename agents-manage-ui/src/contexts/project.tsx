@@ -1,13 +1,19 @@
 'use client';
 
+import type { ProjectPermissions } from '@inkeep/agents-core';
 import { createContext, type FC, type ReactNode, useContext } from 'react';
 import type { Project } from '@/lib/types/project';
 
-const ProjectContext = createContext<Project | null>(null);
+interface ProjectContextValue {
+  project: Project;
+  permissions: ProjectPermissions;
+}
+
+const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 export const ProjectProvider: FC<{
   children: ReactNode;
-  value: Project;
+  value: ProjectContextValue;
 }> = (props) => <ProjectContext {...props} />;
 
 export function useProject() {
@@ -17,4 +23,16 @@ export function useProject() {
   }
 
   return ctx;
+}
+
+/**
+ * Hook to get project permissions from context.
+ * Throws an error if used outside a ProjectProvider.
+ */
+export function useProjectPermissions(): ProjectPermissions {
+  const context = useContext(ProjectContext);
+  if (!context) {
+    throw new Error('useProjectPermissions must be used within a <ProjectProvider />');
+  }
+  return context.permissions;
 }

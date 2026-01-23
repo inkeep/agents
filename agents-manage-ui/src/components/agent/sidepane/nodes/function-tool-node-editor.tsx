@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useProjectPermissions } from '@/contexts/project';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
@@ -20,6 +21,8 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const { getFieldError, setFieldRef, updatePath, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
+
+  const { canEdit } = useProjectPermissions();
 
   const nodeData = selectedNode.data;
 
@@ -227,13 +230,17 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           tool.
         </p>
       </div>
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

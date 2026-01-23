@@ -23,6 +23,7 @@ interface ProjectFormProps {
   onSuccess?: (projectId: string) => void;
   onCancel?: () => void;
   initialData?: ProjectFormData;
+  readOnly?: boolean;
   className?: string;
 }
 
@@ -96,6 +97,7 @@ export function ProjectForm({
   onSuccess,
   onCancel,
   initialData,
+  readOnly = false,
   className,
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
@@ -160,6 +162,7 @@ export function ProjectForm({
           placeholder="My Project"
           description="A friendly name for your project"
           isRequired
+          disabled={readOnly}
         />
         <GenericInput
           control={form.control}
@@ -167,7 +170,7 @@ export function ProjectForm({
           label="Id"
           placeholder="my-project"
           description="Choose a unique identifier for this project. This cannot be changed later."
-          disabled={!!projectId}
+          disabled={!!projectId || readOnly}
           isRequired
         />
         <GenericTextarea
@@ -176,26 +179,36 @@ export function ProjectForm({
           label="Description"
           placeholder="Describe what this project is for..."
           className="min-h-[100px]"
+          disabled={readOnly}
         />
 
         <Separator />
 
-        <ProjectModelsSection control={form.control} />
+        <ProjectModelsSection control={form.control} disabled={readOnly} />
 
         <Separator />
 
-        <ProjectStopWhenSection control={form.control} />
+        <ProjectStopWhenSection control={form.control} disabled={readOnly} />
 
-        <div className={cn('flex gap-3', onCancel ? 'justify-end' : 'justify-start')}>
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-              Cancel
+        {!readOnly && (
+          <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                Cancel
+              </Button>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {projectId ? 'Update project' : 'Create project'}
             </Button>
-          )}
-          <Button type="submit" disabled={isSubmitting}>
-            {projectId ? 'Update project' : 'Create project'}
-          </Button>
-        </div>
+          </div>
+        )}
+        {readOnly && onCancel && (
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Close
+            </Button>
+          </div>
+        )}
       </form>
     </Form>
   );

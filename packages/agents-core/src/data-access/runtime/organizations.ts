@@ -13,7 +13,7 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
  * Queries Better Auth's member and organization tables
  * Returns Date for createdAt (converted to string at API boundary)
  */
-export const getUserOrganizations =
+export const getUserOrganizationsFromDb =
   (db: AgentsRunDatabaseClient) =>
   async (
     userId: string

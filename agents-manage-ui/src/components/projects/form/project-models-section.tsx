@@ -21,9 +21,16 @@ import type { ProjectFormData } from './validation';
 
 interface ProjectModelsSectionProps {
   control: Control<ProjectFormData>;
+  disabled?: boolean;
 }
 
-function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
+function BaseModelSection({
+  control,
+  disabled,
+}: {
+  control: Control<ProjectFormData>;
+  disabled?: boolean;
+}) {
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.base.providerOptions',
@@ -62,6 +69,7 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
               }
             }}
             editorNamePrefix="project-base"
+            disabled={disabled}
           />
         )}
       </FormFieldWrapper>
@@ -69,7 +77,13 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
   );
 }
 
-function StructuredOutputModelSection({ control }: { control: Control<ProjectFormData> }) {
+function StructuredOutputModelSection({
+  control,
+  disabled,
+}: {
+  control: Control<ProjectFormData>;
+  disabled?: boolean;
+}) {
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.structuredOutput.providerOptions',
@@ -92,7 +106,8 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
             value={field.value || ''}
             onValueChange={field.onChange}
             inheritedValue={baseModel}
-            canClear={true}
+            canClear={!disabled}
+            disabled={disabled}
           />
         )}
       </FormFieldWrapper>
@@ -117,13 +132,20 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
           }}
           placeholder={structuredOutputModelProviderOptionsTemplate}
           customTemplate={structuredOutputModelProviderOptionsTemplate}
+          readOnly={disabled}
         />
       </div>
     </div>
   );
 }
 
-function SummarizerModelSection({ control }: { control: Control<ProjectFormData> }) {
+function SummarizerModelSection({
+  control,
+  disabled,
+}: {
+  control: Control<ProjectFormData>;
+  disabled?: boolean;
+}) {
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.summarizer.providerOptions',
@@ -147,6 +169,7 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
             onValueChange={field.onChange}
             inheritedValue={baseModel}
             canClear={true}
+            disabled={disabled}
           />
         )}
       </FormFieldWrapper>
@@ -171,13 +194,14 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
           }}
           placeholder={summarizerModelProviderOptionsTemplate}
           customTemplate={summarizerModelProviderOptionsTemplate}
+          readOnly={disabled}
         />
       </div>
     </div>
   );
 }
 
-export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
+export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
 
@@ -224,13 +248,13 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
           {/* Base Model */}
-          <BaseModelSection control={control} />
+          <BaseModelSection control={control} disabled={disabled} />
 
           {/* Structured Output Model */}
-          <StructuredOutputModelSection control={control} />
+          <StructuredOutputModelSection control={control} disabled={disabled} />
 
           {/* Summarizer Model */}
-          <SummarizerModelSection control={control} />
+          <SummarizerModelSection control={control} disabled={disabled} />
           <InfoCard title="How model inheritance works:" Icon={Info}>
             <ModelInheritanceInfo />
           </InfoCard>

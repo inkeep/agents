@@ -6,6 +6,7 @@ import {
   grantProjectAccess,
   isAuthzEnabled,
   listProjectMembers,
+  ProjectRoles,
   revokeProjectAccess,
 } from '@inkeep/agents-core';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -13,17 +14,17 @@ import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Schema definitions
-// Role hierarchy: project_admin > project_member > project_viewer
+const projectRoleEnum = z.enum([ProjectRoles.ADMIN, ProjectRoles.MEMBER, ProjectRoles.VIEWER]);
+
 const ProjectMemberSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['project_admin', 'project_member', 'project_viewer']),
+  role: projectRoleEnum,
 });
 
 const ProjectMemberResponseSchema = z.object({
   data: z.object({
     userId: z.string(),
-    role: z.enum(['project_admin', 'project_member', 'project_viewer']),
+    role: projectRoleEnum,
     projectId: z.string(),
   }),
 });
@@ -40,8 +41,8 @@ const ProjectMemberUserParamsSchema = z.object({
 });
 
 const UpdateRoleSchema = z.object({
-  role: z.enum(['project_admin', 'project_member', 'project_viewer']),
-  previousRole: z.enum(['project_admin', 'project_member', 'project_viewer']).optional(),
+  role: projectRoleEnum,
+  previousRole: projectRoleEnum.optional(),
 });
 
 // List project members - requires view permission
@@ -65,7 +66,7 @@ app.openapi(
               data: z.array(
                 z.object({
                   userId: z.string(),
-                  role: z.enum(['project_admin', 'project_member', 'project_viewer']),
+                  role: projectRoleEnum,
                 })
               ),
             }),
@@ -78,7 +79,7 @@ app.openapi(
   async (c) => {
     const { projectId, tenantId } = c.req.valid('param');
 
-    if (!isAuthzEnabled(tenantId)) {
+    if (!isAuthzEnabled()) {
       return c.json({ data: [] });
     }
 
@@ -132,7 +133,7 @@ app.openapi(
     const { projectId, tenantId } = c.req.valid('param');
     const { userId, role } = c.req.valid('json');
 
-    if (!isAuthzEnabled(tenantId)) {
+    if (!isAuthzEnabled()) {
       throw createApiError({
         code: 'bad_request',
         message:
@@ -196,7 +197,7 @@ app.openapi(
     const { projectId, userId, tenantId } = c.req.valid('param');
     const { role: newRole, previousRole } = c.req.valid('json');
 
-    if (!isAuthzEnabled(tenantId)) {
+    if (!isAuthzEnabled()) {
       throw createApiError({
         code: 'bad_request',
         message:
@@ -253,7 +254,7 @@ app.openapi(
     request: {
       params: ProjectMemberUserParamsSchema,
       query: z.object({
-        role: z.enum(['project_admin', 'project_member', 'project_viewer']),
+        role: projectRoleEnum,
       }),
     },
     responses: {
@@ -267,7 +268,7 @@ app.openapi(
     const { projectId, userId, tenantId } = c.req.valid('param');
     const { role } = c.req.valid('query');
 
-    if (!isAuthzEnabled(tenantId)) {
+    if (!isAuthzEnabled()) {
       throw createApiError({
         code: 'bad_request',
         message:

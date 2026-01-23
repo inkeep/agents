@@ -20,6 +20,7 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { useProjectPermissions } from '@/contexts/project';
 import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { formatDate } from '@/lib/utils/format-date';
@@ -124,6 +125,7 @@ export function ExternalAgentItem({
   projectId: string;
   externalAgent: ExternalAgent;
 }) {
+  const { canEdit } = useProjectPermissions();
   const linkPath = `/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`;
 
   return (
@@ -137,10 +139,12 @@ export function ExternalAgentItem({
             </span>
           </ItemCardTitle>
         </ItemCardLink>
-        <ExternalAgentDialogMenu
-          externalAgentId={externalAgent.id}
-          externalAgentName={externalAgent.name}
-        />
+        {canEdit && (
+          <ExternalAgentDialogMenu
+            externalAgentId={externalAgent.id}
+            externalAgentName={externalAgent.name}
+          />
+        )}
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">

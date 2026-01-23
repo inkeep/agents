@@ -35,10 +35,7 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
+  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
     return requireProjectPermission('edit')(c, next);
   }
   return next();

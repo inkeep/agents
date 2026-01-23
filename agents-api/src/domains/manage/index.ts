@@ -1,7 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ManageAppVariables } from '../../types/app';
 import cliAuthRoutes from './routes/cliAuth';
-import evalsRoutes from './routes/evals';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
@@ -34,9 +33,6 @@ export function createManageRoutes() {
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
-
-  // Mount evaluation routes under tenant and project
-  app.route('/tenants/:tenantId/projects/:projectId/evals', evalsRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);

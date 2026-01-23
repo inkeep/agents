@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchCredentials } from '@/lib/api/credentials';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -24,22 +25,28 @@ async function CredentialsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const credentials = await fetchCredentials(tenantId, projectId);
+    const [credentials, permissions] = await Promise.all([
+      fetchCredentials(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+    const canEdit = permissions.canEdit;
     return credentials.length ? (
       <>
         <PageHeader
           title={metadata.title}
           description={metadata.description}
           action={
-            <Button asChild>
-              <Link
-                href={`/${tenantId}/projects/${projectId}/credentials/new`}
-                className="flex items-center gap-2"
-              >
-                <Plus className="size-4" />
-                New credential
-              </Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/credentials/new`}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="size-4" />
+                  New credential
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -60,8 +67,8 @@ async function CredentialsPage({
       <EmptyState
         title="No credentials yet."
         description={metadata.description}
-        link={`/${tenantId}/projects/${projectId}/credentials/new`}
-        linkText="Create credential"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/credentials/new` : undefined}
+        linkText={canEdit ? 'Create credential' : undefined}
         icon={<CredentialsIcon />}
       />
     );

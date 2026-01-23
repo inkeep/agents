@@ -5,6 +5,7 @@ import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'r
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
@@ -25,6 +26,8 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
     projectId: string;
     agentId: string;
   }>();
+
+  const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
     className: 'backdrop-blur-3xl',
@@ -63,8 +66,8 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
-      <ShipModal buttonClassName={commonProps.className} />
-      {dirty ? (
+      {canUse && <ShipModal buttonClassName={commonProps.className} />}
+      {dirty && canUse ? (
         <Tooltip>
           <TooltipTrigger asChild>
             {/**
@@ -79,29 +82,35 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
               : 'Please save the agent to try it.'}
           </TooltipContent>
         </Tooltip>
-      ) : (
+      ) : canUse ? (
         PreviewButton
+      ) : null}
+      {canEdit && (
+        <Button
+          {...commonProps}
+          onClick={saveAgent}
+          variant={dirty ? 'default' : 'outline'}
+          disabled={isSubmitting || !dirty}
+          ref={saveButtonRef}
+        >
+          <Spinner className={cn(!isSubmitting && 'hidden')} />
+          Save changes
+        </Button>
       )}
-      <Button
-        {...commonProps}
-        onClick={saveAgent}
-        variant={dirty ? 'default' : 'outline'}
-        disabled={isSubmitting || !dirty}
-        ref={saveButtonRef}
-      >
-        <Spinner className={cn(!isSubmitting && 'hidden')} />
-        Save changes
-      </Button>
-      <Button {...commonProps} onClick={toggleSidePane}>
-        <Settings className="size-4" />
-        Agent Settings
-      </Button>
-      <Button {...commonProps} asChild>
-        <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
-          <Webhook className="size-4" />
-          Triggers
-        </Link>
-      </Button>
+      {canView && (
+        <Button {...commonProps} onClick={toggleSidePane}>
+          <Settings className="size-4" />
+          Agent Settings
+        </Button>
+      )}
+      {canEdit && (
+        <Button {...commonProps} asChild>
+          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
+            <Webhook className="size-4" />
+            Triggers
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

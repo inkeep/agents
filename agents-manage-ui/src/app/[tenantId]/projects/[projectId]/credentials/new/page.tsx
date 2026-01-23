@@ -13,6 +13,7 @@ import { ItemCardGrid } from '@/components/ui/item-card-grid';
 import { CredentialStoreType } from '@/constants/signoz';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { listCredentialStores } from '@/lib/api/credentialStores';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 interface CredentialOption {
   id: string;
@@ -32,6 +33,13 @@ async function NewCredentialsPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new'>) {
   const { tenantId, projectId } = await params;
+
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/credentials`
+  );
 
   const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
 

@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
@@ -67,6 +68,7 @@ function MetadataEditor() {
     metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
+  const { canUse } = useProjectPermissions();
 
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();
@@ -119,9 +121,11 @@ function MetadataEditor() {
             </Tooltip>
           </div>
           <CopyableSingleLineCode code={agentUrl} />
-          <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
-            Create API key
-          </ExternalLink>
+          {canUse && (
+            <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
+              Create API key
+            </ExternalLink>
+          )}
         </div>
       )}
       <InputField

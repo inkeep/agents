@@ -328,6 +328,7 @@ export type AgentAgentInsert = AgentAgentApiInsert;
 
 export { CredentialStoreType, MCPTransportType };
 
+export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/config';
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';

@@ -1,7 +1,15 @@
 'use client';
 
+import { OrgRoles, type ProjectRole } from '@inkeep/agents-core/client-exports';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuthClient } from '@/contexts/auth-client';
+import {
+  addProjectMember,
+  listProjectMembers,
+  removeProjectMember,
+  updateProjectMember,
+} from '@/lib/api/project-members';
 import type {
   AccessPrincipal,
   InheritedAccessConfig,
@@ -91,16 +99,8 @@ export function useProjectAccess({
       setIsLoadingMembers(true);
       setMembersError(null);
 
-      const response = await fetch(`/api/tenants/${tenantId}/projects/${projectId}/members`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch project members');
-      }
-
-      const data = await response.json();
-      setRawMembers(data.data || []);
+      const response = await listProjectMembers({ tenantId, projectId });
+      setRawMembers(response.data || []);
     } catch (err) {
       setMembersError(err instanceof Error ? err.message : 'Failed to load members');
     } finally {
@@ -158,35 +158,36 @@ export function useProjectAccess({
       ? {
           title: 'Organization Access',
           description: 'Inherited from organization — admins have full project access.',
-          principals: orgMembers.filter((m) => m.role === 'owner' || m.role === 'admin'),
+          principals: orgMembers.filter(
+            (m) => m.role === OrgRoles.OWNER || m.role === OrgRoles.ADMIN
+          ),
         }
       : undefined;
 
   // Filter out org admins from available principals (they have implicit access)
   // In the future, this could also include groups, service accounts, etc.
-  const availablePrincipals = orgMembers.filter((m) => m.role !== 'owner' && m.role !== 'admin');
+  const availablePrincipals = orgMembers.filter(
+    (m) => m.role !== OrgRoles.OWNER && m.role !== OrgRoles.ADMIN
+  );
 
   // Mutations
   const addPrincipal = async (principalId: string, principalType: PrincipalType, role: string) => {
-    // Currently only supports users for projects
     if (principalType !== 'user') {
       throw new Error(`Adding ${principalType} to projects is not yet supported`);
     }
 
     setIsMutating(true);
     try {
-      const response = await fetch(`/api/tenants/${tenantId}/projects/${projectId}/members`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId: principalId, role }),
+      await addProjectMember({
+        tenantId,
+        projectId,
+        userId: principalId,
+        role: role as ProjectRole,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add member');
-      }
-
-      await fetchProjectMembers();
+      toast.success('Member added successfully');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add member');
+      throw err;
     } finally {
       setIsMutating(false);
     }
@@ -201,21 +202,24 @@ export function useProjectAccess({
       throw new Error(`Removing ${principalType} from projects is not yet supported`);
     }
 
+    // Optimistically update local state
+    const previousMembers = [...rawMembers];
+    setRawMembers((prev) => prev.filter((m) => m.userId !== principalId));
+
     setIsMutating(true);
     try {
-      const response = await fetch(
-        `/api/tenants/${tenantId}/projects/${projectId}/members/${principalId}?role=${role}`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to remove member');
-      }
-
-      await fetchProjectMembers();
+      await removeProjectMember({
+        tenantId,
+        projectId,
+        userId: principalId,
+        role: role as ProjectRole,
+      });
+      toast.success('Member removed successfully');
+    } catch (err) {
+      // Revert optimistic update on error
+      setRawMembers(previousMembers);
+      toast.error(err instanceof Error ? err.message : 'Failed to remove member');
+      throw err;
     } finally {
       setIsMutating(false);
     }
@@ -233,23 +237,27 @@ export function useProjectAccess({
       throw new Error(`Changing role for ${principalType} on projects is not yet supported`);
     }
 
+    // Optimistically update local state
+    const previousMembers = [...rawMembers];
+    setRawMembers((prev) =>
+      prev.map((m) => (m.userId === principalId ? { ...m, role: newRole as ProjectRole } : m))
+    );
+
     setIsMutating(true);
     try {
-      const response = await fetch(
-        `/api/tenants/${tenantId}/projects/${projectId}/members/${principalId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ role: newRole, previousRole: oldRole }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update role');
-      }
-
-      await fetchProjectMembers();
+      await updateProjectMember({
+        tenantId,
+        projectId,
+        userId: principalId,
+        role: newRole as ProjectRole,
+        previousRole: oldRole as ProjectRole,
+      });
+      toast.success('Role updated successfully');
+    } catch (err) {
+      // Revert optimistic update on error
+      setRawMembers(previousMembers);
+      toast.error(err instanceof Error ? err.message : 'Failed to update role');
+      throw err;
     } finally {
       setIsMutating(false);
     }

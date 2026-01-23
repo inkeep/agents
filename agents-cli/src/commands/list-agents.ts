@@ -25,7 +25,9 @@ export async function listAgentsCommand(options: ListAgentsOptions): Promise<voi
     config.agentsApiUrl,
     configPath,
     config.tenantId,
-    options.project // pass project ID as projectIdOverride
+    options.project, // pass project ID as projectIdOverride
+    undefined,
+    config.agentsApiKey
   );
   const s = p.spinner();
   s.start('Fetching agent...');

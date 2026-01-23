@@ -1,6 +1,6 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectProvider } from '@/contexts/project';
-import { fetchProject } from '@/lib/api/projects';
+import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -12,9 +12,14 @@ export default async function ProjectLayout({
   const { tenantId, projectId } = await params;
 
   try {
-    // Verify project exists
-    const { data } = await fetchProject(tenantId, projectId);
-    return <ProjectProvider value={data}>{children}</ProjectProvider>;
+    const [project, permissions] = await Promise.all([
+      fetchProject(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    return (
+      <ProjectProvider value={{ project: project.data, permissions }}>{children}</ProjectProvider>
+    );
   } catch (error) {
     return (
       <FullPageError
