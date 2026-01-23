@@ -65,35 +65,117 @@ export type TriggerWebhookResult =
       error: string;
       status: 400 | 401 | 403 | 404 | 422 | 500;
       validationErrors?: string[];
+      invocationId?: string;
     };
+
+/**
+ * Helper to create a rejected invocation record when validation fails.
+ * These invocations have no conversationId since they failed before agent execution.
+ */
+async function createRejectedInvocation(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  triggerId: string;
+  errorCode: number;
+  errorMessage: string;
+  requestPayload: Record<string, unknown>;
+}): Promise<string> {
+  const { tenantId, projectId, agentId, triggerId, errorCode, errorMessage, requestPayload } =
+    params;
+  const invocationId = generateId();
+  const respondedAt = new Date().toISOString();
+
+  await createTriggerInvocation(runDbClient)({
+    id: invocationId,
+    triggerId,
+    tenantId,
+    projectId,
+    agentId,
+    status: 'rejected',
+    requestPayload,
+    errorMessage,
+    errorCode,
+    respondedAt,
+  });
+
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId, errorCode, errorMessage },
+    'Rejected trigger invocation created'
+  );
+
+  return invocationId;
+}
+
+/**
+ * Safely parse JSON body, returning empty object on failure.
+ */
+function safeParseJson(rawBody: string): Record<string, unknown> {
+  if (!rawBody) return {};
+  try {
+    return JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Process a trigger webhook request.
  * Handles validation, transformation, and dispatches async execution.
+ * Creates rejected invocation records when validation fails.
  */
 export async function processWebhook(params: TriggerWebhookParams): Promise<TriggerWebhookResult> {
   const { tenantId, projectId, agentId, triggerId, resolvedRef, rawBody, honoContext } = params;
 
+  // Parse payload early (safely) so we can include it in rejected invocations
+  const payload = safeParseJson(rawBody);
+
   // 1. Load and validate trigger
   const trigger = await loadTrigger({ tenantId, projectId, agentId, triggerId, resolvedRef });
   if (!trigger) {
-    return { success: false, error: `Trigger ${triggerId} not found`, status: 404 };
+    const errorMessage = `Trigger ${triggerId} not found`;
+    const invocationId = await createRejectedInvocation({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      errorCode: 404,
+      errorMessage,
+      requestPayload: payload,
+    });
+    return { success: false, error: errorMessage, status: 404, invocationId };
   }
 
   if (!trigger.enabled) {
-    return { success: false, error: 'Trigger is disabled', status: 404 };
+    const errorMessage = 'Trigger is disabled';
+    const invocationId = await createRejectedInvocation({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      errorCode: 404,
+      errorMessage,
+      requestPayload: payload,
+    });
+    return { success: false, error: errorMessage, status: 404, invocationId };
   }
 
-  // 2. Parse payload
-  const payload: Record<string, unknown> = rawBody ? JSON.parse(rawBody) : {};
-
-  // 3. Verify authentication
+  // 2. Verify authentication
   const authResult = await verifyAuthentication(trigger, honoContext);
   if (!authResult.success) {
-    return authResult;
+    const invocationId = await createRejectedInvocation({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      errorCode: authResult.status,
+      errorMessage: authResult.error,
+      requestPayload: payload,
+    });
+    return { ...authResult, invocationId };
   }
 
-  // 4. Verify signature
+  // 3. Verify signature
   const signatureResult = await verifySignature({
     trigger,
     tenantId,
@@ -103,30 +185,57 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     rawBody,
   });
   if (!signatureResult.success) {
-    return signatureResult;
+    const invocationId = await createRejectedInvocation({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      errorCode: signatureResult.status,
+      errorMessage: signatureResult.error,
+      requestPayload: payload,
+    });
+    return { ...signatureResult, invocationId };
   }
 
-  // 5. Validate payload against schema
+  // 4. Validate payload against schema
   const validationResult = validatePayload(trigger, payload);
   if (!validationResult.success) {
-    return validationResult;
+    const invocationId = await createRejectedInvocation({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      errorCode: validationResult.status,
+      errorMessage: validationResult.error,
+      requestPayload: payload,
+    });
+    return { ...validationResult, invocationId };
   }
 
-  // 6. Transform payload
+  // 5. Transform payload
   const transformResult = await transformPayload(trigger, payload, {
     tenantId,
     projectId,
     triggerId,
   });
   if (!transformResult.success) {
-    return transformResult;
+    const invocationId = await createRejectedInvocation({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      errorCode: transformResult.status,
+      errorMessage: transformResult.error,
+      requestPayload: payload,
+    });
+    return { ...transformResult, invocationId };
   }
   const transformedPayload = transformResult.payload;
 
-  // 7. Build message
+  // 6. Build message
   const { messageParts, userMessageText } = buildMessage(trigger, transformedPayload, triggerId);
 
-  // 8. Create invocation record and dispatch async execution
+  // 7. Create invocation record and dispatch async execution
   const { invocationId, conversationId } = await dispatchExecution({
     tenantId,
     projectId,
@@ -493,6 +602,8 @@ async function dispatchExecution(params: {
 
   // Create invocation record (status: pending)
   // Note: transformedPayload can be any JSON value (object, array, primitive) from JMESPath transforms
+  // Set respondedAt since we're about to return the 202 response
+  const respondedAt = new Date().toISOString();
   await createTriggerInvocation(runDbClient)({
     id: invocationId,
     triggerId,
@@ -503,6 +614,7 @@ async function dispatchExecution(params: {
     status: 'pending',
     requestPayload: payload,
     transformedPayload: transformedPayload as Record<string, unknown> | undefined,
+    respondedAt,
   });
 
   logger.info(

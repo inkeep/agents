@@ -18,7 +18,7 @@ export default async function InvocationsPage({
     status,
     page,
   }: {
-    status?: 'pending' | 'success' | 'failed';
+    status?: 'pending' | 'success' | 'failed' | 'rejected';
     page?: string;
   } = await searchParams;
 

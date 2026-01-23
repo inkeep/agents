@@ -650,7 +650,7 @@ export type ComponentJoin = z.infer<typeof ComponentJoinSchema>;
  */
 export type SignatureValidationOptions = z.infer<typeof SignatureValidationOptionsSchema>;
 
-export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
+export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed', 'rejected']);
 
 export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
@@ -803,7 +803,11 @@ export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocatio
   requestPayload: () => z.record(z.string(), z.unknown()).describe('Original webhook payload'),
   transformedPayload: () =>
     z.record(z.string(), z.unknown()).optional().describe('Transformed payload'),
-  errorMessage: () => z.string().optional().describe('Error message if status is failed'),
+  errorMessage: () =>
+    z.string().optional().describe('Error message if status is failed or rejected'),
+  errorCode: () =>
+    z.number().int().optional().describe('HTTP status code for rejected invocations'),
+  respondedAt: () => z.string().optional().describe('Timestamp when response was sent'),
 });
 
 export const TriggerInvocationUpdateSchema = TriggerInvocationInsertSchema.partial();

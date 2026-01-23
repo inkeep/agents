@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -168,7 +169,9 @@ export const triggerInvocations = pgTable(
     requestPayload: jsonb('request_payload').notNull(),
     transformedPayload: jsonb('transformed_payload'),
     errorMessage: text('error_message'),
+    errorCode: integer('error_code'),
     createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+    respondedAt: timestamp('responded_at', { mode: 'string' }),
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),

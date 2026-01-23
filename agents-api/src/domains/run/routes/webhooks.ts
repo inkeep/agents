@@ -131,11 +131,15 @@ app.openapi(triggerWebhookRoute, async (c) => {
   if (!result.success) {
     if (result.validationErrors) {
       return c.json(
-        { error: result.error, validationErrors: result.validationErrors },
+        {
+          error: result.error,
+          validationErrors: result.validationErrors,
+          invocationId: result.invocationId,
+        },
         result.status
       );
     }
-    return c.json({ error: result.error }, result.status);
+    return c.json({ error: result.error, invocationId: result.invocationId }, result.status);
   }
 
   logger.info(

@@ -40,7 +40,7 @@ export const listTriggerInvocationsPaginated =
     triggerId: string;
     pagination?: PaginationConfig;
     filters?: {
-      status?: 'pending' | 'success' | 'failed';
+      status?: 'pending' | 'success' | 'failed' | 'rejected';
       from?: string; // ISO 8601 date string
       to?: string; // ISO 8601 date string
     };

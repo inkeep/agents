@@ -33,7 +33,7 @@ interface InvocationsTableProps {
   };
   tenantId: string;
   projectId: string;
-  currentStatus?: 'pending' | 'success' | 'failed';
+  currentStatus?: 'pending' | 'success' | 'failed' | 'rejected';
 }
 
 function formatDate(dateString: string): string {
@@ -50,11 +50,23 @@ function formatDate(dateString: string): string {
   });
 }
 
+function calculateResponseTime(createdAt: string, respondedAt: string | null | undefined): string | null {
+  if (!respondedAt) return null;
+  const created = new Date(createdAt.endsWith('Z') ? createdAt : `${createdAt}Z`);
+  const responded = new Date(respondedAt.endsWith('Z') ? respondedAt : `${respondedAt}Z`);
+  const diffMs = responded.getTime() - created.getTime();
+  if (diffMs < 1000) {
+    return `${diffMs}ms`;
+  }
+  return `${(diffMs / 1000).toFixed(2)}s`;
+}
+
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+  const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     success: 'default',
     pending: 'secondary',
     failed: 'destructive',
+    rejected: 'outline',
   };
 
   return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
@@ -114,6 +126,7 @@ export function InvocationsTable({
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="success">Success</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
             </SelectContent>
           </Select>
@@ -177,8 +190,11 @@ export function InvocationsTable({
                         )}
                       </TableCell>
                       <TableCell onClick={() => toggleRow(invocation.id)}>
-                        {invocation.errorMessage ? (
+                        {invocation.errorMessage || invocation.errorCode ? (
                           <span className="text-destructive text-sm truncate max-w-xs block">
+                            {invocation.errorCode && (
+                              <span className="font-mono mr-1">[{invocation.errorCode}]</span>
+                            )}
                             {invocation.errorMessage}
                           </span>
                         ) : (
@@ -192,6 +208,15 @@ export function InvocationsTable({
                       <TableRow noHover>
                         <TableCell colSpan={5} className="bg-muted/30 p-6">
                           <div className="space-y-4">
+                            {/* Response Time */}
+                            {invocation.respondedAt && (
+                              <div className="flex items-center gap-4 text-sm">
+                                <span className="text-muted-foreground">Response Time:</span>
+                                <span className="font-mono">
+                                  {calculateResponseTime(invocation.createdAt, invocation.respondedAt)}
+                                </span>
+                              </div>
+                            )}
                             <div>
                               <h4 className="text-sm font-semibold mb-2">Request Payload</h4>
                               <pre className="bg-background border rounded-md p-4 text-xs overflow-x-auto max-h-64">
@@ -206,13 +231,13 @@ export function InvocationsTable({
                                 </pre>
                               </div>
                             )}
-                            {invocation.errorMessage && (
+                            {(invocation.errorMessage || invocation.errorCode) && (
                               <div>
                                 <h4 className="text-sm font-semibold mb-2 text-destructive">
-                                  Error Message
+                                  Error {invocation.errorCode && `(HTTP ${invocation.errorCode})`}
                                 </h4>
                                 <p className="text-sm text-destructive bg-background border border-destructive rounded-md p-4">
-                                  {invocation.errorMessage}
+                                  {invocation.errorMessage || 'Unknown error'}
                                 </p>
                               </div>
                             )}

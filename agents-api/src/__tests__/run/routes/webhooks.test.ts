@@ -1764,4 +1764,324 @@ describe('Webhook Endpoint Tests', () => {
       );
     });
   });
+
+  describe('Rejected invocation tracking', () => {
+    it('should create rejected invocation when trigger is not found (404)', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(null));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/nonexistent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 404,
+          errorMessage: expect.stringContaining('not found'),
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should create rejected invocation when trigger is disabled (404)', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+      const disabledTrigger = { ...testTrigger, enabled: false };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(disabledTrigger));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 404,
+          errorMessage: expect.stringContaining('disabled'),
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should create rejected invocation when auth fails with 401', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const { hashTriggerHeaderValue } = await import('@inkeep/agents-core');
+      const { valueHash, valuePrefix } = await hashTriggerHeaderValue('test-secret-key');
+
+      const triggerWithAuth = {
+        ...testTrigger,
+        authentication: {
+          headers: [{ name: 'X-API-Key', valueHash, valuePrefix }],
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithAuth));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Missing X-API-Key header
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(401);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 401,
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should create rejected invocation when auth fails with 403', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const { hashTriggerHeaderValue } = await import('@inkeep/agents-core');
+      const { valueHash, valuePrefix } = await hashTriggerHeaderValue('test-secret-key');
+
+      const triggerWithAuth = {
+        ...testTrigger,
+        authentication: {
+          headers: [{ name: 'X-API-Key', valueHash, valuePrefix }],
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithAuth));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'wrong-key',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 403,
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should create rejected invocation when signature verification fails (403)', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const signingSecret = 'my-secret-key';
+      getCredentialReferenceMock.mockReturnValue(
+        vi.fn().mockResolvedValue({
+          id: 'cred-ref-reject-test',
+          type: 'keychain',
+          credentialStoreId: 'keychain-default',
+          retrievalParams: { key: 'reject-test-key' },
+        })
+      );
+      keychainGetMock.mockResolvedValue(signingSecret);
+
+      const triggerWithSignature = {
+        ...testTrigger,
+        signingSecretCredentialReferenceId: 'cred-ref-reject-test',
+        signatureVerification: {
+          algorithm: 'sha256' as const,
+          encoding: 'hex' as const,
+          signature: {
+            source: 'header' as const,
+            key: 'X-Signature-256',
+            prefix: 'sha256=',
+          },
+          signedComponents: [{ source: 'body' as const, required: true }],
+          componentJoin: { strategy: 'concatenate' as const, separator: '' },
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Signature-256': 'sha256=invalid-signature',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 403,
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should create rejected invocation when payload validation fails (400)', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ wrongField: 'value' }),
+        }
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+      expect(data.validationErrors).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 400,
+          errorMessage: expect.stringContaining('Payload validation failed'),
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should create rejected invocation when payload transformation fails (422)', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const triggerWithTransform = {
+        ...testTrigger,
+        outputTransform: {
+          jmespath: 'invalid..jmespath..syntax',
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithTransform));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(422);
+      const data = await response.json();
+      expect(data.invocationId).toBeDefined();
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          errorCode: 422,
+          errorMessage: expect.stringContaining('transformation failed'),
+          respondedAt: expect.any(String),
+        })
+      );
+    });
+
+    it('should include request payload in rejected invocation even if invalid', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ badField: 'badValue' }),
+        }
+      );
+
+      expect(response.status).toBe(400);
+
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'rejected',
+          requestPayload: { badField: 'badValue' },
+        })
+      );
+    });
+
+    it('should create rejected invocation with scoped identifiers', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(null));
+
+      await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/nonexistent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      // Verify that rejected invocation includes proper scoping
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant-123',
+          projectId: 'project-123',
+          agentId: 'agent-123',
+          triggerId: 'nonexistent',
+          status: 'rejected',
+        })
+      );
+    });
+  });
 });
