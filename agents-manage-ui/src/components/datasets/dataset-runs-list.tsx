@@ -3,7 +3,6 @@
 import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { formatDateAgo } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -16,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import type { DatasetRun } from '@/lib/api/dataset-runs';
 import { fetchDatasetRuns } from '@/lib/api/dataset-runs';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { DatasetRunConfigFormDialog } from './dataset-run-config-form-dialog';
 
 interface DatasetRunsListProps {

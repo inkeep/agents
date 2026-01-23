@@ -3,7 +3,6 @@ import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-rea
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { getActiveTools } from '@/app/utils/active-tools';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,6 +18,7 @@ import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
+import { getActiveTools } from '@/lib/utils/active-tools';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,

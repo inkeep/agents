@@ -1,4 +1,3 @@
-import { formatDateAgo } from '@/app/utils/format-date';
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
 } from '@/components/ui/table';
 import type { ApiKey } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { ApiKeyItemMenu } from './api-key-item-menu';
 import { ExpirationIndicator } from './expiration-indicator';
 
