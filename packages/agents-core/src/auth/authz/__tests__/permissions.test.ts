@@ -42,7 +42,6 @@ describe('authz/permissions', () => {
       mockIsAuthzEnabled.mockReturnValue(false);
 
       const result = await canViewProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'member',
@@ -56,7 +55,6 @@ describe('authz/permissions', () => {
       mockIsAuthzEnabled.mockReturnValue(true);
 
       const result = await canViewProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'owner',
@@ -70,7 +68,6 @@ describe('authz/permissions', () => {
       mockIsAuthzEnabled.mockReturnValue(true);
 
       const result = await canViewProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'admin',
@@ -85,7 +82,6 @@ describe('authz/permissions', () => {
       mockCheckPermission.mockResolvedValue(true);
 
       const result = await canViewProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'member',
@@ -106,7 +102,6 @@ describe('authz/permissions', () => {
       mockCheckPermission.mockResolvedValue(false);
 
       const result = await canViewProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'member',
@@ -122,7 +117,6 @@ describe('authz/permissions', () => {
 
       expect(
         await canUseProject({
-          tenantId: 'tenant-1',
           userId: 'user-1',
           projectId: 'project-1',
           orgRole: 'member',
@@ -135,7 +129,6 @@ describe('authz/permissions', () => {
       mockCheckPermission.mockResolvedValue(true);
 
       const result = await canUseProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'member',
@@ -158,7 +151,6 @@ describe('authz/permissions', () => {
 
       expect(
         await canEditProject({
-          tenantId: 'tenant-1',
           userId: 'user-1',
           projectId: 'project-1',
           orgRole: 'owner',
@@ -167,7 +159,6 @@ describe('authz/permissions', () => {
 
       expect(
         await canEditProject({
-          tenantId: 'tenant-1',
           userId: 'user-1',
           projectId: 'project-1',
           orgRole: 'member',
@@ -180,7 +171,6 @@ describe('authz/permissions', () => {
       mockCheckPermission.mockResolvedValue(true);
 
       const result = await canEditProject({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         projectId: 'project-1',
         orgRole: 'member',
@@ -202,7 +192,6 @@ describe('authz/permissions', () => {
       mockIsAuthzEnabled.mockReturnValue(false);
 
       const result = await listAccessibleProjectIds({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         orgRole: 'member',
       });
@@ -216,7 +205,6 @@ describe('authz/permissions', () => {
 
       expect(
         await listAccessibleProjectIds({
-          tenantId: 'tenant-1',
           userId: 'user-1',
           orgRole: 'owner',
         })
@@ -224,7 +212,6 @@ describe('authz/permissions', () => {
 
       expect(
         await listAccessibleProjectIds({
-          tenantId: 'tenant-1',
           userId: 'user-1',
           orgRole: 'admin',
         })
@@ -238,7 +225,6 @@ describe('authz/permissions', () => {
       mockLookupResources.mockResolvedValue(['project-1', 'project-2']);
 
       const result = await listAccessibleProjectIds({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         orgRole: 'member',
       });
@@ -257,7 +243,6 @@ describe('authz/permissions', () => {
       mockLookupResources.mockResolvedValue([]);
 
       const result = await listAccessibleProjectIds({
-        tenantId: 'tenant-1',
         userId: 'user-1',
         orgRole: 'member',
       });

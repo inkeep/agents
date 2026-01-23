@@ -1,7 +1,7 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectForm } from '@/components/projects/form/project-form';
 import type { ProjectFormData } from '@/components/projects/form/validation';
-import { fetchProject } from '@/lib/api/projects';
+import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,10 @@ export default async function SettingsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const projectData = await fetchProject(tenantId, projectId);
+    const [projectData, permissions] = await Promise.all([
+      fetchProject(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
 
     return (
       <ProjectForm
@@ -25,6 +28,7 @@ export default async function SettingsPage({
           } as ProjectFormData
         }
         tenantId={tenantId}
+        readOnly={!permissions.canEdit}
       />
     );
   } catch (error) {

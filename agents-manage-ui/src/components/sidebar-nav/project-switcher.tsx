@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useProjectsInvalidation, useProjectsQuery } from '@/lib/query/projects';
 
 const ProjectItem: FC<{
@@ -43,6 +44,7 @@ const ProjectItem: FC<{
 
 export const ProjectSwitcher: FC = () => {
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  const { isAdmin: canCreateProject } = useIsOrgAdmin();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile, state } = useSidebar();
   const { data: projects, isFetching } = useProjectsQuery({ tenantId });
@@ -91,18 +93,24 @@ export const ProjectSwitcher: FC = () => {
             </NextLink>
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="font-mono uppercase" onSelect={handleCreateProject}>
-          <Plus />
-          Create project
-        </DropdownMenuItem>
+        {canCreateProject && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="font-mono uppercase" onSelect={handleCreateProject}>
+              <Plus />
+              Create project
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
-      <NewProjectDialog
-        tenantId={tenantId}
-        open={isProjectDialogOpen}
-        onOpenChange={setIsProjectDialogOpen}
-        onSuccess={invalidateProjects}
-      />
+      {canCreateProject && (
+        <NewProjectDialog
+          tenantId={tenantId}
+          open={isProjectDialogOpen}
+          onOpenChange={setIsProjectDialogOpen}
+          onSuccess={invalidateProjects}
+        />
+      )}
     </DropdownMenu>
   );
 };

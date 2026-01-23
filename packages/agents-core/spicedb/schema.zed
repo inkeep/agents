@@ -111,12 +111,4 @@ definition project {
      * - Only project_admin can edit
      */
     permission edit = organization->manage + project_admin
-    
-    /**
-     * Can delete the project
-     * "Can user DELETE project?"
-     * - Org managers can always delete
-     * - Only project_admin can delete
-     */
-    permission delete = organization->manage + project_admin
 }

@@ -15,9 +15,10 @@ import { ExpirationIndicator } from './expiration-indicator';
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
   agentLookup: Record<string, Agent>;
+  canUse: boolean;
 }
 
-export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
+export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps) {
   return (
     <div className="rounded-lg border">
       <Table>
@@ -64,9 +65,7 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
                 <TableCell className="text-sm text-muted-foreground">
                   {apiKey.createdAt ? formatDateAgo(apiKey.createdAt) : ''}
                 </TableCell>
-                <TableCell>
-                  <ApiKeyItemMenu apiKey={apiKey} />
-                </TableCell>
+                <TableCell>{canUse && <ApiKeyItemMenu apiKey={apiKey} />}</TableCell>
               </TableRow>
             ))
           )}

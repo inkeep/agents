@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,11 @@ const agentDescription = (
 async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;
   try {
-    const { data } = await fetchAgents(tenantId, projectId);
+    const [{ data }, { canEdit }] = await Promise.all([
+      fetchAgents(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
     return data.length ? (
       <>
         <PageHeader title={metadata.title} description={agentDescription} />
@@ -42,8 +47,8 @@ async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
       <EmptyState
         title="No agents yet."
         description={agentDescription}
-        action={<NewAgentDialog tenantId={tenantId} projectId={projectId} />}
-        linkText="Create agent"
+        action={canEdit ? <NewAgentDialog tenantId={tenantId} projectId={projectId} /> : undefined}
+        linkText={canEdit ? 'Create agent' : undefined}
         icon={<AgentsIcon />}
       />
     );

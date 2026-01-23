@@ -1,0 +1,64 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import {
+  commonGetErrorResponses,
+  isAuthzEnabled,
+  listUserProjectMembershipsInSpiceDb,
+  ProjectRoles,
+} from '@inkeep/agents-core';
+import type { ManageAppVariables } from '../../../types/app';
+
+const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+const projectRoleEnum = z.enum([ProjectRoles.ADMIN, ProjectRoles.MEMBER, ProjectRoles.VIEWER]);
+
+const UserProjectMembershipParamsSchema = z.object({
+  tenantId: z.string(),
+  userId: z.string(),
+});
+
+// List user's project memberships
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/',
+    summary: 'List User Project Memberships',
+    description:
+      'List all projects a user has explicit access to and their role in each. Requires authz to be enabled.',
+    operationId: 'list-user-project-memberships',
+    tags: ['User Project Memberships'],
+    request: {
+      params: UserProjectMembershipParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'List of project memberships for the user',
+        content: {
+          'application/json': {
+            schema: z.object({
+              data: z.array(
+                z.object({
+                  projectId: z.string(),
+                  role: projectRoleEnum,
+                })
+              ),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, userId } = c.req.valid('param');
+
+    if (!isAuthzEnabled()) {
+      return c.json({ data: [] });
+    }
+
+    const memberships = await listUserProjectMembershipsInSpiceDb({ tenantId, userId });
+
+    return c.json({ data: memberships });
+  }
+);
+
+export default app;

@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { getCycleErrorMessage, wouldCreateCycle } from '@/lib/utils/cycle-detection';
 import type { A2AEdgeData } from '../../configuration/edge-types';
@@ -123,6 +124,8 @@ interface EdgeEditorProps {
 
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges, deleteElements, getEdges } = useReactFlow();
+
+  const { canEdit } = useProjectPermissions();
 
   const deleteEdge = useCallback(() => {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
@@ -363,13 +366,17 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         onRadioChange={handleDelegateRadioChange}
         defaultRadioValue={REMOVE_DELEGATION_OPTION_ID}
       />
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteEdge}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteEdge}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -33,6 +33,56 @@ services:
       timeout: 3s
       retries: 30
 
+  # SpiceDB for local authorization (persistent)
+  # Only starts when using: docker compose --profile authz up -d
+  spicedb:
+    profiles: ["authz"]
+    image: authzed/spicedb:latest
+    command: serve
+    restart: unless-stopped
+    ports:
+      - "50051:50051"  # gRPC
+      - "8443:8443"    # HTTP
+    environment:
+      SPICEDB_GRPC_PRESHARED_KEY: "dev-secret-key"
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@spicedb-postgres:5432/spicedb?sslmode=disable"
+      SPICEDB_HTTP_ENABLED: "true"
+    depends_on:
+      spicedb-migrate:
+        condition: service_completed_successfully
+
+  spicedb-migrate:
+    profiles: ["authz"]
+    image: authzed/spicedb:latest
+    command: migrate head
+    restart: "no"
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@spicedb-postgres:5432/spicedb?sslmode=disable"
+    depends_on:
+      spicedb-postgres:
+        condition: service_healthy
+
+  spicedb-postgres:
+    profiles: ["authz"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: spicedb
+      POSTGRES_PASSWORD: spicedb
+      POSTGRES_DB: spicedb
+    ports:
+      - "5434:5432"
+    volumes:
+      - spicedb-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spicedb"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
 volumes:
   doltgres-data:
   postgres-data:
+  spicedb-postgres-data:

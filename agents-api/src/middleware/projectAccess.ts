@@ -5,20 +5,12 @@ import {
   createApiError,
   isAuthzEnabled,
   type OrgRole,
+  type ProjectPermissionLevel,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
 import type { ManageAppVariables } from '../types/app';
-
-/**
- * Permission levels for project access
- *
- * - view: Can see project and resources (read-only)
- * - use: Can invoke agents, create API keys, view traces
- * - edit: Can modify configurations and manage members
- */
-export type ProjectPermission = 'view' | 'use' | 'edit';
 
 /**
  * Middleware to check project-level access.
@@ -34,7 +26,7 @@ export type ProjectPermission = 'view' | 'use' | 'edit';
 export const requireProjectPermission = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
 >(
-  permission: ProjectPermission = 'view'
+  permission: ProjectPermissionLevel = 'view'
 ) =>
   createMiddleware<Env>(async (c, next) => {
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
@@ -79,7 +71,6 @@ export const requireProjectPermission = <
       switch (permission) {
         case 'view':
           hasAccess = await canViewProject({
-            tenantId,
             userId,
             projectId,
             orgRole: tenantRole,
@@ -87,7 +78,6 @@ export const requireProjectPermission = <
           break;
         case 'use':
           hasAccess = await canUseProject({
-            tenantId,
             userId,
             projectId,
             orgRole: tenantRole,
@@ -95,7 +85,6 @@ export const requireProjectPermission = <
           break;
         case 'edit':
           hasAccess = await canEditProject({
-            tenantId,
             userId,
             projectId,
             orgRole: tenantRole,
@@ -104,32 +93,8 @@ export const requireProjectPermission = <
       }
 
       if (!hasAccess) {
-        // When authz is enabled, check if user can at least view the project
-        // If they can view but not perform the requested action, return 403
-        // If they can't even view, return 404 to not reveal project existence
-        if (isAuthzEnabled(tenantId) && permission !== 'view') {
-          const canView = await canViewProject({
-            tenantId,
-            userId,
-            projectId,
-            orgRole: tenantRole,
-          });
-
-          if (canView) {
-            // User can see the project but lacks the specific permission
-            throw createApiError({
-              code: 'forbidden',
-              message: `Permission denied. Required: project:${permission}`,
-              instance: c.req.path,
-              extensions: {
-                requiredPermissions: [`project:${permission}`],
-              },
-            });
-          }
-        }
-
-        // User can't view the project, or authz is disabled
-        if (isAuthzEnabled(tenantId)) {
+        // When authz is enabled, always return 404 to avoid leaking project existence
+        if (isAuthzEnabled()) {
           throw createApiError({
             code: 'not_found',
             message: 'Project not found',
@@ -137,7 +102,7 @@ export const requireProjectPermission = <
           });
         }
 
-        // When authz is disabled, return 403
+        // When authz is disabled, return 403 with context for debugging
         throw createApiError({
           code: 'forbidden',
           message: `Permission denied. Required: project:${permission}`,

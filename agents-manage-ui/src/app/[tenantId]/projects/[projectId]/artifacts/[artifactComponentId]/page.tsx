@@ -1,6 +1,7 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -10,16 +11,19 @@ export default async function ArtifactComponentPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts/[artifactComponentId]'>) {
   const { artifactComponentId, tenantId, projectId } = await params;
   try {
-    const { name, description, props, render } = await fetchArtifactComponent(
-      tenantId,
-      projectId,
-      artifactComponentId
-    );
+    const [artifact, permissions] = await Promise.all([
+      fetchArtifactComponent(tenantId, projectId, artifactComponentId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    const { name, description, props, render } = artifact;
+
     return (
       <ArtifactComponentForm
         tenantId={tenantId}
         projectId={projectId}
         id={artifactComponentId}
+        readOnly={!permissions.canEdit}
         initialData={{
           id: artifactComponentId,
           name,

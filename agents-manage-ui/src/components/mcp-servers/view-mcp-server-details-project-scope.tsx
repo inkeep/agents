@@ -4,6 +4,7 @@ import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
@@ -37,6 +38,7 @@ export function ViewMCPServerDetailsProjectScope({
       window.location.reload();
     },
   });
+  const { canEdit } = useProjectPermissions();
 
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
   const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';
@@ -63,12 +65,14 @@ export function ViewMCPServerDetailsProjectScope({
             <p className="text-sm text-muted-foreground">MCP server details</p>
           </div>
         </div>
-        <Button asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
-            <Pencil className="w-4 h-4" />
-            Edit
-          </Link>
-        </Button>
+        {canEdit && (
+          <Button asChild>
+            <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
+              <Pencil className="w-4 h-4" />
+              Edit
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Basic Information */}

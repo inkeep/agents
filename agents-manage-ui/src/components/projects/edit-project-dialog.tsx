@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { ProjectForm } from './form/project-form';
 import type { ProjectFormData } from './form/validation';
 
@@ -23,6 +25,25 @@ export function EditProjectDialog({
   isOpen,
   setIsOpen,
 }: EditProjectDialogProps) {
+  const [canEdit, setCanEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadPermissions = async () => {
+      setLoading(true);
+      try {
+        const { canEdit } = await fetchProjectPermissions(tenantId, projectData.id);
+        setCanEdit(canEdit);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPermissions();
+  }, [isOpen, tenantId, projectData.id]);
+
   const handleSuccess = () => {
     setIsOpen(false);
   };
@@ -31,12 +52,16 @@ export function EditProjectDialog({
     setIsOpen(false);
   };
 
+  const readOnly = loading || !canEdit;
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="!max-w-2xl">
+      <DialogContent className="max-w-2xl!">
         <DialogHeader>
-          <DialogTitle>Edit project</DialogTitle>
-          <DialogDescription className="sr-only">Edit project details.</DialogDescription>
+          <DialogTitle>{readOnly ? '' : 'Edit project'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {readOnly ? 'View project details.' : 'Edit project details.'}
+          </DialogDescription>
         </DialogHeader>
         <ProjectForm
           projectId={projectData.id}
@@ -44,6 +69,7 @@ export function EditProjectDialog({
           tenantId={tenantId}
           onSuccess={handleSuccess}
           onCancel={handleCancel}
+          readOnly={readOnly}
         />
       </DialogContent>
     </Dialog>
