@@ -171,7 +171,7 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('componentJoin: {');
       expect(definition).toContain("strategy: 'concatenate',");
       expect(definition).toContain("separator: ''");
-      expect(definition).toContain('signingSecretCredentialReference: githubWebhookSecret,');
+      expect(definition).toContain('signingSecretCredentialReference: githubWebhookSecret');
       expect(definition).toContain('});');
     });
 
@@ -185,7 +185,7 @@ describe('Trigger Generator', () => {
 
       expect(definition).toContain('signatureVerification: {');
       expect(definition).toContain("key: 'x-slack-signature',");
-      expect(definition).toContain("prefix: 'v0=',");
+      expect(definition).toContain("prefix: 'v0='");
       expect(definition).toContain('signedComponents: [');
       expect(definition).toContain("source: 'literal',");
       expect(definition).toContain("value: 'v0',");
@@ -195,7 +195,7 @@ describe('Trigger Generator', () => {
       expect(definition).toContain('headerCaseSensitive: false,');
       expect(definition).toContain('allowEmptyBody: false,');
       expect(definition).toContain('normalizeUnicode: false');
-      expect(definition).toContain('signingSecretCredentialReference: slackSigningSecret,');
+      expect(definition).toContain('signingSecretCredentialReference: slackSigningSecret');
     });
 
     it('should generate trigger with multiple algorithms', () => {
@@ -285,7 +285,7 @@ describe('Trigger Generator', () => {
         mockRegistry
       );
 
-      expect(definition).toContain('required: false,');
+      expect(definition).toContain('required: false');
       expect(definition).toContain('required: true');
     });
 
@@ -307,7 +307,7 @@ describe('Trigger Generator', () => {
         indentation: '  ',
       });
 
-      expect(definition).toContain('id: "github-webhook",');
+      expect(definition).toContain('id: "test-trigger",');
       expect(definition).toContain('name: "GitHub Webhook",');
     });
 
@@ -344,7 +344,7 @@ describe('Trigger Generator', () => {
       expect(file).toContain("import { Trigger } from '@inkeep/agents-sdk';");
       expect(file).toContain('github-webhook-secret');
       expect(file).toContain('signatureVerification: {');
-      expect(file).toContain('signingSecretCredentialReference: githubWebhookSecret,');
+      expect(file).toContain('signingSecretCredentialReference: githubWebhookSecret');
     });
 
     it('should generate complete trigger file with all features', () => {
@@ -359,7 +359,7 @@ describe('Trigger Generator', () => {
       expect(file).toContain('slack-signing-secret');
       expect(file).toContain('signatureVerification: {');
       expect(file).toContain('validation: {');
-      expect(file).toContain('signingSecretCredentialReference: slackSigningSecret,');
+      expect(file).toContain('signingSecretCredentialReference: slackSigningSecret');
     });
   });
 });

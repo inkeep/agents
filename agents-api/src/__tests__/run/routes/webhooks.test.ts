@@ -34,17 +34,28 @@ const {
   createMessageMock,
   withRefMock,
   getCredentialReferenceMock,
-} = vi.hoisted(() => ({
-  getTriggerByIdMock: vi.fn(),
-  createTriggerInvocationMock: vi.fn(),
-  updateTriggerInvocationStatusMock: vi.fn(),
-  getFullProjectWithRelationIdsMock: vi.fn(),
-  createOrGetConversationMock: vi.fn(),
-  setActiveAgentForConversationMock: vi.fn(),
-  createMessageMock: vi.fn(),
-  withRefMock: vi.fn(),
-  getCredentialReferenceMock: vi.fn(),
-}));
+  createKeyChainStoreMock,
+  keychainGetMock,
+} = vi.hoisted(() => {
+  const keychainGetMock = vi.fn();
+  return {
+    getTriggerByIdMock: vi.fn(),
+    createTriggerInvocationMock: vi.fn(),
+    updateTriggerInvocationStatusMock: vi.fn(),
+    getFullProjectWithRelationIdsMock: vi.fn(),
+    createOrGetConversationMock: vi.fn(),
+    setActiveAgentForConversationMock: vi.fn(),
+    createMessageMock: vi.fn(),
+    withRefMock: vi.fn(),
+    getCredentialReferenceMock: vi.fn(),
+    createKeyChainStoreMock: vi.fn(() => ({
+      get: keychainGetMock,
+      set: vi.fn(),
+      delete: vi.fn(),
+    })),
+    keychainGetMock,
+  };
+});
 
 // Mock @inkeep/agents-core
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -61,6 +72,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createMessage: createMessageMock,
     withRef: withRefMock,
     getCredentialReference: getCredentialReferenceMock,
+    createKeyChainStore: createKeyChainStoreMock,
     createApiError: actual.createApiError,
     verifyTriggerAuth: actual.verifyTriggerAuth,
     interpolateTemplate: actual.interpolateTemplate,
@@ -172,7 +184,8 @@ describe('Webhook Endpoint Tests', () => {
     outputTransform: null,
     messageTemplate: 'Webhook message: {{message}}',
     authentication: null,
-    signingSecret: null,
+    signingSecretCredentialReferenceId: null,
+    signatureVerification: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -242,6 +255,7 @@ describe('Webhook Endpoint Tests', () => {
     setActiveAgentForConversationMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     createMessageMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     getCredentialReferenceMock.mockReturnValue(vi.fn().mockResolvedValue(null));
+    keychainGetMock.mockResolvedValue(null);
   });
 
   describe('Success path', () => {
@@ -504,12 +518,43 @@ describe('Webhook Endpoint Tests', () => {
     });
   });
 
-  describe('Signing secret verification', () => {
+  describe('Signing secret verification (basic pattern)', () => {
     it('should accept request with valid signature', async () => {
       const signingSecret = 'my-secret-key';
+
+      // Setup credential reference mock
+      getCredentialReferenceMock.mockReturnValue(
+        vi.fn().mockResolvedValue({
+          id: 'cred-ref-basic',
+          type: 'keychain',
+          credentialStoreId: 'keychain-default',
+          retrievalParams: { key: 'basic-secret-key' },
+        })
+      );
+      keychainGetMock.mockResolvedValue(signingSecret);
+
       const triggerWithSignature = {
         ...testTrigger,
-        signingSecret,
+        signingSecretCredentialReferenceId: 'cred-ref-basic',
+        signatureVerification: {
+          algorithm: 'sha256' as const,
+          encoding: 'hex' as const,
+          signature: {
+            source: 'header' as const,
+            key: 'X-Signature-256',
+            prefix: 'sha256=',
+          },
+          signedComponents: [
+            {
+              source: 'body' as const,
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate' as const,
+            separator: '',
+          },
+        },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
 
@@ -532,9 +577,41 @@ describe('Webhook Endpoint Tests', () => {
     });
 
     it('should return 403 for invalid signature', async () => {
+      const signingSecret = 'my-secret-key';
+
+      // Setup credential reference mock
+      getCredentialReferenceMock.mockReturnValue(
+        vi.fn().mockResolvedValue({
+          id: 'cred-ref-basic',
+          type: 'keychain',
+          credentialStoreId: 'keychain-default',
+          retrievalParams: { key: 'basic-secret-key' },
+        })
+      );
+      keychainGetMock.mockResolvedValue(signingSecret);
+
       const triggerWithSignature = {
         ...testTrigger,
-        signingSecret: 'my-secret-key',
+        signingSecretCredentialReferenceId: 'cred-ref-basic',
+        signatureVerification: {
+          algorithm: 'sha256' as const,
+          encoding: 'hex' as const,
+          signature: {
+            source: 'header' as const,
+            key: 'X-Signature-256',
+            prefix: 'sha256=',
+          },
+          signedComponents: [
+            {
+              source: 'body' as const,
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate' as const,
+            separator: '',
+          },
+        },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
 
@@ -556,9 +633,41 @@ describe('Webhook Endpoint Tests', () => {
     });
 
     it('should return 403 for missing signature when signing secret is configured', async () => {
+      const signingSecret = 'my-secret-key';
+
+      // Setup credential reference mock
+      getCredentialReferenceMock.mockReturnValue(
+        vi.fn().mockResolvedValue({
+          id: 'cred-ref-basic',
+          type: 'keychain',
+          credentialStoreId: 'keychain-default',
+          retrievalParams: { key: 'basic-secret-key' },
+        })
+      );
+      keychainGetMock.mockResolvedValue(signingSecret);
+
       const triggerWithSignature = {
         ...testTrigger,
-        signingSecret: 'my-secret-key',
+        signingSecretCredentialReferenceId: 'cred-ref-basic',
+        signatureVerification: {
+          algorithm: 'sha256' as const,
+          encoding: 'hex' as const,
+          signature: {
+            source: 'header' as const,
+            key: 'X-Signature-256',
+            prefix: 'sha256=',
+          },
+          signedComponents: [
+            {
+              source: 'body' as const,
+              required: true,
+            },
+          ],
+          componentJoin: {
+            strategy: 'concatenate' as const,
+            separator: '',
+          },
+        },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithSignature));
 
@@ -584,20 +693,23 @@ describe('Webhook Endpoint Tests', () => {
         const payload = JSON.stringify({ action: 'opened', issue: { id: 1 } });
         const signature = createHmac('sha256', secret).update(payload).digest('hex');
 
-        // Setup credential reference mock
+        // Setup credential reference mock with keychain type
         getCredentialReferenceMock.mockReturnValue(
           vi.fn().mockResolvedValue({
             id: 'cred-ref-123',
             tenantId: 'tenant-123',
             projectId: 'project-123',
             name: 'GitHub Webhook Secret',
-            type: 'secret',
-            credentialStoreId: 'store-123',
-            retrievalParams: { key: secret },
+            type: 'keychain',
+            credentialStoreId: 'keychain-default',
+            retrievalParams: { key: 'github-secret-key' },
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })
         );
+
+        // Setup keychain mock to return the actual secret
+        keychainGetMock.mockResolvedValue(secret);
 
         const triggerWithNewVerification = {
           ...testTrigger,
@@ -653,11 +765,16 @@ describe('Webhook Endpoint Tests', () => {
             id: 'cred-ref-123',
             tenantId: 'tenant-123',
             projectId: 'project-123',
-            retrievalParams: { key: secret },
+            type: 'keychain',
+            credentialStoreId: 'keychain-default',
+            retrievalParams: { key: 'github-secret-key' },
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })
         );
+
+        // Setup keychain mock to return the actual secret
+        keychainGetMock.mockResolvedValue(secret);
 
         const triggerWithNewVerification = {
           ...testTrigger,
@@ -707,9 +824,14 @@ describe('Webhook Endpoint Tests', () => {
         getCredentialReferenceMock.mockReturnValue(
           vi.fn().mockResolvedValue({
             id: 'cred-ref-123',
-            retrievalParams: { key: secret },
+            type: 'keychain',
+            credentialStoreId: 'keychain-default',
+            retrievalParams: { key: 'github-secret-key' },
           })
         );
+
+        // Setup keychain mock to return the actual secret
+        keychainGetMock.mockResolvedValue(secret);
 
         const triggerWithNewVerification = {
           ...testTrigger,
@@ -762,9 +884,14 @@ describe('Webhook Endpoint Tests', () => {
         getCredentialReferenceMock.mockReturnValue(
           vi.fn().mockResolvedValue({
             id: 'cred-ref-slack',
-            retrievalParams: { key: secret },
+            type: 'keychain',
+            credentialStoreId: 'keychain-default',
+            retrievalParams: { key: 'slack-secret-key' },
           })
         );
+
+        // Setup keychain mock to return the actual secret
+        keychainGetMock.mockResolvedValue(secret);
 
         const triggerWithSlackVerification = {
           ...testTrigger,
@@ -824,9 +951,14 @@ describe('Webhook Endpoint Tests', () => {
         getCredentialReferenceMock.mockReturnValue(
           vi.fn().mockResolvedValue({
             id: 'cred-ref-slack',
-            retrievalParams: { key: secret },
+            type: 'keychain',
+            credentialStoreId: 'keychain-default',
+            retrievalParams: { key: 'slack-secret-key' },
           })
         );
+
+        // Setup keychain mock to return the actual secret
+        keychainGetMock.mockResolvedValue(secret);
 
         const triggerWithSlackVerification = {
           ...testTrigger,
@@ -929,6 +1061,8 @@ describe('Webhook Endpoint Tests', () => {
         getCredentialReferenceMock.mockReturnValue(
           vi.fn().mockResolvedValue({
             id: 'cred-ref-123',
+            type: 'keychain',
+            credentialStoreId: 'keychain-default',
             retrievalParams: {}, // No key field
           })
         );
@@ -980,9 +1114,14 @@ describe('Webhook Endpoint Tests', () => {
         // First call returns credential
         const getCredentialFn = vi.fn().mockResolvedValue({
           id: 'cred-ref-cache',
-          retrievalParams: { key: secret },
+          type: 'keychain',
+          credentialStoreId: 'keychain-default',
+          retrievalParams: { key: 'cache-secret-key' },
         });
         getCredentialReferenceMock.mockReturnValue(getCredentialFn);
+
+        // Setup keychain mock to return the actual secret
+        keychainGetMock.mockResolvedValue(secret);
 
         const triggerConfig = {
           ...testTrigger,

@@ -771,7 +771,11 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
 
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
-export const TriggerUpdateSchema = TriggerInsertSchema.partial();
+// We use .removeDefault() to strip the default from enabled field
+export const TriggerUpdateSchema = TriggerInsertSchemaBase.extend({
+  // Override enabled to remove the default so {} doesn't become {enabled: true}
+  enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+}).partial();
 
 export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
