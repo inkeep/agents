@@ -3,6 +3,8 @@ import {
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
+  type SignatureVerificationConfig,
+  SignatureVerificationConfigSchema,
   type TriggerApiInsert,
 } from '@inkeep/agents-core';
 import { Agent } from './agent';
@@ -382,16 +384,24 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
  *
  * Triggers allow external services to invoke agents via webhooks.
  * They support authentication via arbitrary header key-value pairs,
- * payload transformation, and input validation.
+ * payload transformation, input validation, and signature verification.
  *
  * @param config - Trigger configuration
  * @returns A Trigger instance
+ * @throws {Error} If signatureVerification config validation fails
  *
  * @example
  * ```typescript
  * import { z } from 'zod';
  *
- * // GitHub webhook trigger with header-based authentication
+ * // GitHub webhook trigger with signature verification
+ * const githubWebhookSecret = credential({
+ *   id: 'github-webhook-secret',
+ *   name: 'GitHub Webhook Secret',
+ *   type: 'bearer',
+ *   value: process.env.GITHUB_WEBHOOK_SECRET
+ * });
+ *
  * const githubTrigger = trigger({
  *   name: 'GitHub Events',
  *   description: 'Handle GitHub webhook events',
@@ -412,30 +422,74 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
  *       { name: 'X-GitHub-Token', value: process.env.GITHUB_TOKEN }
  *     ]
  *   },
- *   signingSecret: process.env.GITHUB_WEBHOOK_SECRET
- * });
- *
- * // Multiple authentication headers
- * const multiHeaderTrigger = trigger({
- *   name: 'Secure Webhook',
- *   description: 'Webhook with multiple auth headers',
- *   messageTemplate: 'Received: {{data}}',
- *   authentication: {
- *     headers: [
- *       { name: 'X-API-Key', value: process.env.API_KEY },
- *       { name: 'X-Client-ID', value: process.env.CLIENT_ID }
- *     ]
+ *   signingSecretCredentialReference: githubWebhookSecret,
+ *   signatureVerification: {
+ *     algorithm: 'sha256',
+ *     encoding: 'hex',
+ *     signature: {
+ *       source: 'header',
+ *       key: 'x-hub-signature-256',
+ *       prefix: 'sha256='
+ *     },
+ *     signedComponents: [
+ *       { source: 'body', required: true }
+ *     ],
+ *     componentJoin: {
+ *       strategy: 'concatenate',
+ *       separator: ''
+ *     }
  *   }
  * });
  *
- * // Simple webhook trigger with no auth
+ * // Slack webhook trigger with complex signature
+ * const slackTrigger = trigger({
+ *   name: 'Slack Events',
+ *   description: 'Handle Slack webhook events',
+ *   messageTemplate: 'Slack event: {{type}}',
+ *   signingSecretCredentialReference: slackSecret,
+ *   signatureVerification: {
+ *     algorithm: 'sha256',
+ *     encoding: 'hex',
+ *     signature: {
+ *       source: 'header',
+ *       key: 'x-slack-signature',
+ *       prefix: 'v0='
+ *     },
+ *     signedComponents: [
+ *       { source: 'literal', value: 'v0', required: true },
+ *       { source: 'header', key: 'x-slack-request-timestamp', required: true },
+ *       { source: 'body', required: true }
+ *     ],
+ *     componentJoin: {
+ *       strategy: 'concatenate',
+ *       separator: ':'
+ *     }
+ *   }
+ * });
+ *
+ * // Simple webhook trigger with no signature verification
  * const simpleTrigger = trigger({
- *   name: 'Slack Message',
- *   description: 'Handle Slack messages',
+ *   name: 'Internal Webhook',
+ *   description: 'Internal webhook with no signature',
  *   messageTemplate: 'New message: {{text}}'
  * });
  * ```
  */
 export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }): Trigger {
+  // Validate signatureVerification config if present
+  if (config.signatureVerification !== undefined && config.signatureVerification !== null) {
+    try {
+      SignatureVerificationConfigSchema.parse(config.signatureVerification);
+    } catch (error) {
+      if (error instanceof Error) {
+        const triggerName = config.name || 'unknown';
+        throw new Error(
+          `Invalid signatureVerification config in trigger '${triggerName}': ${error.message}`
+        );
+      }
+      throw error;
+    }
+  }
+
   return new Trigger(config);
 }

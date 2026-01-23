@@ -30,6 +30,10 @@ import {
   type FunctionApiInsertSchema,
   type ModelSettings,
   ModelSettingsSchema,
+  type SignatureVerificationConfig,
+  SignatureVerificationConfigSchema,
+  type SignatureSource,
+  type SignedComponent,
   type StopWhen,
   StopWhenSchema,
   type SubAgentStopWhen,
@@ -57,6 +61,7 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
@@ -67,6 +72,12 @@ export {
   TriggerListResponse,
   TriggerResponse,
 } from './validation/schemas';
+
+export type {
+  SignatureVerificationConfig,
+  SignatureSource,
+  SignedComponent,
+};
 
 export const TenantParamsSchema = z.object({
   tenantId: z.string(),
