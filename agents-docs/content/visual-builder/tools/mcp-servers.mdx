@@ -167,6 +167,11 @@ SUPABASE_ACCESS_TOKEN=YOUR_SUPABASE_ACCESS_TOKEN mcp-proxy --port 4444 --shell "
 
 Once you have created an MCP server, you can add it to your agents:
 
+<Tip>
+  For tools that can make destructive changes, require explicit user approval before execution. See
+  [Tool approvals](/typescript-sdk/tools/tool-approvals).
+</Tip>
+
 1. Go to the [Sub Agents](/visual-builder/sub-agents) page
 2. Drag and drop an MCP server into your agent
 3. Connect the MCP server to a Sub Agent by dragging from the server's connector to the Sub Agent

@@ -333,5 +333,4 @@ li[data-sonner-toast][data-type="error"] {
 }
 
 .mcp-needs-approval {
-  @apply hidden;
 }
