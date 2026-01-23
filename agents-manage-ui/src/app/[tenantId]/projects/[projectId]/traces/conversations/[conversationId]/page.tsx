@@ -10,7 +10,6 @@ import {
 import NextLink from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
@@ -25,6 +24,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyFullTraceToClipboard, copySummarizedTraceToClipboard } from '@/lib/utils/trace-formatter';
 

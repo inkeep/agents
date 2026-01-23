@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDate } from '@/app/utils/format-date';
 import {
   ItemCardContent,
   ItemCardDescription,
@@ -11,6 +10,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { Agent } from '@/lib/types/agent-full';
+import { formatDate } from '@/lib/utils/format-date';
 import { AgentItemMenu } from './agent-item-menu';
 
 interface AgentItemProps extends Agent {

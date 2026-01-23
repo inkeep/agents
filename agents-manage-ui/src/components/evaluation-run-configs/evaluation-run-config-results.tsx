@@ -3,7 +3,6 @@
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -25,6 +24,7 @@ import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 type AnyRecord = Record<string, unknown>;
 const isPlainObject = (v: unknown): v is AnyRecord =>
