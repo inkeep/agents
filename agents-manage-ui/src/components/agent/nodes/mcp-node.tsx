@@ -33,7 +33,7 @@ export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-export const TruncateToolBadge: FC<{
+const TruncateToolBadge: FC<{
   label: string;
   needsApproval?: boolean;
 }> = ({ label, needsApproval }) => {

@@ -78,5 +78,3 @@ export const ProjectRoleSelector: FC<ProjectRoleSelectorProps> = ({
   );
 };
 
-// Export roles for external use if needed
-export { PROJECT_ROLES };

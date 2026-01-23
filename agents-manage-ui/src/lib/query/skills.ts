@@ -2,8 +2,9 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SkillApiInsert, SkillApiUpdate } from '@inkeep/agents-core';
-import { createSkillAction, updateSkillAction } from '@/lib/actions/skills';
 import type { Skill } from '@/lib/types/skills';
+import { createSkill, updateSkill } from '@/lib/api/skills';
+import { useParams } from 'next/navigation';
 
 const skillQueryKeys = {
   list: (tenantId: string, projectId: string) => ['skills', tenantId, projectId] as const,
@@ -12,8 +13,6 @@ const skillQueryKeys = {
 };
 
 type UpsertSkillInput = {
-  tenantId: string;
-  projectId: string;
   skillId?: string;
   data: SkillApiInsert;
 };
@@ -21,33 +20,25 @@ type UpsertSkillInput = {
 export function useUpsertSkillMutation() {
   'use memo';
   const queryClient = useQueryClient();
+  const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
+
+  if (!tenantId || !projectId) {
+    throw new Error('tenantId and projectId are required');
+  }
 
   return useMutation<Skill, Error, UpsertSkillInput>({
-    async mutationFn({ tenantId, projectId, skillId, data }) {
+    async mutationFn({ skillId, data }) {
       const result = skillId
-        ? await updateSkillAction(
-            tenantId,
-            projectId,
-            skillId,
-            omitNameForUpdate(data)
-          )
-        : await createSkillAction(tenantId, projectId, data);
+        ? await updateSkill(tenantId, projectId, skillId, omitNameForUpdate(data))
+        : await createSkill(tenantId, projectId, data);
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save skill');
-      }
-
-      return result.data;
+      return result;
     },
-    async onSuccess(skill, { tenantId, projectId, skillId }) {
+    async onSuccess(skill) {
       await queryClient.invalidateQueries({ queryKey: skillQueryKeys.list(tenantId, projectId) });
-
-      const resolvedSkillId = skillId || skill?.id || skill?.name;
-      if (resolvedSkillId) {
-        await queryClient.invalidateQueries({
-          queryKey: skillQueryKeys.single(tenantId, projectId, resolvedSkillId),
-        });
-      }
+      await queryClient.invalidateQueries({
+        queryKey: skillQueryKeys.single(tenantId, projectId, skill.id),
+      });
     },
   });
 }

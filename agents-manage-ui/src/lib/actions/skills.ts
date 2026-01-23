@@ -65,7 +65,7 @@ export async function createSkillAction(
 ): Promise<ActionResult<Skill>> {
   try {
     const data = await createSkill(tenantId, projectId, skill);
-    revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+
     return { success: true, data };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -86,7 +86,7 @@ export async function updateSkillAction(
 ): Promise<ActionResult<Skill>> {
   try {
     const data = await updateSkill(tenantId, projectId, skillId, skill);
-    revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
+
     return { success: true, data };
   } catch (error) {
     if (error instanceof ApiError) {

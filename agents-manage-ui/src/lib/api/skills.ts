@@ -7,6 +7,7 @@ import type { SkillApiInsert, SkillApiSelect, SkillApiUpdate } from '@inkeep/age
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
+import { revalidatePath } from 'next/cache';
 
 export type Skill = SkillApiSelect;
 
@@ -52,6 +53,7 @@ export async function createSkill(
       body: JSON.stringify(skill),
     }
   );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
 
   return response.data;
 }
@@ -72,6 +74,7 @@ export async function updateSkill(
       body: JSON.stringify(skill),
     }
   );
+  revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
 
   return response.data;
 }
