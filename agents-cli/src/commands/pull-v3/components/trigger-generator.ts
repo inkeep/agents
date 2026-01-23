@@ -90,6 +90,109 @@ function formatOutputTransform(transform: any, style: CodeStyle, indentLevel: nu
 }
 
 /**
+ * Format signature verification configuration
+ * Generates code for signatureVerification object with all nested structures
+ */
+function formatSignatureVerification(
+  config: any,
+  style: CodeStyle,
+  indentLevel: number
+): string {
+  if (!config) return '';
+
+  const { indentation, quotes } = style;
+  const q = quotes === 'single' ? "'" : '"';
+  const indent = indentation.repeat(indentLevel);
+  const lines: string[] = [];
+
+  lines.push(`${indent}signatureVerification: {`);
+
+  // Algorithm
+  const algorithmIndent = indentation.repeat(indentLevel + 1);
+  lines.push(`${algorithmIndent}algorithm: ${formatString(config.algorithm, q)},`);
+
+  // Encoding
+  lines.push(`${algorithmIndent}encoding: ${formatString(config.encoding, q)},`);
+
+  // Signature object
+  lines.push(`${algorithmIndent}signature: {`);
+  const sigIndent = indentation.repeat(indentLevel + 2);
+  lines.push(`${sigIndent}source: ${formatString(config.signature.source, q)},`);
+  lines.push(`${sigIndent}key: ${formatString(config.signature.key, q)},`);
+  if (config.signature.prefix !== undefined && config.signature.prefix !== null) {
+    lines.push(`${sigIndent}prefix: ${formatString(config.signature.prefix, q)},`);
+  }
+  if (config.signature.regex !== undefined && config.signature.regex !== null) {
+    lines.push(`${sigIndent}regex: ${formatString(config.signature.regex, q)},`);
+  }
+  // Remove trailing comma from last signature field
+  if (lines[lines.length - 1].endsWith(',')) {
+    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+  }
+  lines.push(`${algorithmIndent}},`);
+
+  // Signed components array
+  lines.push(`${algorithmIndent}signedComponents: [`);
+  for (const component of config.signedComponents) {
+    lines.push(`${sigIndent}{`);
+    const compIndent = indentation.repeat(indentLevel + 3);
+    lines.push(`${compIndent}source: ${formatString(component.source, q)},`);
+    if (component.key !== undefined && component.key !== null) {
+      lines.push(`${compIndent}key: ${formatString(component.key, q)},`);
+    }
+    if (component.value !== undefined && component.value !== null) {
+      lines.push(`${compIndent}value: ${formatString(component.value, q)},`);
+    }
+    if (component.regex !== undefined && component.regex !== null) {
+      lines.push(`${compIndent}regex: ${formatString(component.regex, q)},`);
+    }
+    if (component.required !== undefined && component.required !== null) {
+      lines.push(`${compIndent}required: ${component.required},`);
+    }
+    // Remove trailing comma from last component field
+    if (lines[lines.length - 1].endsWith(',')) {
+      lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+    }
+    lines.push(`${sigIndent}},`);
+  }
+  lines.push(`${algorithmIndent}],`);
+
+  // Component join
+  lines.push(`${algorithmIndent}componentJoin: {`);
+  lines.push(`${sigIndent}strategy: ${formatString(config.componentJoin.strategy, q)},`);
+  lines.push(`${sigIndent}separator: ${formatString(config.componentJoin.separator, q)}`);
+  lines.push(`${algorithmIndent}},`);
+
+  // Validation options (optional)
+  if (config.validation) {
+    lines.push(`${algorithmIndent}validation: {`);
+    if (config.validation.headerCaseSensitive !== undefined) {
+      lines.push(`${sigIndent}headerCaseSensitive: ${config.validation.headerCaseSensitive},`);
+    }
+    if (config.validation.allowEmptyBody !== undefined) {
+      lines.push(`${sigIndent}allowEmptyBody: ${config.validation.allowEmptyBody},`);
+    }
+    if (config.validation.normalizeUnicode !== undefined) {
+      lines.push(`${sigIndent}normalizeUnicode: ${config.validation.normalizeUnicode},`);
+    }
+    // Remove trailing comma from last validation field
+    if (lines[lines.length - 1].endsWith(',')) {
+      lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+    }
+    lines.push(`${algorithmIndent}},`);
+  }
+
+  // Remove trailing comma from last field
+  if (lines[lines.length - 1].endsWith(',')) {
+    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+  }
+
+  lines.push(`${indent}},`);
+
+  return lines.join('\n');
+}
+
+/**
  * Generate Trigger Definition using Trigger class
  */
 export function generateTriggerDefinition(
@@ -178,8 +281,20 @@ export function generateTriggerDefinition(
     }
   }
 
-  // Signing secret (optional) - not included in generated code for security reasons
-  // signingSecret should be set via environment variables
+  // Signature verification (optional)
+  if (triggerData.signatureVerification) {
+    const sigVerificationFormatted = formatSignatureVerification(
+      triggerData.signatureVerification,
+      style,
+      1
+    );
+    if (sigVerificationFormatted) {
+      lines.push(sigVerificationFormatted);
+    }
+  }
+
+  // Signing secret credential reference (optional) - included if present
+  // Note: signingSecret is deprecated and replaced by credential references
 
   // Remove trailing comma from last line
   if (lines.length > 0 && lines[lines.length - 1].endsWith(',')) {
