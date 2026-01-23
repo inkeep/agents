@@ -8932,11 +8932,15 @@
           },
           "400": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "properties": {
                     "detail": {
                       "description": "Human-readable explanation specific to this occurrence",
+                      "type": "string"
+                    },
+                    "error": {
+                      "description": "Human-readable error message",
                       "type": "string"
                     },
                     "instance": {
@@ -8959,7 +8963,8 @@
                   },
                   "required": [
                     "title",
-                    "status"
+                    "status",
+                    "error"
                   ],
                   "type": "object"
                 }
@@ -8969,11 +8974,15 @@
           },
           "401": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "properties": {
                     "detail": {
                       "description": "Human-readable explanation specific to this occurrence",
+                      "type": "string"
+                    },
+                    "error": {
+                      "description": "Human-readable error message",
                       "type": "string"
                     },
                     "instance": {
@@ -8996,7 +9005,8 @@
                   },
                   "required": [
                     "title",
-                    "status"
+                    "status",
+                    "error"
                   ],
                   "type": "object"
                 }
@@ -9006,11 +9016,15 @@
           },
           "403": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "properties": {
                     "detail": {
                       "description": "Human-readable explanation specific to this occurrence",
+                      "type": "string"
+                    },
+                    "error": {
+                      "description": "Human-readable error message",
                       "type": "string"
                     },
                     "instance": {
@@ -9033,7 +9047,8 @@
                   },
                   "required": [
                     "title",
-                    "status"
+                    "status",
+                    "error"
                   ],
                   "type": "object"
                 }
@@ -9043,11 +9058,15 @@
           },
           "500": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "properties": {
                     "detail": {
                       "description": "Human-readable explanation specific to this occurrence",
+                      "type": "string"
+                    },
+                    "error": {
+                      "description": "Human-readable error message",
                       "type": "string"
                     },
                     "instance": {
@@ -9070,7 +9089,8 @@
                   },
                   "required": [
                     "title",
-                    "status"
+                    "status",
+                    "error"
                   ],
                   "type": "object"
                 }

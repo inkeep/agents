@@ -1,11 +1,39 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import type { Hook } from '@hono/zod-openapi';
+import type { Context, Env } from 'hono';
 import { isGitHubAppConfigured } from '../config';
 import { validateOidcToken } from '../oidcToken';
 import { lookupInstallationForRepo, generateInstallationAccessToken } from '../installation';
 import { getLogger } from '../../../logger';
 
-const app = new OpenAPIHono();
 const logger = getLogger('github-token-exchange');
+
+/**
+ * Custom hook to handle Zod validation errors with RFC 7807 format
+ * that includes the 'error' field required by our OpenAPI schema.
+ */
+const validationErrorHook: Hook<any, Env, any, any> = (result, c: Context) => {
+  if (!result.success) {
+    const issues = result.error.issues;
+    const errorMessage = issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
+
+    c.header('Content-Type', 'application/problem+json');
+    return c.json(
+      {
+        type: 'https://api.inkeep.com/problems/validation-error',
+        title: 'Bad Request',
+        status: 400,
+        detail: errorMessage,
+        error: errorMessage,
+      },
+      400
+    );
+  }
+};
+
+const app = new OpenAPIHono({
+  defaultHook: validationErrorHook,
+});
 
 const TokenExchangeRequestSchema = z.object({
   oidc_token: z.string().describe('GitHub Actions OIDC token to exchange'),
@@ -23,6 +51,7 @@ const ProblemDetailsSchema = z.object({
   title: z.string().describe('Short, human-readable summary of the problem'),
   status: z.number().describe('HTTP status code'),
   detail: z.string().optional().describe('Human-readable explanation specific to this occurrence'),
+  error: z.string().describe('Human-readable error message'),
   instance: z.string().optional().describe('URI reference identifying the specific occurrence'),
 });
 
@@ -56,7 +85,7 @@ const tokenExchangeRoute = createRoute({
     400: {
       description: 'Bad Request - Missing or malformed oidc_token',
       content: {
-        'application/json': {
+        'application/problem+json': {
           schema: ProblemDetailsSchema,
         },
       },
@@ -65,7 +94,7 @@ const tokenExchangeRoute = createRoute({
       description:
         'Unauthorized - Invalid JWT signature, wrong issuer, wrong audience, or expired token',
       content: {
-        'application/json': {
+        'application/problem+json': {
           schema: ProblemDetailsSchema,
         },
       },
@@ -73,7 +102,7 @@ const tokenExchangeRoute = createRoute({
     403: {
       description: 'Forbidden - GitHub App not installed on repository',
       content: {
-        'application/json': {
+        'application/problem+json': {
           schema: ProblemDetailsSchema,
         },
       },
@@ -81,7 +110,7 @@ const tokenExchangeRoute = createRoute({
     500: {
       description: 'Internal Server Error - GitHub API failure or missing App credentials',
       content: {
-        'application/json': {
+        'application/problem+json': {
           schema: ProblemDetailsSchema,
         },
       },
@@ -96,13 +125,16 @@ app.openapi(tokenExchangeRoute, async (c) => {
 
   if (!isGitHubAppConfigured()) {
     logger.error({}, 'GitHub App credentials not configured');
+    const errorMessage =
+      'GitHub App credentials are not configured. Please contact the administrator to set up GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.';
+    c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
         type: 'https://api.inkeep.com/problems/configuration-error',
         title: 'GitHub App Not Configured',
         status: 500,
-        detail:
-          'GitHub App credentials are not configured. Please contact the administrator to set up GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.',
+        detail: errorMessage,
+        error: errorMessage,
       },
       500
     );
@@ -113,12 +145,30 @@ app.openapi(tokenExchangeRoute, async (c) => {
     const errorType = validationResult.errorType;
     logger.warn({ errorType, message: validationResult.message }, 'OIDC token validation failed');
 
+    c.header('Content-Type', 'application/problem+json');
+
+    // Malformed tokens are 400 Bad Request (request format issue)
+    // Invalid signature, expired, wrong issuer/audience are 401 Unauthorized (auth failures)
+    if (errorType === 'malformed') {
+      return c.json(
+        {
+          type: 'https://api.inkeep.com/problems/malformed-token',
+          title: 'Bad Request',
+          status: 400,
+          detail: validationResult.message,
+          error: validationResult.message,
+        },
+        400
+      );
+    }
+
     return c.json(
       {
         type: `https://api.inkeep.com/problems/token-validation-${errorType.replace(/_/g, '-')}`,
         title: 'Token Validation Failed',
         status: 401,
         detail: validationResult.message,
+        error: validationResult.message,
       },
       401
     );
@@ -140,12 +190,14 @@ app.openapi(tokenExchangeRoute, async (c) => {
         { repository: claims.repository },
         'GitHub App not installed on repository'
       );
+      c.header('Content-Type', 'application/problem+json');
       return c.json(
         {
           type: 'https://api.inkeep.com/problems/app-not-installed',
           title: 'GitHub App Not Installed',
           status: 403,
           detail: message,
+          error: message,
         },
         403
       );
@@ -155,12 +207,14 @@ app.openapi(tokenExchangeRoute, async (c) => {
       { errorType, message, repository: claims.repository },
       'Failed to look up GitHub App installation'
     );
+    c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
         type: 'https://api.inkeep.com/problems/installation-lookup-error',
         title: 'Installation Lookup Failed',
         status: 500,
         detail: message,
+        error: message,
       },
       500
     );
@@ -180,12 +234,14 @@ app.openapi(tokenExchangeRoute, async (c) => {
       { errorType, message, installationId: installation.installationId, repository: claims.repository },
       'Failed to generate installation access token'
     );
+    c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
         type: 'https://api.inkeep.com/problems/token-generation-error',
         title: 'Token Generation Failed',
         status: 500,
         detail: message,
+        error: message,
       },
       500
     );
