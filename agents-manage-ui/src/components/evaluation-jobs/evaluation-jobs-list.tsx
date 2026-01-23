@@ -3,7 +3,6 @@
 import { ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { formatDate } from '@/lib/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -25,6 +24,7 @@ import type {
   EvaluationJobConfig,
   EvaluationJobFilterCriteria,
 } from '@/lib/api/evaluation-job-configs';
+import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluationJobConfirmation } from './delete-evaluation-job-confirmation';
 import { EvaluationJobFormDialog } from './evaluation-job-form-dialog';
 

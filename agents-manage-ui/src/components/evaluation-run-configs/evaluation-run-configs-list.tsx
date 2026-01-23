@@ -3,7 +3,6 @@
 import { ChevronRight, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { formatDate } from '@/lib/utils/format-date';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +21,7 @@ import {
 } from '@/components/ui/table';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchEvaluationRunConfigs } from '@/lib/api/evaluation-run-configs';
+import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluationRunConfigConfirmation } from './delete-evaluation-run-config-confirmation';
 import { EvaluationRunConfigFormDialog } from './evaluation-run-config-form-dialog';
 

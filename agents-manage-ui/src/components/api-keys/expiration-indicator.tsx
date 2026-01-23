@@ -1,6 +1,6 @@
 import { AlertCircle } from 'lucide-react';
-import { formatDate } from '@/lib/utils/format-date';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/utils/format-date';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 interface ExpirationIndicatorProps {

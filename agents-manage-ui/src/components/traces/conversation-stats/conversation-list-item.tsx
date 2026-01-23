@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
+import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 
 interface ConversationListItemProps {
   conversation: ConversationStats;

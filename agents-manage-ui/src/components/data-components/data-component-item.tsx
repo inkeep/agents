@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDate } from '@/lib/utils/format-date';
 import {
   ItemCardContent,
   ItemCardDescription,
@@ -11,6 +10,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { DataComponent } from '@/lib/api/data-components';
+import { formatDate } from '@/lib/utils/format-date';
 import { DataComponentItemMenu } from './data-component-item-menu';
 
 export function DataComponentItem({

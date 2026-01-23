@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDate } from '@/lib/utils/format-date';
 import {
   ItemCardContent,
   ItemCardFooter,
@@ -10,6 +9,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { Dataset } from '@/lib/api/datasets';
+import { formatDate } from '@/lib/utils/format-date';
 import { DatasetItemMenu } from './dataset-item-menu';
 
 interface DatasetItemProps extends Dataset {

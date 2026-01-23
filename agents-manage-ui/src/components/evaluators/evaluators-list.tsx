@@ -2,7 +2,6 @@
 
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { formatDate } from '@/lib/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,6 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluatorConfirmation } from './delete-evaluator-confirmation';
 import { EvaluatorFormDialog } from './evaluator-form-dialog';
 import { EvaluatorViewDialog } from './evaluator-view-dialog';

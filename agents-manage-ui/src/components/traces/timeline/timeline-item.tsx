@@ -16,7 +16,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
-import { formatDateTime } from '@/lib/utils/format-date';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
@@ -29,6 +28,7 @@ import {
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/utils/format-date';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);

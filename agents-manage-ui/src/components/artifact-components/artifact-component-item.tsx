@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDate } from '@/lib/utils/format-date';
 import {
   ItemCardContent,
   ItemCardDescription,
@@ -11,6 +10,7 @@ import {
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import { formatDate } from '@/lib/utils/format-date';
 import { ArtifactComponentItemMenu } from './artifact-component-item-menu';
 
 export function ArtifactComponentItem({
