@@ -81,5 +81,9 @@ export {
 } from './telemetry-provider';
 export { Tool } from './tool';
 export { Trigger, type TriggerConfig, type TriggerInterface } from './trigger';
-export type { SignatureVerificationConfig } from '@inkeep/agents-core';
+export type {
+  SignatureVerificationConfig,
+  SignatureSource,
+  SignedComponent,
+} from '@inkeep/agents-core';
 export type * from './types';
