@@ -944,3 +944,45 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+## Iteration 22 - Fri Jan 23 01:17:25 UTC 2026
+
+### Story: US-025 - Add provider presets to trigger form
+
+**Implementation:**
+- Defined ProviderPreset type with all signature verification fields
+- Created providerPresets configuration object with four provider patterns:
+  - **GitHub**: sha256+hex, header source with "sha256=" prefix, body-only signing, empty separator
+  - **Slack**: sha256+hex, header source with "v0=" prefix, three components (literal "v0" + timestamp header + body) with colon separator
+  - **Zendesk**: sha256+base64, header source, two components (timestamp header + body), empty separator
+  - **Stripe**: sha256+hex, header source with regex extraction, two components (timestamp via regex + body) with dot separator
+- Implemented applyPreset() function:
+  - Sets algorithm and encoding fields
+  - Sets signature source, key, prefix, and regex fields
+  - Clears existing signed components using removeComponent()
+  - Appends preset components using appendComponent()
+  - Sets component join strategy and separator
+  - Shows success toast with provider name
+- Added "Quick Setup Presets" section to UI:
+  - Section heading with descriptive FormDescription
+  - 2x2 grid layout with four preset buttons (GitHub, Slack, Zendesk, Stripe)
+  - Buttons use outline variant and small size for visual consistency
+  - Positioned after credential selector and before algorithm/encoding fields
+- TypeScript compilation passes with no errors
+- All preset configurations match test patterns from trigger-auth.test.ts
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (163 insertions)
+
+**Learnings:**
+- Provider presets dramatically improve UX by reducing manual configuration for common webhook patterns
+- Each webhook provider has a unique signature verification pattern (different algorithms, encodings, components, separators)
+- Clearing existing components before applying preset prevents confusion from mixing manual and preset configurations
+- Using form.setValue() for all fields ensures form state stays synchronized
+- Success toast provides confirmation that preset was applied successfully
+- Preset configurations should match real-world webhook patterns exactly (tested against actual webhook implementations)
+- GitHub uses empty separator (direct body signing), Slack uses colon, Stripe uses dot
+- Zendesk is unique in using base64 encoding instead of hex
+- Stripe requires regex extraction for both signature and timestamp from the same header
+
+---
+

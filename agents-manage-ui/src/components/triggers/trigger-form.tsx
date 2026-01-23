@@ -72,6 +72,113 @@ const joinStrategyOptions: SelectOption[] = [
   { value: 'concatenate', label: 'Concatenate' },
 ];
 
+// Provider presets for common webhook signature patterns
+type ProviderPreset = {
+  name: string;
+  algorithm: 'sha256' | 'sha512' | 'sha384' | 'sha1' | 'md5';
+  encoding: 'hex' | 'base64';
+  signatureSource: 'header' | 'query' | 'body';
+  signatureKey: string;
+  signaturePrefix?: string;
+  signatureRegex?: string;
+  signedComponents: Array<{
+    source: 'header' | 'body' | 'literal';
+    key?: string;
+    value?: string;
+    regex?: string;
+    required: boolean;
+  }>;
+  joinStrategy: 'concatenate';
+  joinSeparator: string;
+};
+
+const providerPresets: Record<string, ProviderPreset> = {
+  github: {
+    name: 'GitHub',
+    algorithm: 'sha256',
+    encoding: 'hex',
+    signatureSource: 'header',
+    signatureKey: 'x-hub-signature-256',
+    signaturePrefix: 'sha256=',
+    signedComponents: [
+      {
+        source: 'body',
+        required: true,
+      },
+    ],
+    joinStrategy: 'concatenate',
+    joinSeparator: '',
+  },
+  slack: {
+    name: 'Slack',
+    algorithm: 'sha256',
+    encoding: 'hex',
+    signatureSource: 'header',
+    signatureKey: 'x-slack-signature',
+    signaturePrefix: 'v0=',
+    signedComponents: [
+      {
+        source: 'literal',
+        value: 'v0',
+        required: true,
+      },
+      {
+        source: 'header',
+        key: 'x-slack-request-timestamp',
+        required: true,
+      },
+      {
+        source: 'body',
+        required: true,
+      },
+    ],
+    joinStrategy: 'concatenate',
+    joinSeparator: ':',
+  },
+  zendesk: {
+    name: 'Zendesk',
+    algorithm: 'sha256',
+    encoding: 'base64',
+    signatureSource: 'header',
+    signatureKey: 'x-zendesk-webhook-signature',
+    signedComponents: [
+      {
+        source: 'header',
+        key: 'x-zendesk-webhook-signature-timestamp',
+        required: true,
+      },
+      {
+        source: 'body',
+        required: true,
+      },
+    ],
+    joinStrategy: 'concatenate',
+    joinSeparator: '',
+  },
+  stripe: {
+    name: 'Stripe',
+    algorithm: 'sha256',
+    encoding: 'hex',
+    signatureSource: 'header',
+    signatureKey: 'stripe-signature',
+    signatureRegex: 't=([0-9]+),v1=([a-f0-9]+)',
+    signedComponents: [
+      {
+        source: 'header',
+        key: 'stripe-signature',
+        regex: 't=([0-9]+)',
+        required: true,
+      },
+      {
+        source: 'body',
+        required: true,
+      },
+    ],
+    joinStrategy: 'concatenate',
+    joinSeparator: '.',
+  },
+};
+
 // Zod schema for the form
 const triggerFormSchema = z.object({
   id: z.string().optional(),
@@ -299,6 +406,38 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
     } catch (error) {
       return 'Invalid regular expression';
     }
+  };
+
+  // Apply provider preset to form fields
+  const applyPreset = (presetKey: string) => {
+    const preset = providerPresets[presetKey];
+    if (!preset) return;
+
+    // Set algorithm and encoding
+    form.setValue('signatureAlgorithm', preset.algorithm);
+    form.setValue('signatureEncoding', preset.encoding);
+
+    // Set signature source configuration
+    form.setValue('signatureSource', preset.signatureSource);
+    form.setValue('signatureKey', preset.signatureKey);
+    form.setValue('signaturePrefix', preset.signaturePrefix || '');
+    form.setValue('signatureRegex', preset.signatureRegex || '');
+
+    // Clear existing components
+    while (componentFields.length > 0) {
+      removeComponent(0);
+    }
+
+    // Add preset components
+    for (const comp of preset.signedComponents) {
+      appendComponent(comp);
+    }
+
+    // Set component join configuration
+    form.setValue('joinStrategy', preset.joinStrategy);
+    form.setValue('joinSeparator', preset.joinSeparator);
+
+    toast.success(`Applied ${preset.name} preset`);
   };
 
   const onSubmit = async (data: TriggerFormData) => {
@@ -718,8 +857,51 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                 signature header.
               </FormDescription>
 
+              {/* Provider Presets */}
+              <div className="pt-4 border-t space-y-3">
+                <h4 className="text-sm font-medium">Quick Setup Presets</h4>
+                <FormDescription>
+                  Apply a preset configuration for common webhook providers. This will auto-fill all
+                  signature verification fields.
+                </FormDescription>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyPreset('github')}
+                  >
+                    GitHub
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyPreset('slack')}
+                  >
+                    Slack
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyPreset('zendesk')}
+                  >
+                    Zendesk
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyPreset('stripe')}
+                  >
+                    Stripe
+                  </Button>
+                </div>
+              </div>
+
               {/* Algorithm and Encoding selectors */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-2 gap-4 pt-4">
                 <FormField
                   control={form.control}
                   name="signatureAlgorithm"
