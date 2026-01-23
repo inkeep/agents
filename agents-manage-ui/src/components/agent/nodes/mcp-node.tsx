@@ -1,11 +1,15 @@
 import { type NodeProps, Position } from '@xyflow/react';
+import { Shield } from 'lucide-react';
 import type { FC, ReactNode } from 'react';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
+import { getCurrentToolPoliciesForNode } from '@/lib/utils/orphaned-tools-detector';
+import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
@@ -24,6 +28,29 @@ export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
     >
       {children}
     </Badge>
+  );
+};
+
+export const TruncateToolBadge: FC<{
+  label: string;
+  needsApproval?: boolean;
+}> = ({ label, needsApproval }) => {
+  if (!needsApproval) {
+    return <TruncateBadge>{label}</TruncateBadge>;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="relative">
+          <TruncateBadge>{label}</TruncateBadge>
+          <div className="absolute -top-1 -right-2 rounded-full bg-background p-0.5">
+            <Shield className="h-3 w-3 text-muted-foreground" />
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>Requires approval</TooltipContent>
+    </Tooltip>
   );
 };
 
@@ -47,6 +74,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   });
 
   const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup, edges);
+  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup, edges);
 
   // Format the tool display
   const getToolDisplay = () => {
@@ -91,7 +119,15 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     return [...toolsToShow, `+${remainingCount}`];
   };
 
-  const toolBadges = getToolDisplay();
+  const toolBadges = getToolDisplay().map((label) => {
+    const isSynthetic =
+      label === '0' || label.startsWith('+') || label.endsWith('(ALL)') || label.includes('(ALL)');
+
+    return {
+      label,
+      needsApproval: isSynthetic ? false : toolPolicyNeedsApprovalForTool(toolPolicies, label),
+    };
+  });
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
@@ -109,12 +145,12 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
       )}
     >
       <BaseNodeHeader className="flex items-center justify-between gap-2">
-        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="flex-shrink-0" />
+        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
         <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
       <BaseNodeContent className="flex-row gap-2 flex-wrap">
-        {toolBadges.map((label) => (
-          <TruncateBadge key={label}>{label}</TruncateBadge>
+        {toolBadges.map(({ label, needsApproval }) => (
+          <TruncateToolBadge key={label} label={label} needsApproval={needsApproval} />
         ))}
       </BaseNodeContent>
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
