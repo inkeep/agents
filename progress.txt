@@ -605,3 +605,50 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 14 - Fri Jan 23 00:41:58 UTC 2026
+
+
+---
+
+## Iteration 15 - $(date -u)
+
+### Story: US-017 - Update manage API routes for triggers
+
+**Implementation:**
+- Added getCredentialReference import to agents-api/src/domains/manage/routes/triggers.ts
+- Updated POST /triggers (create) endpoint:
+  - Added credential reference validation before creating trigger
+  - Checks if signingSecretCredentialReferenceId exists in credentialReferences table
+  - Returns 400 bad_request if credential reference not found
+  - Passes signingSecretCredentialReferenceId to createTrigger()
+  - Passes signatureVerification to createTrigger()
+  - Removed signingSecret parameter
+- Updated PATCH /triggers/:id (update) endpoint:
+  - Updated hasUpdateFields check to include new fields (signingSecretCredentialReferenceId, signatureVerification)
+  - Removed legacy fields from check (signingSecret, keepExistingSigningSecret)
+  - Added credential reference validation before updating trigger
+  - Removed signingSecretUpdate logic that handled keepExistingSigningSecret
+  - Passes signingSecretCredentialReferenceId to updateTrigger()
+  - Passes signatureVerification to updateTrigger()
+  - Removed signingSecret parameter
+- Credential validation ensures foreign key constraint will be satisfied
+- Both endpoints return descriptive error messages if credential reference not found
+
+**Files Changed:**
+- agents-api/src/domains/manage/routes/triggers.ts (added 37 lines, removed 7 lines)
+- prd.json (marked US-017 as complete)
+
+**Learnings:**
+- Credential reference validation must happen at API layer before database insert/update
+- Validation uses project-scoped lookup to ensure credential belongs to same project as trigger
+- The getCredentialReference data-access function follows same scoping pattern as other project-scoped entities
+- Foreign key constraint in database (added in US-003) will be satisfied by this validation
+- Error messages include credential reference ID to help developers debug configuration issues
+- API schemas (TriggerApiInsertSchema, TriggerApiUpdateSchema) already support new fields from US-006 work
+- TypeScript type assertions (as any) needed for signatureVerification due to JSON column type complexity
+- Pattern consistent with existing authentication field handling which also uses (as any) type assertion
+
+---
