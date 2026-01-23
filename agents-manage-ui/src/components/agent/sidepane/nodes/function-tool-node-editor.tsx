@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
@@ -31,6 +33,9 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const [dependencies, setDependencies] = useState(
     nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : ''
   );
+  const [needsApproval, setNeedsApproval] = useState(
+    !!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false)
+  );
 
   // Sync local state with node data when node changes
   useEffect(() => {
@@ -39,6 +44,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     setCode(String(nodeData.code || ''));
     setInputSchema(nodeData.inputSchema ? JSON.stringify(nodeData.inputSchema, null, 2) : '');
     setDependencies(nodeData.dependencies ? JSON.stringify(nodeData.dependencies, null, 2) : '');
+    setNeedsApproval(!!(nodeData.tempToolPolicies?.['*']?.needsApproval ?? false));
   }, [nodeData]);
 
   // Handle input schema changes with JSON validation
@@ -202,6 +208,24 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         {getFieldError('dependencies') && (
           <p className="text-sm text-red-600">{getFieldError('dependencies')}</p>
         )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="function-tool-needs-approval"
+            checked={needsApproval}
+            onCheckedChange={(checked) => {
+              const value = checked === true;
+              setNeedsApproval(value);
+              updatePath('tempToolPolicies', value ? { '*': { needsApproval: true } } : {});
+            }}
+          />
+          <Label htmlFor="function-tool-needs-approval">Require approval</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          When enabled, the agent will pause and request user approval before running this function
+          tool.
+        </p>
       </div>
       <Separator />
       <div className="flex justify-end">
