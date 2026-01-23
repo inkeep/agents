@@ -652,3 +652,38 @@ Fri Jan 23 00:06:04 UTC 2026
 - Pattern consistent with existing authentication field handling which also uses (as any) type assertion
 
 ---
+
+---
+
+## Iteration 16 - $(date -u)
+
+### Story: US-018 - Update CLI trigger generator for signature config
+
+**Implementation:**
+- Created formatSignatureVerification() helper function in agents-cli/src/commands/pull-v3/components/trigger-generator.ts
+- Function generates properly formatted TypeScript code for signatureVerification configuration
+- Handles all nested objects and arrays:
+  - algorithm and encoding enums (sha256/sha512/sha384/sha1/md5, hex/base64)
+  - signature object with source (header/query/body), key, optional prefix, optional regex
+  - signedComponents array with source (header/body/literal), optional key/value/regex, required boolean
+  - componentJoin object with strategy (concatenate) and separator string
+  - optional validation object with headerCaseSensitive, allowEmptyBody, normalizeUnicode booleans
+- All strings properly escaped using existing formatString() utility function
+- Respects CodeStyle settings (single vs double quotes, indentation)
+- Proper indentation at all nesting levels for readable generated code
+- Integrated into generateTriggerDefinition() function to output signatureVerification field when present
+
+**Files Changed:**
+- agents-cli/src/commands/pull-v3/components/trigger-generator.ts (added 117 lines, modified 2 lines)
+- prd.json (marked US-018 as complete)
+
+**Learnings:**
+- Existing formatString() helper handles proper escaping based on quote style, avoiding manual escape logic
+- formatString(str, quote) automatically escapes quotes and backslashes correctly
+- Trailing comma removal pattern used throughout existing code: check if last line ends with comma, slice it off
+- Proper indentation requires careful tracking of nesting levels: indentLevel + 1 for first level, + 2 for nested objects, + 3 for array items
+- Optional fields (prefix, regex, validation) should only be output if present (not undefined/null)
+- Generated code should match style of hand-written trigger definitions for consistency
+- Function follows same pattern as formatAuthentication() and formatOutputTransform() helpers
+
+---

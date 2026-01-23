@@ -319,7 +319,7 @@
         "pnpm format passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
