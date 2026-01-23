@@ -46,9 +46,9 @@ vi.mock('ai', () => ({
 }));
 
 import type { FullExecutionContext } from '@inkeep/agents-core';
+import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { pendingToolApprovalManager } from '../../../domains/run/services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../../domains/run/services/ToolApprovalUiBus';
-import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 
 describe('Function tool approvals (toolPolicies)', () => {
   beforeEach(() => {
@@ -102,11 +102,17 @@ describe('Function tool approvals (toolPolicies)', () => {
     const tools = await agent.getFunctionTools('sess_1', 'req_1');
     expect(tools.getWeather).toBeTruthy();
 
-    const result = await (tools.getWeather as any).execute({ city: 'SF' }, { toolCallId: 'call_1' });
+    const result = await (tools.getWeather as any).execute(
+      { city: 'SF' },
+      { toolCallId: 'call_1' }
+    );
 
     expect(result).toMatchObject({ __inkeepToolDenied: true, toolCallId: 'call_1' });
     expect(sandboxExecutorMock.executeFunctionTool).not.toHaveBeenCalled();
-    expect(publishSpy).toHaveBeenCalledWith('req_1', expect.objectContaining({ type: 'approval-needed' }));
+    expect(publishSpy).toHaveBeenCalledWith(
+      'req_1',
+      expect.objectContaining({ type: 'approval-needed' })
+    );
     expect(publishSpy).toHaveBeenCalledWith(
       'req_1',
       expect.objectContaining({ type: 'approval-resolved', toolCallId: 'call_1', approved: false })
@@ -125,7 +131,10 @@ describe('Function tool approvals (toolPolicies)', () => {
     const tools = await agent.getFunctionTools('sess_2', 'req_2');
     expect(tools.getWeather).toBeTruthy();
 
-    const result = await (tools.getWeather as any).execute({ city: 'SF' }, { toolCallId: 'call_2' });
+    const result = await (tools.getWeather as any).execute(
+      { city: 'SF' },
+      { toolCallId: 'call_2' }
+    );
 
     expect(result).toEqual({ ok: true });
     expect(sandboxExecutorMock.executeFunctionTool).toHaveBeenCalled();
@@ -135,4 +144,3 @@ describe('Function tool approvals (toolPolicies)', () => {
     );
   });
 });
-
