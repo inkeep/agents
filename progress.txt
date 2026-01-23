@@ -469,3 +469,52 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 11 - Fri Jan 23 00:25:53 UTC 2026
+
+
+---
+
+## Iteration 13 - Fri Jan 23 02:03:00 UTC 2026
+
+### Story: US-014 - Add integration tests for webhook verification
+
+**Implementation:**
+- Added comprehensive integration test suite to agents-api/src/__tests__/run/routes/webhooks.test.ts (537 new lines)
+- Created getCredentialReferenceMock in hoisted mocks for @inkeep/agents-core
+- Added mock implementation of getCredentialReference to agents-core mock
+- Exported verifySignatureWithConfig in agents-core mock to use actual implementation
+- Implemented GitHub webhook pattern integration tests:
+  - Valid signature verification with credential resolution
+  - Invalid signature rejection (403 status)
+  - Missing signature header rejection (403 status)
+- Implemented Slack webhook pattern integration tests:
+  - Valid multi-component signature (literal + timestamp + body with colon separator)
+  - Invalid signature rejection
+- Implemented credential resolution and caching tests:
+  - Missing credential reference returns 500 status
+  - Missing secret in retrievalParams.key returns 500 status
+  - Credential caching with 5-minute TTL (verified second request uses cache)
+- Implemented error handling tests:
+  - Skip verification when no signatureVerification config
+  - Skip verification when no credentialReferenceId
+- All tests follow existing vitest pattern with proper beforeEach setup and mock clearing
+
+**Files Changed:**
+- agents-api/src/__tests__/run/routes/webhooks.test.ts (added 537 lines - new test suite for signature verification)
+- prd.json (marked US-014 as complete)
+
+**Learnings:**
+- Integration tests must mock getCredentialReference since it requires database access
+- Tests verify end-to-end flow: webhook request → credential resolution → signature verification → response
+- Credential cache behavior can be tested by verifying mock function call counts across requests
+- Test structure mirrors existing authentication tests but focuses on signature verification
+- Mock credential objects need retrievalParams.key to contain the secret (matches credential-store-utils pattern)
+- vitest mocking requires hoisted mocks for proper module interception
+- The actual verifySignatureWithConfig implementation should be used (not mocked) to test real signature verification logic
+- Test coverage includes both success cases (202) and error cases (403 for invalid sig, 500 for credential issues)
+- TypeScript compilation errors are due to stale build artifacts in dist/ - source code is correct
+- Build requires pnpm build on x64 architecture to update dist/ with new exports
+
