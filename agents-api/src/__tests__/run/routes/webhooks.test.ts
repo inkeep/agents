@@ -60,7 +60,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     withRef: withRefMock,
     createApiError: actual.createApiError,
     verifyTriggerAuth: actual.verifyTriggerAuth,
-    verifySigningSecret: actual.verifySigningSecret,
     interpolateTemplate: actual.interpolateTemplate,
     JsonTransformer: actual.JsonTransformer,
     hashTriggerHeaderValue: actual.hashTriggerHeaderValue,

@@ -21,7 +21,6 @@ import {
   setActiveAgentForConversation,
   updateTriggerInvocationStatus,
   verifySignatureWithConfig,
-  verifySigningSecret,
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
@@ -57,7 +56,7 @@ export type TriggerWebhookResult =
   | {
       success: false;
       error: string;
-      status: 400 | 401 | 403 | 404 | 422;
+      status: 400 | 401 | 403 | 404 | 422 | 500;
       validationErrors?: string[];
     };
 
@@ -232,9 +231,9 @@ async function resolveSigningSecret(params: {
 
 async function verifySignature(params: {
   trigger: {
-    signingSecret?: string | null;
     signingSecretCredentialReferenceId?: string | null;
     signatureVerification?: SignatureVerificationConfig | null;
+    [key: string]: unknown;
   };
   tenantId: string;
   projectId: string;
@@ -246,65 +245,57 @@ async function verifySignature(params: {
 > {
   const { trigger, tenantId, projectId, resolvedRef, honoContext, rawBody } = params;
 
-  // New signature verification config takes precedence
-  if (trigger.signatureVerification && trigger.signingSecretCredentialReferenceId) {
-    try {
-      // Resolve signing secret from credential reference
-      const secret = await resolveSigningSecret({
-        tenantId,
-        projectId,
-        credentialReferenceId: trigger.signingSecretCredentialReferenceId,
-        resolvedRef,
-      });
+  // Skip verification if no signature verification is configured
+  if (!trigger.signatureVerification || !trigger.signingSecretCredentialReferenceId) {
+    return { success: true };
+  }
 
-      if (!secret) {
-        return {
-          success: false,
-          error: 'Failed to resolve signing secret from credential reference',
-          status: 500,
-        };
-      }
+  try {
+    // Resolve signing secret from credential reference
+    const secret = await resolveSigningSecret({
+      tenantId,
+      projectId,
+      credentialReferenceId: trigger.signingSecretCredentialReferenceId,
+      resolvedRef,
+    });
 
-      // Use new verification function
-      const result = verifySignatureWithConfig(
-        honoContext,
-        trigger.signatureVerification,
-        secret,
-        rawBody
-      );
-
-      if (!result.success) {
-        return {
-          success: false,
-          error: result.message || 'Invalid signature',
-          status: 403,
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(
-        { error: errorMessage, tenantId, projectId },
-        'Error during signature verification'
-      );
+    if (!secret) {
       return {
         success: false,
-        error: 'Signature verification failed',
+        error: 'Failed to resolve signing secret from credential reference',
         status: 500,
       };
     }
-  }
 
-  // Fallback to legacy verification (will be removed in future)
-  if (trigger.signingSecret) {
-    const signatureResult = verifySigningSecret(honoContext, trigger.signingSecret, rawBody);
-    if (!signatureResult.success) {
-      return { success: false, error: signatureResult.message || 'Invalid signature', status: 403 };
+    // Use new verification function
+    const result = verifySignatureWithConfig(
+      honoContext,
+      trigger.signatureVerification,
+      secret,
+      rawBody
+    );
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.message || 'Invalid signature',
+        status: 403,
+      };
     }
-  }
 
-  return { success: true };
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(
+      { error: errorMessage, tenantId, projectId },
+      'Error during signature verification'
+    );
+    return {
+      success: false,
+      error: 'Signature verification failed',
+      status: 500,
+    };
+  }
 }
 
 function validatePayload(
