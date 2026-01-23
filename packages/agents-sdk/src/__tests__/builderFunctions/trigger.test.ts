@@ -1,6 +1,6 @@
+import type { SignatureVerificationConfig } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { trigger } from '../../builderFunctions';
-import type { SignatureVerificationConfig } from '@inkeep/agents-core';
 
 describe('trigger builder function', () => {
   it('should create a trigger without signature verification', () => {

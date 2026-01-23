@@ -7,10 +7,7 @@ import {
   SignatureVerificationConfigSchema,
   type TriggerApiInsert,
 } from '@inkeep/agents-core';
-import {
-  validateJMESPath,
-  validateRegex,
-} from '@inkeep/agents-core/utils/signature-validation';
+import { validateJMESPath, validateRegex } from '@inkeep/agents-core/utils/signature-validation';
 import { Agent } from './agent';
 import { ArtifactComponent } from './artifact-component';
 import type {

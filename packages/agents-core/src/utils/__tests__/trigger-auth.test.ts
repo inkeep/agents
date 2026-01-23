@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { verifySignatureWithConfig } from '../trigger-auth';
-import type { SignatureVerificationConfig } from '../../validation/schemas';
 import type { Context } from 'hono';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { SignatureVerificationConfig } from '../../validation/schemas';
+import { verifySignatureWithConfig } from '../trigger-auth';
 
 // Mock Hono Context
 function createMockContext(
@@ -43,7 +43,8 @@ describe('verifySignatureWithConfig', () => {
       const secret = 'my-secret';
 
       // Pre-computed valid signature for this body and secret
-      const validSignature = 'sha256=52b582138706382f5bc85c45693afa9cc2ba201294f0790197c529c665eb4d99';
+      const validSignature =
+        'sha256=52b582138706382f5bc85c45693afa9cc2ba201294f0790197c529c665eb4d99';
 
       const context = createMockContext({
         'x-hub-signature-256': validSignature,
@@ -90,7 +91,8 @@ describe('verifySignatureWithConfig', () => {
       const secret = 'my-secret';
 
       // Valid HMAC but missing the sha256= prefix
-      const signatureWithoutPrefix = '52b582138706382f5bc85c45693afa9cc2ba201294f0790197c529c665eb4d99';
+      const signatureWithoutPrefix =
+        '52b582138706382f5bc85c45693afa9cc2ba201294f0790197c529c665eb4d99';
 
       const context = createMockContext({
         'x-hub-signature-256': signatureWithoutPrefix,
@@ -106,7 +108,8 @@ describe('verifySignatureWithConfig', () => {
       const body = '{"action":"opened","number":1}';
       const secret = 'my-secret';
 
-      const validSignature = 'sha256=52b582138706382f5bc85c45693afa9cc2ba201294f0790197c529c665eb4d99';
+      const validSignature =
+        'sha256=52b582138706382f5bc85c45693afa9cc2ba201294f0790197c529c665eb4d99';
 
       const context = createMockContext({
         'X-Hub-Signature-256': validSignature, // Mixed case
@@ -560,8 +563,10 @@ describe('verifySignatureWithConfig', () => {
         // These are pre-computed correct signatures for each algorithm
         const validSignatures: Record<string, string> = {
           sha256: '48ffce093a0648bf56c71edd01529d6e1e5e19c81e14e461cdeb4bc7cc48e0f0',
-          sha512: 'cd573cfaace07e7949bc0c46028904ff1f64ed5e2e8e3b4f7d9f93f2e7d5c4f3c8f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9',
-          sha384: '3f0c8e3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c',
+          sha512:
+            'cd573cfaace07e7949bc0c46028904ff1f64ed5e2e8e3b4f7d9f93f2e7d5c4f3c8f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9',
+          sha384:
+            '3f0c8e3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c',
           sha1: '8a4f16c6e9f2c6e5c4e9e9e9e9e9e9e9e9e9e9e9',
           md5: '9e107d9d372bb6826bd81d3542a419d6',
         };
@@ -637,10 +642,7 @@ describe('verifySignatureWithConfig', () => {
 
       const validSignature = '48ffce093a0648bf56c71edd01529d6e1e5e19c81e14e461cdeb4bc7cc48e0f0';
 
-      const context = createMockContext(
-        {},
-        { sig: validSignature }
-      );
+      const context = createMockContext({}, { sig: validSignature });
 
       const result = verifySignatureWithConfig(context, config, secret, body);
 

@@ -6,7 +6,12 @@
  * Locally, the process stays alive so standard async execution works.
  */
 
-import type { FullExecutionContext, Part, ResolvedRef, SignatureVerificationConfig } from '@inkeep/agents-core';
+import type {
+  FullExecutionContext,
+  Part,
+  ResolvedRef,
+  SignatureVerificationConfig,
+} from '@inkeep/agents-core';
 import {
   createMessage,
   createOrGetConversation,
@@ -201,10 +206,7 @@ async function resolveSigningSecret(params: {
   );
 
   if (!credentialRef) {
-    logger.warn(
-      { tenantId, projectId, credentialReferenceId },
-      'Credential reference not found'
-    );
+    logger.warn({ tenantId, projectId, credentialReferenceId }, 'Credential reference not found');
     return null;
   }
 
@@ -240,9 +242,7 @@ async function verifySignature(params: {
   resolvedRef: ResolvedRef;
   honoContext: Context;
   rawBody: string;
-}): Promise<
-  { success: true } | { success: false; error: string; status: 403 | 500 }
-> {
+}): Promise<{ success: true } | { success: false; error: string; status: 403 | 500 }> {
   const { trigger, tenantId, projectId, resolvedRef, honoContext, rawBody } = params;
 
   // Skip verification if no signature verification is configured

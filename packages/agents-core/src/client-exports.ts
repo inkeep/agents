@@ -30,9 +30,9 @@ import {
   type FunctionApiInsertSchema,
   type ModelSettings,
   ModelSettingsSchema,
+  type SignatureSource,
   type SignatureVerificationConfig,
   SignatureVerificationConfigSchema,
-  type SignatureSource,
   type SignedComponent,
   type StopWhen,
   StopWhenSchema,
@@ -76,11 +76,7 @@ export {
   TriggerWithWebhookUrlSchema,
 } from './validation/schemas';
 
-export type {
-  SignatureVerificationConfig,
-  SignatureSource,
-  SignedComponent,
-};
+export type { SignatureVerificationConfig, SignatureSource, SignedComponent };
 
 export const TenantParamsSchema = z.object({
   tenantId: z.string(),

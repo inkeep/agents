@@ -906,9 +906,7 @@ describe('Webhook Endpoint Tests', () => {
             },
           },
         };
-        getTriggerByIdMock.mockReturnValue(
-          vi.fn().mockResolvedValue(triggerWithMissingCredential)
-        );
+        getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithMissingCredential));
 
         const response = await app.request(
           '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',

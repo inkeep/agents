@@ -247,7 +247,8 @@ app.openapi(
       if (credentialRef.userId) {
         throw createApiError({
           code: 'bad_request',
-          message: 'Only project-scoped credentials can be attached to triggers. User-scoped credentials are not allowed.',
+          message:
+            'Only project-scoped credentials can be attached to triggers. User-scoped credentials are not allowed.',
         });
       }
     }
@@ -378,7 +379,8 @@ app.openapi(
       if (credentialRef.userId) {
         throw createApiError({
           code: 'bad_request',
-          message: 'Only project-scoped credentials can be attached to triggers. User-scoped credentials are not allowed.',
+          message:
+            'Only project-scoped credentials can be attached to triggers. User-scoped credentials are not allowed.',
         });
       }
     }

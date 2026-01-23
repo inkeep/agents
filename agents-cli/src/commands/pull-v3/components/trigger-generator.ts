@@ -93,11 +93,7 @@ function formatOutputTransform(transform: any, style: CodeStyle, indentLevel: nu
  * Format signature verification configuration
  * Generates code for signatureVerification object with all nested structures
  */
-function formatSignatureVerification(
-  config: any,
-  style: CodeStyle,
-  indentLevel: number
-): string {
+function formatSignatureVerification(config: any, style: CodeStyle, indentLevel: number): string {
   if (!config) return '';
 
   const { indentation, quotes } = style;

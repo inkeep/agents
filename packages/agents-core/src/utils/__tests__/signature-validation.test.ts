@@ -40,7 +40,7 @@ describe('validateJMESPath', () => {
     });
 
     it('should validate filter expressions', () => {
-      const result = validateJMESPath("items[?price > `10`].name");
+      const result = validateJMESPath('items[?price > `10`].name');
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
     });

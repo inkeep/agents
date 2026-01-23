@@ -85,7 +85,10 @@ export const listTriggersPaginated =
 export const createTrigger =
   (db: AgentsManageDatabaseClient) =>
   async (params: TriggerInsert): Promise<TriggerSelect> => {
-    const result = await db.insert(triggers).values(params as any).returning();
+    const result = await db
+      .insert(triggers)
+      .values(params as any)
+      .returning();
     return result[0] as TriggerSelect;
   };
 

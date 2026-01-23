@@ -69,9 +69,7 @@ const componentSourceOptions: SelectOption[] = [
 ];
 
 // Component join strategy options
-const joinStrategyOptions: SelectOption[] = [
-  { value: 'concatenate', label: 'Concatenate' },
-];
+const joinStrategyOptions: SelectOption[] = [{ value: 'concatenate', label: 'Concatenate' }];
 
 // Provider presets for common webhook signature patterns
 type ProviderPreset = {
@@ -787,627 +785,630 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                 headers that must be present and match the expected values.
               </CardDescription>
             </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Header list */}
-            <div className="space-y-3">
-              {fields.map((field, index) => {
-                const existingPrefix = form.getValues(`authHeaders.${index}.existingValuePrefix`);
-                const hasExistingValue = Boolean(existingPrefix);
+            <CardContent className="space-y-4">
+              {/* Header list */}
+              <div className="space-y-3">
+                {fields.map((field, index) => {
+                  const existingPrefix = form.getValues(`authHeaders.${index}.existingValuePrefix`);
+                  const hasExistingValue = Boolean(existingPrefix);
 
-                return (
-                  <div key={field.id} className="space-y-2">
-                    <div className="flex gap-3 items-start">
-                      <FormField
-                        control={form.control}
-                        name={`authHeaders.${index}.name`}
-                        render={({ field: inputField }) => (
-                          <FormItem className="flex-1">
-                            {index === 0 && <FormLabel>Header Name</FormLabel>}
-                            <FormControl>
-                              <Input {...inputField} placeholder="e.g., X-API-Key" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`authHeaders.${index}.value`}
-                        render={({ field: inputField }) => (
-                          <FormItem className="flex-1">
-                            {index === 0 && <FormLabel>Header Value</FormLabel>}
-                            <FormControl>
-                              <Input
-                                {...inputField}
-                                type="password"
-                                placeholder={
-                                  hasExistingValue
-                                    ? 'Enter new value to update'
-                                    : 'Enter expected value'
-                                }
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => remove(index)}
-                        className={index === 0 ? 'mt-8' : ''}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {hasExistingValue && (
-                      <div className="flex items-center gap-2 ml-1">
-                        <Badge variant="secondary" className="text-xs font-normal gap-1.5">
-                          <KeyRound className="h-3 w-3" />
-                          <span>
-                            Configured: <code className="font-mono">{existingPrefix}••••</code>
-                          </span>
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          Leave blank to keep existing value
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Required Header
-            </Button>
-
-            <div className="pt-4 border-t space-y-3">
-              <GenericSelect
-                control={form.control}
-                name="signingSecretCredentialReferenceId"
-                label="Signing Secret Credential (Optional)"
-                options={credentials}
-                placeholder={
-                  loadingCredentials
-                    ? 'Loading credentials...'
-                    : credentials.length === 0
-                      ? 'No project-scoped credentials available'
-                      : 'Select a credential'
-                }
-                disabled={loadingCredentials}
-              />
-              <FormDescription>
-                Select a project-scoped credential that contains the HMAC signing secret for webhook
-                signature verification. If provided, webhook requests must include a valid
-                signature header. Only project-scoped credentials can be used with triggers;
-                user-scoped credentials are not supported.
-              </FormDescription>
-
-              {/* Provider Presets */}
-              <div className="pt-4 border-t space-y-3">
-                <h4 className="text-sm font-medium">Quick Setup Presets</h4>
-                <FormDescription>
-                  Apply a preset configuration for common webhook providers. This will auto-fill all
-                  signature verification fields.
-                </FormDescription>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => applyPreset('github')}
-                  >
-                    GitHub
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => applyPreset('slack')}
-                  >
-                    Slack
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => applyPreset('zendesk')}
-                  >
-                    Zendesk
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => applyPreset('stripe')}
-                  >
-                    Stripe
-                  </Button>
-                </div>
-              </div>
-
-              {/* Algorithm and Encoding selectors */}
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <FormField
-                  control={form.control}
-                  name="signatureAlgorithm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>HMAC Algorithm</FormLabel>
-                      <GenericSelect
-                        control={form.control}
-                        name="signatureAlgorithm"
-                        label=""
-                        options={algorithmOptions}
-                        placeholder="Select algorithm"
-                      />
-                      <FormDescription>
-                        Choose the HMAC algorithm. SHA-256 is recommended for most use cases.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="signatureEncoding"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Signature Encoding</FormLabel>
-                      <GenericSelect
-                        control={form.control}
-                        name="signatureEncoding"
-                        label=""
-                        options={encodingOptions}
-                        placeholder="Select encoding"
-                      />
-                      <FormDescription>
-                        Choose how the signature is encoded. Hexadecimal is the most common.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Show deprecation warning for SHA-1 or MD5 */}
-              {(form.watch('signatureAlgorithm') === 'sha1' ||
-                form.watch('signatureAlgorithm') === 'md5') && (
-                <Alert variant="warning">
-                  <AlertDescription>
-                    <strong>Warning:</strong> {form.watch('signatureAlgorithm')?.toUpperCase()} is
-                    deprecated and should only be used for legacy systems. Consider upgrading to
-                    SHA-256 or SHA-512 for better security.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Signature Source Configuration */}
-              <div className="pt-4 border-t space-y-3">
-                <h4 className="text-sm font-medium">Signature Location</h4>
-                <FormField
-                  control={form.control}
-                  name="signatureSource"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Signature Source</FormLabel>
-                      <GenericSelect
-                        control={form.control}
-                        name="signatureSource"
-                        label=""
-                        options={signatureSourceOptions}
-                        placeholder="Select signature source"
-                      />
-                      <FormDescription>
-                        Choose where the signature is located in the webhook request. Most providers
-                        send signatures in HTTP headers.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="signatureKey"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {signatureSource === 'header'
-                          ? 'Header Name'
-                          : signatureSource === 'query'
-                            ? 'Query Parameter Name'
-                            : 'JMESPath Expression'}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={
-                            signatureSource === 'header'
-                              ? 'e.g., X-Hub-Signature-256'
-                              : signatureSource === 'query'
-                                ? 'e.g., signature'
-                                : 'e.g., signature or headers."X-Signature"'
-                          }
-                          onBlur={(e) => {
-                            field.onBlur();
-                            if (signatureSource === 'body') {
-                              const error = validateJMESPath(e.target.value);
-                              setSignatureKeyError(error);
-                            }
-                          }}
+                  return (
+                    <div key={field.id} className="space-y-2">
+                      <div className="flex gap-3 items-start">
+                        <FormField
+                          control={form.control}
+                          name={`authHeaders.${index}.name`}
+                          render={({ field: inputField }) => (
+                            <FormItem className="flex-1">
+                              {index === 0 && <FormLabel>Header Name</FormLabel>}
+                              <FormControl>
+                                <Input {...inputField} placeholder="e.g., X-API-Key" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <FormDescription>
-                        {signatureSource === 'header'
-                          ? 'The name of the HTTP header containing the signature (case-insensitive by default).'
-                          : signatureSource === 'query'
-                            ? 'The name of the query parameter containing the signature.'
-                            : 'A JMESPath expression to extract the signature from the request body.'}
-                      </FormDescription>
-                      {signatureKeyError && (
-                        <p className="text-sm font-medium text-destructive">{signatureKeyError}</p>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="signaturePrefix"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Signature Prefix (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder='e.g., "sha256=" or "v0="'
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        If the signature includes a prefix (like "sha256=" in GitHub webhooks), specify
-                        it here. The prefix will be stripped before verification.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="signatureRegex"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Signature Regex (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder='e.g., "t=\\d+,v1=([a-f0-9]+)"'
-                          onBlur={(e) => {
-                            field.onBlur();
-                            const error = validateRegex(e.target.value);
-                            setSignatureRegexError(error);
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        A regular expression to extract the signature from the value. The first capture
-                        group will be used as the signature. Useful for complex signature formats like
-                        Stripe.
-                      </FormDescription>
-                      {signatureRegexError && (
-                        <p className="text-sm font-medium text-destructive">{signatureRegexError}</p>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Signed Components Builder */}
-              <div className="pt-4 border-t space-y-3">
-                <h4 className="text-sm font-medium">Signed Components</h4>
-                <FormDescription>
-                  Define the components that are included in the signature. Components are joined in
-                  order to create the signed payload.
-                </FormDescription>
-
-                {/* Signed Components List */}
-                <div className="space-y-3">
-                  {componentFields.map((field, index) => {
-                    const componentSource = form.watch(`signedComponents.${index}.source`);
-
-                    return (
-                      <div key={field.id} className="space-y-2 p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Component {index + 1}</span>
-                          <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => moveComponent(index, index - 1)}
-                              disabled={index === 0}
-                              className="h-7 w-7"
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => moveComponent(index, index + 1)}
-                              disabled={index === componentFields.length - 1}
-                              className="h-7 w-7"
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeComponent(index)}
-                              className="h-7 w-7"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <FormField
-                            control={form.control}
-                            name={`signedComponents.${index}.source`}
-                            render={({ field: selectField }) => (
-                              <FormItem>
-                                <FormLabel>Component Source</FormLabel>
-                                <GenericSelect
-                                  control={form.control}
-                                  name={`signedComponents.${index}.source`}
-                                  label=""
-                                  options={componentSourceOptions}
-                                  placeholder="Select source"
+                        <FormField
+                          control={form.control}
+                          name={`authHeaders.${index}.value`}
+                          render={({ field: inputField }) => (
+                            <FormItem className="flex-1">
+                              {index === 0 && <FormLabel>Header Value</FormLabel>}
+                              <FormControl>
+                                <Input
+                                  {...inputField}
+                                  type="password"
+                                  placeholder={
+                                    hasExistingValue
+                                      ? 'Enter new value to update'
+                                      : 'Enter expected value'
+                                  }
                                 />
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => remove(index)}
+                          className={index === 0 ? 'mt-8' : ''}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {hasExistingValue && (
+                        <div className="flex items-center gap-2 ml-1">
+                          <Badge variant="secondary" className="text-xs font-normal gap-1.5">
+                            <KeyRound className="h-3 w-3" />
+                            <span>
+                              Configured: <code className="font-mono">{existingPrefix}••••</code>
+                            </span>
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Leave blank to keep existing value
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
-                          {componentSource !== 'literal' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Required Header
+              </Button>
+
+              <div className="pt-4 border-t space-y-3">
+                <GenericSelect
+                  control={form.control}
+                  name="signingSecretCredentialReferenceId"
+                  label="Signing Secret Credential (Optional)"
+                  options={credentials}
+                  placeholder={
+                    loadingCredentials
+                      ? 'Loading credentials...'
+                      : credentials.length === 0
+                        ? 'No project-scoped credentials available'
+                        : 'Select a credential'
+                  }
+                  disabled={loadingCredentials}
+                />
+                <FormDescription>
+                  Select a project-scoped credential that contains the HMAC signing secret for
+                  webhook signature verification. If provided, webhook requests must include a valid
+                  signature header. Only project-scoped credentials can be used with triggers;
+                  user-scoped credentials are not supported.
+                </FormDescription>
+
+                {/* Provider Presets */}
+                <div className="pt-4 border-t space-y-3">
+                  <h4 className="text-sm font-medium">Quick Setup Presets</h4>
+                  <FormDescription>
+                    Apply a preset configuration for common webhook providers. This will auto-fill
+                    all signature verification fields.
+                  </FormDescription>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyPreset('github')}
+                    >
+                      GitHub
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyPreset('slack')}
+                    >
+                      Slack
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyPreset('zendesk')}
+                    >
+                      Zendesk
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyPreset('stripe')}
+                    >
+                      Stripe
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Algorithm and Encoding selectors */}
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <FormField
+                    control={form.control}
+                    name="signatureAlgorithm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>HMAC Algorithm</FormLabel>
+                        <GenericSelect
+                          control={form.control}
+                          name="signatureAlgorithm"
+                          label=""
+                          options={algorithmOptions}
+                          placeholder="Select algorithm"
+                        />
+                        <FormDescription>
+                          Choose the HMAC algorithm. SHA-256 is recommended for most use cases.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="signatureEncoding"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Signature Encoding</FormLabel>
+                        <GenericSelect
+                          control={form.control}
+                          name="signatureEncoding"
+                          label=""
+                          options={encodingOptions}
+                          placeholder="Select encoding"
+                        />
+                        <FormDescription>
+                          Choose how the signature is encoded. Hexadecimal is the most common.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Show deprecation warning for SHA-1 or MD5 */}
+                {(form.watch('signatureAlgorithm') === 'sha1' ||
+                  form.watch('signatureAlgorithm') === 'md5') && (
+                  <Alert variant="warning">
+                    <AlertDescription>
+                      <strong>Warning:</strong> {form.watch('signatureAlgorithm')?.toUpperCase()} is
+                      deprecated and should only be used for legacy systems. Consider upgrading to
+                      SHA-256 or SHA-512 for better security.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Signature Source Configuration */}
+                <div className="pt-4 border-t space-y-3">
+                  <h4 className="text-sm font-medium">Signature Location</h4>
+                  <FormField
+                    control={form.control}
+                    name="signatureSource"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Signature Source</FormLabel>
+                        <GenericSelect
+                          control={form.control}
+                          name="signatureSource"
+                          label=""
+                          options={signatureSourceOptions}
+                          placeholder="Select signature source"
+                        />
+                        <FormDescription>
+                          Choose where the signature is located in the webhook request. Most
+                          providers send signatures in HTTP headers.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="signatureKey"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {signatureSource === 'header'
+                            ? 'Header Name'
+                            : signatureSource === 'query'
+                              ? 'Query Parameter Name'
+                              : 'JMESPath Expression'}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder={
+                              signatureSource === 'header'
+                                ? 'e.g., X-Hub-Signature-256'
+                                : signatureSource === 'query'
+                                  ? 'e.g., signature'
+                                  : 'e.g., signature or headers."X-Signature"'
+                            }
+                            onBlur={(e) => {
+                              field.onBlur();
+                              if (signatureSource === 'body') {
+                                const error = validateJMESPath(e.target.value);
+                                setSignatureKeyError(error);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {signatureSource === 'header'
+                            ? 'The name of the HTTP header containing the signature (case-insensitive by default).'
+                            : signatureSource === 'query'
+                              ? 'The name of the query parameter containing the signature.'
+                              : 'A JMESPath expression to extract the signature from the request body.'}
+                        </FormDescription>
+                        {signatureKeyError && (
+                          <p className="text-sm font-medium text-destructive">
+                            {signatureKeyError}
+                          </p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="signaturePrefix"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Signature Prefix (Optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder='e.g., "sha256=" or "v0="' />
+                        </FormControl>
+                        <FormDescription>
+                          If the signature includes a prefix (like "sha256=" in GitHub webhooks),
+                          specify it here. The prefix will be stripped before verification.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="signatureRegex"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Signature Regex (Optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder='e.g., "t=\\d+,v1=([a-f0-9]+)"'
+                            onBlur={(e) => {
+                              field.onBlur();
+                              const error = validateRegex(e.target.value);
+                              setSignatureRegexError(error);
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          A regular expression to extract the signature from the value. The first
+                          capture group will be used as the signature. Useful for complex signature
+                          formats like Stripe.
+                        </FormDescription>
+                        {signatureRegexError && (
+                          <p className="text-sm font-medium text-destructive">
+                            {signatureRegexError}
+                          </p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Signed Components Builder */}
+                <div className="pt-4 border-t space-y-3">
+                  <h4 className="text-sm font-medium">Signed Components</h4>
+                  <FormDescription>
+                    Define the components that are included in the signature. Components are joined
+                    in order to create the signed payload.
+                  </FormDescription>
+
+                  {/* Signed Components List */}
+                  <div className="space-y-3">
+                    {componentFields.map((field, index) => {
+                      const componentSource = form.watch(`signedComponents.${index}.source`);
+
+                      return (
+                        <div key={field.id} className="space-y-2 p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Component {index + 1}</span>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => moveComponent(index, index - 1)}
+                                disabled={index === 0}
+                                className="h-7 w-7"
+                              >
+                                <ArrowUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => moveComponent(index, index + 1)}
+                                disabled={index === componentFields.length - 1}
+                                className="h-7 w-7"
+                              >
+                                <ArrowDown className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeComponent(index)}
+                                className="h-7 w-7"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
                             <FormField
                               control={form.control}
-                              name={`signedComponents.${index}.key`}
+                              name={`signedComponents.${index}.source`}
+                              render={({ field: selectField }) => (
+                                <FormItem>
+                                  <FormLabel>Component Source</FormLabel>
+                                  <GenericSelect
+                                    control={form.control}
+                                    name={`signedComponents.${index}.source`}
+                                    label=""
+                                    options={componentSourceOptions}
+                                    placeholder="Select source"
+                                  />
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {componentSource !== 'literal' && (
+                              <FormField
+                                control={form.control}
+                                name={`signedComponents.${index}.key`}
+                                render={({ field: inputField }) => (
+                                  <FormItem>
+                                    <FormLabel>
+                                      {componentSource === 'header'
+                                        ? 'Header Name'
+                                        : 'JMESPath Expression'}
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        {...inputField}
+                                        placeholder={
+                                          componentSource === 'header'
+                                            ? 'e.g., X-Request-Timestamp'
+                                            : 'e.g., timestamp or body.timestamp'
+                                        }
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+
+                            {componentSource === 'literal' && (
+                              <FormField
+                                control={form.control}
+                                name={`signedComponents.${index}.value`}
+                                render={({ field: inputField }) => (
+                                  <FormItem>
+                                    <FormLabel>Literal Value</FormLabel>
+                                    <FormControl>
+                                      <Input {...inputField} placeholder='e.g., "v0"' />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <FormField
+                              control={form.control}
+                              name={`signedComponents.${index}.regex`}
                               render={({ field: inputField }) => (
                                 <FormItem>
-                                  <FormLabel>
-                                    {componentSource === 'header' ? 'Header Name' : 'JMESPath Expression'}
-                                  </FormLabel>
+                                  <FormLabel>Regex Extraction (Optional)</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      {...inputField}
-                                      placeholder={
-                                        componentSource === 'header'
-                                          ? 'e.g., X-Request-Timestamp'
-                                          : 'e.g., timestamp or body.timestamp'
-                                      }
+                                    <Input {...inputField} placeholder='e.g., "([a-f0-9]+)"' />
+                                  </FormControl>
+                                  <FormDescription className="text-xs">
+                                    Extract a portion of the component using a regex capture group.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`signedComponents.${index}.required`}
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 mt-2">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-sm">Required</FormLabel>
+                                    <FormDescription className="text-xs">
+                                      If unchecked, missing component = empty string
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormMessage />
                                 </FormItem>
                               )}
                             />
-                          )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                          {componentSource === 'literal' && (
-                            <FormField
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      appendComponent({
+                        source: 'header',
+                        key: '',
+                        value: '',
+                        regex: '',
+                        required: true,
+                      })
+                    }
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Signed Component
+                  </Button>
+
+                  {/* Component Join Configuration */}
+                  <div className="pt-3 border-t space-y-3">
+                    <h4 className="text-sm font-medium">Component Joining</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="joinStrategy"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Join Strategy</FormLabel>
+                            <GenericSelect
                               control={form.control}
-                              name={`signedComponents.${index}.value`}
-                              render={({ field: inputField }) => (
-                                <FormItem>
-                                  <FormLabel>Literal Value</FormLabel>
-                                  <FormControl>
-                                    <Input {...inputField} placeholder='e.g., "v0"' />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              name="joinStrategy"
+                              label=""
+                              options={joinStrategyOptions}
+                              placeholder="Select strategy"
                             />
-                          )}
-                        </div>
+                            <FormDescription className="text-xs">
+                              Strategy for combining components.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <FormField
-                            control={form.control}
-                            name={`signedComponents.${index}.regex`}
-                            render={({ field: inputField }) => (
-                              <FormItem>
-                                <FormLabel>Regex Extraction (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...inputField}
-                                    placeholder='e.g., "([a-f0-9]+)"'
-                                  />
-                                </FormControl>
+                      <FormField
+                        control={form.control}
+                        name="joinSeparator"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Separator</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder='e.g., ":" or "."' />
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              String to insert between components.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Advanced Validation Options */}
+                  <div className="pt-4 border-t">
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-full justify-between">
+                          <span className="text-sm font-medium">Advanced Validation Options</span>
+                          <ChevronDown className="h-4 w-4 transition-transform" />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-3 space-y-3">
+                        <FormDescription>
+                          Configure advanced options for signature validation behavior.
+                        </FormDescription>
+
+                        <FormField
+                          control={form.control}
+                          name="headerCaseSensitive"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm">Case-Sensitive Headers</FormLabel>
                                 <FormDescription className="text-xs">
-                                  Extract a portion of the component using a regex capture group.
+                                  If enabled, header names are matched case-sensitively. Most
+                                  providers are case-insensitive (default).
                                 </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
-                          <FormField
-                            control={form.control}
-                            name={`signedComponents.${index}.required`}
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 mt-2">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-sm">Required</FormLabel>
-                                  <FormDescription className="text-xs">
-                                    If unchecked, missing component = empty string
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        <FormField
+                          control={form.control}
+                          name="allowEmptyBody"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm">Allow Empty Body</FormLabel>
+                                <FormDescription className="text-xs">
+                                  If enabled, allows verification with an empty request body.
+                                  Disable if your webhook always requires a body (default: enabled).
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    appendComponent({
-                      source: 'header',
-                      key: '',
-                      value: '',
-                      regex: '',
-                      required: true,
-                    })
-                  }
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Signed Component
-                </Button>
-
-                {/* Component Join Configuration */}
-                <div className="pt-3 border-t space-y-3">
-                  <h4 className="text-sm font-medium">Component Joining</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="joinStrategy"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Join Strategy</FormLabel>
-                          <GenericSelect
-                            control={form.control}
-                            name="joinStrategy"
-                            label=""
-                            options={joinStrategyOptions}
-                            placeholder="Select strategy"
-                          />
-                          <FormDescription className="text-xs">
-                            Strategy for combining components.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="joinSeparator"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Separator</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder='e.g., ":" or "."' />
-                          </FormControl>
-                          <FormDescription className="text-xs">
-                            String to insert between components.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="normalizeUnicode"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm">Normalize Unicode</FormLabel>
+                                <FormDescription className="text-xs">
+                                  If enabled, normalizes Unicode strings to NFC form before signing.
+                                  Enable if you encounter signature mismatches with Unicode
+                                  characters (default: disabled).
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 </div>
-
-                {/* Advanced Validation Options */}
-                <div className="pt-4 border-t">
-                  <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="w-full justify-between">
-                        <span className="text-sm font-medium">Advanced Validation Options</span>
-                        <ChevronDown className="h-4 w-4 transition-transform" />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-3 space-y-3">
-                      <FormDescription>
-                        Configure advanced options for signature validation behavior.
-                      </FormDescription>
-
-                      <FormField
-                        control={form.control}
-                        name="headerCaseSensitive"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm">Case-Sensitive Headers</FormLabel>
-                              <FormDescription className="text-xs">
-                                If enabled, header names are matched case-sensitively. Most providers
-                                are case-insensitive (default).
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="allowEmptyBody"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm">Allow Empty Body</FormLabel>
-                              <FormDescription className="text-xs">
-                                If enabled, allows verification with an empty request body. Disable if
-                                your webhook always requires a body (default: enabled).
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="normalizeUnicode"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm">Normalize Unicode</FormLabel>
-                              <FormDescription className="text-xs">
-                                If enabled, normalizes Unicode strings to NFC form before signing.
-                                Enable if you encounter signature mismatches with Unicode characters
-                                (default: disabled).
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         )}
 
         {/* Form Actions */}

@@ -1,13 +1,13 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Context } from 'hono';
-import type { z } from 'zod';
 import * as jmespath from 'jmespath';
+import type { z } from 'zod';
 import type {
+  SignatureVerificationConfig,
   TriggerAuthenticationStoredSchema,
   TriggerAuthHeaderInputSchema,
   TriggerAuthHeaderStoredSchema,
-  SignatureVerificationConfig,
 } from '../validation/schemas';
 
 const scryptAsync = promisify(scrypt);
@@ -138,7 +138,6 @@ export async function verifyTriggerAuth(
 
   return { success: true };
 }
-
 
 /**
  * Error codes for signature verification failures.

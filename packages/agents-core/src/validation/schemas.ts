@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
-import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 import * as jmespath from 'jmespath';
+import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 
 // Destructure defaults for use in schemas
 const {
@@ -449,7 +449,9 @@ export const SignatureSourceSchema = z
     regex: z
       .string()
       .optional()
-      .describe('Optional regex pattern to extract signature from value (first capture group used)'),
+      .describe(
+        'Optional regex pattern to extract signature from value (first capture group used)'
+      ),
   })
   .openapi('SignatureSource');
 
