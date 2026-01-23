@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { DOCS_BASE_URL } from '@/constants/theme';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {

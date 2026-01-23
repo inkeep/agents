@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
+
+export const metadata = {
+  title: 'New trigger',
+  description: 'Create a new webhook trigger for this agent.',
+} satisfies Metadata;
 
 export default async function NewTriggerPage({
   params,
@@ -16,7 +22,7 @@ export default async function NewTriggerPage({
 
   return (
     <>
-      <PageHeader title="New trigger" description="Create a new webhook trigger for this agent." />
+      <PageHeader title={metadata.title} description={metadata.description} />
       <TriggerForm tenantId={tenantId} projectId={projectId} agentId={agentId} mode="create" />
     </>
   );
