@@ -298,3 +298,43 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 9 - Fri Jan 23 00:10:54 UTC 2026
+
+
+## Iteration 9 - $(date -u)
+
+### Story: US-009 & US-010 - Signature and Component Extraction
+
+**Implementation:**
+- Verified that US-009 (signature extraction) and US-010 (component extraction) were already completed in US-008 implementation
+- extractSignature() function in trigger-auth.ts:235-284 handles all US-009 requirements:
+  - Signature extraction from headers (case-insensitive by default)
+  - Signature extraction from query parameters
+  - Signature extraction from body via JMESPath
+  - Prefix stripping (e.g., 'sha256=', 'v0=')
+  - Regex-based extraction with capture group
+  - Missing signature handling with null return
+- extractComponent() function in trigger-auth.ts:295-345 handles all US-010 requirements:
+  - Component extraction from headers
+  - Component extraction from body via JMESPath
+  - Literal string components
+  - Required vs optional components (missing optional = empty string)
+  - Regex extraction from component values
+  - Unicode normalization is handled in main verifySignatureWithConfig function (line 409-411)
+- Updated prd.json to mark US-009 and US-010 as passes: true
+
+**Files Changed:**
+- prd.json (marked US-009 and US-010 as complete with explanatory notes)
+
+**Learnings:**
+- US-008 implementation was more comprehensive than initially scoped, completing both signature extraction (US-009) and component extraction (US-010) in a single iteration
+- The helper functions extractSignature() and extractComponent() were properly separated for clarity and testability
+- Unicode normalization is applied to the joined signed data rather than individual components, which is the correct approach
+- All extraction functions properly handle null/undefined/missing values according to required vs optional configuration
+- The implementation follows security best practices throughout
+
+---
+
