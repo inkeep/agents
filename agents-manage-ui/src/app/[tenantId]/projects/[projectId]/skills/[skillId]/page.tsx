@@ -21,7 +21,7 @@ async function SkillDetailPage({
     );
   }
 
-  return <SkillForm initialData={skillResult.data} className="max-w-2xl mx-auto" />;
+  return <SkillForm initialData={skillResult.data} />;
 }
 
 export default SkillDetailPage;

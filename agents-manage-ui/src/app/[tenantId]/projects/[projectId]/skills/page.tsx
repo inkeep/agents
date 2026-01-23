@@ -20,7 +20,7 @@ import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchSkills } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { formatDate, formatDateAgo } from '@/lib/utils/format-date';
+import { formatDateAgo } from '@/lib/utils/format-date';
 
 const colClass = 'align-top whitespace-pre-wrap';
 
@@ -61,7 +61,6 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
               <TableHead>Description</TableHead>
               <TableHead>Content</TableHead>
               <TableHead>Metadata</TableHead>
-              <TableHead>Created At</TableHead>
               <TableHead>Updated</TableHead>
             </TableRow>
           </TableHeader>
@@ -74,9 +73,11 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                     href={`/${tenantId}/projects/${projectId}/skills/${skill.id}`}
                     className="absolute inset-0"
                   />
-                  <Badge variant="code">{skill.name}</Badge>
+                  {skill.name}
                 </TableCell>
-                <TableCell className={colClass}>{skill.description}</TableCell>
+                <TableCell className={colClass}>
+                  <div className="h-14 line-clamp-3">{skill.description}</div>
+                </TableCell>
                 <TableCell className={colClass}>
                   <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
                     {skill.content}
@@ -87,7 +88,6 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                     {JSON.stringify(skill.metadata)}
                   </Badge>
                 </TableCell>
-                <TableCell className="align-top">{formatDate(skill.createdAt)}</TableCell>
                 <TableCell className="align-top">{formatDateAgo(skill.updatedAt)}</TableCell>
               </TableRow>
             ))}
