@@ -79,7 +79,7 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
     await addUserToOrganization(runDbClient)({
       userId: user.id,
       organizationId: orgId,
-      role: OrgRoles.OWNER,
+      role: OrgRoles.ADMIN,
     });
 
     logger.info(
