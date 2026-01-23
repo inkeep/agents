@@ -489,7 +489,10 @@ export const subAgentFunctionToolRelations = pgTable(
   {
     ...subAgentScoped,
     functionToolId: varchar('function_tool_id', { length: 256 }).notNull(),
-    toolPolicies: jsonb('tool_policies').$type<Record<string, { needsApproval?: boolean }> | null>(),
+    toolPolicies: jsonb('tool_policies').$type<Record<
+      string,
+      { needsApproval?: boolean }
+    > | null>(),
     ...timestamps,
   },
   (table) => [

@@ -5,11 +5,12 @@ export function toolPolicyNeedsApprovalForTool(
   toolName: string
 ): boolean {
   if (!toolPolicies) return false;
-  return toolPolicies['*']?.needsApproval === true || toolPolicies[toolName]?.needsApproval === true;
+  return (
+    toolPolicies['*']?.needsApproval === true || toolPolicies[toolName]?.needsApproval === true
+  );
 }
 
 export function toolPoliciesNeedApproval(toolPolicies?: ToolPolicies | null): boolean {
   if (!toolPolicies) return false;
   return Object.values(toolPolicies).some((policy) => policy?.needsApproval === true);
 }
-

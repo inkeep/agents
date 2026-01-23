@@ -60,4 +60,3 @@ describe('toolPolicyNeedsApprovalForTool', () => {
     ).toBe(false);
   });
 });
-
