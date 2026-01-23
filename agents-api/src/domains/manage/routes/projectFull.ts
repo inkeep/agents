@@ -35,21 +35,28 @@ const logger = getLogger('projectFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Creating a project is an org-level action
-app.use('/project-full', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requirePermission({ project: ['create'] })(c, next);
-  }
-  return next();
-});
-
-// Updating/deleting a project requires project-level 'edit' permission
-app.use('/project-full/:projectId', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
+// Authorization:
+//   POST   /project-full            → org 'project:create'
+//   GET    /project-full/:id/*      → project 'view'
+//   PUT    /project-full/:id (new)  → org 'project:create'
+//   PUT    /project-full/:id (edit) → project 'edit'
+//   DELETE /project-full/:id        → org 'project:delete'
+app.use('/project-full', async (c, next) =>
+  c.req.method === 'POST' ? requirePermission({ project: ['create'] })(c, next) : next()
+);
+app.use('/project-full/:projectId{.*}', async (c, next) => {
+  const method = c.req.method;
+  if (method === 'GET') return requireProjectPermission('view')(c, next);
+  if (method === 'DELETE') return requirePermission({ project: ['delete'] })(c, next);
+  if (method === 'PUT') {
+    const tenantId = c.get('tenantId');
+    const projectId = c.req.param('projectId');
+    if (!tenantId || !projectId) return next();
+    const exists = await getProjectMetadata(runDbClient)({ tenantId, projectId });
+    c.set('isProjectCreate', !exists);
+    return exists
+      ? requireProjectPermission('edit')(c, next)
+      : requirePermission({ project: ['create'] })(c, next);
   }
   return next();
 });
@@ -324,9 +331,8 @@ app.openapi(
         });
       }
 
-      // Check if project exists in runtime DB (source of truth)
-      const runtimeProject = await getProjectMetadata(runDbClient)({ tenantId, projectId });
-      const isCreate = !runtimeProject;
+      // Use cached result from middleware (permission already checked there)
+      const isCreate = c.get('isProjectCreate') ?? false;
 
       if (isCreate) {
         // Project doesn't exist - create it with branch first

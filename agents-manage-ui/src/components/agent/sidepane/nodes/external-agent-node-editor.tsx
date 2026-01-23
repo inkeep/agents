@@ -6,6 +6,7 @@ import { StandaloneJsonEditor } from '@/components/editors/standalone-json-edito
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
@@ -33,6 +34,7 @@ export function ExternalAgentNodeEditor({
 }: ExternalAgentNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
+  const { canEdit } = useProjectPermissions();
   const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
@@ -171,18 +173,23 @@ export function ExternalAgentNodeEditor({
           customTemplate={externalAgentHeadersTemplate}
         />
       </div>
+
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}
       >
         View External Agent
       </ExternalLink>
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

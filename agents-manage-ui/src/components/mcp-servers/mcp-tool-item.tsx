@@ -22,6 +22,7 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
@@ -123,6 +124,7 @@ export function MCPToolItem({
   projectId: string;
   tool: MCPTool;
 }) {
+  const { canEdit } = useProjectPermissions();
   const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`;
 
   const activeTools = getActiveTools({
@@ -144,7 +146,7 @@ export function MCPToolItem({
             <span className="flex-1 min-w-0 text-base font-medium truncate">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />
+        {canEdit && <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />}
       </ItemCardHeader>
       <ItemCardContent>
         <div className="space-y-3 min-w-0">

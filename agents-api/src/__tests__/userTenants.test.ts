@@ -1,4 +1,4 @@
-import { addUserToOrganization, getUserOrganizations } from '@inkeep/agents-core';
+import { addUserToOrganization, getUserOrganizationsFromDb } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockDb = {
@@ -11,7 +11,7 @@ describe('User Organizations Data Access', () => {
     vi.clearAllMocks();
   });
 
-  describe('getUserOrganizations', () => {
+  describe('getUserOrganizationsFromDb', () => {
     it('should fetch user organizations with organization information', async () => {
       const mockResult = [
         {
@@ -35,7 +35,7 @@ describe('User Organizations Data Access', () => {
         }),
       });
 
-      const result = await getUserOrganizations(mockDb)('user-123');
+      const result = await getUserOrganizationsFromDb(mockDb)('user-123');
 
       expect(result).toEqual(mockResult);
       expect(mockDb.select).toHaveBeenCalled();
@@ -52,7 +52,7 @@ describe('User Organizations Data Access', () => {
         }),
       });
 
-      const result = await getUserOrganizations(mockDb)('user-123');
+      const result = await getUserOrganizationsFromDb(mockDb)('user-123');
 
       expect(result).toEqual([]);
     });

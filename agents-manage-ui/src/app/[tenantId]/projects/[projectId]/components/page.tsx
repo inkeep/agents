@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { dataComponentDescription } from '@/constants/page-descriptions';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchDataComponents } from '@/lib/api/data-components';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -18,22 +19,30 @@ async function DataComponentsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const { data } = await fetchDataComponents(tenantId, projectId);
+    const [{ data }, permissions] = await Promise.all([
+      fetchDataComponents(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    const canEdit = permissions.canEdit;
+
     return data.length ? (
       <>
         <PageHeader
           title={STATIC_LABELS.components}
           description={dataComponentDescription}
           action={
-            <Button asChild>
-              <Link
-                href={`/${tenantId}/projects/${projectId}/components/new`}
-                className="flex items-center gap-2"
-              >
-                <Plus className="size-4" />
-                New component
-              </Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/components/new`}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="size-4" />
+                  New component
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -51,8 +60,8 @@ async function DataComponentsPage({
       <EmptyState
         title="No components yet."
         description={dataComponentDescription}
-        link={`/${tenantId}/projects/${projectId}/components/new`}
-        linkText="Create component"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/components/new` : undefined}
+        linkText={canEdit ? 'Create component' : undefined}
       />
     );
   } catch (error) {

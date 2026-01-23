@@ -1,3 +1,5 @@
+'use client';
+
 import { formatDateAgo } from '@/app/utils/format-date';
 import {
   Table,
@@ -7,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useProjectPermissions } from '@/contexts/project';
 import type { ApiKey } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
 import { ApiKeyItemMenu } from './api-key-item-menu';
@@ -18,6 +21,8 @@ interface ApiKeysTableProps {
 }
 
 export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
+  const { canEdit } = useProjectPermissions();
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -64,9 +69,7 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
                 <TableCell className="text-sm text-muted-foreground">
                   {apiKey.createdAt ? formatDateAgo(apiKey.createdAt) : ''}
                 </TableCell>
-                <TableCell>
-                  <ApiKeyItemMenu apiKey={apiKey} />
-                </TableCell>
+                <TableCell>{canEdit && <ApiKeyItemMenu apiKey={apiKey} />}</TableCell>
               </TableRow>
             ))
           )}

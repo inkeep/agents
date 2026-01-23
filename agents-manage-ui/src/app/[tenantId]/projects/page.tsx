@@ -1,10 +1,8 @@
-import { Plus } from 'lucide-react';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { NewProjectDialog } from '@/components/projects/new-project-dialog';
+import { CreateProjectButton } from '@/components/projects/create-project-button';
 import { ProjectItem } from '@/components/projects/project-item';
-import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchProjects } from '@/lib/api/projects';
@@ -20,14 +18,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         <PageHeader
           title={STATIC_LABELS.projects}
           description={projectDescription}
-          action={
-            <NewProjectDialog tenantId={tenantId}>
-              <Button>
-                <Plus />
-                Create project
-              </Button>
-            </NewProjectDialog>
-          }
+          action={<CreateProjectButton tenantId={tenantId} />}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
           {data.map((project) => (
@@ -40,12 +31,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         title="No projects yet."
         description={emptyStateProjectDescription}
         action={
-          <NewProjectDialog tenantId={tenantId}>
-            <Button size="lg">
-              <Plus />
-              Create your first project
-            </Button>
-          </NewProjectDialog>
+          <CreateProjectButton tenantId={tenantId} size="lg" label="Create your first project" />
         }
       />
     );

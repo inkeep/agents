@@ -1,4 +1,4 @@
-import { addUserToOrganization, getUserByEmail, upsertOrganization } from '@inkeep/agents-core';
+import { addUserToOrganization, getUserByEmail, OrgRoles, upsertOrganization } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
@@ -79,7 +79,7 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
     await addUserToOrganization(runDbClient)({
       userId: user.id,
       organizationId: orgId,
-      role: 'owner',
+      role: OrgRoles.OWNER,
     });
 
     logger.info(

@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 const externalAgentsDescription =
@@ -18,22 +19,30 @@ async function ExternalAgentsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const externalAgents = await fetchExternalAgents(tenantId, projectId);
+    const [externalAgents, permissions] = await Promise.all([
+      fetchExternalAgents(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
+
+    const canEdit = permissions.canEdit;
+
     return externalAgents.length ? (
       <>
         <PageHeader
           title={STATIC_LABELS['external-agents']}
           description={externalAgentsDescription}
           action={
-            <Button asChild>
-              <Link
-                href={`/${tenantId}/projects/${projectId}/external-agents/new`}
-                className="flex items-center gap-2"
-              >
-                <Plus className="size-4" />
-                New external agent
-              </Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/external-agents/new`}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="size-4" />
+                  New external agent
+                </Link>
+              </Button>
+            ) : undefined
           }
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -51,8 +60,8 @@ async function ExternalAgentsPage({
       <EmptyState
         title="No external agents yet."
         description={externalAgentsDescription}
-        link={`/${tenantId}/projects/${projectId}/external-agents/new`}
-        linkText="Create external agent"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/external-agents/new` : undefined}
+        linkText={canEdit ? 'Create external agent' : undefined}
       />
     );
   } catch (error) {

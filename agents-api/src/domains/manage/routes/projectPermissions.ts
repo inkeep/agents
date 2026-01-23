@@ -5,7 +5,8 @@ import {
   createApiError,
   isAuthzEnabled,
   type OrgRole,
-  SpiceDbPermissions,
+  OrgRoles,
+  SpiceDbProjectPermissions,
   SpiceDbResourceTypes,
 } from '@inkeep/agents-core';
 import type { ManageAppVariables } from '../../../types/app';
@@ -56,7 +57,7 @@ app.openapi(
     const tenantRole = c.get('tenantRole') as OrgRole;
 
     // Fast path: Org owner/admin has all permissions (bypass SpiceDB)
-    if (tenantRole === 'owner' || tenantRole === 'admin') {
+    if (tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN) {
       return c.json({
         data: {
           canView: true,
@@ -67,7 +68,7 @@ app.openapi(
     }
 
     // Fast path: Authz disabled, use legacy behavior
-    if (!isAuthzEnabled(tenantId)) {
+    if (!isAuthzEnabled()) {
       // When authz is disabled, all org members can view/use, only owner/admin can edit
       return c.json({
         data: {
@@ -89,16 +90,20 @@ app.openapi(
     const permissions = await checkBulkPermissions({
       resourceType: SpiceDbResourceTypes.PROJECT,
       resourceId: projectId,
-      permissions: [SpiceDbPermissions.VIEW, SpiceDbPermissions.USE, SpiceDbPermissions.EDIT],
+      permissions: [
+        SpiceDbProjectPermissions.VIEW,
+        SpiceDbProjectPermissions.USE,
+        SpiceDbProjectPermissions.EDIT,
+      ],
       subjectType: SpiceDbResourceTypes.USER,
       subjectId: userId,
     });
 
     return c.json({
       data: {
-        canView: permissions[SpiceDbPermissions.VIEW] ?? false,
-        canUse: permissions[SpiceDbPermissions.USE] ?? false,
-        canEdit: permissions[SpiceDbPermissions.EDIT] ?? false,
+        canView: permissions[SpiceDbProjectPermissions.VIEW] ?? false,
+        canUse: permissions[SpiceDbProjectPermissions.USE] ?? false,
+        canEdit: permissions[SpiceDbProjectPermissions.EDIT] ?? false,
       },
     });
   }

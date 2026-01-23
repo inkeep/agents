@@ -34,10 +34,11 @@ const SelectType: FC<{
   value: TypeValues;
   onValueChange: Dispatch<TypeValues>;
   className?: string;
-}> = ({ value, onValueChange, className }) => {
+  disabled?: boolean;
+}> = ({ value, onValueChange, className, disabled }) => {
   return (
-    <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className={className}>
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger className={className} disabled={disabled}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -63,10 +64,11 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
       field: findFieldById(state.fields, fieldId),
       hasInPreview: state.hasInPreview,
       allRequired: state.allRequired,
+      readOnly: state.readOnly,
     }),
     [fieldId]
   );
-  const { field, hasInPreview, allRequired } = useJsonSchemaStore(selector);
+  const { field, hasInPreview, allRequired, readOnly } = useJsonSchemaStore(selector);
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();
@@ -91,6 +93,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
                   onCheckedChange={(checked) =>
                     updateField(field.id, { isPreview: checked === true })
                   }
+                  disabled={readOnly}
                 />
               </div>
             </TooltipTrigger>
@@ -102,6 +105,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         value={field.type}
         onValueChange={(nextType) => changeType(field.id, nextType)}
         className="w-25 shrink-0"
+        disabled={readOnly}
       />
       {!prefix && (
         <Input
@@ -112,6 +116,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               name: event.target.value,
             })
           }
+          disabled={readOnly}
         />
       )}
       <Input
@@ -122,8 +127,9 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
             description: event.target.value,
           })
         }
+        disabled={readOnly}
       />
-      {!prefix && (
+      {!prefix && !readOnly && (
         <>
           {!allRequired && (
             <Tooltip>
@@ -178,6 +184,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
             <TagsInput
               value={field.values ?? []}
               onChange={(values) => updateEnumValues(field.id, values)}
+              readOnly={readOnly}
             />
           </div>
         </>
@@ -202,17 +209,19 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
           {field.properties.map((child) => (
             <Property key={child.id} fieldId={child.id} depth={depth + 1 + (prefix ? 3.5 : 0)} />
           ))}
-          <Button
-            type="button"
-            onClick={() => addChild(field.id)}
-            variant="link"
-            size="sm"
-            className="self-start text-xs"
-            style={{ marginLeft: indentStyle + 24 + (prefix ? 82 : 0) }}
-          >
-            <PlusIcon />
-            Add property
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              onClick={() => addChild(field.id)}
+              variant="link"
+              size="sm"
+              className="self-start text-xs"
+              style={{ marginLeft: indentStyle + 24 + (prefix ? 82 : 0) }}
+            >
+              <PlusIcon />
+              Add property
+            </Button>
+          )}
         </>
       );
     }
@@ -253,18 +262,26 @@ export const JsonSchemaBuilder: FC<{
   hasInPreview?: boolean;
   hasError?: boolean;
   allRequired?: boolean;
-}> = ({ value, onChange, hasInPreview, hasError, allRequired = false }) => {
+  readOnly?: boolean;
+}> = ({ value, onChange, hasInPreview, hasError, allRequired = false, readOnly = false }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
   const allRequiredState = useJsonSchemaStore((state) => state.allRequired);
-  const { addChild, setFields } = useJsonSchemaActions();
+  const { addChild, setFields, setReadOnly } = useJsonSchemaActions();
   // Fix race condition in cypress
   const [isHydrated, setIsHydrated] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(value, hasInPreview, allRequired);
+    setFields(value, hasInPreview, allRequired, readOnly);
     setIsHydrated(true);
   }, []);
+
+  // Sync readOnly state when prop changes
+  useEffect(() => {
+    if (isHydrated) {
+      setReadOnly(readOnly);
+    }
+  }, [readOnly, isHydrated, setReadOnly]);
 
   // Calls only on update to avoid race condition with above useEffect
   useDidUpdate(() => {
@@ -317,25 +334,28 @@ export const JsonSchemaBuilder: FC<{
       {fields.map((field) => (
         <Property key={field.id} fieldId={field.id} depth={0} />
       ))}
-      <Button
-        type="button"
-        onClick={() => addChild()}
-        variant="link"
-        size="sm"
-        className="self-start text-xs"
-        disabled={!isHydrated}
-      >
-        <PlusIcon />
-        Add property
-      </Button>
+      {!readOnly && (
+        <Button
+          type="button"
+          onClick={() => addChild()}
+          variant="link"
+          size="sm"
+          className="self-start text-xs"
+          disabled={!isHydrated}
+        >
+          <PlusIcon />
+          Add property
+        </Button>
+      )}
     </>
   );
 };
 
-const TagsInput: FC<{ value: string[]; onChange: (next: string[]) => void }> = ({
-  value,
-  onChange,
-}) => {
+const TagsInput: FC<{
+  value: string[];
+  onChange: (next: string[]) => void;
+  readOnly?: boolean;
+}> = ({ value, onChange, readOnly }) => {
   const [input, setInput] = useState('');
 
   const addTag = useCallback(
@@ -377,22 +397,26 @@ const TagsInput: FC<{ value: string[]; onChange: (next: string[]) => void }> = (
           className="flex items-center gap-1 rounded-full px-2 py-1"
         >
           {tag}
-          <button
-            type="button"
-            onClick={() => removeTag(tag)}
-            className="ml-1 rounded-full hover:bg-muted p-0.5"
-          >
-            <X className="h-3 w-3" />
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => removeTag(tag)}
+              className="ml-1 rounded-full hover:bg-muted p-0.5"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </Badge>
       ))}
-      <input
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type possible values and press enter"
-        className="grow outline-none"
-      />
+      {!readOnly && (
+        <input
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type possible values and press enter"
+          className="grow outline-none"
+        />
+      )}
     </>
   );
 };

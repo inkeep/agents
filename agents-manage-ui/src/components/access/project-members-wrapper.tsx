@@ -1,5 +1,6 @@
 'use client';
 
+import { ProjectRoles } from '@inkeep/agents-core/client-exports';
 import type { FC } from 'react';
 import { useProjectAccess } from './hooks/use-project-access';
 import { ResourceMembersPage } from './resource-members-page';
@@ -12,17 +13,17 @@ interface ProjectMembersWrapperProps {
 
 const roles = [
   {
-    value: 'project_admin',
+    value: ProjectRoles.ADMIN,
     label: 'Project Admin',
     description: 'Full access to project settings and members',
   },
   {
-    value: 'project_member',
+    value: ProjectRoles.MEMBER,
     label: 'Project Member',
     description: 'Can invoke agents and create API keys',
   },
   {
-    value: 'project_viewer',
+    value: ProjectRoles.VIEWER,
     label: 'Project Viewer',
     description: 'Read-only access to project resources',
   },
@@ -56,6 +57,7 @@ export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
     addPrincipal,
     removePrincipal,
     changeRole,
+    refetch,
   } = useProjectAccess({ tenantId, projectId });
 
   return (
@@ -67,6 +69,7 @@ export const ProjectMembersWrapper: FC<ProjectMembersWrapperProps> = ({
       membersConfig={membersConfig}
       canManage={canManage}
       onAdd={addPrincipal}
+      onRefresh={refetch}
       onRoleChange={changeRole}
       onRemove={removePrincipal}
       isLoading={isLoading}

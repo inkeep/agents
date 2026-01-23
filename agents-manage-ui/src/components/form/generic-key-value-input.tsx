@@ -15,6 +15,7 @@ interface GenericKeyValueInputProps<T extends FieldValues> {
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   examples?: string[];
+  disabled?: boolean;
 }
 
 export function GenericKeyValueInput<T extends FieldValues>({
@@ -25,6 +26,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
   keyPlaceholder = 'Key',
   valuePlaceholder = 'Value',
   examples = [],
+  disabled = false,
 }: GenericKeyValueInputProps<T>) {
   const [currentKey, setCurrentKey] = useState('');
   const [currentValue, setCurrentValue] = useState('');
@@ -85,43 +87,47 @@ export function GenericKeyValueInput<T extends FieldValues>({
                   >
                     <span className="font-medium text-sm">{key}:</span>
                     <span className="text-sm text-muted-foreground flex-1">{value}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeKeyValue(key)}
-                      className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <X className="h-4 w-4 opacity-50" />
-                    </Button>
+                    {!disabled && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeKeyValue(key)}
+                        className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4 opacity-50" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
             {/* Add new key-value pair */}
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  placeholder={keyPlaceholder}
-                  value={currentKey}
-                  onChange={(e) => setCurrentKey(e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, false)}
-                />
-                <Input
-                  placeholder={valuePlaceholder}
-                  value={currentValue}
-                  onChange={(e) => setCurrentValue(e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, true)}
-                  onBlur={handleBlur}
-                />
+            {!disabled && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={keyPlaceholder}
+                    value={currentKey}
+                    onChange={(e) => setCurrentKey(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, false)}
+                  />
+                  <Input
+                    placeholder={valuePlaceholder}
+                    value={currentValue}
+                    onChange={(e) => setCurrentValue(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, true)}
+                    onBlur={handleBlur}
+                  />
+                </div>
+                {(currentKey.trim() || currentValue.trim()) && (
+                  <p className="text-xs text-muted-foreground">
+                    Press Enter or click outside to add this entry
+                  </p>
+                )}
               </div>
-              {(currentKey.trim() || currentValue.trim()) && (
-                <p className="text-xs text-muted-foreground">
-                  Press Enter or click outside to add this entry
-                </p>
-              )}
-            </div>
+            )}
 
             {/* Description and examples */}
             {(description || examples.length > 0) && (
