@@ -2,10 +2,12 @@ import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Context } from 'hono';
 import type { z } from 'zod';
+import * as jmespath from 'jmespath';
 import type {
   TriggerAuthenticationStoredSchema,
   TriggerAuthHeaderInputSchema,
   TriggerAuthHeaderStoredSchema,
+  SignatureVerificationConfig,
 } from '../validation/schemas';
 
 const scryptAsync = promisify(scrypt);
@@ -198,6 +200,262 @@ export function verifySigningSecret(
   } catch {
     return {
       success: false,
+      status: 403,
+      message: 'Invalid signature format',
+    };
+  }
+}
+
+/**
+ * Error codes for signature verification failures.
+ */
+export type SignatureVerificationErrorCode =
+  | 'MISSING_SIGNATURE'
+  | 'MISSING_COMPONENT'
+  | 'INVALID_SIGNATURE_FORMAT'
+  | 'SIGNATURE_MISMATCH';
+
+export interface SignatureVerificationResult {
+  success: boolean;
+  errorCode?: SignatureVerificationErrorCode;
+  status?: number;
+  message?: string;
+}
+
+/**
+ * Extracts the signature from the request based on configuration.
+ * Supports extraction from headers, query parameters, or body via JMESPath.
+ * Optionally strips prefix and applies regex extraction.
+ *
+ * @param c - Hono context
+ * @param config - Signature verification configuration
+ * @param body - Raw request body as string
+ * @returns Extracted signature string or null if not found
+ */
+function extractSignature(
+  c: Context,
+  config: SignatureVerificationConfig,
+  body: string
+): string | null {
+  const { signature } = config;
+  const caseSensitive = config.validation?.headerCaseSensitive ?? false;
+
+  let value: string | undefined;
+
+  // Extract based on source
+  if (signature.source === 'header') {
+    const headerKey = caseSensitive ? signature.key : signature.key.toLowerCase();
+    value = c.req.header(headerKey);
+  } else if (signature.source === 'query') {
+    value = c.req.query(signature.key);
+  } else if (signature.source === 'body') {
+    try {
+      const bodyData = JSON.parse(body);
+      value = jmespath.search(bodyData, signature.key) as string | undefined;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!value) {
+    return null;
+  }
+
+  // Strip prefix if configured
+  if (signature.prefix && value.startsWith(signature.prefix)) {
+    value = value.slice(signature.prefix.length);
+  }
+
+  // Apply regex extraction if configured
+  if (signature.regex) {
+    try {
+      const match = value.match(new RegExp(signature.regex));
+      if (match && match[1]) {
+        value = match[1];
+      } else {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return value;
+}
+
+/**
+ * Extracts a single signed component from the request.
+ *
+ * @param c - Hono context
+ * @param component - Component configuration
+ * @param body - Raw request body as string
+ * @param caseSensitive - Whether header names should be case-sensitive
+ * @returns Extracted component value or null if required and not found
+ */
+function extractComponent(
+  c: Context,
+  component: SignatureVerificationConfig['signedComponents'][number],
+  body: string,
+  caseSensitive: boolean
+): string | null {
+  let value: string | undefined;
+
+  if (component.source === 'literal') {
+    value = component.value ?? '';
+  } else if (component.source === 'header') {
+    if (!component.key) {
+      return component.required ? null : '';
+    }
+    const headerKey = caseSensitive ? component.key : component.key.toLowerCase();
+    value = c.req.header(headerKey);
+  } else if (component.source === 'body') {
+    if (!component.key) {
+      return component.required ? null : '';
+    }
+    try {
+      const bodyData = JSON.parse(body);
+      value = jmespath.search(bodyData, component.key) as string | undefined;
+    } catch {
+      return component.required ? null : '';
+    }
+  }
+
+  if (value === undefined || value === null) {
+    return component.required ? null : '';
+  }
+
+  // Convert to string if needed
+  value = String(value);
+
+  // Apply regex extraction if configured
+  if (component.regex) {
+    try {
+      const match = value.match(new RegExp(component.regex));
+      if (match && match[1]) {
+        value = match[1];
+      } else {
+        return component.required ? null : '';
+      }
+    } catch {
+      return component.required ? null : '';
+    }
+  }
+
+  return value;
+}
+
+/**
+ * Verifies webhook signature using flexible, provider-agnostic configuration.
+ * Supports GitHub, Slack, Zendesk, Stripe and other webhook signature schemes.
+ *
+ * SECURITY: Uses crypto.timingSafeEqual() for all signature comparisons to prevent timing attacks.
+ *
+ * @param c - Hono context containing request headers, query, and body
+ * @param config - Signature verification configuration
+ * @param signingSecret - HMAC signing secret
+ * @param body - Raw request body as string
+ * @returns SignatureVerificationResult with success status and error details
+ *
+ * @example
+ * // GitHub webhook verification
+ * const result = verifySignatureWithConfig(c, {
+ *   algorithm: 'sha256',
+ *   encoding: 'hex',
+ *   signature: { source: 'header', key: 'x-hub-signature-256', prefix: 'sha256=' },
+ *   signedComponents: [{ source: 'body', key: '@' }],
+ *   componentJoin: { strategy: 'concatenate', separator: '' }
+ * }, secret, body);
+ */
+export function verifySignatureWithConfig(
+  c: Context,
+  config: SignatureVerificationConfig,
+  signingSecret: string,
+  body: string
+): SignatureVerificationResult {
+  const caseSensitive = config.validation?.headerCaseSensitive ?? false;
+  const allowEmptyBody = config.validation?.allowEmptyBody ?? true;
+  const normalizeUnicode = config.validation?.normalizeUnicode ?? false;
+
+  // Extract signature from request
+  const signature = extractSignature(c, config, body);
+  if (!signature) {
+    return {
+      success: false,
+      errorCode: 'MISSING_SIGNATURE',
+      status: 401,
+      message: 'Missing or invalid signature',
+    };
+  }
+
+  // Extract and join signed components
+  const components: string[] = [];
+  for (const componentConfig of config.signedComponents) {
+    const componentValue = extractComponent(c, componentConfig, body, caseSensitive);
+    if (componentValue === null) {
+      return {
+        success: false,
+        errorCode: 'MISSING_COMPONENT',
+        status: 400,
+        message: 'Missing required signed component',
+      };
+    }
+    components.push(componentValue);
+  }
+
+  // Join components according to strategy
+  let signedData = components.join(config.componentJoin.separator);
+
+  // Normalize Unicode if configured
+  if (normalizeUnicode) {
+    signedData = signedData.normalize('NFC');
+  }
+
+  // Handle empty body validation
+  if (!allowEmptyBody && signedData === '') {
+    return {
+      success: false,
+      errorCode: 'MISSING_COMPONENT',
+      status: 400,
+      message: 'Empty body not allowed',
+    };
+  }
+
+  // Compute HMAC signature
+  const hmac = createHmac(config.algorithm, signingSecret);
+  hmac.update(signedData);
+  const expectedSignature = hmac.digest(config.encoding);
+
+  // Use timing-safe comparison to prevent timing attacks (CRITICAL)
+  try {
+    const signatureBuffer = Buffer.from(signature, config.encoding);
+    const expectedBuffer = Buffer.from(expectedSignature, config.encoding);
+
+    // Ensure buffers are same length before comparison
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return {
+        success: false,
+        errorCode: 'SIGNATURE_MISMATCH',
+        status: 403,
+        message: 'Invalid signature',
+      };
+    }
+
+    const isValid = timingSafeEqual(signatureBuffer, expectedBuffer);
+
+    if (!isValid) {
+      return {
+        success: false,
+        errorCode: 'SIGNATURE_MISMATCH',
+        status: 403,
+        message: 'Invalid signature',
+      };
+    }
+
+    return { success: true };
+  } catch {
+    return {
+      success: false,
+      errorCode: 'INVALID_SIGNATURE_FORMAT',
       status: 403,
       message: 'Invalid signature format',
     };
