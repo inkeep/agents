@@ -198,7 +198,8 @@ function formatSignatureVerification(
 export function generateTriggerDefinition(
   triggerId: string,
   triggerData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: any
 ): string {
   // Validate required parameters
   if (!triggerId || typeof triggerId !== 'string') {
@@ -293,8 +294,26 @@ export function generateTriggerDefinition(
     }
   }
 
-  // Signing secret credential reference (optional) - included if present
-  // Note: signingSecret is deprecated and replaced by credential references
+  // Signing secret credential reference (optional)
+  if (triggerData.signingSecretCredentialReferenceId) {
+    if (!registry) {
+      throw new Error('Registry is required for signingSecretCredentialReferenceId generation');
+    }
+
+    // Reference to a credential variable - use registry
+    const credentialVar = registry.getVariableName(
+      triggerData.signingSecretCredentialReferenceId,
+      'credentials'
+    );
+
+    if (!credentialVar) {
+      throw new Error(
+        `Failed to resolve variable name for credential reference: ${triggerData.signingSecretCredentialReferenceId}`
+      );
+    }
+
+    lines.push(`${indentation}signingSecretCredentialReference: ${credentialVar},`);
+  }
 
   // Remove trailing comma from last line
   if (lines.length > 0 && lines[lines.length - 1].endsWith(',')) {
@@ -309,11 +328,35 @@ export function generateTriggerDefinition(
 /**
  * Generate imports needed for a trigger file
  */
-export function generateTriggerImports(style: CodeStyle = DEFAULT_STYLE): string[] {
+export function generateTriggerImports(
+  triggerId: string,
+  triggerData: any,
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: any
+): string[] {
   const imports: string[] = [];
 
   // Always import Trigger from SDK
   imports.push(generateImport(['Trigger'], '@inkeep/agents-sdk', style));
+
+  // Generate imports for referenced credentials if registry is available
+  if (
+    triggerData.signingSecretCredentialReferenceId &&
+    typeof triggerData.signingSecretCredentialReferenceId === 'string'
+  ) {
+    if (!registry) {
+      throw new Error('Registry is required for credential reference imports');
+    }
+
+    const currentFilePath = `agents/triggers/${triggerId}.ts`;
+    const credentialRefs = [
+      { id: triggerData.signingSecretCredentialReferenceId, type: 'credentials' as const },
+    ];
+
+    // Get import statements for referenced credentials
+    const componentImports = registry.getImportsForFile(currentFilePath, credentialRefs);
+    imports.push(...componentImports);
+  }
 
   return imports;
 }
@@ -324,10 +367,11 @@ export function generateTriggerImports(style: CodeStyle = DEFAULT_STYLE): string
 export function generateTriggerFile(
   triggerId: string,
   triggerData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: any
 ): string {
-  const imports = generateTriggerImports(style);
-  const definition = generateTriggerDefinition(triggerId, triggerData, style);
+  const imports = generateTriggerImports(triggerId, triggerData, style, registry);
+  const definition = generateTriggerDefinition(triggerId, triggerData, style, registry);
 
   return generateFileContent(imports, [definition]);
 }
