@@ -3360,9 +3360,8 @@ class SigNozStatsAPI {
   ): Promise<Array<{ agentId: string; conversationCount: number }>> {
     try {
       const payload = this.buildConversationsByAgentPayload(startTime, endTime, projectId);
-      // Don't pass projectId to makeRequest to avoid server-side project validation
-      // The project filter is included in the payload itself
-      const resp = await this.makeRequest(payload);
+      // Pass projectId to makeRequest so server-side enforceSecurityFilters adds the project filter
+      const resp = await this.makeRequest(payload, projectId);
 
       const series = this.extractSeries(resp, 'conversationsByAgent');
 
