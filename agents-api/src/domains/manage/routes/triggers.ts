@@ -5,6 +5,7 @@ import {
   createTrigger,
   deleteTrigger,
   generateId,
+  getCredentialReference,
   getTriggerById,
   getTriggerInvocationById,
   hashAuthenticationHeaders,
@@ -249,6 +250,21 @@ app.openapi(
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
 
+    // Validate credential reference exists if provided
+    if (body.signingSecretCredentialReferenceId) {
+      const credentialRef = await getCredentialReference(db)({
+        scopes: { tenantId, projectId },
+        credentialReferenceId: body.signingSecretCredentialReferenceId,
+      });
+
+      if (!credentialRef) {
+        throw createApiError({
+          code: 'bad_request',
+          message: `Credential reference not found: ${body.signingSecretCredentialReferenceId}`,
+        });
+      }
+    }
+
     // Hash authentication header values before storing
     // The input schema uses { headers: [{name, value}] }, stored as { headers: [{name, valueHash, valuePrefix}] }
     let hashedAuthentication: unknown;
@@ -272,7 +288,8 @@ app.openapi(
       outputTransform: body.outputTransform,
       messageTemplate: body.messageTemplate,
       authentication: hashedAuthentication as any,
-      signingSecret: body.signingSecret,
+      signingSecretCredentialReferenceId: body.signingSecretCredentialReferenceId,
+      signatureVerification: body.signatureVerification as any,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -344,8 +361,8 @@ app.openapi(
       body.outputTransform !== undefined ||
       body.messageTemplate !== undefined ||
       body.authentication !== undefined ||
-      body.signingSecret !== undefined ||
-      body.keepExistingSigningSecret !== undefined;
+      body.signingSecretCredentialReferenceId !== undefined ||
+      body.signatureVerification !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -355,6 +372,21 @@ app.openapi(
     }
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Updating trigger');
+
+    // Validate credential reference exists if provided
+    if (body.signingSecretCredentialReferenceId) {
+      const credentialRef = await getCredentialReference(db)({
+        scopes: { tenantId, projectId },
+        credentialReferenceId: body.signingSecretCredentialReferenceId,
+      });
+
+      if (!credentialRef) {
+        throw createApiError({
+          code: 'bad_request',
+          message: `Credential reference not found: ${body.signingSecretCredentialReferenceId}`,
+        });
+      }
+    }
 
     // Handle authentication headers update
     // The update schema supports { headers: [{name, value?, keepExisting?}] }
@@ -405,9 +437,6 @@ app.openapi(
       hashedAuthentication = body.authentication;
     }
 
-    // Handle signing secret: if keepExistingSigningSecret is true, don't update it
-    const signingSecretUpdate = body.keepExistingSigningSecret ? undefined : body.signingSecret;
-
     const updatedTrigger = await updateTrigger(db)({
       scopes: { tenantId, projectId, agentId },
       triggerId: id,
@@ -419,7 +448,8 @@ app.openapi(
         outputTransform: body.outputTransform,
         messageTemplate: body.messageTemplate,
         authentication: hashedAuthentication as any,
-        signingSecret: signingSecretUpdate,
+        signingSecretCredentialReferenceId: body.signingSecretCredentialReferenceId,
+        signatureVerification: body.signatureVerification as any,
       },
     });
 
