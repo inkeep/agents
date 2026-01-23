@@ -18,11 +18,11 @@ type ThirdPartyMCPServerResponse = Awaited<ReturnType<typeof fetchThirdPartyMCPS
 export function useThirdPartyMCPServerQuery({
   url = '',
   credentialScope = 'project',
-  disabled,
+  enabled = true,
 }: {
   url?: string;
   credentialScope?: 'project' | 'user';
-  disabled?: boolean;
+  enabled?: boolean;
 } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
@@ -31,15 +31,13 @@ export function useThirdPartyMCPServerQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(url) && !disabled;
-
   return useQuery<ThirdPartyMCPServerResponse['data']>({
     queryKey: mcpCatalogQueryKeys.thirdPartyServer(tenantId, projectId, url, credentialScope),
     async queryFn() {
       const response = await fetchThirdPartyMCPServer(tenantId, projectId, url, credentialScope);
       return response.data;
     },
-    enabled,
+    enabled: enabled && Boolean(url),
     staleTime: 30_000,
     initialData: null,
     // force `queryFn` still runs on mount

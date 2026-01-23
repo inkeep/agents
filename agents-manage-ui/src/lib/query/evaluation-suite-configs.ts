@@ -17,10 +17,10 @@ const evaluationSuiteConfigQueryKeys = {
 
 export function useEvaluationSuiteConfigQuery({
   suiteConfigId = '',
-  disabled,
+  enabled = true,
 }: {
   suiteConfigId?: string;
-  disabled?: boolean;
+  enabled?: boolean;
 } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
@@ -29,15 +29,13 @@ export function useEvaluationSuiteConfigQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(suiteConfigId) && !disabled;
-
   return useQuery<EvaluationSuiteConfig | null>({
     queryKey: evaluationSuiteConfigQueryKeys.detail(tenantId, projectId, suiteConfigId),
     async queryFn() {
       const response = await fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId);
       return response.data;
     },
-    enabled,
+    enabled: enabled && Boolean(suiteConfigId),
     staleTime: 30_000,
     initialData: null,
     // force `queryFn` still runs on mount
@@ -50,10 +48,10 @@ export function useEvaluationSuiteConfigQuery({
 
 export function useEvaluationSuiteConfigEvaluatorsQuery({
   suiteConfigId = '',
-  disabled,
+  enabled = true,
 }: {
   suiteConfigId?: string;
-  disabled?: boolean;
+  enabled?: boolean;
 } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
@@ -61,8 +59,6 @@ export function useEvaluationSuiteConfigEvaluatorsQuery({
   if (!tenantId || !projectId) {
     throw new Error('tenantId and projectId are required');
   }
-
-  const enabled = Boolean(suiteConfigId) && !disabled;
 
   return useQuery<{ evaluatorId: string }[]>({
     queryKey: evaluationSuiteConfigQueryKeys.evaluators(tenantId, projectId, suiteConfigId),
@@ -74,7 +70,7 @@ export function useEvaluationSuiteConfigEvaluatorsQuery({
       );
       return response.data;
     },
-    enabled,
+    enabled: enabled && Boolean(suiteConfigId),
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

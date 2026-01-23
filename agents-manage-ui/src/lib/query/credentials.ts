@@ -11,10 +11,10 @@ const credentialQueryKeys = {
 
 export function useUserScopedCredentialQuery({
   toolId = '',
-  disabled,
+  enabled = true,
 }: {
   toolId?: string;
-  disabled?: boolean;
+  enabled?: boolean;
 } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
@@ -23,12 +23,10 @@ export function useUserScopedCredentialQuery({
     throw new Error('tenantId and projectId are required');
   }
 
-  const enabled = Boolean(toolId) && !disabled;
-
   return useQuery<Credential | null>({
     queryKey: credentialQueryKeys.userScoped(tenantId, projectId, toolId),
     queryFn: () => fetchUserScopedCredential(tenantId, projectId, toolId),
-    enabled,
+    enabled: enabled && Boolean(toolId),
     staleTime: 30_000,
     initialData: null,
     // force `queryFn` still runs on mount
