@@ -5,6 +5,7 @@ import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
+import { githubRoutes } from './domains/github';
 import { manageRoutes } from './domains/manage';
 import { runRoutes } from './domains/run';
 import { env } from './env';
@@ -354,6 +355,9 @@ function createAgentsHono(config: AppConfig) {
   });
 
   app.route('/evals', evalRoutes);
+
+  // Mount GitHub routes - unauthenticated, OIDC token is the authentication
+  app.route('/api/github', githubRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
