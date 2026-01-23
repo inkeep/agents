@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowDown, ArrowUp, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Form,
   FormControl,
@@ -226,6 +227,10 @@ const triggerFormSchema = z.object({
   // Component join configuration
   joinStrategy: z.enum(['concatenate']).optional(),
   joinSeparator: z.string().optional(),
+  // Validation options
+  headerCaseSensitive: z.boolean().optional(),
+  allowEmptyBody: z.boolean().optional(),
+  normalizeUnicode: z.boolean().optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -293,6 +298,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         signedComponents: [],
         joinStrategy: 'concatenate',
         joinSeparator: '',
+        headerCaseSensitive: false,
+        allowEmptyBody: true,
+        normalizeUnicode: false,
       };
     }
 
@@ -352,6 +360,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       signedComponents: signatureVerification?.signedComponents || [],
       joinStrategy: signatureVerification?.componentJoin?.strategy || 'concatenate',
       joinSeparator: signatureVerification?.componentJoin?.separator || '',
+      headerCaseSensitive: signatureVerification?.validation?.headerCaseSensitive ?? false,
+      allowEmptyBody: signatureVerification?.validation?.allowEmptyBody ?? true,
+      normalizeUnicode: signatureVerification?.validation?.normalizeUnicode ?? false,
     };
   };
 
@@ -519,6 +530,18 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         data.joinStrategy &&
         data.joinSeparator !== undefined
       ) {
+        // Build validation options object (only include if non-default values)
+        const validation: any = {};
+        if (data.headerCaseSensitive !== undefined && data.headerCaseSensitive !== false) {
+          validation.headerCaseSensitive = data.headerCaseSensitive;
+        }
+        if (data.allowEmptyBody !== undefined && data.allowEmptyBody !== true) {
+          validation.allowEmptyBody = data.allowEmptyBody;
+        }
+        if (data.normalizeUnicode !== undefined && data.normalizeUnicode !== false) {
+          validation.normalizeUnicode = data.normalizeUnicode;
+        }
+
         signatureVerification = {
           algorithm: data.signatureAlgorithm,
           encoding: data.signatureEncoding,
@@ -539,6 +562,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
             strategy: data.joinStrategy,
             separator: data.joinSeparator,
           },
+          ...(Object.keys(validation).length > 0 && { validation }),
         };
       }
 
@@ -1294,6 +1318,81 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                       )}
                     />
                   </div>
+                </div>
+
+                {/* Advanced Validation Options */}
+                <div className="pt-4 border-t">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-full justify-between">
+                        <span className="text-sm font-medium">Advanced Validation Options</span>
+                        <ChevronDown className="h-4 w-4 transition-transform" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-3 space-y-3">
+                      <FormDescription>
+                        Configure advanced options for signature validation behavior.
+                      </FormDescription>
+
+                      <FormField
+                        control={form.control}
+                        name="headerCaseSensitive"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm">Case-Sensitive Headers</FormLabel>
+                              <FormDescription className="text-xs">
+                                If enabled, header names are matched case-sensitively. Most providers
+                                are case-insensitive (default).
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="allowEmptyBody"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm">Allow Empty Body</FormLabel>
+                              <FormDescription className="text-xs">
+                                If enabled, allows verification with an empty request body. Disable if
+                                your webhook always requires a body (default: enabled).
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="normalizeUnicode"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm">Normalize Unicode</FormLabel>
+                              <FormDescription className="text-xs">
+                                If enabled, normalizes Unicode strings to NFC form before signing.
+                                Enable if you encounter signature mismatches with Unicode characters
+                                (default: disabled).
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               </div>
             </div>

@@ -986,3 +986,47 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+## Iteration 23 - Fri Jan 23 01:20:27 UTC 2026
+
+### Story: US-026 - Add validation options to trigger form
+
+**Implementation:**
+- Extended triggerFormSchema with three boolean validation option fields: headerCaseSensitive, allowEmptyBody, normalizeUnicode
+- Imported Collapsible, CollapsibleContent, CollapsibleTrigger components from Radix UI
+- Imported ChevronDown icon from lucide-react for collapsible trigger
+- Updated getDefaultValues() to extract validation options from trigger.signatureVerification.validation
+- Set default values matching schema defaults: headerCaseSensitive=false, allowEmptyBody=true, normalizeUnicode=false
+- Used nullish coalescing (??) for default value extraction to handle false values correctly
+- Implemented collapsible "Advanced Validation Options" section:
+  - Positioned after component join configuration and before card close
+  - Collapsible trigger button with ChevronDown icon and full-width layout
+  - Section heading and descriptive FormDescription
+  - Three Switch controls with FormField wrappers:
+    - **Case-Sensitive Headers**: Controls header name matching (default: case-insensitive)
+    - **Allow Empty Body**: Controls empty body validation (default: allowed)
+    - **Normalize Unicode**: Controls Unicode NFC normalization (default: disabled)
+  - Each switch has FormLabel and FormDescription with detailed tooltip text
+  - Switches use rounded border layout for visual consistency
+- Updated onSubmit() to build validation object:
+  - Only includes non-default values to minimize payload size
+  - Uses conditional spread operator to include validation object only if non-empty
+  - Validation object structure matches SignatureValidationOptionsSchema
+- TypeScript compilation passes with no errors
+- UI follows existing patterns with consistent spacing and FormDescription helpers
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (84 insertions)
+
+**Learnings:**
+- Collapsible component provides excellent UX for advanced options that most users won't need
+- Using nullish coalescing (??) instead of || is critical for boolean defaults to handle false values correctly
+- Only including non-default values in payload reduces data transfer and makes config more readable
+- Descriptive tooltips are essential for advanced options - users need to understand the implications
+- Switch control with border and proper spacing provides clear visual affordance
+- Case-sensitive headers: Most webhook providers use case-insensitive headers (HTTP standard)
+- Allow empty body: Some webhooks send headers-only requests for verification challenges
+- Normalize Unicode: Solves edge cases with different Unicode representations (e.g., é vs e + combining accent)
+- Advanced options should be collapsed by default to avoid overwhelming users with configuration
+
+---
+

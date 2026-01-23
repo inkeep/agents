@@ -453,8 +453,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 26,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented with Collapsible component from Radix UI. Advanced Options section includes three Switch controls with descriptive tooltips. Validation options only included in config when non-default values are set. Browser verification pending user testing."
     },
     {
       "id": "US-027",
