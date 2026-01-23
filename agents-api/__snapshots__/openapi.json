@@ -1378,6 +1378,44 @@
         ],
         "type": "object"
       },
+      "CapabilitiesResponseSchema": {
+        "description": "Optional server capabilities and configuration.",
+        "properties": {
+          "sandbox": {
+            "description": "Sandbox execution capabilities (used by Function Tools).",
+            "properties": {
+              "configured": {
+                "description": "Whether a sandbox provider is configured. Required for Function Tools execution.",
+                "type": "boolean"
+              },
+              "provider": {
+                "description": "The configured sandbox provider, if enabled.",
+                "enum": [
+                  "native",
+                  "vercel"
+                ],
+                "type": "string"
+              },
+              "runtime": {
+                "description": "The configured sandbox runtime, if enabled.",
+                "enum": [
+                  "node22",
+                  "typescript"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "configured"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "sandbox"
+        ],
+        "type": "object"
+      },
       "ComponentAssociation": {
         "properties": {
           "createdAt": {
@@ -9248,37 +9286,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "sandbox": {
-                      "properties": {
-                        "configured": {
-                          "type": "boolean"
-                        },
-                        "provider": {
-                          "enum": [
-                            "native",
-                            "vercel"
-                          ],
-                          "type": "string"
-                        },
-                        "runtime": {
-                          "enum": [
-                            "node22",
-                            "typescript"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "configured"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "sandbox"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/CapabilitiesResponseSchema"
                 }
               }
             },
