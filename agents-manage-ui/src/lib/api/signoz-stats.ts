@@ -2907,11 +2907,6 @@ class SigNozStatsAPI {
   private buildToolServerBreakdownPayload(start: number, end: number, projectId?: string) {
     const baseFilters: any[] = [
       {
-        key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: this.tenantId,
-      },
-      {
         key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
         op: OPERATORS.EQUALS,
         value: SPAN_NAMES.AI_TOOL_CALL,
@@ -3009,11 +3004,6 @@ class SigNozStatsAPI {
 
   private buildUniqueToolServersPayload(start: number, end: number, projectId?: string) {
     const items: any[] = [
-      {
-        key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: this.tenantId,
-      },
       {
         key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
         op: OPERATORS.EQUALS,
