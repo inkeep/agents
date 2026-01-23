@@ -839,3 +839,54 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 19 - Fri Jan 23 01:08:48 UTC 2026
+
+## Iteration 20 - $(date -u)
+
+### Story: US-023 - Add signature source configuration to trigger form
+
+**Implementation:**
+- Added signature source selector dropdown with options: header (default), query, body
+- Added signature key input field with dynamic label and placeholder based on selected source:
+  - Header: "Header Name" with example "X-Hub-Signature-256"
+  - Query: "Query Parameter Name" with example "signature"
+  - Body: "JMESPath Expression" with examples like "signature" or "headers.\"X-Signature\""
+- Added optional signature prefix input field for prefix stripping (e.g., "sha256=", "v0=")
+- Added optional signature regex input field for complex extraction patterns
+- Implemented client-side JMESPath validation on blur when source is "body":
+  - Basic syntax validation checks for common errors (e.g., "..", "[[")
+  - Displays inline error message below field
+  - Full validation deferred to backend
+- Implemented client-side regex validation on blur for regex field:
+  - Uses RegExp constructor to validate syntax
+  - Displays inline error message below field
+- Updated triggerFormSchema with four new optional fields:
+  - signatureSource: enum['header', 'query', 'body']
+  - signatureKey: string
+  - signaturePrefix: string
+  - signatureRegex: string
+- Updated getDefaultValues() to extract signature source config from trigger.signatureVerification.signature
+- Updated default values for create mode: source='header', key='', prefix='', regex=''
+- Added helpful FormDescription tooltips explaining each field's purpose
+- Integrated signature source configuration into Authentication card in new "Signature Location" section
+- Added section heading "Signature Location" for visual organization
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (173 insertions)
+
+**Learnings:**
+- Dynamic form field labels and placeholders based on watch() values improve UX by providing context-specific guidance
+- Client-side validation with onBlur handlers provides immediate feedback without backend round-trips
+- Validation error state (useState hooks) must be separate from react-hook-form for custom validation logic
+- Form schema can hold partial configuration that will be assembled into complete signatureVerification object in US-024
+- JMESPath validation in frontend is limited - full validation requires jmespath.compile() which is backend-only
+- Basic heuristic checks (like ".." or "[[") catch common JMESPath syntax errors
+- RegExp constructor validation is straightforward and catches most regex syntax issues
+- Signature source, key, prefix, and regex fields align with SignatureSource schema from US-001
+- Form values will be assembled into complete SignatureVerificationConfig once US-024 (signed components) is implemented
+
+---
+
