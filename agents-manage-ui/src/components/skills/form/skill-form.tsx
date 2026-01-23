@@ -19,7 +19,7 @@ import { defaultValues, type SkillFormData, SkillSchema } from './validation';
 
 interface SkillFormProps {
   initialData?: Skill;
-  onSaved?: () => void;
+  onSuccess?: () => void;
   className?: string;
 }
 

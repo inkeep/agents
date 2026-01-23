@@ -70,7 +70,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                 <TableCell className="align-top">
                   <NextLink
                     // <tr> cannot contain a nested <a>.
-                    href={`/${tenantId}/projects/${projectId}/skills/${skill.id}`}
+                    href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}
                     className="absolute inset-0"
                   />
                   {skill.name}

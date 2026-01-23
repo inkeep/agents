@@ -166,7 +166,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <NextLink href={`/${tenantId}/projects/${projectId}/skills/${skill.id}`}>
+                    <NextLink href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}>
                       <Pencil />
                       Edit
                     </NextLink>

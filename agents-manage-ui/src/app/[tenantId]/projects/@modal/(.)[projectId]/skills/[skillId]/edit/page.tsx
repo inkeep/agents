@@ -1,8 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { FC } from 'react';
-import { SkillForm } from '@/components/skills/form/skill-form';
 import {
   Dialog,
   DialogContent,
@@ -10,22 +8,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { SkillForm } from '@/components/skills/form/skill-form';
 
-const NewSkillModalPage: FC = () => {
+export default function Page(
+  _props: PageProps<'/[tenantId]/projects/[projectId]/skills/[skillId]/edit'>
+) {
   'use memo';
   const router = useRouter();
 
   return (
     <Dialog open onOpenChange={router.back}>
-      <DialogContent className="sm:max-w-max">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create skill</DialogTitle>
-          <DialogDescription className="sr-only">Create a new skill.</DialogDescription>
+          <DialogTitle>Edit skill</DialogTitle>
+          <DialogDescription className="sr-only">Edit skill details.</DialogDescription>
         </DialogHeader>
         <SkillForm onSuccess={router.back} />
       </DialogContent>
     </Dialog>
   );
-};
-
-export default NewSkillModalPage;
+}
