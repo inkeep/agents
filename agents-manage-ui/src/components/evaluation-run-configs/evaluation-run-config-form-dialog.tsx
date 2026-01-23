@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import {
   createEvaluationRunConfigAction,
   updateEvaluationRunConfigAction,
@@ -31,12 +30,13 @@ import {
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import {
-  fetchEvaluationSuiteConfig,
-  fetchEvaluationSuiteConfigEvaluators,
-} from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
-import { fetchEvaluators } from '@/lib/api/evaluators';
+import { useAgentsQuery } from '@/lib/query/agents';
+import {
+  useEvaluationSuiteConfigEvaluatorsQuery,
+  useEvaluationSuiteConfigQuery,
+} from '@/lib/query/evaluation-suite-configs';
+import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
 
 const evaluationRunConfigSchema = z.object({
@@ -95,13 +95,24 @@ export function EvaluationRunConfigFormDialog({
   trigger,
   onSuccess,
 }: EvaluationRunConfigFormDialogProps) {
+  'use memo';
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
+  const suiteConfigId = initialData?.suiteConfigIds?.[0];
+  const { data: evaluators } = useEvaluatorsQuery({ enabled: isOpen });
+  const { data: agents } = useAgentsQuery({ enabled: isOpen });
+  const { data: suiteConfig, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery({
+    suiteConfigId,
+    enabled: isOpen,
+  });
+  const { data: suiteConfigEvaluators, isFetching: suiteConfigEvaluatorsFetching } =
+    useEvaluationSuiteConfigEvaluatorsQuery({
+      suiteConfigId,
+      enabled: isOpen,
+    });
 
   const form = useForm<EvaluationRunConfigFormData>({
     resolver: zodResolver(evaluationRunConfigSchema),
@@ -117,83 +128,49 @@ export function EvaluationRunConfigFormDialog({
     },
   });
 
-  const loadData = useCallback(async () => {
-    try {
-      const [evaluatorsRes, agentsRes] = await Promise.all([
-        fetchEvaluators(tenantId, projectId),
-        getAllAgentsAction(tenantId, projectId),
-      ]);
-      setEvaluators(evaluatorsRes.data || []);
-      if (agentsRes.success && agentsRes.data) {
-        setAgents(agentsRes.data);
-      }
-
-      // If editing and has suite configs, load the first suite config's data
-      if (initialData?.suiteConfigIds && initialData.suiteConfigIds.length > 0) {
-        const suiteConfigId = initialData.suiteConfigIds[0];
-        try {
-          const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
-            fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
-            fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
-          ]);
-
-          const suiteConfig = suiteConfigRes.data;
-          const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
-
-          // Extract agentIds from filters
-          const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
-          const agentIds = filters?.agentIds || [];
-
-          suiteConfigForm.reset({
-            evaluatorIds,
-            agentIds,
-            sampleRate: suiteConfig?.sampleRate ?? undefined,
-          });
-        } catch (err) {
-          console.error('Error loading suite config:', err);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
-    }
-  }, [tenantId, projectId, initialData, suiteConfigForm]);
+  const isFormReady = isOpen && !suiteConfigFetching && !suiteConfigEvaluatorsFetching;
 
   useEffect(() => {
-    if (isOpen) {
-      form.reset(formatFormData(initialData));
-      suiteConfigForm.reset({
-        evaluatorIds: [],
-        agentIds: [],
-        sampleRate: undefined,
-      });
-      loadData();
+    if (!isFormReady || !suiteConfig) {
+      return;
     }
-  }, [isOpen, initialData, form, suiteConfigForm, loadData]);
+    // Extract agentIds from filters
+    const filters = suiteConfig.filters as { agentIds?: string[] } | null;
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+    suiteConfigForm.reset({
+      evaluatorIds: suiteConfigEvaluators.map((e) => e.evaluatorId),
+      agentIds: filters?.agentIds || [],
+      sampleRate: suiteConfig.sampleRate ?? undefined,
+    });
+  }, [isFormReady, suiteConfig, suiteConfigEvaluators, suiteConfigForm]);
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
 
+    form.reset(formatFormData(initialData));
+    suiteConfigForm.reset({
+      evaluatorIds: [],
+      agentIds: [],
+      sampleRate: undefined,
+    });
+  }, [isOpen, initialData, form, suiteConfigForm]);
+
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
+
+  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
+    acc[agent.id] = agent;
+    return acc;
+  }, {});
+  const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
+  const suiteEvaluatorIds = useWatch({ control: suiteConfigForm.control, name: 'evaluatorIds' });
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: EvaluationRunConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const formValid = await form.trigger();
     const suiteConfigFormValid = await suiteConfigForm.trigger();
 
@@ -201,7 +178,9 @@ export function EvaluationRunConfigFormDialog({
       return;
     }
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       // First, create the evaluation suite config
       const suiteConfigData = suiteConfigForm.getValues();
       const filters: Record<string, unknown> | null =
@@ -260,11 +239,15 @@ export function EvaluationRunConfigFormDialog({
           result.error || `Failed to ${runConfigId ? 'update' : 'create'} continuous test`
         );
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -281,7 +264,7 @@ export function EvaluationRunConfigFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-6">
             <GenericInput
               control={form.control}
               name="name"
@@ -330,7 +313,7 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label="Agent Filter"
                       componentLookup={agentLookup}
-                      selectedComponents={suiteConfigForm.watch('agentIds') || []}
+                      selectedComponents={suiteAgentIds}
                       onSelectionChange={(newSelection) => {
                         suiteConfigForm.setValue('agentIds', newSelection);
                       }}
@@ -355,9 +338,7 @@ export function EvaluationRunConfigFormDialog({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FormLabel isRequired>Evaluators</FormLabel>
-                        <Badge variant="count">
-                          {(suiteConfigForm.watch('evaluatorIds') || []).length}
-                        </Badge>
+                        <Badge variant="count">{suiteEvaluatorIds.length}</Badge>
                       </div>
                       <Link
                         href={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
@@ -372,7 +353,7 @@ export function EvaluationRunConfigFormDialog({
                     <ComponentSelector
                       label=""
                       componentLookup={evaluatorLookup}
-                      selectedComponents={suiteConfigForm.watch('evaluatorIds') || []}
+                      selectedComponents={suiteEvaluatorIds}
                       onSelectionChange={(newSelection) => {
                         suiteConfigForm.setValue('evaluatorIds', newSelection);
                       }}

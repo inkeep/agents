@@ -343,8 +343,6 @@ export function EvaluationRunConfigResults({
 
       {selectedSuiteConfig && (
         <SuiteConfigViewDialog
-          tenantId={tenantId}
-          projectId={projectId}
           suiteConfigId={selectedSuiteConfig.id}
           isOpen={selectedSuiteConfig !== undefined}
           onOpenChange={(open) => !open && setSelectedSuiteConfigId(null)}
