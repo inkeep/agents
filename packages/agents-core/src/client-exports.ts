@@ -32,7 +32,6 @@ import {
   ModelSettingsSchema,
   type SignatureSource,
   type SignatureVerificationConfig,
-  SignatureVerificationConfigSchema,
   type SignedComponent,
   type StopWhen,
   StopWhenSchema,

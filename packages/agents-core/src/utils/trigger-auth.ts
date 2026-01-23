@@ -203,7 +203,7 @@ function extractSignature(
   if (signature.regex) {
     try {
       const match = value.match(new RegExp(signature.regex));
-      if (match && match[1]) {
+      if (match?.[1]) {
         value = match[1];
       } else {
         return null;
@@ -264,7 +264,7 @@ function extractComponent(
   if (component.regex) {
     try {
       const match = value.match(new RegExp(component.regex));
-      if (match && match[1]) {
+      if (match?.[1]) {
         value = match[1];
       } else {
         return component.required ? null : '';

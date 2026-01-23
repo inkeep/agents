@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { SignatureVerificationConfig } from '../../validation/schemas';
 import { verifySignatureWithConfig } from '../trigger-auth';
 

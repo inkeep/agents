@@ -406,7 +406,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         return 'Invalid JMESPath syntax';
       }
       return undefined;
-    } catch (error) {
+    } catch {
       return 'Invalid JMESPath expression';
     }
   };
@@ -417,7 +417,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
     try {
       new RegExp(value);
       return undefined;
-    } catch (error) {
+    } catch {
       return 'Invalid regular expression';
     }
   };
@@ -521,7 +521,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       const trimmedMessageTemplate = data.messageTemplate?.trim() || '';
 
       // Build signature verification config
-      let signatureVerification: any = undefined;
+      let signatureVerification: any;
       if (
         data.signingSecretCredentialReferenceId &&
         data.signatureAlgorithm &&
@@ -937,7 +937,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   <FormField
                     control={form.control}
                     name="signatureAlgorithm"
-                    render={({ field }) => (
+                    render={({ field: _field }) => (
                       <FormItem>
                         <FormLabel>HMAC Algorithm</FormLabel>
                         <GenericSelect
@@ -957,7 +957,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   <FormField
                     control={form.control}
                     name="signatureEncoding"
-                    render={({ field }) => (
+                    render={({ field: _field }) => (
                       <FormItem>
                         <FormLabel>Signature Encoding</FormLabel>
                         <GenericSelect
@@ -994,7 +994,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   <FormField
                     control={form.control}
                     name="signatureSource"
-                    render={({ field }) => (
+                    render={({ field: _field }) => (
                       <FormItem>
                         <FormLabel>Signature Source</FormLabel>
                         <GenericSelect
@@ -1166,7 +1166,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                             <FormField
                               control={form.control}
                               name={`signedComponents.${index}.source`}
-                              render={({ field: selectField }) => (
+                              render={({ field: _selectField }) => (
                                 <FormItem>
                                   <FormLabel>Component Source</FormLabel>
                                   <GenericSelect
@@ -1294,7 +1294,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                       <FormField
                         control={form.control}
                         name="joinStrategy"
-                        render={({ field }) => (
+                        render={({ field: _field }) => (
                           <FormItem>
                             <FormLabel>Join Strategy</FormLabel>
                             <GenericSelect
