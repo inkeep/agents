@@ -54,7 +54,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
             ) : undefined
           }
         />
-        <ApiKeysTable apiKeys={apiKeys.data} agentLookup={agentLookup} />
+        <ApiKeysTable apiKeys={apiKeys.data} agentLookup={agentLookup} canUse={canUse} />
       </>
     );
   } catch (error) {
