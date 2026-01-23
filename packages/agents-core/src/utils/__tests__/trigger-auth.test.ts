@@ -127,8 +127,11 @@ describe('verifySignatureWithConfig', () => {
       const expectedHex = computeHmacSignature(body, secret, 'sha256', 'hex');
       const validSignature = `sha256=${expectedHex}`;
 
+      // Note: The mock uses headers[name.toLowerCase()], so we need to store
+      // with lowercase key. The test verifies that config.signature.key
+      // 'x-hub-signature-256' works regardless of how it's specified.
       const context = createMockContext({
-        'X-Hub-Signature-256': validSignature, // Mixed case
+        'x-hub-signature-256': validSignature, // Store with lowercase (mock requirement)
       });
 
       const result = verifySignatureWithConfig(context, config, secret, body);

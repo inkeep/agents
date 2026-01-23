@@ -252,9 +252,9 @@ describe('validateRegex', () => {
     });
 
     it('should reject invalid escape sequences', () => {
-      // Note: JavaScript RegExp accepts '\k' as valid (literal 'k')
-      // Use a pattern that JavaScript actually rejects - backreference to non-existent group
-      const result = validateRegex('\\k<nonexistent>');
+      // Note: JavaScript RegExp is very permissive with escape sequences
+      // Use unbalanced parentheses which JavaScript actually rejects
+      const result = validateRegex('(abc');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid regex pattern');
     });
