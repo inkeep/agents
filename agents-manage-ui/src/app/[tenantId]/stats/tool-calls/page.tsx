@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
-import { useTracesQueryState, type TimeRange } from '@/hooks/use-traces-query-state';
+import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import type { Project } from '@/lib/types/project';
@@ -37,13 +37,8 @@ export default function AllProjectsToolCallsBreakdown({
 
   const backLink = `/${tenantId}/stats`;
 
-  const {
-    timeRange,
-    customStartDate,
-    customEndDate,
-    setTimeRange,
-    setCustomDateRange,
-  } = useTracesQueryState();
+  const { timeRange, customStartDate, customEndDate, setTimeRange, setCustomDateRange } =
+    useTracesQueryState();
 
   const [projectStats, setProjectStats] = useState<
     Array<{
@@ -137,7 +132,12 @@ export default function AllProjectsToolCallsBreakdown({
         // Fetch project stats and tool breakdown
         const [projectData, toolData] = await Promise.all([
           client.getStatsByProject(startTime, endTime, projectIdFilter),
-          client.getToolCallsByTool(startTime, endTime, undefined, selectedProjectId === 'all' ? undefined : selectedProjectId),
+          client.getToolCallsByTool(
+            startTime,
+            endTime,
+            undefined,
+            selectedProjectId === 'all' ? undefined : selectedProjectId
+          ),
         ]);
 
         setProjectStats(projectData);
@@ -165,7 +165,8 @@ export default function AllProjectsToolCallsBreakdown({
   const totalMCPCalls = projectStats.reduce((sum, item) => sum + item.totalMCPCalls, 0);
   const totalToolErrors = toolCalls.reduce((sum, item) => sum + item.errorCount, 0);
   const totalToolCalls = toolCalls.reduce((sum, item) => sum + item.totalCalls, 0);
-  const overallSuccessRate = totalToolCalls > 0 ? ((totalToolCalls - totalToolErrors) / totalToolCalls) * 100 : 100;
+  const overallSuccessRate =
+    totalToolCalls > 0 ? ((totalToolCalls - totalToolErrors) / totalToolCalls) * 100 : 100;
 
   if (error) {
     return (
@@ -345,34 +346,35 @@ export default function AllProjectsToolCallsBreakdown({
               {[...projectStats]
                 .sort((a, b) => b.totalMCPCalls - a.totalMCPCalls)
                 .map((project, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-orange-50/30 dark:bg-orange-900/20 rounded-lg border border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <FolderKanban className="h-5 w-5 text-orange-600" />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium text-foreground">
-                        {projectNameMap.get(project.projectId) || project.projectId}
-                      </span>
-                      {project.projectId !== UNKNOWN_VALUE && projectNameMap.get(project.projectId) && (
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {project.projectId}
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-orange-50/30 dark:bg-orange-900/20 rounded-lg border border-border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FolderKanban className="h-5 w-5 text-orange-600" />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-foreground">
+                          {projectNameMap.get(project.projectId) || project.projectId}
                         </span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {project.totalConversations.toLocaleString()} conversations
-                      </span>
+                        {project.projectId !== UNKNOWN_VALUE &&
+                          projectNameMap.get(project.projectId) && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {project.projectId}
+                            </span>
+                          )}
+                        <span className="text-xs text-muted-foreground">
+                          {project.totalConversations.toLocaleString()} conversations
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-orange-600">
+                        {project.totalMCPCalls.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">MCP calls</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-orange-600">
-                      {project.totalMCPCalls.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground">MCP calls</div>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -496,9 +498,7 @@ export default function AllProjectsToolCallsBreakdown({
                             .map((tool, toolIndex) => {
                               const successfulCalls = tool.totalCalls - tool.errorCount;
                               const successRate =
-                                tool.totalCalls > 0
-                                  ? (successfulCalls / tool.totalCalls) * 100
-                                  : 0;
+                                tool.totalCalls > 0 ? (successfulCalls / tool.totalCalls) * 100 : 0;
                               return (
                                 <div
                                   key={toolIndex}

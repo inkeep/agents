@@ -1,12 +1,22 @@
 'use client';
 
-import { AlertTriangle, Bot, ChevronDown, ChevronRight, FolderKanban, MessageSquare, SparklesIcon, Wrench, Zap } from 'lucide-react';
+import {
+  AlertTriangle,
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  FolderKanban,
+  MessageSquare,
+  SparklesIcon,
+  Wrench,
+  Zap,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '@/components/layout/page-header';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
-import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -38,11 +48,7 @@ const TIME_RANGES = {
   '30d': { label: 'Last 30 days', hours: 24 * 30 },
 } as const;
 
-export default function ProjectsStatsPage({
-  params,
-}: {
-  params: Promise<{ tenantId: string }>;
-}) {
+export default function ProjectsStatsPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = use(params);
   const router = useRouter();
   const {
@@ -101,7 +107,8 @@ export default function ProjectsStatsPage({
       };
     }
 
-    const hoursBack = TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES]?.hours || TIME_RANGES['15d'].hours;
+    const hoursBack =
+      TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES]?.hours || TIME_RANGES['15d'].hours;
     const calculatedStart = currentEndTime - hoursBack * 60 * 60 * 1000;
 
     return {
@@ -127,20 +134,14 @@ export default function ProjectsStatsPage({
     tenantId,
   });
 
-  const {
-    data: activityData,
-    loading: activityLoading,
-  } = useConversationsPerDayAcrossProjects({
+  const { data: activityData, loading: activityLoading } = useConversationsPerDayAcrossProjects({
     startTime,
     endTime,
     projectIds,
     tenantId,
   });
 
-  const {
-    data: projectStats,
-    loading: projectStatsLoading,
-  } = useStatsByProject({
+  const { data: projectStats, loading: projectStatsLoading } = useStatsByProject({
     startTime,
     endTime,
     projectIds,
@@ -452,7 +453,9 @@ export default function ProjectsStatsPage({
                                   >
                                     <div className="flex items-center gap-2">
                                       <Bot className="h-4 w-4 text-muted-foreground" />
-                                      <span className="text-sm text-foreground">{agent.agentId}</span>
+                                      <span className="text-sm text-foreground">
+                                        {agent.agentId}
+                                      </span>
                                     </div>
                                     <div className="text-right">
                                       <span className="text-sm font-medium text-foreground">
@@ -479,4 +482,3 @@ export default function ProjectsStatsPage({
     </div>
   );
 }
-

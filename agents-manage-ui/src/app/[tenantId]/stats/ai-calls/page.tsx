@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  ArrowLeft,
-  Bot,
-  Calendar,
-  Coins,
-  Cpu,
-  FolderKanban,
-  MessageSquare,
-} from 'lucide-react';
+import { ArrowLeft, Bot, Calendar, Coins, Cpu, FolderKanban, MessageSquare } from 'lucide-react';
 import NextLink from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -24,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
-import { useTracesQueryState, type TimeRange } from '@/hooks/use-traces-query-state';
+import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import type { Project } from '@/lib/types/project';
@@ -81,13 +73,8 @@ export default function AllProjectsAICallsBreakdown({
 
   const backLink = `/${tenantId}/stats`;
 
-  const {
-    timeRange,
-    customStartDate,
-    customEndDate,
-    setTimeRange,
-    setCustomDateRange,
-  } = useTracesQueryState();
+  const { timeRange, customStartDate, customEndDate, setTimeRange, setCustomDateRange } =
+    useTracesQueryState();
 
   const [projectStats, setProjectStats] = useState<
     Array<{
@@ -426,34 +413,35 @@ export default function AllProjectsAICallsBreakdown({
               {[...projectStats]
                 .sort((a, b) => b.totalAICalls - a.totalAICalls)
                 .map((project, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-blue-50/30 dark:bg-blue-900/20 rounded-lg border border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <FolderKanban className="h-5 w-5 text-blue-600" />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium text-foreground">
-                        {projectNameMap.get(project.projectId) || project.projectId}
-                      </span>
-                      {project.projectId !== UNKNOWN_VALUE && projectNameMap.get(project.projectId) && (
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {project.projectId}
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-blue-50/30 dark:bg-blue-900/20 rounded-lg border border-border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FolderKanban className="h-5 w-5 text-blue-600" />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-foreground">
+                          {projectNameMap.get(project.projectId) || project.projectId}
                         </span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {project.totalConversations.toLocaleString()} conversations
-                      </span>
+                        {project.projectId !== UNKNOWN_VALUE &&
+                          projectNameMap.get(project.projectId) && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {project.projectId}
+                            </span>
+                          )}
+                        <span className="text-xs text-muted-foreground">
+                          {project.totalConversations.toLocaleString()} conversations
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-blue-600">
+                        {project.totalAICalls.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">AI calls</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600">
-                      {project.totalAICalls.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground">AI calls</div>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -554,10 +542,16 @@ export default function AllProjectsAICallsBreakdown({
                       </span>
                       <div className="flex gap-3 text-xs text-muted-foreground">
                         <span>
-                          Input: <span className="text-blue-600 font-medium">{formatTokenCount(model.inputTokens)}</span>
+                          Input:{' '}
+                          <span className="text-blue-600 font-medium">
+                            {formatTokenCount(model.inputTokens)}
+                          </span>
                         </span>
                         <span>
-                          Output: <span className="text-green-600 font-medium">{formatTokenCount(model.outputTokens)}</span>
+                          Output:{' '}
+                          <span className="text-green-600 font-medium">
+                            {formatTokenCount(model.outputTokens)}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -616,10 +610,16 @@ export default function AllProjectsAICallsBreakdown({
                       </span>
                       <div className="flex gap-3 text-xs text-muted-foreground">
                         <span>
-                          Input: <span className="text-blue-600 font-medium">{formatTokenCount(agent.inputTokens)}</span>
+                          Input:{' '}
+                          <span className="text-blue-600 font-medium">
+                            {formatTokenCount(agent.inputTokens)}
+                          </span>
                         </span>
                         <span>
-                          Output: <span className="text-green-600 font-medium">{formatTokenCount(agent.outputTokens)}</span>
+                          Output:{' '}
+                          <span className="text-green-600 font-medium">
+                            {formatTokenCount(agent.outputTokens)}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -676,17 +676,24 @@ export default function AllProjectsAICallsBreakdown({
                       <span className="text-sm font-medium text-foreground">
                         {projectNameMap.get(project.projectId) || project.projectId}
                       </span>
-                      {project.projectId !== UNKNOWN_VALUE && projectNameMap.get(project.projectId) && (
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {project.projectId}
-                        </span>
-                      )}
+                      {project.projectId !== UNKNOWN_VALUE &&
+                        projectNameMap.get(project.projectId) && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {project.projectId}
+                          </span>
+                        )}
                       <div className="flex gap-3 text-xs text-muted-foreground">
                         <span>
-                          Input: <span className="text-blue-600 font-medium">{formatTokenCount(project.inputTokens)}</span>
+                          Input:{' '}
+                          <span className="text-blue-600 font-medium">
+                            {formatTokenCount(project.inputTokens)}
+                          </span>
                         </span>
                         <span>
-                          Output: <span className="text-green-600 font-medium">{formatTokenCount(project.outputTokens)}</span>
+                          Output:{' '}
+                          <span className="text-green-600 font-medium">
+                            {formatTokenCount(project.outputTokens)}
+                          </span>
                         </span>
                       </div>
                     </div>

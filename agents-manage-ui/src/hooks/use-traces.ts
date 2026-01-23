@@ -389,8 +389,7 @@ export function useStatsByProject(options?: {
       setData(result);
     } catch (err) {
       console.error('Error fetching stats by project:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch stats by project';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch stats by project';
       setError(errorMessage);
     } finally {
       setLoading(false);

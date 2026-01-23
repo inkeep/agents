@@ -530,9 +530,24 @@ class SigNozStatsAPI {
     endTime: number,
     projectId?: string
   ): Promise<{
-    byModel: Array<{ modelId: string; inputTokens: number; outputTokens: number; totalTokens: number }>;
-    byAgent: Array<{ agentId: string; inputTokens: number; outputTokens: number; totalTokens: number }>;
-    byProject: Array<{ projectId: string; inputTokens: number; outputTokens: number; totalTokens: number }>;
+    byModel: Array<{
+      modelId: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+    }>;
+    byAgent: Array<{
+      agentId: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+    }>;
+    byProject: Array<{
+      projectId: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+    }>;
     totals: { inputTokens: number; outputTokens: number; totalTokens: number };
   }> {
     try {
@@ -3428,11 +3443,7 @@ class SigNozStatsAPI {
 
   // ============= Project Overview Payload Builders =============
 
-  private buildProjectOverviewStatsPayload(
-    start: number,
-    end: number,
-    projectIds?: string[]
-  ) {
+  private buildProjectOverviewStatsPayload(start: number, end: number, projectIds?: string[]) {
     const tenantFilter = {
       key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
       op: OPERATORS.EQUALS,
@@ -3791,9 +3802,7 @@ class SigNozStatsAPI {
               ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
             },
             filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
+            groupBy: [{ key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
             expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
             reduceTo: REDUCE_OPERATIONS.MIN,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
