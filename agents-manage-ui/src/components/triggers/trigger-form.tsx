@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowDown, ArrowUp, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -245,6 +245,8 @@ interface TriggerFormProps {
 
 export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: TriggerFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const showAuth = searchParams.get('showAuth') === 'true';
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState(true);
   const [signatureKeyError, setSignatureKeyError] = useState<string | undefined>();
@@ -580,9 +582,12 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
             : trimmedMessageTemplate,
         inputSchema,
         outputTransform,
-        authentication,
-        signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId || undefined,
-        signatureVerification,
+        // Only include auth-related fields when they have actual values
+        ...(headersToSend.length > 0 && { authentication }),
+        ...(data.signingSecretCredentialReferenceId && {
+          signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId,
+        }),
+        ...(signatureVerification && { signatureVerification }),
       };
 
       let result: { success: boolean; error?: string };
@@ -769,15 +774,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           </CardContent>
         </Card>
 
-        {/* Authentication */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication</CardTitle>
-            <CardDescription>
-              Configure header-based authentication for incoming webhook requests. Add one or more
-              headers that must be present and match the expected values.
-            </CardDescription>
-          </CardHeader>
+        {/* Authentication - hidden by default, add ?showAuth=true to URL to show */}
+        {showAuth && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Authentication</CardTitle>
+              <CardDescription>
+                Configure header-based authentication for incoming webhook requests. Add one or more
+                headers that must be present and match the expected values.
+              </CardDescription>
+            </CardHeader>
           <CardContent className="space-y-4">
             {/* Header list */}
             <div className="space-y-3">
@@ -1398,6 +1404,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3">
