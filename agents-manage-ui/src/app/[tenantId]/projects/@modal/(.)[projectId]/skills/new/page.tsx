@@ -17,7 +17,7 @@ const NewSkillModalPage: FC = () => {
 
   return (
     <Dialog open onOpenChange={router.back}>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="sm:max-w-max">
         <DialogHeader>
           <DialogTitle>Create skill</DialogTitle>
           <DialogDescription className="sr-only">Create a new skill.</DialogDescription>

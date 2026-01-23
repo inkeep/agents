@@ -107,7 +107,7 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved, className 
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
+      <form onSubmit={onSubmit} className={cn('space-y-8 max-w-4xl mx-auto', className)}>
         <GenericInput
           control={form.control}
           name="name"
