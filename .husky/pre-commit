@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+# Pre-commit hook: Fast checks on staged files only
+# Target: < 5 seconds
+#
+# Runs lint-staged which:
+# - Formats and lints staged files with Biome
+# - Runs affected tests in agents-api
+
+pnpm lint-staged

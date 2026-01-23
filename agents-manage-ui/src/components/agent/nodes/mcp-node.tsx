@@ -7,8 +7,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
-import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
-import { getCurrentToolPoliciesForNode } from '@/lib/utils/orphaned-tools-detector';
+import {
+  getCurrentSelectedToolsForNode,
+  getCurrentToolPoliciesForNode,
+} from '@/lib/utils/orphaned-tools-detector';
 import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
@@ -31,7 +33,7 @@ export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-export const TruncateToolBadge: FC<{
+const TruncateToolBadge: FC<{
   label: string;
   needsApproval?: boolean;
 }> = ({ label, needsApproval }) => {

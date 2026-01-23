@@ -1388,7 +1388,8 @@ export class Agent {
           | null
           | undefined;
         const needsApproval =
-          !!toolPolicies?.['*']?.needsApproval || !!toolPolicies?.[functionToolDef.name]?.needsApproval;
+          !!toolPolicies?.['*']?.needsApproval ||
+          !!toolPolicies?.[functionToolDef.name]?.needsApproval;
 
         const aiTool = tool({
           description: functionToolDef.description || functionToolDef.name,
