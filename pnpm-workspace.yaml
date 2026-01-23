@@ -1,4 +1,5 @@
 packages:
+  - inkeep-slack-app
   - agents-api
   - agents-manage-ui
   - agents-cli

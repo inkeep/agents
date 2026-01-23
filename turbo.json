@@ -59,6 +59,15 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
     },
+    "@inkeep/slack-app#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "chat-widget#test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     "test:watch": {
       "cache": false,
       "persistent": true

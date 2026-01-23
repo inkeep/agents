@@ -20,6 +20,7 @@ export default defineConfig({
       './agents-manage-ui',
       './packages/agents-core',
       './packages/agents-sdk',
+      './inkeep-slack-app',
     ],
 
     // CI-specific test settings for stability

@@ -1,0 +1,98 @@
+{
+  "_metadata": {
+    "major_version": 2,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "Inkeep",
+    "description": "Trigger your Inkeep agents directly from Slack.",
+    "background_color": "#1a1a2e",
+    "long_description": "Inkeep brings AI-powered assistance directly into your Slack workspace. Ask questions, get answers from your knowledge base, and automate workflows."
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": false,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Inkeep Slack Agent",
+      "always_online": true
+    },
+    "shortcuts": [
+      {
+        "name": "Trigger Default Inkeep Agent",
+        "type": "global",
+        "callback_id": "trigger_inkeep",
+        "description": "Trigger the default Inkeep agent"
+      },
+      {
+        "name": "Select Agent",
+        "type": "message",
+        "callback_id": "select_agent",
+        "description": "Select an agent to use with this message"
+      }
+    ],
+    "slash_commands": [
+      {
+        "command": "/trigger",
+        "description": "Trigger the default Inkeep agent",
+        "usage_hint": "[trigger <question>]",
+        "should_escape": false,
+        "url": "https://victor-slack.ngrok.app/api/slack/events"
+      },
+      {
+        "command": "/inkeep",
+        "description": "Chat with Inkeep agents and manage your connection",
+        "usage_hint": "[login | logout | default | help | status]",
+        "should_escape": false,
+        "url": "https://victor-slack.ngrok.app/api/slack/events"
+      }
+    ]
+  },
+  "oauth_config": {
+    "redirect_urls": [
+      "https://api.nango.dev/oauth/callback"
+    ],
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "chat:write.public",
+        "commands",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "users:read",
+        "users:read.email"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_home_opened",
+        "app_mention",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim"
+      ],
+      "request_url": "https://victor-slack.ngrok.app/api/slack/events"
+    },
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://victor-slack.ngrok.app/api/slack/events"
+    },
+    "org_deploy_enabled": true,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}
