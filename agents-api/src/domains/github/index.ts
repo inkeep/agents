@@ -23,3 +23,10 @@ export {
   type JwksError,
   type GetJwkResult,
 } from './jwks';
+export {
+  validateOidcToken,
+  type GitHubOidcClaims,
+  type ValidateTokenResult,
+  type ValidateTokenError,
+  type ValidateOidcTokenResult,
+} from './oidcToken';

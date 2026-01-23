@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { getGitHubAppConfig, isGitHubAppConfigured } from '../config';
+import { validateOidcToken } from '../oidcToken';
 import { getLogger } from '../../../logger';
 
 const app = new OpenAPIHono();
@@ -88,7 +89,7 @@ const tokenExchangeRoute = createRoute({
 });
 
 app.openapi(tokenExchangeRoute, async (c) => {
-  const _body = c.req.valid('json');
+  const body = c.req.valid('json');
 
   logger.info({}, 'Processing token exchange request');
 
@@ -109,14 +110,32 @@ app.openapi(tokenExchangeRoute, async (c) => {
   const config = getGitHubAppConfig();
   logger.info({ appId: config.appId }, 'Using GitHub App for token exchange');
 
-  // TODO: Implement token validation and exchange in subsequent stories
-  // For now, return a placeholder to establish the route structure
+  const validationResult = await validateOidcToken(body.oidc_token);
+  if (!validationResult.success) {
+    const errorType = validationResult.errorType;
+    logger.warn({ errorType, message: validationResult.message }, 'OIDC token validation failed');
+
+    return c.json(
+      {
+        type: `https://api.inkeep.com/problems/token-validation-${errorType.replace(/_/g, '-')}`,
+        title: 'Token Validation Failed',
+        status: 401,
+        detail: validationResult.message,
+      },
+      401
+    );
+  }
+
+  const { claims } = validationResult;
+  logger.info({ repository: claims.repository, actor: claims.actor }, 'OIDC token validated successfully');
+
+  // TODO: Implement installation lookup and token generation in subsequent stories
 
   return c.json(
     {
       token: 'placeholder',
       expires_at: new Date(Date.now() + 3600000).toISOString(),
-      repository: 'placeholder/repo',
+      repository: claims.repository,
       installation_id: 0,
     },
     200
