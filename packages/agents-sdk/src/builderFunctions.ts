@@ -7,6 +7,10 @@ import {
   SignatureVerificationConfigSchema,
   type TriggerApiInsert,
 } from '@inkeep/agents-core';
+import {
+  validateJMESPath,
+  validateRegex,
+} from '@inkeep/agents-core/utils/signature-validation';
 import { Agent } from './agent';
 import { ArtifactComponent } from './artifact-component';
 import type {
@@ -478,16 +482,63 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
 export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }): Trigger {
   // Validate signatureVerification config if present
   if (config.signatureVerification !== undefined && config.signatureVerification !== null) {
+    const triggerName = config.name || 'unknown';
+
     try {
       SignatureVerificationConfigSchema.parse(config.signatureVerification);
     } catch (error) {
       if (error instanceof Error) {
-        const triggerName = config.name || 'unknown';
         throw new Error(
           `Invalid signatureVerification config in trigger '${triggerName}': ${error.message}`
         );
       }
       throw error;
+    }
+
+    // Additional validation for regex and JMESPath patterns
+    const sigConfig = config.signatureVerification as SignatureVerificationConfig;
+
+    // Validate signature.regex if present
+    if (sigConfig.signature.regex) {
+      const result = validateRegex(sigConfig.signature.regex);
+      if (!result.valid) {
+        throw new Error(
+          `Invalid signatureVerification config in trigger '${triggerName}': ${result.error}`
+        );
+      }
+    }
+
+    // Validate signature.key as JMESPath if source is 'body'
+    if (sigConfig.signature.source === 'body' && sigConfig.signature.key) {
+      const result = validateJMESPath(sigConfig.signature.key);
+      if (!result.valid) {
+        throw new Error(
+          `Invalid signatureVerification config in trigger '${triggerName}': ${result.error}`
+        );
+      }
+    }
+
+    // Validate each signed component
+    for (const component of sigConfig.signedComponents) {
+      // Validate component.regex if present
+      if (component.regex) {
+        const result = validateRegex(component.regex);
+        if (!result.valid) {
+          throw new Error(
+            `Invalid signatureVerification config in trigger '${triggerName}': ${result.error}`
+          );
+        }
+      }
+
+      // Validate component.key as JMESPath if source is 'body'
+      if (component.source === 'body' && component.key) {
+        const result = validateJMESPath(component.key);
+        if (!result.valid) {
+          throw new Error(
+            `Invalid signatureVerification config in trigger '${triggerName}': ${result.error}`
+          );
+        }
+      }
     }
   }
 

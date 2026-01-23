@@ -285,7 +285,7 @@ describe('trigger builder function', () => {
       encoding: 'hex',
       signature: {
         source: 'body',
-        key: 'invalid..jmespath', // Invalid JMESPath syntax
+        key: '[invalid', // Invalid JMESPath syntax (unclosed bracket)
       },
       signedComponents: [
         {
