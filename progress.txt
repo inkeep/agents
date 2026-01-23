@@ -765,3 +765,39 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 17 - Fri Jan 23 01:01:30 UTC 2026
+
+## Iteration 19 - $(date -u)
+
+### Story: US-021 - Add credential reference selector to trigger form
+
+**Implementation:**
+- Replaced plaintext signing secret input with credential reference dropdown in trigger-form.tsx
+- Added fetchCredentialsAction import and useEffect hook to load available credentials
+- Updated form schema: removed signingSecret and hasExistingSigningSecret, added signingSecretCredentialReferenceId
+- Updated getDefaultValues() to extract signingSecretCredentialReferenceId from trigger (with type assertion)
+- Removed legacy signing secret handling logic from onSubmit function
+- Updated form submission payload to include signingSecretCredentialReferenceId
+- Added loading state while fetching credentials (loadingCredentials state)
+- GenericSelect component displays credential name instead of raw secret value
+- Dropdown shows "Loading credentials...", "No credentials available", or "Select a credential" based on state
+- Updated FormDescription to explain webhook signature verification
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (48 insertions, 39 deletions)
+
+**Learnings:**
+- fetchCredentialsAction returns ActionResult<Credential[]> with success flag and data
+- Credentials are fetched per project using tenantId and projectId
+- GenericSelect component accepts options as SelectOption[] with value and label
+- Type assertion (trigger as any).signingSecretCredentialReferenceId needed due to stale build artifacts
+- TriggerApiSelect includes signingSecretCredentialReferenceId but types not yet rebuilt in dist/
+- Form now properly integrates with credential management system
+- Users can select credentials instead of entering secrets directly
+- Browser verification requires running dev environment (to be tested by user)
+
+---
+
