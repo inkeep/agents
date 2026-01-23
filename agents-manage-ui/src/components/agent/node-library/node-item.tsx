@@ -15,8 +15,10 @@ interface NodeItemProps {
 
 export function NodeItem({ node }: NodeItemProps) {
   const { type, name, Icon, disabled, disabledTooltip } = node;
-  const onDragStart = (event: React.DragEvent<HTMLDivElement>, node: NodeItem) => {
-    event.dataTransfer.setData('application/reactflow', JSON.stringify(node));
+  const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    // Only store the minimal serializable data required by the drop handler.
+    // `node` can include React elements (e.g. disabledTooltip) which are not JSON-serializable in dev builds.
+    event.dataTransfer.setData('application/reactflow', JSON.stringify({ type }));
     event.dataTransfer.effectAllowed = 'move';
   };
   const content = (
@@ -35,7 +37,7 @@ export function NodeItem({ node }: NodeItemProps) {
           : 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-input/50 cursor-grab active:cursor-grabbing',
       ].join(' ')}
       draggable={!disabled}
-      onDragStart={(e) => onDragStart(e, node)}
+      onDragStart={onDragStart}
     >
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-muted-foreground" />

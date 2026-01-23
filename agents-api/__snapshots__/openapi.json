@@ -9239,6 +9239,55 @@
         ]
       }
     },
+    "/manage/capabilities": {
+      "get": {
+        "description": "Get information about optional server-side capabilities and configuration.",
+        "operationId": "capabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sandbox": {
+                      "properties": {
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "provider": {
+                          "enum": [
+                            "native",
+                            "vercel"
+                          ],
+                          "type": "string"
+                        },
+                        "runtime": {
+                          "enum": [
+                            "node22",
+                            "typescript"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "configured"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "sandbox"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Server capabilities"
+          }
+        },
+        "summary": "Get server capabilities"
+      }
+    },
     "/manage/oauth/callback": {
       "get": {
         "description": "Handles OAuth authorization codes for MCP tools and completes the authentication flow",
