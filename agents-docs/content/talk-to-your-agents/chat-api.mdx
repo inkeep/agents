@@ -11,7 +11,10 @@ keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
 This guide shows how to call your agent directly over HTTP and stream responses using the Vercel AI SDK data stream format. It covers the exact endpoint, headers, request body, and the event stream response you should expect.
 
 <Tip>
-  If you are building a React UI, consider our prebuilt components under [React UI Components](/talk-to-your-agents/react/chat-button) or [Vercel AI Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) headless primatives. This page is for the low-level streaming API.
+  If you are building a React UI, consider our prebuilt components under [React
+  UI Components](/talk-to-your-agents/react/chat-button) or [Vercel AI
+  Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) headless primatives.
+  This page is for the low-level streaming API.
 </Tip>
 
 ## Endpoint
@@ -44,7 +47,6 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`content`** — Can be a string or an object with `parts` for multi-part content
 - **`conversationId`** — Optional; server generates one if omitted
 
-
 ### Optional Headers
 
 - **`x-emit-operations`** — Set to `true` to include detailed data operations in the response stream. Useful for debugging and monitoring agent behavior. See [Data Operations](/typescript-sdk/data-operations) for details.
@@ -74,15 +76,78 @@ The response is an SSE stream of JSON events compatible with the Vercel AI SDK U
 ### Event Types
 
 #### Text Streaming Events
+
 - **`text-start`** — Indicates a new text segment is starting
 - **`text-delta`** — Carries the text content delta for the current segment
 - **`text-end`** — Marks the end of the current text segment
 
 #### Data Events
+
 - **`data-component`** — Structured UI data emitted by the agent (for rich UIs)
 - **`data-artifact`** — Artifact data emitted by tools/agents (documents, files, saved results)
 - **`data-operation`** — Low-level operational events (agent lifecycle, completion, errors)
 - **`data-summary`** — AI-generated status updates with user-friendly labels and contextual details
+
+#### Tool Events
+
+- **`tool-input-start`**, **`tool-input-delta`**, **`tool-input-available`** — Tool input streaming
+- **`tool-approval-request`** — Emitted when a tool requires user approval before execution
+- **`tool-output-available`**, **`tool-output-denied`** — Tool output (including approval denial)
+
+### Tool approval
+
+If a tool is configured with `needsApproval: true`, the run pauses and the stream includes a `tool-approval-request` event:
+
+```json
+{
+  "type": "tool-approval-request",
+  "toolCallId": "call_abc123def456",
+  "approvalId": "aitxt-call_abc123def456"
+}
+```
+
+To continue the run, your client must approve/deny the pending tool call. See [Tool approvals](/typescript-sdk/tools/tool-approvals).
+
+### Tool input & output events
+
+Depending on UI needs, the stream may include tool input and tool output events.
+
+```json
+{
+  "type": "tool-input-start",
+  "toolCallId": "call_abc123def456",
+  "toolName": "get_coordinates"
+}
+```
+
+```json
+{
+  "type": "tool-input-delta",
+  "toolCallId": "call_abc123def456",
+  "inputTextDelta": "{\"address\":\"San"
+}
+```
+
+```json
+{
+  "type": "tool-input-available",
+  "toolCallId": "call_abc123def456",
+  "toolName": "get_coordinates",
+  "input": { "address": "San Francisco" }
+}
+```
+
+```json
+{
+  "type": "tool-output-available",
+  "toolCallId": "call_abc123def456",
+  "output": { "lat": 37.7749, "lng": -122.4194 }
+}
+```
+
+```json
+{ "type": "tool-output-denied", "toolCallId": "call_abc123def456" }
+```
 
 ### Example Stream (abbreviated)
 
@@ -109,6 +174,7 @@ data: {"type":"data-artifact","data":{"artifact_id":"art_abc","task_id":"task_xy
 ### Data Event Details
 
 #### `data-operation` Events
+
 Low-level operational events with technical context. Common types include:
 
 - **`agent_initializing`** — The agent runtime is starting
@@ -117,7 +183,13 @@ Low-level operational events with technical context. Common types include:
 - **`error`** — Error information (also emitted as a top-level `error` event)
 
 ```json
-{"type":"data-operation","data":{"type":"completion","ctx":{"agent":"search-agent","iteration":1}}}
+{
+  "type": "data-operation",
+  "data": {
+    "type": "completion",
+    "ctx": { "agent": "search-agent", "iteration": 1 }
+  }
+}
 ```
 
 #### `data-summary` Events
@@ -128,21 +200,44 @@ AI-generated status updates designed for end-user consumption. Structure:
 - **`details`** — Optional structured/unstructured context data
 
 ```json
-{"type":"data-summary","data":{"label":"Processing search results","details":{"summary":"Found 12 relevant documents","itemsProcessed":12,"status":"analyzing"}}}
+{
+  "type": "data-summary",
+  "data": {
+    "label": "Processing search results",
+    "details": {
+      "summary": "Found 12 relevant documents",
+      "itemsProcessed": 12,
+      "status": "analyzing"
+    }
+  }
+}
 ```
 
 #### `data-artifact` Events
+
 Saved documents, files, or structured results from tool executions:
 
 ```json
-{"type":"data-artifact","data":{"artifact_id":"art_123","task_id":"task_456","summary":{"title":"Weather Report","type":"document"}}}
+{
+  "type": "data-artifact",
+  "data": {
+    "artifact_id": "art_123",
+    "task_id": "task_456",
+    "summary": { "title": "Weather Report", "type": "document" }
+  }
+}
 ```
 
 #### `data-component` Events
+
 Structured UI data for rich interface components:
 
 ```json
-{"type":"data-component","id":"comp_123","data":{"type":"chart","title":"Sales Data","chartData":[1,2,3]}}
+{
+  "type": "data-component",
+  "id": "comp_123",
+  "data": { "type": "chart", "title": "Sales Data", "chartData": [1, 2, 3] }
+}
 ```
 
 ### Text Streaming Behavior
@@ -154,6 +249,7 @@ Structured UI data for rich interface components:
 ## Error Responses
 
 ### Streamed Errors
+
 Errors are now delivered as `data-operation` events with unified structure:
 
 ```json
@@ -171,6 +267,7 @@ Errors are now delivered as `data-operation` events with unified structure:
 ```
 
 ### Non-Streaming Errors
+
 Validation failures and other errors return JSON with an appropriate HTTP status code.
 
 ## HTTP Status Codes
@@ -189,5 +286,6 @@ Validation failures and other errors return JSON with an appropriate HTTP status
   - `/run/v1/mcp` → MCP JSON-RPC endpoint
 
 <Note>
-  To test quickly without a UI, use `curl -N` or a tool that supports Server-Sent Events.
+  To test quickly without a UI, use `curl -N` or a tool that supports
+  Server-Sent Events.
 </Note>

@@ -128,6 +128,11 @@ const customHeadersTool = mcpTool({
 
 ## Selecting Tools
 
+<Tip>
+  If some tools are sensitive (delete, write, payments, etc.), you can require explicit user approval before they run. See
+  [Tool approvals](/typescript-sdk/tools/tool-approvals).
+</Tip>
+
 ### Selective Tool Activation
 
 Enable only specific tools from a server using MCP Server tool names in the `activeTools` field.

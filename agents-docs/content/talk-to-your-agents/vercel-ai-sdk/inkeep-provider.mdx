@@ -119,6 +119,11 @@ for await (const event of result.fullStream) {
 }
 ```
 
+<Note>
+  Tool approvals are interactive: when a tool requires approval, you must approve/deny the pending tool call for the run to continue.
+  For end-user UIs, prefer the [Chat API](/talk-to-your-agents/chat-api) and implement [Tool approvals](/typescript-sdk/tools/tool-approvals).
+</Note>
+
 ### Supported Stream Events
 
 **Text events** (always emitted):
