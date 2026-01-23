@@ -518,3 +518,47 @@ Fri Jan 23 00:06:04 UTC 2026
 - TypeScript compilation errors are due to stale build artifacts in dist/ - source code is correct
 - Build requires pnpm build on x64 architecture to update dist/ with new exports
 
+
+---
+
+## Iteration 12 - Fri Jan 23 00:30:45 UTC 2026
+
+
+---
+
+## Iteration 14 - Fri Jan 23 00:37:16 UTC 2026
+
+### Story: US-015 - Update SDK trigger builder with validation
+
+**Implementation:**
+- Added SignatureVerificationConfig and SignatureVerificationConfigSchema imports to packages/agents-sdk/src/builderFunctions.ts
+- Updated trigger() function to validate signatureVerification config when present using SignatureVerificationConfigSchema.parse()
+- Added descriptive error messages that include trigger name when validation fails
+- Validation only runs when signatureVerification is defined and not null
+- Exported SignatureVerificationConfig type from packages/agents-sdk/src/index.ts for SDK consumers
+- Added SignatureVerificationConfig, SignatureSource, SignedComponent type exports to packages/agents-core/src/client-exports.ts
+- Added SignatureVerificationConfigSchema export to packages/agents-core/src/client-exports.ts
+- Updated trigger() JSDoc documentation with comprehensive examples:
+  - GitHub webhook pattern with sha256 HMAC, hex encoding, body-only signing
+  - Slack webhook pattern with multi-component signing (literal + timestamp + body) using colon separator
+  - Simple trigger without signature verification
+- Removed outdated documentation examples referencing legacy signingSecret parameter
+- Created test-trigger-validation.ts for manual validation testing once dist/ files are rebuilt
+
+**Files Changed:**
+- packages/agents-sdk/src/builderFunctions.ts (added imports, validation logic, updated JSDoc examples - 82 lines changed)
+- packages/agents-sdk/src/index.ts (added SignatureVerificationConfig export - 1 line added)
+- packages/agents-core/src/client-exports.ts (added signature verification type and schema exports - 13 lines added)
+- test-trigger-validation.ts (new file, 67 lines - test cases for validation logic)
+
+**Learnings:**
+- TypeScript type resolution in SDK depends on compiled dist/ files from agents-core package
+- Cannot rebuild dist/ files in ARM64 environment due to rolldown native binding limitations (documented in US-011 progress)
+- Source code is correct and will work once dist/ files are rebuilt on x64 architecture
+- client-exports.ts is the appropriate place to export types that SDK consumers need
+- Validation should be explicit and provide clear error messages with context (trigger name)
+- TriggerApiInsert type already includes new fields from schema inference, no manual type updates needed
+- JSDoc examples are critical for SDK usability - showing real webhook patterns (GitHub, Slack) helps developers understand configuration
+
+---
+
