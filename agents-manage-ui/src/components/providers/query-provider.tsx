@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  MutationCache,
   QueryCache,
   QueryClient,
   type QueryClientConfig,
@@ -20,6 +21,14 @@ const QUERY_CONFIG: QueryClientConfig = {
   queryCache: new QueryCache({
     onError(error, query) {
       const errorMessage = error.message || (query.meta?.defaultError as string | undefined);
+      if (errorMessage) {
+        toast.error(errorMessage);
+      }
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError(error, _, _2, mutation) {
+      const errorMessage = error.message || (mutation.meta?.defaultError as string | undefined);
       if (errorMessage) {
         toast.error(errorMessage);
       }
