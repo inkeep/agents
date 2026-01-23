@@ -96,7 +96,9 @@ describe('validateJMESPath', () => {
     });
 
     it('should reject invalid syntax', () => {
-      const result = validateJMESPath('body..user');
+      // Note: JMESPath library may accept some patterns that seem invalid
+      // Using an expression with unmatched quotes which is definitely invalid
+      const result = validateJMESPath('body."unclosed');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid JMESPath');
     });
@@ -108,7 +110,9 @@ describe('validateJMESPath', () => {
     });
 
     it('should reject invalid function calls', () => {
-      const result = validateJMESPath('invalid_function(items)');
+      // Note: JMESPath compile() accepts unknown function names - errors occur at evaluation time
+      // Use a syntactically invalid function call instead
+      const result = validateJMESPath('length(');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid JMESPath');
     });
@@ -234,7 +238,9 @@ describe('validateRegex', () => {
     });
 
     it('should reject invalid quantifiers', () => {
-      const result = validateRegex('a{,}');
+      // Note: JavaScript RegExp accepts 'a{,}' as valid (literal match)
+      // Use a pattern that JavaScript actually rejects
+      const result = validateRegex('a{2,1}'); // min > max is invalid
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid regex pattern');
     });
@@ -246,7 +252,9 @@ describe('validateRegex', () => {
     });
 
     it('should reject invalid escape sequences', () => {
-      const result = validateRegex('\\k');
+      // Note: JavaScript RegExp accepts '\k' as valid (literal 'k')
+      // Use a pattern that JavaScript actually rejects - backreference to non-existent group
+      const result = validateRegex('\\k<nonexistent>');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid regex pattern');
     });

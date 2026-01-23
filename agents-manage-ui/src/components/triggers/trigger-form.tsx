@@ -330,9 +330,13 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
     // Determine transform type from existing data
     let transformType: 'none' | 'object_transformation' | 'jmespath' = 'none';
-    if (trigger.outputTransform?.jmespath) {
+    const outputTransform = trigger.outputTransform as
+      | { jmespath?: string; objectTransformation?: Record<string, string> }
+      | null
+      | undefined;
+    if (outputTransform?.jmespath) {
       transformType = 'jmespath';
-    } else if (trigger.outputTransform?.objectTransformation) {
+    } else if (outputTransform?.objectTransformation) {
       transformType = 'object_transformation';
     }
 
@@ -347,9 +351,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       messageTemplate: trigger.messageTemplate || '',
       inputSchemaJson: trigger.inputSchema ? JSON.stringify(trigger.inputSchema, null, 2) : '',
       transformType,
-      jmespath: trigger.outputTransform?.jmespath || '',
-      objectTransformationJson: trigger.outputTransform?.objectTransformation
-        ? JSON.stringify(trigger.outputTransform.objectTransformation, null, 2)
+      jmespath: outputTransform?.jmespath || '',
+      objectTransformationJson: outputTransform?.objectTransformation
+        ? JSON.stringify(outputTransform.objectTransformation, null, 2)
         : '',
       authHeaders,
       signingSecretCredentialReferenceId:

@@ -129,18 +129,16 @@ export const triggers = pgTable(
     ...agentScoped,
     ...uiProperties,
     enabled: boolean('enabled').notNull().default(true),
-    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>().default(null),
-    outputTransform: jsonb('output_transform')
-      .$type<{
-        jmespath?: string;
-        objectTransformation?: Record<string, string>;
-      }>()
-      .default(null),
-    messageTemplate: text('message_template').default(null),
-    authentication: jsonb('authentication').$type<unknown>().default(null),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown> | null>(),
+    outputTransform: jsonb('output_transform').$type<{
+      jmespath?: string;
+      objectTransformation?: Record<string, string>;
+    } | null>(),
+    messageTemplate: text('message_template'),
+    authentication: jsonb('authentication').$type<unknown>(),
     signingSecretCredentialReferenceId: varchar('signing_secret_credential_reference_id', {
       length: 256,
-    }).default(null),
+    }),
     signatureVerification: jsonb('signature_verification')
       .$type<SignatureVerificationConfig | null>()
       .default(null),

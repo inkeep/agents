@@ -243,13 +243,15 @@ function extractComponent(
     value = c.req.header(headerKey);
   } else if (component.source === 'body') {
     if (!component.key) {
-      return component.required ? null : '';
-    }
-    try {
-      const bodyData = JSON.parse(body);
-      value = jmespath.search(bodyData, component.key) as string | undefined;
-    } catch {
-      return component.required ? null : '';
+      // No key means use the entire raw body
+      value = body;
+    } else {
+      try {
+        const bodyData = JSON.parse(body);
+        value = jmespath.search(bodyData, component.key) as string | undefined;
+      } catch {
+        return component.required ? null : '';
+      }
     }
   }
 

@@ -24,7 +24,7 @@ import { Project } from './project';
 import { StatusComponent } from './status-component';
 import { SubAgent } from './subAgent';
 import { Tool } from './tool';
-import { Trigger } from './trigger';
+import { Trigger, type TriggerConfig } from './trigger';
 import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
@@ -539,5 +539,6 @@ export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }):
     }
   }
 
-  return new Trigger(config);
+  // Cast is needed because TriggerApiInsert has broader inputSchema type from Drizzle
+  return new Trigger(config as TriggerConfig);
 }

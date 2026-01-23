@@ -13,12 +13,14 @@ import type {
   SignatureVerificationConfig,
 } from '@inkeep/agents-core';
 import {
+  createKeyChainStore,
   createMessage,
   createOrGetConversation,
   createTriggerInvocation,
   generateId,
   getConversationId,
   getCredentialReference,
+  getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
   interpolateTemplate,
@@ -194,6 +196,7 @@ async function resolveSigningSecret(params: {
   // Check cache first
   const cached = credentialCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
+    logger.debug({ cacheKey }, 'Returning cached signing secret');
     return cached.secret;
   }
 
@@ -210,16 +213,101 @@ async function resolveSigningSecret(params: {
     return null;
   }
 
-  // For now, we expect the secret to be stored in retrievalParams.key
-  // This matches the pattern used in credential-store-utils.ts
-  const secret = credentialRef.retrievalParams?.key as string | undefined;
+  logger.debug(
+    {
+      tenantId,
+      projectId,
+      credentialReferenceId,
+      credentialStoreId: credentialRef.credentialStoreId,
+      credentialStoreType: credentialRef.type,
+      retrievalParams: credentialRef.retrievalParams,
+    },
+    'Found credential reference, fetching from credential store'
+  );
+
+  // Get the lookup key from retrieval params
+  const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
+    retrievalParams: credentialRef.retrievalParams ?? {},
+    credentialStoreType: credentialRef.type as 'keychain' | 'nango' | 'memory',
+  });
+
+  if (!lookupKey) {
+    logger.warn(
+      {
+        tenantId,
+        projectId,
+        credentialReferenceId,
+        retrievalParams: credentialRef.retrievalParams,
+      },
+      'Could not determine lookup key from credential reference'
+    );
+    return null;
+  }
+
+  logger.debug(
+    { credentialStoreId: credentialRef.credentialStoreId, lookupKey },
+    'Fetching secret from credential store'
+  );
+
+  // Create the credential store and fetch the secret
+  // For now we support keychain store - the credential store registry should be used for more flexibility
+  let secret: string | null = null;
+
+  if (
+    credentialRef.type === 'keychain' ||
+    credentialRef.credentialStoreId?.startsWith('keychain')
+  ) {
+    const keychainStore = createKeyChainStore(
+      credentialRef.credentialStoreId ?? 'keychain-default'
+    );
+    secret = await keychainStore.get(lookupKey);
+  } else {
+    logger.warn(
+      {
+        credentialStoreType: credentialRef.type,
+        credentialStoreId: credentialRef.credentialStoreId,
+      },
+      'Unsupported credential store type for signing secret'
+    );
+    return null;
+  }
+
+  logger.info(
+    {
+      credentialStoreId: credentialRef.credentialStoreId,
+      lookupKey,
+      secretFound: !!secret,
+      secretLength: secret?.length,
+      secretPreview: secret ? `${secret.substring(0, 4)}...` : null,
+    },
+    'Resolved signing secret from credential store'
+  );
 
   if (!secret) {
     logger.warn(
-      { tenantId, projectId, credentialReferenceId },
-      'No secret found in credential reference retrievalParams'
+      { tenantId, projectId, credentialReferenceId, lookupKey },
+      'No secret found in credential store'
     );
     return null;
+  }
+
+  // Handle case where secret is stored as JSON (e.g., {"access_token": "actual-secret"})
+  if (secret.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(secret);
+      // Try common fields: access_token, secret, value, token
+      const extractedSecret =
+        parsed.access_token || parsed.secret || parsed.value || parsed.token || parsed.key;
+      if (extractedSecret && typeof extractedSecret === 'string') {
+        logger.debug(
+          { lookupKey, extractedFrom: 'json' },
+          'Extracted signing secret from JSON credential format'
+        );
+        secret = extractedSecret;
+      }
+    } catch {
+      // Not valid JSON, use as-is
+    }
   }
 
   // Cache the secret with TTL

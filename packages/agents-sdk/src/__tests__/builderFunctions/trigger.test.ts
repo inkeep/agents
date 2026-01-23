@@ -105,8 +105,9 @@ describe('trigger builder function', () => {
     expect(config.name).toBe('Slack Webhook');
     expect(config.signingSecretCredentialReferenceId).toBe('slack-signing-secret');
     expect(config.signatureVerification).toEqual(signatureVerification);
-    expect(config.signatureVerification?.signedComponents).toHaveLength(3);
-    expect(config.signatureVerification?.componentJoin.separator).toBe(':');
+    const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+    expect(sigVerification?.signedComponents).toHaveLength(3);
+    expect(sigVerification?.componentJoin.separator).toBe(':');
   });
 
   it('should create a trigger with JMESPath body extraction', () => {
@@ -149,9 +150,10 @@ describe('trigger builder function', () => {
     });
 
     const config = testTrigger.getConfig();
-    expect(config.signatureVerification?.signature.source).toBe('body');
-    expect(config.signatureVerification?.signature.key).toBe('signature');
-    expect(config.signatureVerification?.encoding).toBe('base64');
+    const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+    expect(sigVerification?.signature.source).toBe('body');
+    expect(sigVerification?.signature.key).toBe('signature');
+    expect(sigVerification?.encoding).toBe('base64');
   });
 
   it('should create a trigger with regex extraction', () => {
@@ -195,8 +197,9 @@ describe('trigger builder function', () => {
     });
 
     const config = testTrigger.getConfig();
-    expect(config.signatureVerification?.signature.regex).toBe('t=(\\d+),v1=([a-f0-9]+)');
-    expect(config.signatureVerification?.signedComponents[0].regex).toBe('t=(\\d+)');
+    const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+    expect(sigVerification?.signature.regex).toBe('t=(\\d+),v1=([a-f0-9]+)');
+    expect(sigVerification?.signedComponents[0].regex).toBe('t=(\\d+)');
   });
 
   it('should support optional components', () => {
@@ -238,8 +241,9 @@ describe('trigger builder function', () => {
     });
 
     const config = testTrigger.getConfig();
-    expect(config.signatureVerification?.signedComponents[0].required).toBe(true);
-    expect(config.signatureVerification?.signedComponents[1].required).toBe(false);
+    const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+    expect(sigVerification?.signedComponents[0].required).toBe(true);
+    expect(sigVerification?.signedComponents[1].required).toBe(false);
   });
 
   it('should support Unicode normalization option', () => {
@@ -276,7 +280,8 @@ describe('trigger builder function', () => {
     });
 
     const config = testTrigger.getConfig();
-    expect(config.signatureVerification?.validation.normalizeUnicode).toBe(true);
+    const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+    expect(sigVerification?.validation?.normalizeUnicode).toBe(true);
   });
 
   it('should validate invalid JMESPath in signature configuration', () => {
@@ -389,7 +394,8 @@ describe('trigger builder function', () => {
       });
 
       const config = testTrigger.getConfig();
-      expect(config.signatureVerification?.algorithm).toBe(algorithm);
+      const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+      expect(sigVerification?.algorithm).toBe(algorithm);
     });
   });
 
@@ -430,7 +436,8 @@ describe('trigger builder function', () => {
       });
 
       const config = testTrigger.getConfig();
-      expect(config.signatureVerification?.encoding).toBe(encoding);
+      const sigVerification = config.signatureVerification as SignatureVerificationConfig;
+      expect(sigVerification?.encoding).toBe(encoding);
     });
   });
 
