@@ -53,6 +53,13 @@ const encodingOptions: SelectOption[] = [
   { value: 'base64', label: 'Base64' },
 ];
 
+// Signature source options
+const signatureSourceOptions: SelectOption[] = [
+  { value: 'header', label: 'HTTP Header (default)' },
+  { value: 'query', label: 'Query Parameter' },
+  { value: 'body', label: 'Request Body (JMESPath)' },
+];
+
 // Zod schema for the form
 const triggerFormSchema = z.object({
   id: z.string().optional(),
@@ -80,6 +87,11 @@ const triggerFormSchema = z.object({
   // Signature verification algorithm and encoding
   signatureAlgorithm: z.enum(['sha256', 'sha512', 'sha384', 'sha1', 'md5']).optional(),
   signatureEncoding: z.enum(['hex', 'base64']).optional(),
+  // Signature source configuration
+  signatureSource: z.enum(['header', 'query', 'body']).optional(),
+  signatureKey: z.string().optional(),
+  signaturePrefix: z.string().optional(),
+  signatureRegex: z.string().optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -96,6 +108,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const router = useRouter();
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState(true);
+  const [signatureKeyError, setSignatureKeyError] = useState<string | undefined>();
+  const [signatureRegexError, setSignatureRegexError] = useState<string | undefined>();
 
   // Fetch available credentials
   useEffect(() => {
@@ -138,6 +152,10 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         signingSecretCredentialReferenceId: undefined,
         signatureAlgorithm: 'sha256',
         signatureEncoding: 'hex',
+        signatureSource: 'header',
+        signatureKey: '',
+        signaturePrefix: '',
+        signatureRegex: '',
       };
     }
 
@@ -190,6 +208,10 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         (trigger as any).signingSecretCredentialReferenceId || undefined,
       signatureAlgorithm: signatureVerification?.algorithm || 'sha256',
       signatureEncoding: signatureVerification?.encoding || 'hex',
+      signatureSource: signatureVerification?.signature?.source || 'header',
+      signatureKey: signatureVerification?.signature?.key || '',
+      signaturePrefix: signatureVerification?.signature?.prefix || '',
+      signatureRegex: signatureVerification?.signature?.regex || '',
     };
   };
 
@@ -207,6 +229,34 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
   const { isSubmitting } = form.formState;
   const transformType = form.watch('transformType');
+  const signatureSource = form.watch('signatureSource');
+
+  // Validation functions for JMESPath and regex
+  const validateJMESPath = (value: string): string | undefined => {
+    if (!value.trim()) return undefined;
+
+    try {
+      // Simple JMESPath validation - check for basic syntax issues
+      // Full validation happens on the backend
+      if (value.includes('..') || value.includes('[[')) {
+        return 'Invalid JMESPath syntax';
+      }
+      return undefined;
+    } catch (error) {
+      return 'Invalid JMESPath expression';
+    }
+  };
+
+  const validateRegex = (value: string): string | undefined => {
+    if (!value.trim()) return undefined;
+
+    try {
+      new RegExp(value);
+      return undefined;
+    } catch (error) {
+      return 'Invalid regular expression';
+    }
+  };
 
   const onSubmit = async (data: TriggerFormData) => {
     try {
@@ -646,6 +696,129 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Signature Source Configuration */}
+              <div className="pt-4 border-t space-y-3">
+                <h4 className="text-sm font-medium">Signature Location</h4>
+                <FormField
+                  control={form.control}
+                  name="signatureSource"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Signature Source</FormLabel>
+                      <GenericSelect
+                        control={form.control}
+                        name="signatureSource"
+                        label=""
+                        options={signatureSourceOptions}
+                        placeholder="Select signature source"
+                      />
+                      <FormDescription>
+                        Choose where the signature is located in the webhook request. Most providers
+                        send signatures in HTTP headers.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="signatureKey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {signatureSource === 'header'
+                          ? 'Header Name'
+                          : signatureSource === 'query'
+                            ? 'Query Parameter Name'
+                            : 'JMESPath Expression'}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder={
+                            signatureSource === 'header'
+                              ? 'e.g., X-Hub-Signature-256'
+                              : signatureSource === 'query'
+                                ? 'e.g., signature'
+                                : 'e.g., signature or headers."X-Signature"'
+                          }
+                          onBlur={(e) => {
+                            field.onBlur();
+                            if (signatureSource === 'body') {
+                              const error = validateJMESPath(e.target.value);
+                              setSignatureKeyError(error);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {signatureSource === 'header'
+                          ? 'The name of the HTTP header containing the signature (case-insensitive by default).'
+                          : signatureSource === 'query'
+                            ? 'The name of the query parameter containing the signature.'
+                            : 'A JMESPath expression to extract the signature from the request body.'}
+                      </FormDescription>
+                      {signatureKeyError && (
+                        <p className="text-sm font-medium text-destructive">{signatureKeyError}</p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="signaturePrefix"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Signature Prefix (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder='e.g., "sha256=" or "v0="'
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        If the signature includes a prefix (like "sha256=" in GitHub webhooks), specify
+                        it here. The prefix will be stripped before verification.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="signatureRegex"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Signature Regex (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder='e.g., "t=\\d+,v1=([a-f0-9]+)"'
+                          onBlur={(e) => {
+                            field.onBlur();
+                            const error = validateRegex(e.target.value);
+                            setSignatureRegexError(error);
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        A regular expression to extract the signature from the value. The first capture
+                        group will be used as the signature. Useful for complex signature formats like
+                        Stripe.
+                      </FormDescription>
+                      {signatureRegexError && (
+                        <p className="text-sm font-medium text-destructive">{signatureRegexError}</p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
