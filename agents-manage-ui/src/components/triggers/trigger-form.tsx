@@ -12,6 +12,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +36,21 @@ const transformTypeOptions: SelectOption[] = [
   { value: 'none', label: 'None' },
   { value: 'object_transformation', label: 'Object Transformation (Simple)' },
   { value: 'jmespath', label: 'JMESPath (Advanced)' },
+];
+
+// Algorithm options for signature verification
+const algorithmOptions: SelectOption[] = [
+  { value: 'sha256', label: 'SHA-256 (Recommended)' },
+  { value: 'sha512', label: 'SHA-512' },
+  { value: 'sha384', label: 'SHA-384' },
+  { value: 'sha1', label: 'SHA-1 (Deprecated)' },
+  { value: 'md5', label: 'MD5 (Deprecated)' },
+];
+
+// Encoding options for signature verification
+const encodingOptions: SelectOption[] = [
+  { value: 'hex', label: 'Hexadecimal (default)' },
+  { value: 'base64', label: 'Base64' },
 ];
 
 // Zod schema for the form
@@ -61,6 +77,9 @@ const triggerFormSchema = z.object({
     .default([]),
   // Credential reference for signing secret
   signingSecretCredentialReferenceId: z.string().optional(),
+  // Signature verification algorithm and encoding
+  signatureAlgorithm: z.enum(['sha256', 'sha512', 'sha384', 'sha1', 'md5']).optional(),
+  signatureEncoding: z.enum(['hex', 'base64']).optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -117,6 +136,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         objectTransformationJson: '',
         authHeaders: [],
         signingSecretCredentialReferenceId: undefined,
+        signatureAlgorithm: 'sha256',
+        signatureEncoding: 'hex',
       };
     }
 
@@ -149,6 +170,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       transformType = 'object_transformation';
     }
 
+    // Extract signature verification config from trigger
+    const signatureVerification = (trigger as any).signatureVerification;
+
     return {
       id: trigger.id,
       name: trigger.name,
@@ -164,6 +188,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       authHeaders,
       signingSecretCredentialReferenceId:
         (trigger as any).signingSecretCredentialReferenceId || undefined,
+      signatureAlgorithm: signatureVerification?.algorithm || 'sha256',
+      signatureEncoding: signatureVerification?.encoding || 'hex',
     };
   };
 
@@ -264,6 +290,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         outputTransform,
         authentication,
         signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId || undefined,
+        // Note: signatureAlgorithm and signatureEncoding are captured in form state
+        // They will be included in the signatureVerification object once the full
+        // signature configuration UI is implemented (US-023, US-024)
       };
 
       let result: { success: boolean; error?: string };
@@ -561,6 +590,62 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                 signature verification. If provided, webhook requests must include a valid
                 signature header.
               </FormDescription>
+
+              {/* Algorithm and Encoding selectors */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <FormField
+                  control={form.control}
+                  name="signatureAlgorithm"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>HMAC Algorithm</FormLabel>
+                      <GenericSelect
+                        control={form.control}
+                        name="signatureAlgorithm"
+                        label=""
+                        options={algorithmOptions}
+                        placeholder="Select algorithm"
+                      />
+                      <FormDescription>
+                        Choose the HMAC algorithm. SHA-256 is recommended for most use cases.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="signatureEncoding"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Signature Encoding</FormLabel>
+                      <GenericSelect
+                        control={form.control}
+                        name="signatureEncoding"
+                        label=""
+                        options={encodingOptions}
+                        placeholder="Select encoding"
+                      />
+                      <FormDescription>
+                        Choose how the signature is encoded. Hexadecimal is the most common.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Show deprecation warning for SHA-1 or MD5 */}
+              {(form.watch('signatureAlgorithm') === 'sha1' ||
+                form.watch('signatureAlgorithm') === 'md5') && (
+                <Alert variant="warning">
+                  <AlertDescription>
+                    <strong>Warning:</strong> {form.watch('signatureAlgorithm')?.toUpperCase()} is
+                    deprecated and should only be used for legacy systems. Consider upgrading to
+                    SHA-256 or SHA-512 for better security.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </CardContent>
         </Card>
