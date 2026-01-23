@@ -15,3 +15,11 @@ export function createGithubRoutes() {
 export const githubRoutes = createGithubRoutes();
 
 export { getGitHubAppConfig, isGitHubAppConfigured, type GitHubAppConfig } from './config';
+export {
+  getJwkForToken,
+  clearJwksCache,
+  getJwksCacheStatus,
+  type JwksResult,
+  type JwksError,
+  type GetJwkResult,
+} from './jwks';
