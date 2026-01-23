@@ -713,6 +713,7 @@ describe('Webhook Endpoint Tests', () => {
 
         const triggerWithNewVerification = {
           ...testTrigger,
+          inputSchema: null, // Override inputSchema to accept any payload
           signingSecretCredentialReferenceId: 'cred-ref-123',
           signatureVerification: {
             algorithm: 'sha256' as const,
@@ -778,6 +779,7 @@ describe('Webhook Endpoint Tests', () => {
 
         const triggerWithNewVerification = {
           ...testTrigger,
+          inputSchema: null, // Override inputSchema to accept any payload
           signingSecretCredentialReferenceId: 'cred-ref-123',
           signatureVerification: {
             algorithm: 'sha256' as const,
@@ -835,6 +837,7 @@ describe('Webhook Endpoint Tests', () => {
 
         const triggerWithNewVerification = {
           ...testTrigger,
+          inputSchema: null, // Override inputSchema to accept any payload
           signingSecretCredentialReferenceId: 'cred-ref-123',
           signatureVerification: {
             algorithm: 'sha256' as const,
@@ -895,6 +898,7 @@ describe('Webhook Endpoint Tests', () => {
 
         const triggerWithSlackVerification = {
           ...testTrigger,
+          inputSchema: null, // Override inputSchema to accept any payload
           signingSecretCredentialReferenceId: 'cred-ref-slack',
           signatureVerification: {
             algorithm: 'sha256' as const,
@@ -1058,18 +1062,23 @@ describe('Webhook Endpoint Tests', () => {
       });
 
       it('should return 500 when credential has no secret in retrievalParams', async () => {
+        // Use a unique credential reference ID to avoid cache hits from previous tests
         getCredentialReferenceMock.mockReturnValue(
           vi.fn().mockResolvedValue({
-            id: 'cred-ref-123',
+            id: 'cred-ref-no-secret',
             type: 'keychain',
             credentialStoreId: 'keychain-default',
             retrievalParams: {}, // No key field
           })
         );
 
+        // Mock keychain to return null when no key is provided
+        keychainGetMock.mockResolvedValue(null);
+
         const triggerWithBadCredential = {
           ...testTrigger,
-          signingSecretCredentialReferenceId: 'cred-ref-123',
+          inputSchema: null, // Override inputSchema to accept any payload
+          signingSecretCredentialReferenceId: 'cred-ref-no-secret',
           signatureVerification: {
             algorithm: 'sha256' as const,
             encoding: 'hex' as const,
@@ -1125,6 +1134,7 @@ describe('Webhook Endpoint Tests', () => {
 
         const triggerConfig = {
           ...testTrigger,
+          inputSchema: null, // Override inputSchema to accept any payload
           signingSecretCredentialReferenceId: 'cred-ref-cache',
           signatureVerification: {
             algorithm: 'sha256' as const,
