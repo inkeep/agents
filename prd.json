@@ -386,8 +386,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented with Alert component for deprecation warning. Values stored in form state for use in complete signatureVerification config (US-023, US-024)."
     },
     {
       "id": "US-023",

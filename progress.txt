@@ -806,3 +806,36 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ## Iteration 18 - Fri Jan 23 01:05:49 UTC 2026
 
+
+---
+
+## Iteration 19 - $(date -u)
+
+### Story: US-022 - Add algorithm and encoding selectors to trigger form
+
+**Implementation:**
+- Added algorithm dropdown to trigger form with options: sha256 (default/recommended), sha512, sha384, sha1 (deprecated), md5 (deprecated)
+- Added encoding dropdown with options: hex (default), base64
+- Implemented deprecation warning using Alert component with warning variant for SHA-1 and MD5
+- Updated triggerFormSchema to include signatureAlgorithm and signatureEncoding fields as optional enums
+- Updated getDefaultValues() to set defaults (sha256, hex) and extract values from existing trigger.signatureVerification config
+- Added two-column grid layout for algorithm and encoding selectors in Authentication card
+- Added helpful FormDescription tooltips for each selector
+- Algorithm and encoding values stored in form state but not sent to backend until complete signatureVerification config is built in US-023/US-024
+- Imported Alert and AlertDescription components from ui/alert
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (90 insertions)
+
+**Learnings:**
+- Alert component with variant="warning" provides consistent styling for deprecation warnings across the UI
+- Form state can hold partial configuration that will be assembled into complete object in later stories
+- Two-column grid layout (grid grid-cols-2 gap-4) works well for related selectors like algorithm and encoding
+- form.watch() is perfect for conditional rendering of warnings based on current selection
+- GenericSelect label="" allows FormField to control the label while GenericSelect handles the select UI
+- Default values should match schema defaults and backend expectations (sha256, hex)
+- The signatureVerification object requires all components (signature, signedComponents, componentJoin) so partial config can't be sent yet
+- TypeScript enum validation in Zod schema ensures only valid algorithm/encoding values can be selected
+
+---
+
