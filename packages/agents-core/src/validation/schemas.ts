@@ -548,7 +548,7 @@ const TriggerInsertSchemaBase = createInsertSchema(triggers, {
 });
 
 export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ctx) => {
-  const config = data.signatureVerification;
+  const config = data.signatureVerification as SignatureVerificationConfig | null | undefined;
   if (!config) return;
 
   // Validate signature.regex if present
@@ -627,31 +627,7 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
 
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
-export const TriggerUpdateSchema = z.object({
-  name: z.string().trim().nonempty().describe('Trigger name').optional(),
-  description: z.string().optional().describe('Trigger description'),
-  enabled: z.boolean().describe('Whether the trigger is enabled').optional(),
-  inputSchema: z
-    .record(z.string(), z.unknown())
-    .optional()
-    .describe('JSON Schema for input validation'),
-  outputTransform: TriggerOutputTransformSchema.optional(),
-  messageTemplate: z
-    .string()
-    .trim()
-    .nonempty()
-    .describe('Message template with {{placeholder}} syntax')
-    .optional()
-    .nullable(),
-  authentication: TriggerAuthenticationUpdateSchema.optional(),
-  signingSecretCredentialReferenceId: z
-    .string()
-    .optional()
-    .describe('Reference to credential containing signing secret'),
-  signatureVerification: SignatureVerificationConfigSchema.nullable()
-    .optional()
-    .describe('Configuration for webhook signature verification'),
-});
+export const TriggerUpdateSchema = TriggerInsertSchema.partial();
 
 export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
