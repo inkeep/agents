@@ -1,36 +1,27 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import type * as PostHogReact from '@posthog/react';
+import type { PostHog as PostHogClient } from 'posthog-js';
+import { createContext, use, useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-
-type PostHogClient = {
-  identify: (
-    distinctId: string,
-    userProperties?: Record<string, unknown>,
-    userPropertiesOnce?: Record<string, unknown>
-  ) => void;
-  reset: () => void;
-  capture: (event: string, properties?: Record<string, unknown>) => void;
-};
 
 type PosthogModules = {
   posthog: PostHogClient;
-  PostHogProvider: React.ComponentType<{ client: any; children: React.ReactNode }>;
+  PostHogProvider: typeof PostHogReact.PostHogProvider;
 };
 
 const PostHogContext = createContext<PostHogClient | null>(null);
 
 export function usePostHog() {
-  return useContext(PostHogContext);
+  return use(PostHogContext);
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const { PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_SITE_TAG } = useRuntimeConfig();
-  const ENABLE_POSTHOG = Boolean(PUBLIC_POSTHOG_KEY);
   const [modules, setModules] = useState<PosthogModules | null>(null);
 
   useEffect(() => {
-    if (!ENABLE_POSTHOG || !PUBLIC_POSTHOG_KEY) return;
+    if (!PUBLIC_POSTHOG_KEY) return;
 
     let cancelled = false;
 
@@ -50,11 +41,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
             enable_recording_console_log: true,
           });
 
-          const siteTag = PUBLIC_POSTHOG_SITE_TAG;
-          if (siteTag) {
-            posthog.register({
-              site: siteTag,
-            });
+          if (PUBLIC_POSTHOG_SITE_TAG) {
+            posthog.register({ site: PUBLIC_POSTHOG_SITE_TAG });
           }
         }
 
@@ -68,11 +56,11 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ENABLE_POSTHOG, PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_SITE_TAG]);
+  }, [PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_SITE_TAG]);
 
   // Analytics disabled → behave like a passthrough provider
-  if (!ENABLE_POSTHOG || !modules) {
-    return <PostHogContext value={null}>{children}</PostHogContext>;
+  if (!PUBLIC_POSTHOG_KEY || !modules) {
+    return children;
   }
 
   const { posthog, PostHogProvider: PHProvider } = modules;

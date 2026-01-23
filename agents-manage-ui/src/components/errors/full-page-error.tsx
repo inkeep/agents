@@ -223,7 +223,7 @@ export function ErrorContent({
       )}
       <div className="flex flex-col items-center gap-2 text-center max-w-md">
         <h2 className="text-lg text-muted-foreground font-mono uppercase">{title}</h2>
-        <p className="text-muted-foreground text-sm">{description}</p>
+        <div className="text-muted-foreground text-sm">{description}</div>
       </div>
 
       <div className="flex items-center gap-3">

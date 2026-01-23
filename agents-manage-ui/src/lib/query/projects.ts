@@ -8,7 +8,13 @@ const projectQueryKeys = {
   list: (tenantId: string) => ['projects', tenantId] as const,
 };
 
-export function useProjectsQuery(tenantId: string) {
+export function useProjectsQuery({
+  tenantId,
+  enabled = true,
+}: {
+  tenantId: string;
+  enabled?: boolean;
+}) {
   'use memo';
   return useQuery<Project[]>({
     queryKey: projectQueryKeys.list(tenantId),
@@ -19,7 +25,7 @@ export function useProjectsQuery(tenantId: string) {
       }
       return response.data;
     },
-    enabled: !!tenantId,
+    enabled,
     initialData: [],
     // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
