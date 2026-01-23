@@ -1,7 +1,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { validateGitHubAppConfigOnStartup } from './config';
 import tokenExchangeRoutes from './routes/tokenExchange';
 
 export function createGithubRoutes() {
+  validateGitHubAppConfigOnStartup();
+
   const app = new OpenAPIHono();
 
   app.route('/token-exchange', tokenExchangeRoutes);
@@ -10,3 +13,5 @@ export function createGithubRoutes() {
 }
 
 export const githubRoutes = createGithubRoutes();
+
+export { getGitHubAppConfig, isGitHubAppConfigured, type GitHubAppConfig } from './config';

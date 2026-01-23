@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { getGitHubAppConfig, isGitHubAppConfigured } from '../config';
 import { getLogger } from '../../../logger';
 
 const app = new OpenAPIHono();
@@ -87,9 +88,26 @@ const tokenExchangeRoute = createRoute({
 });
 
 app.openapi(tokenExchangeRoute, async (c) => {
-  const body = c.req.valid('json');
+  const _body = c.req.valid('json');
 
   logger.info({}, 'Processing token exchange request');
+
+  if (!isGitHubAppConfigured()) {
+    logger.error({}, 'GitHub App credentials not configured');
+    return c.json(
+      {
+        type: 'https://api.inkeep.com/problems/configuration-error',
+        title: 'GitHub App Not Configured',
+        status: 500,
+        detail:
+          'GitHub App credentials are not configured. Please contact the administrator to set up GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.',
+      },
+      500
+    );
+  }
+
+  const config = getGitHubAppConfig();
+  logger.info({ appId: config.appId }, 'Using GitHub App for token exchange');
 
   // TODO: Implement token validation and exchange in subsequent stories
   // For now, return a placeholder to establish the route structure
