@@ -99,12 +99,11 @@ export class Trigger implements TriggerInterface {
     }
 
     // Merge current config with override
-    // Cast is needed because TriggerApiInsert has broader inputSchema type from Drizzle
-    const mergedConfig = {
+    const mergedConfig: TriggerConfigWithZod = {
       ...this.config,
       ...config,
       ...(processedInputSchema !== undefined && { inputSchema: processedInputSchema }),
-    } as TriggerConfigWithZod;
+    };
 
     return new Trigger(mergedConfig);
   }

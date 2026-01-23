@@ -1,8 +1,3 @@
-export type {
-  SignatureSource,
-  SignatureVerificationConfig,
-  SignedComponent,
-} from '@inkeep/agents-core';
 export { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {

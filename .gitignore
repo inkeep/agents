@@ -89,7 +89,3 @@ progress.txt
 
 # PID files from auto-started services
 .pid
-
-.ralph-archives/
-
-.claude/settings.local.json
