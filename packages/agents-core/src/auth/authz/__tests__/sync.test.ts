@@ -29,7 +29,12 @@ vi.mock('../config', async (importOriginal) => {
   };
 });
 
-import { deleteRelationship, getSpiceClient, readRelationships, writeRelationship } from '../client';
+import {
+  deleteRelationship,
+  getSpiceClient,
+  readRelationships,
+  writeRelationship,
+} from '../client';
 import { isAuthzEnabled } from '../config';
 
 describe('authz/sync', () => {

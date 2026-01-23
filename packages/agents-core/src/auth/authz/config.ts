@@ -14,8 +14,7 @@ export function isAuthzEnabled(): boolean {
  */
 export function getSpiceDbConfig() {
   const endpoint = process.env.SPICEDB_ENDPOINT || 'localhost:50051';
-  const isLocalhost =
-    endpoint.startsWith('localhost') || endpoint.startsWith('127.0.0.1');
+  const isLocalhost = endpoint.startsWith('localhost') || endpoint.startsWith('127.0.0.1');
 
   return {
     endpoint,

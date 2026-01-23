@@ -33,7 +33,7 @@ export function ViewMCPServerDetailsUserScope({
   tenantId: string;
   projectId: string;
 }) {
-  const { canEdit } = useProjectPermissions(); 
+  const { canEdit } = useProjectPermissions();
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,

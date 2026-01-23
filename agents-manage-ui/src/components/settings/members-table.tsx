@@ -242,7 +242,10 @@ export function MembersTable({
                         </DropdownMenu>
                       ) : (
                         role && (
-                          <Badge variant="code" className="h-7 px-3 text-xs inline-flex items-center">
+                          <Badge
+                            variant="code"
+                            className="h-7 px-3 text-xs inline-flex items-center"
+                          >
                             {getDisplayRole(role)}
                           </Badge>
                         )

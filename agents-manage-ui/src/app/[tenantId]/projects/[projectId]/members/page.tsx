@@ -18,7 +18,7 @@ export default async function MembersPage({
         projectId={projectId}
         tenantId={tenantId}
         canManage={permissions.canEdit}
-        />
+      />
     );
   } catch (error) {
     return (

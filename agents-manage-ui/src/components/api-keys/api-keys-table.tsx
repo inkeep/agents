@@ -19,7 +19,6 @@ interface ApiKeysTableProps {
 }
 
 export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps) {
-
   return (
     <div className="rounded-lg border">
       <Table>

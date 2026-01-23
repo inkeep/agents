@@ -238,16 +238,22 @@ async function setupProjectInDatabase(isCloud) {
           logSuccess('SpiceDB schema applied');
         } catch {
           logWarning('Could not write SpiceDB schema (SpiceDB may still be starting)');
-          logInfo('Run manually: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key');
+          logInfo(
+            'Run manually: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+          );
         }
       } else {
         logWarning('SpiceDB did not become ready in time');
-        logInfo('Run manually after SpiceDB is ready: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key');
+        logInfo(
+          'Run manually after SpiceDB is ready: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+        );
       }
     } catch {
       logWarning('zed CLI not installed - skipping SpiceDB schema setup');
       logInfo('Install with: brew install authzed/tap/zed');
-      logInfo('Then run: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key');
+      logInfo(
+        'Then run: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+      );
     }
   } else if (enableAuthz && isCloud) {
     logInfo('Skipping SpiceDB schema setup (cloud mode - configure SpiceDB separately)');

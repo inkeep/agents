@@ -29,7 +29,10 @@ export function useIsOrgAdmin(): { isAdmin: boolean; isLoading: boolean } {
         const memberResult = await authClient.organization.getActiveMember();
         if (memberResult.data) {
           const role = memberResult.data.role;
-          setState({ isAdmin: role === OrgRoles.OWNER || role === OrgRoles.ADMIN, isLoading: false });
+          setState({
+            isAdmin: role === OrgRoles.OWNER || role === OrgRoles.ADMIN,
+            isLoading: false,
+          });
         } else {
           setState({ isAdmin: false, isLoading: false });
         }
