@@ -71,6 +71,9 @@ export {
   TriggerInvocationStatusEnum,
   TriggerListResponse,
   TriggerResponse,
+  TriggerWithWebhookUrlListResponse,
+  TriggerWithWebhookUrlResponse,
+  TriggerWithWebhookUrlSchema,
 } from './validation/schemas';
 
 export type {

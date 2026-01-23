@@ -780,6 +780,12 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
   .openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
 
+// Extended Trigger schema with webhookUrl (for manage API responses)
+// Note: This extends the base TriggerApiSelectSchema to add the computed webhookUrl field
+export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
+  webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
+}).openapi('TriggerWithWebhookUrl');
+
 // Trigger Invocation schemas
 export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
 
@@ -2296,6 +2302,17 @@ export const TriggerInvocationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerInvocationListResponse');
+export const TriggerWithWebhookUrlResponse = z
+  .object({
+    data: TriggerWithWebhookUrlSchema,
+  })
+  .openapi('TriggerWithWebhookUrlResponse');
+export const TriggerWithWebhookUrlListResponse = z
+  .object({
+    data: z.array(TriggerWithWebhookUrlSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('TriggerWithWebhookUrlListResponse');
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');

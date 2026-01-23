@@ -15,11 +15,12 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   TriggerApiInsertSchema,
-  TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
   TriggerInvocationListResponse,
   TriggerInvocationResponse,
   TriggerInvocationStatusEnum,
+  TriggerWithWebhookUrlListResponse,
+  TriggerWithWebhookUrlResponse,
   updateTrigger,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
@@ -32,28 +33,6 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 const logger = getLogger('triggers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
-
-// Extended response schemas with webhookUrl (specific to manage API responses)
-// Note: These extend the base TriggerApiSelectSchema to add the computed webhookUrl field
-const TriggerResponse = z.object({
-  data: TriggerApiSelectSchema.extend({
-    webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
-  }),
-});
-
-const TriggerListResponse = z.object({
-  data: z.array(
-    TriggerApiSelectSchema.extend({
-      webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
-    })
-  ),
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    total: z.number(),
-    pages: z.number(),
-  }),
-});
 
 // Apply permission middleware by HTTP method
 app.use('/', async (c, next) => {
@@ -106,7 +85,7 @@ app.openapi(
         description: 'List of triggers retrieved successfully',
         content: {
           'application/json': {
-            schema: TriggerListResponse,
+            schema: TriggerWithWebhookUrlListResponse,
           },
         },
       },
@@ -166,7 +145,7 @@ app.openapi(
         description: 'Trigger found',
         content: {
           'application/json': {
-            schema: TriggerResponse,
+            schema: TriggerWithWebhookUrlResponse,
           },
         },
       },
@@ -233,7 +212,7 @@ app.openapi(
         description: 'Trigger created successfully',
         content: {
           'application/json': {
-            schema: TriggerResponse,
+            schema: TriggerWithWebhookUrlResponse,
           },
         },
       },
@@ -248,19 +227,27 @@ app.openapi(
 
     const id = body.id || generateId();
 
-    logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
+    logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
 
     // Validate credential reference exists if provided
     if (body.signingSecretCredentialReferenceId) {
       const credentialRef = await getCredentialReference(db)({
         scopes: { tenantId, projectId },
-        credentialReferenceId: body.signingSecretCredentialReferenceId,
+        id: body.signingSecretCredentialReferenceId,
       });
 
       if (!credentialRef) {
         throw createApiError({
           code: 'bad_request',
           message: `Credential reference not found: ${body.signingSecretCredentialReferenceId}`,
+        });
+      }
+
+      // Only project-scoped credentials can be attached to triggers
+      if (credentialRef.userId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Only project-scoped credentials can be attached to triggers. User-scoped credentials are not allowed.',
         });
       }
     }
@@ -338,7 +325,7 @@ app.openapi(
         description: 'Trigger updated successfully',
         content: {
           'application/json': {
-            schema: TriggerResponse,
+            schema: TriggerWithWebhookUrlResponse,
           },
         },
       },
@@ -371,19 +358,27 @@ app.openapi(
       });
     }
 
-    logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Updating trigger');
+    logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Updating trigger');
 
     // Validate credential reference exists if provided
     if (body.signingSecretCredentialReferenceId) {
       const credentialRef = await getCredentialReference(db)({
         scopes: { tenantId, projectId },
-        credentialReferenceId: body.signingSecretCredentialReferenceId,
+        id: body.signingSecretCredentialReferenceId,
       });
 
       if (!credentialRef) {
         throw createApiError({
           code: 'bad_request',
           message: `Credential reference not found: ${body.signingSecretCredentialReferenceId}`,
+        });
+      }
+
+      // Only project-scoped credentials can be attached to triggers
+      if (credentialRef.userId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Only project-scoped credentials can be attached to triggers. User-scoped credentials are not allowed.',
         });
       }
     }
@@ -507,7 +502,7 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
+    logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
 
     // First check if the trigger exists
     const existing = await getTriggerById(db)({
@@ -582,7 +577,7 @@ app.openapi(
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
-    logger.info(
+    logger.debug(
       { tenantId, projectId, agentId, triggerId, status, from, to },
       'Listing trigger invocations'
     );
@@ -643,7 +638,7 @@ app.openapi(
     // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
-    logger.info(
+    logger.debug(
       { tenantId, projectId, agentId, triggerId, invocationId },
       'Getting trigger invocation'
     );

@@ -252,14 +252,17 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const [signatureKeyError, setSignatureKeyError] = useState<string | undefined>();
   const [signatureRegexError, setSignatureRegexError] = useState<string | undefined>();
 
-  // Fetch available credentials
+  // Fetch available credentials (only project-scoped credentials are allowed for triggers)
   useEffect(() => {
     async function loadCredentials() {
       setLoadingCredentials(true);
       try {
         const result = await fetchCredentialsAction(tenantId, projectId);
         if (result.success && result.data) {
-          const credentialOptions = result.data.map((cred) => ({
+          // Filter to only include project-scoped credentials (userId is null/undefined)
+          // User-scoped credentials cannot be attached to triggers
+          const projectScopedCredentials = result.data.filter((cred) => !cred.userId);
+          const credentialOptions = projectScopedCredentials.map((cred) => ({
             value: cred.id,
             label: cred.name,
           }));
@@ -876,15 +879,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   loadingCredentials
                     ? 'Loading credentials...'
                     : credentials.length === 0
-                      ? 'No credentials available'
+                      ? 'No project-scoped credentials available'
                       : 'Select a credential'
                 }
                 disabled={loadingCredentials}
               />
               <FormDescription>
-                Select a credential reference that contains the HMAC signing secret for webhook
+                Select a project-scoped credential that contains the HMAC signing secret for webhook
                 signature verification. If provided, webhook requests must include a valid
-                signature header.
+                signature header. Only project-scoped credentials can be used with triggers;
+                user-scoped credentials are not supported.
               </FormDescription>
 
               {/* Provider Presets */}
