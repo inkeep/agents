@@ -2,7 +2,7 @@
 
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { formatDate } from '@/app/utils/format-date';
+import { formatDate } from '@/lib/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

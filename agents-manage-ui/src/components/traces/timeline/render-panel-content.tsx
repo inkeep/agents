@@ -1,7 +1,7 @@
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
 import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
-import { formatDateTime } from '@/app/utils/format-date';
+import { formatDateTime } from '@/lib/utils/format-date';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {

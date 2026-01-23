@@ -3,7 +3,7 @@
 import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { formatDateAgo } from '@/app/utils/format-date';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {

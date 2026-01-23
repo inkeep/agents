@@ -4,8 +4,8 @@ import { MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { getActiveTools } from '@/app/utils/active-tools';
-import { formatDate } from '@/app/utils/format-date';
+import { getActiveTools } from '@/lib/utils/active-tools';
+import { formatDate } from '@/lib/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {

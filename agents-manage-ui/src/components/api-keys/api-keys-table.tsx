@@ -1,4 +1,4 @@
-import { formatDateAgo } from '@/app/utils/format-date';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import {
   Table,
   TableBody,

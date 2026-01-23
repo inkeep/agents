@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDate } from '@/app/utils/format-date';
+import { formatDate } from '@/lib/utils/format-date';
 import {
   ItemCardContent,
   ItemCardFooter,

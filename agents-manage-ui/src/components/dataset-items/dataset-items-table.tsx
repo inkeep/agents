@@ -2,7 +2,7 @@
 
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { type FC, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {

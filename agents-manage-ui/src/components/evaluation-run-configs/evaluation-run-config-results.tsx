@@ -3,7 +3,7 @@
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';

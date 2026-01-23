@@ -1,4 +1,4 @@
-import { getActiveTools } from '@/app/utils/active-tools';
+import { getActiveTools } from '@/lib/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import type { MCPTool } from '@/lib/types/tools';

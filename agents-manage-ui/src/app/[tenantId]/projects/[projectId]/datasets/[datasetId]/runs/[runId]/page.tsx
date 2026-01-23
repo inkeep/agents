@@ -3,7 +3,7 @@
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { use, useCallback, useEffect, useMemo, useState } from 'react';
-import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
+import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
   TestCaseFilters,

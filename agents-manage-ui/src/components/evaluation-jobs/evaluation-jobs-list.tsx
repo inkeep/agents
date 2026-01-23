@@ -3,7 +3,7 @@
 import { ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { formatDate } from '@/app/utils/format-date';
+import { formatDate } from '@/lib/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

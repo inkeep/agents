@@ -10,7 +10,7 @@ import {
 import NextLink from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { formatDateTime, formatDuration } from '@/app/utils/format-date';
+import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';

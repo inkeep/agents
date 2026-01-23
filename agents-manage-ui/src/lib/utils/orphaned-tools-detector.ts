@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import { getActiveTools } from '@/app/utils/active-tools';
+import { getActiveTools } from './active-tools';
 import type { MCPNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { MCPTool } from '@/lib/types/tools';
