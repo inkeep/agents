@@ -247,3 +247,54 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 8 - Fri Jan 23 00:07:12 UTC 2026
+
+
+### Story: US-008 - Implement verifySignatureWithConfig function - core logic
+
+**Implementation:**
+- Created verifySignatureWithConfig() function in packages/agents-core/src/utils/trigger-auth.ts
+- Implemented extractSignature() helper function supporting:
+  - Extraction from headers (case-insensitive by default)
+  - Extraction from query parameters
+  - Extraction from body via JMESPath
+  - Prefix stripping (e.g., 'sha256=', 'v0=')
+  - Regex-based extraction with first capture group
+- Implemented extractComponent() helper function supporting:
+  - Component extraction from headers
+  - Component extraction from body via JMESPath
+  - Literal string components
+  - Required vs optional components (missing optional = empty string)
+  - Regex extraction from component values
+- Core verifySignatureWithConfig() function features:
+  - Uses crypto.timingSafeEqual() for all signature comparisons (CRITICAL for security)
+  - Supports HMAC algorithms: sha256, sha512, sha384, sha1, md5
+  - Supports encodings: hex, base64
+  - Joins signed components with configurable separator
+  - Supports Unicode normalization (NFC) option
+  - Validates empty body based on allowEmptyBody option
+  - Returns typed error codes: MISSING_SIGNATURE, MISSING_COMPONENT, INVALID_SIGNATURE_FORMAT, SIGNATURE_MISMATCH
+  - Never leaks signature details in error messages (all return generic "Invalid signature")
+- Added SignatureVerificationErrorCode type and SignatureVerificationResult interface
+- Added comprehensive JSDoc documentation with usage example
+- TypeScript compilation passes (tsc --noEmit)
+
+**Files Changed:**
+- packages/agents-core/src/utils/trigger-auth.ts (added 258 lines: imports, types, helper functions, main verification function)
+
+**Learnings:**
+- crypto.timingSafeEqual() requires buffers of equal length - must check length first before calling
+- Buffer.from() with encoding parameter handles both hex and base64 automatically
+- hmac.digest() returns string when encoding is specified, so we use Buffer.from() on the result
+- JMESPath body extraction requires try-catch for JSON parsing failures
+- Component extraction must handle both missing required components (error) and missing optional components (empty string)
+- Header case sensitivity is configurable - default is case-insensitive for better compatibility
+- Unicode normalization to NFC form ensures consistent byte representation across different Unicode encodings
+- Error messages must be generic ("Invalid signature") to avoid leaking timing or format information
+- The function signature matches webhook patterns for GitHub, Slack, Zendesk, Stripe, and other providers
+
+---
+
