@@ -300,7 +300,6 @@ export class KeyChainStore implements CredentialStore {
           }
         } catch {
           // Skip keys that can't be retrieved
-          continue;
         }
       }
 
