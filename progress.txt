@@ -174,3 +174,33 @@ Thu Jan 22 23:44:14 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 6 - Thu Jan 22 23:59:38 UTC 2026
+
+### Story: US-006 - Update TriggerUpdateSchema and API schemas
+
+**Implementation:**
+- Updated TriggerUpdateSchema from manually defined z.object to TriggerInsertSchema.partial()
+- This automatically includes all new fields (signingSecretCredentialReferenceId, signatureVerification) and their validations
+- API schemas (TriggerApiSelectSchema, TriggerApiInsertSchema, TriggerApiUpdateSchema) already had .openapi() metadata from previous iterations
+- No signingSecret references remain in any schema
+- Added type assertion for signatureVerification in TriggerInsertSchema superRefine for TypeScript compatibility
+
+**Files Changed:**
+- packages/agents-core/src/validation/schemas.ts (replaced 26 lines with 1 line for TriggerUpdateSchema, added type assertion)
+
+**Learnings:**
+- Using .partial() on a schema with .superRefine() preserves the validation logic for partial updates
+- TypeScript type inference in superRefine callbacks can be imprecise when using createInsertSchema with custom types - explicit type assertions help
+- TriggerUpdateSchema.partial() automatically makes all fields optional while maintaining all field schemas including new signature verification fields
+- The .partial() approach is more maintainable than manually redefining all fields as optional
+- API schemas were already updated in previous iterations (US-004 work) with proper .openapi() metadata
+
+---
+
+Fri Jan 23 00:02:07 UTC 2026
+
+---
+
