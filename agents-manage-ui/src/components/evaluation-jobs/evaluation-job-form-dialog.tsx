@@ -43,7 +43,7 @@ export function EvaluationJobFormDialog({
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
-  const { data: evaluators, isFetching } = useEvaluatorsQuery({ disabled: !isOpen });
+  const { data: evaluators, isFetching } = useEvaluatorsQuery({ enabled: isOpen });
 
   const defaultFormData: EvaluationJobConfigFormData = {
     jobFilters: null,

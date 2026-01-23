@@ -9,7 +9,7 @@ const agentQueryKeys = {
   list: (tenantId: string, projectId: string) => ['agents', tenantId, projectId] as const,
 };
 
-export function useAgentsQuery({ disabled }: { disabled?: boolean } = {}) {
+export function useAgentsQuery({ enabled = true }: { enabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -26,7 +26,7 @@ export function useAgentsQuery({ disabled }: { disabled?: boolean } = {}) {
       }
       return response.data;
     },
-    enabled: !disabled,
+    enabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

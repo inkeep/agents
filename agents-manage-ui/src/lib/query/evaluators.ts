@@ -8,7 +8,7 @@ const evaluatorQueryKeys = {
   list: (tenantId: string, projectId: string) => ['evaluators', tenantId, projectId] as const,
 };
 
-export function useEvaluatorsQuery({ disabled }: { disabled?: boolean } = {}) {
+export function useEvaluatorsQuery({ enabled = true }: { enabled?: boolean } = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
@@ -22,7 +22,7 @@ export function useEvaluatorsQuery({ disabled }: { disabled?: boolean } = {}) {
       const response = await fetchEvaluators(tenantId, projectId);
       return response.data;
     },
-    enabled: !disabled,
+    enabled,
     staleTime: 30_000,
     initialData: [],
     // force `queryFn` still runs on mount

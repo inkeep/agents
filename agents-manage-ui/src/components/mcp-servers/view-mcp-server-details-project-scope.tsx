@@ -43,7 +43,7 @@ export function ViewMCPServerDetailsProjectScope({
   const { data: thirdPartyServer, isFetching: isLoadingThirdParty } = useThirdPartyMCPServerQuery({
     url: tool.config.mcp.server.url,
     credentialScope: 'project',
-    disabled: !shouldFetchThirdParty,
+    enabled: shouldFetchThirdParty,
   });
   const thirdPartyConnectUrl = thirdPartyServer?.thirdPartyConnectAccountUrl;
 
