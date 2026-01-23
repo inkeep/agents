@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import type { FC } from 'react';
-import { formatDate, formatDateAgo } from '@/app/utils/format-date';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
@@ -16,17 +16,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchSkills } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { formatDate, formatDateAgo } from '@/lib/utils/format-date';
 
 const colClass = 'align-top whitespace-pre-wrap';
+
+export const metadata = {
+  title: STATIC_LABELS.skills,
+  description:
+    'Agent Skills are reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority.',
+} satisfies Metadata;
+
 const description = (
   <>
-    Agent Skills are reusable instruction blocks that can be attached to multiple sub-agents and
-    ordered for priority.
+    {metadata.description}
     <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/skills`}>Learn more</ExternalLink>
   </>
 );
@@ -47,7 +53,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
 
     return data.length ? (
       <>
-        <PageHeader title={STATIC_LABELS.skills} description={description} action={action} />
+        <PageHeader title={metadata.title} description={description} action={action} />
         <Table>
           <TableHeader>
             <TableRow noHover>

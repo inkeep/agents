@@ -7,7 +7,7 @@ import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-sel
 import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
 
