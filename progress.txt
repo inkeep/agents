@@ -613,7 +613,7 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
-## Iteration 15 - $(date -u)
+## Iteration 15 - Fri Jan 23 01:24:02 UTC 2026
 
 ### Story: US-017 - Update manage API routes for triggers
 
@@ -655,7 +655,7 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
-## Iteration 16 - $(date -u)
+## Iteration 16 - Fri Jan 23 01:24:02 UTC 2026
 
 ### Story: US-018 - Update CLI trigger generator for signature config
 
@@ -770,7 +770,7 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ## Iteration 17 - Fri Jan 23 01:01:30 UTC 2026
 
-## Iteration 19 - $(date -u)
+## Iteration 19 - Fri Jan 23 01:24:02 UTC 2026
 
 ### Story: US-021 - Add credential reference selector to trigger form
 
@@ -809,7 +809,7 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
-## Iteration 19 - $(date -u)
+## Iteration 19 - Fri Jan 23 01:24:02 UTC 2026
 
 ### Story: US-022 - Add algorithm and encoding selectors to trigger form
 
@@ -844,7 +844,7 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ## Iteration 19 - Fri Jan 23 01:08:48 UTC 2026
 
-## Iteration 20 - $(date -u)
+## Iteration 20 - Fri Jan 23 01:24:02 UTC 2026
 
 ### Story: US-023 - Add signature source configuration to trigger form
 
@@ -1027,6 +1027,138 @@ Fri Jan 23 00:06:04 UTC 2026
 - Allow empty body: Some webhooks send headers-only requests for verification challenges
 - Normalize Unicode: Solves edge cases with different Unicode representations (e.g., é vs e + combining accent)
 - Advanced options should be collapsed by default to avoid overwhelming users with configuration
+
+---
+
+
+---
+
+## Iteration 21 - Fri Jan 23 01:21:13 UTC 2026
+
+## Iteration 24 - Fri Jan 23 01:24:02 UTC 2026
+
+### Story: US-027 & US-028 - Update SDK documentation and README with signature verification examples
+
+**Implementation:**
+- Added comprehensive "Webhook Triggers with Signature Verification" section to packages/agents-sdk/README.md
+- Documented complete configuration reference for SignatureVerificationConfig:
+  - algorithm and encoding options with security recommendations
+  - SignatureSource configuration for extracting signatures from headers/query/body
+  - SignedComponent configuration for multi-component signing patterns
+  - ComponentJoin configuration for concatenation strategies
+  - Advanced validation options (headerCaseSensitive, allowEmptyBody, normalizeUnicode)
+- Added working examples for four major webhook providers:
+  - GitHub: sha256+hex, body-only signing with sha256= prefix
+  - Slack: sha256+hex, multi-component (literal + timestamp + body) with colon separator
+  - Zendesk: sha256+base64, timestamp + body concatenation
+  - Stripe: sha256+hex, regex extraction for signature and timestamp with dot separator
+- Documented breaking change: removal of legacy signingSecret parameter
+- Included complete migration guide from legacy signingSecret to new credential-based approach
+- Added security best practices section covering:
+  - Always use credential references (never hardcode secrets)
+  - Use strong algorithms (sha256 or stronger)
+  - Always validate webhooks in production
+  - Use HTTPS for webhook endpoints
+  - Rotate secrets regularly
+  - Monitor failed verification attempts
+- Added troubleshooting section with provider-specific tips
+- Updated API Reference builder list to include trigger()
+- Documentation follows SDK README style with clear sections, code examples, and tables
+
+**Files Changed:**
+- packages/agents-sdk/README.md (added 354 lines)
+- prd.json (marked US-027 and US-028 as complete)
+
+**Learnings:**
+- No triggers.mdx file exists in the codebase - all SDK documentation lives in README.md
+- US-027 and US-028 are naturally combined since README examples are the primary SDK documentation
+- Comprehensive examples for all major webhook providers help developers understand the flexible configuration model
+- Security warnings about weak algorithms (sha1, md5) are important for developer guidance
+- Migration guide is critical since signingSecret removal is a breaking change
+- Troubleshooting section addresses common pitfalls like wrong separator or encoding
+- Provider-specific tips help developers quickly configure webhooks correctly
+
+---
+
+## Iteration 25 - Fri Jan 23 01:25:51 UTC 2026
+
+### Story: US-029 - Add JSDoc comments to new types and functions
+
+**Implementation:**
+- Added comprehensive JSDoc comments to all signature verification schemas in packages/agents-core/src/validation/schemas.ts
+- SignatureVerificationConfigSchema JSDoc includes:
+  - Complete description of functionality and provider support
+  - Security best practices (use credential references, prefer sha256)
+  - Three detailed @example tags: GitHub, Slack (multi-component), Stripe (regex extraction)
+- SignatureSourceSchema JSDoc includes:
+  - Description of signature extraction from headers/query/body
+  - Three @example tags: GitHub (prefix), Stripe (regex), custom (JMESPath body)
+- SignedComponentSchema JSDoc includes:
+  - Description of component extraction and joining
+  - Three @example tags: GitHub (body-only), Slack (literal+header+body), Stripe (regex)
+- ComponentJoinSchema JSDoc includes:
+  - Description of component joining strategies
+  - Three @example tags: GitHub/Zendesk (empty), Slack (colon), Stripe (dot)
+- SignatureValidationOptionsSchema JSDoc includes:
+  - Description of advanced validation options
+  - One @example tag: strict validation configuration
+- Added JSDoc to all exported TypeScript types:
+  - SignatureVerificationConfig, SignatureSource, SignedComponent, ComponentJoin, SignatureValidationOptions
+  - Each type JSDoc cross-references its corresponding schema for detailed examples
+- verifySignatureWithConfig function already had comprehensive JSDoc from US-008 implementation
+
+**Files Changed:**
+- packages/agents-core/src/validation/schemas.ts (added 144 lines of JSDoc)
+- prd.json (marked US-029 as complete)
+
+**Learnings:**
+- JSDoc with @example tags provides excellent IDE autocomplete and inline documentation
+- Multiple examples showing different webhook patterns (GitHub, Slack, Stripe) help developers understand flexibility
+- Cross-referencing types to schemas in JSDoc maintains single source of truth for examples
+- Security notes in JSDoc are important for APIs that handle sensitive operations
+- TypeScript type inference from Zod schemas means types get documentation "for free" via JSDoc on schemas
+- verifySignatureWithConfig was already well-documented from initial implementation
+
+---
+
+## Iteration 26 - Fri Jan 23 01:27:00 UTC 2026
+
+### Story: US-030 - Create changesets for version bumps
+
+**Implementation:**
+- Created three changeset files in .changeset/ directory following project conventions
+- agents-core changeset (configurable-webhook-signatures-core.md):
+  - Major version bump for breaking changes
+  - Documented removal of signingSecret column, schema fields, and verifySigningSecret function
+  - Listed all new features: SignatureVerificationConfig type, verifySignatureWithConfig function, validation utilities
+  - Included complete migration guide with before/after code examples
+  - Referenced SDK documentation for provider-specific examples
+- agents-sdk changeset (configurable-webhook-signatures-sdk.md):
+  - Major version bump for breaking changes
+  - Documented removal of signingSecret parameter from trigger() builder
+  - Listed new features: signatureVerification parameter, exported types, validation, JSDoc
+  - Included complete migration guide with before/after code examples
+  - Referenced README.md for configuration reference
+- agents-manage-ui changeset (configurable-webhook-signatures-ui.md):
+  - Minor version bump (new features, no breaking changes)
+  - Listed all new UI features: credential selector, algorithm/encoding selectors, signature location config, signed components builder, presets, advanced options
+  - Listed UI improvements: collapsible sections, presets, dynamic labels, tooltips, reorder buttons
+- All changesets follow repository format with YAML frontmatter and markdown description
+
+**Files Changed:**
+- .changeset/configurable-webhook-signatures-core.md (new file, 62 lines)
+- .changeset/configurable-webhook-signatures-sdk.md (new file, 40 lines)
+- .changeset/configurable-webhook-signatures-ui.md (new file, 28 lines)
+- prd.json (marked US-030 as complete)
+
+**Learnings:**
+- Changeset format uses YAML frontmatter with package names and version bump type (major/minor/patch)
+- Breaking changes should be clearly marked with "BREAKING:" prefix
+- Migration guides are critical for major version bumps
+- agents-core and agents-sdk both get major bumps since they both have breaking API changes
+- agents-manage-ui gets minor bump since UI changes are additive (new features, no removed functionality)
+- Changesets are consumed by automated release tooling to generate CHANGELOGs and bump versions
+- Good changeset descriptions help downstream users understand what changed and how to migrate
 
 ---
 

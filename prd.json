@@ -469,8 +469,8 @@
         "pnpm test passes"
       ],
       "priority": 27,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Comprehensive documentation added to SDK README. No triggers.mdx file exists, so documented in README.md instead with full configuration reference, examples for all major providers, migration guide, and security best practices."
     },
     {
       "id": "US-028",
@@ -484,8 +484,8 @@
         "pnpm test passes"
       ],
       "priority": 28,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed together with US-027. GitHub and Slack examples added to README with full working code examples."
     },
     {
       "id": "US-029",
@@ -500,8 +500,8 @@
         "pnpm test passes"
       ],
       "priority": 29,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Comprehensive JSDoc added to all schemas and types with multiple @example tags demonstrating GitHub, Slack, Stripe patterns. verifySignatureWithConfig already had JSDoc from US-008."
     },
     {
       "id": "US-030",
@@ -516,8 +516,8 @@
         "pnpm test passes"
       ],
       "priority": 30,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Three changesets created with comprehensive breaking change documentation, feature lists, and migration guides. agents-core and agents-sdk get major bumps for breaking changes, agents-manage-ui gets minor bump for new features."
     },
     {
       "id": "US-031",
