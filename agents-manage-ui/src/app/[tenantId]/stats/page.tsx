@@ -2,9 +2,6 @@
 
 import {
   AlertTriangle,
-  Bot,
-  ChevronDown,
-  ChevronRight,
   FolderKanban,
   MessageSquare,
   SparklesIcon,
@@ -19,7 +16,6 @@ import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
   Select,
@@ -38,7 +34,6 @@ import {
 } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
-import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import type { Project } from '@/lib/types/project';
 
 const TIME_RANGES = {
@@ -156,45 +151,6 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
     }
     return map;
   }, [projects]);
-
-  // State for expanded projects and agent data
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
-  const [agentDataByProject, setAgentDataByProject] = useState<
-    Map<string, Array<{ agentId: string; conversationCount: number }>>
-  >(new Map());
-  const [loadingAgentData, setLoadingAgentData] = useState<Set<string>>(new Set());
-
-  // Fetch agent data when a project is expanded
-  const handleProjectToggle = async (projectId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setExpandedProjects((prev) => new Set(prev).add(projectId));
-
-      // Fetch agent data if not already loaded
-      if (!agentDataByProject.has(projectId) && !loadingAgentData.has(projectId)) {
-        setLoadingAgentData((prev) => new Set(prev).add(projectId));
-        try {
-          const client = getSigNozStatsClient(tenantId);
-          const agentData = await client.getConversationsByAgent(startTime, endTime, projectId);
-          setAgentDataByProject((prev) => new Map(prev).set(projectId, agentData));
-        } catch (err) {
-          console.error('Error fetching agent data for project:', projectId, err);
-          setAgentDataByProject((prev) => new Map(prev).set(projectId, []));
-        } finally {
-          setLoadingAgentData((prev) => {
-            const next = new Set(prev);
-            next.delete(projectId);
-            return next;
-          });
-        }
-      }
-    } else {
-      setExpandedProjects((prev) => {
-        const next = new Set(prev);
-        next.delete(projectId);
-        return next;
-      });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -387,93 +343,39 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                 {[...projectStats]
                   .sort((a, b) => b.totalConversations - a.totalConversations)
-                  .map((stat) => {
-                    const isExpanded = expandedProjects.has(stat.projectId);
-                    const isLoadingAgents = loadingAgentData.has(stat.projectId);
-                    const agents = agentDataByProject.get(stat.projectId) || [];
-
-                    return (
-                      <Collapsible
-                        key={stat.projectId}
-                        open={isExpanded}
-                        onOpenChange={(open) => handleProjectToggle(stat.projectId, open)}
-                      >
-                        <CollapsibleTrigger className="w-full">
-                          <div className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-lg border border-border transition-colors cursor-pointer">
-                            <div className="flex items-center gap-3">
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <FolderKanban className="h-5 w-5 text-blue-600" />
-                              <span className="font-medium text-foreground">
-                                {projectNameMap.get(stat.projectId) || stat.projectId}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-blue-600">
-                                  {stat.totalConversations.toLocaleString()}
-                                </div>
-                                <div className="text-xs text-muted-foreground">conversations</div>
-                              </div>
-                              <div className="text-right hidden sm:block">
-                                <div className="text-sm font-medium text-muted-foreground">
-                                  {stat.totalAICalls.toLocaleString()}
-                                </div>
-                                <div className="text-xs text-muted-foreground">AI calls</div>
-                              </div>
-                              <div className="text-right hidden sm:block">
-                                <div className="text-sm font-medium text-muted-foreground">
-                                  {stat.totalMCPCalls.toLocaleString()}
-                                </div>
-                                <div className="text-xs text-muted-foreground">MCP calls</div>
-                              </div>
-                            </div>
+                  .map((stat) => (
+                    <div
+                      key={stat.projectId}
+                      className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-lg border border-border transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FolderKanban className="h-5 w-5 text-blue-600" />
+                        <span className="font-medium text-foreground">
+                          {projectNameMap.get(stat.projectId) || stat.projectId}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-blue-600">
+                            {stat.totalConversations.toLocaleString()}
                           </div>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="ml-8 mt-2 pb-2">
-                            {isLoadingAgents ? (
-                              <div className="space-y-2 py-2">
-                                <Skeleton className="h-10 w-full" />
-                                <Skeleton className="h-10 w-full" />
-                              </div>
-                            ) : agents.length === 0 ? (
-                              <p className="text-sm text-muted-foreground py-4 text-center">
-                                No agent data available
-                              </p>
-                            ) : (
-                              <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                                {agents.map((agent) => (
-                                  <div
-                                    key={agent.agentId}
-                                    className="flex items-center justify-between p-3 bg-background rounded-md border border-border/50"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <Bot className="h-4 w-4 text-muted-foreground" />
-                                      <span className="text-sm text-foreground">
-                                        {agent.agentId}
-                                      </span>
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-sm font-medium text-foreground">
-                                        {agent.conversationCount.toLocaleString()}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground ml-1">
-                                        conversations
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                          <div className="text-xs text-muted-foreground">conversations</div>
+                        </div>
+                        <div className="text-right hidden sm:block">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            {stat.totalAICalls.toLocaleString()}
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    );
-                  })}
+                          <div className="text-xs text-muted-foreground">AI calls</div>
+                        </div>
+                        <div className="text-right hidden sm:block">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            {stat.totalMCPCalls.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">MCP calls</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
           </CardContent>
