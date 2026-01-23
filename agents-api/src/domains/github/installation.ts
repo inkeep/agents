@@ -25,6 +25,24 @@ export interface LookupInstallationError {
 
 export type LookupInstallationForRepoResult = LookupInstallationResult | LookupInstallationError;
 
+export interface InstallationAccessToken {
+  token: string;
+  expiresAt: string;
+}
+
+export interface GenerateTokenResult {
+  success: true;
+  accessToken: InstallationAccessToken;
+}
+
+export interface GenerateTokenError {
+  success: false;
+  errorType: 'api_error' | 'jwt_error';
+  message: string;
+}
+
+export type GenerateInstallationAccessTokenResult = GenerateTokenResult | GenerateTokenError;
+
 async function createAppJwt(): Promise<string> {
   const config = getGitHubAppConfig();
 
@@ -130,6 +148,88 @@ export async function lookupInstallationForRepo(
     logger.error(
       { error: message, repositoryOwner, repositoryName },
       'Error calling GitHub API to look up installation'
+    );
+    return {
+      success: false,
+      errorType: 'api_error',
+      message: `Failed to connect to GitHub API: ${message}`,
+    };
+  }
+}
+
+export async function generateInstallationAccessToken(
+  installationId: number
+): Promise<GenerateInstallationAccessTokenResult> {
+  let appJwt: string;
+  try {
+    appJwt = await createAppJwt();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error({ error: message }, 'Failed to create GitHub App JWT for token generation');
+    return {
+      success: false,
+      errorType: 'jwt_error',
+      message: `Failed to create GitHub App authentication: ${message}`,
+    };
+  }
+
+  const url = `${GITHUB_API_BASE}/app/installations/${installationId}/access_tokens`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${appJwt}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'inkeep-agents-api',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(
+        { status: response.status, error: errorText, installationId },
+        'GitHub API error generating installation access token'
+      );
+      return {
+        success: false,
+        errorType: 'api_error',
+        message: `GitHub API error (${response.status}): Failed to generate installation access token`,
+      };
+    }
+
+    const data = await response.json();
+
+    const token = data.token;
+    const expiresAt = data.expires_at;
+
+    if (typeof token !== 'string' || typeof expiresAt !== 'string') {
+      logger.error({ data }, 'Unexpected response format from GitHub API for token generation');
+      return {
+        success: false,
+        errorType: 'api_error',
+        message: 'Unexpected response format from GitHub API',
+      };
+    }
+
+    logger.info(
+      { installationId, expiresAt },
+      'Generated GitHub App installation access token'
+    );
+
+    return {
+      success: true,
+      accessToken: {
+        token,
+        expiresAt,
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(
+      { error: message, installationId },
+      'Error calling GitHub API to generate installation access token'
     );
     return {
       success: false,

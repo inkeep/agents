@@ -32,8 +32,13 @@ export {
 } from './oidcToken';
 export {
   lookupInstallationForRepo,
+  generateInstallationAccessToken,
   type InstallationInfo,
+  type InstallationAccessToken,
   type LookupInstallationResult,
   type LookupInstallationError,
   type LookupInstallationForRepoResult,
+  type GenerateTokenResult,
+  type GenerateTokenError,
+  type GenerateInstallationAccessTokenResult,
 } from './installation';

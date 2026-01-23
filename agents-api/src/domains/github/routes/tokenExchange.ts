@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { isGitHubAppConfigured } from '../config';
 import { validateOidcToken } from '../oidcToken';
-import { lookupInstallationForRepo } from '../installation';
+import { lookupInstallationForRepo, generateInstallationAccessToken } from '../installation';
 import { getLogger } from '../../../logger';
 
 const app = new OpenAPIHono();
@@ -172,12 +172,35 @@ app.openapi(tokenExchangeRoute, async (c) => {
     'Found GitHub App installation'
   );
 
-  // TODO: Implement token generation in subsequent story (US-006)
+  const tokenResult = await generateInstallationAccessToken(installation.installationId);
+
+  if (!tokenResult.success) {
+    const { errorType, message } = tokenResult;
+    logger.error(
+      { errorType, message, installationId: installation.installationId, repository: claims.repository },
+      'Failed to generate installation access token'
+    );
+    return c.json(
+      {
+        type: 'https://api.inkeep.com/problems/token-generation-error',
+        title: 'Token Generation Failed',
+        status: 500,
+        detail: message,
+      },
+      500
+    );
+  }
+
+  const { accessToken } = tokenResult;
+  logger.info(
+    { installationId: installation.installationId, repository: claims.repository, expiresAt: accessToken.expiresAt },
+    'Token exchange completed successfully'
+  );
 
   return c.json(
     {
-      token: 'placeholder',
-      expires_at: new Date(Date.now() + 3600000).toISOString(),
+      token: accessToken.token,
+      expires_at: accessToken.expiresAt,
       repository: claims.repository,
       installation_id: installation.installationId,
     },
