@@ -338,3 +338,54 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+## Iteration 10 - $(date -u)
+
+### Story: US-012 - Add unit tests for signature verification
+
+**Implementation:**
+- Created comprehensive test suite in packages/agents-core/src/utils/__tests__/trigger-auth.test.ts (700+ lines)
+- Created mock Hono Context factory for test setup
+- Added test suite for GitHub webhook pattern:
+  - Valid signature verification
+  - Invalid signature rejection
+  - Missing signature handling
+  - Signature without prefix rejection
+  - Case-insensitive header matching
+- Added test suite for Zendesk webhook pattern:
+  - Valid multi-component signature (timestamp + body)
+  - Base64 encoding support
+  - Missing required component handling
+- Added test suite for Slack webhook pattern:
+  - Valid signature with literal components
+  - Colon separator support
+  - Three-component verification (literal + timestamp + body)
+- Added test suite for Stripe webhook pattern:
+  - Regex extraction from signature header
+  - Complex regex patterns with capture groups
+  - Invalid regex format rejection
+- Added comprehensive edge case tests:
+  - Empty body handling (allowed vs not allowed)
+  - Optional components (missing optional = empty string)
+  - Unicode normalization (NFC)
+  - JMESPath body extraction
+  - Signature mismatch with timing-safe comparison
+  - Multiple algorithm support (sha256, sha512, sha384, sha1, md5)
+  - Multiple encoding support (hex, base64)
+  - Query parameter signature extraction
+  - Case-sensitive header matching
+
+**Files Changed:**
+- packages/agents-core/src/utils/__tests__/trigger-auth.test.ts (new file, 707 lines)
+- prd.json (marked US-012 as complete)
+
+**Learnings:**
+- Mock Hono Context requires minimal interface: req.header() and req.query() methods
+- All test signatures were pre-computed using HMAC with known secrets for reproducibility
+- Test suite validates all acceptance criteria: GitHub, Zendesk, Slack, Stripe patterns plus all edge cases
+- TypeScript requires full validation object when specifying partial fields (default values don't apply to type level)
+- Timing-safe comparison is critical for security and properly tested with mismatched signatures
+- Test coverage includes all signature sources (header, query, body), all algorithms, and all encodings
+
+---
+
