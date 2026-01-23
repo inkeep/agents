@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationRunConfigResults } from '@/components/evaluation-run-configs/evaluation-run-config-results';
 import { PageHeader } from '@/components/layout/page-header';
@@ -10,6 +11,10 @@ import {
 import { fetchEvaluators } from '@/lib/api/evaluators';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  description: 'View automatic evaluation results triggered by conversations.',
+} satisfies Metadata;
 
 async function EvaluationRunConfigPage({
   params,
@@ -51,7 +56,7 @@ async function EvaluationRunConfigPage({
       <>
         <PageHeader
           title={`Continuous Test: ${runConfig.name}`}
-          description="View automatic evaluation results triggered by conversations"
+          description={metadata.description}
         />
         <EvaluationRunConfigResults
           tenantId={tenantId}

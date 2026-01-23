@@ -23,6 +23,7 @@ const signozRequestSchema = z.object({
     builderQueries: z.record(z.string(), z.any()),
   }),
   dataSource: z.string().optional(),
+  projectId: z.string().optional(),
 });
 
 // Custom validation function for time ranges

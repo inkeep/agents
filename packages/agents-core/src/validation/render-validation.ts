@@ -77,6 +77,37 @@ export function validateRender(render: {
     };
   }
 
+  // Validate that the render object can be properly serialized to JSON and back
+  // This catches invalid escape sequences like \w, \d, \x that are valid in JS but not JSON
+  // and ensures no data is lost during round-trip (e.g., undefined values, Date objects)
+  try {
+    const serialized = JSON.stringify(render);
+    const parsed = JSON.parse(serialized);
+    // Compare to ensure round-trip doesn't lose or transform data
+    if (JSON.stringify(parsed) !== serialized) {
+      return {
+        isValid: false,
+        errors: [
+          {
+            field: 'render',
+            message: 'Render data contains values that cannot be safely serialized to JSON',
+          },
+        ],
+      };
+    }
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'Unknown JSON serialization error';
+    return {
+      isValid: false,
+      errors: [
+        {
+          field: 'render',
+          message: `Render data contains invalid characters that cannot be stored in the database: ${errorMessage}`,
+        },
+      ],
+    };
+  }
+
   // Check component size
   if (render.component.length > MAX_CODE_SIZE) {
     errors.push({

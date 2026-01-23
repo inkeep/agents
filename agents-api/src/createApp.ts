@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -49,6 +49,29 @@ function createAgentsHono(config: AppConfig) {
   const { serverConfig, credentialStores, auth, sandboxConfig } = config;
 
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
+
+  const CapabilitiesResponseSchema = z
+    .object({
+      sandbox: z
+        .object({
+          configured: z
+            .boolean()
+            .describe(
+              'Whether a sandbox provider is configured. Required for Function Tools execution.'
+            ),
+          provider: z
+            .enum(['native', 'vercel'])
+            .optional()
+            .describe('The configured sandbox provider, if enabled.'),
+          runtime: z
+            .enum(['node22', 'typescript'])
+            .optional()
+            .describe('The configured sandbox runtime, if enabled.'),
+        })
+        .describe('Sandbox execution capabilities (used by Function Tools).'),
+    })
+    .describe('Optional server capabilities and configuration.')
+    .openapi('CapabilitiesResponseSchema');
 
   // Core middleware
   app.use('*', requestId());
@@ -202,6 +225,55 @@ function createAgentsHono(config: AppConfig) {
 
     return sessionAuth()(c as any, next);
   });
+
+  // Authentication middleware for non-tenant manage routes
+  app.use('/manage/capabilities', async (c, next) => {
+    // Capabilities should be gated the same way as other manage routes, but still work
+    // when auth is disabled or not configured.
+    if (!auth || env.DISABLE_AUTH || isTestEnvironment()) {
+      await next();
+      return;
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      return manageApiKeyAuth()(c as any, next);
+    }
+
+    return sessionAuth()(c as any, next);
+  });
+
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/manage/capabilities',
+      operationId: 'capabilities',
+      summary: 'Get server capabilities',
+      description: 'Get information about optional server-side capabilities and configuration.',
+      responses: {
+        200: {
+          description: 'Server capabilities',
+          content: {
+            'application/json': {
+              schema: CapabilitiesResponseSchema,
+            },
+          },
+        },
+      },
+    }),
+    (c) => {
+      if (!sandboxConfig) {
+        return c.json({ sandbox: { configured: false } });
+      }
+      return c.json({
+        sandbox: {
+          configured: true,
+          provider: sandboxConfig.provider,
+          runtime: sandboxConfig.runtime,
+        },
+      });
+    }
+  );
 
   // Tenant access check (skip in DISABLE_AUTH and test environments)
   if (env.DISABLE_AUTH || isTestEnvironment()) {

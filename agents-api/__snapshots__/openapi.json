@@ -1378,6 +1378,44 @@
         ],
         "type": "object"
       },
+      "CapabilitiesResponseSchema": {
+        "description": "Optional server capabilities and configuration.",
+        "properties": {
+          "sandbox": {
+            "description": "Sandbox execution capabilities (used by Function Tools).",
+            "properties": {
+              "configured": {
+                "description": "Whether a sandbox provider is configured. Required for Function Tools execution.",
+                "type": "boolean"
+              },
+              "provider": {
+                "description": "The configured sandbox provider, if enabled.",
+                "enum": [
+                  "native",
+                  "vercel"
+                ],
+                "type": "string"
+              },
+              "runtime": {
+                "description": "The configured sandbox runtime, if enabled.",
+                "enum": [
+                  "node22",
+                  "typescript"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "configured"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "sandbox"
+        ],
+        "type": "object"
+      },
       "ComponentAssociation": {
         "properties": {
           "createdAt": {
@@ -9237,6 +9275,25 @@
         "tags": [
           "user-organizations"
         ]
+      }
+    },
+    "/manage/capabilities": {
+      "get": {
+        "description": "Get information about optional server-side capabilities and configuration.",
+        "operationId": "capabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponseSchema"
+                }
+              }
+            },
+            "description": "Server capabilities"
+          }
+        },
+        "summary": "Get server capabilities"
       }
     },
     "/manage/oauth/callback": {

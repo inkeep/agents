@@ -2,7 +2,7 @@
  * Custom workflow build script that supports externalizing native modules.
  *
  * The default `workflow build` CLI doesn't expose the externalPackages option,
- * so we use the builder directly to exclude native modules like keytar.
+ * so we use the builder directly to exclude native modules like @napi-rs/keyring.
  */
 import { StandaloneBuilder } from '@workflow/builders';
 
@@ -14,7 +14,7 @@ const config = {
   workflowsBundlePath: './.well-known/workflow/v1/flow.cjs',
   webhookBundlePath: './.well-known/workflow/v1/webhook.mjs',
   // Externalize native modules that can't be bundled
-  externalPackages: ['keytar'],
+  externalPackages: ['@napi-rs/keyring'],
 };
 
 async function build() {

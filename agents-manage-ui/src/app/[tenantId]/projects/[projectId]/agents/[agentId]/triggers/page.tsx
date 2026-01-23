@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
@@ -7,6 +8,11 @@ import { Button } from '@/components/ui/button';
 import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTriggersAction } from '@/lib/actions/triggers';
+
+export const metadata = {
+  title: STATIC_LABELS.triggers,
+  description: 'Configure webhook triggers to invoke this agent from external services.',
+} satisfies Metadata;
 
 export default async function TriggersPage({
   params,
@@ -25,8 +31,8 @@ export default async function TriggersPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={STATIC_LABELS.triggers}
-        description="Configure webhook triggers to invoke this agent from external services."
+        title={metadata.title}
+        description={metadata.description}
         action={
           <Button asChild>
             <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/new`}>
@@ -36,7 +42,6 @@ export default async function TriggersPage({
           </Button>
         }
       />
-
       <TriggersTable
         triggers={triggers}
         tenantId={tenantId}
