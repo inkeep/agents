@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { KeyRound, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -60,6 +60,18 @@ const signatureSourceOptions: SelectOption[] = [
   { value: 'body', label: 'Request Body (JMESPath)' },
 ];
 
+// Signed component source options
+const componentSourceOptions: SelectOption[] = [
+  { value: 'header', label: 'HTTP Header' },
+  { value: 'body', label: 'Request Body (JMESPath)' },
+  { value: 'literal', label: 'Literal String' },
+];
+
+// Component join strategy options
+const joinStrategyOptions: SelectOption[] = [
+  { value: 'concatenate', label: 'Concatenate' },
+];
+
 // Zod schema for the form
 const triggerFormSchema = z.object({
   id: z.string().optional(),
@@ -92,6 +104,21 @@ const triggerFormSchema = z.object({
   signatureKey: z.string().optional(),
   signaturePrefix: z.string().optional(),
   signatureRegex: z.string().optional(),
+  // Signed components configuration
+  signedComponents: z
+    .array(
+      z.object({
+        source: z.enum(['header', 'body', 'literal']),
+        key: z.string().optional(),
+        value: z.string().optional(),
+        regex: z.string().optional(),
+        required: z.boolean().default(true),
+      })
+    )
+    .default([]),
+  // Component join configuration
+  joinStrategy: z.enum(['concatenate']).optional(),
+  joinSeparator: z.string().optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -156,6 +183,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         signatureKey: '',
         signaturePrefix: '',
         signatureRegex: '',
+        signedComponents: [],
+        joinStrategy: 'concatenate',
+        joinSeparator: '',
       };
     }
 
@@ -212,6 +242,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       signatureKey: signatureVerification?.signature?.key || '',
       signaturePrefix: signatureVerification?.signature?.prefix || '',
       signatureRegex: signatureVerification?.signature?.regex || '',
+      signedComponents: signatureVerification?.signedComponents || [],
+      joinStrategy: signatureVerification?.componentJoin?.strategy || 'concatenate',
+      joinSeparator: signatureVerification?.componentJoin?.separator || '',
     };
   };
 
@@ -225,6 +258,16 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'authHeaders',
+  });
+
+  const {
+    fields: componentFields,
+    append: appendComponent,
+    remove: removeComponent,
+    move: moveComponent,
+  } = useFieldArray({
+    control: form.control,
+    name: 'signedComponents',
   });
 
   const { isSubmitting } = form.formState;
@@ -324,6 +367,42 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       // Trim messageTemplate to match backend validation behavior
       const trimmedMessageTemplate = data.messageTemplate?.trim() || '';
 
+      // Build signature verification config
+      let signatureVerification: any = undefined;
+      if (
+        data.signingSecretCredentialReferenceId &&
+        data.signatureAlgorithm &&
+        data.signatureEncoding &&
+        data.signatureSource &&
+        data.signatureKey &&
+        data.signedComponents &&
+        data.signedComponents.length > 0 &&
+        data.joinStrategy &&
+        data.joinSeparator !== undefined
+      ) {
+        signatureVerification = {
+          algorithm: data.signatureAlgorithm,
+          encoding: data.signatureEncoding,
+          signature: {
+            source: data.signatureSource,
+            key: data.signatureKey,
+            ...(data.signaturePrefix && { prefix: data.signaturePrefix }),
+            ...(data.signatureRegex && { regex: data.signatureRegex }),
+          },
+          signedComponents: data.signedComponents.map((comp) => ({
+            source: comp.source,
+            ...(comp.key && { key: comp.key }),
+            ...(comp.value && { value: comp.value }),
+            ...(comp.regex && { regex: comp.regex }),
+            required: comp.required,
+          })),
+          componentJoin: {
+            strategy: data.joinStrategy,
+            separator: data.joinSeparator,
+          },
+        };
+      }
+
       const payload: any = {
         id: data.id,
         name: data.name,
@@ -340,9 +419,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         outputTransform,
         authentication,
         signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId || undefined,
-        // Note: signatureAlgorithm and signatureEncoding are captured in form state
-        // They will be included in the signatureVerification object once the full
-        // signature configuration UI is implemented (US-023, US-024)
+        signatureVerification,
       };
 
       let result: { success: boolean; error?: string };
@@ -818,6 +895,224 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Signed Components Builder */}
+              <div className="pt-4 border-t space-y-3">
+                <h4 className="text-sm font-medium">Signed Components</h4>
+                <FormDescription>
+                  Define the components that are included in the signature. Components are joined in
+                  order to create the signed payload.
+                </FormDescription>
+
+                {/* Signed Components List */}
+                <div className="space-y-3">
+                  {componentFields.map((field, index) => {
+                    const componentSource = form.watch(`signedComponents.${index}.source`);
+
+                    return (
+                      <div key={field.id} className="space-y-2 p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Component {index + 1}</span>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => moveComponent(index, index - 1)}
+                              disabled={index === 0}
+                              className="h-7 w-7"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => moveComponent(index, index + 1)}
+                              disabled={index === componentFields.length - 1}
+                              className="h-7 w-7"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeComponent(index)}
+                              className="h-7 w-7"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormField
+                            control={form.control}
+                            name={`signedComponents.${index}.source`}
+                            render={({ field: selectField }) => (
+                              <FormItem>
+                                <FormLabel>Component Source</FormLabel>
+                                <GenericSelect
+                                  control={form.control}
+                                  name={`signedComponents.${index}.source`}
+                                  label=""
+                                  options={componentSourceOptions}
+                                  placeholder="Select source"
+                                />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {componentSource !== 'literal' && (
+                            <FormField
+                              control={form.control}
+                              name={`signedComponents.${index}.key`}
+                              render={({ field: inputField }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    {componentSource === 'header' ? 'Header Name' : 'JMESPath Expression'}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...inputField}
+                                      placeholder={
+                                        componentSource === 'header'
+                                          ? 'e.g., X-Request-Timestamp'
+                                          : 'e.g., timestamp or body.timestamp'
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+
+                          {componentSource === 'literal' && (
+                            <FormField
+                              control={form.control}
+                              name={`signedComponents.${index}.value`}
+                              render={({ field: inputField }) => (
+                                <FormItem>
+                                  <FormLabel>Literal Value</FormLabel>
+                                  <FormControl>
+                                    <Input {...inputField} placeholder='e.g., "v0"' />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormField
+                            control={form.control}
+                            name={`signedComponents.${index}.regex`}
+                            render={({ field: inputField }) => (
+                              <FormItem>
+                                <FormLabel>Regex Extraction (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...inputField}
+                                    placeholder='e.g., "([a-f0-9]+)"'
+                                  />
+                                </FormControl>
+                                <FormDescription className="text-xs">
+                                  Extract a portion of the component using a regex capture group.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`signedComponents.${index}.required`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 mt-2">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm">Required</FormLabel>
+                                  <FormDescription className="text-xs">
+                                    If unchecked, missing component = empty string
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    appendComponent({
+                      source: 'header',
+                      key: '',
+                      value: '',
+                      regex: '',
+                      required: true,
+                    })
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Signed Component
+                </Button>
+
+                {/* Component Join Configuration */}
+                <div className="pt-3 border-t space-y-3">
+                  <h4 className="text-sm font-medium">Component Joining</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="joinStrategy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Join Strategy</FormLabel>
+                          <GenericSelect
+                            control={form.control}
+                            name="joinStrategy"
+                            label=""
+                            options={joinStrategyOptions}
+                            placeholder="Select strategy"
+                          />
+                          <FormDescription className="text-xs">
+                            Strategy for combining components.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="joinSeparator"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Separator</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder='e.g., ":" or "."' />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            String to insert between components.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -890,3 +890,57 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 20 - Fri Jan 23 01:11:20 UTC 2026
+
+---
+
+## Iteration 21 - Fri Jan 23 01:14:40 UTC 2026
+
+### Story: US-024 - Add signed components builder to trigger form
+
+**Implementation:**
+- Extended triggerFormSchema with signedComponents array field and componentJoin fields (joinStrategy, joinSeparator)
+- Added componentSourceOptions for signed component sources: header, body (JMESPath), literal
+- Added joinStrategyOptions for component joining strategy: concatenate
+- Imported ArrowUp and ArrowDown icons from lucide-react for reordering
+- Created useFieldArray for signedComponents with append, remove, and move operations
+- Updated getDefaultValues() to extract signedComponents and componentJoin from trigger.signatureVerification
+- Implemented signed components builder UI:
+  - Dynamic component cards with reorder buttons (up/down arrows)
+  - Component source selector (header, body, literal)
+  - Conditional key input (for header/body sources) with dynamic labels
+  - Conditional value input (for literal source)
+  - Optional regex extraction input with helper text
+  - Required checkbox with Switch component
+  - Delete button for each component
+  - Add Signed Component button
+- Implemented component join configuration UI:
+  - Join strategy dropdown (concatenate)
+  - Separator input field with placeholder examples
+  - Helper text for both fields
+- Updated onSubmit() to build complete signatureVerification config:
+  - Validates all required fields are present
+  - Builds signature object with optional prefix and regex
+  - Maps signedComponents with conditional fields
+  - Builds componentJoin object with strategy and separator
+  - Only sends signatureVerification if all fields are complete
+- TypeScript compilation passes with no errors
+- UI follows existing patterns with 2-column grid layouts, proper spacing, and FormDescription helpers
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (242 insertions)
+
+**Learnings:**
+- useFieldArray's move() function enables reordering components, critical for signature verification where order matters
+- Dynamic form fields based on watch() values provide context-appropriate inputs (header name vs JMESPath expression)
+- Conditional field rendering using componentSource prevents confusion (literal components don't need key, non-literals don't need value)
+- Form validation should happen at submission time - only build signatureVerification config if all required fields are present
+- The signatureVerification config is now complete with all fields from the schema: algorithm, encoding, signature, signedComponents, componentJoin
+- Browser verification requires running dev environment (to be tested by user)
+- The signed components builder provides a complete UI for configuring complex signature verification patterns like GitHub, Slack, Stripe, Zendesk
+
+---
+
