@@ -21,19 +21,19 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('/', async (c, next) => {
+app.use('/', (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ policy: ['create'] })(c, next);
+    return requirePermission({ skill: ['create'] })(c, next);
   }
   return next();
 });
 
-app.use('/:id', async (c, next) => {
+app.use('/:id', (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ policy: ['update'] })(c, next);
+    return requirePermission({ skill: ['update'] })(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ policy: ['delete'] })(c, next);
+    return requirePermission({ skill: ['delete'] })(c, next);
   }
   return next();
 });

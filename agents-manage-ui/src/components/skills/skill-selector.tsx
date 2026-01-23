@@ -1,10 +1,19 @@
 import type { CheckedState } from '@radix-ui/react-checkbox';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import NextLink from 'next/link';
+import { useParams } from 'next/navigation';
 import { type FC, useState } from 'react';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
 import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/theme';
@@ -52,7 +61,7 @@ export function updateSkillAlwaysLoaded(
 
 export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange, error }) => {
   'use memo';
-
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
   const availableSkills = useAgentStore((state) => state.availableSkills);
@@ -120,13 +129,18 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                 dragOverId ? dragOverId === skill.id && 'bg-muted/30' : 'hover:bg-muted/30'
               )}
               draggable
-              onDragStart={() => setDraggingId(skill.id)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverId(skill.id);
+              data-id={skill.id}
+              onDragStart={(event) => {
+                setDraggingId(event.currentTarget.dataset.id as string);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragOverId(event.currentTarget.dataset.id as string);
               }}
               onDragLeave={() => setDragOverId('')}
-              onDrop={() => handleDrop(skill.id)}
+              onDrop={(event) => {
+                handleDrop(event.currentTarget.dataset.id as string);
+              }}
               onDragEnd={() => {
                 setDraggingId('');
                 setDragOverId('');
@@ -144,6 +158,31 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                 checked={skill.alwaysLoaded}
                 onCheckedChange={(checked) => handleAlwaysLoadedChange(skill.id, checked)}
               />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" className="-mr-2">
+                    <MoreVertical />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <NextLink href={`/${tenantId}/projects/${projectId}/skills/${skill.id}`}>
+                      <Pencil />
+                      Edit
+                    </NextLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    data-id={skill.id}
+                    onClick={(event) => {
+                      handleToggle(event.currentTarget.dataset.id as string);
+                    }}
+                  >
+                    <Trash2 />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </li>
           ))}
         </div>
