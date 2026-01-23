@@ -113,11 +113,7 @@ export default function NewCredentialForm({
 
   return (
     <div className="max-w-2xl mx-auto">
-      <FormToUse
-        onCreateCredential={handleCreateCredential}
-        tenantId={tenantId}
-        projectId={projectId}
-      />
+      <FormToUse onCreateCredential={handleCreateCredential} />
     </div>
   );
 }

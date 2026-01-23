@@ -1378,6 +1378,44 @@
         ],
         "type": "object"
       },
+      "CapabilitiesResponseSchema": {
+        "description": "Optional server capabilities and configuration.",
+        "properties": {
+          "sandbox": {
+            "description": "Sandbox execution capabilities (used by Function Tools).",
+            "properties": {
+              "configured": {
+                "description": "Whether a sandbox provider is configured. Required for Function Tools execution.",
+                "type": "boolean"
+              },
+              "provider": {
+                "description": "The configured sandbox provider, if enabled.",
+                "enum": [
+                  "native",
+                  "vercel"
+                ],
+                "type": "string"
+              },
+              "runtime": {
+                "description": "The configured sandbox runtime, if enabled.",
+                "enum": [
+                  "node22",
+                  "typescript"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "configured"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "sandbox"
+        ],
+        "type": "object"
+      },
       "ComponentAssociation": {
         "properties": {
           "createdAt": {
@@ -1404,6 +1442,27 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "ComponentJoin": {
+        "description": "How to join signed components",
+        "properties": {
+          "separator": {
+            "description": "String to insert between joined components",
+            "type": "string"
+          },
+          "strategy": {
+            "description": "Strategy for joining components",
+            "enum": [
+              "concatenate"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy",
+          "separator"
         ],
         "type": "object"
       },
@@ -5785,6 +5844,141 @@
         ],
         "type": "object"
       },
+      "SignatureSource": {
+        "description": "Configuration for extracting the signature",
+        "properties": {
+          "key": {
+            "description": "Key name for the signature (header name, query param, or JMESPath)",
+            "type": "string"
+          },
+          "prefix": {
+            "description": "Optional prefix to strip from signature value (e.g., \"sha256=\", \"v0=\")",
+            "type": "string"
+          },
+          "regex": {
+            "description": "Optional regex pattern to extract signature from value (first capture group used)",
+            "type": "string"
+          },
+          "source": {
+            "description": "Location of the signature in the incoming request",
+            "enum": [
+              "header",
+              "query",
+              "body"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "key"
+        ],
+        "type": "object"
+      },
+      "SignatureValidationOptions": {
+        "description": "Advanced validation options",
+        "properties": {
+          "allowEmptyBody": {
+            "default": true,
+            "description": "If true, allow empty request body for verification",
+            "type": "boolean"
+          },
+          "headerCaseSensitive": {
+            "default": false,
+            "description": "If true, header names are matched case-sensitively",
+            "type": "boolean"
+          },
+          "normalizeUnicode": {
+            "default": false,
+            "description": "If true, normalize Unicode strings to NFC form before signing",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "SignatureVerificationConfig": {
+        "nullable": true,
+        "properties": {
+          "algorithm": {
+            "description": "HMAC algorithm to use for signature verification",
+            "enum": [
+              "sha256",
+              "sha512",
+              "sha384",
+              "sha1",
+              "md5"
+            ],
+            "type": "string"
+          },
+          "componentJoin": {
+            "$ref": "#/components/schemas/ComponentJoin"
+          },
+          "encoding": {
+            "description": "Encoding format of the signature (hex or base64)",
+            "enum": [
+              "hex",
+              "base64"
+            ],
+            "type": "string"
+          },
+          "signature": {
+            "$ref": "#/components/schemas/SignatureSource"
+          },
+          "signedComponents": {
+            "description": "Array of components that are signed (order matters)",
+            "items": {
+              "$ref": "#/components/schemas/SignedComponent"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/SignatureValidationOptions"
+          }
+        },
+        "required": [
+          "algorithm",
+          "encoding",
+          "signature",
+          "signedComponents",
+          "componentJoin"
+        ],
+        "type": "object"
+      },
+      "SignedComponent": {
+        "properties": {
+          "key": {
+            "description": "Key for header name or JMESPath expression (required for header/body sources)",
+            "type": "string"
+          },
+          "regex": {
+            "description": "Optional regex pattern to extract from component value (first capture group)",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "description": "If false, missing component results in empty string instead of error",
+            "type": "boolean"
+          },
+          "source": {
+            "description": "Source of the component: header value, body via JMESPath, or literal string",
+            "enum": [
+              "header",
+              "body",
+              "literal"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "Literal string value (required for literal source)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
       "StatusComponent": {
         "properties": {
           "description": {
@@ -7942,7 +8136,10 @@
               }
             ]
           },
-          "signingSecret": {
+          "signatureVerification": {
+            "$ref": "#/components/schemas/SignatureVerificationConfig"
+          },
+          "signingSecretCredentialReferenceId": {
             "nullable": true,
             "type": "string"
           },
@@ -7959,7 +8156,6 @@
           "outputTransform",
           "messageTemplate",
           "authentication",
-          "signingSecret",
           "createdAt",
           "updatedAt"
         ],
@@ -7986,36 +8182,6 @@
               "required": [
                 "name",
                 "value"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "TriggerAuthenticationUpdate": {
-        "properties": {
-          "headers": {
-            "description": "Array of headers. Use keepExisting:true to preserve existing hashed value.",
-            "items": {
-              "properties": {
-                "keepExisting": {
-                  "description": "If true, keep the existing hashed value for this header",
-                  "type": "boolean"
-                },
-                "name": {
-                  "description": "Header name (e.g., X-API-Key, Authorization)",
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "value": {
-                  "description": "New header value (plaintext). If omitted, existing value is kept.",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "name"
               ],
               "type": "object"
             },
@@ -8072,8 +8238,58 @@
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
           },
-          "signingSecret": {
-            "description": "HMAC-SHA256 signing secret",
+          "signatureVerification": {
+            "description": "Configuration for webhook signature verification",
+            "nullable": true,
+            "properties": {
+              "algorithm": {
+                "description": "HMAC algorithm to use for signature verification",
+                "enum": [
+                  "sha256",
+                  "sha512",
+                  "sha384",
+                  "sha1",
+                  "md5"
+                ],
+                "type": "string"
+              },
+              "componentJoin": {
+                "$ref": "#/components/schemas/ComponentJoin"
+              },
+              "encoding": {
+                "description": "Encoding format of the signature (hex or base64)",
+                "enum": [
+                  "hex",
+                  "base64"
+                ],
+                "type": "string"
+              },
+              "signature": {
+                "$ref": "#/components/schemas/SignatureSource"
+              },
+              "signedComponents": {
+                "description": "Array of components that are signed (order matters)",
+                "items": {
+                  "$ref": "#/components/schemas/SignedComponent"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "validation": {
+                "$ref": "#/components/schemas/SignatureValidationOptions"
+              }
+            },
+            "required": [
+              "algorithm",
+              "encoding",
+              "signature",
+              "signedComponents",
+              "componentJoin"
+            ],
+            "type": "object"
+          },
+          "signingSecretCredentialReferenceId": {
+            "description": "Reference to credential containing signing secret",
             "nullable": true,
             "type": "string"
           },
@@ -8283,27 +8499,40 @@
       },
       "TriggerUpdate": {
         "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
           "authentication": {
-            "$ref": "#/components/schemas/TriggerAuthenticationUpdate"
+            "$ref": "#/components/schemas/TriggerAuthenticationInput"
+          },
+          "createdAt": {
+            "type": "string"
           },
           "description": {
             "description": "Trigger description",
+            "nullable": true,
             "type": "string"
           },
           "enabled": {
             "description": "Whether the trigger is enabled",
             "type": "boolean"
           },
+          "id": {
+            "description": "Resource identifier",
+            "example": "resource_789",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
+          },
           "inputSchema": {
             "additionalProperties": {
               "nullable": true
             },
             "description": "JSON Schema for input validation",
+            "nullable": true,
             "type": "object"
-          },
-          "keepExistingSigningSecret": {
-            "description": "If true, keep existing signing secret",
-            "type": "boolean"
           },
           "messageTemplate": {
             "description": "Message template with {{placeholder}} syntax",
@@ -8319,11 +8548,121 @@
           "outputTransform": {
             "$ref": "#/components/schemas/TriggerOutputTransform"
           },
-          "signingSecret": {
-            "description": "New HMAC-SHA256 signing secret",
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "signatureVerification": {
+            "description": "Configuration for webhook signature verification",
+            "nullable": true,
+            "properties": {
+              "algorithm": {
+                "description": "HMAC algorithm to use for signature verification",
+                "enum": [
+                  "sha256",
+                  "sha512",
+                  "sha384",
+                  "sha1",
+                  "md5"
+                ],
+                "type": "string"
+              },
+              "componentJoin": {
+                "$ref": "#/components/schemas/ComponentJoin"
+              },
+              "encoding": {
+                "description": "Encoding format of the signature (hex or base64)",
+                "enum": [
+                  "hex",
+                  "base64"
+                ],
+                "type": "string"
+              },
+              "signature": {
+                "$ref": "#/components/schemas/SignatureSource"
+              },
+              "signedComponents": {
+                "description": "Array of components that are signed (order matters)",
+                "items": {
+                  "$ref": "#/components/schemas/SignedComponent"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "validation": {
+                "$ref": "#/components/schemas/SignatureValidationOptions"
+              }
+            },
+            "required": [
+              "algorithm",
+              "encoding",
+              "signature",
+              "signedComponents",
+              "componentJoin"
+            ],
+            "type": "object"
+          },
+          "signingSecretCredentialReferenceId": {
+            "description": "Reference to credential containing signing secret",
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "TriggerWithWebhookUrl": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Trigger"
+          },
+          {
+            "properties": {
+              "webhookUrl": {
+                "description": "Fully qualified webhook URL for this trigger",
+                "type": "string"
+              }
+            },
+            "required": [
+              "webhookUrl"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "TriggerWithWebhookUrlListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "TriggerWithWebhookUrlResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TriggerWithWebhookUrl"
+          }
+        },
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "Unauthorized": {
@@ -9248,37 +9587,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "sandbox": {
-                      "properties": {
-                        "configured": {
-                          "type": "boolean"
-                        },
-                        "provider": {
-                          "enum": [
-                            "native",
-                            "vercel"
-                          ],
-                          "type": "string"
-                        },
-                        "runtime": {
-                          "enum": [
-                            "node22",
-                            "typescript"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "configured"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "sandbox"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/CapabilitiesResponseSchema"
                 }
               }
             },
@@ -17952,58 +18261,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "allOf": [
-                          {
-                            "$ref": "#/components/schemas/Trigger"
-                          },
-                          {
-                            "properties": {
-                              "webhookUrl": {
-                                "description": "Fully qualified webhook URL for this trigger",
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "webhookUrl"
-                            ],
-                            "type": "object"
-                          }
-                        ]
-                      },
-                      "type": "array"
-                    },
-                    "pagination": {
-                      "properties": {
-                        "limit": {
-                          "type": "number"
-                        },
-                        "page": {
-                          "type": "number"
-                        },
-                        "pages": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "page",
-                        "limit",
-                        "total",
-                        "pages"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "pagination"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlListResponse"
                 }
               }
             },
@@ -18138,31 +18396,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Trigger"
-                        },
-                        {
-                          "properties": {
-                            "webhookUrl": {
-                              "description": "Fully qualified webhook URL for this trigger",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "webhookUrl"
-                          ],
-                          "type": "object"
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
                 }
               }
             },
@@ -18401,31 +18635,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Trigger"
-                        },
-                        {
-                          "properties": {
-                            "webhookUrl": {
-                              "description": "Fully qualified webhook URL for this trigger",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "webhookUrl"
-                          ],
-                          "type": "object"
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
                 }
               }
             },
@@ -18556,31 +18766,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Trigger"
-                        },
-                        {
-                          "properties": {
-                            "webhookUrl": {
-                              "description": "Fully qualified webhook URL for this trigger",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "webhookUrl"
-                          ],
-                          "type": "object"
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/TriggerWithWebhookUrlResponse"
                 }
               }
             },
@@ -31029,6 +31215,24 @@
               }
             },
             "description": "Payload transformation failed"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Internal server error"
           }
         },
         "summary": "Invoke agent via trigger webhook",

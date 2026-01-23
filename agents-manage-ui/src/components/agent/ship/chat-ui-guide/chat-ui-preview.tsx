@@ -68,7 +68,7 @@ export function ChatUIPreview({
     >
       {component === ChatUIComponent.SIDEBAR_CHAT && (
         <div className="p-4">
-          <Button variant="outline" size="sm" data-inkeep-sidebar-chat-trigger>
+          <Button variant="outline" size="sm" data-preview-sidebar-chat-trigger="">
             <SidebarIcon className="size-4" />
             Toggle sidebar
           </Button>
@@ -81,6 +81,10 @@ export function ChatUIPreview({
           shouldAutoFocusInput={false}
           openSettings={{
             defaultOpen: true,
+            triggerSelector:
+              component === ChatUIComponent.SIDEBAR_CHAT
+                ? '[data-preview-sidebar-chat-trigger]'
+                : undefined,
           }}
           baseSettings={{
             ...baseSettings,

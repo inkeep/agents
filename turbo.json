@@ -80,7 +80,7 @@
     },
     "knip": {},
     "typecheck": {
-      "dependsOn": ["transit"],
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
     },

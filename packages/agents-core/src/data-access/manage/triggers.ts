@@ -85,7 +85,10 @@ export const listTriggersPaginated =
 export const createTrigger =
   (db: AgentsManageDatabaseClient) =>
   async (params: TriggerInsert): Promise<TriggerSelect> => {
-    const result = await db.insert(triggers).values(params).returning();
+    const result = await db
+      .insert(triggers)
+      .values(params as any)
+      .returning();
     return result[0] as TriggerSelect;
   };
 
@@ -106,7 +109,7 @@ export const updateTrigger =
 
     const result = await db
       .update(triggers)
-      .set(updateData)
+      .set(updateData as any)
       .where(
         and(
           eq(triggers.tenantId, params.scopes.tenantId),
@@ -164,7 +167,7 @@ export const upsertTrigger =
       };
       const result = await db
         .update(triggers)
-        .set(updateData)
+        .set(updateData as any)
         .where(
           and(
             eq(triggers.tenantId, scopes.tenantId),
@@ -185,7 +188,7 @@ export const upsertTrigger =
         tenantId: scopes.tenantId,
         projectId: scopes.projectId,
         agentId: scopes.agentId,
-      })
+      } as any)
       .returning();
     return result[0] as TriggerSelect;
   };

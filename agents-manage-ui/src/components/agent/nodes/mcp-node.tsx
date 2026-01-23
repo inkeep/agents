@@ -1,12 +1,12 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Shield } from 'lucide-react';
 import type { FC, ReactNode } from 'react';
-import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
+import { getActiveTools } from '@/lib/utils/active-tools';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import { getCurrentToolPoliciesForNode } from '@/lib/utils/orphaned-tools-detector';
 import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';

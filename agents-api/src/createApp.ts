@@ -50,13 +50,28 @@ function createAgentsHono(config: AppConfig) {
 
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-  const CapabilitiesResponseSchema = z.object({
-    sandbox: z.object({
-      configured: z.boolean(),
-      provider: z.enum(['native', 'vercel']).optional(),
-      runtime: z.enum(['node22', 'typescript']).optional(),
-    }),
-  });
+  const CapabilitiesResponseSchema = z
+    .object({
+      sandbox: z
+        .object({
+          configured: z
+            .boolean()
+            .describe(
+              'Whether a sandbox provider is configured. Required for Function Tools execution.'
+            ),
+          provider: z
+            .enum(['native', 'vercel'])
+            .optional()
+            .describe('The configured sandbox provider, if enabled.'),
+          runtime: z
+            .enum(['node22', 'typescript'])
+            .optional()
+            .describe('The configured sandbox runtime, if enabled.'),
+        })
+        .describe('Sandbox execution capabilities (used by Function Tools).'),
+    })
+    .describe('Optional server capabilities and configuration.')
+    .openapi('CapabilitiesResponseSchema');
 
   // Core middleware
   app.use('*', requestId());

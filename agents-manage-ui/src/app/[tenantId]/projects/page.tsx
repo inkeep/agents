@@ -1,14 +1,20 @@
 import { Plus } from 'lucide-react';
+import type { Metadata } from 'next';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { ProjectItem } from '@/components/projects/project-item';
 import { Button } from '@/components/ui/button';
-import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { ExternalLink } from '@/components/ui/external-link';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+
+export const metadata = {
+  title: STATIC_LABELS.projects,
+  description: 'Projects help you organize your agents, tools, and configurations.',
+} satisfies Metadata;
 
 async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
@@ -18,8 +24,8 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
     return data.length ? (
       <>
         <PageHeader
-          title={STATIC_LABELS.projects}
-          description={projectDescription}
+          title={metadata.title}
+          description={metadata.description}
           action={
             <NewProjectDialog tenantId={tenantId}>
               <Button>
@@ -38,7 +44,12 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
     ) : (
       <EmptyState
         title="No projects yet."
-        description={emptyStateProjectDescription}
+        description={
+          <>
+            {metadata.description} Create your first project to get started.
+            <ExternalLink href={`${DOCS_BASE_URL}/`}>Check out the docs</ExternalLink>
+          </>
+        }
         action={
           <NewProjectDialog tenantId={tenantId}>
             <Button size="lg">
