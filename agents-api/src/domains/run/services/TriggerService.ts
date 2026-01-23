@@ -196,7 +196,6 @@ async function resolveSigningSecret(params: {
   // Check cache first
   const cached = credentialCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    logger.debug({ cacheKey }, 'Returning cached signing secret');
     return cached.secret;
   }
 
@@ -212,18 +211,6 @@ async function resolveSigningSecret(params: {
     logger.warn({ tenantId, projectId, credentialReferenceId }, 'Credential reference not found');
     return null;
   }
-
-  logger.debug(
-    {
-      tenantId,
-      projectId,
-      credentialReferenceId,
-      credentialStoreId: credentialRef.credentialStoreId,
-      credentialStoreType: credentialRef.type,
-      retrievalParams: credentialRef.retrievalParams,
-    },
-    'Found credential reference, fetching from credential store'
-  );
 
   // Get the lookup key from retrieval params
   const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
@@ -243,11 +230,6 @@ async function resolveSigningSecret(params: {
     );
     return null;
   }
-
-  logger.debug(
-    { credentialStoreId: credentialRef.credentialStoreId, lookupKey },
-    'Fetching secret from credential store'
-  );
 
   // Create the credential store and fetch the secret
   // For now we support keychain store - the credential store registry should be used for more flexibility
@@ -272,17 +254,6 @@ async function resolveSigningSecret(params: {
     return null;
   }
 
-  logger.info(
-    {
-      credentialStoreId: credentialRef.credentialStoreId,
-      lookupKey,
-      secretFound: !!secret,
-      secretLength: secret?.length,
-      secretPreview: secret ? `${secret.substring(0, 4)}...` : null,
-    },
-    'Resolved signing secret from credential store'
-  );
-
   if (!secret) {
     logger.warn(
       { tenantId, projectId, credentialReferenceId, lookupKey },
@@ -299,10 +270,6 @@ async function resolveSigningSecret(params: {
       const extractedSecret =
         parsed.access_token || parsed.secret || parsed.value || parsed.token || parsed.key;
       if (extractedSecret && typeof extractedSecret === 'string') {
-        logger.debug(
-          { lookupKey, extractedFrom: 'json' },
-          'Extracted signing secret from JSON credential format'
-        );
         secret = extractedSecret;
       }
     } catch {
