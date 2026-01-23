@@ -6544,6 +6544,37 @@
             "maxLength": 256,
             "type": "string"
           },
+          "toolPolicies": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "updatedAt": {
             "type": "string"
           }
@@ -6552,6 +6583,7 @@
           "id",
           "subAgentId",
           "functionToolId",
+          "toolPolicies",
           "createdAt",
           "updatedAt"
         ],
@@ -6574,6 +6606,37 @@
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
+          },
+          "toolPolicies": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           }
         },
         "required": [
