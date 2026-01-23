@@ -389,3 +389,40 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+
+## Iteration 11 - $(date -u)
+
+### Story: US-013 - Update TriggerService for credential resolution
+
+**Implementation:**
+- Updated imports in TriggerService.ts to include verifySignatureWithConfig, SignatureVerificationConfig, getCredentialReference
+- Added credential cache with 5-minute TTL using Map<string, { secret: string; expiresAt: number }>
+- Implemented resolveSigningSecret() function:
+  - Fetches credential reference from database using getCredentialReference
+  - Extracts secret from retrievalParams.key field
+  - Caches secret with tenant:project:credentialReferenceId key
+  - Returns null on failure with appropriate logging
+- Updated verifySignature() function (now async):
+  - Changed signature to accept trigger object with new fields, tenantId, projectId, resolvedRef, honoContext, rawBody
+  - Prioritizes new signatureVerification config when present
+  - Resolves signing secret from credential reference
+  - Uses verifySignatureWithConfig() for new verification
+  - Falls back to legacy verifySigningSecret() for backward compatibility
+  - Returns comprehensive error handling with status codes (403, 500)
+- Updated call site in processWebhook() to await verifySignature() with new parameters
+- All new exports (verifySignatureWithConfig, SignatureVerificationConfig, getCredentialReference) are already re-exported through agents-core package index
+
+**Files Changed:**
+- agents-api/src/domains/run/services/TriggerService.ts (added 96 lines, modified verifySignature function and call site)
+- prd.json (marked US-013 as complete)
+
+**Learnings:**
+- Credential caching is critical for performance - 5-minute TTL balances freshness and database load
+- Cache key format: ${tenantId}:${projectId}:${credentialReferenceId} ensures proper isolation
+- For now, secrets are expected in retrievalParams.key - this matches credential-store-utils pattern
+- Keeping legacy verification as fallback ensures smooth migration path
+- Error handling distinguishes between missing credentials (500) and invalid signatures (403)
+- All necessary functions are already exported through package index files (utils/index.ts, validation/index.ts, data-access/index.ts)
+
+---
+
