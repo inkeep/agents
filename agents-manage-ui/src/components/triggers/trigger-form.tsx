@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
 
@@ -57,10 +59,8 @@ const triggerFormSchema = z.object({
       })
     )
     .default([]),
-  // Signing secret
-  signingSecret: z.string().default(''),
-  // Track if signing secret is configured (for display)
-  hasExistingSigningSecret: z.boolean().default(false),
+  // Credential reference for signing secret
+  signingSecretCredentialReferenceId: z.string().optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -75,6 +75,33 @@ interface TriggerFormProps {
 
 export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: TriggerFormProps) {
   const router = useRouter();
+  const [credentials, setCredentials] = useState<SelectOption[]>([]);
+  const [loadingCredentials, setLoadingCredentials] = useState(true);
+
+  // Fetch available credentials
+  useEffect(() => {
+    async function loadCredentials() {
+      setLoadingCredentials(true);
+      try {
+        const result = await fetchCredentialsAction(tenantId, projectId);
+        if (result.success && result.data) {
+          const credentialOptions = result.data.map((cred) => ({
+            value: cred.id,
+            label: cred.name,
+          }));
+          setCredentials(credentialOptions);
+        } else {
+          toast.error('Failed to load credentials');
+        }
+      } catch (error) {
+        console.error('Failed to fetch credentials:', error);
+        toast.error('Failed to load credentials');
+      } finally {
+        setLoadingCredentials(false);
+      }
+    }
+    loadCredentials();
+  }, [tenantId, projectId]);
 
   // Initialize form with default values or existing trigger data
   const getDefaultValues = (): TriggerFormData => {
@@ -89,8 +116,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         jmespath: '',
         objectTransformationJson: '',
         authHeaders: [],
-        signingSecret: '',
-        hasExistingSigningSecret: false,
+        signingSecretCredentialReferenceId: undefined,
       };
     }
 
@@ -115,9 +141,6 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       }
     }
 
-    // Check if signing secret is configured
-    const hasExistingSigningSecret = Boolean(auth?.signingSecretHash);
-
     // Determine transform type from existing data
     let transformType: 'none' | 'object_transformation' | 'jmespath' = 'none';
     if (trigger.outputTransform?.jmespath) {
@@ -139,8 +162,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         ? JSON.stringify(trigger.outputTransform.objectTransformation, null, 2)
         : '',
       authHeaders,
-      signingSecret: '', // User can optionally re-enter to update
-      hasExistingSigningSecret,
+      signingSecretCredentialReferenceId:
+        (trigger as any).signingSecretCredentialReferenceId || undefined,
     };
   };
 
@@ -222,13 +245,6 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         })),
       };
 
-      // Handle signing secret - if not provided but existing, keep existing
-      const signingSecretPayload = data.signingSecret
-        ? { signingSecret: data.signingSecret }
-        : defaultValues.hasExistingSigningSecret
-          ? { keepExistingSigningSecret: true }
-          : {};
-
       // Trim messageTemplate to match backend validation behavior
       const trimmedMessageTemplate = data.messageTemplate?.trim() || '';
 
@@ -247,7 +263,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         inputSchema,
         outputTransform,
         authentication,
-        ...signingSecretPayload,
+        signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId || undefined,
       };
 
       let result: { success: boolean; error?: string };
@@ -526,31 +542,24 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
             </Button>
 
             <div className="pt-4 border-t space-y-3">
-              <GenericInput
+              <GenericSelect
                 control={form.control}
-                name="signingSecret"
-                label="Signing Secret (Optional)"
+                name="signingSecretCredentialReferenceId"
+                label="Signing Secret Credential (Optional)"
+                options={credentials}
                 placeholder={
-                  defaultValues.hasExistingSigningSecret
-                    ? 'Enter new secret to update'
-                    : 'HMAC-SHA256 signing secret'
+                  loadingCredentials
+                    ? 'Loading credentials...'
+                    : credentials.length === 0
+                      ? 'No credentials available'
+                      : 'Select a credential'
                 }
-                type="password"
+                disabled={loadingCredentials}
               />
-              {defaultValues.hasExistingSigningSecret && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs font-normal gap-1.5">
-                    <KeyRound className="h-3 w-3" />
-                    <span>Signing secret configured</span>
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    Leave blank to keep existing secret
-                  </span>
-                </div>
-              )}
               <FormDescription>
-                If provided, webhook requests must include a valid X-Signature-256 header for
-                verification.
+                Select a credential reference that contains the HMAC signing secret for webhook
+                signature verification. If provided, webhook requests must include a valid
+                signature header.
               </FormDescription>
             </div>
           </CardContent>
