@@ -737,3 +737,31 @@ Fri Jan 23 00:06:04 UTC 2026
 
 ---
 
+## Iteration 18 - Fri Jan 23 04:50:00 UTC 2026
+
+### Story: US-020 - Update CLI introspect generator
+
+**Implementation:**
+- Verified that US-019 implementation already satisfied all US-020 requirements
+- registerAllComponents() in introspect-generator.ts:102 registers credentials before trigger generation
+- Credentials are registered in component-registry.ts:521-526 with correct file paths
+- Registry parameter is passed to generateTriggerFile() in introspect-generator.ts:431
+- triggerData object passed to generateTriggerFile() contains all fields from database including:
+  - signingSecretCredentialReferenceId
+  - signatureVerification
+- Credential generation happens in step 1 (lines 105-114), trigger generation in step 11 (lines 428-437)
+- This ensures credentials are available in registry before triggers reference them
+- No code changes required - all acceptance criteria already met
+
+**Files Changed:**
+- prd.json (marked US-020 as complete with explanatory notes)
+
+**Learnings:**
+- US-020 was already satisfied by US-019 implementation
+- The introspect generator follows correct dependency ordering: register all components → generate credentials → generate triggers
+- ComponentRegistry provides centralized component tracking across the entire project
+- triggerData from database automatically includes all new fields without explicit parameter passing
+- The generateTriggerFile() function receives complete trigger data and can access all fields
+
+---
+
