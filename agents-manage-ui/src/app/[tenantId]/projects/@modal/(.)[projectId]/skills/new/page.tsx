@@ -16,14 +16,7 @@ const NewSkillModalPage: FC = () => {
   const router = useRouter();
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) {
-          router.back();
-        }
-      }}
-    >
+    <Dialog open onOpenChange={router.back}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Create skill</DialogTitle>
