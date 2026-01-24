@@ -19,6 +19,8 @@ import { formatJsonField } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { defaultValues, type SkillFormData, SkillSchema } from './validation';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Check, Info, X } from 'lucide-react';
 
 interface SkillFormProps {
   initialData?: Skill;
@@ -110,7 +112,24 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
         <GenericTextarea
           control={form.control}
           name="description"
-          label="Description"
+          label={
+            <>
+              Description
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-3 h-3 text-muted-foreground ml-1" />
+                </TooltipTrigger>
+                <TooltipContent className="text-wrap">
+                  <Check className="inline size-3 text-green-500" /> Good example: Extracts text and
+                  tables from PDF files, fills PDF forms, and merges multiple PDFs. Use when working
+                  with PDF documents or when the user mentions PDFs, forms, or document extraction.
+                  <br />
+                  <br />
+                  <X className="inline size-3 text-red-500" /> Bad example: Helps with PDFs.
+                </TooltipContent>
+              </Tooltip>
+            </>
+          }
           placeholder="High-level summary of what this skill enforces."
           isRequired
         />
