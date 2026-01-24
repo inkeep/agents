@@ -23,6 +23,7 @@
     "test:fast": "turbo test:fast",
     "test:slow": "turbo test:slow",
     "test:integration": "turbo test:integration",
+    "test:generate-snapshot": "tsx scripts/generate-test-db-snapshot.ts",
     "coverage": "pnpm test:coverage && node scripts/merge-coverage.mjs && node scripts/generate-badges.mjs",
     "coverage:report": "node scripts/merge-coverage.mjs",
     "coverage:badges": "node scripts/generate-badges.mjs",
