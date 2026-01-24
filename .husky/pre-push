@@ -10,5 +10,18 @@
 #
 # Excludes slow builds (agents-manage-ui, agents-docs) for speed
 # Full validation still runs in CI
+#
+# Affected-only filtering: Uses Turbo's --filter='...[origin/main]' to only
+# run checks on packages that have changed since origin/main. This significantly
+# speeds up pre-push validation when only a few packages are modified.
+# Falls back to full check if origin/main doesn't exist (e.g., fresh clone).
 
-pnpm check:prepush
+# Check if origin/main exists for affected-only filtering
+if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  # Run only on packages affected since origin/main
+  pnpm turbo check:prepush --filter='...[origin/main]' --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'
+else
+  # Fallback: run full check if origin/main doesn't exist (fresh clone scenario)
+  echo "Warning: origin/main not found, running full check:prepush"
+  pnpm check:prepush
+fi
