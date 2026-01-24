@@ -34,13 +34,11 @@ Open the folder using your coding editor. To open with Cursor, you can run `curs
 
 ### Step 2: Add Inkeep skills for AI coding (optional)
 
-Install [Inkeep skills](https://github.com/inkeep/skills) so AI coding assistants (Cursor, Copilot, Claude Code, etc.) know how to build agents correctly:
+Install [Inkeep skills](https://github.com/inkeep/skills) so AI assistants know how to use the SDK:
 
 ```bash
 npx skills add inkeep/skills
 ```
-
-Skills provide procedural guidance—configuration patterns, API usage, and best practices—that help AI assistants write correct code for the Inkeep Agents SDK.
 
 ### Step 3: Run the setup script
 
