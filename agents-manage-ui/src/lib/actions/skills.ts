@@ -1,7 +1,6 @@
 'use server';
 
-import { cache } from 'react';
-import { deleteSkill, fetchSkill, fetchSkills, type Skill } from '@/lib/api/skills';
+import { deleteSkill, fetchSkills, type Skill } from '@/lib/api/skills';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
@@ -25,29 +24,6 @@ export async function fetchSkillsAction(
     };
   }
 }
-
-async function $fetchSkillAction(
-  tenantId: string,
-  projectId: string,
-  skillId: string
-): Promise<ActionResult<Skill>> {
-  try {
-    const data = await fetchSkill(tenantId, projectId, skillId);
-    return {
-      success: true,
-      data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return { success: false, error: error.message, code: error.error.code };
-    }
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch agent skill',
-    };
-  }
-}
-export const fetchSkillAction = cache($fetchSkillAction);
 
 export async function deleteSkillAction(
   tenantId: string,

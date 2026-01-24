@@ -4,7 +4,6 @@ import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
 import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
-import { fetchSkillAction } from '@/lib/actions/skills';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchCredential } from '@/lib/api/credentials';
 import { fetchDataComponent } from '@/lib/api/data-components';
