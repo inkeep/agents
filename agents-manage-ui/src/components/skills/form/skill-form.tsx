@@ -35,10 +35,7 @@ const formatFormData = (data?: Skill): SkillFormData => {
 
 export const SkillForm: FC<SkillFormProps> = ({ onSuccess, initialData }) => {
   'use memo';
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { mutateAsync: upsertSkill } = useUpsertSkillMutation();
   const form = useForm<SkillFormData>({
