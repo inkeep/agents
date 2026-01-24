@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { getTypeBadgeVariant, parseMCPInputSchema } from '@/lib/utils/mcp-schema-parser';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 interface SchemaProperty {
   name: string;
@@ -141,16 +142,23 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
   return (
     <div className="border rounded-lg p-4 space-y-3">
       {/* Tool header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={isActive ? 'primary' : 'code'}
-            className={cn(!isActive && 'bg-transparent text-foreground')}
-          >
-            {override?.displayName || tool.name}
-          </Badge>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant={isActive ? 'primary' : 'code'}
+                className={cn('truncate max-w-xs', !isActive && 'bg-transparent text-foreground')}
+              >
+                {override?.displayName || tool.name}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md font-mono text-xs break-all">
+              {override?.displayName || tool.name}
+            </TooltipContent>
+          </Tooltip>
           {parsedSchema?.hasProperties && (
-            <Badge variant="code">
+            <Badge variant="code" className="shrink-0">
               {parsedSchema.properties.length} parameter
               {parsedSchema.properties.length !== 1 ? 's' : ''}
             </Badge>
@@ -158,7 +166,7 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
           {override && (
             <Badge
               variant="destructive"
-              className="text-xs cursor-pointer hover:bg-destructive/80 transition-colors"
+              className="text-xs cursor-pointer hover:bg-destructive/80 transition-colors shrink-0"
               onClick={() => setShowComparison(!showComparison)}
             >
               Override
