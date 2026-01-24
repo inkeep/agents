@@ -78,12 +78,25 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
 
       # Run all CI checks in parallel with Turborepo
+      # AFFECTED-ONLY STRATEGY:
+      # - On pull_request events: Run checks only on packages affected since origin/main
+      #   This significantly reduces CI time for single-package changes
+      # - On push to main/master: Run full check suite to ensure complete validation
+      # - Uses Turbo's --filter='...[origin/main]' to detect affected packages
       - name: Run CI checks
         id: ci-check
         run: |
-          # Run all checks in parallel using Turborepo's dependency graph
-          # This will build once and cache, then run lint, typecheck, and test in parallel
-          pnpm check
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "Running affected-only checks for pull request..."
+            # Fetch main branch for comparison
+            git fetch origin main --depth=1 2>/dev/null || git fetch origin master --depth=1 2>/dev/null || true
+            # Run checks only on packages affected since origin/main
+            pnpm turbo run lint typecheck test --filter='...[origin/main]'
+          else
+            echo "Running full check suite for push to main..."
+            # Run all checks in parallel using Turborepo's dependency graph
+            pnpm check
+          fi
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
