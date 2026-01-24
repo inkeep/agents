@@ -45,7 +45,11 @@ export default defineConfig({
     fileParallelism: false,
 
     // Increase reporter verbosity for better debugging
-    reporters: ['verbose'],
+    // JUnit reporter outputs timing data to XML for CI artifact upload
+    reporters: ['verbose', 'junit'],
+    outputFile: {
+      junit: './test-results/junit.xml',
+    },
 
     // Retry flaky tests in CI
     retry: 2,
