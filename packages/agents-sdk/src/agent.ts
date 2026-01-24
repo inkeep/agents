@@ -19,6 +19,7 @@ import type {
   MessageInput,
   ModelSettings,
   RunResult,
+  SkillDefinition,
   StreamResponse,
   SubAgentInterface,
   subAgentTeamAgentInterface,
@@ -57,7 +58,8 @@ export class Agent implements AgentInterface {
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
   private triggers: TriggerInterface[] = [];
-  private triggerMap: Map<string, Trigger> = new Map();
+  private triggerMap = new Map<string, Trigger>();
+  private skills: SkillDefinition[] = [];
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -121,7 +123,7 @@ export class Agent implements AgentInterface {
    * Set or update the configuration (tenantId, projectId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(tenantId: string, projectId: string, apiUrl: string): void {
+  setConfig(tenantId: string, projectId: string, apiUrl: string, skills?: SkillDefinition[]): void {
     if (this.initialized) {
       throw new Error('Cannot set config after agent has been initialized');
     }
@@ -129,6 +131,9 @@ export class Agent implements AgentInterface {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.baseURL = apiUrl;
+    if (skills) {
+      this.skills = skills;
+    }
 
     // Propagate tenantId, projectId, and apiUrl to all agents and their tools
     for (const subAgent of this.subAgents) {
@@ -165,6 +170,10 @@ export class Agent implements AgentInterface {
     );
   }
 
+  setSkills(skills: SkillDefinition[]): void {
+    this.skills = skills;
+  }
+
   /**
    * Convert the Agent to FullAgentDefinition format for the new agent endpoint
    */
@@ -173,6 +182,11 @@ export class Agent implements AgentInterface {
     const externalAgentsObject: Record<string, any> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
+    const skillsById = new Map<string, SkillDefinition>();
+
+    for (const skill of this.skills) {
+      skillsById.set(skill.id, skill);
+    }
 
     for (const subAgent of this.subAgents) {
       // Get agent relationships
@@ -272,6 +286,23 @@ export class Agent implements AgentInterface {
         toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
+      const skillTimestamp = new Date().toISOString();
+      const resolvedSkills = subAgent
+        .getSkills()
+        .map((skillRef, idx) => {
+          const skillDef = skillRef.skill || skillsById.get(skillRef.id);
+          if (!skillDef) {
+            return null;
+          }
+          return {
+            ...skillDef,
+            index: skillRef.index ?? idx,
+            createdAt: skillDef.createdAt ?? skillTimestamp,
+            updatedAt: skillDef.updatedAt ?? skillTimestamp,
+          };
+        })
+        .filter((p) => !!p);
+
       subAgentsObject[subAgent.getId()] = {
         id: subAgent.getId(),
         name: subAgent.getName(),
@@ -298,6 +329,7 @@ export class Agent implements AgentInterface {
         canUse,
         dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
         artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
+        skills: resolvedSkills.length > 0 ? resolvedSkills : undefined,
         type: 'internal',
       };
     }

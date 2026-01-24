@@ -1,6 +1,6 @@
 'use client';
 
-import type React from 'react';
+import type { ReactNode } from 'react';
 
 import type { Control, FieldPath, FieldValues, RegisterOptions } from 'react-hook-form';
 import {
@@ -12,12 +12,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-interface FormFieldWrapperProps<T extends FieldValues> {
+export interface FormFieldWrapperProps<T extends FieldValues> {
   control: Control<T>;
   name: FieldPath<T>;
-  label: string;
-  children: (field: FieldValues) => React.ReactNode;
-  description?: string | React.ReactNode;
+  label: ReactNode;
+  children: (field: FieldValues) => ReactNode;
+  description?: ReactNode;
   rules?: RegisterOptions<T, FieldPath<T>>;
   isRequired?: boolean;
 }

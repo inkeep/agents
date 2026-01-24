@@ -25,6 +25,7 @@ import {
   type Models,
   parseEmbeddedJson,
   type ResolvedRef,
+  type SubAgentSkillWithIndex,
   type SubAgentStopWhen,
   TemplateEngine,
   withRef,
@@ -136,6 +137,7 @@ export type AgentConfig = {
   }>;
   contextConfigId?: string;
   dataComponents?: DataComponentApiInsert[];
+  skills?: SubAgentSkillWithIndex[];
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
@@ -178,7 +180,7 @@ export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 function isValidTool(
   tool: any
-): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
+): tool is Tool & { execute: (args: any, context?: any) => Promise<any> } {
   return (
     tool &&
     typeof tool === 'object' &&
@@ -1888,14 +1890,28 @@ export class Agent {
     const mcpTools = await this.getMcpTools(undefined, streamRequestId);
     const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
+    const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
+    const skillDebugInfo =
+      this.config.skills?.map((skill) => ({
+        name: skill.name,
+        alwaysLoaded: skill.alwaysLoaded,
+      })) || [];
+    const skillTools = hasOnDemandSkills ? { load_skill: this.#createLoadSkillTool() } : {};
+    // TODO remove
+    console.log('[load_skill] buildSystemPrompt', {
+      hasOnDemandSkills,
+      skills: skillDebugInfo,
+      toolNames: Object.keys(skillTools),
+    });
 
-    const allTools = { ...mcpTools, ...functionTools, ...relationTools };
+    const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools };
 
     logger.info(
       {
         mcpTools: Object.keys(mcpTools),
         functionTools: Object.keys(functionTools),
         relationTools: Object.keys(relationTools),
+        skillTools: Object.keys(skillTools),
         allTools: Object.keys(allTools),
         functionToolsDetails: Object.entries(functionTools).map(([name, tool]) => ({
           name,
@@ -1912,9 +1928,11 @@ export class Agent {
       description: (tool as any).description || '',
       inputSchema: (tool as any).inputSchema || (tool as any).parameters || {},
       usageGuidelines:
-        name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
-          ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
-          : 'Use this tool when appropriate for the task at hand.',
+        name === 'load_skill'
+          ? 'Use this tool to load the full content of an on-demand skill by name.'
+          : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
+            ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
+            : 'Use this tool when appropriate for the task at hand.',
     }));
 
     const { getConversationScopedArtifacts } = await import('../data/conversations');
@@ -1964,6 +1982,7 @@ export class Agent {
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
+      skills: this.config.skills || [],
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
@@ -2012,6 +2031,40 @@ export class Agent {
     });
   }
 
+  #createLoadSkillTool(): Tool<
+    { name: string },
+    {
+      id: string;
+      name: string;
+      description: string;
+      content: string;
+    }
+  > {
+    return tool({
+      description:
+        'Load an on-demand skill by name and return its full content so you can apply it in this conversation.',
+      inputSchema: z.object({
+        name: z.string().describe('The skill name from the on-demand skills list.'),
+      }),
+      execute: async ({ name }) => {
+        const skill = this.config.skills?.find((item) => item.name === name);
+        // TODO remove
+        console.log('[load_skill] execute', { name, found: !!skill });
+
+        if (!skill) {
+          throw new Error(`Skill ${name} not found`);
+        }
+
+        return {
+          id: skill.id,
+          name: skill.name,
+          description: skill.description,
+          content: skill.content,
+        };
+      },
+    });
+  }
+
   // Create the thinking_complete tool to mark end of planning phase
   private createThinkingCompleteTool(): any {
     return tool({
@@ -2038,6 +2091,28 @@ export class Agent {
     const compressionConfig = getModelAwareCompressionConfig();
     if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
+    }
+
+    const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
+    const skillDebugInfo =
+      this.config.skills?.map((skill) => ({
+        name: skill.name,
+        alwaysLoaded: skill.alwaysLoaded,
+      })) || [];
+    // TODO remove
+    console.log('[load_skill] getDefaultTools', { hasOnDemandSkills, skills: skillDebugInfo });
+    if (hasOnDemandSkills) {
+      const loadSkillTool = this.#createLoadSkillTool();
+      // TODO remove
+      console.log('[load_skill] register', { enabled: !!loadSkillTool });
+      if (loadSkillTool) {
+        defaultTools.load_skill = this.wrapToolWithStreaming(
+          'load_skill',
+          loadSkillTool,
+          streamRequestId,
+          'tool'
+        );
+      }
     }
 
     // Note: save_tool_result tool is replaced by artifact:create response annotations

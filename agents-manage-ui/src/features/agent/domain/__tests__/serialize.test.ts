@@ -21,6 +21,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -46,6 +47,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -71,6 +73,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -100,6 +103,7 @@ describe('serializeAgentData', () => {
               structuredOutput: { model: 'gpt-4o-2024-08-06' },
               summarizer: undefined,
             },
+            skills: [],
           },
         },
       ];
@@ -129,6 +133,7 @@ describe('serializeAgentData', () => {
               structuredOutput: undefined,
               summarizer: { model: 'gpt-3.5-turbo' },
             },
+            skills: [],
           },
         },
       ];
@@ -158,6 +163,7 @@ describe('serializeAgentData', () => {
               structuredOutput: { model: 'gpt-4o-2024-08-06' },
               summarizer: { model: 'gpt-3.5-turbo' },
             },
+            skills: [],
           },
         },
       ];
@@ -182,6 +188,7 @@ describe('serializeAgentData', () => {
             id: 'agent1',
             name: 'Test Agent',
             prompt: 'Test instructions',
+            skills: [],
             // no models property
           },
         },

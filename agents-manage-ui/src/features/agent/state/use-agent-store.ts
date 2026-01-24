@@ -20,6 +20,7 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
@@ -45,6 +46,7 @@ interface AgentStateData {
    */
   isSidebarSessionOpen: boolean;
   variableSuggestions: string[];
+  availableSkills: Skill[];
 }
 
 interface AgentPersistedStateData {
@@ -61,6 +63,7 @@ interface AgentActions {
     nodes: Node[],
     edges: Edge[],
     metadata: AgentMetadata,
+    availableSkills: Skill[],
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
@@ -149,6 +152,7 @@ const initialAgentState: AgentStateData = {
   showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
+  availableSkills: [],
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
@@ -163,6 +167,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       nodes,
       edges,
       metadata,
+      availableSkills,
       dataComponentLookup = {},
       artifactComponentLookup = {},
       toolLookup = {},
@@ -180,6 +185,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         agentToolConfigLookup,
         externalAgentLookup,
         subAgentExternalAgentConfigLookup,
+        availableSkills,
         dirty: false,
         history: [],
         future: [],

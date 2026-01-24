@@ -90,6 +90,7 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
+  skillsDir: string;
 }
 
 /**
@@ -109,6 +110,7 @@ function createProjectStructure(projectDir: string): ProjectPaths {
     credentialsDir: join(projectRoot, 'credentials'),
     contextConfigsDir: join(projectRoot, 'context-configs'),
     externalAgentsDir: join(projectRoot, 'external-agents'),
+    skillsDir: join(projectRoot, 'skills'),
   };
 
   // Ensure all directories exist
@@ -446,6 +448,11 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir);
+
+    if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
+      const { generateSkills } = await import('./components/skill-generator');
+      await generateSkills(remoteProject.skills, paths.skillsDir);
+    }
 
     // Step 6: Introspect mode - skip comparison, regenerate everything
     if (options.introspect) {

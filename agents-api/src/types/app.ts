@@ -25,7 +25,7 @@ export interface VercelSandboxConfig extends CommonSandboxConfig {
 
 export type SandboxConfig = NativeSandboxConfig | VercelSandboxConfig;
 
-export type BaseAppVariables = {
+type BaseAppVariables = {
   requestId: string;
   userId?: string;
   userEmail?: string;

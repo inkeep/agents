@@ -17,9 +17,21 @@ export interface VersionConfig<TConfig> {
   getBreakdownSchema(): BreakdownComponentDef[];
 }
 
+export interface SkillData {
+  id: string;
+  subAgentSkillId: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  alwaysLoaded: boolean;
+}
+
 export interface SystemPromptV1 {
   corePrompt: string; // Just the agent's prompt string
   prompt?: string; // Agent-level context and instructions
+  skills?: SkillData[];
   artifacts: Artifact[];
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];

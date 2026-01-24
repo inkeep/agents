@@ -217,6 +217,12 @@ describe('BaseCompressor', () => {
               toolName: 'thinking_complete',
               output: 'skip',
             },
+            {
+              type: 'tool-result',
+              toolCallId: 'skip-3',
+              toolName: 'load_skill',
+              output: 'skip',
+            },
             { type: 'tool-result', toolCallId: 'keep-1', toolName: 'valid-tool', output: 'keep' },
           ],
         },

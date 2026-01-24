@@ -51,6 +51,7 @@ Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
     .type(value, {
       parseSpecialCharSequences: false,
       delay: 0,
+      force: true,
     });
 });
 

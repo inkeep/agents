@@ -71,6 +71,7 @@ import type {
   SubAgentTeamAgentConfig,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
@@ -101,10 +102,11 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  dataComponentLookup?: Record<string, DataComponent>;
-  artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
-  credentialLookup?: Record<string, Credential>;
+  dataComponentLookup: Record<string, DataComponent>;
+  artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  credentialLookup: Record<string, Credential>;
+  skills: Skill[];
   sandboxEnabled: boolean;
 }
 
@@ -123,11 +125,12 @@ const nonValidationErrors = new Set([
 
 export const Agent: FC<AgentProps> = ({
   agent,
-  dataComponentLookup = {},
-  artifactComponentLookup = {},
-  toolLookup = {},
-  credentialLookup = {},
+  dataComponentLookup,
+  artifactComponentLookup,
+  toolLookup,
+  credentialLookup,
   sandboxEnabled,
+  skills,
 }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
@@ -366,10 +369,13 @@ export const Agent: FC<AgentProps> = ({
       agentNodes,
       agentEdges,
       extractAgentMetadata(agent),
+      skills,
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
-      agentToolConfigLookup
+      agentToolConfigLookup,
+      undefined,
+      undefined
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
@@ -493,6 +499,7 @@ export const Agent: FC<AgentProps> = ({
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
+        skills,
         updatedDataComponentLookup as Record<string, DataComponent>,
         updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
         updatedToolLookup as unknown as Record<string, MCPTool>,
