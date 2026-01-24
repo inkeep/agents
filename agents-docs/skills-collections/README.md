@@ -24,14 +24,22 @@ skillCollections:
 
 A doc can belong to multiple collections.
 
-## Creating a Custom Template
+## Creating Custom Templates
+
+### Root README Template
+
+Customize the root `README.md` by editing `_templates/README.mdx`:
+
+| Variable | Description |
+|----------|-------------|
+| `{{COLLECTIONS_LIST}}` | Auto-generated list of collections with links |
+
+### Collection Templates
 
 Templates control the `skill.md` file generated for each collection.
 
 - Default template: `_templates/default.mdx` (fallback)
 - Collection-specific: `_templates/<collection-name>.mdx`
-
-### Available Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|

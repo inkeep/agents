@@ -161,30 +161,20 @@ async function main() {
   const skillsDir = path.join(GENERATED_DIR, 'skills');
   await fs.promises.mkdir(skillsDir, { recursive: true });
 
-  // Generate root README for the target repo
+  // Generate root README from template
   const collectionsList = Array.from(collections.keys())
     .map((name) => `- [${toTitleCase(name)}](./skills/${name}/skill.md)`)
     .join('\n');
-  const rootReadme = `# Inkeep Skills
 
-Generated skill collections from the [Inkeep Agent Framework](https://github.com/inkeep/agents) documentation.
-
-## Available Collections
-
-${collectionsList}
-
-## About
-
-These skill collections are curated sets of documentation rules designed for use with AI agents, LLMs, or any system that needs structured reference documentation.
-
-Each collection contains:
-- \`skill.md\` — Overview and table of contents
-- \`rules/\` — Individual rule files with full content
-
----
-
-*Auto-generated from [inkeep/agents](https://github.com/inkeep/agents). Do not edit directly.*
-`;
+  const readmeTemplatePath = path.join(TEMPLATES_DIR, 'README.mdx');
+  let rootReadme: string;
+  if (fs.existsSync(readmeTemplatePath)) {
+    const readmeTemplate = await fs.promises.readFile(readmeTemplatePath, 'utf-8');
+    rootReadme = readmeTemplate.replace(/\{\{COLLECTIONS_LIST\}\}/g, collectionsList);
+  } else {
+    // Fallback if template doesn't exist
+    rootReadme = `# Inkeep Skills\n\n## Available Collections\n\n${collectionsList}\n`;
+  }
   await fs.promises.writeFile(path.join(GENERATED_DIR, 'README.md'), rootReadme);
 
   for (const [collectionName, collectionPages] of collections) {
