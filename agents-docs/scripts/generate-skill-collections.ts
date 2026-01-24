@@ -12,15 +12,6 @@ const TEMPLATES_DIR = path.join(SKILLS_DIR, '_templates');
 const GENERATED_DIR = path.join(SKILLS_DIR, '.generated');
 const SNIPPETS_DIR = path.join(process.cwd(), '_snippets');
 
-interface PageMeta {
-  title: string;
-  description?: string;
-  skillCollections?: string[];
-  filePath: string;
-  url: string;
-  rawContent: string;
-}
-
 interface CollectionPage {
   title: string;
   description: string;
@@ -131,7 +122,7 @@ async function main() {
         collections.set(collectionName, []);
       }
 
-      collections.get(collectionName)!.push({
+      collections.get(collectionName)?.push({
         title,
         description,
         url,
@@ -205,7 +196,7 @@ Each collection contains:
       let processedContent: string;
       try {
         processedContent = await processMarkdown(page.rawContent);
-      } catch (err) {
+      } catch (_err) {
         console.warn(`  Warning: Could not process ${page.url}, using raw content`);
         processedContent = stripFrontmatter(page.rawContent);
       }
