@@ -36,8 +36,12 @@ const skillMetadataSchema = z.object({
     .max(1024, 'description must be at most 1024 characters'),
   // Optional: license name or reference to bundled license file
   license: z.string().optional(),
-  // Optional: max 500 chars, environment requirements
-  compatibility: z.string().max(500, 'compatibility must be at most 500 characters').optional(),
+  // Optional: 1-500 chars, environment requirements
+  compatibility: z
+    .string()
+    .min(1, 'compatibility must be at least 1 character if provided')
+    .max(500, 'compatibility must be at most 500 characters')
+    .optional(),
   // Optional: arbitrary key-value metadata
   metadata: z.record(z.string(), z.string()).optional(),
   // Optional: space-delimited list of pre-approved tools (experimental)
