@@ -2,7 +2,7 @@
 
 Your documentation is already the best reference for how to use your product. So why write it twice for AI agents?
 
-We built a system that automatically generates [Agent Skills](https://agentskills.io/specification) from our existing Fumadocs documentation. Tag a doc, run a build, and it's available for any agent that supports the spec—Claude Code, Cursor, Windsurf, Codex, and [17+ others](https://skills.sh/).
+We built a system that automatically generates [Agent Skills](https://agentskills.io/specification) from our existing Fumadocs documentation. Tag a folder, run a build, and it's available for any agent that supports the spec—Claude Code, Cursor, Windsurf, Codex, and [17+ others](https://skills.sh/).
 
 ## The Agent Skills Ecosystem
 
@@ -12,10 +12,11 @@ The format is simple: a directory with a `SKILL.md` file containing YAML frontma
 
 ```
 typescript-sdk/
-├── SKILL.md          # Frontmatter + instructions
-└── rules/            # Individual reference files
+├── SKILL.md          # Frontmatter + table of contents
+└── rules/            # Individual reference files (flattened)
     ├── agent-settings.md
-    └── data-components.md
+    ├── mcp-tools.md
+    └── ...
 ```
 
 ## The Problem with Manual Skill Authoring
@@ -30,23 +31,35 @@ Our generator runs at build time, processing MDX files through the same remark p
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  MDX Content    │────▶│  Remark Pipeline │────▶│  Agent Skills   │
+│  meta.json      │────▶│  Remark Pipeline │────▶│  Agent Skills   │
 │  (Fumadocs)     │     │  - remarkGfm     │     │  (SKILL.md +    │
 │                 │     │  - remarkMdx     │     │   rules/*.md)   │
 │  skillCollections:    │  - mdx-snippets  │     │                 │
-│    - typescript-sdk   │  - dedent        │     │                 │
+│    ["typescript-sdk"] │                  │     │                 │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
 ```
 
-**Tagging**: Add `skillCollections: [skill-name]` to any MDX frontmatter. A doc can belong to multiple skills.
+**Folder tagging**: Add `skillCollections` to a folder's `meta.json`—Fumadocs' native config format. All docs in that folder (and subfolders) are included. Child folders inherit from parents unless they override.
+
+```json
+// content/typescript-sdk/meta.json
+{
+  "skillCollections": ["typescript-sdk"],
+  "pages": ["project-management", "agent-settings", "..."]
+}
+```
+
+**Page ordering**: Rules appear in the order defined by the `pages` array. The `"..."` wildcard includes remaining files alphabetically—same pattern Fumadocs uses for sidebar ordering.
 
 **Processing**: Content goes through `remark-gfm` (tables), `remark-mdx`, and `remark-mdx-snippets` (snippet expansion). The same pipeline that renders our docs.
 
 **Validation**: Templates define skill metadata with a Zod schema enforcing the Agent Skills spec—name format, description length, required fields. Invalid templates fail the build.
 
-**Templates**: Each skill has a template (`_templates/skills/{name}.mdx`) controlling the `SKILL.md` output. Placeholders like `{{RULES_TABLE}}` and `{{INCLUDE:path}}` let you compose content.
+**Templates**: Each skill has a template (`_templates/skills/{name}/SKILL.mdx`) controlling the `SKILL.md` output. Placeholders like `{{RULES_TABLE}}` and `{{INCLUDE:path}}` let you compose content.
 
 ## Technical Details Worth Noting
+
+**Fumadocs-native inheritance**: We read `meta.json` files and build an inheritance chain—child folders inherit `skillCollections` from parents. Individual files can still override via frontmatter. This keeps configuration in the same place Fumadocs uses for sidebar organization.
 
 **Snippet inlining**: We use `remark-mdx-snippets` to expand shared content at build time. Skills get the full rendered content, not broken references.
 
@@ -59,6 +72,18 @@ function stripReactFragments(content: string): string {
     .replace(/\n<\/>$/gm, '');
 }
 ```
+
+**Rule file metadata**: Each generated rule includes frontmatter with `title`, `description`, and `topic-path` (the parent folder path). Agents can use this for categorization and filtering.
+
+```yaml
+---
+title: "MCP Tools"
+description: "Learn how to add MCP tools to your agents"
+topic-path: "typescript-sdk/tools"
+---
+```
+
+**Filename conflict resolution**: When docs from different paths share a filename (e.g., multiple `overview.mdx` files), the generator prefixes with parent folder names until unique.
 
 **Spec-compliant validation**: The generator validates against the actual Agent Skills spec constraints:
 
