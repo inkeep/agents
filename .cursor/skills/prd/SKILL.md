@@ -62,23 +62,26 @@ Then iterate: ask only the questions required to make acceptance criteria verifi
    C. All users
    D. Admin users only
 
-3. What is the scope?
+3. What type of user?
+   A. No-code user
+   B. Developer
+   C. Admin
+   D. All of the above
+
+
+4. What is the scope?
    A. Minimal viable version
    B. Full-featured implementation
-   C. Just the backend/API
-   D. Just the UI
 
-4. Which product surfaces must this work across?
-   A. CLI + SDK only
-   B. Manage UI + API only
-   C. End-to-end (CLI + SDK + API + Manage UI)
-   D. Runtime-only (chat/streaming/widgets)
-   E. Unsure / decide together
+5. What are the surface areas impacted?
+   A. SDK
+   B. API
+   C. Manage UI
+   D. CLI
+   E. Agent runtime
+   F. All of the above
+   G. Other: [please specify]
 
-5. What compatibility constraints apply?
-   A. Must be backward-compatible (no breaking changes)
-   B. Can introduce breaking changes (major version / migration acceptable)
-   C. Unsure / decide together
 ```
 
 This lets users respond with "1A, 2C, 3B" for quick iteration.
