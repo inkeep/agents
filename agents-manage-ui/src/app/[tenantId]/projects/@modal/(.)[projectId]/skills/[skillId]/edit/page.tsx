@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { SkillForm } from '@/components/skills/form/skill-form';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { SkillForm } from '@/components/skills/form/skill-form';
 
 export default function Page(
   _props: PageProps<'/[tenantId]/projects/[projectId]/skills/[skillId]/edit'>

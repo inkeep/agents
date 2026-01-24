@@ -13,14 +13,13 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
-import { cn, formatJsonField } from '@/lib/utils';
+import { formatJsonField } from '@/lib/utils';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { defaultValues, type SkillFormData, SkillSchema } from './validation';
 
 interface SkillFormProps {
   initialData?: Skill;
   onSuccess?: () => void;
-  className?: string;
 }
 
 const formatFormData = (data?: Skill): SkillFormData => {
@@ -34,10 +33,12 @@ const formatFormData = (data?: Skill): SkillFormData => {
   };
 };
 
-export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved, className }) => {
+export const SkillForm: FC<SkillFormProps> = ({ onSuccess, initialData }) => {
   'use memo';
-
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { mutateAsync: upsertSkill } = useUpsertSkillMutation();
   const form = useForm<SkillFormData>({
@@ -54,13 +55,13 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved, className 
       skillId: initialData ? data.name : undefined,
       data,
     });
-    onSaved?.();
+    onSuccess?.();
     router.push(`/${tenantId}/projects/${projectId}/skills`);
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className={cn('space-y-8 max-w-4xl mx-auto', className)}>
+      <form onSubmit={onSubmit} className="space-y-8 max-w-4xl mx-auto">
         <GenericInput
           control={form.control}
           name="name"

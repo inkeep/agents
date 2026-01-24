@@ -5,6 +5,7 @@
 
 import type { SkillApiInsert, SkillApiSelect, SkillApiUpdate } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -23,11 +24,7 @@ export async function fetchSkills(
   );
 }
 
-export async function fetchSkill(
-  tenantId: string,
-  projectId: string,
-  skillId: string
-): Promise<Skill> {
+async function $fetchSkill(tenantId: string, projectId: string, skillId: string): Promise<Skill> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
@@ -37,6 +34,7 @@ export async function fetchSkill(
 
   return response.data;
 }
+export const fetchSkill = cache($fetchSkill);
 
 export async function createSkill(
   tenantId: string,

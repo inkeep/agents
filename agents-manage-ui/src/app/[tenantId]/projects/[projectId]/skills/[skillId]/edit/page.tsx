@@ -1,27 +1,23 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { SkillForm } from '@/components/skills/form/skill-form';
-import { fetchSkillAction } from '@/lib/actions/skills';
+import { fetchSkill } from '@/lib/api/skills';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function SkillDetailPage({
   params,
-}: PageProps<'/[tenantId]/projects/[projectId]/skills/[skillId]'>) {
+}: PageProps<'/[tenantId]/projects/[projectId]/skills/[skillId]/edit'>) {
   const { tenantId, projectId, skillId } = await params;
-
-  const skillResult = await fetchSkillAction(tenantId, projectId, skillId);
-
-  if (!skillResult.success || !skillResult.data) {
-    return (
-      <FullPageError
-        errorCode={getErrorCode(skillResult.error)}
-        context="skill"
-        link={`/${tenantId}/projects/${projectId}/skills`}
-        linkText="Back to skills"
-      />
-    );
+  try {
+    const data = await fetchSkill(tenantId, projectId, skillId);
+    return <SkillForm initialData={data} />;
+  } catch (error) {
+    <FullPageError
+      errorCode={getErrorCode(error)}
+      context="skill"
+      link={`/${tenantId}/projects/${projectId}/skills`}
+      linkText="Back to skills"
+    />;
   }
-
-  return <SkillForm initialData={skillResult.data} />;
 }
 
 export default SkillDetailPage;
