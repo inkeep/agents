@@ -111,6 +111,54 @@ pnpm build           # Build documentation for production
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
 
+## Turbo Remote Caching
+
+Turbo remote caching dramatically speeds up builds by sharing cache across your local machine, CI/CD pipelines, and team members. When enabled, subsequent runs of cached tasks complete almost instantly.
+
+### Setup
+
+Run the following commands to enable remote caching:
+
+```bash
+npx turbo login && npx turbo link
+```
+
+Or use the convenience script:
+
+```bash
+pnpm turbo:setup-cache
+```
+
+This will:
+1. Log you into Vercel (opens browser)
+2. Link this repo to your Vercel team
+3. Enable remote caching for all turbo commands
+
+### Verifying Caching Works
+
+Run any turbo task twice to verify caching:
+
+```bash
+pnpm turbo run build --summarize
+```
+
+On the second run, you should see:
+- **"FULL TURBO"** message indicating all tasks were cached
+- **Cache hit indicators** showing tasks were restored from cache
+- **Significantly faster execution time** (often < 2 seconds for cached tasks)
+
+### Expected Behavior
+
+- **Pre-push hooks**: ~1-2 seconds when cache is warm
+- **CI builds**: Faster when code hasn't changed
+- **Team sharing**: Build artifacts are shared across team members
+
+### CI/CD Configuration
+
+For CI/CD pipelines, add these environment variables as secrets:
+- `TURBO_TOKEN`: Your personal access token (from `turbo login` or Vercel dashboard)
+- `TURBO_TEAM`: Your team identifier (e.g., `team_xxxxx`)
+
 ## Architecture Overview
 
 This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
