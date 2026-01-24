@@ -1,6 +1,6 @@
 ---
 name: write-docs
-description: "Write and structure documentation for the Inkeep docs site. Use when creating new docs, adding pages, writing tutorials, or structuring reference content. Triggers on: write docs, add documentation, create doc page, document this feature, write a guide."
+description: "Write or update docs for the Inkeep docs site. Triggers on: need to write new docs, modifying docs, introducing new feature, etc. Use ANY time touching the `agents-docs` package."
 ---
 
 # Write Docs
@@ -733,6 +733,69 @@ This pattern appears in tutorials and Visual Builder docs.
 Follow the established docs layout:
 - `agents-docs/content/` — main docs pages (`.mdx`)
 - `agents-docs/_snippets/` — reusable snippet content (`.mdx`)
+
+---
+
+## File Renames, Moves, and Redirects
+
+When you rename or move a documentation file, **add a redirect** to prevent broken links. Redirects are managed via Next.js in `agents-docs/redirects.json`.
+
+### When to add a redirect
+
+- **Always** when renaming a file (changes the URL slug)
+- **Always** when moving a file to a different folder
+- **Always** when restructuring a section (e.g., moving pages into a new subfolder)
+
+### How to add a redirect
+
+Add an entry to `agents-docs/redirects.json`:
+
+```json
+{
+  "source": "/old-path/old-page",
+  "destination": "/new-path/new-page",
+  "permanent": true
+}
+```
+
+- `source`: The old URL path (without `.mdx` extension)
+- `destination`: The new URL path
+- `permanent`: Use `true` for permanent moves (301 redirect)
+
+### Examples from the codebase
+
+**File moved to subfolder:**
+```json
+{
+  "source": "/typescript-sdk/data-components",
+  "destination": "/typescript-sdk/structured-outputs/data-components",
+  "permanent": true
+}
+```
+
+**File renamed:**
+```json
+{
+  "source": "/typescript-sdk/request-context",
+  "destination": "/typescript-sdk/headers",
+  "permanent": true
+}
+```
+
+**Section restructured:**
+```json
+{
+  "source": "/tutorials/how-to-create-mcp-servers/overview",
+  "destination": "/tutorials/mcp-servers/overview",
+  "permanent": true
+}
+```
+
+### Don't forget
+
+- Update any internal links in other docs that reference the old path
+- Check `meta.json` files to ensure navigation reflects the new structure
+- The redirect file is JSON—ensure valid syntax (no trailing commas)
 
 ---
 

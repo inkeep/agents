@@ -1,6 +1,6 @@
 ---
 name: prd
-description: "Generate a Product Requirements Document (PRD) for a new feature. Use when planning a feature, starting a new project, or when asked to create a PRD. Triggers on: create a prd, write prd for, plan this feature, requirements for, spec out. Important for ensuring feature development with high product-level thinking."
+description: "Generate a Product Requirements Document (PRD) for a new feature. Use when planning a feature, starting a new project, or when asked to create a PRD. Triggers on: create a prd, write prd for, plan this feature, requirements for, spec out."
 ---
 
 # PRD Generator
@@ -11,47 +11,17 @@ Create detailed Product Requirements Documents that are clear, actionable, and s
 
 ## The Job
 
-This skill supports three workflows:
-- **Draft**: Write a PRD from a feature idea / rough prompt.
-- **Iterate**: Collaborate with the user to narrow scope and clarify decisions.
-- **Improve**: Review an existing PRD, identify gaps/risks, and produce a better PRD.
+**Workflows** (pick one based on what the user provides):
+- **Draft**: no PRD yet → create one from a feature idea.
+- **Iterate**: unclear scope/trade-offs → converge on a spec together.
+- **Improve**: existing PRD provided → tighten it, identify gaps, make it implementable.
 
-1. Determine which workflow applies (draft / iterate / improve)
-2. Ask high-leverage questions to eliminate ambiguity and surface hidden constraints (use lettered options)
-3. Keep iterating until you have high confidence you can write an implementable PRD (see “Stop asking” rules below)
-4. Produce or update a structured PRD, keeping decisions explicit and leaving any remaining ambiguity in “Open Questions”
-4. Save to `tasks/prd-[feature-name].md`
+**Important:** Do NOT start implementing. Focus on clarifying → writing the PRD → saving it.
 
-**Important:** Do NOT start implementing. Just create the PRD.
-
----
-
-## Step 0: Choose the workflow
-
-Use the user’s input to choose one:
-
-- **Draft** when the user describes a feature but there is no PRD yet.
-- **Iterate** when the user is unsure of scope, trade-offs, sequencing, or wants to converge on a minimal viable plan.
-- **Improve** when the user provides an existing PRD or partial PRD and wants it tightened, de-risked, or made implementable.
-
-In all workflows, optimize for fast iteration:
-- Prefer questions that can be answered as “1A, 2C, 3B”.
-- Keep drafts small and revisable.
-- Don’t over-spec; capture uncertainty explicitly as “Open Questions”.
-
-### Stop asking (how to know you have “enough”)
-You should keep the conversation going until the PRD is implementable without guesswork, but stop before you create busywork.
-
-**Ask more questions when:**
-- A requirement is ambiguous in a way that changes implementation approach (data model vs no data model, streaming vs non-streaming, UI vs API-only).
-- Acceptance criteria cannot be made verifiable yet.
-- The user hasn’t confirmed key boundaries (non-goals / out-of-scope).
-- The “surface area & side-effects scan” has obvious unknowns that could cause regressions (e.g., changing runtime streaming without specifying which protocol is in play).
-
-**Stop asking when:**
-- You can write user stories with verifiable acceptance criteria and clear non-goals.
-- Remaining unknowns are truly optional and can be safely deferred (capture them in “Open Questions”).
-- A topic has been explicitly deemed out of scope—do not ask follow-ups for excluded surfaces.
+**Steps:**
+1. Ask high-leverage questions (see Step 1) until you can write an implementable PRD.
+2. Produce the PRD using the template (Step 2), capturing uncertainty in "Open Questions".
+3. Save to `tasks/prd-[feature-name].md`.
 
 ---
 
@@ -65,12 +35,15 @@ Ask only critical questions where the initial prompt is ambiguous. Focus on:
 - **Success Criteria:** How do we know it's done?
 - **Consumption / Side Effects:** Where will this be consumed/surface area impacted (only if likely)?
 
+**When to stop asking:** You can write the PRD when acceptance criteria are verifiable and non-goals are explicit. Capture remaining unknowns in "Open Questions"—don't over-ask.
+
 ### When improving an existing PRD
+
 Start by asking:
 - What parts are **non-negotiable** vs **flexible**?
 - What decisions are already made (and why)?
-- What’s missing or unclear for implementation?
-- What’s the desired scope reduction (MVP vs full)?
+- What's missing or unclear for implementation?
+- What's the desired scope reduction (MVP vs full)?
 
 Then iterate: ask only the questions required to make acceptance criteria verifiable and boundaries explicit.
 
@@ -169,11 +142,11 @@ What this feature will NOT include. Critical for managing scope.
 ### 7.1 Surface area & side-effects scan (REQUIRED)
 Avoid siloed development by explicitly calling out where this feature may be **consumed**, **surfaced**, **interacted with** or could **break shared contracts** or dependencies a developer or customer may have taken on existing functionality.
 
-This section should help a human or AI agent quickly answer: “If we change this, who/what else needs to know?”
+This section should help a human or AI agent quickly answer: "If we change this, who/what else needs to know?"
 
 **How to write this section:**
 - Keep it short and concrete (1–2 sentences per impacted item).
-- Only list what’s impacted (omit everything else).
+- Only list what's impacted (omit everything else).
 - Describe *why* a surface is impacted, not implementation details.
 
 **High-signal triggers (when you should include an item):**
@@ -204,7 +177,7 @@ This section should help a human or AI agent quickly answer: “If we change thi
 #### Shared contracts to preserve (if any)
 - **<Contract>**: <what must remain compatible; what must be versioned or coordinated>
 
-#### “How it shows up” (if runtime-facing)
+#### "How it shows up" (if runtime-facing)
 - **Traces**: <what should appear in traces UX and how it can be correlated>
 - **Streaming**: <which protocol(s) are involved and what must remain stable>
 
@@ -239,17 +212,6 @@ The PRD reader may be a junior developer or AI agent. Therefore:
 - **Format:** Markdown (`.md`)
 - **Location:** `tasks/`
 - **Filename:** `prd-[feature-name].md` (kebab-case)
-
-### Iteration guidance (for Draft + Iterate + Improve)
-
-When the user wants iteration (or when requirements are unclear), prefer this loop:
-
-1. Ask focused questions (3–7) with numbered choices for answers you think are reasonable options and clear expalantions of the options and their tradeoffs. Sometimes it's about asking for quick clarity, sometimes it's about helping the user weigh decisions or hard choices. 
-2. Summarize what you know and what’s still ambiguous, and ask the next minimal set of questions.
-3. Repeat until you meet the “Stop asking” criteria above.
-4. Only then, write/update the PRD and save it.
-
-This keeps the PRD high-confidence and avoids baking unstated assumptions into a “finished” document.
 
 ---
 
