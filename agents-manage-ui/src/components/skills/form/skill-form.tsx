@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useRouter } from 'next/navigation';
-import { type FC, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ExpandablePromptEditor } from '@/components/editors/expandable-prompt-editor';
@@ -11,18 +11,21 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { useUpsertSkillMutation } from '@/lib/query/skills';
+import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
 import { formatJsonField } from '@/lib/utils';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { defaultValues, type SkillFormData, SkillSchema } from './validation';
+import { Spinner } from '@/components/ui/spinner';
+import FullPageError from '@/components/errors/full-page-error';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 interface SkillFormProps {
   initialData?: Skill;
   onSuccess?: () => void;
 }
 
-const formatFormData = (data?: Skill): SkillFormData => {
+const formatFormData = (data: Skill | null): SkillFormData => {
   if (!data) return defaultValues;
 
   return {
@@ -33,10 +36,15 @@ const formatFormData = (data?: Skill): SkillFormData => {
   };
 };
 
-export const SkillForm: FC<SkillFormProps> = ({ onSuccess, initialData }) => {
+export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
   'use memo';
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
+  const { tenantId, projectId, skillId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    skillId?: string;
+  }>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const { error, isFetching, data: initialData } = useSkillQuery({ skillId });
   const { mutateAsync: upsertSkill } = useUpsertSkillMutation();
   const form = useForm<SkillFormData>({
     resolver: zodResolver(SkillSchema),
@@ -56,9 +64,34 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess, initialData }) => {
     router.push(`/${tenantId}/projects/${projectId}/skills`);
   });
 
+  useEffect(() => {
+    if (!isFetching && initialData) {
+      form.reset(formatFormData(initialData));
+    }
+  }, [isFetching, form, initialData]);
+
+  if (error) {
+    return (
+      <FullPageError
+        errorCode={getErrorCode(error)}
+        context="skill"
+        link={`/${tenantId}/projects/${projectId}/skills`}
+        linkText="Back to skills"
+      />
+    );
+  }
+
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center h-full max-w-4xl">
+        <Spinner />
+      </div>
+    );
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-8 max-w-4xl mx-auto">
+      <form onSubmit={onSubmit} className="space-y-8 w-full max-w-4xl mx-auto">
         <GenericInput
           control={form.control}
           name="name"
