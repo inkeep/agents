@@ -16,7 +16,7 @@ export function ToolNameBadge({ toolName, className, maxWidth = 'max-w-xs' }: To
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="code" className={cn('flex-1', maxWidth, className)}>
+        <Badge variant="code" className={cn(maxWidth, className)}>
           <span className="truncate">{toolName}</span>
         </Badge>
       </TooltipTrigger>

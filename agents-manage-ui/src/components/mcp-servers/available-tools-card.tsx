@@ -148,7 +148,7 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
             <TooltipTrigger asChild>
               <Badge
                 variant={isActive ? 'primary' : 'code'}
-                className={cn('max-w-full flex-1', !isActive && 'bg-transparent text-foreground')}
+                className={cn('max-w-full', !isActive && 'bg-transparent text-foreground')}
               >
                 <span className="truncate">{override?.displayName || tool.name}</span>
               </Badge>
