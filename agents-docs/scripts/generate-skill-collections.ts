@@ -15,6 +15,172 @@ const SKILL_TEMPLATES_DIR = path.join(TEMPLATES_DIR, 'skills');
 const GENERATED_DIR = path.join(SKILLS_DIR, '.generated');
 const SNIPPETS_DIR = path.join(process.cwd(), '_snippets');
 
+// ============================================================================
+// Meta.json handling (Fumadocs-style)
+// ============================================================================
+
+interface MetaJson {
+  pages?: string[];
+  skillCollections?: string[];
+  title?: string;
+  icon?: string;
+}
+
+/** Cache of loaded meta.json files */
+const metaCache = new Map<string, MetaJson | null>();
+
+/**
+ * Load meta.json from a directory, with caching
+ */
+async function loadMetaJson(dirPath: string): Promise<MetaJson | null> {
+  if (metaCache.has(dirPath)) {
+    return metaCache.get(dirPath) ?? null;
+  }
+
+  const metaPath = path.join(dirPath, 'meta.json');
+  if (!fs.existsSync(metaPath)) {
+    metaCache.set(dirPath, null);
+    return null;
+  }
+
+  try {
+    const content = await fs.promises.readFile(metaPath, 'utf-8');
+    const meta = JSON.parse(content) as MetaJson;
+    metaCache.set(dirPath, meta);
+    return meta;
+  } catch {
+    metaCache.set(dirPath, null);
+    return null;
+  }
+}
+
+/**
+ * Get inherited skillCollections for a file by walking up the directory tree.
+ * Child folders inherit from parents unless they override.
+ */
+async function getInheritedSkillCollections(filePath: string): Promise<string[]> {
+  const relativePath = path.relative(CONTENT_DIR, filePath);
+  const parts = path.dirname(relativePath).split(path.sep).filter(Boolean);
+
+  // Walk from root to leaf, collecting skillCollections
+  // Later values override earlier ones (child overrides parent)
+  let inherited: string[] = [];
+
+  let currentDir = CONTENT_DIR;
+  for (const part of parts) {
+    currentDir = path.join(currentDir, part);
+    const meta = await loadMetaJson(currentDir);
+    if (meta?.skillCollections) {
+      inherited = meta.skillCollections;
+    }
+  }
+
+  return inherited;
+}
+
+/**
+ * Get page ordering from meta.json, following Fumadocs conventions.
+ * Returns ordered list of page names, with "..." representing "rest".
+ */
+async function getPageOrdering(dirPath: string): Promise<string[] | null> {
+  const meta = await loadMetaJson(dirPath);
+  return meta?.pages ?? null;
+}
+
+/**
+ * Sort pages according to meta.json ordering.
+ * Follows Fumadocs conventions:
+ * - Explicit order from `pages` array
+ * - "..." = include remaining files alphabetically
+ * - "z...a" = include remaining in reverse order
+ * - Files not in `pages` and no "..." = excluded from explicit ordering, added at end
+ */
+function sortPagesByMetaOrder(
+  pages: CollectionPage[],
+  ordering: string[] | null,
+  basePath: string
+): CollectionPage[] {
+  if (!ordering) {
+    // No explicit ordering - sort alphabetically by slugPath
+    return [...pages].sort((a, b) => a.slugPath.localeCompare(b.slugPath));
+  }
+
+  const result: CollectionPage[] = [];
+  const remaining = new Map(pages.map((p) => [p.slugPath, p]));
+  const basePrefix = basePath ? `${basePath}/` : '';
+
+  for (const item of ordering) {
+    if (item === '...') {
+      // Add remaining pages alphabetically
+      const sorted = [...remaining.values()].sort((a, b) => a.slugPath.localeCompare(b.slugPath));
+      result.push(...sorted);
+      remaining.clear();
+    } else if (item === 'z...a') {
+      // Add remaining pages in reverse order
+      const sorted = [...remaining.values()].sort((a, b) => b.slugPath.localeCompare(a.slugPath));
+      result.push(...sorted);
+      remaining.clear();
+    } else if (!item.startsWith('!') && !item.startsWith('---')) {
+      // Regular page reference - find matching page
+      // Handle both direct names and nested paths
+      const targetSlug = basePrefix + item.replace(/^\(.*?\)\//, ''); // Remove route groups
+      const page = remaining.get(targetSlug);
+      if (page) {
+        result.push(page);
+        remaining.delete(targetSlug);
+      } else {
+        // Try to find pages that start with this path (for folder references)
+        for (const [slug, p] of remaining) {
+          if (slug === targetSlug || slug.startsWith(`${targetSlug}/`)) {
+            result.push(p);
+            remaining.delete(slug);
+          }
+        }
+      }
+    }
+  }
+
+  // Add any remaining pages not matched (if no "..." was present)
+  if (remaining.size > 0) {
+    const sorted = [...remaining.values()].sort((a, b) => a.slugPath.localeCompare(b.slugPath));
+    result.push(...sorted);
+  }
+
+  return result;
+}
+
+/**
+ * Recursively sort pages respecting nested meta.json orderings.
+ */
+async function sortPagesRecursively(pages: CollectionPage[]): Promise<CollectionPage[]> {
+  // Group pages by their immediate parent directory
+  const byDirectory = new Map<string, CollectionPage[]>();
+
+  for (const page of pages) {
+    const dir = path.dirname(page.slugPath) || '';
+    if (!byDirectory.has(dir)) {
+      byDirectory.set(dir, []);
+    }
+    byDirectory.get(dir)?.push(page);
+  }
+
+  // Sort each directory group according to its meta.json
+  const sortedGroups: CollectionPage[] = [];
+
+  // Get unique directory prefixes and sort them
+  const directories = [...byDirectory.keys()].sort((a, b) => a.localeCompare(b));
+
+  for (const dir of directories) {
+    const dirPages = byDirectory.get(dir) || [];
+    const fullDirPath = path.join(CONTENT_DIR, dir);
+    const ordering = await getPageOrdering(fullDirPath);
+    const sorted = sortPagesByMetaOrder(dirPages, ordering, dir);
+    sortedGroups.push(...sorted);
+  }
+
+  return sortedGroups;
+}
+
 /**
  * Resolve filename conflicts by prefixing with parent folder names.
  * Only applies prefixes to files that have conflicts.
@@ -183,13 +349,14 @@ function urlToSlugPath(url: string): string {
 }
 
 function generateTable(pages: CollectionPage[], filenameMap: Map<string, string>): string {
-  const header = '| Title | Description |\n| --- | --- |';
+  const header = '| Title | Topic | Description |\n| --- | --- | --- |';
   const rows = pages.map((page) => {
     const title = escapeTableCell(page.title);
     const description = escapeTableCell(page.description || '');
+    const topicPath = getTopicPath(page.slugPath);
     const filename = filenameMap.get(page.slugPath) || page.slugPath.replace(/\//g, '-');
     const link = `[${title}](./rules/${filename}.md)`;
-    return `| ${link} | ${description} |`;
+    return `| ${link} | ${topicPath} | ${description} |`;
   });
   return [header, ...rows].join('\n');
 }
@@ -345,7 +512,18 @@ async function main() {
     const fileContent = await fs.promises.readFile(filePath, 'utf-8');
     const { data: frontmatter, content } = matter(fileContent);
 
-    const skillCollections = frontmatter.skillCollections as string[] | undefined;
+    // Get skill collections from:
+    // 1. File's own frontmatter (highest priority)
+    // 2. Inherited from parent meta.json files
+    let skillCollections: string[] | undefined = frontmatter.skillCollections as
+      | string[]
+      | undefined;
+
+    if (!skillCollections || skillCollections.length === 0) {
+      // Check for inherited skillCollections from meta.json
+      skillCollections = await getInheritedSkillCollections(filePath);
+    }
+
     if (!skillCollections || skillCollections.length === 0) {
       continue;
     }
@@ -372,6 +550,12 @@ async function main() {
   if (collections.size === 0) {
     console.log('No pages with skillCollections found. Skipping generation.');
     return;
+  }
+
+  // Sort pages in each collection according to meta.json ordering
+  for (const [name, pages] of collections) {
+    const sorted = await sortPagesRecursively(pages);
+    collections.set(name, sorted);
   }
 
   console.log(`Found ${collections.size} skill collection(s):`);

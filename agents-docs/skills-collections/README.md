@@ -4,25 +4,54 @@ Skill collections are curated sets of documentation rules exported as standalone
 
 ## How It Works
 
-1. Tag docs with collections — Add `skillCollections` to any MDX file's frontmatter
+1. Tag folders with collections — Add `skillCollections` to `meta.json` (Fumadocs pattern)
 2. Create templates — Define each collection's `SKILL.md` with required metadata
 3. Generate — Run `pnpm generate-skill-collections` to produce output
 
-## Adding a Doc to a Collection
+## Adding Docs to a Collection
 
-In any content MDX file, add `skillCollections` to the frontmatter:
+### Folder-Level (Recommended)
+
+Add `skillCollections` to a folder's `meta.json` to include all docs in that folder:
+
+```json
+// content/typescript-sdk/meta.json
+{
+  "skillCollections": ["typescript-sdk"],
+  "pages": ["project-management", "agent-settings", "..."]
+}
+```
+
+All MDX files in `typescript-sdk/` and its subdirectories inherit this collection. Child folders can override with their own `skillCollections`.
+
+### File-Level (Override)
+
+Individual files can override inherited collections via frontmatter:
 
 ```yaml
 ---
 title: My Doc Title
-description: What this doc covers
 skillCollections:
-  - typescript-sdk      # Adds to "typescript-sdk" collection
-  - getting-started     # Adds to "getting-started" collection (creates if new)
+  - typescript-sdk
+  - getting-started     # Also add to another collection
 ---
 ```
 
-A doc can belong to multiple collections.
+```yaml
+---
+title: Internal Doc
+skillCollections: []    # Exclude from inherited collections
+---
+```
+
+## Page Ordering
+
+Rules appear in the order defined by `meta.json` `pages` arrays, following Fumadocs conventions:
+
+- Explicit order from `pages` array
+- `"..."` includes remaining files alphabetically
+- `"z...a"` includes remaining in reverse order
+- Nested folders respect their own `meta.json` ordering
 
 ## Creating Collection Templates
 
@@ -111,6 +140,15 @@ Customize the root `README.md` by editing `_templates/README.mdx`:
 ## Directory Structure
 
 ```
+content/
+├── typescript-sdk/
+│   ├── meta.json                     # { "skillCollections": ["typescript-sdk"], "pages": [...] }
+│   ├── agent-settings.mdx
+│   ├── tools/
+│   │   ├── meta.json                 # Inherits skillCollections from parent
+│   │   └── mcp-tools.mdx
+│   └── ...
+
 skills-collections/
 ├── _templates/
 │   ├── README.mdx                    # Template for root README
