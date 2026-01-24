@@ -43,10 +43,12 @@ Templates control the `skill.md` file generated for each collection.
 
 ```
 .generated/
-└── <collection-name>/
-    ├── skill.md
-    └── rules/
-        └── <path>/<doc-slug>.md
+├── README.md
+└── skills/
+    └── <collection-name>/
+        ├── skill.md
+        └── rules/
+            └── <path>/<doc-slug>.md
 ```
 
 ## Running the Generator

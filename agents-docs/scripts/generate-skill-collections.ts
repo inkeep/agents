@@ -157,9 +157,13 @@ async function main() {
   await fs.promises.rm(GENERATED_DIR, { recursive: true, force: true });
   await fs.promises.mkdir(GENERATED_DIR, { recursive: true });
 
+  // Create skills subdirectory
+  const skillsDir = path.join(GENERATED_DIR, 'skills');
+  await fs.promises.mkdir(skillsDir, { recursive: true });
+
   // Generate root README for the target repo
   const collectionsList = Array.from(collections.keys())
-    .map((name) => `- [${toTitleCase(name)}](./${name}/skill.md)`)
+    .map((name) => `- [${toTitleCase(name)}](./skills/${name}/skill.md)`)
     .join('\n');
   const rootReadme = `# Inkeep Skills
 
@@ -184,7 +188,7 @@ Each collection contains:
   await fs.promises.writeFile(path.join(GENERATED_DIR, 'README.md'), rootReadme);
 
   for (const [collectionName, collectionPages] of collections) {
-    const collectionDir = path.join(GENERATED_DIR, collectionName);
+    const collectionDir = path.join(skillsDir, collectionName);
     const rulesDir = path.join(collectionDir, 'rules');
 
     await fs.promises.mkdir(rulesDir, { recursive: true });
