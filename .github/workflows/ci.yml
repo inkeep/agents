@@ -70,6 +70,13 @@ jobs:
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
+      # Generate PGlite database snapshots with migrations pre-applied
+      # This speeds up test initialization by avoiding migration overhead per test file
+      - name: Generate test database snapshots
+        run: pnpm test:generate-snapshot
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
       # Run all CI checks in parallel with Turborepo
       - name: Run CI checks
         id: ci-check
