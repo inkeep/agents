@@ -12,7 +12,6 @@ type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   label: string;
   isRequired?: boolean;
   error?: string;
-  actions?: ReactNode;
 };
 
 export function ExpandablePromptEditor({
@@ -21,13 +20,13 @@ export function ExpandablePromptEditor({
   className,
   error,
   name,
-  actions,
   ...props
 }: PromptEditorProps) {
   'use memo';
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
-  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
+  const $uri = props.uri ?? `${name}.template`
+  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
 
   const handleAddVariable = () => {
     if (!monaco) {
@@ -62,7 +61,7 @@ export function ExpandablePromptEditor({
       isRequired={isRequired}
       hasError={!!error}
       actions={
-        actions ?? (
+        uri.endsWith('.template') && (
           <Button
             size="sm"
             variant="link"

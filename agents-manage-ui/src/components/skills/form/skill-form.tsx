@@ -141,7 +141,6 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           placeholder="Write Markdown instructions for this skill..."
           error={form.formState.errors.content?.message}
           isRequired
-          actions={false}
           uri="content.md"
         />
         <ExpandableJsonEditor
