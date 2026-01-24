@@ -470,3 +470,33 @@
 
 ## Iteration 5 - Sat Jan 24 02:51:57 UTC 2026
 
+
+---
+
+## Iteration 6 - Sat Jan 24 02:56:09 UTC 2026
+
+
+---
+
+## Iteration 20 - Fri Jan 24 2026
+
+### Story: US-020 - Implement affected-only testing in CI
+
+**Implementation:**
+- Modified `.github/workflows/ci.yml` to use conditional logic based on event type
+- For `pull_request` events: Use `--filter='...[origin/main]'` to run only affected packages
+- For `push` to main/master: Run full `pnpm check` for complete validation
+- Added `git fetch origin main --depth=1` to fetch main branch for comparison
+- Added comprehensive comments explaining the affected-only strategy
+
+**Files Changed:**
+- `.github/workflows/ci.yml`
+
+**Learnings:**
+- GitHub Actions `github.event_name` can be used to conditionally run different commands
+- Turbo's `--filter='...[origin/main]'` syntax detects packages with changes since the specified ref
+- Need to fetch the comparison ref (origin/main) since shallow checkout may not include it
+- Using `|| true` after git fetch prevents failure if main branch doesn't exist
+- YAML validated via js-yaml node module since other tools unavailable in dev environment
+
+---
