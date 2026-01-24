@@ -93,6 +93,9 @@ export function getOrCreateModel({
     case 'tsx':
       language = 'typescript';
       break;
+    case 'md':
+      language = 'markdown';
+      break;
   }
   const model = monaco.editor.getModel(uri);
   return {

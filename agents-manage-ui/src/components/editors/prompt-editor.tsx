@@ -9,7 +9,7 @@ import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 import { MonacoEditor } from './monaco-editor';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
-  uri?: `${string}.template`;
+  uri?: `${string}.${'template' | 'md'}`;
 }
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {

@@ -85,9 +85,9 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
     );
   }
 
-  if (isFetching) {
+  if (isFetching && !initialData) {
     return (
-      <div className="flex items-center justify-center h-full max-w-4xl">
+      <div className="flex items-center justify-center h-full">
         <Spinner />
       </div>
     );
@@ -141,6 +141,8 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           placeholder="Write Markdown instructions for this skill..."
           error={form.formState.errors.content?.message}
           isRequired
+          actions={false}
+          uri="content.md"
         />
         <ExpandableJsonEditor
           value={metadata ?? ''}

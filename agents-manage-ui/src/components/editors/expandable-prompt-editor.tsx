@@ -1,6 +1,6 @@
 import { Braces } from 'lucide-react';
-import type { ComponentProps } from 'react';
-import { useCallback, useState } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
+import { useState } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   name: string;
+  label: string;
+  isRequired?: boolean;
+  error?: string;
+  actions?: ReactNode;
 };
 
 export function ExpandablePromptEditor({
@@ -17,17 +21,15 @@ export function ExpandablePromptEditor({
   className,
   error,
   name,
+  actions,
   ...props
-}: {
-  label: string;
-  isRequired?: boolean;
-  error?: string;
-} & PromptEditorProps) {
+}: PromptEditorProps) {
+  'use memo';
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
   const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
 
-  const handleAddVariable = useCallback(() => {
+  const handleAddVariable = () => {
     if (!monaco) {
       return;
     }
@@ -46,7 +48,7 @@ export function ExpandablePromptEditor({
     editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
     editor.focus();
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  }, [monaco, uri]);
+  };
 
   const id = `${name}-label`;
 
@@ -60,16 +62,18 @@ export function ExpandablePromptEditor({
       isRequired={isRequired}
       hasError={!!error}
       actions={
-        <Button
-          size="sm"
-          variant="link"
-          className="text-xs rounded-sm h-6"
-          type="button"
-          onClick={handleAddVariable}
-        >
-          <Braces className="size-3.5" />
-          Add variables
-        </Button>
+        actions ?? (
+          <Button
+            size="sm"
+            variant="link"
+            className="text-xs rounded-sm h-6"
+            type="button"
+            onClick={handleAddVariable}
+          >
+            <Braces className="size-3.5" />
+            Add variables
+          </Button>
+        )
       }
     >
       <PromptEditor
