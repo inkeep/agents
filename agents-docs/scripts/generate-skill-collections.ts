@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import { remark } from 'remark';
 import remarkMdx from 'remark-mdx';
 import { mdxSnippet } from 'remark-mdx-snippets';
+import { z } from 'zod';
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 const SKILLS_DIR = path.join(process.cwd(), 'skills-collections');
@@ -12,12 +13,48 @@ const TEMPLATES_DIR = path.join(SKILLS_DIR, '_templates');
 const GENERATED_DIR = path.join(SKILLS_DIR, '.generated');
 const SNIPPETS_DIR = path.join(process.cwd(), '_snippets');
 
+/**
+ * Agent Skills Specification Schema
+ * @see https://agentskills.io/specification
+ */
+const skillMetadataSchema = z.object({
+  // Required: 1-64 chars, lowercase alphanumeric + hyphens, no start/end hyphen, no consecutive hyphens
+  name: z
+    .string()
+    .min(1, 'name must be at least 1 character')
+    .max(64, 'name must be at most 64 characters')
+    .regex(
+      /^[a-z0-9]+(-[a-z0-9]+)*$/,
+      'name must be lowercase letters, numbers, and single hyphens (no start/end/consecutive hyphens)'
+    ),
+  // Required: 1-1024 chars, describes what skill does and when to use it
+  description: z
+    .string()
+    .min(1, 'description must be at least 1 character')
+    .max(1024, 'description must be at most 1024 characters'),
+  // Optional: license name or reference to bundled license file
+  license: z.string().optional(),
+  // Optional: max 500 chars, environment requirements
+  compatibility: z.string().max(500, 'compatibility must be at most 500 characters').optional(),
+  // Optional: arbitrary key-value metadata
+  metadata: z.record(z.string(), z.string()).optional(),
+  // Optional: space-delimited list of pre-approved tools (experimental)
+  'allowed-tools': z.string().optional(),
+});
+
+type SkillMetadata = z.infer<typeof skillMetadataSchema>;
+
 interface CollectionPage {
   title: string;
   description: string;
   url: string;
   slugPath: string;
   rawContent: string;
+}
+
+interface TemplateData {
+  skillMetadata: SkillMetadata | null;
+  content: string;
 }
 
 function escapeTableCell(value: string): string {
@@ -57,18 +94,56 @@ function toTitleCase(str: string): string {
     .join(' ');
 }
 
-async function loadTemplate(collectionName: string): Promise<string> {
+async function loadTemplate(collectionName: string): Promise<TemplateData> {
   const collectionTemplatePath = path.join(TEMPLATES_DIR, `${collectionName}.mdx`);
   const defaultTemplatePath = path.join(TEMPLATES_DIR, 'default.mdx');
 
+  let templateContent: string;
+  let templatePath: string | null = null;
+
   if (fs.existsSync(collectionTemplatePath)) {
-    return fs.promises.readFile(collectionTemplatePath, 'utf-8');
-  }
-  if (fs.existsSync(defaultTemplatePath)) {
-    return fs.promises.readFile(defaultTemplatePath, 'utf-8');
+    templateContent = await fs.promises.readFile(collectionTemplatePath, 'utf-8');
+    templatePath = collectionTemplatePath;
+  } else if (fs.existsSync(defaultTemplatePath)) {
+    templateContent = await fs.promises.readFile(defaultTemplatePath, 'utf-8');
+    templatePath = defaultTemplatePath;
+  } else {
+    return {
+      skillMetadata: null,
+      content: `# {{COLLECTION_NAME}}\n\n## Rules\n\n{{RULES_TABLE}}`,
+    };
   }
 
-  return `# {{COLLECTION_NAME}}\n\n## Rules\n\n{{RULES_TABLE}}`;
+  const { data: frontmatter, content } = matter(templateContent);
+
+  // Check if frontmatter has skill metadata fields
+  if (frontmatter.name || frontmatter.description) {
+    // Validate against Agent Skills spec
+    const result = skillMetadataSchema.safeParse(frontmatter);
+    if (!result.success) {
+      const errors = result.error.errors
+        .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
+        .join('\n');
+      throw new Error(`Invalid skill metadata in ${templatePath}:\n${errors}`);
+    }
+
+    // Validate that name matches collection name
+    if (result.data.name !== collectionName) {
+      throw new Error(
+        `Skill name "${result.data.name}" in ${templatePath} must match collection name "${collectionName}"`
+      );
+    }
+
+    return {
+      skillMetadata: result.data,
+      content,
+    };
+  }
+
+  return {
+    skillMetadata: null,
+    content: templateContent,
+  };
 }
 
 function applyTemplate(
@@ -163,7 +238,7 @@ async function main() {
 
   // Generate root README from template
   const collectionsList = Array.from(collections.keys())
-    .map((name) => `- [${toTitleCase(name)}](./skills/${name}/skill.md)`)
+    .map((name) => `- [${toTitleCase(name)}](./skills/${name}/SKILL.md)`)
     .join('\n');
 
   const readmeTemplatePath = path.join(TEMPLATES_DIR, 'README.mdx');
@@ -183,13 +258,50 @@ async function main() {
 
     await fs.promises.mkdir(rulesDir, { recursive: true });
 
-    // Generate skill.md from template
-    const template = await loadTemplate(collectionName);
+    // Load and validate template
+    const templateData = await loadTemplate(collectionName);
     const table = generateTable(collectionPages);
-    const skillMd = applyTemplate(template, collectionName, table, collectionPages.length);
+    const bodyContent = applyTemplate(
+      templateData.content,
+      collectionName,
+      table,
+      collectionPages.length
+    );
 
-    await fs.promises.writeFile(path.join(collectionDir, 'skill.md'), skillMd);
-    console.log(`  Created ${collectionName}/skill.md`);
+    // Generate SKILL.md with proper frontmatter per Agent Skills spec
+    let skillMd: string;
+    if (templateData.skillMetadata) {
+      // Build frontmatter from validated metadata
+      const frontmatterLines = ['---'];
+      frontmatterLines.push(`name: ${templateData.skillMetadata.name}`);
+      frontmatterLines.push(`description: ${templateData.skillMetadata.description}`);
+      if (templateData.skillMetadata.license) {
+        frontmatterLines.push(`license: ${templateData.skillMetadata.license}`);
+      }
+      if (templateData.skillMetadata.compatibility) {
+        frontmatterLines.push(`compatibility: ${templateData.skillMetadata.compatibility}`);
+      }
+      if (templateData.skillMetadata.metadata) {
+        frontmatterLines.push('metadata:');
+        for (const [key, value] of Object.entries(templateData.skillMetadata.metadata)) {
+          frontmatterLines.push(`  ${key}: "${value}"`);
+        }
+      }
+      if (templateData.skillMetadata['allowed-tools']) {
+        frontmatterLines.push(`allowed-tools: ${templateData.skillMetadata['allowed-tools']}`);
+      }
+      frontmatterLines.push('---');
+      skillMd = `${frontmatterLines.join('\n')}\n\n${bodyContent}`;
+    } else {
+      // No skill metadata - warn and generate without frontmatter
+      console.warn(
+        `  Warning: No skill metadata in template for "${collectionName}". SKILL.md will lack required frontmatter.`
+      );
+      skillMd = bodyContent;
+    }
+
+    await fs.promises.writeFile(path.join(collectionDir, 'SKILL.md'), skillMd);
+    console.log(`  Created ${collectionName}/SKILL.md`);
 
     // Generate individual rule files
     for (const page of collectionPages) {
