@@ -32,15 +32,7 @@ cd my-agents
 
 Open the folder using your coding editor. To open with Cursor, you can run `cursor .`
 
-### Step 2: Add Inkeep skills for AI coding (optional)
-
-Install [Inkeep skills](https://github.com/inkeep/skills) so AI assistants know how to use the SDK:
-
-```bash
-npx skills add inkeep/skills
-```
-
-### Step 3: Run the setup script
+### Step 2: Run the setup script
 
 Ensure Docker Desktop (or Docker daemon) is running before running the setup script.
 
@@ -56,7 +48,7 @@ pnpm setup-dev --skip-docker
 
 Make sure your DATABASE_URL environment variable is configured for your cloud database.
 
-### Step 4: Launch the dev environment
+### Step 3: Launch the dev environment
 
 ```bash
 pnpm dev
@@ -64,7 +56,7 @@ pnpm dev
 
 The Visual Builder will auto-open at http://localhost:3000.
 
-### Step 5: Chat with your agent
+### Step 4: Chat with your agent
 
 Navigate to the **Activities Planner** agent at http://localhost:3000 and ask about fun activities at a location of your choice:
 
@@ -72,7 +64,7 @@ Navigate to the **Activities Planner** agent at http://localhost:3000 and ask ab
 
 ### Next steps
 
+- Set up [AI coding for Inkeep](https://docs.inkeep.com/get-started/inkeep-mcp) with skills and MCP.
 - Learn about [inkeep push / pull](https://docs.inkeep.com/get-started/push-pull) so you can go from `SDK -> Visual Builder` and `Visual Builder -> SDK`.
 - Follow our [meeting prep agent tutorial](https://docs.inkeep.com/tutorials/agents/meeting-prep-assistant) to create an agent using the Visual Builder.
 - Follow our [fact finder agent tutorial](https://docs.inkeep.com/tutorials/agents/fact-finder) to create an agent using the TypeScript SDK.
-- Install the [Inkeep MCP](https://docs.inkeep.com/get-started/inkeep-mcp) in your IDE to enable AI coding assistants to "vibe code" your Inkeep agents.
