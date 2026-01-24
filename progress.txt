@@ -500,3 +500,31 @@
 - YAML validated via js-yaml node module since other tools unavailable in dev environment
 
 ---
+
+## Iteration 21 - Fri Jan 24 2026
+
+### Story: US-021 - Add test timing reports to CI as artifacts
+
+**Implementation:**
+- Added JUnit reporter to vitest.config.ci.ts alongside existing verbose reporter
+- Configured outputFile to save JUnit XML to test-results/junit.xml
+- Added CI workflow step to upload test-results/ directory as GitHub Actions artifact
+- Set artifact retention to 30 days with ignore-if-no-files to handle cases where tests don't run
+- Added comprehensive documentation to AGENTS.md covering:
+  - How to access timing reports from GitHub Actions artifacts
+  - JUnit XML format explanation with time attributes
+  - Local timing report generation command
+
+**Files Changed:**
+- `vitest.config.ci.ts` - Added junit reporter and outputFile config
+- `.github/workflows/ci.yml` - Added artifact upload step
+- `Agents.md` - Added Test Timing Reports documentation section
+
+**Learnings:**
+- Vitest supports multiple reporters simultaneously via reporters array
+- outputFile config uses object format to specify paths per reporter type
+- actions/upload-artifact@v4 is the current version for GitHub Actions
+- `if-no-files-found: ignore` prevents CI failure when test-results doesn't exist
+- JUnit XML format is widely supported for test timing analysis tools
+
+---
