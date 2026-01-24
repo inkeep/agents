@@ -162,6 +162,7 @@ export interface ToolCallData {
   relationshipId?: string;
   needsApproval?: boolean;
   conversationId?: string;
+  inDelegatedAgent?: boolean;
 }
 
 export interface ToolResultData {
@@ -172,6 +173,7 @@ export interface ToolResultData {
   error?: string;
   relationshipId?: string;
   needsApproval?: boolean;
+  inDelegatedAgent?: boolean;
 }
 
 export interface CompressionEventData {

@@ -544,6 +544,8 @@ export class Agent {
             input: args,
             toolCallId,
             relationshipId,
+            inDelegatedAgent: this.isDelegatedAgent,
+
           };
 
           // Add approval-specific data when needed
@@ -610,6 +612,7 @@ export class Agent {
               duration,
               relationshipId,
               needsApproval,
+              inDelegatedAgent: this.isDelegatedAgent,
             });
           }
 
@@ -641,6 +644,7 @@ export class Agent {
               error: errorMessage,
               relationshipId,
               needsApproval,
+              inDelegatedAgent: this.isDelegatedAgent,
             });
           }
 
