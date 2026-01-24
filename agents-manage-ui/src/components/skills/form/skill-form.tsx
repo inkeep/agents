@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Check, Info, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -13,14 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
 import { formatJsonField } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { defaultValues, type SkillFormData, SkillSchema } from './validation';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Check, Info, X } from 'lucide-react';
 
 interface SkillFormProps {
   initialData?: Skill;
@@ -117,7 +117,7 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
               Description
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="w-3 h-3 text-muted-foreground ml-1" />
+                  <Info className="size-3 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent className="text-wrap">
                   <Check className="inline size-3 text-green-500" /> Good example: Extracts text and
