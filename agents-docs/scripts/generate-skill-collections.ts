@@ -83,12 +83,23 @@ function applyTemplate(
     .replace(/\{\{RULES_COUNT\}\}/g, String(rulesCount));
 }
 
+function stripReactFragments(content: string): string {
+  // Remove React fragment wrappers (<> and </>) that remark-mdx-snippets adds
+  // when expanding snippets with multiple children
+  return content
+    .replace(/^<>\n/gm, '') // Opening fragment at start of line
+    .replace(/\n<\/>$/gm, '') // Closing fragment at end of line
+    .replace(/<>\n/g, '') // Opening fragment inline
+    .replace(/\n<\/>/g, ''); // Closing fragment inline
+}
+
 async function processMarkdown(content: string): Promise<string> {
   // Process with remark + mdx-snippets to expand snippets
   const processor = remark().use(remarkMdx).use(mdxSnippet, { snippetsDir: SNIPPETS_DIR });
 
   const result = await processor.process(content);
-  return String(result);
+  // Strip React fragments that remark-mdx-snippets adds for multi-child snippets
+  return stripReactFragments(String(result));
 }
 
 function stripFrontmatter(content: string): string {
