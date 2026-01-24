@@ -128,7 +128,7 @@ async function loadTemplate(collectionName: string): Promise<TemplateData> {
     // Validate against Agent Skills spec
     const result = skillMetadataSchema.safeParse(frontmatter);
     if (!result.success) {
-      const errors = result.error.errors
+      const errors = result.error.issues
         .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
         .join('\n');
       throw new Error(`Invalid skill metadata in ${templatePath}:\n${errors}`);
