@@ -1,12 +1,20 @@
 import { generateId, MCPTransportType } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient'; // Use relative path to ensure same module instance
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Tools CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
+
+  // OPTIMIZATION: Shared tenant/project setup for tests that can share infrastructure
+  // This reduces the overhead of creating tenant+project for each test
+  let sharedTenantId: string;
+  beforeAll(async () => {
+    sharedTenantId = await createTestTenantWithOrg('tools-shared');
+    await createTestProject(manageDbClient, sharedTenantId, projectId);
+  });
 
   // Helper function to create test tool data
   const createToolData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
@@ -98,11 +106,10 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(body.data.status).toBe('unhealthy');
     });
 
+    // OPTIMIZATION: Use shared tenant for "not found" tests - no data isolation needed
     it('should return 404 when tool not found', async () => {
-      const tenantId = await createTestTenantWithOrg('tools-get-not-found');
-      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`
+        `/manage/tenants/${sharedTenantId}/projects/${projectId}/tools/non-existent-id`
       );
       expect(res.status).toEqual(404);
     });
@@ -168,11 +175,10 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
     // Note: Tool credential updates are tested in tool-credential-integration.test.ts
 
+    // OPTIMIZATION: Use shared tenant for "not found" tests - no data isolation needed
     it('should return 404 when tool not found for update', async () => {
-      const tenantId = await createTestTenantWithOrg('tools-update-not-found');
-      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
+        `/manage/tenants/${sharedTenantId}/projects/${projectId}/tools/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify({ name: 'Updated' }),
@@ -201,11 +207,10 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       expect(getRes.status).toBe(404);
     });
 
+    // OPTIMIZATION: Use shared tenant for "not found" tests - no data isolation needed
     it('should return 404 when tool not found for deletion', async () => {
-      const tenantId = await createTestTenantWithOrg('tools-delete-not-found');
-      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
+        `/manage/tenants/${sharedTenantId}/projects/${projectId}/tools/non-existent-id`,
         {
           method: 'DELETE',
         }

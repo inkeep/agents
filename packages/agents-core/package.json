@@ -98,6 +98,8 @@
     "build": "tsdown",
     "dev": "pnpm build --watch",
     "test": "vitest --run",
+    "test:fast": "vitest --config vitest.fast.config.ts --run",
+    "test:slow": "vitest --config vitest.slow.config.ts --run",
     "test:integration": "vitest --run --config vitest.integration.config.ts src/__tests__/integration/",
     "test:coverage": "vitest --run --coverage",
     "test:watch": "vitest --watch",

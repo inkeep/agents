@@ -1,37 +1,84 @@
 import { PGlite } from '@electric-sql/pglite';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { AgentsRunDatabaseClient } from './runtime-client';
 import * as schema from './runtime-schema';
 
+function findSnapshotPath(filename: string): string | null {
+  const possiblePaths = [
+    resolve(process.cwd(), 'test-fixtures', filename),
+    resolve(process.cwd(), '..', 'test-fixtures', filename),
+    resolve(process.cwd(), '..', '..', 'test-fixtures', filename),
+  ];
+
+  for (const path of possiblePaths) {
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+  return null;
+}
+
 /**
  * Creates a test database client using an in-memory PostgreSQL database (PGlite)
  * This provides real database operations for integration testing with perfect isolation
  * Each call creates a fresh database with all migrations applied
+ *
+ * If a pre-compiled snapshot exists at test-fixtures/runtime-db-snapshot.tar.gz,
+ * it will be loaded instead of running migrations, significantly speeding up test initialization.
+ * Run `pnpm test:generate-snapshot` to regenerate the snapshot after schema changes.
  */
 export async function createTestRuntimeDatabaseClient(
   drizzleDir: string
 ): Promise<AgentsRunDatabaseClient> {
-  const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const snapshotPath = findSnapshotPath('runtime-db-snapshot.tar.gz');
 
-  // Initialize schema by running ALL migration SQL files
-  try {
-    await migrate(db, { migrationsFolder: drizzleDir });
-  } catch (error) {
-    console.error('Failed to initialize test database schema:', error);
-    throw error;
+  let client: PGlite;
+
+  if (snapshotPath) {
+    const snapshotData = readFileSync(snapshotPath);
+    const blob = new Blob([snapshotData], { type: 'application/gzip' });
+    client = new PGlite({ loadDataDir: blob });
+  } else {
+    client = new PGlite();
+    const db = drizzle(client, { schema });
+
+    try {
+      await migrate(db, { migrationsFolder: drizzleDir });
+    } catch (error) {
+      console.error('Failed to initialize test database schema:', error);
+      throw error;
+    }
   }
 
-  return db;
+  return drizzle(client, { schema });
 }
 
+/**
+ * Creates a test database client without running migrations.
+ *
+ * If a pre-compiled snapshot exists at test-fixtures/runtime-db-snapshot.tar.gz,
+ * it will be loaded (providing schema without running migrations).
+ * Otherwise, returns an empty database (caller must run migrations).
+ * Run `pnpm test:generate-snapshot` to regenerate the snapshot after schema changes.
+ */
 export function createTestRuntimeDatabaseClientNoMigrations(): AgentsRunDatabaseClient {
-  const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const snapshotPath = findSnapshotPath('runtime-db-snapshot.tar.gz');
 
-  return db;
+  let client: PGlite;
+
+  if (snapshotPath) {
+    const snapshotData = readFileSync(snapshotPath);
+    const blob = new Blob([snapshotData], { type: 'application/gzip' });
+    client = new PGlite({ loadDataDir: blob });
+  } else {
+    client = new PGlite();
+  }
+
+  return drizzle(client, { schema });
 }
 
 /**

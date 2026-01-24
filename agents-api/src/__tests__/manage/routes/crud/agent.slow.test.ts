@@ -72,30 +72,31 @@ describe('Agent CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create multiple agents
+  // OPTIMIZATION: Creates agents in parallel for faster test execution
   const createMultipleAgents = async ({ tenantId, count }: { tenantId: string; count: number }) => {
-    const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
-    for (let i = 1; i <= count; i++) {
-      // Create agent first (without defaultSubAgentId)
-      const agent = await createTestAgent({ tenantId });
+    // Step 1: Create all agents in parallel
+    const agentPromises = Array.from({ length: count }, () => createTestAgent({ tenantId }));
+    const agents = await Promise.all(agentPromises);
 
-      // Create a unique agent for this agent
-      const { subAgentId } = await createTestSubAgent({
-        tenantId,
-        agentId: agent.agentId,
-        suffix: ` ${i}`,
-      });
+    // Step 2: Create sub-agents and update agents in parallel
+    await Promise.all(
+      agents.map(async (agent, i) => {
+        const { subAgentId } = await createTestSubAgent({
+          tenantId,
+          agentId: agent.agentId,
+          suffix: ` ${i + 1}`,
+        });
 
-      // Update the agent with the default agent
-      await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify({ defaultSubAgentId: subAgentId }),
-        }
-      );
+        await makeRequest(
+          `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`,
+          {
+            method: 'PUT',
+            body: JSON.stringify({ defaultSubAgentId: subAgentId }),
+          }
+        );
+      })
+    );
 
-      agents.push(agent);
-    }
     return agents;
   };
 

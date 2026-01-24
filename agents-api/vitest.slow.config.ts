@@ -1,0 +1,30 @@
+import { defineProject } from 'vitest/config';
+import packageJson from './package.json' with { type: 'json' };
+
+export default defineProject({
+  test: {
+    name: `${packageJson.name}:slow`,
+    setupFiles: './src/__tests__/setup.ts',
+    globals: true,
+    environment: 'node',
+    testTimeout: 60000, // 60 seconds for database operations
+    hookTimeout: 60000, // 60 seconds for setup/teardown hooks
+    include: ['**/*.slow.test.ts'],
+    exclude: ['node_modules', 'dist'],
+    fileParallelism: true,
+    isolate: true,
+    poolOptions: {
+      threads: {
+        maxThreads: 10,
+        minThreads: 4,
+      },
+    },
+    env: {
+      ENVIRONMENT: 'test',
+      ANTHROPIC_API_KEY: 'test-api-key',
+      OPENAI_API_KEY: 'test-openai-key',
+      LOG_LEVEL: 'error',
+      AGENTS_COMPRESSION_ENABLED: 'false',
+    },
+  },
+});

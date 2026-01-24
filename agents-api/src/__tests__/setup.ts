@@ -4,10 +4,27 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 /*instrumentation.ts*/
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import manageDbClient from '../data/db/manageDbClient';
 import runDbClient from '../data/db/runDbClient';
+
+function findSnapshotPath(filename: string): string | null {
+  const possiblePaths = [
+    resolve(process.cwd(), 'test-fixtures', filename),
+    resolve(process.cwd(), '..', 'test-fixtures', filename),
+    resolve(process.cwd(), '..', '..', 'test-fixtures', filename),
+  ];
+
+  for (const path of possiblePaths) {
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+  return null;
+}
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
@@ -104,8 +121,20 @@ const sdk = new NodeSDK({
 sdk.start();
 
 // Initialize database schema for in-memory test databases using Drizzle migrations
+// If pre-compiled snapshots exist, they are loaded automatically by the test client,
+// and migrations will be skipped (no-op since schema already exists).
+// Run `pnpm test:generate-snapshot` to regenerate snapshots after schema changes.
 beforeAll(async () => {
   const logger = getLogger('Test Setup');
+
+  const manageSnapshotExists = findSnapshotPath('manage-db-snapshot.tar.gz') !== null;
+  const runtimeSnapshotExists = findSnapshotPath('runtime-db-snapshot.tar.gz') !== null;
+
+  if (manageSnapshotExists && runtimeSnapshotExists) {
+    logger.debug({}, 'Using pre-compiled database snapshots - skipping migrations');
+    return;
+  }
+
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
 
@@ -120,12 +149,16 @@ beforeAll(async () => {
       ? '../packages/agents-core/drizzle/runtime'
       : './packages/agents-core/drizzle/runtime';
 
-    await migrate(manageDbClient as unknown as Parameters<typeof migrate>[0], {
-      migrationsFolder: manageMigrationsPath,
-    });
-    await migrate(runDbClient as unknown as Parameters<typeof migrate>[0], {
-      migrationsFolder: runMigrationsPath,
-    });
+    if (!manageSnapshotExists) {
+      await migrate(manageDbClient as unknown as Parameters<typeof migrate>[0], {
+        migrationsFolder: manageMigrationsPath,
+      });
+    }
+    if (!runtimeSnapshotExists) {
+      await migrate(runDbClient as unknown as Parameters<typeof migrate>[0], {
+        migrationsFolder: runMigrationsPath,
+      });
+    }
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');

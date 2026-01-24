@@ -108,8 +108,81 @@ pnpm build           # Build documentation for production
 - 60-second timeouts for A2A interactions
 - Each test worker gets in-memory SQLite database
 
+### Test Timing Reports
+
+CI automatically generates JUnit XML test reports with timing data for each test. These reports help identify slow tests and track performance trends.
+
+#### Accessing Timing Reports
+
+1. **From GitHub Actions**: After a CI run completes, download the `test-results` artifact from the workflow run's "Artifacts" section
+2. **Contents**: The artifact contains `junit.xml` with per-test timing data in JUnit XML format
+3. **Retention**: Artifacts are retained for 30 days
+
+#### Analyzing Timing Data
+
+The JUnit XML file contains timing information for each test:
+- `time` attribute on `<testcase>` elements shows individual test duration in seconds
+- `time` attribute on `<testsuite>` elements shows total suite duration
+- Use XML parsing tools or JUnit report viewers to analyze trends
+
+#### Local Timing Reports
+
+To generate timing reports locally (useful for profiling before commits):
+
+```bash
+pnpm vitest --reporter=verbose --reporter=junit --outputFile=test-results/junit.xml --run
+```
+
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
+
+## Turbo Remote Caching
+
+Turbo remote caching dramatically speeds up builds by sharing cache across your local machine, CI/CD pipelines, and team members. When enabled, subsequent runs of cached tasks complete almost instantly.
+
+### Setup
+
+Run the following commands to enable remote caching:
+
+```bash
+npx turbo login && npx turbo link
+```
+
+Or use the convenience script:
+
+```bash
+pnpm turbo:setup-cache
+```
+
+This will:
+1. Log you into Vercel (opens browser)
+2. Link this repo to your Vercel team
+3. Enable remote caching for all turbo commands
+
+### Verifying Caching Works
+
+Run any turbo task twice to verify caching:
+
+```bash
+pnpm turbo run build --summarize
+```
+
+On the second run, you should see:
+- **"FULL TURBO"** message indicating all tasks were cached
+- **Cache hit indicators** showing tasks were restored from cache
+- **Significantly faster execution time** (often < 2 seconds for cached tasks)
+
+### Expected Behavior
+
+- **Pre-push hooks**: ~1-2 seconds when cache is warm
+- **CI builds**: Faster when code hasn't changed
+- **Team sharing**: Build artifacts are shared across team members
+
+### CI/CD Configuration
+
+For CI/CD pipelines, add these environment variables as secrets:
+- `TURBO_TOKEN`: Your personal access token (from `turbo login` or Vercel dashboard)
+- `TURBO_TEAM`: Your team identifier (e.g., `team_xxxxx`)
 
 ## Architecture Overview
 

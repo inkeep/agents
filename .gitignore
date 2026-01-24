@@ -18,6 +18,9 @@ logs/
 */coverage
 coverage/
 *.lcov
+# Pre-compiled PGlite database snapshots for faster test setup
+# Run `pnpm test:generate-snapshot` to regenerate
+test-fixtures/
 
 # production
 /build

@@ -50,6 +50,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
   };
 
   // Helper function to create multiple agents
+  // OPTIMIZATION: Creates agents in parallel for faster test execution
   const createMultipleAgents = async ({
     tenantId,
     agentId,
@@ -59,12 +60,10 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     agentId: string;
     count: number;
   }) => {
-    const agents: Awaited<ReturnType<typeof createTestSubAgent>>[] = [];
-    for (let i = 1; i <= count; i++) {
-      const agent = await createTestSubAgent({ tenantId, agentId: agentId, suffix: ` ${i}` });
-      agents.push(agent);
-    }
-    return agents;
+    const agentPromises = Array.from({ length: count }, (_, i) =>
+      createTestSubAgent({ tenantId, agentId: agentId, suffix: ` ${i + 1}` })
+    );
+    return Promise.all(agentPromises);
   };
 
   describe('GET /', () => {

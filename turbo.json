@@ -68,6 +68,21 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": ["coverage/**"]
     },
+    "test:fast": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.test.{js,jsx,ts,tsx}"],
+      "outputs": ["coverage/**"]
+    },
+    "test:slow": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.slow.test.{js,jsx,ts,tsx}"],
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", "**/*.integration.test.{js,jsx,ts,tsx}"]
+    },
     "lint": {
       "dependsOn": ["transit"],
       "inputs": ["$TURBO_DEFAULT$"],
@@ -161,7 +176,7 @@
       "outputs": []
     },
     "check:prepush": {
-      "dependsOn": ["lint", "typecheck", "test"],
+      "dependsOn": ["lint", "typecheck", "test:fast"],
       "cache": false,
       "outputs": []
     }
