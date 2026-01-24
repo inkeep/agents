@@ -409,3 +409,30 @@
 - Test files creating temp directories use unique names with timestamps to avoid conflicts
 
 ---
+
+## Iteration 18 - Fri Jan 24 2026
+
+### Story: US-018 - Split CLI tests into parallel-safe and sequential configs
+
+**Implementation:**
+- Created `agents-cli/vitest.parallel.config.ts` for parallel-safe tests
+- Configured with fileParallelism=true, singleThread=false, maxConcurrency=8
+- Included 18 parallel-safe tests identified in US-017:
+  - 13 generator tests in `src/commands/pull-v3/components/__tests__/`
+  - 5 pure utility tests (package-manager, url, json-comparator, templates, ci-environment)
+  - 1 component parser test
+- Added `test:parallel` script to agents-cli/package.json
+- Kept existing sequential config for tests with global mocks
+
+**Files Changed:**
+- `agents-cli/vitest.parallel.config.ts` (new)
+- `agents-cli/package.json`
+
+**Learnings:**
+- The vitest config uses defineProject() for package-level configs
+- fileParallelism=true + singleThread=false are both needed for parallel execution
+- Generator tests are pure functions ideal for parallelization (no global state)
+- Platform mismatch in dev environment prevented runtime verification but config follows existing patterns
+
+---
+
