@@ -39,6 +39,7 @@
     "start": "node dist/index.js",
     "test": "vitest --run --config vitest.config.ts",
     "test:fast": "vitest --config vitest.fast.config.ts --run",
+    "test:slow": "vitest --config vitest.slow.config.ts --run",
     "test:integration": "vitest --run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
