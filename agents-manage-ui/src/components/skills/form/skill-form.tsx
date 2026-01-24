@@ -6,19 +6,19 @@ import { type FC, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ExpandablePromptEditor } from '@/components/editors/expandable-prompt-editor';
+import FullPageError from '@/components/errors/full-page-error';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import { Spinner } from '@/components/ui/spinner';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
 import { formatJsonField } from '@/lib/utils';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import { defaultValues, type SkillFormData, SkillSchema } from './validation';
-import { Spinner } from '@/components/ui/spinner';
-import FullPageError from '@/components/errors/full-page-error';
-import { getErrorCode } from '@/lib/utils/error-serialization';
 
 interface SkillFormProps {
   initialData?: Skill;
@@ -61,7 +61,9 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
       data,
     });
     onSuccess?.();
-    router.push(`/${tenantId}/projects/${projectId}/skills`);
+    if (!skillId) {
+      router.push(`/${tenantId}/projects/${projectId}/skills`);
+    }
   });
 
   useEffect(() => {
