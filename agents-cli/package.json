@@ -21,6 +21,7 @@
     "prepare": "pnpm build --no-dts",
     "dev": "pnpm build --watch",
     "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
+    "test:parallel": "vitest --config vitest.parallel.config.ts --run",
     "test:debug": "vitest --run --reporter=verbose --no-coverage",
     "test:watch": "vitest",
     "test:coverage": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --coverage --config vitest.config.ci.ts || vitest --run --coverage",
