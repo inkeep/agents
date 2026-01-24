@@ -1058,7 +1058,7 @@ describe('Webhook Endpoint Tests', () => {
 
         expect(response.status).toBe(500);
         const data = await response.json();
-        expect(data.error).toContain('Failed to resolve signing secret');
+        expect(data.detail).toContain('Failed to resolve signing secret');
       });
 
       it('should return 500 when credential has no secret in retrievalParams', async () => {
@@ -1271,7 +1271,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain('Payload validation failed');
+      expect(data.detail).toContain('Payload validation failed');
       expect(data.validationErrors).toBeDefined();
     });
 
@@ -1301,7 +1301,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(400);
       const data = await response.json();
-      expect(data.error).toContain('Payload validation failed');
+      expect(data.detail).toContain('Payload validation failed');
     });
   });
 
@@ -1322,7 +1322,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.error).toContain('not found');
+      expect(data.detail).toContain('not found');
     });
 
     it('should return 404 when trigger is disabled', async () => {
@@ -1342,7 +1342,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.error).toContain('disabled');
+      expect(data.detail).toContain('disabled');
     });
   });
 
@@ -1369,7 +1369,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(422);
       const data = await response.json();
-      expect(data.error).toContain('transformation failed');
+      expect(data.detail).toContain('transformation failed');
     });
 
     it('should apply JMESPath field extraction transformation', async () => {

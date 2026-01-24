@@ -4,6 +4,7 @@ import type {
   FullExecutionContext,
   ResolvedRef,
 } from '@inkeep/agents-core';
+import { commonGetErrorResponses, createApiError, type ErrorCodes } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { processWebhook } from '../services/TriggerService';
 
@@ -16,6 +17,21 @@ type AppVariables = {
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('webhooks');
+
+/**
+ * Map HTTP status codes to error codes for createApiError
+ */
+function statusToErrorCode(status: 400 | 401 | 403 | 404 | 422 | 500): ErrorCodes {
+  const mapping: Record<number, ErrorCodes> = {
+    400: 'bad_request',
+    401: 'unauthorized',
+    403: 'forbidden',
+    404: 'not_found',
+    422: 'unprocessable_entity',
+    500: 'internal_server_error',
+  };
+  return mapping[status];
+}
 
 /**
  * Webhook endpoint for trigger invocation
@@ -56,57 +72,7 @@ const triggerWebhookRoute = createRoute({
         },
       },
     },
-    400: {
-      description: 'Invalid request payload',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-            validationErrors: z.array(z.string()).optional(),
-          }),
-        },
-      },
-    },
-    401: {
-      description: 'Missing authentication credentials',
-      content: {
-        'application/json': {
-          schema: z.object({ error: z.string() }),
-        },
-      },
-    },
-    403: {
-      description: 'Invalid authentication credentials or signature',
-      content: {
-        'application/json': {
-          schema: z.object({ error: z.string() }),
-        },
-      },
-    },
-    404: {
-      description: 'Trigger not found or disabled',
-      content: {
-        'application/json': {
-          schema: z.object({ error: z.string() }),
-        },
-      },
-    },
-    422: {
-      description: 'Payload transformation failed',
-      content: {
-        'application/json': {
-          schema: z.object({ error: z.string() }),
-        },
-      },
-    },
-    500: {
-      description: 'Internal server error',
-      content: {
-        'application/json': {
-          schema: z.object({ error: z.string() }),
-        },
-      },
-    },
+    ...commonGetErrorResponses,
   },
 });
 
@@ -129,17 +95,15 @@ app.openapi(triggerWebhookRoute, async (c) => {
   });
 
   if (!result.success) {
-    if (result.validationErrors) {
-      return c.json(
-        {
-          error: result.error,
-          validationErrors: result.validationErrors,
-          invocationId: result.invocationId,
-        },
-        result.status
-      );
-    }
-    return c.json({ error: result.error, invocationId: result.invocationId }, result.status);
+    const errorCode = statusToErrorCode(result.status);
+    throw createApiError({
+      code: errorCode,
+      message: result.error,
+      extensions: {
+        ...(result.invocationId && { invocationId: result.invocationId }),
+        ...(result.validationErrors && { validationErrors: result.validationErrors }),
+      },
+    });
   }
 
   logger.info(

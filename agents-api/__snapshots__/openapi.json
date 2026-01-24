@@ -8423,6 +8423,12 @@
           "createdAt": {
             "type": "string"
           },
+          "errorCode": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "nullable": true,
+            "type": "integer"
+          },
           "errorMessage": {
             "nullable": true,
             "type": "string"
@@ -8461,6 +8467,10 @@
                 "nullable": true
               }
             ]
+          },
+          "respondedAt": {
+            "nullable": true,
+            "type": "string"
           },
           "status": {
             "maxLength": 20,
@@ -8510,7 +8520,9 @@
           "requestPayload",
           "transformedPayload",
           "errorMessage",
-          "createdAt"
+          "errorCode",
+          "createdAt",
+          "respondedAt"
         ],
         "type": "object"
       },
@@ -18973,7 +18985,8 @@
               "enum": [
                 "pending",
                 "success",
-                "failed"
+                "failed",
+                "rejected"
               ],
               "type": "string"
             }
@@ -31313,117 +31326,63 @@
           },
           "400": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "validationErrors": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/BadRequest"
                 }
               }
             },
-            "description": "Invalid request payload"
+            "description": "Bad Request"
           },
           "401": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/Unauthorized"
                 }
               }
             },
-            "description": "Missing authentication credentials"
+            "description": "Unauthorized"
           },
           "403": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/Forbidden"
                 }
               }
             },
-            "description": "Invalid authentication credentials or signature"
+            "description": "Forbidden"
           },
           "404": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/NotFound"
                 }
               }
             },
-            "description": "Trigger not found or disabled"
+            "description": "Not Found"
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/UnprocessableEntity"
                 }
               }
             },
-            "description": "Payload transformation failed"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/InternalServerError"
                 }
               }
             },
-            "description": "Internal server error"
+            "description": "Internal Server Error"
           }
         },
         "summary": "Invoke agent via trigger webhook",
