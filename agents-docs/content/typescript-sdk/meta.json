@@ -1,5 +1,4 @@
 {
-  "skillCollections": ["typescript-sdk"],
   "pages": [
     "project-management",
     "agent-settings",

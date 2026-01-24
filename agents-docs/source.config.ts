@@ -18,7 +18,7 @@ export const docs = defineDocs({
     schema: frontmatterSchema.extend({
       sidebarTitle: z.string().optional(),
       keywords: z.string().optional(),
-      skillCollections: z.array(z.string()).optional(),
+      skills: z.array(z.string()).optional(),
     }),
   },
 });

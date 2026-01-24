@@ -63,7 +63,7 @@ The same applies to organization. Fumadocs uses `meta.json` files to define side
 ```json
 // content/typescript-sdk/meta.json
 {
-  "skillCollections": ["typescript-sdk"],
+  "skills": ["typescript-sdk"],
   "pages": ["project-management", "agent-settings", "tools", "..."]
 }
 ```
@@ -82,11 +82,38 @@ The generator runs at build time, processing MDX files through the same remark p
 └─────────────────┘     └──────────────────┘     └─────────────────┘
 ```
 
-**Folder-level tagging**: Add `skillCollections` to a folder's `meta.json`. All docs in that folder and subfolders are included. Child folders inherit unless they override. Individual files can opt-out via frontmatter.
+**Folder-level tagging**: Add `skills` to a folder's `meta.json`. All docs in that folder and subfolders are included. Child folders inherit unless they override. Individual files can opt-out via frontmatter.
 
 **Templates**: Each skill has a template controlling the `SKILL.md` output. Placeholders like `{{RULES_TABLE}}` generate the table of contents. `{{INCLUDE:path}}` lets you embed processed content from any doc.
 
 **Validation**: Templates define skill metadata with a Zod schema enforcing the Agent Skills spec. Invalid templates fail the build—you find out before publishing.
+
+## Inline Procedural Content
+
+Not all skill-worthy content lives in dedicated files. Sometimes the most valuable procedural guidance is embedded within larger conceptual docs—a checklist here, a decision table there.
+
+For these cases, we built a `<SkillRule>` component:
+
+```mdx
+<SkillRule
+  id="model-selection"
+  skills="typescript-sdk"
+  title="Model Selection Best Practices"
+>
+
+## When Choosing a Model
+
+| Scenario | Recommended | Reason |
+|----------|-------------|--------|
+| Complex reasoning | Claude Opus | Best for multi-step analysis |
+| Fast responses | Claude Haiku | Lower latency |
+
+</SkillRule>
+```
+
+The component renders transparently in docs—readers see the content as normal. But the generator extracts it as a standalone rule in the skill output.
+
+**Exclusive logic keeps it simple**: A file either contributes as a full-file rule (if it has `skills` in frontmatter/meta.json) OR has its `<SkillRule>` blocks extracted. Never both. This prevents duplication and keeps the mental model clear.
 
 ## Publishing
 
@@ -123,7 +150,9 @@ function stripReactFragments(content: string): string {
 
 **Rule file metadata**: Each generated rule includes frontmatter with `title`, `description`, and `topic-path` (the parent folder path in docs). Agents can use this for categorization.
 
-**Filename conflict resolution**: When docs from different paths share a filename, the generator prefixes with parent folder names until unique.
+**Filename conflict resolution**: When docs from different paths share a filename, the generator prefixes with parent folder names until unique. For `<SkillRule>` blocks, the `id` prop becomes the base filename.
+
+**SkillRule extraction**: We parse MDX AST using `unist-util-visit` to find `<SkillRule>` elements, extract their props and children, then serialize back to markdown with `mdast-util-to-markdown`.
 
 **Spec validation**: The generator validates against Agent Skills spec constraints—name format (`^[a-z0-9]+(-[a-z0-9]+)*$`), description length (≤1024 chars), required fields.
 

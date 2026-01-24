@@ -2,10 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import matter from 'gray-matter';
+import { mdxToMarkdown } from 'mdast-util-mdx';
+import { toMarkdown } from 'mdast-util-to-markdown';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkMdx from 'remark-mdx';
 import { mdxSnippet } from 'remark-mdx-snippets';
+import { visit } from 'unist-util-visit';
 import { z } from 'zod';
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
@@ -21,7 +24,7 @@ const SNIPPETS_DIR = path.join(process.cwd(), '_snippets');
 
 interface MetaJson {
   pages?: string[];
-  skillCollections?: string[];
+  skills?: string[];
   title?: string;
   icon?: string;
 }
@@ -55,14 +58,14 @@ async function loadMetaJson(dirPath: string): Promise<MetaJson | null> {
 }
 
 /**
- * Get inherited skillCollections for a file by walking up the directory tree.
+ * Get inherited skills for a file by walking up the directory tree.
  * Child folders inherit from parents unless they override.
  */
-async function getInheritedSkillCollections(filePath: string): Promise<string[]> {
+async function getInheritedSkills(filePath: string): Promise<string[]> {
   const relativePath = path.relative(CONTENT_DIR, filePath);
   const parts = path.dirname(relativePath).split(path.sep).filter(Boolean);
 
-  // Walk from root to leaf, collecting skillCollections
+  // Walk from root to leaf, collecting skills
   // Later values override earlier ones (child overrides parent)
   let inherited: string[] = [];
 
@@ -70,8 +73,8 @@ async function getInheritedSkillCollections(filePath: string): Promise<string[]>
   for (const part of parts) {
     currentDir = path.join(currentDir, part);
     const meta = await loadMetaJson(currentDir);
-    if (meta?.skillCollections) {
-      inherited = meta.skillCollections;
+    if (meta?.skills) {
+      inherited = meta.skills;
     }
   }
 
@@ -324,6 +327,94 @@ interface CollectionPage {
   rawContent: string;
 }
 
+interface ExtractedSkillRule {
+  id: string;
+  skills: string[];
+  title: string;
+  description: string;
+  content: string;
+  sourceSlug: string;
+}
+
+/**
+ * Extract <SkillRule> blocks from MDX content.
+ * Returns an array of extracted rules with their metadata and content.
+ */
+async function extractSkillRules(
+  content: string,
+  sourceSlug: string
+): Promise<ExtractedSkillRule[]> {
+  const rules: ExtractedSkillRule[] = [];
+
+  // Parse MDX to AST
+  const processor = remark().use(remarkMdx);
+  const tree = processor.parse(content);
+
+  // Find all <SkillRule> elements
+  visit(tree, 'mdxJsxFlowElement', (node: any) => {
+    if (node.name !== 'SkillRule') return;
+
+    // Extract props from JSX attributes
+    const props: Record<string, any> = {};
+    for (const attr of node.attributes || []) {
+      if (attr.type === 'mdxJsxAttribute') {
+        // Handle string values and expression values
+        if (typeof attr.value === 'string') {
+          props[attr.name] = attr.value;
+        } else if (attr.value?.type === 'mdxJsxAttributeValueExpression') {
+          // Try to parse array expressions like {["skill1", "skill2"]}
+          try {
+            const expr = attr.value.value;
+            // Simple JSON-like parsing for arrays
+            if (expr.startsWith('[') && expr.endsWith(']')) {
+              props[attr.name] = JSON.parse(expr.replace(/'/g, '"'));
+            } else {
+              props[attr.name] = expr;
+            }
+          } catch {
+            props[attr.name] = attr.value.value;
+          }
+        }
+      }
+    }
+
+    // Validate required props
+    if (!props.id || !props.skills || !props.title) {
+      console.warn(
+        `  Warning: SkillRule missing required props (id, skills, title) in ${sourceSlug}`
+      );
+      return;
+    }
+
+    // Normalize skills to array
+    const skills = Array.isArray(props.skills) ? props.skills : [props.skills];
+
+    // Serialize children back to markdown (with MDX extension for JSX elements)
+    let childContent = '';
+    if (node.children && node.children.length > 0) {
+      try {
+        childContent = toMarkdown(
+          { type: 'root', children: node.children },
+          { extensions: [mdxToMarkdown()] }
+        );
+      } catch (err) {
+        console.warn(`  Warning: Could not serialize SkillRule children in ${sourceSlug}:`, err);
+      }
+    }
+
+    rules.push({
+      id: props.id,
+      skills,
+      title: props.title,
+      description: props.description || '',
+      content: childContent,
+      sourceSlug,
+    });
+  });
+
+  return rules;
+}
+
 interface TemplateData {
   skillMetadata: SkillMetadata | null;
   content: string;
@@ -512,43 +603,66 @@ async function main() {
     const fileContent = await fs.promises.readFile(filePath, 'utf-8');
     const { data: frontmatter, content } = matter(fileContent);
 
-    // Get skill collections from:
+    // Get skills from:
     // 1. File's own frontmatter (highest priority)
     // 2. Inherited from parent meta.json files
-    let skillCollections: string[] | undefined = frontmatter.skillCollections as
-      | string[]
-      | undefined;
+    let skills: string[] | undefined = frontmatter.skills as string[] | undefined;
 
-    if (!skillCollections || skillCollections.length === 0) {
-      // Check for inherited skillCollections from meta.json
-      skillCollections = await getInheritedSkillCollections(filePath);
-    }
-
-    if (!skillCollections || skillCollections.length === 0) {
-      continue;
+    if (!skills || skills.length === 0) {
+      // Check for inherited skills from meta.json
+      skills = await getInheritedSkills(filePath);
     }
 
     const url = filePathToUrl(filePath);
-    const title = (frontmatter.title as string) || path.basename(filePath, '.mdx');
-    const description = (frontmatter.description as string) || '';
+    const slugPath = urlToSlugPath(url);
 
-    for (const collectionName of skillCollections) {
-      if (!collections.has(collectionName)) {
-        collections.set(collectionName, []);
+    // EXCLUSIVE LOGIC:
+    // - If file has skills (frontmatter or inherited) -> full-file rule
+    // - If file has NO skills -> extract <SkillRule> blocks only
+    if (skills && skills.length > 0) {
+      // Full-file mode: add whole file as rule
+      const title = (frontmatter.title as string) || path.basename(filePath, '.mdx');
+      const description = (frontmatter.description as string) || '';
+
+      for (const collectionName of skills) {
+        if (!collections.has(collectionName)) {
+          collections.set(collectionName, []);
+        }
+
+        collections.get(collectionName)?.push({
+          title,
+          description,
+          url,
+          slugPath,
+          rawContent: content,
+        });
       }
+    } else {
+      // Extract mode: parse <SkillRule> blocks
+      const extractedRules = await extractSkillRules(content, slugPath);
 
-      collections.get(collectionName)?.push({
-        title,
-        description,
-        url,
-        slugPath: urlToSlugPath(url),
-        rawContent: content,
-      });
+      for (const rule of extractedRules) {
+        for (const skill of rule.skills) {
+          if (!collections.has(skill)) {
+            collections.set(skill, []);
+          }
+
+          // Use the rule's id as the slug (for filename resolution)
+          // and sourceSlug as parent path for conflict resolution
+          collections.get(skill)?.push({
+            title: rule.title,
+            description: rule.description,
+            url: '', // Embedded rules don't have direct URLs
+            slugPath: `${rule.sourceSlug}/${rule.id}`,
+            rawContent: rule.content,
+          });
+        }
+      }
     }
   }
 
   if (collections.size === 0) {
-    console.log('No pages with skillCollections found. Skipping generation.');
+    console.log('No pages with skills found. Skipping generation.');
     return;
   }
 

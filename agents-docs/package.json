@@ -64,12 +64,15 @@
     "@types/react-dom": "^19.2.3",
     "glob": "^13.0.0",
     "gray-matter": "^4.0.3",
+    "mdast-util-mdx": "^3.0.0",
+    "mdast-util-to-markdown": "^2.1.2",
     "next-validate-link": "^1.6.3",
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
     "schema-dts": "^1.1.5",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "unist-util-visit": "^5.1.0"
   }
 }

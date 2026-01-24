@@ -2,47 +2,145 @@
 
 Skill collections are curated sets of documentation rules exported as standalone markdown files. They follow the [Agent Skills specification](https://agentskills.io/specification) for compatibility with AI agents like Claude, Cursor, and other LLM-powered tools.
 
+## Philosophy: Skills Are Selective
+
+**Skills are not a documentation dump.** They are curated, actionable references for coding agents.
+
+When an agent helps someone build with your SDK, it needs practical guidance: API patterns, configuration options, code examples. It doesn't need marketing pages, changelogs, or conceptual overviews designed for human learning.
+
+Ask yourself: *"Would this help an AI write correct code?"* If yes, include it. If it's primarily for human understanding or context, leave it out—agents can still access your full docs via `llms.txt`.
+
 ## How It Works
 
-1. Tag folders with collections — Add `skillCollections` to `meta.json` (Fumadocs pattern)
-2. Create templates — Define each collection's `SKILL.md` with required metadata
+1. Add rules — Use `<SkillRule>` blocks, file frontmatter, or folder `meta.json`
+2. Create templates — Define each skill's `SKILL.md` with required metadata
 3. Generate — Run `pnpm generate-skill-collections` to produce output
 
-## Adding Docs to a Collection
+## Adding Rules to a Skill
 
-### Folder-Level (Recommended)
+There are three ways to add content to a skill, from most selective to least selective. **Choose the approach that matches your content.**
 
-Add `skillCollections` to a folder's `meta.json` to include all docs in that folder:
+### Inline Rules with `<SkillRule>` (Most Selective)
+
+**Use when:** A doc is primarily descriptive but contains specific procedural sections worth extracting.
+
+The `<SkillRule>` component wraps content that should become a skill rule. It renders transparently in docs—readers see no difference—but the generator extracts it as a standalone rule.
+
+```mdx
+# Getting Started
+
+General intro content... (not included in skill)
+
+<SkillRule
+  id="project-setup"
+  skills="typescript-sdk"
+  title="Project Setup Checklist"
+  description="Essential steps when starting a new project"
+>
+
+## Before You Begin
+
+1. Run `npx @inkeep/create-agents`
+2. Configure your `inkeep.config.ts`
+3. Set up credentials via `inkeep auth`
+
+</SkillRule>
+
+More intro content... (not included)
+```
+
+**Props:**
+
+| Prop | Required | Description |
+|------|----------|-------------|
+| `id` | Yes | Unique identifier, becomes the rule filename |
+| `skills` | Yes | Target skill(s) — string or array |
+| `title` | Yes | Human-readable title for the rules table |
+| `description` | No | Brief description for the rules table |
+
+**Best for:**
+- Checklists and step-by-step procedures within larger docs
+- Quick reference tables (parameter lists, option tables)
+- Decision frameworks ("when to use X vs Y")
+- Code patterns that agents should follow
+
+**Note:** JSX elements like `<Note>`, `<Tabs>`, or `<br/>` inside `<SkillRule>` are preserved as raw text in the output. The AI agent will see them as literal XML-like tags.
+
+### File-Level (Selective)
+
+**Use when:** An entire file is procedural/reference content suitable for agents.
+
+Add `skills` to a file's frontmatter:
+
+```yaml
+---
+title: MCP Tools Reference
+description: How to register and configure MCP servers
+skills:
+  - typescript-sdk
+---
+```
+
+The entire file becomes a single rule in the skill.
+
+**Best for:**
+- API reference pages
+- Configuration guides
+- Tool/integration documentation
+- Files that are entirely "how-to" content
+
+**Override inherited skills:**
+
+```yaml
+---
+title: Internal Notes
+skills: []    # Exclude this file from any inherited skills
+---
+```
+
+### Folder-Level (Broadest)
+
+**Use when:** An entire folder contains purely procedural/reference content.
+
+Add `skills` to the folder's `meta.json`:
 
 ```json
-// content/typescript-sdk/meta.json
 {
-  "skillCollections": ["typescript-sdk"],
-  "pages": ["project-management", "agent-settings", "..."]
+  "skills": ["typescript-sdk"],
+  "pages": ["overview", "configuration", "..."]
 }
 ```
 
-All MDX files in `typescript-sdk/` and its subdirectories inherit this collection. Child folders can override with their own `skillCollections`.
+All files in that folder (and subfolders) inherit the skill. Child folders can override with their own `skills`.
 
-### File-Level (Override)
+**Best for:**
+- SDK reference sections where every page is actionable
+- API documentation folders
+- Tool/integration directories
 
-Individual files can override inherited collections via frontmatter:
+**Use with caution:** Folder-level tagging can easily include too much content. Ask yourself if *every* file in the folder is genuinely useful for an agent writing code.
 
-```yaml
----
-title: My Doc Title
-skillCollections:
-  - typescript-sdk
-  - getting-started     # Also add to another collection
----
-```
+## Exclusive Logic
 
-```yaml
----
-title: Internal Doc
-skillCollections: []    # Exclude from inherited collections
----
-```
+Files use either **full-file mode** OR **SkillRule extraction**—never both:
+
+- If a file has `skills` (frontmatter or inherited) → entire file becomes a rule
+- If a file has NO `skills` → only `<SkillRule>` blocks are extracted
+
+This prevents duplication and keeps the mental model simple.
+
+## When to Use Each Approach
+
+| Scenario | Approach |
+|----------|----------|
+| Tutorial with one useful checklist | `<SkillRule>` around the checklist |
+| Conceptual doc with a reference table | `<SkillRule>` around the table |
+| Pure API reference page | File-level `skills` frontmatter |
+| Configuration options page | File-level `skills` frontmatter |
+| Entire SDK reference folder | Folder-level `skills` in meta.json |
+| Marketing/overview page | Don't include—leave for `llms.txt` |
+| Changelog or release notes | Don't include |
+| Tutorials with external dependencies | Don't include |
 
 ## Page Ordering
 
@@ -53,13 +151,15 @@ Rules appear in the order defined by `meta.json` `pages` arrays, following Fumad
 - `"z...a"` includes remaining in reverse order
 - Nested folders respect their own `meta.json` ordering
 
-## Creating Collection Templates
+For `<SkillRule>` blocks, ordering follows their position in the source file.
 
-Templates define both the skill metadata (frontmatter) and content for each collection's `SKILL.md` file.
+## Creating Skill Templates
+
+Templates define both the skill metadata (frontmatter) and content for each skill's `SKILL.md` file.
 
 ### Agent Skills Spec (Required Frontmatter)
 
-Each collection template **must** include frontmatter following the [Agent Skills spec](https://agentskills.io/specification):
+Each template **must** include frontmatter following the [Agent Skills spec](https://agentskills.io/specification):
 
 ```yaml
 ---
@@ -87,7 +187,7 @@ allowed-tools: Bash Read Write  # Optional, experimental
 | `metadata` | No | Key-value pairs for additional metadata |
 | `allowed-tools` | No | Space-delimited list of pre-approved tools (experimental) |
 
-### Template Files
+### Template Location
 
 Each skill **must** have a template at `_templates/skills/<skill-name>/SKILL.mdx`.
 
@@ -95,25 +195,19 @@ Each skill **must** have a template at `_templates/skills/<skill-name>/SKILL.mdx
 
 ### Content Variables
 
-Use these placeholders in template content:
-
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `{{COLLECTION_NAME}}` | Title-cased collection name | `Typescript Sdk` |
 | `{{RULES_COUNT}}` | Number of rules in collection | `5` |
 | `{{RULES_TABLE}}` | Auto-generated markdown table of rules | |
-| `{{INCLUDE:path}}` | Include flattened content from a doc file | `{{INCLUDE:typescript-sdk/project-management.mdx}}` |
-
-The `{{INCLUDE:path}}` placeholder loads and processes an MDX file from the `content/` directory, expanding snippets and including the full content inline. This is useful for embedding detailed reference content directly in the SKILL.md.
+| `{{INCLUDE:path}}` | Include processed content from a doc file | `{{INCLUDE:typescript-sdk/overview.mdx}}` |
 
 ### Example Template
-
-`_templates/skills/typescript-sdk/SKILL.mdx`:
 
 ```yaml
 ---
 name: typescript-sdk
-description: Reference documentation for building AI agents with the Inkeep TypeScript SDK. Use when working with agent configuration, tools, or structured outputs.
+description: Reference for building AI agents with the Inkeep TypeScript SDK. Use when working with agent configuration, tools, or structured outputs.
 license: MIT
 metadata:
   author: inkeep
@@ -122,30 +216,20 @@ metadata:
 
 # {{COLLECTION_NAME}}
 
-These rules describe how to build agents using the Inkeep TypeScript SDK.
-
 ## Rules ({{RULES_COUNT}})
 
 {{RULES_TABLE}}
 ```
-
-## Root README Template
-
-Customize the root `README.md` by editing `_templates/README.mdx`:
-
-| Variable | Description |
-|----------|-------------|
-| `{{COLLECTIONS_LIST}}` | Auto-generated table of skills with name, description, and links |
 
 ## Directory Structure
 
 ```
 content/
 ├── typescript-sdk/
-│   ├── meta.json                     # { "skillCollections": ["typescript-sdk"], "pages": [...] }
-│   ├── agent-settings.mdx
+│   ├── meta.json                     # Can add "skills": ["typescript-sdk"]
+│   ├── agent-settings.mdx            # May contain <SkillRule> blocks
 │   ├── tools/
-│   │   ├── meta.json                 # Inherits skillCollections from parent
+│   │   ├── meta.json
 │   │   └── mcp-tools.mdx
 │   └── ...
 
@@ -159,15 +243,15 @@ skills-collections/
 │   ├── README.md
 │   └── skills/
 │       └── <skill-name>/
-│           ├── SKILL.md              # Follows Agent Skills spec
+│           ├── SKILL.md
 │           └── rules/
-│               └── <doc-slug>.md     # Flattened rule files
+│               └── <rule>.md
 └── README.md                         # This documentation
 ```
 
 ## Rule File Format
 
-Generated rule files include frontmatter with metadata from the source doc:
+Generated rule files include frontmatter with metadata:
 
 ```yaml
 ---
@@ -179,10 +263,15 @@ topic-path: "typescript-sdk/tools"    # Parent path in docs
 
 ### Filename Conflict Resolution
 
-When docs from different paths have the same filename, the generator prefixes with parent folder names to avoid conflicts:
+When rules have the same base filename, the generator prefixes with parent folder names:
 
 - `tools/overview.mdx` → `overview.md`
 - `credentials/overview.mdx` → `credentials-overview.md` (conflict resolved)
+
+For `<SkillRule>` blocks, the `id` is the base filename:
+
+- `<SkillRule id="setup">` in `intro.mdx` → `setup.md` (if unique)
+- `<SkillRule id="setup">` in `advanced.mdx` → `intro-setup.md` / `advanced-setup.md` (conflict)
 
 ## Running the Generator
 
@@ -196,11 +285,11 @@ pnpm prebuild
 
 ## Validation
 
-The generator validates all collection templates against the Agent Skills spec schema at build time. Invalid templates will cause the build to fail with helpful error messages.
+The generator validates templates against the Agent Skills spec at build time. Invalid templates fail the build with helpful error messages.
 
 ## Publishing
 
-Generated skills are automatically published to https://github.com/inkeep/skills via GitHub Action when changes to docs, snippets, templates, or the generator script are pushed to `main`.
+Generated skills are automatically published to https://github.com/inkeep/skills via GitHub Action on pushes to `main`.
 
 Manual trigger:
 
