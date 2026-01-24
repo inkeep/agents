@@ -11,6 +11,7 @@ import { z } from 'zod';
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 const SKILLS_DIR = path.join(process.cwd(), 'skills-collections');
 const TEMPLATES_DIR = path.join(SKILLS_DIR, '_templates');
+const SKILL_TEMPLATES_DIR = path.join(TEMPLATES_DIR, 'skills');
 const GENERATED_DIR = path.join(SKILLS_DIR, '.generated');
 const SNIPPETS_DIR = path.join(process.cwd(), '_snippets');
 
@@ -96,24 +97,17 @@ function toTitleCase(str: string): string {
 }
 
 async function loadTemplate(collectionName: string): Promise<TemplateData> {
-  const collectionTemplatePath = path.join(TEMPLATES_DIR, `${collectionName}.mdx`);
-  const defaultTemplatePath = path.join(TEMPLATES_DIR, 'default.mdx');
+  const collectionTemplatePath = path.join(SKILL_TEMPLATES_DIR, `${collectionName}.mdx`);
 
-  let templateContent: string;
-  let templatePath: string | null = null;
-
-  if (fs.existsSync(collectionTemplatePath)) {
-    templateContent = await fs.promises.readFile(collectionTemplatePath, 'utf-8');
-    templatePath = collectionTemplatePath;
-  } else if (fs.existsSync(defaultTemplatePath)) {
-    templateContent = await fs.promises.readFile(defaultTemplatePath, 'utf-8');
-    templatePath = defaultTemplatePath;
-  } else {
-    return {
-      skillMetadata: null,
-      content: `# {{COLLECTION_NAME}}\n\n## Rules\n\n{{RULES_TABLE}}`,
-    };
+  if (!fs.existsSync(collectionTemplatePath)) {
+    throw new Error(
+      `Missing template for skill "${collectionName}". ` +
+        `Create a template at: _templates/skills/${collectionName}.mdx`
+    );
   }
+
+  const templateContent = await fs.promises.readFile(collectionTemplatePath, 'utf-8');
+  const templatePath = collectionTemplatePath;
 
   const { data: frontmatter, content } = matter(templateContent);
 
@@ -284,9 +278,30 @@ async function main() {
   await fs.promises.mkdir(skillsDir, { recursive: true });
 
   // Generate root README from template
-  const collectionsList = Array.from(collections.keys())
-    .map((name) => `- [${toTitleCase(name)}](./skills/${name}/SKILL.md)`)
-    .join('\n');
+  // Build a table of skills with name/description from their templates
+  const skillsTableRows: string[] = [];
+  for (const collectionName of collections.keys()) {
+    try {
+      const templateData = await loadTemplate(collectionName);
+      if (templateData.skillMetadata) {
+        const name = templateData.skillMetadata.name;
+        const description = escapeTableCell(templateData.skillMetadata.description);
+        skillsTableRows.push(`| [${name}](./skills/${name}/SKILL.md) | ${description} |`);
+      } else {
+        skillsTableRows.push(
+          `| [${collectionName}](./skills/${collectionName}/SKILL.md) | *No description* |`
+        );
+      }
+    } catch {
+      skillsTableRows.push(
+        `| [${collectionName}](./skills/${collectionName}/SKILL.md) | *Template missing* |`
+      );
+    }
+  }
+  const collectionsList =
+    skillsTableRows.length > 0
+      ? `| Skill | Description |\n| --- | --- |\n${skillsTableRows.join('\n')}`
+      : '*No skills available*';
 
   const readmeTemplatePath = path.join(TEMPLATES_DIR, 'README.mdx');
   let rootReadme: string;

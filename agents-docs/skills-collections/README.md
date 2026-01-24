@@ -60,10 +60,9 @@ allowed-tools: Bash Read Write  # Optional, experimental
 
 ### Template Files
 
-- Collection-specific: `_templates/<collection-name>.mdx` (recommended)
-- Default fallback: `_templates/default.mdx` (no skill metadata, shows warning)
+Each skill **must** have a template at `_templates/skills/<skill-name>.mdx`.
 
-**Important**: The `name` field must exactly match the collection name (directory name).
+**Important**: The `name` field must exactly match the skill name (directory name).
 
 ### Content Variables
 
@@ -80,7 +79,7 @@ The `{{INCLUDE:path}}` placeholder loads and processes an MDX file from the `con
 
 ### Example Template
 
-`_templates/typescript-sdk.mdx`:
+`_templates/skills/typescript-sdk.mdx`:
 
 ```yaml
 ---
@@ -107,18 +106,24 @@ Customize the root `README.md` by editing `_templates/README.mdx`:
 
 | Variable | Description |
 |----------|-------------|
-| `{{COLLECTIONS_LIST}}` | Auto-generated list of collections with links |
+| `{{COLLECTIONS_LIST}}` | Auto-generated table of skills with name, description, and links |
 
-## Output Structure
+## Directory Structure
 
 ```
-.generated/
-├── README.md
-└── skills/
-    └── <collection-name>/
-        ├── SKILL.md          # Follows Agent Skills spec
-        └── rules/
-            └── <path>/<doc-slug>.md
+skills-collections/
+├── _templates/
+│   ├── README.mdx                    # Template for root README
+│   └── skills/
+│       └── <skill-name>.mdx          # Template for each skill's SKILL.md
+├── .generated/                       # Output (gitignored)
+│   ├── README.md
+│   └── skills/
+│       └── <skill-name>/
+│           ├── SKILL.md              # Follows Agent Skills spec
+│           └── rules/
+│               └── <path>/<doc-slug>.md
+└── README.md                         # This documentation
 ```
 
 ## Running the Generator
