@@ -96,3 +96,6 @@ progress.txt
 .ralph-archives/
 
 .claude/settings.local.json
+
+# Ideas/drafts folder
+.ideas/
