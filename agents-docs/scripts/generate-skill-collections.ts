@@ -141,6 +141,18 @@ async function loadTemplate(collectionName: string): Promise<TemplateData> {
   };
 }
 
+function dedent(text: string): string {
+  const lines = text.split('\n');
+  // Find minimum indentation (ignoring empty lines)
+  const indents = lines
+    .filter((line) => line.trim().length > 0)
+    .map((line) => line.match(/^(\s*)/)?.[1].length ?? 0);
+  const minIndent = Math.min(...indents, Infinity);
+  if (minIndent === 0 || minIndent === Infinity) return text;
+  // Remove that indentation from all lines
+  return lines.map((line) => line.slice(minIndent)).join('\n');
+}
+
 async function loadAndProcessFile(relativePath: string): Promise<string> {
   // Load a content file by path (relative to content dir) and return processed markdown
   const filePath = path.join(CONTENT_DIR, relativePath);
@@ -150,18 +162,11 @@ async function loadAndProcessFile(relativePath: string): Promise<string> {
   }
 
   const fileContent = await fs.promises.readFile(filePath, 'utf-8');
-  const { data: frontmatter, content } = matter(fileContent);
+  const { content } = matter(fileContent);
 
-  // Process the content to expand snippets
+  // Process the content to expand snippets, then dedent
   const processed = await processMarkdown(content);
-
-  // Optionally include title as heading
-  const title = frontmatter.title as string | undefined;
-  if (title) {
-    return `## ${title}\n\n${processed}`;
-  }
-
-  return processed;
+  return dedent(processed);
 }
 
 async function applyTemplate(
