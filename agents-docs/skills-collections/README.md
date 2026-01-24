@@ -74,6 +74,9 @@ Use these placeholders in template content:
 | `{{COLLECTION_NAME}}` | Title-cased collection name | `Typescript Sdk` |
 | `{{RULES_COUNT}}` | Number of rules in collection | `5` |
 | `{{RULES_TABLE}}` | Auto-generated markdown table of rules | |
+| `{{INCLUDE:path}}` | Include flattened content from a doc file | `{{INCLUDE:typescript-sdk/project-management.mdx}}` |
+
+The `{{INCLUDE:path}}` placeholder loads and processes an MDX file from the `content/` directory, expanding snippets and including the full content inline. This is useful for embedding detailed reference content directly in the SKILL.md.
 
 ### Example Template
 

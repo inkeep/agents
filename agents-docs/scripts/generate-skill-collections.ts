@@ -3,6 +3,7 @@ import path from 'node:path';
 import { glob } from 'glob';
 import matter from 'gray-matter';
 import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
 import remarkMdx from 'remark-mdx';
 import { mdxSnippet } from 'remark-mdx-snippets';
 import { z } from 'zod';
@@ -146,16 +147,59 @@ async function loadTemplate(collectionName: string): Promise<TemplateData> {
   };
 }
 
-function applyTemplate(
+async function loadAndProcessFile(relativePath: string): Promise<string> {
+  // Load a content file by path (relative to content dir) and return processed markdown
+  const filePath = path.join(CONTENT_DIR, relativePath);
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Include file not found: ${relativePath}`);
+  }
+
+  const fileContent = await fs.promises.readFile(filePath, 'utf-8');
+  const { data: frontmatter, content } = matter(fileContent);
+
+  // Process the content to expand snippets
+  const processed = await processMarkdown(content);
+
+  // Optionally include title as heading
+  const title = frontmatter.title as string | undefined;
+  if (title) {
+    return `## ${title}\n\n${processed}`;
+  }
+
+  return processed;
+}
+
+async function applyTemplate(
   template: string,
   collectionName: string,
   table: string,
   rulesCount: number
-): string {
-  return template
+): Promise<string> {
+  // First apply simple replacements
+  let result = template
     .replace(/\{\{COLLECTION_NAME\}\}/g, toTitleCase(collectionName))
     .replace(/\{\{RULES_TABLE\}\}/g, table)
     .replace(/\{\{RULES_COUNT\}\}/g, String(rulesCount));
+
+  // Process {{INCLUDE:path}} placeholders
+  const includePattern = /\{\{INCLUDE:([^}]+)\}\}/g;
+  const matches = [...result.matchAll(includePattern)];
+
+  for (const match of matches) {
+    const [placeholder, includePath] = match;
+    try {
+      const includedContent = await loadAndProcessFile(includePath.trim());
+      result = result.replace(placeholder, includedContent);
+      console.log(`    Included: ${includePath}`);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.warn(`    Warning: Could not include ${includePath}: ${errorMsg}`);
+      result = result.replace(placeholder, `<!-- Include failed: ${includePath} -->`);
+    }
+  }
+
+  return result;
 }
 
 function stripReactFragments(content: string): string {
@@ -169,8 +213,11 @@ function stripReactFragments(content: string): string {
 }
 
 async function processMarkdown(content: string): Promise<string> {
-  // Process with remark + mdx-snippets to expand snippets
-  const processor = remark().use(remarkMdx).use(mdxSnippet, { snippetsDir: SNIPPETS_DIR });
+  // Process with remark + gfm (for tables) + mdx-snippets to expand snippets
+  const processor = remark()
+    .use(remarkGfm)
+    .use(remarkMdx)
+    .use(mdxSnippet, { snippetsDir: SNIPPETS_DIR });
 
   const result = await processor.process(content);
   // Strip React fragments that remark-mdx-snippets adds for multi-child snippets
@@ -261,7 +308,7 @@ async function main() {
     // Load and validate template
     const templateData = await loadTemplate(collectionName);
     const table = generateTable(collectionPages);
-    const bodyContent = applyTemplate(
+    const bodyContent = await applyTemplate(
       templateData.content,
       collectionName,
       table,
