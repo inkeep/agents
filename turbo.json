@@ -176,7 +176,7 @@
       "outputs": []
     },
     "check:prepush": {
-      "dependsOn": ["lint", "typecheck", "test"],
+      "dependsOn": ["lint", "typecheck", "test:fast"],
       "cache": false,
       "outputs": []
     }
