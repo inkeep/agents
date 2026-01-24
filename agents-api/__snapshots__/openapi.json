@@ -29948,6 +29948,20 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+            "in": "query",
+            "name": "skipDiscovery",
+            "required": false,
+            "schema": {
+              "description": "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
