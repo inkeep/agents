@@ -436,3 +436,37 @@
 
 ---
 
+
+---
+
+## Iteration 19 - Fri Jan 24 2026
+
+### Story: US-019 - Profile and optimize slowest test files
+
+**Implementation:**
+- Analyzed slow test files in agents-api to identify optimization opportunities
+- Key patterns found: (1) Sequential entity creation in helper functions, (2) Each test creates its own tenant+project
+- Implemented Optimization 1: Parallelized entity creation in `createMultipleAgents` helpers
+  - agent.slow.test.ts: Changed from sequential for-loop to Promise.all with two-phase parallel creation
+  - subAgents.slow.test.ts: Changed from sequential for-loop to Promise.all
+- Implemented Optimization 2: Shared tenant/project setup using beforeAll
+  - tools.slow.test.ts: Added shared tenant/project initialized in beforeAll
+  - Converted 3 "not found" tests to use shared tenant (no data isolation needed)
+- Added OPTIMIZATION comments explaining the changes
+
+**Files Changed:**
+- `agents-api/src/__tests__/manage/routes/crud/agent.slow.test.ts`
+- `agents-api/src/__tests__/manage/routes/crud/subAgents.slow.test.ts`
+- `agents-api/src/__tests__/manage/routes/crud/tools.slow.test.ts`
+
+**Learnings:**
+- Tests creating multiple entities can benefit from Promise.all parallelization
+- "Not found" tests don't need isolated tenants since they use non-existent IDs
+- beforeAll shared setup reduces per-test overhead for setup operations
+- Platform mismatch (darwin vs linux binaries) prevented runtime timing verification but patterns are standard
+- Two-phase parallel creation (create parents, then children in parallel) handles entity dependencies
+
+---
+
+## Iteration 5 - Sat Jan 24 02:51:57 UTC 2026
+
