@@ -32,15 +32,15 @@ cd my-agents
 
 Open the folder using your coding editor. To open with Cursor, you can run `cursor .`
 
-### Step 2: Add SDK reference docs for AI coding (optional)
+### Step 2: Add Inkeep skills for AI coding (optional)
 
-Add the Inkeep SDK skills to your project so AI coding assistants (Cursor, Copilot, Claude Code, etc.) have context about the Inkeep Agents SDK:
+Install [Inkeep skills](https://github.com/inkeep/skills) so AI coding assistants (Cursor, Copilot, Claude Code, etc.) know how to build agents correctly:
 
 ```bash
 npx skills add inkeep/skills
 ```
 
-This downloads reference documentation that AI assistants can use to help you build agents.
+Skills provide procedural guidance—configuration patterns, API usage, and best practices—that help AI assistants write correct code for the Inkeep Agents SDK.
 
 ### Step 3: Run the setup script
 
