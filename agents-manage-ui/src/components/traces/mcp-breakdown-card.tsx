@@ -3,6 +3,7 @@
 import { Wrench } from 'lucide-react';
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import type { ConversationDetail } from './timeline/types';
 import { ACTIVITY_STATUS } from './timeline/types';
@@ -123,9 +124,16 @@ export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
                         key={`${server.serverName}-${tool.toolName}`}
                         className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
                       >
-                        <span className="text-xs text-foreground truncate flex-1">
-                          {tool.toolName}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-xs text-foreground truncate flex-1">
+                              {tool.toolName}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-md font-mono text-xs break-all">
+                            {tool.toolName}
+                          </TooltipContent>
+                        </Tooltip>
                         <div className="flex items-center gap-2">
                           {hasSuccess && (
                             <span className="text-xs font-medium text-green-600 dark:text-green-500">

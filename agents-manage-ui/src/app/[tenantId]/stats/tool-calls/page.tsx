@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
@@ -504,17 +505,26 @@ export default function AllProjectsToolCallsBreakdown({
                                   key={toolIndex}
                                   className={`flex items-center justify-between p-3 rounded-md border ${successRate === 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-border/50 bg-muted/20'}`}
                                 >
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
                                     <Wrench
-                                      className={`h-4 w-4 ${successRate === 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
+                                      className={`h-4 w-4 flex-shrink-0 ${successRate === 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
                                     />
-                                    <span
-                                      className={`text-sm ${successRate === 0 ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}
-                                    >
-                                      {tool.toolName === UNKNOWN_VALUE
-                                        ? 'Unknown Tool'
-                                        : tool.toolName}
-                                    </span>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span
+                                          className={`text-sm truncate ${successRate === 0 ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}
+                                        >
+                                          {tool.toolName === UNKNOWN_VALUE
+                                            ? 'Unknown Tool'
+                                            : tool.toolName}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-md font-mono text-xs break-all">
+                                        {tool.toolName === UNKNOWN_VALUE
+                                          ? 'Unknown Tool'
+                                          : tool.toolName}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
                                   <div className="text-right">
                                     <div

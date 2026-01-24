@@ -21,6 +21,7 @@ import {
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ToolNameBadge } from '@/components/ui/tool-name-badge';
 import { formatDateTime } from '@/lib/utils/format-date';
 
 function formatJsonSafely(content: string): string {
@@ -132,7 +133,7 @@ export function renderPanelContent({
     const e = selected.item;
     return (
       <Section>
-        <Info label="Tool name" value={<Badge variant="code">{e.toolName}</Badge>} />
+        <Info label="Tool name" value={<ToolNameBadge toolName={e.toolName} />} />
         <LabeledBlock label="Error message">
           <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             {e.error}
@@ -349,7 +350,7 @@ export function renderPanelContent({
             <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.toolName || 'Unknown Tool'} />}
             />
             <StatusBadge status={a.status} />
             {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
@@ -393,7 +394,7 @@ export function renderPanelContent({
             </LabeledBlock>
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.toolName || 'Unknown tool'} />}
             />
             <StatusBadge status={a.status} />
             {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
@@ -431,7 +432,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.toolName || 'Unknown tool'} />}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -488,7 +489,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.toolName || 'Unknown Tool'} />}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -629,7 +630,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.approvalToolName || 'Unknown Tool'} />}
             />
             <LabeledBlock label="Status">
               <Badge variant="outline" className="text-yellow-600 border-yellow-600">
@@ -650,7 +651,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.approvalToolName || 'Unknown Tool'} />}
             />
             <LabeledBlock label="Status">
               <Badge variant="outline" className="text-blue-600 border-blue-600">
@@ -671,7 +672,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+              value={<ToolNameBadge toolName={a.approvalToolName || 'Unknown Tool'} />}
             />
             <LabeledBlock label="Status">
               <Badge variant="outline" className="text-red-600 border-red-600">
