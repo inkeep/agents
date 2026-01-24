@@ -138,7 +138,19 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           name="content"
           value={content}
           onChange={form.setValue.bind(null, 'content')}
-          placeholder="Write Markdown instructions for this skill..."
+          placeholder={`# PDF Processing
+
+## When to use this skill
+
+Use this skill when the user needs to work with PDF files...
+
+## How to extract text
+
+1. Use pdfplumber for text extraction...
+
+## How to fill forms
+
+...`}
           error={form.formState.errors.content?.message}
           isRequired
           uri="content.md"
