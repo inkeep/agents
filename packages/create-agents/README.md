@@ -32,7 +32,17 @@ cd my-agents
 
 Open the folder using your coding editor. To open with Cursor, you can run `cursor .`
 
-### Step 2: Run the setup script
+### Step 2: Add SDK reference docs for AI coding (optional)
+
+Add the Inkeep SDK skills to your project so AI coding assistants (Cursor, Copilot, Claude Code, etc.) have context about the Inkeep Agents SDK:
+
+```bash
+npx skills add inkeep/skills
+```
+
+This downloads reference documentation that AI assistants can use to help you build agents.
+
+### Step 3: Run the setup script
 
 Ensure Docker Desktop (or Docker daemon) is running before running the setup script.
 
@@ -48,7 +58,7 @@ pnpm setup-dev --skip-docker
 
 Make sure your DATABASE_URL environment variable is configured for your cloud database.
 
-### Step 3: Launch the dev environment
+### Step 4: Launch the dev environment
 
 ```bash
 pnpm dev
@@ -56,7 +66,7 @@ pnpm dev
 
 The Visual Builder will auto-open at http://localhost:3000.
 
-### Step 4: Chat with your agent
+### Step 5: Chat with your agent
 
 Navigate to the **Activities Planner** agent at http://localhost:3000 and ask about fun activities at a location of your choice:
 
