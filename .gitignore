@@ -67,6 +67,9 @@ out/
 .source/
 vite.config.d.ts
 
+# Generated skill collections
+agents-docs/skills-collections/.generated/
+
 # Turborepo
 .turbo
 
