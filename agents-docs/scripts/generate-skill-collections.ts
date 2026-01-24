@@ -16,6 +16,106 @@ const GENERATED_DIR = path.join(SKILLS_DIR, '.generated');
 const SNIPPETS_DIR = path.join(process.cwd(), '_snippets');
 
 /**
+ * Resolve filename conflicts by prefixing with parent folder names.
+ * Only applies prefixes to files that have conflicts.
+ */
+function resolveFilenameConflicts(pages: CollectionPage[]): Map<string, string> {
+  const slugToFilename = new Map<string, string>();
+
+  // Group pages by their base filename
+  const filenameGroups = new Map<string, CollectionPage[]>();
+  for (const page of pages) {
+    const parts = page.slugPath.split('/');
+    const baseName = parts[parts.length - 1] || page.slugPath;
+    if (!filenameGroups.has(baseName)) {
+      filenameGroups.set(baseName, []);
+    }
+    filenameGroups.get(baseName)?.push(page);
+  }
+
+  // Process each group
+  for (const [baseName, group] of filenameGroups) {
+    if (group.length === 1) {
+      // No conflict - use base name
+      slugToFilename.set(group[0].slugPath, baseName);
+    } else {
+      // Conflict - resolve by adding parent prefixes
+      const resolved = resolveConflictGroup(group);
+      for (const [slugPath, filename] of resolved) {
+        slugToFilename.set(slugPath, filename);
+      }
+    }
+  }
+
+  return slugToFilename;
+}
+
+/**
+ * Resolve a group of pages with the same base filename.
+ * Adds parent folder prefixes until all names are unique.
+ */
+function resolveConflictGroup(pages: CollectionPage[]): Map<string, string> {
+  const result = new Map<string, string>();
+
+  // Start with depth 1 (base name), increase until unique
+  let depth = 1;
+  const maxDepth = 10; // Safety limit
+
+  while (depth <= maxDepth) {
+    const candidateNames = new Map<string, string[]>();
+
+    for (const page of pages) {
+      const parts = page.slugPath.split('/');
+      // Take last `depth` parts and join with hyphen
+      const nameParts = parts.slice(-depth);
+      const candidate = nameParts.join('-');
+
+      if (!candidateNames.has(candidate)) {
+        candidateNames.set(candidate, []);
+      }
+      candidateNames.get(candidate)?.push(page.slugPath);
+    }
+
+    // Check if all names are unique
+    let allUnique = true;
+    for (const slugPaths of candidateNames.values()) {
+      if (slugPaths.length > 1) {
+        allUnique = false;
+        break;
+      }
+    }
+
+    if (allUnique) {
+      // Found unique names at this depth
+      for (const [candidate, slugPaths] of candidateNames) {
+        result.set(slugPaths[0], candidate);
+      }
+      return result;
+    }
+
+    depth++;
+  }
+
+  // Fallback: use full slug path with hyphens
+  for (const page of pages) {
+    result.set(page.slugPath, page.slugPath.replace(/\//g, '-'));
+  }
+  return result;
+}
+
+/**
+ * Get the topic path from a slug path.
+ * E.g., "typescript-sdk/credentials/overview" -> "typescript-sdk/credentials"
+ */
+function getTopicPath(slugPath: string): string {
+  const parts = slugPath.split('/');
+  if (parts.length <= 1) {
+    return slugPath;
+  }
+  return parts.slice(0, -1).join('/');
+}
+
+/**
  * Agent Skills Specification Schema
  * @see https://agentskills.io/specification
  */
@@ -82,19 +182,12 @@ function urlToSlugPath(url: string): string {
   return url.replace(/^\//, '').replace(/\/$/, '') || 'index';
 }
 
-function slugToFilename(slugPath: string): string {
-  // Extract just the filename from a nested path like "typescript-sdk/agent-settings"
-  // Returns "agent-settings"
-  const parts = slugPath.split('/');
-  return parts[parts.length - 1] || slugPath;
-}
-
-function generateTable(pages: CollectionPage[]): string {
+function generateTable(pages: CollectionPage[], filenameMap: Map<string, string>): string {
   const header = '| Title | Description |\n| --- | --- |';
   const rows = pages.map((page) => {
     const title = escapeTableCell(page.title);
     const description = escapeTableCell(page.description || '');
-    const filename = slugToFilename(page.slugPath);
+    const filename = filenameMap.get(page.slugPath) || page.slugPath.replace(/\//g, '-');
     const link = `[${title}](./rules/${filename}.md)`;
     return `| ${link} | ${description} |`;
   });
@@ -109,12 +202,12 @@ function toTitleCase(str: string): string {
 }
 
 async function loadTemplate(collectionName: string): Promise<TemplateData> {
-  const collectionTemplatePath = path.join(SKILL_TEMPLATES_DIR, `${collectionName}.mdx`);
+  const collectionTemplatePath = path.join(SKILL_TEMPLATES_DIR, collectionName, 'SKILL.mdx');
 
   if (!fs.existsSync(collectionTemplatePath)) {
     throw new Error(
       `Missing template for skill "${collectionName}". ` +
-        `Create a template at: _templates/skills/${collectionName}.mdx`
+        `Create a template at: _templates/skills/${collectionName}/SKILL.mdx`
     );
   }
 
@@ -337,9 +430,12 @@ async function main() {
 
     await fs.promises.mkdir(rulesDir, { recursive: true });
 
+    // Resolve filename conflicts for this collection
+    const filenameMap = resolveFilenameConflicts(collectionPages);
+
     // Load and validate template
     const templateData = await loadTemplate(collectionName);
-    const table = generateTable(collectionPages);
+    const table = generateTable(collectionPages, filenameMap);
     const bodyContent = await applyTemplate(
       templateData.content,
       collectionName,
@@ -384,7 +480,7 @@ async function main() {
 
     // Generate individual rule files (flattened into rules/ directory)
     for (const page of collectionPages) {
-      const filename = slugToFilename(page.slugPath);
+      const filename = filenameMap.get(page.slugPath) || page.slugPath.replace(/\//g, '-');
       const ruleFilePath = path.join(rulesDir, `${filename}.md`);
 
       // Process markdown to expand snippets
@@ -396,8 +492,23 @@ async function main() {
         processedContent = stripFrontmatter(page.rawContent);
       }
 
-      const header = `# ${page.title}\n\nURL: ${page.url}\n\n${page.description ? `${page.description}\n\n` : ''}`;
-      await fs.promises.writeFile(ruleFilePath, header + processedContent);
+      // Build frontmatter for rule file
+      const topicPath = getTopicPath(page.slugPath);
+      const ruleFrontmatter = [
+        '---',
+        `title: "${page.title.replace(/"/g, '\\"')}"`,
+        page.description ? `description: "${page.description.replace(/"/g, '\\"')}"` : null,
+        `topic-path: "${topicPath}"`,
+        '---',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const header = `# ${page.title}\n\n`;
+      await fs.promises.writeFile(
+        ruleFilePath,
+        `${ruleFrontmatter}\n\n${header}${processedContent}`
+      );
     }
     console.log(`  Created ${collectionPages.length} rule file(s) in ${collectionName}/rules/`);
   }

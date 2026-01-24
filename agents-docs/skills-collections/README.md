@@ -60,7 +60,7 @@ allowed-tools: Bash Read Write  # Optional, experimental
 
 ### Template Files
 
-Each skill **must** have a template at `_templates/skills/<skill-name>.mdx`.
+Each skill **must** have a template at `_templates/skills/<skill-name>/SKILL.mdx`.
 
 **Important**: The `name` field must exactly match the skill name (directory name).
 
@@ -79,7 +79,7 @@ The `{{INCLUDE:path}}` placeholder loads and processes an MDX file from the `con
 
 ### Example Template
 
-`_templates/skills/typescript-sdk.mdx`:
+`_templates/skills/typescript-sdk/SKILL.mdx`:
 
 ```yaml
 ---
@@ -115,16 +115,36 @@ skills-collections/
 ├── _templates/
 │   ├── README.mdx                    # Template for root README
 │   └── skills/
-│       └── <skill-name>.mdx          # Template for each skill's SKILL.md
+│       └── <skill-name>/
+│           └── SKILL.mdx             # Template for skill's SKILL.md
 ├── .generated/                       # Output (gitignored)
 │   ├── README.md
 │   └── skills/
 │       └── <skill-name>/
 │           ├── SKILL.md              # Follows Agent Skills spec
 │           └── rules/
-│               └── <path>/<doc-slug>.md
+│               └── <doc-slug>.md     # Flattened rule files
 └── README.md                         # This documentation
 ```
+
+## Rule File Format
+
+Generated rule files include frontmatter with metadata from the source doc:
+
+```yaml
+---
+title: "Doc Title"
+description: "Doc description"
+topic-path: "typescript-sdk/tools"    # Parent path in docs
+---
+```
+
+### Filename Conflict Resolution
+
+When docs from different paths have the same filename, the generator prefixes with parent folder names to avoid conflicts:
+
+- `tools/overview.mdx` → `overview.md`
+- `credentials/overview.mdx` → `credentials-overview.md` (conflict resolved)
 
 ## Running the Generator
 
