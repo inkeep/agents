@@ -50,7 +50,7 @@ const validateTransformation = (value: string | Record<string, string>): boolean
 };
 
 export const mcpToolSchema = z.object({
-  name: z.string().min(1, 'Name is required 000.'),
+  name: z.string().min(1, 'Name is required.'),
   config: z.object({
     type: z.literal('mcp'),
     mcp: z.object({
