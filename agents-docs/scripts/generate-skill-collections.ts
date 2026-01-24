@@ -82,12 +82,20 @@ function urlToSlugPath(url: string): string {
   return url.replace(/^\//, '').replace(/\/$/, '') || 'index';
 }
 
+function slugToFilename(slugPath: string): string {
+  // Extract just the filename from a nested path like "typescript-sdk/agent-settings"
+  // Returns "agent-settings"
+  const parts = slugPath.split('/');
+  return parts[parts.length - 1] || slugPath;
+}
+
 function generateTable(pages: CollectionPage[]): string {
   const header = '| Title | Description |\n| --- | --- |';
   const rows = pages.map((page) => {
     const title = escapeTableCell(page.title);
     const description = escapeTableCell(page.description || '');
-    const link = `[${title}](./rules/${page.slugPath}.md)`;
+    const filename = slugToFilename(page.slugPath);
+    const link = `[${title}](./rules/${filename}.md)`;
     return `| ${link} | ${description} |`;
   });
   return [header, ...rows].join('\n');
@@ -374,11 +382,10 @@ async function main() {
     await fs.promises.writeFile(path.join(collectionDir, 'SKILL.md'), skillMd);
     console.log(`  Created ${collectionName}/SKILL.md`);
 
-    // Generate individual rule files
+    // Generate individual rule files (flattened into rules/ directory)
     for (const page of collectionPages) {
-      const ruleFilePath = path.join(rulesDir, `${page.slugPath}.md`);
-      const ruleDir = path.dirname(ruleFilePath);
-      await fs.promises.mkdir(ruleDir, { recursive: true });
+      const filename = slugToFilename(page.slugPath);
+      const ruleFilePath = path.join(rulesDir, `${filename}.md`);
 
       // Process markdown to expand snippets
       let processedContent: string;
