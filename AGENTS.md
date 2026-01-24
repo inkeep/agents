@@ -78,12 +78,9 @@ pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response suppo
 **Multiple changes in one PR:**
 If a PR affects multiple packages independently, create separate changesets for each with specific messages. If changes are tightly coupled (e.g., updating types in core that SDK depends on), use a single changeset listing both packages.
 
-### Running Examples
-```bash
-# From the examples directory
-# Note: Use the globally installed inkeep CLI, not npx
-inkeep push
-```
+### Running Examples / Reference Implementations
+- Use `agents-cookbook/` for reference implementations and patterns.
+- There is no `examples/` directory; prefer cookbook recipes or package-specific README files.
 
 ### Documentation Development
 ```bash
@@ -106,7 +103,7 @@ pnpm build           # Build documentation for production
 - Pattern: `import { describe, it, expect, beforeEach, vi } from 'vitest'`
 - Run with `--run` flag to avoid watch mode
 - 60-second timeouts for A2A interactions
-- Each test worker gets in-memory SQLite database
+- Each test worker uses an embedded Postgres (pglite) database with manage/run Drizzle migrations applied in setup
 
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
@@ -184,6 +181,42 @@ OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error
 ```
 
+## High Product-level Thinking
+
+This repo is a product with multiple user-facing surfaces and shared contracts. A “small” change in one place can have real side effects elsewhere.
+
+**Rule:** Do NOT implement additional work beyond what the user requested. If you identify likely cross-surface impacts, **flag them** and **ask** the user to get full clarity and ensure high degree of product-level thinking. You can flag prior to starting new work/tasks, but also if you identify ambiguities or additional things to consider mid-execution. 
+
+**If the request is NOT backed by a PRD, a well-specced artifact, or clearly scoped small task**, pause and ask targeted, highly relevant questions when the blast radius is unclear. When applicable, suggest user make a PRD; offer to help by leveraging the `prd` skill.
+
+Your goal is to **AVOID**:
+- locking in unintended behavior
+- making changes without thinking through all potential interaction points for how a user may consume or interact with a product change
+- breaking changes or breaking data contracts without clear acknowledgement and plan
+- missing critical dimensions to feautre development relevant, like authorization or security
+- identify any side effects of the work that is being asked
+- implementations that contradict or duplicate existing patterns/abstractions
+
+Your responsibility is to think through the work that is being done from all dimensions and considerations.
+
+### What to clarify (high-signal triggers)
+- **Definition shapes / shared types / validation rules** (agent/project/tool/credential/etc.)
+- **Runtime behavior or streaming formats** (responses, tool calls, artifacts/components)
+- **Tracing / telemetry** (span names, attribute keys, correlation IDs, exporter config)
+- **Resources, endpoints, or actions** (create/update/delete, new capabilities)
+- **Auth / permissions / tenancy** (view/use/edit boundaries, RBAC, fine-grained authz, multi-tenant scoping)
+
+### Surfaces to consider (examples)
+- **Templates & onboarding**: `@inkeep/create-agents`, cookbook template projects
+- **Inkeep CLI workflows**: onboarding (`init`), sync (`push`/`pull`), template import (`add`)
+- **TypeScript SDK**: builder APIs/types/examples
+- **APIs**: configuration layer (manage), runtime layer (run), evaluation layer (evals)
+- **Manage UI dashboard**: forms/builders/serialization, permissions gating, traces views
+- **Widgets UX** (`agents-ui`): runtime chat + stream parsing compatibility
+- **Observability**: traces UX expectations, OTEL attribute stability, SigNoz queries
+- **Protocols / data formats**: OpenAI-compatible SSE, Vercel AI SDK data streams, A2A JSON-RPC
+- **Documentation**: docs pages + embedded snippets
+
 ## Development Guidelines
 
 ### ⚠️ MANDATORY: Required for All New Features
@@ -207,10 +240,7 @@ LOG_LEVEL=debug|info|warn|error
 ✅ **3. Documentation**
 - Create or update documentation in `/agents-docs/content/docs/` (public-facing docs)
 - Documentation should be in MDX format (`.mdx` files)
-- Update `/agents-docs/source.config.ts` to include new pages in the navigation
-- Follow existing Fumadocs structure and patterns
-- Add code examples and diagrams where helpful
-- Note: `/agents-docs/` is a Next.js documentation site for public consumption
+- Follow the **write-docs** skill whenever creating or modifying documentation
 
 **Before marking any feature complete, verify:**
 - [ ] Tests written and passing (`pnpm test`)
@@ -218,6 +248,7 @@ LOG_LEVEL=debug|info|warn|error
 - [ ] Documentation added to `/agents-docs/`
 - [ ] All linting passes (`pnpm lint`)
 - [ ] Code is formatted (`pnpm format` to auto-fix, `pnpm format:check` to verify)
+- [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
 
 ### 📋 Standard Development Workflow
 
@@ -431,52 +462,63 @@ await feature.execute();
 
 ## Debugging Commands
 
-### Jaeger Tracing Debugging
-Use curl commands to query Jaeger API running on localhost:16686:
+### Jaeger / OTLP Tracing Debugging
+Replace `service` with the current service name (e.g., `inkeep-agents-api` in prod, `inkeep-agents-api-test` in tests). If using SigNoz/OTLP, point to that host/port instead of localhost.
 
 ```bash
 # Get all services
 curl "http://localhost:16686/api/services"
 
 # Get operations for a service
-curl "http://localhost:16686/api/operations?service=inkeep-chat"
+curl "http://localhost:16686/api/operations?service=inkeep-agents-api"
 
 # Search traces for recent activity (last hour)
-curl "http://localhost:16686/api/traces?service=inkeep-chat&limit=20&lookback=1h"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&limit=20&lookback=1h"
 
 # Search traces by operation name
-curl "http://localhost:16686/api/traces?service=inkeep-chat&operation=agent.generate&limit=10"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&operation=agent.generate&limit=10"
 
 # Search traces by tags (useful for finding specific agent/conversation)
-curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22agent.id%22:%22qa-agent%22%7D&limit=10"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&tags=%7B%22agent.id%22:%22qa-agent%22%7D&limit=10"
 
 # Search traces by tags for conversation ID
-curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22conversation.id%22:%22conv-123%22%7D"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&tags=%7B%22conversation.id%22:%22conv-123%22%7D"
 
 # Get specific trace by ID
 curl "http://localhost:16686/api/traces/{trace-id}"
 
 # Search for traces with errors
-curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22error%22:%22true%22%7D&limit=10"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&tags=%7B%22error%22:%22true%22%7D&limit=10"
 
 # Search for tool call traces
-curl "http://localhost:16686/api/traces?service=inkeep-chat&operation=tool.call&limit=10"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&operation=tool.call&limit=10"
 
 # Search traces within time range (Unix timestamps)
-curl "http://localhost:16686/api/traces?service=inkeep-chat&start=1640995200000000&end=1641081600000000"
+curl "http://localhost:16686/api/traces?service=inkeep-agents-api&start=1640995200000000&end=1641081600000000"
 ```
 
 ### Common Debugging Workflows
 
 **Debugging Agent Transfers:**
-1. View traces: `curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22conversation.id%22:%22conv-123%22%7D"`
+1. View traces: `curl "http://localhost:16686/api/traces?service=inkeep-agents-api&tags=%7B%22conversation.id%22:%22conv-123%22%7D"`
 
 **Debugging Tool Calls:**
-1. Find tool call traces: `curl "http://localhost:16686/api/traces?service=inkeep-chat&operation=tool.call&limit=10"`
+1. Find tool call traces: `curl "http://localhost:16686/api/traces?service=inkeep-agents-api&operation=tool.call&limit=10"`
 
 **Debugging Task Delegation:**
-1. Trace execution flow: `curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22task.id%22:%22task-id%22%7D"`
+1. Trace execution flow: `curl "http://localhost:16686/api/traces?service=inkeep-agents-api&tags=%7B%22task.id%22:%22task-id%22%7D"`
 
 **Debugging Performance Issues:**
-1. Find slow operations: `curl "http://localhost:16686/api/traces?service=inkeep-chat&minDuration=5s"`
-2. View error traces: `curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22error%22:%22true%22%7D"`
+1. Find slow operations: `curl "http://localhost:16686/api/traces?service=inkeep-agents-api&minDuration=5s"`
+2. View error traces: `curl "http://localhost:16686/api/traces?service=inkeep-agents-api&tags=%7B%22error%22:%22true%22%7D"`
+
+## AI Coding Assistant Guidance
+
+This repository uses symlinks so multiple AI tools (Claude Code, Cursor, Codex) read from the same instructions.
+
+| Source (edit this) | Symlinks (don't edit) |
+|--------------------|----------------------|
+| `AGENTS.md` | `CLAUDE.md` |
+| `.cursor/skills/` | `.claude/skills/`, `.codex/skills/` |
+
+AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.

@@ -11,12 +11,17 @@ Create detailed Product Requirements Documents that are clear, actionable, and s
 
 ## The Job
 
-1. Receive a feature description from the user
-2. Ask 3-5 essential clarifying questions (with lettered options)
-3. Generate a structured PRD based on answers
-4. Save to `tasks/prd-[feature-name].md`
+**Workflows** (pick one based on what the user provides):
+- **Draft**: no PRD yet → create one from a feature idea.
+- **Iterate**: unclear scope/trade-offs → converge on a spec together.
+- **Improve**: existing PRD provided → tighten it, identify gaps, make it implementable.
 
-**Important:** Do NOT start implementing. Just create the PRD.
+**Important:** Do NOT start implementing. Focus on clarifying → writing the PRD → saving it.
+
+**Steps:**
+1. Ask high-leverage questions (see Step 1) until you can write an implementable PRD.
+2. Produce the PRD using the template (Step 2), capturing uncertainty in "Open Questions".
+3. Save to `tasks/prd-[feature-name].md`.
 
 ---
 
@@ -28,6 +33,19 @@ Ask only critical questions where the initial prompt is ambiguous. Focus on:
 - **Core Functionality:** What are the key actions?
 - **Scope/Boundaries:** What should it NOT do?
 - **Success Criteria:** How do we know it's done?
+- **Consumption / Side Effects:** Where will this be consumed/surface area impacted (only if likely)?
+
+**When to stop asking:** You can write the PRD when acceptance criteria are verifiable and non-goals are explicit. Capture remaining unknowns in "Open Questions"—don't over-ask.
+
+### When improving an existing PRD
+
+Start by asking:
+- What parts are **non-negotiable** vs **flexible**?
+- What decisions are already made (and why)?
+- What's missing or unclear for implementation?
+- What's the desired scope reduction (MVP vs full)?
+
+Then iterate: ask only the questions required to make acceptance criteria verifiable and boundaries explicit.
 
 ### Format Questions Like This:
 
@@ -44,11 +62,26 @@ Ask only critical questions where the initial prompt is ambiguous. Focus on:
    C. All users
    D. Admin users only
 
-3. What is the scope?
+3. What type of user?
+   A. No-code user
+   B. Developer
+   C. Admin
+   D. All of the above
+
+
+4. What is the scope?
    A. Minimal viable version
    B. Full-featured implementation
-   C. Just the backend/API
-   D. Just the UI
+
+5. What are the surface areas impacted?
+   A. SDK
+   B. API
+   C. Manage UI
+   D. CLI
+   E. Agent runtime
+   F. All of the above
+   G. Other: [please specify]
+
 ```
 
 This lets users respond with "1A, 2C, 3B" for quick iteration.
@@ -108,6 +141,52 @@ What this feature will NOT include. Critical for managing scope.
 - Known constraints or dependencies
 - Integration points with existing systems
 - Performance requirements
+
+### 7.1 Surface area & side-effects scan (REQUIRED)
+Avoid siloed development by explicitly calling out where this feature may be **consumed**, **surfaced**, **interacted with** or could **break shared contracts** or dependencies a developer or customer may have taken on existing functionality.
+
+This section should help a human or AI agent quickly answer: "If we change this, who/what else needs to know?"
+
+**How to write this section:**
+- Keep it short and concrete (1–2 sentences per impacted item).
+- Only list what's impacted (omit everything else).
+- Describe *why* a surface is impacted, not implementation details.
+
+**High-signal triggers (when you should include an item):**
+- You change **definition shapes / shared types / validation rules** (agent/project/tool/credential/etc.).
+- You change **runtime behavior or streaming formats** (responses, tool calls, artifacts/components).
+- You change **tracing / telemetry** (span names, attribute keys, correlation IDs, exporter config).
+- You add/modify **resources, endpoints, or actions** (create/update/delete, new capabilities).
+- You change **permission boundaries** (view/use/edit), auth flows, or tenant scoping.
+
+**Surfaces & contracts to consider (product-level):**
+- **Templates & onboarding**: `@inkeep/create-agents`, cookbook template projects
+- **Inkeep CLI workflows**: onboarding (`init`), sync (`push`/`pull`), template import (`add`)
+- **TypeScript SDK**: builder APIs, types, ergonomics, examples
+- **APIs**: configuration layer (manage), runtime layer (run), evaluation layer (evals)
+- **Manage UI dashboard**: forms, builders, serialization, permissions gating, traces views
+- **Widgets UX** (`agents-ui`): runtime chat + stream parsing compatibility
+- **Auth / permissions / tenancy**: authentication, RBAC, optional fine-grained authz, cross-tenant isolation
+- **Observability**: traces UX expectations, SigNoz queries, OTEL attribute stability
+- **Protocols / data formats**: OpenAI-compatible SSE, Vercel AI SDK data streams, A2A JSON-RPC
+
+**Format (copy into PRD):**
+```markdown
+### Surface area & side-effects scan
+
+#### Impacted surfaces (only list what applies)
+- **<Surface>**: <what changes and why it matters to users or downstream systems>
+
+#### Shared contracts to preserve (if any)
+- **<Contract>**: <what must remain compatible; what must be versioned or coordinated>
+
+#### "How it shows up" (if runtime-facing)
+- **Traces**: <what should appear in traces UX and how it can be correlated>
+- **Streaming**: <which protocol(s) are involved and what must remain stable>
+
+#### Security / permissions (if applicable)
+- **Auth / authz**: <new permission checks, roles, tenant scoping implications>
+```
 
 ### 8. Success Metrics
 How will success be measured?

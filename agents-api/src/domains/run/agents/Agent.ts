@@ -545,7 +545,6 @@ export class Agent {
             toolCallId,
             relationshipId,
             inDelegatedAgent: this.isDelegatedAgent,
-
           };
 
           // Add approval-specific data when needed

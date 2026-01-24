@@ -1,0 +1,49 @@
+name: Publish Skills
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'agents-docs/content/**'
+      - 'agents-docs/_snippets/**'
+      - 'agents-docs/skills-collections/_templates/**'
+      - 'agents-docs/scripts/generate-skill-collections.ts'
+      - 'agents-docs/skills-collections/README.md'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout agents repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate skill collections
+        working-directory: agents-docs
+        run: pnpm generate-skill-collections
+
+      - name: Push to skills repo
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SKILLS_DEPLOY_KEY }}
+        with:
+          source-directory: 'agents-docs/skills-collections/.generated'
+          destination-github-username: 'inkeep'
+          destination-repository-name: 'skills'
+          user-email: 'support@inkeep.com'
+          target-branch: main
+          commit-message: 'chore: update skills from agents repo (${{ github.sha }})'
