@@ -25,12 +25,17 @@ type CreateMCPToolRequest = Omit<ToolApiInsert, 'id'> & {
 export async function fetchMCPTools(
   tenantId: string,
   projectId: string,
-  page = 1,
-  pageSize = 100,
-  status?: McpTool['status']
+  options?: {
+    page?: number;
+    pageSize?: number;
+    status?: McpTool['status'];
+    skipDiscovery?: boolean;
+  }
 ): Promise<McpTool[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
+
+  const { page = 1, pageSize = 100, status, skipDiscovery } = options ?? {};
 
   const params = new URLSearchParams({
     page: page.toString(),
@@ -39,6 +44,10 @@ export async function fetchMCPTools(
 
   if (status) {
     params.append('status', status);
+  }
+
+  if (skipDiscovery) {
+    params.append('skipDiscovery', 'true');
   }
 
   const response = await makeManagementApiRequest<ListResponse<McpTool>>(

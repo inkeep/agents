@@ -2,6 +2,7 @@ import {
   addUserToOrganization,
   getUserByEmail,
   OrgRoles,
+  syncOrgMemberToSpiceDb,
   upsertOrganization,
 } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
@@ -86,6 +87,14 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
       organizationId: orgId,
       role: OrgRoles.ADMIN,
     });
+
+    await syncOrgMemberToSpiceDb({
+      tenantId: orgId,
+      userId: user.id,
+      role: OrgRoles.ADMIN,
+      action: 'add',
+    });
+    console.log(`🔐 SpiceDB: Synced member ${user.email} as ${OrgRoles.ADMIN} to org ${orgId}`);
 
     logger.info(
       {

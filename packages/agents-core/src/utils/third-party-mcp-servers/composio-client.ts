@@ -99,6 +99,40 @@ export function getComposioUserId(
 }
 
 /**
+ * Build a Composio MCP URL with the appropriate user_id parameter
+ * Consolidates user_id injection logic used across the codebase
+ *
+ * @param baseUrl - The base MCP server URL
+ * @param tenantId - The tenant ID
+ * @param projectId - The project ID
+ * @param credentialScope - Whether credentials are 'project' or 'user' scoped
+ * @param userId - Optional user ID (required for user-scoped credentials)
+ * @returns The URL with user_id parameter set, or original URL if not a Composio URL
+ */
+export function buildComposioMCPUrl(
+  baseUrl: string,
+  tenantId: string,
+  projectId: string,
+  credentialScope: CredentialScope,
+  userId?: string
+): string {
+  if (!baseUrl.includes('composio.dev')) {
+    return baseUrl;
+  }
+
+  const urlObj = new URL(baseUrl);
+
+  // Don't modify if already has user_id (external Composio URL)
+  if (urlObj.searchParams.has('user_id')) {
+    return baseUrl;
+  }
+
+  const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
+  urlObj.searchParams.set('user_id', composioUserId);
+  return urlObj.toString();
+}
+
+/**
  * Extract server ID from a Composio MCP URL
  * Example: https://backend.composio.dev/v3/mcp/1234-1234-1234?user_id=... -> 1234-1234-1234
  */
@@ -200,7 +234,10 @@ export async function isComposioMCPServerAuthenticated(
   }
 
   try {
-    const composioMcpServer = await composioInstance.mcp.get(serverId);
+    const [composioMcpServer, connectedAccounts] = await Promise.all([
+      composioInstance.mcp.get(serverId),
+      fetchComposioConnectedAccounts(composioUserId),
+    ]);
 
     const firstAuthConfigId =
       composioMcpServer.authConfigIds.length > 0 ? composioMcpServer.authConfigIds[0] : null;
@@ -209,17 +246,26 @@ export async function isComposioMCPServerAuthenticated(
       return false;
     }
 
-    const connectedAccounts = await fetchComposioConnectedAccounts(composioUserId);
-
     if (!connectedAccounts) {
       return false;
     }
 
-    const activeAccount = connectedAccounts.items.find(
-      (account) => account.authConfig.id === firstAuthConfigId && account.status === 'ACTIVE'
+    // Build a set of active auth config IDs for this user
+    const activeAuthConfigIds = new Set(
+      connectedAccounts.items
+        .filter((account) => account.status === 'ACTIVE')
+        .map((account) => account.authConfig.id)
     );
 
-    return !!activeAccount;
+    // Check if at least one required auth config has an active account
+    // This matches the behavior in transformComposioServer which uses .some()
+    // Note: A server with multiple toolkits may have multiple auth configs,
+    // but having at least one active allows partial functionality
+    const hasActiveAuth = composioMcpServer.authConfigIds.some((authConfigId) =>
+      activeAuthConfigIds.has(authConfigId)
+    );
+
+    return hasActiveAuth;
   } catch (error) {
     logger.error({ error, mcpServerUrl }, 'Error checking Composio authentication status');
     return false;
