@@ -20,6 +20,7 @@ import {
   type ToolUpdate,
 } from '../../types/index';
 import {
+  buildComposioMCPUrl,
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
@@ -172,17 +173,14 @@ const discoverToolsFromServer = async (
     }
 
     // Inject user_id for Composio servers at discovery time
-    if (serverConfig.url?.toString().includes('composio.dev')) {
-      const urlObj = new URL(serverConfig.url.toString());
-      if (tool.credentialScope === 'user' && userId) {
-        // User-scoped: use actual userId
-        urlObj.searchParams.set('user_id', userId);
-      } else {
-        // Project-scoped: use tenantId||projectId
-        const SEPARATOR = '||';
-        urlObj.searchParams.set('user_id', `${tool.tenantId}${SEPARATOR}${tool.projectId}`);
-      }
-      serverConfig.url = urlObj.toString();
+    if (serverConfig.url) {
+      serverConfig.url = buildComposioMCPUrl(
+        serverConfig.url.toString(),
+        tool.tenantId,
+        tool.projectId,
+        tool.credentialScope === 'user' ? 'user' : 'project',
+        userId
+      );
     }
 
     const client = new McpClient({
@@ -214,6 +212,32 @@ const discoverToolsFromServer = async (
     logger.error({ toolId: tool.id, error }, 'Tool discovery failed');
     throw error;
   }
+};
+
+/**
+ * Convert DB result to McpTool skeleton WITHOUT MCP discovery.
+ * This is a fast path that returns status='unknown' and empty availableTools.
+ * Use this for list views where you want instant page load.
+ */
+export const dbResultToMcpToolSkeleton = (
+  dbResult: ToolSelect,
+  relationshipId?: string
+): McpTool => {
+  const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
+
+  return {
+    ...rest,
+    status: 'unknown',
+    availableTools: [],
+    capabilities: capabilities || undefined,
+    credentialReferenceId: credentialReferenceId || undefined,
+    createdAt: toISODateString(createdAt),
+    updatedAt: toISODateString(dbResult.updatedAt),
+    lastError: dbResult.lastError || null,
+    headers: headers || undefined,
+    imageUrl: imageUrl || undefined,
+    relationshipId,
+  };
 };
 
 export const dbResultToMcpTool = async (
