@@ -11,7 +11,7 @@ export const TagToDescription = {
   ArtifactComponents: 'Operations for managing artifact components',
   ContextConfigs: 'Operations for managing context configurations',
   Credential: 'Operations for managing credentials',
-  CredentialStore: 'Operations for managing credential stores',
+  CredentialStores: 'Operations for managing credential stores',
   DataComponent: 'Operations for managing data components',
   ExternalAgents: 'Operations for managing external agents',
   FullAgent: 'Operations for managing complete agent definitions',
@@ -35,6 +35,7 @@ export const TagToDescription = {
   ProjectMembers: 'Operations for managing project members',
   ProjectPermissions: 'Operations for managing project permissions',
   SubAgentFunctionTools: 'Operations for managing sub agent function tools',
+  Conversations: 'Operations for managing conversations',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
