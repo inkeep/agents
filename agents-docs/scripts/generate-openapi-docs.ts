@@ -62,6 +62,15 @@ ${prettyError}`);
     input: openapi,
     output: OUTPUT_DIR,
     per: 'tag',
+    frontmatter(title) {
+      return {
+        title: title
+          .replace('A2 A', 'A2A')
+          .replace('A P I', 'API')
+          .replace('C L I', 'CLI')
+          .replace('M C P', 'MCP'),
+      };
+    },
   });
 
   console.timeEnd('Done in');
