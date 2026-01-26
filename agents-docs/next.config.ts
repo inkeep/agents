@@ -51,10 +51,6 @@ const config: NextConfig = {
       },
     ];
   },
-  // Fix build warnings
-  // Package ts-morph can't be external
-  // The request ts-morph matches serverExternalPackages (or the default list).
-  transpilePackages: ['prettier', 'ts-morph', 'shiki'],
 };
 
 export default withMDX(config);
