@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  boolean,
   foreignKey,
   index,
   jsonb,
@@ -491,3 +492,137 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
     references: [tasks.id],
   }),
 }));
+
+// ============================================================================
+// GITHUB APP INSTALLATION TABLES
+// ============================================================================
+// These tables track GitHub App installations linked to tenants, enabling
+// secure OAuth-style connection flow and optional project-level repository scoping.
+
+/**
+ * GitHub App installation status.
+ * - 'pending': Installation request awaiting org admin approval
+ * - 'active': Installation is active and functional
+ * - 'suspended': Installation suspended by GitHub or org admin
+ * - 'deleted': Installation has been disconnected (soft delete)
+ */
+export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'deleted';
+
+/**
+ * GitHub account type for the installation target.
+ * - 'Organization': Installed on a GitHub organization
+ * - 'User': Installed on a personal GitHub account
+ */
+export type GitHubAccountType = 'Organization' | 'User';
+
+/**
+ * Tracks GitHub App installations linked to tenants.
+ * One tenant can have multiple installations (e.g., multiple orgs).
+ * The installation_id is the GitHub-assigned ID, unique across all GitHub.
+ */
+export const githubAppInstallations = pgTable(
+  'github_app_installations',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    installationId: text('installation_id').notNull().unique(),
+    accountLogin: varchar('account_login', { length: 256 }).notNull(),
+    accountId: text('account_id').notNull(),
+    accountType: varchar('account_type', { length: 20 }).$type<GitHubAccountType>().notNull(),
+    status: varchar('status', { length: 20 })
+      .$type<GitHubInstallationStatus>()
+      .notNull()
+      .default('active'),
+    ...timestamps,
+  },
+  (table) => [
+    index('github_app_installations_tenant_idx').on(table.tenantId),
+    index('github_app_installations_installation_id_idx').on(table.installationId),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'github_app_installations_organization_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Repositories accessible through a GitHub App installation.
+ * These are synced from GitHub when the app is installed or updated.
+ * The repository_id is the GitHub-assigned ID, unique across all GitHub.
+ */
+export const githubAppRepositories = pgTable(
+  'github_app_repositories',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    installationId: varchar('installation_id', { length: 256 }).notNull(),
+    repositoryId: text('repository_id').notNull(),
+    repositoryName: varchar('repository_name', { length: 256 }).notNull(),
+    repositoryFullName: varchar('repository_full_name', { length: 512 }).notNull(),
+    private: boolean('private').notNull().default(false),
+    ...timestamps,
+  },
+  (table) => [
+    index('github_app_repositories_installation_idx').on(table.installationId),
+    index('github_app_repositories_full_name_idx').on(table.repositoryFullName),
+    unique('github_app_repositories_repo_installation_unique').on(
+      table.installationId,
+      table.repositoryId
+    ),
+    foreignKey({
+      columns: [table.installationId],
+      foreignColumns: [githubAppInstallations.id],
+      name: 'github_app_repositories_installation_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Links projects to specific GitHub repositories for fine-grained access control.
+ * When a project has entries here, only the listed repositories are accessible.
+ * When no entries exist for a project, all tenant repositories are accessible (mode='all').
+ */
+export const githubProjectRepositoryAccess = pgTable(
+  'github_project_repository_access',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    githubRepositoryId: varchar('github_repository_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index('github_project_repository_access_project_idx').on(table.projectId),
+    unique('github_project_repository_access_unique').on(table.projectId, table.githubRepositoryId),
+    foreignKey({
+      columns: [table.githubRepositoryId],
+      foreignColumns: [githubAppRepositories.id],
+      name: 'github_project_repository_access_repo_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// GITHUB APP INSTALLATION RELATIONS
+// ============================================================================
+
+export const githubAppInstallationsRelations = relations(githubAppInstallations, ({ many }) => ({
+  repositories: many(githubAppRepositories),
+}));
+
+export const githubAppRepositoriesRelations = relations(githubAppRepositories, ({ one, many }) => ({
+  installation: one(githubAppInstallations, {
+    fields: [githubAppRepositories.installationId],
+    references: [githubAppInstallations.id],
+  }),
+  projectAccess: many(githubProjectRepositoryAccess),
+}));
+
+export const githubProjectRepositoryAccessRelations = relations(
+  githubProjectRepositoryAccess,
+  ({ one }) => ({
+    repository: one(githubAppRepositories, {
+      fields: [githubProjectRepositoryAccess.githubRepositoryId],
+      references: [githubAppRepositories.id],
+    }),
+  })
+);
