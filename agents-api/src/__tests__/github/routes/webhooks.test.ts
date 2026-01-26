@@ -60,7 +60,8 @@ describe('GitHub Webhooks', () => {
     });
 
     it('should return error for invalid signature', () => {
-      const invalidSignature = 'sha256=0000000000000000000000000000000000000000000000000000000000000000';
+      const invalidSignature =
+        'sha256=0000000000000000000000000000000000000000000000000000000000000000';
       const result = verifyWebhookSignature(payload, invalidSignature, secret);
 
       expect(result.success).toBe(false);
@@ -88,7 +89,7 @@ describe('GitHub Webhooks', () => {
       const result = verifyWebhookSignature(payload, 'sha256=not-valid-hex!@#$', secret);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid signature format');
+      expect(result.error).toBe('Invalid signature');
     });
 
     it('should return error for signature with wrong length', () => {
