@@ -8,7 +8,10 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
-import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
+import {
+  copyFullTraceToClipboard,
+  copySummarizedTraceToClipboard,
+} from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 
@@ -51,15 +54,40 @@ export const Playground = ({
     projectId,
   });
 
-  const handleCopyTrace = async () => {
+  const handleCopyFullTrace = async () => {
     if (!chatActivities) return;
 
     setIsCopying(true);
     try {
-      const result = await copyTraceToClipboard(chatActivities);
+      const result = await copyFullTraceToClipboard(chatActivities, tenantId, projectId);
       if (result.success) {
-        toast.success('Trace copied to clipboard', {
-          description: 'The OTEL trace has been copied successfully.',
+        toast.success('Full trace copied to clipboard', {
+          description: 'The complete OTEL trace has been copied successfully.',
+        });
+      } else {
+        toast.error('Failed to copy trace', {
+          description: result.error || 'An unknown error occurred',
+        });
+      }
+    } catch (err) {
+      toast.error('Failed to copy trace', {
+        description: err instanceof Error ? err.message : 'An unknown error occurred',
+      });
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setIsCopying(false);
+    }
+  };
+
+  const handleCopySummarizedTrace = async () => {
+    if (!chatActivities) return;
+
+    setIsCopying(true);
+    try {
+      const result = await copySummarizedTraceToClipboard(chatActivities, tenantId, projectId);
+      if (result.success) {
+        toast.success('Summarized trace copied to clipboard', {
+          description: 'The activity timeline has been copied successfully.',
         });
       } else {
         toast.error('Failed to copy trace', {
@@ -138,7 +166,10 @@ export const Playground = ({
                 refreshOnce={refreshOnce}
                 showConversationTracesLink={true}
                 conversationId={conversationId}
-                onCopyTrace={handleCopyTrace}
+                tenantId={tenantId}
+                projectId={projectId}
+                onCopyFullTrace={handleCopyFullTrace}
+                onCopySummarizedTrace={handleCopySummarizedTrace}
                 isCopying={isCopying}
               />
             </>
