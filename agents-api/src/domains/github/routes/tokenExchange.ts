@@ -1,6 +1,5 @@
-import type { Hook } from '@hono/zod-openapi';
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { Context, Env } from 'hono';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { getLogger } from '../../../logger';
 import { isGitHubAppConfigured } from '../config';
 import { generateInstallationAccessToken, lookupInstallationForRepo } from '../installation';
@@ -8,13 +7,26 @@ import { validateOidcToken } from '../oidcToken';
 
 const logger = getLogger('github-token-exchange');
 
+const TokenExchangeRequestSchema = z.object({
+  oidc_token: z.string(),
+});
+
+const app = new Hono();
+
 /**
- * Custom hook to handle Zod validation errors with RFC 7807 format
- * that includes the 'error' field required by our OpenAPI schema.
+ * Exchange GitHub OIDC token for installation token.
+ *
+ * This is an internal infrastructure endpoint called by the CLI from GitHub Actions.
+ * It exchanges a GitHub Actions OIDC token for a GitHub App installation access token.
+ * Not included in the public OpenAPI spec.
  */
-const validationErrorHook: Hook<any, Env, any, any> = (result, c: Context) => {
-  if (!result.success) {
-    const issues = result.error.issues;
+app.post('/', async (c) => {
+  // Validate request body
+  const rawBody = await c.req.json().catch(() => null);
+  const parseResult = TokenExchangeRequestSchema.safeParse(rawBody);
+
+  if (!parseResult.success) {
+    const issues = parseResult.error.issues;
     const errorMessage = issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       .join('; ');
@@ -30,95 +42,8 @@ const validationErrorHook: Hook<any, Env, any, any> = (result, c: Context) => {
       400
     );
   }
-};
 
-const app = new OpenAPIHono({
-  defaultHook: validationErrorHook,
-});
-
-const TokenExchangeRequestSchema = z.object({
-  oidc_token: z.string().describe('GitHub Actions OIDC token to exchange'),
-});
-
-const TokenExchangeResponseSchema = z.object({
-  token: z.string().describe('GitHub App installation access token'),
-  expires_at: z.string().datetime().describe('Token expiration timestamp in ISO 8601 format'),
-  repository: z.string().describe('Full repository name (owner/repo)'),
-  installation_id: z.number().describe('GitHub App installation ID'),
-});
-
-const ProblemDetailsSchema = z.object({
-  title: z.string().describe('Short, human-readable summary of the problem'),
-  status: z.number().describe('HTTP status code'),
-  detail: z.string().optional().describe('Human-readable explanation specific to this occurrence'),
-  error: z.string().describe('Human-readable error message'),
-});
-
-const tokenExchangeRoute = createRoute({
-  method: 'post',
-  path: '/',
-  tags: ['github'],
-  summary: 'Exchange GitHub OIDC token for installation token',
-  description:
-    'Exchanges a GitHub Actions OIDC token for a GitHub App installation access token. ' +
-    'The OIDC token is validated to ensure it was issued by GitHub Actions and the GitHub App ' +
-    'is installed on the repository. Returns a short-lived installation token for repository access.',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: TokenExchangeRequestSchema,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Token exchange successful',
-      content: {
-        'application/json': {
-          schema: TokenExchangeResponseSchema,
-        },
-      },
-    },
-    400: {
-      description: 'Bad Request - Missing or malformed oidc_token',
-      content: {
-        'application/problem+json': {
-          schema: ProblemDetailsSchema,
-        },
-      },
-    },
-    401: {
-      description:
-        'Unauthorized - Invalid JWT signature, wrong issuer, wrong audience, or expired token',
-      content: {
-        'application/problem+json': {
-          schema: ProblemDetailsSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - GitHub App not installed on repository',
-      content: {
-        'application/problem+json': {
-          schema: ProblemDetailsSchema,
-        },
-      },
-    },
-    500: {
-      description: 'Internal Server Error - GitHub API failure or missing App credentials',
-      content: {
-        'application/problem+json': {
-          schema: ProblemDetailsSchema,
-        },
-      },
-    },
-  },
-});
-
-app.openapi(tokenExchangeRoute, async (c) => {
-  const body = c.req.valid('json');
+  const body = parseResult.data;
 
   logger.info({}, 'Processing token exchange request');
 

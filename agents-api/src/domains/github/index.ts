@@ -1,11 +1,11 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { Hono } from 'hono';
 import { validateGitHubAppConfigOnStartup } from './config';
 import tokenExchangeRoutes from './routes/tokenExchange';
 
 export function createGithubRoutes() {
   validateGitHubAppConfigOnStartup();
 
-  const app = new OpenAPIHono();
+  const app = new Hono();
 
   app.route('/token-exchange', tokenExchangeRoutes);
 
