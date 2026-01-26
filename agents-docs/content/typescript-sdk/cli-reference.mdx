@@ -685,9 +685,8 @@ profiles:
     environment: production
   local:
     remote:
-      manageApi: http://localhost:3002
-      manageUi: http://localhost:3000
-      runApi: http://localhost:3003
+      api: http://localhost:3002      # Agents API endpoint
+      manageUi: http://localhost:3001 # Manage UI endpoint
     credential: inkeep-local
     environment: development
 ```

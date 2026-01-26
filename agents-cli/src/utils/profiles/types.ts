@@ -17,6 +17,50 @@ export const explicitRemoteSchema: z.ZodType<ExplicitRemote> = z.object({
 });
 
 /**
+ * Legacy schema for backwards compatibility with old profiles.yaml format
+ * Old format used: manageApi, runApi, manageUi
+ * New format uses: api, manageUi
+ */
+export const legacyExplicitRemoteSchema = z.object({
+  manageApi: z.string().url('manageApi must be a valid URL'),
+  manageUi: z.string().url('manageUi must be a valid URL'),
+  runApi: z.string().url('runApi must be a valid URL').optional(),
+});
+
+/**
+ * Legacy remote configuration interface
+ */
+export interface LegacyExplicitRemote {
+  manageApi: string;
+  manageUi: string;
+  runApi?: string;
+}
+
+/**
+ * Check if a remote config is in legacy format
+ */
+export function isLegacyRemote(remote: unknown): remote is LegacyExplicitRemote {
+  return (
+    typeof remote === 'object' &&
+    remote !== null &&
+    'manageApi' in remote &&
+    typeof (remote as LegacyExplicitRemote).manageApi === 'string'
+  );
+}
+
+/**
+ * Migrate legacy remote config to new format
+ * manageApi becomes api (the agents API endpoint)
+ * runApi is deprecated and ignored
+ */
+export function migrateLegacyRemote(legacy: LegacyExplicitRemote): ExplicitRemote {
+  return {
+    api: legacy.manageApi,
+    manageUi: legacy.manageUi,
+  };
+}
+
+/**
  * Schema for remote configuration - either 'cloud' shorthand or explicit URLs
  */
 export const remoteSchema: z.ZodType<RemoteConfig> = z.union([
