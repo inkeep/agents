@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import * as jmespath from 'jmespath';
 
 /**
@@ -217,4 +218,36 @@ export function validateJMESPathSecure(
       error: `Invalid JMESPath expression: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
+}
+
+/**
+ * Options for jmespathString Zod schema factory.
+ */
+export interface JMESPathStringOptions {
+  maxLength?: number;
+}
+
+/**
+ * Creates a Zod string schema for JMESPath expressions with OpenAPI-visible constraints.
+ * Includes maxLength constraint and a description with valid/invalid examples.
+ *
+ * @param options - Optional configuration for the schema
+ * @returns A Zod string schema with maxLength and description
+ *
+ * @example
+ * ```typescript
+ * const schema = z.object({
+ *   transform: jmespathString().optional(),
+ * });
+ * ```
+ */
+export function jmespathString(options?: JMESPathStringOptions) {
+  const maxLen = options?.maxLength ?? MAX_EXPRESSION_LENGTH;
+
+  return z
+    .string()
+    .max(maxLen)
+    .describe(
+      `JMESPath expression (max ${maxLen} chars). Valid: "data.items[0].name", "results[?status=='active']", "keys(@)". Invalid: "\${...}" (template injection), "eval(...)", "constructor", "__proto__".`
+    );
 }
