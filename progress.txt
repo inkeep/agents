@@ -138,3 +138,42 @@ Started: Mon Jan 26 10:32:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 3 - Mon Jan 26 10:40:23 UTC 2026
+
+### Story: US-003 - Audit and clean up OpenAPI tags in evals domain
+
+**Implementation:**
+- Audited all evals domain route files in agents-api/src/domains/evals/routes/
+- Audited all evals-related routes in agents-api/src/domains/manage/routes/evals/
+- Found that ALL tags already follow PascalCase convention:
+  - `Evaluations` - used across 50+ endpoints in evals configuration and triggers
+  - `Workflows` - used for workflow trigger endpoints (evaluate-conversations-by-job, run-dataset-items)
+- No changes required - the evals domain was already properly standardized
+- TypeScript check passed successfully
+
+**Files Audited (no changes needed):**
+- agents-api/src/domains/evals/routes/evaluationTriggers.ts - tags: Evaluations, Workflows
+- agents-api/src/domains/evals/routes/datasetTriggers.ts - tags: Workflows
+- agents-api/src/domains/manage/routes/evals/evaluators.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/datasets.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/datasetItems.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/datasetRuns.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/datasetRunConfigs.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/evaluationJobConfigs.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/evaluationRunConfigs.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/evaluationSuiteConfigs.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/evaluationResults.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/evaluationJobConfigEvaluatorRelations.ts - tags: Evaluations
+- agents-api/src/domains/manage/routes/evals/evaluationSuiteConfigEvaluatorRelations.ts - tags: Evaluations
+
+**Learnings:**
+- The evals domain was likely set up after the tag standardization pattern was established
+- Good example of consistent naming from the start vs needing retrofitting
+- Two distinct tag categories in evals: config/CRUD operations (Evaluations) vs trigger/workflow operations (Workflows)
+- When auditing, always check both the domain's own routes AND any related routes in other domains
+
+---
+
