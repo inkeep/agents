@@ -7,8 +7,9 @@ keywords: skills, prompts, instructions, reuse, sub-agents
 
 ## Overview
 
-Skills are reusable instruction blocks that you can attach to multiple sub-agents. They help you keep shared rules,
-tone, and formatting consistent across the agent graph while still allowing each sub-agent to focus on its own role.
+Skills are reusable instruction blocks that you can attach to multiple sub-agents. They govern agent behavior,
+reasoning, and tool usage, helping you keep shared rules, tone, and formatting consistent across the agent graph
+while still allowing each sub-agent to focus on its own role.
 
 ## Create a skill
 
@@ -34,7 +35,7 @@ tone, and formatting consistent across the agent graph while still allowing each
 Open an agent in the Visual Builder, select a sub-agent node, and use the **Skills** picker to attach one or more
 skills.
 
-<Callout type="warning">You can drag to reorder them to control **their priority**.</Callout>
+<Callout type="warning">You can drag to reorder them to control **their priority** (later entries weigh more).</Callout>
 
 <figure className="[&>img]:border">
 <>![Skills configuration in sidepane](./skills-sidepane.png)</>

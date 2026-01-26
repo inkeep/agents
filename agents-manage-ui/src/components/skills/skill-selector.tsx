@@ -113,7 +113,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
               <TooltipContent>
                 When enabled, this skill is included in every prompt. Disable to load it on demand.
                 <ExternalLink
-                  href={`${DOCS_BASE_URL}/visual-builder/skills#TODO`}
+                  href={`${DOCS_BASE_URL}/visual-builder/skills#always-loaded-and-on-demand-skills`}
                   className="text-xs normal-case inline"
                 >
                   Learn more
