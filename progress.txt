@@ -243,3 +243,41 @@ Started: Mon Jan 26 10:32:04 UTC 2026
 
 ---
 
+## Iteration 7 - Mon Jan 26 10:55:00 UTC 2026
+
+### Story: US-007 - Add CI job to validate OpenAPI spec
+
+**Implementation:**
+- Added "Validate OpenAPI Spec" step to `.github/workflows/ci.yml`
+- Step runs after `knip` check as part of the main CI job (fast-checks tier)
+- Step regenerates spec using `pnpm export-openapi` and compares with committed version
+- Uses `git diff --exit-code` to detect any changes
+- On failure, outputs clear message with instructions on how to fix
+
+**Error message format:**
+```
+════════════════════════════════════════════════════════════════════
+  ❌ OpenAPI spec is out of sync with the codebase!
+════════════════════════════════════════════════════════════════════
+
+  The committed openapi-spec.json does not match the current API routes.
+
+  To update the spec, run:
+    cd agents-api && pnpm export-openapi
+
+  Then commit the updated openapi-spec.json file.
+
+════════════════════════════════════════════════════════════════════
+```
+
+**Files Changed:**
+- .github/workflows/ci.yml
+
+**Learnings:**
+- CI runs on all PRs (via `pull_request: branches: ["*"]`) so no additional filtering needed
+- Using `git diff --exit-code` is a clean way to detect uncommitted changes
+- Placed after build steps so dependencies are available for export script
+- Box drawing characters (═) work in GitHub Actions logs for visibility
+
+---
+

@@ -113,8 +113,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added 'Validate OpenAPI Spec' step to CI workflow. Runs after knip, regenerates spec and fails with clear message if drift detected."
     },
     {
       "id": "US-008",

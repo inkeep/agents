@@ -97,6 +97,32 @@ jobs:
       - name: Check for unused dependencies, exports, and types
         run: pnpm knip
 
+      # Validate OpenAPI spec is up to date
+      - name: Validate OpenAPI Spec
+        run: |
+          echo "Regenerating OpenAPI spec to check for drift..."
+          cd agents-api
+          pnpm export-openapi
+
+          if git diff --exit-code openapi-spec.json; then
+            echo "✅ OpenAPI spec is up to date"
+          else
+            echo ""
+            echo "════════════════════════════════════════════════════════════════════"
+            echo "  ❌ OpenAPI spec is out of sync with the codebase!"
+            echo "════════════════════════════════════════════════════════════════════"
+            echo ""
+            echo "  The committed openapi-spec.json does not match the current API routes."
+            echo ""
+            echo "  To update the spec, run:"
+            echo "    cd agents-api && pnpm export-openapi"
+            echo ""
+            echo "  Then commit the updated openapi-spec.json file."
+            echo ""
+            echo "════════════════════════════════════════════════════════════════════"
+            exit 1
+          fi
+
       # Create summary report
       - name: Create CI Summary
         if: always()
