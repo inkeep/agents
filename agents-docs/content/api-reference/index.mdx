@@ -1,8 +1,44 @@
 ---
-title: Inkeep Agents Manage API
+title: Inkeep Agents API
 full: true
 _openapi:
   toc:
+    - depth: 2
+      title: Trigger evaluation on a single conversation
+      url: '#trigger-evaluation-on-a-single-conversation'
+    - depth: 2
+      title: Trigger evaluations on conversations with specified evaluators
+      url: '#trigger-evaluations-on-conversations-with-specified-evaluators'
+    - depth: 2
+      title: Trigger evaluations on conversations by evaluation job config
+      url: '#trigger-evaluations-on-conversations-by-evaluation-job-config'
+    - depth: 2
+      title: Run dataset items
+      url: '#run-dataset-items'
+    - depth: 2
+      title: MCP OAuth authorization callback
+      url: '#mcp-oauth-authorization-callback'
+    - depth: 2
+      title: Initiate OAuth login for MCP tool
+      url: '#initiate-oauth-login-for-mcp-tool'
+    - depth: 2
+      title: Generate temporary API key for playground
+      url: '#generate-temporary-api-key-for-playground'
+    - depth: 2
+      title: Create Full Project
+      url: '#create-full-project'
+    - depth: 2
+      title: Get Full Project
+      url: '#get-full-project'
+    - depth: 2
+      title: Delete Full Project
+      url: '#delete-full-project'
+    - depth: 2
+      title: Update Full Project
+      url: '#update-full-project'
+    - depth: 2
+      title: Get Full Project with Relation IDs
+      url: '#get-full-project-with-relation-ids'
     - depth: 2
       title: List Projects
       url: '#list-projects'
@@ -19,6 +55,135 @@ _openapi:
       title: Delete Project
       url: '#delete-project'
     - depth: 2
+      title: Create Full Agent
+      url: '#create-full-agent'
+    - depth: 2
+      title: Get Full Agent
+      url: '#get-full-agent'
+    - depth: 2
+      title: Delete Full Agent
+      url: '#delete-full-agent'
+    - depth: 2
+      title: Update Full Agent
+      url: '#update-full-agent'
+    - depth: 2
+      title: List Agents
+      url: '#list-agents'
+    - depth: 2
+      title: Create Agent
+      url: '#create-agent'
+    - depth: 2
+      title: List Context Configurations
+      url: '#list-context-configurations'
+    - depth: 2
+      title: Create Context Configuration
+      url: '#create-context-configuration'
+    - depth: 2
+      title: Get Context Configuration
+      url: '#get-context-configuration'
+    - depth: 2
+      title: Delete Context Configuration
+      url: '#delete-context-configuration'
+    - depth: 2
+      title: Update Context Configuration
+      url: '#update-context-configuration'
+    - depth: 2
+      title: Get Full Agent Definition
+      url: '#get-full-agent-definition'
+    - depth: 2
+      title: List Function Tools
+      url: '#list-function-tools'
+    - depth: 2
+      title: Create Function Tool
+      url: '#create-function-tool'
+    - depth: 2
+      title: Get Function Tool by ID
+      url: '#get-function-tool-by-id'
+    - depth: 2
+      title: Delete Function Tool
+      url: '#delete-function-tool'
+    - depth: 2
+      title: Update Function Tool
+      url: '#update-function-tool'
+    - depth: 2
+      title: Associate Artifact Component with Agent
+      url: '#associate-artifact-component-with-agent'
+    - depth: 2
+      title: Get Artifact Components for Agent
+      url: '#get-artifact-components-for-agent'
+    - depth: 2
+      title: Remove Artifact Component from Agent
+      url: '#remove-artifact-component-from-agent'
+    - depth: 2
+      title: Check if Artifact Component is Associated with Agent
+      url: '#check-if-artifact-component-is-associated-with-agent'
+    - depth: 2
+      title: Get Agents Using Artifact Component
+      url: '#get-agents-using-artifact-component'
+    - depth: 2
+      title: Associate Data Component with Agent
+      url: '#associate-data-component-with-agent'
+    - depth: 2
+      title: Get Data Components for Agent
+      url: '#get-data-components-for-agent'
+    - depth: 2
+      title: Remove Data Component from Agent
+      url: '#remove-data-component-from-agent'
+    - depth: 2
+      title: Check if Data Component is Associated with Agent
+      url: '#check-if-data-component-is-associated-with-agent'
+    - depth: 2
+      title: Get Agents Using Data Component
+      url: '#get-agents-using-data-component'
+    - depth: 2
+      title: Associate Function Tool with SubAgent
+      url: '#associate-function-tool-with-subagent'
+    - depth: 2
+      title: Get SubAgents Using Function Tool
+      url: '#get-subagents-using-function-tool'
+    - depth: 2
+      title: Get Function Tools for SubAgent
+      url: '#get-function-tools-for-subagent'
+    - depth: 2
+      title: Remove Function Tool from SubAgent
+      url: '#remove-function-tool-from-subagent'
+    - depth: 2
+      title: Check if Function Tool is Associated with SubAgent
+      url: '#check-if-function-tool-is-associated-with-subagent'
+    - depth: 2
+      title: List Sub Agent Relations
+      url: '#list-sub-agent-relations'
+    - depth: 2
+      title: Create Sub Agent Relation
+      url: '#create-sub-agent-relation'
+    - depth: 2
+      title: Get Sub Agent Relation
+      url: '#get-sub-agent-relation'
+    - depth: 2
+      title: Delete Sub Agent Relation
+      url: '#delete-sub-agent-relation'
+    - depth: 2
+      title: Update Sub Agent Relation
+      url: '#update-sub-agent-relation'
+    - depth: 2
+      title: List SubAgent Tool Relations
+      url: '#list-subagent-tool-relations'
+    - depth: 2
+      title: Create SubAgent Tool Relation
+      url: '#create-subagent-tool-relation'
+    - depth: 2
+      title: Get SubAgents for Tool
+      url: '#get-subagents-for-tool'
+    - depth: 2
+      title: Get SubAgent Tool Relation
+      url: '#get-subagent-tool-relation'
+    - depth: 2
+      title: Delete SubAgent Tool Relation
+      url: '#delete-subagent-tool-relation'
+    - depth: 2
+      title: Update SubAgent Tool Relation
+      url: '#update-subagent-tool-relation'
+    - depth: 2
       title: List SubAgents
       url: '#list-subagents'
     - depth: 2
@@ -34,89 +199,83 @@ _openapi:
       title: Update SubAgent
       url: '#update-subagent'
     - depth: 2
-      title: List Agent Relations
-      url: '#list-agent-relations'
+      title: List Sub Agent External Agent Relations
+      url: '#list-sub-agent-external-agent-relations'
     - depth: 2
-      title: Create Agent Relation
-      url: '#create-agent-relation'
+      title: Create Sub Agent External Agent Relation
+      url: '#create-sub-agent-external-agent-relation'
     - depth: 2
-      title: Get Agent Relation
-      url: '#get-agent-relation'
+      title: Get Sub Agent External Agent Relation
+      url: '#get-sub-agent-external-agent-relation'
     - depth: 2
-      title: Delete Agent Relation
-      url: '#delete-agent-relation'
+      title: Delete Sub Agent External Agent Relation
+      url: '#delete-sub-agent-external-agent-relation'
     - depth: 2
-      title: Update Agent Relation
-      url: '#update-agent-relation'
-    - depth: 2
-      title: List Agent Agent
-      url: '#list-agent-agent'
-    - depth: 2
-      title: Create Agent Agent
-      url: '#create-agent-agent'
-    - depth: 2
-      title: Get Agent Agent
-      url: '#get-agent-agent'
-    - depth: 2
-      title: Delete Agent Agent
-      url: '#delete-agent-agent'
-    - depth: 2
-      title: Update Agent Agent
-      url: '#update-agent-agent'
+      title: Update Sub Agent External Agent Relation
+      url: '#update-sub-agent-external-agent-relation'
     - depth: 2
       title: Get Related Agent Infos
       url: '#get-related-agent-infos'
     - depth: 2
-      title: Get Full Agent Definition
-      url: '#get-full-agent-definition'
+      title: List Sub Agent Team Agent Relations
+      url: '#list-sub-agent-team-agent-relations'
     - depth: 2
-      title: List SubAgent Tool Relations
-      url: '#list-subagent-tool-relations'
+      title: Create Sub Agent Team Agent Relation
+      url: '#create-sub-agent-team-agent-relation'
     - depth: 2
-      title: Create SubAgent Tool Relation
-      url: '#create-subagent-tool-relation'
+      title: Get Sub Agent Team Agent Relation
+      url: '#get-sub-agent-team-agent-relation'
     - depth: 2
-      title: Get SubAgent Tool Relation
-      url: '#get-subagent-tool-relation'
+      title: Delete Sub Agent Team Agent Relation
+      url: '#delete-sub-agent-team-agent-relation'
     - depth: 2
-      title: Delete SubAgent Tool Relation
-      url: '#delete-subagent-tool-relation'
+      title: Update Sub Agent Team Agent Relation
+      url: '#update-sub-agent-team-agent-relation'
     - depth: 2
-      title: Update SubAgent Tool Relation
-      url: '#update-subagent-tool-relation'
+      title: List Triggers
+      url: '#list-triggers'
     - depth: 2
-      title: Get SubAgents for Tool
-      url: '#get-subagents-for-tool'
+      title: Create Trigger
+      url: '#create-trigger'
     - depth: 2
-      title: Get Artifact Components for Agent
-      url: '#get-artifact-components-for-agent'
+      title: Get Trigger
+      url: '#get-trigger'
     - depth: 2
-      title: Get Agents Using Artifact Component
-      url: '#get-agents-using-artifact-component'
+      title: Update Trigger
+      url: '#update-trigger'
     - depth: 2
-      title: Associate Artifact Component with Agent
-      url: '#associate-artifact-component-with-agent'
+      title: Delete Trigger
+      url: '#delete-trigger'
     - depth: 2
-      title: Remove Artifact Component from Agent
-      url: '#remove-artifact-component-from-agent'
+      title: List Trigger Invocations
+      url: '#list-trigger-invocations'
     - depth: 2
-      title: Check if Artifact Component is Associated with Agent
-      url: '#check-if-artifact-component-is-associated-with-agent'
+      title: Get Trigger Invocation
+      url: '#get-trigger-invocation'
     - depth: 2
-      title: Get Data Components for Agent
-      url: '#get-data-components-for-agent'
+      title: Get Agent
+      url: '#get-agent'
     - depth: 2
-      title: Get Agents Using Data Component
-      url: '#get-agents-using-data-component'
+      title: Delete Agent
+      url: '#delete-agent'
     - depth: 2
-      title: Associate Data Component with Agent
-      url: '#associate-data-component-with-agent'
+      title: Update Agent
+      url: '#update-agent'
     - depth: 2
-      title: Remove Data Component from Agent
-      url: '#remove-data-component-from-agent'
+      title: List API Keys
+      url: '#list-api-keys'
     - depth: 2
-      title: Check if Data Component is Associated with Agent
-      url: '#check-if-data-component-is-associated-with-agent'
+      title: Create API Key
+      url: '#create-api-key'
+    - depth: 2
+      title: Get API Key
+      url: '#get-api-key'
+    - depth: 2
+      title: Delete API Key
+      url: '#delete-api-key'
+    - depth: 2
+      title: Update API Key
+      url: '#update-api-key'
     - depth: 2
       title: List Artifact Components
       url: '#list-artifact-components'
@@ -133,20 +292,29 @@ _openapi:
       title: Update Artifact Component
       url: '#update-artifact-component'
     - depth: 2
-      title: List Context Configurations
-      url: '#list-context-configurations'
+      title: List Branches
+      url: '#list-branches'
     - depth: 2
-      title: Create Context Configuration
-      url: '#create-context-configuration'
+      title: Create Branch
+      url: '#create-branch'
     - depth: 2
-      title: Get Context Configuration
-      url: '#get-context-configuration'
+      title: List Branches for Agent
+      url: '#list-branches-for-agent'
     - depth: 2
-      title: Delete Context Configuration
-      url: '#delete-context-configuration'
+      title: Get Branch
+      url: '#get-branch'
     - depth: 2
-      title: Update Context Configuration
-      url: '#update-context-configuration'
+      title: Delete Branch
+      url: '#delete-branch'
+    - depth: 2
+      title: Get Conversation
+      url: '#get-conversation'
+    - depth: 2
+      title: List Credential Stores
+      url: '#list-credential-stores'
+    - depth: 2
+      title: Create Credential in Store
+      url: '#create-credential-in-store'
     - depth: 2
       title: List Credentials
       url: '#list-credentials'
@@ -178,6 +346,135 @@ _openapi:
       title: Update Data Component
       url: '#update-data-component'
     - depth: 2
+      title: List Dataset Items by Dataset ID
+      url: '#list-dataset-items-by-dataset-id'
+    - depth: 2
+      title: Create Dataset Item
+      url: '#create-dataset-item'
+    - depth: 2
+      title: Create Multiple Dataset Items
+      url: '#create-multiple-dataset-items'
+    - depth: 2
+      title: Get Dataset Item by ID
+      url: '#get-dataset-item-by-id'
+    - depth: 2
+      title: Update Dataset Item
+      url: '#update-dataset-item'
+    - depth: 2
+      title: Delete Dataset Item by ID
+      url: '#delete-dataset-item-by-id'
+    - depth: 2
+      title: List all Datasets
+      url: '#list-all-datasets'
+    - depth: 2
+      title: Create Dataset
+      url: '#create-dataset'
+    - depth: 2
+      title: Get Dataset by ID
+      url: '#get-dataset-by-id'
+    - depth: 2
+      title: Update Dataset by ID
+      url: '#update-dataset-by-id'
+    - depth: 2
+      title: Delete Dataset by ID
+      url: '#delete-dataset-by-id'
+    - depth: 2
+      title: List Evaluation Job Configs
+      url: '#list-evaluation-job-configs'
+    - depth: 2
+      title: Create Evaluation Job Config
+      url: '#create-evaluation-job-config'
+    - depth: 2
+      title: Get Evaluation Job Config by ID
+      url: '#get-evaluation-job-config-by-id'
+    - depth: 2
+      title: Delete Evaluation Job Config
+      url: '#delete-evaluation-job-config'
+    - depth: 2
+      title: List Evaluators for Evaluation Job Config
+      url: '#list-evaluators-for-evaluation-job-config'
+    - depth: 2
+      title: Add Evaluator to Evaluation Job Config
+      url: '#add-evaluator-to-evaluation-job-config'
+    - depth: 2
+      title: Remove Evaluator from Evaluation Job Config
+      url: '#remove-evaluator-from-evaluation-job-config'
+    - depth: 2
+      title: Get Evaluation Results by Job Config ID
+      url: '#get-evaluation-results-by-job-config-id'
+    - depth: 2
+      title: Create Evaluation Result
+      url: '#create-evaluation-result'
+    - depth: 2
+      title: Get Evaluation Result by ID
+      url: '#get-evaluation-result-by-id'
+    - depth: 2
+      title: Update Evaluation Result
+      url: '#update-evaluation-result'
+    - depth: 2
+      title: Delete Evaluation Result
+      url: '#delete-evaluation-result'
+    - depth: 2
+      title: List Evaluation Run Configs
+      url: '#list-evaluation-run-configs'
+    - depth: 2
+      title: Create Evaluation Run Config
+      url: '#create-evaluation-run-config'
+    - depth: 2
+      title: Get Evaluation Run Config by ID
+      url: '#get-evaluation-run-config-by-id'
+    - depth: 2
+      title: Update Evaluation Run Config
+      url: '#update-evaluation-run-config'
+    - depth: 2
+      title: Delete Evaluation Run Config
+      url: '#delete-evaluation-run-config'
+    - depth: 2
+      title: Get Evaluation Results by Run Config ID
+      url: '#get-evaluation-results-by-run-config-id'
+    - depth: 2
+      title: List Evaluation Suite Configs
+      url: '#list-evaluation-suite-configs'
+    - depth: 2
+      title: Create Evaluation Suite Config
+      url: '#create-evaluation-suite-config'
+    - depth: 2
+      title: Get Evaluation Suite Config by ID
+      url: '#get-evaluation-suite-config-by-id'
+    - depth: 2
+      title: Update Evaluation Suite Config
+      url: '#update-evaluation-suite-config'
+    - depth: 2
+      title: Delete Evaluation Suite Config
+      url: '#delete-evaluation-suite-config'
+    - depth: 2
+      title: List Evaluators for Evaluation Suite Config
+      url: '#list-evaluators-for-evaluation-suite-config'
+    - depth: 2
+      title: Add Evaluator to Evaluation Suite Config
+      url: '#add-evaluator-to-evaluation-suite-config'
+    - depth: 2
+      title: Remove Evaluator from Evaluation Suite Config
+      url: '#remove-evaluator-from-evaluation-suite-config'
+    - depth: 2
+      title: List Evaluators
+      url: '#list-evaluators'
+    - depth: 2
+      title: Create Evaluator
+      url: '#create-evaluator'
+    - depth: 2
+      title: Get Evaluators by IDs
+      url: '#get-evaluators-by-ids'
+    - depth: 2
+      title: Get Evaluator by ID
+      url: '#get-evaluator-by-id'
+    - depth: 2
+      title: Update Evaluator
+      url: '#update-evaluator'
+    - depth: 2
+      title: Delete Evaluator
+      url: '#delete-evaluator'
+    - depth: 2
       title: List External Agents
       url: '#list-external-agents'
     - depth: 2
@@ -192,21 +489,6 @@ _openapi:
     - depth: 2
       title: Update External Agent
       url: '#update-external-agent'
-    - depth: 2
-      title: List Function Tools
-      url: '#list-function-tools'
-    - depth: 2
-      title: Create Function Tool
-      url: '#create-function-tool'
-    - depth: 2
-      title: Get Function Tool by ID
-      url: '#get-function-tool-by-id'
-    - depth: 2
-      title: Delete Function Tool
-      url: '#delete-function-tool'
-    - depth: 2
-      title: Update Function Tool
-      url: '#update-function-tool'
     - depth: 2
       title: List Functions
       url: '#list-functions'
@@ -223,6 +505,33 @@ _openapi:
       title: Update Function
       url: '#update-function'
     - depth: 2
+      title: List MCP Server Catalog
+      url: '#list-mcp-server-catalog'
+    - depth: 2
+      title: List Project Members
+      url: '#list-project-members'
+    - depth: 2
+      title: Add Project Member
+      url: '#add-project-member'
+    - depth: 2
+      title: Update Project Member Role
+      url: '#update-project-member-role'
+    - depth: 2
+      title: Remove Project Member
+      url: '#remove-project-member'
+    - depth: 2
+      title: Get Project Permissions
+      url: '#get-project-permissions'
+    - depth: 2
+      title: Resolve Ref
+      url: '#resolve-ref'
+    - depth: 2
+      title: Get Third-Party MCP Server Details
+      url: '#get-third-party-mcp-server-details'
+    - depth: 2
+      title: Get OAuth Redirect URL
+      url: '#get-oauth-redirect-url'
+    - depth: 2
       title: List Tools
       url: '#list-tools'
     - depth: 2
@@ -238,52 +547,37 @@ _openapi:
       title: Update Tool
       url: '#update-tool'
     - depth: 2
-      title: List API Keys
-      url: '#list-api-keys'
+      title: Get User Credential for Tool
+      url: '#get-user-credential-for-tool'
     - depth: 2
-      title: Create API Key
-      url: '#create-api-key'
-    - depth: 2
-      title: Get API Key
-      url: '#get-api-key'
-    - depth: 2
-      title: Delete API Key
-      url: '#delete-api-key'
-    - depth: 2
-      title: Update API Key
-      url: '#update-api-key'
-    - depth: 2
-      title: Create Full Agent
-      url: '#create-full-agent'
-    - depth: 2
-      title: Get Full Agent
-      url: '#get-full-agent'
-    - depth: 2
-      title: Delete Full Agent
-      url: '#delete-full-agent'
-    - depth: 2
-      title: Update Full Agent
-      url: '#update-full-agent'
-    - depth: 2
-      title: Create Full Project
-      url: '#create-full-project'
-    - depth: 2
-      title: Get Full Project
-      url: '#get-full-project'
-    - depth: 2
-      title: Delete Full Project
-      url: '#delete-full-project'
-    - depth: 2
-      title: Update Full Project
-      url: '#update-full-project'
-    - depth: 2
-      title: Initiate OAuth login for MCP tool
-      url: '#initiate-oauth-login-for-mcp-tool'
-    - depth: 2
-      title: OAuth authorization callback
-      url: '#oauth-authorization-callback'
+      title: List User Project Memberships
+      url: '#list-user-project-memberships'
   structuredData:
     headings:
+      - content: Trigger evaluation on a single conversation
+        id: trigger-evaluation-on-a-single-conversation
+      - content: Trigger evaluations on conversations with specified evaluators
+        id: trigger-evaluations-on-conversations-with-specified-evaluators
+      - content: Trigger evaluations on conversations by evaluation job config
+        id: trigger-evaluations-on-conversations-by-evaluation-job-config
+      - content: Run dataset items
+        id: run-dataset-items
+      - content: MCP OAuth authorization callback
+        id: mcp-oauth-authorization-callback
+      - content: Initiate OAuth login for MCP tool
+        id: initiate-oauth-login-for-mcp-tool
+      - content: Generate temporary API key for playground
+        id: generate-temporary-api-key-for-playground
+      - content: Create Full Project
+        id: create-full-project
+      - content: Get Full Project
+        id: get-full-project
+      - content: Delete Full Project
+        id: delete-full-project
+      - content: Update Full Project
+        id: update-full-project
+      - content: Get Full Project with Relation IDs
+        id: get-full-project-with-relation-ids
       - content: List Projects
         id: list-projects
       - content: Create Project
@@ -294,82 +588,18 @@ _openapi:
         id: update-project
       - content: Delete Project
         id: delete-project
-      - content: List SubAgents
-        id: list-subagents
-      - content: Create SubAgent
-        id: create-subagent
-      - content: Get SubAgent
-        id: get-subagent
-      - content: Delete SubAgent
-        id: delete-subagent
-      - content: Update SubAgent
-        id: update-subagent
-      - content: List Agent Relations
-        id: list-agent-relations
-      - content: Create Agent Relation
-        id: create-agent-relation
-      - content: Get Agent Relation
-        id: get-agent-relation
-      - content: Delete Agent Relation
-        id: delete-agent-relation
-      - content: Update Agent Relation
-        id: update-agent-relation
-      - content: List Agent Agent
-        id: list-agent-agent
-      - content: Create Agent Agent
-        id: create-agent-agent
-      - content: Get Agent Agent
-        id: get-agent-agent
-      - content: Delete Agent Agent
-        id: delete-agent-agent
-      - content: Update Agent Agent
-        id: update-agent-agent
-      - content: Get Related Agent Infos
-        id: get-related-agent-infos
-      - content: Get Full Agent Definition
-        id: get-full-agent-definition
-      - content: List SubAgent Tool Relations
-        id: list-subagent-tool-relations
-      - content: Create SubAgent Tool Relation
-        id: create-subagent-tool-relation
-      - content: Get SubAgent Tool Relation
-        id: get-subagent-tool-relation
-      - content: Delete SubAgent Tool Relation
-        id: delete-subagent-tool-relation
-      - content: Update SubAgent Tool Relation
-        id: update-subagent-tool-relation
-      - content: Get SubAgents for Tool
-        id: get-subagents-for-tool
-      - content: Get Artifact Components for Agent
-        id: get-artifact-components-for-agent
-      - content: Get Agents Using Artifact Component
-        id: get-agents-using-artifact-component
-      - content: Associate Artifact Component with Agent
-        id: associate-artifact-component-with-agent
-      - content: Remove Artifact Component from Agent
-        id: remove-artifact-component-from-agent
-      - content: Check if Artifact Component is Associated with Agent
-        id: check-if-artifact-component-is-associated-with-agent
-      - content: Get Data Components for Agent
-        id: get-data-components-for-agent
-      - content: Get Agents Using Data Component
-        id: get-agents-using-data-component
-      - content: Associate Data Component with Agent
-        id: associate-data-component-with-agent
-      - content: Remove Data Component from Agent
-        id: remove-data-component-from-agent
-      - content: Check if Data Component is Associated with Agent
-        id: check-if-data-component-is-associated-with-agent
-      - content: List Artifact Components
-        id: list-artifact-components
-      - content: Create Artifact Component
-        id: create-artifact-component
-      - content: Get Artifact Component
-        id: get-artifact-component
-      - content: Delete Artifact Component
-        id: delete-artifact-component
-      - content: Update Artifact Component
-        id: update-artifact-component
+      - content: Create Full Agent
+        id: create-full-agent
+      - content: Get Full Agent
+        id: get-full-agent
+      - content: Delete Full Agent
+        id: delete-full-agent
+      - content: Update Full Agent
+        id: update-full-agent
+      - content: List Agents
+        id: list-agents
+      - content: Create Agent
+        id: create-agent
       - content: List Context Configurations
         id: list-context-configurations
       - content: Create Context Configuration
@@ -380,6 +610,158 @@ _openapi:
         id: delete-context-configuration
       - content: Update Context Configuration
         id: update-context-configuration
+      - content: Get Full Agent Definition
+        id: get-full-agent-definition
+      - content: List Function Tools
+        id: list-function-tools
+      - content: Create Function Tool
+        id: create-function-tool
+      - content: Get Function Tool by ID
+        id: get-function-tool-by-id
+      - content: Delete Function Tool
+        id: delete-function-tool
+      - content: Update Function Tool
+        id: update-function-tool
+      - content: Associate Artifact Component with Agent
+        id: associate-artifact-component-with-agent
+      - content: Get Artifact Components for Agent
+        id: get-artifact-components-for-agent
+      - content: Remove Artifact Component from Agent
+        id: remove-artifact-component-from-agent
+      - content: Check if Artifact Component is Associated with Agent
+        id: check-if-artifact-component-is-associated-with-agent
+      - content: Get Agents Using Artifact Component
+        id: get-agents-using-artifact-component
+      - content: Associate Data Component with Agent
+        id: associate-data-component-with-agent
+      - content: Get Data Components for Agent
+        id: get-data-components-for-agent
+      - content: Remove Data Component from Agent
+        id: remove-data-component-from-agent
+      - content: Check if Data Component is Associated with Agent
+        id: check-if-data-component-is-associated-with-agent
+      - content: Get Agents Using Data Component
+        id: get-agents-using-data-component
+      - content: Associate Function Tool with SubAgent
+        id: associate-function-tool-with-subagent
+      - content: Get SubAgents Using Function Tool
+        id: get-subagents-using-function-tool
+      - content: Get Function Tools for SubAgent
+        id: get-function-tools-for-subagent
+      - content: Remove Function Tool from SubAgent
+        id: remove-function-tool-from-subagent
+      - content: Check if Function Tool is Associated with SubAgent
+        id: check-if-function-tool-is-associated-with-subagent
+      - content: List Sub Agent Relations
+        id: list-sub-agent-relations
+      - content: Create Sub Agent Relation
+        id: create-sub-agent-relation
+      - content: Get Sub Agent Relation
+        id: get-sub-agent-relation
+      - content: Delete Sub Agent Relation
+        id: delete-sub-agent-relation
+      - content: Update Sub Agent Relation
+        id: update-sub-agent-relation
+      - content: List SubAgent Tool Relations
+        id: list-subagent-tool-relations
+      - content: Create SubAgent Tool Relation
+        id: create-subagent-tool-relation
+      - content: Get SubAgents for Tool
+        id: get-subagents-for-tool
+      - content: Get SubAgent Tool Relation
+        id: get-subagent-tool-relation
+      - content: Delete SubAgent Tool Relation
+        id: delete-subagent-tool-relation
+      - content: Update SubAgent Tool Relation
+        id: update-subagent-tool-relation
+      - content: List SubAgents
+        id: list-subagents
+      - content: Create SubAgent
+        id: create-subagent
+      - content: Get SubAgent
+        id: get-subagent
+      - content: Delete SubAgent
+        id: delete-subagent
+      - content: Update SubAgent
+        id: update-subagent
+      - content: List Sub Agent External Agent Relations
+        id: list-sub-agent-external-agent-relations
+      - content: Create Sub Agent External Agent Relation
+        id: create-sub-agent-external-agent-relation
+      - content: Get Sub Agent External Agent Relation
+        id: get-sub-agent-external-agent-relation
+      - content: Delete Sub Agent External Agent Relation
+        id: delete-sub-agent-external-agent-relation
+      - content: Update Sub Agent External Agent Relation
+        id: update-sub-agent-external-agent-relation
+      - content: Get Related Agent Infos
+        id: get-related-agent-infos
+      - content: List Sub Agent Team Agent Relations
+        id: list-sub-agent-team-agent-relations
+      - content: Create Sub Agent Team Agent Relation
+        id: create-sub-agent-team-agent-relation
+      - content: Get Sub Agent Team Agent Relation
+        id: get-sub-agent-team-agent-relation
+      - content: Delete Sub Agent Team Agent Relation
+        id: delete-sub-agent-team-agent-relation
+      - content: Update Sub Agent Team Agent Relation
+        id: update-sub-agent-team-agent-relation
+      - content: List Triggers
+        id: list-triggers
+      - content: Create Trigger
+        id: create-trigger
+      - content: Get Trigger
+        id: get-trigger
+      - content: Update Trigger
+        id: update-trigger
+      - content: Delete Trigger
+        id: delete-trigger
+      - content: List Trigger Invocations
+        id: list-trigger-invocations
+      - content: Get Trigger Invocation
+        id: get-trigger-invocation
+      - content: Get Agent
+        id: get-agent
+      - content: Delete Agent
+        id: delete-agent
+      - content: Update Agent
+        id: update-agent
+      - content: List API Keys
+        id: list-api-keys
+      - content: Create API Key
+        id: create-api-key
+      - content: Get API Key
+        id: get-api-key
+      - content: Delete API Key
+        id: delete-api-key
+      - content: Update API Key
+        id: update-api-key
+      - content: List Artifact Components
+        id: list-artifact-components
+      - content: Create Artifact Component
+        id: create-artifact-component
+      - content: Get Artifact Component
+        id: get-artifact-component
+      - content: Delete Artifact Component
+        id: delete-artifact-component
+      - content: Update Artifact Component
+        id: update-artifact-component
+      - content: List Branches
+        id: list-branches
+      - content: Create Branch
+        id: create-branch
+      - content: List Branches for Agent
+        id: list-branches-for-agent
+      - content: Get Branch
+        id: get-branch
+      - content: Delete Branch
+        id: delete-branch
+      - content: Get Conversation
+        id: get-conversation
+      - content: List Credential Stores
+        id: list-credential-stores
+      - content: Create Credential in Store
+        id: create-credential-in-store
       - content: List Credentials
         id: list-credentials
       - content: Create Credential
@@ -400,6 +782,92 @@ _openapi:
         id: delete-data-component
       - content: Update Data Component
         id: update-data-component
+      - content: List Dataset Items by Dataset ID
+        id: list-dataset-items-by-dataset-id
+      - content: Create Dataset Item
+        id: create-dataset-item
+      - content: Create Multiple Dataset Items
+        id: create-multiple-dataset-items
+      - content: Get Dataset Item by ID
+        id: get-dataset-item-by-id
+      - content: Update Dataset Item
+        id: update-dataset-item
+      - content: Delete Dataset Item by ID
+        id: delete-dataset-item-by-id
+      - content: List all Datasets
+        id: list-all-datasets
+      - content: Create Dataset
+        id: create-dataset
+      - content: Get Dataset by ID
+        id: get-dataset-by-id
+      - content: Update Dataset by ID
+        id: update-dataset-by-id
+      - content: Delete Dataset by ID
+        id: delete-dataset-by-id
+      - content: List Evaluation Job Configs
+        id: list-evaluation-job-configs
+      - content: Create Evaluation Job Config
+        id: create-evaluation-job-config
+      - content: Get Evaluation Job Config by ID
+        id: get-evaluation-job-config-by-id
+      - content: Delete Evaluation Job Config
+        id: delete-evaluation-job-config
+      - content: List Evaluators for Evaluation Job Config
+        id: list-evaluators-for-evaluation-job-config
+      - content: Add Evaluator to Evaluation Job Config
+        id: add-evaluator-to-evaluation-job-config
+      - content: Remove Evaluator from Evaluation Job Config
+        id: remove-evaluator-from-evaluation-job-config
+      - content: Get Evaluation Results by Job Config ID
+        id: get-evaluation-results-by-job-config-id
+      - content: Create Evaluation Result
+        id: create-evaluation-result
+      - content: Get Evaluation Result by ID
+        id: get-evaluation-result-by-id
+      - content: Update Evaluation Result
+        id: update-evaluation-result
+      - content: Delete Evaluation Result
+        id: delete-evaluation-result
+      - content: List Evaluation Run Configs
+        id: list-evaluation-run-configs
+      - content: Create Evaluation Run Config
+        id: create-evaluation-run-config
+      - content: Get Evaluation Run Config by ID
+        id: get-evaluation-run-config-by-id
+      - content: Update Evaluation Run Config
+        id: update-evaluation-run-config
+      - content: Delete Evaluation Run Config
+        id: delete-evaluation-run-config
+      - content: Get Evaluation Results by Run Config ID
+        id: get-evaluation-results-by-run-config-id
+      - content: List Evaluation Suite Configs
+        id: list-evaluation-suite-configs
+      - content: Create Evaluation Suite Config
+        id: create-evaluation-suite-config
+      - content: Get Evaluation Suite Config by ID
+        id: get-evaluation-suite-config-by-id
+      - content: Update Evaluation Suite Config
+        id: update-evaluation-suite-config
+      - content: Delete Evaluation Suite Config
+        id: delete-evaluation-suite-config
+      - content: List Evaluators for Evaluation Suite Config
+        id: list-evaluators-for-evaluation-suite-config
+      - content: Add Evaluator to Evaluation Suite Config
+        id: add-evaluator-to-evaluation-suite-config
+      - content: Remove Evaluator from Evaluation Suite Config
+        id: remove-evaluator-from-evaluation-suite-config
+      - content: List Evaluators
+        id: list-evaluators
+      - content: Create Evaluator
+        id: create-evaluator
+      - content: Get Evaluators by IDs
+        id: get-evaluators-by-ids
+      - content: Get Evaluator by ID
+        id: get-evaluator-by-id
+      - content: Update Evaluator
+        id: update-evaluator
+      - content: Delete Evaluator
+        id: delete-evaluator
       - content: List External Agents
         id: list-external-agents
       - content: Create External Agent
@@ -410,16 +878,6 @@ _openapi:
         id: delete-external-agent
       - content: Update External Agent
         id: update-external-agent
-      - content: List Function Tools
-        id: list-function-tools
-      - content: Create Function Tool
-        id: create-function-tool
-      - content: Get Function Tool by ID
-        id: get-function-tool-by-id
-      - content: Delete Function Tool
-        id: delete-function-tool
-      - content: Update Function Tool
-        id: update-function-tool
       - content: List Functions
         id: list-functions
       - content: Create Function
@@ -430,6 +888,24 @@ _openapi:
         id: delete-function
       - content: Update Function
         id: update-function
+      - content: List MCP Server Catalog
+        id: list-mcp-server-catalog
+      - content: List Project Members
+        id: list-project-members
+      - content: Add Project Member
+        id: add-project-member
+      - content: Update Project Member Role
+        id: update-project-member-role
+      - content: Remove Project Member
+        id: remove-project-member
+      - content: Get Project Permissions
+        id: get-project-permissions
+      - content: Resolve Ref
+        id: resolve-ref
+      - content: Get Third-Party MCP Server Details
+        id: get-third-party-mcp-server-details
+      - content: Get OAuth Redirect URL
+        id: get-oauth-redirect-url
       - content: List Tools
         id: list-tools
       - content: Create Tool
@@ -440,76 +916,39 @@ _openapi:
         id: delete-tool
       - content: Update Tool
         id: update-tool
-      - content: List API Keys
-        id: list-api-keys
-      - content: Create API Key
-        id: create-api-key
-      - content: Get API Key
-        id: get-api-key
-      - content: Delete API Key
-        id: delete-api-key
-      - content: Update API Key
-        id: update-api-key
-      - content: Create Full Agent
-        id: create-full-agent
-      - content: Get Full Agent
-        id: get-full-agent
-      - content: Delete Full Agent
-        id: delete-full-agent
-      - content: Update Full Agent
-        id: update-full-agent
-      - content: Create Full Project
-        id: create-full-project
-      - content: Get Full Project
-        id: get-full-project
-      - content: Delete Full Project
-        id: delete-full-project
-      - content: Update Full Project
-        id: update-full-project
-      - content: Initiate OAuth login for MCP tool
-        id: initiate-oauth-login-for-mcp-tool
-      - content: OAuth authorization callback
-        id: oauth-authorization-callback
+      - content: Get User Credential for Tool
+        id: get-user-credential-for-tool
+      - content: List User Project Memberships
+        id: list-user-project-memberships
     contents:
-      - content: Check if the management service is healthy
-      - content: List all projects within a tenant with pagination
-        heading: list-projects
-      - content: Create a new project
-        heading: create-project
-      - content: Get a single project by ID
-        heading: get-project
-      - content: Update an existing project
-        heading: update-project
-      - content: Delete a project. Will fail if the project has existing resources.
-        heading: delete-project
-      - content: List all API keys for a tenant with optional pagination
-        heading: list-api-keys
       - content: >-
-          Create a new API key for an agent. Returns the full key (shown only
-          once).
-        heading: create-api-key
-      - content: Get a specific API key by ID (does not return the actual key)
-        heading: get-api-key
-      - content: Delete an API key permanently
-        heading: delete-api-key
-      - content: Update an API key (currently only expiration date can be changed)
-        heading: update-api-key
+          Filters conversations based on job filters, creates an evaluation run,
+          and enqueues workflows
+        heading: trigger-evaluations-on-conversations-by-evaluation-job-config
+      - content: Runs dataset items for processing through the chat API
+        heading: run-dataset-items
       - content: >-
-          Create a complete agent with all agents, tools, and relationships from
-          JSON definition
-        heading: create-full-agent
+          Get the current authenticated user and their organization for CLI
+          usage
+        heading: run-dataset-items
+      - content: Get all pending (non-expired) invitations for a given email address
+        heading: run-dataset-items
+      - content: Get all organizations associated with a user
+        heading: run-dataset-items
+      - content: Associate a user with an organization
+        heading: run-dataset-items
       - content: >-
-          Retrieve a complete agent definition with all agents, tools, and
-          relationships
-        heading: get-full-agent
+          Handles OAuth authorization codes for MCP tools and completes the
+          authentication flow
+        heading: mcp-oauth-authorization-callback
       - content: >-
-          Delete a complete agent and cascade to all related entities
-          (relationships, not other agents/tools)
-        heading: delete-full-agent
+          Detects OAuth requirements and redirects to authorization server
+          (public endpoint)
+        heading: initiate-oauth-login-for-mcp-tool
       - content: >-
-          Update or create a complete agent with all agents, tools, and
-          relationships from JSON definition
-        heading: update-full-agent
+          Generates a short-lived API key (1 hour expiry) for authenticated
+          users to access the run-api from the playground
+        heading: generate-temporary-api-key-for-playground
       - content: >-
           Create a complete project with all Agents, Sub Agents, tools, and
           relationships from JSON definition
@@ -527,17 +966,122 @@ _openapi:
           tools, and relationships from JSON definition
         heading: update-full-project
       - content: >-
-          Detects OAuth requirements and redirects to authorization server
-          (public endpoint)
-        heading: initiate-oauth-login-for-mcp-tool
+          Retrieve a complete project definition with all Agents, Sub Agents,
+          tools, and relationships
+        heading: get-full-project-with-relation-ids
       - content: >-
-          Handles OAuth authorization codes and completes the authentication
-          flow
-        heading: oauth-authorization-callback
+          List all projects within a tenant with pagination. When authorization
+          is enabled, only returns projects the user has access to.
+        heading: list-projects
+      - content: >-
+          Create a new project. When authorization is enabled, the creator is
+          automatically granted admin role.
+        heading: create-project
+      - content: Get a single project by ID
+        heading: get-project
+      - content: Update an existing project
+        heading: update-project
+      - content: Delete a project and its branch. Must be called from the main branch.
+        heading: delete-project
+      - content: >-
+          Create a complete agent with all agents, tools, and relationships from
+          JSON definition
+        heading: create-full-agent
+      - content: >-
+          Retrieve a complete agent definition with all agents, tools, and
+          relationships
+        heading: get-full-agent
+      - content: >-
+          Delete a complete agent and cascade to all related entities
+          (relationships, not other agents/tools)
+        heading: delete-full-agent
+      - content: >-
+          Update or create a complete agent with all agents, tools, and
+          relationships from JSON definition
+        heading: update-full-agent
+      - content: List all API keys for a tenant with optional pagination
+        heading: list-api-keys
+      - content: >-
+          Create a new API key for an agent. Returns the full key (shown only
+          once).
+        heading: create-api-key
+      - content: Get a specific API key by ID (does not return the actual key)
+        heading: get-api-key
+      - content: Delete an API key permanently
+        heading: delete-api-key
+      - content: Update an API key (currently only expiration date can be changed)
+        heading: update-api-key
+      - content: List all branches within a project
+        heading: list-branches
+      - content: Create a new branch
+        heading: create-branch
+      - content: List all branches within a project that contain the agent
+        heading: list-branches-for-agent
+      - content: Get a single branch by name
+        heading: get-branch
+      - content: Delete a branch. Cannot delete protected branches like main.
+        heading: delete-branch
+      - content: >-
+          Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is
+          configured, also includes Composio servers for the tenant/project.
+        heading: list-mcp-server-catalog
+      - content: >-
+          List all users with explicit project access. Requires authz to be
+          enabled.
+        heading: list-project-members
+      - content: >-
+          Add a user to a project with a specified role. Requires authz to be
+          enabled.
+        heading: add-project-member
+      - content: >-
+          Update a project member's role. Requires authz to be enabled. Include
+          previousRole to specify which role to revoke.
+        heading: update-project-member-role
+      - content: >-
+          Remove a user from a project. Requires authz to be enabled. Pass role
+          as query param to specify which role to revoke.
+        heading: remove-project-member
+      - content: >-
+          Get the current user's permissions for a project. Returns which
+          actions the user can perform.
+        heading: get-project-permissions
+      - content: >-
+          Resolve a ref string (branch name, tag name, or commit hash) to its
+          full resolved ref with type and commit hash. Pass the ref as a query
+          parameter.
+        heading: resolve-ref
+      - content: >-
+          Fetch details for a specific third-party MCP server (e.g., Composio)
+          including authentication status and connect URL
+        heading: get-third-party-mcp-server-details
+      - content: >-
+          Get the OAuth redirect URL for a third-party MCP server. Call this
+          after scope selection to get the correct URL for the selected scope.
+        heading: get-oauth-redirect-url
+      - content: >-
+          List all projects a user has explicit access to and their role in
+          each. Requires authz to be enabled.
+        heading: list-user-project-memberships
+      - content: Chat completion endpoint streaming with Vercel data stream protocol.
+        heading: list-user-project-memberships
+      - content: >-
+          Handle user approval/denial of tool execution requests during
+          conversations
+        heading: list-user-project-memberships
+      - content: >-
+          Webhook endpoint for third-party services to invoke an agent via a
+          configured trigger
+        heading: list-user-project-memberships
+      - content: >-
+          Creates a new chat completion with streaming SSE response using the
+          configured agent
+        heading: list-user-project-memberships
+      - content: Handles Model Context Protocol (MCP) JSON-RPC requests
+        heading: list-user-project-memberships
 ---
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
 
-REST API for the management of the Inkeep Agent Framework.
+REST API for the Inkeep Agent Framework.
 
-<APIPage document={"index"} operations={[{"path":"/health","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"post"},{"path":"/tenants/{tenantId}/projects/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{id}","method":"patch"},{"path":"/tenants/{tenantId}/projects/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/tool/{toolId}/sub-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/:subAgentId","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/component/:artifactComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/:subAgentId/component/:artifactComponentId","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/:subAgentId/component/:artifactComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/:subAgentId","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/component/:dataComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/:subAgentId/component/:dataComponentId","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/:subAgentId/component/:dataComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/:id","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/:id","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/:id","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"put"},{"path":"/tenants/{tenantId}/project-full","method":"post"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"get"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"delete"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"put"},{"path":"/oauth/login","method":"get"},{"path":"/oauth/callback","method":"get"}]} webhooks={[]} hasHead={true} />
+<APIPage document={"index"} operations={[{"path":"/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversation","method":"post"},{"path":"/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversations","method":"post"},{"path":"/evals/tenants/{tenantId}/projects/{projectId}/evaluate-conversations-by-job","method":"post"},{"path":"/evals/tenants/{tenantId}/projects/{projectId}/run-dataset-items","method":"post"},{"path":"/manage/api/cli/me","method":"get"},{"path":"/manage/api/invitations/pending","method":"get"},{"path":"/manage/api/users/{userId}/organizations","method":"get"},{"path":"/manage/api/users/{userId}/organizations","method":"post"},{"path":"/manage/oauth/callback","method":"get"},{"path":"/manage/oauth/login","method":"get"},{"path":"/manage/tenants/{tenantId}/playground/token","method":"post"},{"path":"/manage/tenants/{tenantId}/project-full","method":"post"},{"path":"/manage/tenants/{tenantId}/project-full/{projectId}","method":"get"},{"path":"/manage/tenants/{tenantId}/project-full/{projectId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/project-full/{projectId}","method":"put"},{"path":"/manage/tenants/{tenantId}/project-full/{projectId}/with-relation-ids","method":"get"},{"path":"/manage/tenants/{tenantId}/projects","method":"get"},{"path":"/manage/tenants/{tenantId}/projects","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{id}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agent","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}/exists","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/component/{artifactComponentId}/agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}/exists","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/component/{dataComponentId}/agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/function-tool/{functionToolId}/sub-agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}/function-tool/{functionToolId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}/function-tool/{functionToolId}/exists","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/tool/{toolId}/sub-agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/invocations","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/invocations/{invocationId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/api-keys","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/api-keys","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/branches","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/branches","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/branches/agents/{agentId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/branches/{branchName}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/branches/{branchName}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/conversations/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credential-stores","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credential-stores/{id}/credentials","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credentials","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credentials","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/data-components","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/data-components","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items/bulk","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items/{itemId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items/{itemId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-items/{datasetId}/items/{itemId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets/{datasetId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets/{datasetId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets/{datasetId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators/{evaluatorId}","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators/{evaluatorId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/results","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results/{resultId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results/{resultId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results/{resultId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs/{configId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs/{configId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs/{configId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-run-configs/{configId}/results","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/batch","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/{evaluatorId}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/{evaluatorId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/{evaluatorId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/external-agents","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/external-agents","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/external-agents/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/external-agents/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/external-agents/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/functions","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/functions","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/mcp-catalog","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/members","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/members","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/members/{userId}","method":"patch"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/members/{userId}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/permissions","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/refs/resolve","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers/oauth-redirect","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/tools","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/tools","method":"post"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"get"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"delete"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"put"},{"path":"/manage/tenants/{tenantId}/projects/{projectId}/tools/{id}/user-credential","method":"get"},{"path":"/manage/tenants/{tenantId}/users/{userId}/project-memberships","method":"get"},{"path":"/run/agents/.well-known/agent.json","method":"get"},{"path":"/run/api/chat","method":"post"},{"path":"/run/api/tool-approvals","method":"post"},{"path":"/run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}","method":"post"},{"path":"/run/v1/chat/completions","method":"post"},{"path":"/run/v1/mcp","method":"post"}]} webhooks={[]} hasHead={true} />
