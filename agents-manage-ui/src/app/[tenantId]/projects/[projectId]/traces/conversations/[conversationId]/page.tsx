@@ -26,7 +26,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
-import { copyFullTraceToClipboard, copySummarizedTraceToClipboard } from '@/lib/utils/trace-formatter';
+import {
+  copyFullTraceToClipboard,
+  copySummarizedTraceToClipboard,
+} from '@/lib/utils/trace-formatter';
 
 export default function ConversationDetail({
   params,
@@ -361,6 +364,8 @@ export default function ConversationDetail({
           <TimelineWrapper
             conversation={conversation}
             conversationId={conversationId}
+            tenantId={tenantId}
+            projectId={projectId}
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}

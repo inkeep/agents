@@ -8,7 +8,10 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
-import { copyFullTraceToClipboard, copySummarizedTraceToClipboard } from '@/lib/utils/trace-formatter';
+import {
+  copyFullTraceToClipboard,
+  copySummarizedTraceToClipboard,
+} from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 
@@ -163,6 +166,8 @@ export const Playground = ({
                 refreshOnce={refreshOnce}
                 showConversationTracesLink={true}
                 conversationId={conversationId}
+                tenantId={tenantId}
+                projectId={projectId}
                 onCopyFullTrace={handleCopyFullTrace}
                 onCopySummarizedTrace={handleCopySummarizedTrace}
                 isCopying={isCopying}

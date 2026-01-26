@@ -32,6 +32,7 @@ import {
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { DOCS_BASE_URL } from '@/constants/theme';
+import { buildFullTrace, buildSummarizedTrace } from '@/lib/utils/trace-formatter';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {
@@ -81,6 +82,8 @@ interface TimelineWrapperProps {
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
   conversationId?: string;
+  tenantId?: string;
+  projectId?: string;
   onCopyFullTrace?: () => void;
   onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
@@ -173,6 +176,8 @@ export function TimelineWrapper({
   refreshOnce,
   showConversationTracesLink = false,
   conversationId,
+  tenantId,
+  projectId,
   onCopyFullTrace,
   onCopySummarizedTrace,
   isCopying = false,
@@ -221,50 +226,33 @@ export function TimelineWrapper({
     );
   }, [conversation?.activities, conversation?.toolCalls]);
 
-  // Estimate token counts for copy options (~4 characters per token)
-  const estimatedTokens = useMemo(() => {
-    if (!conversation) return { summarized: 0, full: 0 };
+  // Token estimates state - calculated when dropdown opens
+  const [tokenEstimates, setTokenEstimates] = useState<{
+    summarized: number | null;
+    full: number | null;
+  }>({ summarized: null, full: null });
+  const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
 
-    // Estimate summarized trace size (basic metadata + simplified timeline)
-    const summarizedParts = [
-      conversation.conversationId,
-      conversation.agentName || '',
-      conversation.agentId || '',
-      ...(conversation.activities || []).flatMap((a) => [
-        a.type,
-        a.description,
-        a.status,
-        a.timestamp,
-        a.subAgentName || '',
-        a.subAgentId || '',
-        a.messageContent || '',
-        a.aiResponseContent || '',
-        a.aiStreamTextContent || '',
-        a.toolPurpose || '',
-        a.otelStatusDescription || '',
-        a.toolStatusMessage || '',
-      ]),
-    ];
-    const summarizedChars = summarizedParts.join('').length + 500; // Add overhead for JSON structure
+  // Calculate token estimates when dropdown opens
+  const calculateTokenEstimates = useCallback(async () => {
+    if (!conversation || !tenantId || !projectId || tokenEstimates.summarized !== null) return;
 
-    // Estimate full trace size (includes all activity fields + agent definition placeholder)
-    const fullParts = [
-      ...summarizedParts,
-      ...(conversation.activities || []).flatMap((a) => [
-        a.toolCallArgs || '',
-        a.toolCallResult || '',
-        a.aiPromptMessages || '',
-        a.aiResponseToolCalls || '',
-      ]),
-    ];
-    // Agent definition and conversation history add significant size
-    const fullChars = fullParts.join('').length + 5000; // Add overhead for agent def + history
+    setIsCalculatingTokens(true);
+    try {
+      // Build actual traces (same as what gets copied)
+      const [summarizedTrace, fullTrace] = await Promise.all([
+        buildSummarizedTrace(conversation, tenantId, projectId),
+        buildFullTrace(conversation, tenantId, projectId),
+      ]);
 
-    return {
-      summarized: Math.ceil(summarizedChars / 4),
-      full: Math.ceil(fullChars / 4),
-    };
-  }, [conversation]);
+      setTokenEstimates({
+        summarized: Math.ceil(JSON.stringify(summarizedTrace).length / 4),
+        full: Math.ceil(JSON.stringify(fullTrace).length / 4),
+      });
+    } finally {
+      setIsCalculatingTokens(false);
+    }
+  }, [conversation, tenantId, projectId, tokenEstimates.summarized]);
 
   // Memoize sorted activities to prevent re-sorting on every render
   const sortedActivities = useMemo(() => {
@@ -462,7 +450,7 @@ export function TimelineWrapper({
               <div className="flex items-center gap-2">
                 {/* Copy Trace Dropdown */}
                 {(onCopyFullTrace || onCopySummarizedTrace) && (
-                  <DropdownMenu>
+                  <DropdownMenu onOpenChange={(open) => open && calculateTokenEstimates()}>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
@@ -481,7 +469,11 @@ export function TimelineWrapper({
                           <FileText className="h-3.5 w-3.5 mr-2" />
                           <span className="flex-1">Copy Summarized Trace</span>
                           <span className="text-muted-foreground text-xs ml-2">
-                            ~{estimatedTokens.summarized.toLocaleString()} tokens
+                            {isCalculatingTokens
+                              ? '...'
+                              : tokenEstimates.summarized !== null
+                                ? `~${tokenEstimates.summarized.toLocaleString()} tokens`
+                                : ''}
                           </span>
                         </DropdownMenuItem>
                       )}
@@ -490,7 +482,11 @@ export function TimelineWrapper({
                           <Copy className="h-3.5 w-3.5 mr-2" />
                           <span className="flex-1">Copy Full Trace</span>
                           <span className="text-muted-foreground text-xs ml-2">
-                            ~{estimatedTokens.full.toLocaleString()} tokens
+                            {isCalculatingTokens
+                              ? '...'
+                              : tokenEstimates.full !== null
+                                ? `~${tokenEstimates.full.toLocaleString()} tokens`
+                                : ''}
                           </span>
                         </DropdownMenuItem>
                       )}

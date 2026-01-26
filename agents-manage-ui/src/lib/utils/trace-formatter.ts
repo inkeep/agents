@@ -106,6 +106,29 @@ function formatConversationAsPrettifiedTrace(
 }
 
 /**
+ * Builds the full trace object (fetches agent definition and conversation history)
+ */
+export async function buildFullTrace(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
+) {
+  const [agentResult, historyResult] = await Promise.all([
+    conversation.agentId
+      ? getFullAgentAction(tenantId, projectId, conversation.agentId)
+      : Promise.resolve(null),
+    fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
+  ]);
+
+  const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+  const conversationHistory = historyResult?.success
+    ? historyResult.data?.formatted?.llmContext || ''
+    : '';
+
+  return formatConversationAsPrettifiedTrace(conversation, agentDefinition, conversationHistory);
+}
+
+/**
  * Copies the full trace (with agent definition) to clipboard
  */
 export async function copyFullTraceToClipboard(
@@ -114,23 +137,7 @@ export async function copyFullTraceToClipboard(
   projectId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const [agentResult, historyResult] = await Promise.all([
-      conversation.agentId
-        ? getFullAgentAction(tenantId, projectId, conversation.agentId)
-        : Promise.resolve(null),
-      fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
-    ]);
-
-    const agentDefinition = agentResult?.success ? agentResult.data : undefined;
-    const conversationHistory = historyResult?.success
-      ? historyResult.data?.formatted?.llmContext
-      : '';
-
-    const trace = formatConversationAsPrettifiedTrace(
-      conversation,
-      agentDefinition,
-      conversationHistory
-    );
+    const trace = await buildFullTrace(conversation, tenantId, projectId);
     await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
     return { success: true };
   } catch (error) {
@@ -190,7 +197,7 @@ const ERROR_FIELDS: (keyof ActivityItem)[] = ['otelStatusDescription', 'toolStat
 /**
  * Formats an activity to show only what's visible on the timeline (without clicking into details)
  */
-function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
+export function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
   const visibleFields = new Set([
     ...BASE_VISIBLE_FIELDS,
     ...(VISIBLE_FIELDS_BY_TYPE[activity.type] || []),
@@ -210,6 +217,39 @@ function formatActivityForSummary(activity: ActivityItem): Record<string, unknow
 }
 
 /**
+ * Builds the summarized trace object (fetches agent definition and conversation history)
+ */
+export async function buildSummarizedTrace(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
+) {
+  const [agentResult, historyResult] = await Promise.all([
+    conversation.agentId
+      ? getFullAgentAction(tenantId, projectId, conversation.agentId)
+      : Promise.resolve(null),
+    fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
+  ]);
+
+  const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+  const conversationHistory = historyResult?.success
+    ? historyResult.data?.formatted?.llmContext || ''
+    : '';
+
+  return {
+    metadata: {
+      conversationId: conversation.conversationId,
+      agentName: conversation.agentName,
+      agentId: conversation.agentId,
+      exportedAt: new Date().toISOString(),
+    },
+    agentDefinition: (agentDefinition as Record<string, unknown>) || null,
+    conversationHistory: conversationHistory || '',
+    timeline: (conversation.activities || []).map(formatActivityForSummary),
+  };
+}
+
+/**
  * Copies a summarized trace (just what's visible in the timeline) to clipboard
  */
 export async function copySummarizedTraceToClipboard(
@@ -218,32 +258,8 @@ export async function copySummarizedTraceToClipboard(
   projectId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Fetch agent definition and conversation history in parallel
-    const [agentResult, historyResult] = await Promise.all([
-      conversation.agentId
-        ? getFullAgentAction(tenantId, projectId, conversation.agentId)
-        : Promise.resolve(null),
-      fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
-    ]);
-
-    const agentDefinition = agentResult?.success ? agentResult.data : undefined;
-    const conversationHistory = historyResult?.success
-      ? historyResult.data?.formatted?.llmContext
-      : '';
-
-    const summarizedTrace = {
-      metadata: {
-        conversationId: conversation.conversationId,
-        agentName: conversation.agentName,
-        agentId: conversation.agentId,
-        exportedAt: new Date().toISOString(),
-      },
-      agentDefinition: (agentDefinition as Record<string, unknown>) || null,
-      conversationHistory: conversationHistory || '',
-      timeline: (conversation.activities || []).map(formatActivityForSummary),
-    };
-
-    await navigator.clipboard.writeText(JSON.stringify(summarizedTrace, null, 2));
+    const trace = await buildSummarizedTrace(conversation, tenantId, projectId);
+    await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
     return { success: true };
   } catch (error) {
     return {
