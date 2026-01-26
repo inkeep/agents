@@ -82,7 +82,7 @@
       ],
       "priority": 5,
       "passes": false,
-      "notes": ""
+      "notes": "BLOCKED: Requires running export-openapi script which needs proper pnpm/esbuild environment. Run 'pnpm export-openapi' in agents-api on a dev machine to generate the file."
     },
     {
       "id": "US-006",
@@ -97,8 +97,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Updated openapi.ts to read from local ../agents-api/openapi-spec.json using fs.readFileSync(). Uses single 'agents-api' key for unified spec. Typecheck passes."
     },
     {
       "id": "US-007",

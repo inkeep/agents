@@ -206,3 +206,40 @@ Started: Mon Jan 26 10:32:04 UTC 2026
 
 ---
 
+## Iteration 5 - Mon Jan 26 10:50:00 UTC 2026
+
+### Story: US-005 - Commit initial combined OpenAPI spec
+
+**Status:** BLOCKED
+
+**Notes:**
+- Cannot execute the export-openapi script in current environment due to esbuild platform mismatch
+- The node_modules were installed on macOS (darwin-arm64) but this environment runs Linux (linux-arm64)
+- Script is ready and will work when run on a dev machine with: `cd agents-api && pnpm export-openapi`
+
+---
+
+## Iteration 6 - Mon Jan 26 10:52:00 UTC 2026
+
+### Story: US-006 - Update agents-docs to read local OpenAPI spec
+
+**Implementation:**
+- Updated `agents-docs/src/lib/openapi.ts` to read from local file
+- Replaced remote URL fetches with `fs.readFileSync()` to read `../agents-api/openapi-spec.json`
+- Removed dependency on `https://agents-run-api.preview.inkeep.com/openapi.json`
+- Removed dependency on GitHub raw URL for index.json
+- Changed from multiple input keys (index, run-api) to single unified key (agents-api)
+- The `fumadocs-openapi` library accepts both URLs and parsed document objects
+- TypeScript check passed - types match the expected `OpenAPIV3_1.Document` interface
+
+**Files Changed:**
+- agents-docs/src/lib/openapi.ts
+
+**Learnings:**
+- fumadocs-openapi `createOpenAPI` input can be: URLs, file paths, or parsed document objects
+- The existing `index` and `run-api` keys came from separate specs; unified spec uses single `agents-api` key
+- MDX files referencing documents will need regeneration after spec file is available
+- Using `process.cwd()` + relative path works well for monorepo file references
+
+---
+
