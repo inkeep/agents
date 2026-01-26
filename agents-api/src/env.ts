@@ -62,6 +62,11 @@ const envSchema = z.object({
   WORKFLOW_POSTGRES_URL: z.string().optional(),
   WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
   WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
+
+  SLACK_CLIENT_ID: z.string().optional(),
+  SLACK_CLIENT_SECRET: z.string().optional(),
+  SLACK_SIGNING_SECRET: z.string().optional(),
+  SLACK_APP_URL: z.string().optional(),
 });
 
 const parseEnv = () => {
