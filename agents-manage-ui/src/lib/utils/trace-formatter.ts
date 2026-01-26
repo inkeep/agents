@@ -197,7 +197,7 @@ const ERROR_FIELDS: (keyof ActivityItem)[] = ['otelStatusDescription', 'toolStat
 /**
  * Formats an activity to show only what's visible on the timeline (without clicking into details)
  */
-export function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
+function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
   const visibleFields = new Set([
     ...BASE_VISIBLE_FIELDS,
     ...(VISIBLE_FIELDS_BY_TYPE[activity.type] || []),
