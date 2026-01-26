@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { jwtVerify } from 'jose';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   isStateSigningConfiguredMock,
@@ -28,10 +29,27 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-import app, { signStateToken, STATE_JWT_ISSUER, STATE_JWT_AUDIENCE } from '../../../domains/manage/routes/github';
+import githubRoutes, {
+  STATE_JWT_AUDIENCE,
+  STATE_JWT_ISSUER,
+  signStateToken,
+} from '../../../domains/manage/routes/github';
 
 const TEST_SECRET = 'test-secret-key-that-is-at-least-32-characters-long';
 const TEST_APP_NAME = 'test-github-app';
+const TEST_TENANT_ID = 'test-tenant-123';
+
+/**
+ * Create a test app that mounts the github routes with tenant path param.
+ * This simulates how the routes are mounted in production at /tenants/:tenantId/github.
+ */
+function createTestApp() {
+  const app = new OpenAPIHono();
+  app.route('/:tenantId', githubRoutes);
+  return app;
+}
+
+const app = createTestApp();
 
 describe('GitHub Manage Routes', () => {
   beforeEach(() => {
@@ -84,19 +102,21 @@ describe('GitHub Manage Routes', () => {
 
   describe('GET /install-url', () => {
     it('should return installation URL with state parameter', async () => {
-      const response = await app.request('/install-url', {
+      const response = await app.request(`/${TEST_TENANT_ID}/install-url`, {
         method: 'GET',
       });
 
       expect(response.status).toBe(200);
       const body = await response.json();
 
-      expect(body.url).toMatch(/^https:\/\/github\.com\/apps\/test-github-app\/installations\/new\?state=/);
+      expect(body.url).toMatch(
+        /^https:\/\/github\.com\/apps\/test-github-app\/installations\/new\?state=/
+      );
       expect(body.url).toContain('state=');
     });
 
     it('should include a valid JWT state in the URL', async () => {
-      const response = await app.request('/install-url', {
+      const response = await app.request(`/${TEST_TENANT_ID}/install-url`, {
         method: 'GET',
       });
 
@@ -114,37 +134,37 @@ describe('GitHub Manage Routes', () => {
         audience: STATE_JWT_AUDIENCE,
       });
 
-      expect(payload.tenantId).toBeDefined();
+      expect(payload.tenantId).toBe(TEST_TENANT_ID);
     });
 
     it('should return 500 when state signing secret is not configured', async () => {
       isStateSigningConfiguredMock.mockReturnValue(false);
 
-      const response = await app.request('/install-url', {
+      const response = await app.request(`/${TEST_TENANT_ID}/install-url`, {
         method: 'GET',
       });
 
       expect(response.status).toBe(500);
       const body = await response.json();
       expect(body.status).toBe(500);
-      expect(body.error).toContain('not configured');
+      expect(body.error.message).toContain('not configured');
     });
 
     it('should return 500 when GitHub App name is not configured', async () => {
       isGitHubAppNameConfiguredMock.mockReturnValue(false);
 
-      const response = await app.request('/install-url', {
+      const response = await app.request(`/${TEST_TENANT_ID}/install-url`, {
         method: 'GET',
       });
 
       expect(response.status).toBe(500);
       const body = await response.json();
       expect(body.status).toBe(500);
-      expect(body.error).toContain('not configured');
+      expect(body.error.message).toContain('not configured');
     });
 
     it('should URL-encode the state parameter', async () => {
-      const response = await app.request('/install-url', {
+      const response = await app.request(`/${TEST_TENANT_ID}/install-url`, {
         method: 'GET',
       });
 

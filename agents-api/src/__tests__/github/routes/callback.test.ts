@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SignJWT } from 'jose';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   isStateSigningConfiguredMock,
@@ -9,6 +9,10 @@ const {
   syncRepositoriesMock,
   updateInstallationStatusByGitHubIdMock,
   generateIdMock,
+  createAppJwtMock,
+  determineStatusMock,
+  fetchInstallationDetailsMock,
+  fetchInstallationRepositoriesMock,
 } = vi.hoisted(() => ({
   isStateSigningConfiguredMock: vi.fn(),
   getStateSigningSecretMock: vi.fn(),
@@ -17,19 +21,28 @@ const {
   syncRepositoriesMock: vi.fn(),
   updateInstallationStatusByGitHubIdMock: vi.fn(),
   generateIdMock: vi.fn(),
+  createAppJwtMock: vi.fn(),
+  determineStatusMock: vi.fn(),
+  fetchInstallationDetailsMock: vi.fn(),
+  fetchInstallationRepositoriesMock: vi.fn(),
 }));
 
 const { envMock } = vi.hoisted(() => ({
   envMock: {
     INKEEP_AGENTS_MANAGE_UI_URL: 'https://app.example.com',
-    GITHUB_APP_ID: 'test-app-id',
-    GITHUB_APP_PRIVATE_KEY: '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
   },
 }));
 
 vi.mock('../../../domains/github/config', () => ({
   isStateSigningConfigured: isStateSigningConfiguredMock,
   getStateSigningSecret: getStateSigningSecretMock,
+}));
+
+vi.mock('../../../domains/github/installation', () => ({
+  createAppJwt: createAppJwtMock,
+  determineStatus: determineStatusMock,
+  fetchInstallationDetails: fetchInstallationDetailsMock,
+  fetchInstallationRepositories: fetchInstallationRepositoriesMock,
 }));
 
 vi.mock('../../../env', () => ({
@@ -56,9 +69,6 @@ vi.mock('../../../logger', () => ({
     debug: vi.fn(),
   }),
 }));
-
-const fetchMock = vi.fn();
-global.fetch = fetchMock;
 
 import app from '../../../domains/github/routes/callback';
 
@@ -96,6 +106,23 @@ describe('GitHub Callback Route', () => {
     isStateSigningConfiguredMock.mockReturnValue(true);
     getStateSigningSecretMock.mockReturnValue(TEST_SECRET);
     generateIdMock.mockReturnValue('test-generated-id');
+
+    createAppJwtMock.mockResolvedValue('test-jwt-token');
+    determineStatusMock.mockImplementation((action: string) =>
+      action === 'request' ? 'pending' : 'active'
+    );
+    fetchInstallationDetailsMock.mockResolvedValue({
+      success: true,
+      installation: {
+        id: 12345,
+        account: { login: 'test-org', id: 67890, type: 'Organization' },
+      },
+    });
+    fetchInstallationRepositoriesMock.mockResolvedValue({
+      success: true,
+      repositories: [],
+    });
+
     createInstallationMock.mockResolvedValue({
       id: 'test-installation-id',
       tenantId: 'test-tenant',
@@ -132,9 +159,12 @@ describe('GitHub Callback Route', () => {
 
     it('should redirect with error for missing installation_id', async () => {
       const state = await createValidStateToken('tenant-123');
-      const response = await app.request(`/?setup_action=install&state=${encodeURIComponent(state)}`, {
-        method: 'GET',
-      });
+      const response = await app.request(
+        `/?setup_action=install&state=${encodeURIComponent(state)}`,
+        {
+          method: 'GET',
+        }
+      );
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
@@ -143,9 +173,12 @@ describe('GitHub Callback Route', () => {
 
     it('should redirect with error for missing setup_action', async () => {
       const state = await createValidStateToken('tenant-123');
-      const response = await app.request(`/?installation_id=12345&state=${encodeURIComponent(state)}`, {
-        method: 'GET',
-      });
+      const response = await app.request(
+        `/?installation_id=12345&state=${encodeURIComponent(state)}`,
+        {
+          method: 'GET',
+        }
+      );
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
@@ -172,7 +205,7 @@ describe('GitHub Callback Route', () => {
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
       expect(location).toContain('status=error');
-      expect(location).toContain('expired');
+      expect(location).toMatch(/expired/i);
     });
 
     it('should redirect with error for invalid state signature', async () => {
@@ -207,7 +240,7 @@ describe('GitHub Callback Route', () => {
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
       expect(location).toContain('status=error');
-      expect(location).toContain('not%20configured');
+      expect(location).toMatch(/not.+configured/i);
     });
 
     it('should redirect with error for invalid setup_action', async () => {
@@ -225,29 +258,13 @@ describe('GitHub Callback Route', () => {
     it('should handle setup_action=request as pending status', async () => {
       const state = await createValidStateToken('tenant-123');
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({ total_count: 0, repositories: [] }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
-      });
-
       const response = await app.request(
         `/?installation_id=12345&setup_action=request&state=${encodeURIComponent(state)}`,
         { method: 'GET' }
       );
 
       expect(response.status).toBe(302);
-
+      expect(determineStatusMock).toHaveBeenCalledWith('request');
       expect(createInstallationMock).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'pending',
@@ -259,22 +276,6 @@ describe('GitHub Callback Route', () => {
   describe('Redirect URL construction', () => {
     it('should redirect to configured MANAGE_UI_URL on success', async () => {
       const state = await createValidStateToken('tenant-123');
-
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({ total_count: 0, repositories: [] }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
-      });
 
       const response = await app.request(
         `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
@@ -291,22 +292,6 @@ describe('GitHub Callback Route', () => {
     it('should include installation_id in success redirect', async () => {
       const state = await createValidStateToken('tenant-123');
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({ total_count: 0, repositories: [] }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
-      });
-
       const response = await app.request(
         `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
         { method: 'GET' }
@@ -322,22 +307,6 @@ describe('GitHub Callback Route', () => {
     it('should create new installation when none exists', async () => {
       const state = await createValidStateToken('tenant-123');
       getInstallationByGitHubIdMock.mockResolvedValue(null);
-
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({ total_count: 0, repositories: [] }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
-      });
 
       const response = await app.request(
         `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
@@ -366,22 +335,6 @@ describe('GitHub Callback Route', () => {
         status: 'pending',
       });
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({ total_count: 0, repositories: [] }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
-      });
-
       const response = await app.request(
         `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
         { method: 'GET' }
@@ -400,26 +353,12 @@ describe('GitHub Callback Route', () => {
     it('should sync repositories after installation', async () => {
       const state = await createValidStateToken('tenant-123');
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({
-            total_count: 2,
-            repositories: [
-              { id: 1, name: 'repo1', full_name: 'test-org/repo1', private: false },
-              { id: 2, name: 'repo2', full_name: 'test-org/repo2', private: true },
-            ],
-          }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
+      fetchInstallationRepositoriesMock.mockResolvedValue({
+        success: true,
+        repositories: [
+          { id: 1, name: 'repo1', full_name: 'test-org/repo1', private: false },
+          { id: 2, name: 'repo2', full_name: 'test-org/repo2', private: true },
+        ],
       });
 
       const response = await app.request(
@@ -431,8 +370,18 @@ describe('GitHub Callback Route', () => {
       expect(syncRepositoriesMock).toHaveBeenCalledWith({
         installationId: expect.any(String),
         repositories: [
-          { repositoryId: '1', repositoryName: 'repo1', repositoryFullName: 'test-org/repo1', private: false },
-          { repositoryId: '2', repositoryName: 'repo2', repositoryFullName: 'test-org/repo2', private: true },
+          {
+            repositoryId: '1',
+            repositoryName: 'repo1',
+            repositoryFullName: 'test-org/repo1',
+            private: false,
+          },
+          {
+            repositoryId: '2',
+            repositoryName: 'repo2',
+            repositoryFullName: 'test-org/repo2',
+            private: true,
+          },
         ],
       });
     });
@@ -440,20 +389,9 @@ describe('GitHub Callback Route', () => {
     it('should handle empty repository list', async () => {
       const state = await createValidStateToken('tenant-123');
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response(JSON.stringify({ token: 'ghs_test_token' }), { status: 200 });
-        }
-        if (url.includes('/installation/repositories')) {
-          return new Response(JSON.stringify({ total_count: 0, repositories: [] }), { status: 200 });
-        }
-        return new Response('Not Found', { status: 404 });
+      fetchInstallationRepositoriesMock.mockResolvedValue({
+        success: true,
+        repositories: [],
       });
 
       const response = await app.request(
@@ -470,11 +408,9 @@ describe('GitHub Callback Route', () => {
     it('should redirect with error when GitHub installation lookup fails', async () => {
       const state = await createValidStateToken('tenant-123');
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response('Not Found', { status: 404 });
-        }
-        return new Response('Not Found', { status: 404 });
+      fetchInstallationDetailsMock.mockResolvedValue({
+        success: false,
+        error: 'Not found',
       });
 
       const response = await app.request(
@@ -490,17 +426,9 @@ describe('GitHub Callback Route', () => {
     it('should continue without repos if repository fetch fails', async () => {
       const state = await createValidStateToken('tenant-123');
 
-      fetchMock.mockImplementation(async (url: string) => {
-        if (url.includes('/app/installations/12345')) {
-          return new Response(JSON.stringify({
-            id: 12345,
-            account: { login: 'test-org', id: 67890, type: 'Organization' },
-          }), { status: 200 });
-        }
-        if (url.includes('/access_tokens')) {
-          return new Response('Unauthorized', { status: 401 });
-        }
-        return new Response('Not Found', { status: 404 });
+      fetchInstallationRepositoriesMock.mockResolvedValue({
+        success: false,
+        error: 'Unauthorized',
       });
 
       const response = await app.request(

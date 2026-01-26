@@ -3,25 +3,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Store original env values
 const originalEnv = { ...process.env };
 
-// Mock the env module
-const mockEnv = {
-  GITHUB_APP_ID: undefined as string | undefined,
-  GITHUB_APP_PRIVATE_KEY: undefined as string | undefined,
-  GITHUB_WEBHOOK_SECRET: undefined as string | undefined,
-  GITHUB_STATE_SIGNING_SECRET: undefined as string | undefined,
-  GITHUB_APP_NAME: undefined as string | undefined,
-};
+// Hoist mocks so they're available when vi.mock runs
+const { mockEnv, mockLogger } = vi.hoisted(() => ({
+  mockEnv: {
+    GITHUB_APP_ID: undefined as string | undefined,
+    GITHUB_APP_PRIVATE_KEY: undefined as string | undefined,
+    GITHUB_WEBHOOK_SECRET: undefined as string | undefined,
+    GITHUB_STATE_SIGNING_SECRET: undefined as string | undefined,
+    GITHUB_APP_NAME: undefined as string | undefined,
+  },
+  mockLogger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 vi.mock('../../env', () => ({
   env: mockEnv,
 }));
-
-// Mock the logger
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
 
 vi.mock('../../logger', () => ({
   getLogger: () => mockLogger,
@@ -106,15 +106,16 @@ describe('GitHub Config', () => {
     });
 
     it('should throw error when GITHUB_APP_ID is missing', () => {
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
-      expect(() => getGitHubAppConfig()).toThrow('GITHUB_APP_ID is required');
+      expect(() => getGitHubAppConfig()).toThrow('GitHub App credentials are not configured');
     });
 
     it('should throw error when GITHUB_APP_PRIVATE_KEY is missing', () => {
       mockEnv.GITHUB_APP_ID = '123456';
 
-      expect(() => getGitHubAppConfig()).toThrow('GITHUB_APP_PRIVATE_KEY is required');
+      expect(() => getGitHubAppConfig()).toThrow('GitHub App credentials are not configured');
     });
 
     it('should cache config after first successful call', () => {
