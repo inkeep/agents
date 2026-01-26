@@ -31,6 +31,7 @@ export const TagToDescription = {
   Workflows: 'Workflow trigger endpoints',
   UserOrganizations: 'Operations for managing user organizations',
   CLI: 'CLI authentication endpoints',
+  Invitations: 'Operations for managing invitations',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
