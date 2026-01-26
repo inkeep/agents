@@ -24,7 +24,7 @@ const logger = getLogger('webhooks');
 const triggerWebhookRoute = createRoute({
   method: 'post',
   path: '/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{triggerId}',
-  tags: ['webhooks'],
+  tags: ['Webhooks'],
   summary: 'Invoke agent via trigger webhook',
   description:
     'Webhook endpoint for third-party services to invoke an agent via a configured trigger',
