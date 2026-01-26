@@ -66,3 +66,25 @@ export function validateGitHubAppConfigOnStartup(): void {
 export function clearConfigCache(): void {
   cachedConfig = null;
 }
+
+export function isWebhookConfigured(): boolean {
+  return Boolean(env.GITHUB_WEBHOOK_SECRET);
+}
+
+export function getWebhookSecret(): string {
+  const secret = env.GITHUB_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new Error('GITHUB_WEBHOOK_SECRET is not configured');
+  }
+  return secret;
+}
+
+export function validateGitHubWebhookConfigOnStartup(): void {
+  if (!isWebhookConfigured()) {
+    logger.warn(
+      {},
+      'GitHub webhook secret not configured. Webhook endpoints will reject all requests. ' +
+        'Set GITHUB_WEBHOOK_SECRET to enable webhook processing.'
+    );
+  }
+}

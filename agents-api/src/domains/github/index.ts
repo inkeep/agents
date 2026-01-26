@@ -14,7 +14,14 @@ export function createGithubRoutes() {
 
 export const githubRoutes = createGithubRoutes();
 
-export { type GitHubAppConfig, getGitHubAppConfig, isGitHubAppConfigured } from './config';
+export {
+  type GitHubAppConfig,
+  getGitHubAppConfig,
+  getWebhookSecret,
+  isGitHubAppConfigured,
+  isWebhookConfigured,
+  validateGitHubWebhookConfigOnStartup,
+} from './config';
 export {
   type GenerateInstallationAccessTokenResult,
   type GenerateTokenError,
