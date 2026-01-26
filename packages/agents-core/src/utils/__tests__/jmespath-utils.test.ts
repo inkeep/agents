@@ -185,6 +185,7 @@ describe('jmespath-utils', () => {
 
     describe('dangerous pattern detection', () => {
       it('should reject template injection patterns', () => {
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: <This is an example of a template injection>
         const result = validateJMESPathSecure('body.${user.id}');
         expect(result.valid).toBe(false);
         expect(result.error).toContain('dangerous pattern');
@@ -257,6 +258,7 @@ describe('jmespath-utils', () => {
       });
 
       it('should check patterns before compile', () => {
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: <This is an example of a template injection>
         const result = validateJMESPathSecure('body.${test}');
         expect(result.valid).toBe(false);
         expect(result.error).toContain('dangerous pattern');
@@ -355,6 +357,7 @@ describe('jmespath-utils', () => {
     it('should have description with invalid examples', () => {
       const schema = jmespathString();
       const description = schema.description;
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: <This is an example of an invalid JMESPath expression>
       expect(description).toContain('${...}');
       expect(description).toContain('eval(...)');
       expect(description).toContain('constructor');
