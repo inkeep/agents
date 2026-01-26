@@ -236,7 +236,13 @@ export interface ProjectResourceCounts {
   externalAgents: number;
 }
 
-export const TOOL_STATUS_VALUES = ['healthy', 'unhealthy', 'unknown', 'needs_auth'] as const;
+export const TOOL_STATUS_VALUES = [
+  'healthy',
+  'unhealthy',
+  'unknown',
+  'needs_auth',
+  'unavailable',
+] as const;
 
 export const VALID_RELATION_TYPES = ['transfer', 'delegate'] as const;
 

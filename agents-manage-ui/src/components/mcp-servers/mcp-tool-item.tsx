@@ -183,6 +183,10 @@ export function MCPToolItem({
               <Badge variant="success">{tool.status}</Badge>
             )}
 
+            {!isLoadingStatus && tool.status === 'unavailable' && (
+              <Badge variant="warning">Unavailable</Badge>
+            )}
+
             {!isLoadingStatus && tool.status === 'needs_auth' && (
               <div className="flex items-center gap-2">
                 <Badge variant="warning">Needs Login</Badge>

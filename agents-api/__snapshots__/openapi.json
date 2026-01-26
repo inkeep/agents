@@ -5395,7 +5395,8 @@
               "healthy",
               "unhealthy",
               "unknown",
-              "needs_auth"
+              "needs_auth",
+              "unavailable"
             ],
             "type": "string"
           },
@@ -29945,7 +29946,8 @@
                 "healthy",
                 "unhealthy",
                 "unknown",
-                "needs_auth"
+                "needs_auth",
+                "unavailable"
               ],
               "type": "string"
             }
