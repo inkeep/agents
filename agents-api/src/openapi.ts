@@ -2,6 +2,34 @@ import { swaggerUI } from '@hono/swagger-ui';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, Env } from 'hono';
 
+export const TagToDescription = {
+  Agent: 'Operations for managing individual agents',
+  'Agent Artifact Component Relations':
+    'Operations for managing agent artifact component relationships',
+  'Agent Data Component Relations': 'Operations for managing agent data component relationships',
+  Agents: 'Operations for managing agents',
+  'API Keys': 'Operations for managing API keys',
+  'Artifact Component': 'Operations for managing artifact components',
+  'Context Config': 'Operations for managing context configurations',
+  Credential: 'Operations for managing credentials',
+  'Credential Store': 'Operations for managing credential stores',
+  'Data Component': 'Operations for managing data components',
+  'External Agents': 'Operations for managing external agents',
+  'Full Agent': 'Operations for managing complete agent definitions',
+  'Full Project': 'Operations for managing complete project definitions',
+  'Function Tools': 'Operations for managing function tools',
+  Functions: 'Operations for managing functions',
+  OAuth: 'OAuth authentication endpoints for MCP tools',
+  Projects: 'Operations for managing projects',
+  'Sub Agent External Agent Relations':
+    'Operations for managing sub agent external agent relationships',
+  'Sub Agent Relations': 'Operations for managing sub agent relationships',
+  'Sub Agent Team Agent Relations': 'Operations for managing sub agent team agent relationships',
+  SubAgent: 'Operations for managing sub agents',
+  'SubAgent Tool Relations': 'Operations for managing sub agent tool relationships',
+  Tools: 'Operations for managing MCP tools',
+};
+
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
@@ -31,100 +59,10 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
             description: 'API Server',
           },
         ],
-        tags: [
-          {
-            name: 'Agent',
-            description: 'Operations for managing individual agents',
-          },
-          {
-            name: 'Agent Artifact Component Relations',
-            description: 'Operations for managing agent artifact component relationships',
-          },
-          {
-            name: 'Agent Data Component Relations',
-            description: 'Operations for managing agent data component relationships',
-          },
-          {
-            name: 'Agents',
-            description: 'Operations for managing agents',
-          },
-          {
-            name: 'API Keys',
-            description: 'Operations for managing API keys',
-          },
-          {
-            name: 'Artifact Component',
-            description: 'Operations for managing artifact components',
-          },
-          {
-            name: 'Context Config',
-            description: 'Operations for managing context configurations',
-          },
-          {
-            name: 'Credential',
-            description: 'Operations for managing credentials',
-          },
-          {
-            name: 'Credential Store',
-            description: 'Operations for managing credential stores',
-          },
-          {
-            name: 'Data Component',
-            description: 'Operations for managing data components',
-          },
-          {
-            name: 'External Agents',
-            description: 'Operations for managing external agents',
-          },
-          {
-            name: 'Full Agent',
-            description: 'Operations for managing complete agent definitions',
-          },
-          {
-            name: 'Full Project',
-            description: 'Operations for managing complete project definitions',
-          },
-          {
-            name: 'Function Tools',
-            description: 'Operations for managing function tools',
-          },
-          {
-            name: 'Functions',
-            description: 'Operations for managing functions',
-          },
-          {
-            name: 'OAuth',
-            description: 'OAuth authentication endpoints for MCP tools',
-          },
-          {
-            name: 'Projects',
-            description: 'Operations for managing projects',
-          },
-          {
-            name: 'Sub Agent External Agent Relations',
-            description: 'Operations for managing sub agent external agent relationships',
-          },
-          {
-            name: 'Sub Agent Relations',
-            description: 'Operations for managing sub agent relationships',
-          },
-          {
-            name: 'Sub Agent Team Agent Relations',
-            description: 'Operations for managing sub agent team agent relationships',
-          },
-          {
-            name: 'SubAgent',
-            description: 'Operations for managing sub agents',
-          },
-          {
-            name: 'SubAgent Tool Relations',
-            description: 'Operations for managing sub agent tool relationships',
-          },
-          {
-            name: 'Tools',
-            description: 'Operations for managing MCP tools',
-          },
-        ],
+        tags: Object.entries(TagToDescription).map(([key, value]) => ({
+          name: key,
+          description: value,
+        })),
       });
 
       // Add security schemes and global security requirements
