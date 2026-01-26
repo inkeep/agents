@@ -4,8 +4,7 @@ import {
   type ConversationHistoryResponse,
   fetchConversationHistory,
 } from '../api/conversations-client';
-
-type ActionResult<T = void> = { success: true; data: T } | { success: false; error: string };
+import type { ActionResult } from './types';
 
 export async function fetchConversationHistoryAction(
   tenantId: string,
