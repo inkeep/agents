@@ -1,6 +1,7 @@
-import { SignJWT, importPKCS8 } from 'jose';
-import { getGitHubAppConfig } from './config';
+import { createPrivateKey } from 'node:crypto';
+import { SignJWT } from 'jose';
 import { getLogger } from '../../logger';
+import { getGitHubAppConfig } from './config';
 
 const logger = getLogger('github-installation');
 
@@ -46,7 +47,11 @@ export type GenerateInstallationAccessTokenResult = GenerateTokenResult | Genera
 async function createAppJwt(): Promise<string> {
   const config = getGitHubAppConfig();
 
-  const privateKey = await importPKCS8(config.privateKey, 'RS256');
+  // Use Node's crypto to handle both PKCS#1 (RSA PRIVATE KEY) and PKCS#8 (PRIVATE KEY) formats
+  const privateKey = createPrivateKey({
+    key: config.privateKey,
+    format: 'pem',
+  });
 
   const now = Math.floor(Date.now() / 1000);
 
@@ -91,10 +96,6 @@ export async function lookupInstallationForRepo(
     });
 
     if (response.status === 404) {
-      logger.info(
-        { repositoryOwner, repositoryName },
-        'GitHub App not installed on repository'
-      );
       return {
         success: false,
         errorType: 'not_installed',
@@ -212,11 +213,6 @@ export async function generateInstallationAccessToken(
         message: 'Unexpected response format from GitHub API',
       };
     }
-
-    logger.info(
-      { installationId, expiresAt },
-      'Generated GitHub App installation access token'
-    );
 
     return {
       success: true,

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createTestOidcToken,
   createMalformedToken,
+  createTestOidcToken,
   createTokenWithDifferentKey,
   generateTestKeyPair,
 } from '../../utils/testJwt';
@@ -152,7 +152,6 @@ describe('GitHub Token Exchange Route', () => {
         const body = await response.json();
         expect(body.status).toBe(400);
         expect(body.title).toBe('Bad Request');
-        expect(body.type).toBe('https://api.inkeep.com/problems/malformed-token');
         expect(body.error).toContain('Invalid JWT format');
       });
 
@@ -197,7 +196,6 @@ describe('GitHub Token Exchange Route', () => {
         const body = await response.json();
         expect(body.status).toBe(401);
         expect(body.title).toBe('Token Validation Failed');
-        expect(body.type).toBe('https://api.inkeep.com/problems/token-validation-invalid-signature');
         expect(body.error).toContain('Invalid token signature');
       });
 
@@ -221,7 +219,6 @@ describe('GitHub Token Exchange Route', () => {
         expect(response.status).toBe(401);
         const body = await response.json();
         expect(body.status).toBe(401);
-        expect(body.type).toBe('https://api.inkeep.com/problems/token-validation-wrong-issuer');
         expect(body.error).toContain('Invalid token issuer');
       });
 
@@ -245,7 +242,6 @@ describe('GitHub Token Exchange Route', () => {
         expect(response.status).toBe(401);
         const body = await response.json();
         expect(body.status).toBe(401);
-        expect(body.type).toBe('https://api.inkeep.com/problems/token-validation-wrong-audience');
         expect(body.error).toContain('Invalid token audience');
       });
 
@@ -269,7 +265,6 @@ describe('GitHub Token Exchange Route', () => {
         expect(response.status).toBe(401);
         const body = await response.json();
         expect(body.status).toBe(401);
-        expect(body.type).toBe('https://api.inkeep.com/problems/token-validation-expired');
         expect(body.error).toContain('expired');
       });
     });
@@ -293,7 +288,8 @@ describe('GitHub Token Exchange Route', () => {
         lookupInstallationForRepoMock.mockResolvedValue({
           success: false,
           errorType: 'not_installed',
-          message: 'Inkeep GitHub App is not installed on repository test-org/test-repo. Please install the app from https://github.com/apps/inkeep-agents',
+          message:
+            'Inkeep GitHub App is not installed on repository test-org/test-repo. Please install the app from https://github.com/apps/inkeep-agents',
         });
 
         const response = await app.request('/', {
@@ -306,7 +302,6 @@ describe('GitHub Token Exchange Route', () => {
         const body = await response.json();
         expect(body.status).toBe(403);
         expect(body.title).toBe('GitHub App Not Installed');
-        expect(body.type).toBe('https://api.inkeep.com/problems/app-not-installed');
         expect(body.error).toContain('not installed');
       });
     });
@@ -327,7 +322,6 @@ describe('GitHub Token Exchange Route', () => {
         const body = await response.json();
         expect(body.status).toBe(500);
         expect(body.title).toBe('GitHub App Not Configured');
-        expect(body.type).toBe('https://api.inkeep.com/problems/configuration-error');
         expect(body.error).toContain('credentials are not configured');
       });
 
@@ -362,7 +356,6 @@ describe('GitHub Token Exchange Route', () => {
         const body = await response.json();
         expect(body.status).toBe(500);
         expect(body.title).toBe('Installation Lookup Failed');
-        expect(body.type).toBe('https://api.inkeep.com/problems/installation-lookup-error');
         expect(body.error).toContain('Failed to fetch installation');
       });
 
@@ -405,7 +398,6 @@ describe('GitHub Token Exchange Route', () => {
         const body = await response.json();
         expect(body.status).toBe(500);
         expect(body.title).toBe('Token Generation Failed');
-        expect(body.type).toBe('https://api.inkeep.com/problems/token-generation-error');
         expect(body.error).toContain('Failed to generate access token');
       });
 

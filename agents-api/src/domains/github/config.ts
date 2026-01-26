@@ -18,7 +18,8 @@ export function getGitHubAppConfig(): GitHubAppConfig {
   }
 
   const appId = process.env.GITHUB_APP_ID;
-  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
+  // Handle escaped newlines (common when setting env vars from CLI or .env files)
+  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   const result = GitHubAppConfigSchema.safeParse({
     appId,

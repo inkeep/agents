@@ -110,6 +110,12 @@ function createAgentsHono(config: AppConfig) {
     if (c.req.path.includes('/signoz/')) {
       return next();
     }
+
+    // GitHub OIDC token exchange - server-to-server API called from GitHub Actions.
+    if (c.req.path.includes('/api/github/')) {
+      return next();
+    }
+
     return cors(defaultCorsConfig)(c, next);
   });
 

@@ -8943,21 +8943,12 @@
                       "description": "Human-readable error message",
                       "type": "string"
                     },
-                    "instance": {
-                      "description": "URI reference identifying the specific occurrence",
-                      "type": "string"
-                    },
                     "status": {
                       "description": "HTTP status code",
                       "type": "number"
                     },
                     "title": {
                       "description": "Short, human-readable summary of the problem",
-                      "type": "string"
-                    },
-                    "type": {
-                      "description": "URI reference identifying the problem type",
-                      "format": "uri",
                       "type": "string"
                     }
                   },
@@ -8985,21 +8976,12 @@
                       "description": "Human-readable error message",
                       "type": "string"
                     },
-                    "instance": {
-                      "description": "URI reference identifying the specific occurrence",
-                      "type": "string"
-                    },
                     "status": {
                       "description": "HTTP status code",
                       "type": "number"
                     },
                     "title": {
                       "description": "Short, human-readable summary of the problem",
-                      "type": "string"
-                    },
-                    "type": {
-                      "description": "URI reference identifying the problem type",
-                      "format": "uri",
                       "type": "string"
                     }
                   },
@@ -9027,21 +9009,12 @@
                       "description": "Human-readable error message",
                       "type": "string"
                     },
-                    "instance": {
-                      "description": "URI reference identifying the specific occurrence",
-                      "type": "string"
-                    },
                     "status": {
                       "description": "HTTP status code",
                       "type": "number"
                     },
                     "title": {
                       "description": "Short, human-readable summary of the problem",
-                      "type": "string"
-                    },
-                    "type": {
-                      "description": "URI reference identifying the problem type",
-                      "format": "uri",
                       "type": "string"
                     }
                   },
@@ -9069,21 +9042,12 @@
                       "description": "Human-readable error message",
                       "type": "string"
                     },
-                    "instance": {
-                      "description": "URI reference identifying the specific occurrence",
-                      "type": "string"
-                    },
                     "status": {
                       "description": "HTTP status code",
                       "type": "number"
                     },
                     "title": {
                       "description": "Short, human-readable summary of the problem",
-                      "type": "string"
-                    },
-                    "type": {
-                      "description": "URI reference identifying the problem type",
-                      "format": "uri",
                       "type": "string"
                     }
                   },

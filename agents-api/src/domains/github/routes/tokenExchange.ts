@@ -1,10 +1,10 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { Hook } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { Context, Env } from 'hono';
-import { isGitHubAppConfigured } from '../config';
-import { validateOidcToken } from '../oidcToken';
-import { lookupInstallationForRepo, generateInstallationAccessToken } from '../installation';
 import { getLogger } from '../../../logger';
+import { isGitHubAppConfigured } from '../config';
+import { generateInstallationAccessToken, lookupInstallationForRepo } from '../installation';
+import { validateOidcToken } from '../oidcToken';
 
 const logger = getLogger('github-token-exchange');
 
@@ -15,12 +15,13 @@ const logger = getLogger('github-token-exchange');
 const validationErrorHook: Hook<any, Env, any, any> = (result, c: Context) => {
   if (!result.success) {
     const issues = result.error.issues;
-    const errorMessage = issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
+    const errorMessage = issues
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join('; ');
 
     c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
-        type: 'https://api.inkeep.com/problems/validation-error',
         title: 'Bad Request',
         status: 400,
         detail: errorMessage,
@@ -47,12 +48,10 @@ const TokenExchangeResponseSchema = z.object({
 });
 
 const ProblemDetailsSchema = z.object({
-  type: z.string().url().optional().describe('URI reference identifying the problem type'),
   title: z.string().describe('Short, human-readable summary of the problem'),
   status: z.number().describe('HTTP status code'),
   detail: z.string().optional().describe('Human-readable explanation specific to this occurrence'),
   error: z.string().describe('Human-readable error message'),
-  instance: z.string().optional().describe('URI reference identifying the specific occurrence'),
 });
 
 const tokenExchangeRoute = createRoute({
@@ -130,7 +129,6 @@ app.openapi(tokenExchangeRoute, async (c) => {
     c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
-        type: 'https://api.inkeep.com/problems/configuration-error',
         title: 'GitHub App Not Configured',
         status: 500,
         detail: errorMessage,
@@ -152,7 +150,6 @@ app.openapi(tokenExchangeRoute, async (c) => {
     if (errorType === 'malformed') {
       return c.json(
         {
-          type: 'https://api.inkeep.com/problems/malformed-token',
           title: 'Bad Request',
           status: 400,
           detail: validationResult.message,
@@ -164,7 +161,6 @@ app.openapi(tokenExchangeRoute, async (c) => {
 
     return c.json(
       {
-        type: `https://api.inkeep.com/problems/token-validation-${errorType.replace(/_/g, '-')}`,
         title: 'Token Validation Failed',
         status: 401,
         detail: validationResult.message,
@@ -175,7 +171,6 @@ app.openapi(tokenExchangeRoute, async (c) => {
   }
 
   const { claims } = validationResult;
-  logger.info({ repository: claims.repository, actor: claims.actor }, 'OIDC token validated successfully');
 
   const installationResult = await lookupInstallationForRepo(
     claims.repository_owner,
@@ -186,14 +181,9 @@ app.openapi(tokenExchangeRoute, async (c) => {
     const { errorType, message } = installationResult;
 
     if (errorType === 'not_installed') {
-      logger.warn(
-        { repository: claims.repository },
-        'GitHub App not installed on repository'
-      );
       c.header('Content-Type', 'application/problem+json');
       return c.json(
         {
-          type: 'https://api.inkeep.com/problems/app-not-installed',
           title: 'GitHub App Not Installed',
           status: 403,
           detail: message,
@@ -210,7 +200,6 @@ app.openapi(tokenExchangeRoute, async (c) => {
     c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
-        type: 'https://api.inkeep.com/problems/installation-lookup-error',
         title: 'Installation Lookup Failed',
         status: 500,
         detail: message,
@@ -231,13 +220,17 @@ app.openapi(tokenExchangeRoute, async (c) => {
   if (!tokenResult.success) {
     const { errorType, message } = tokenResult;
     logger.error(
-      { errorType, message, installationId: installation.installationId, repository: claims.repository },
+      {
+        errorType,
+        message,
+        installationId: installation.installationId,
+        repository: claims.repository,
+      },
       'Failed to generate installation access token'
     );
     c.header('Content-Type', 'application/problem+json');
     return c.json(
       {
-        type: 'https://api.inkeep.com/problems/token-generation-error',
         title: 'Token Generation Failed',
         status: 500,
         detail: message,
@@ -249,7 +242,11 @@ app.openapi(tokenExchangeRoute, async (c) => {
 
   const { accessToken } = tokenResult;
   logger.info(
-    { installationId: installation.installationId, repository: claims.repository, expiresAt: accessToken.expiresAt },
+    {
+      installationId: installation.installationId,
+      repository: claims.repository,
+      expiresAt: accessToken.expiresAt,
+    },
     'Token exchange completed successfully'
   );
 
