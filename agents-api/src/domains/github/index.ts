@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { validateGitHubAppConfigOnStartup } from './config';
+import callbackRoutes from './routes/callback';
 import tokenExchangeRoutes from './routes/tokenExchange';
 
 export function createGithubRoutes() {
@@ -8,6 +9,7 @@ export function createGithubRoutes() {
   const app = new Hono();
 
   app.route('/token-exchange', tokenExchangeRoutes);
+  app.route('/callback', callbackRoutes);
 
   return app;
 }
