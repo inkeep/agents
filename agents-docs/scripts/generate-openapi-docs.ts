@@ -12,6 +12,8 @@ const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
 const ignoreRoutes = new Set(['/health', '/manage/capabilities']);
 
+const usedTags = new Set<string>();
+
 async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
   console.time('Done in');
@@ -31,11 +33,10 @@ async function main(): Promise<void> {
         if (ignoreRoutes.has(op.path)) {
           continue;
         }
-
         // biome-ignore lint/style/noNonNullAssertion: ignore
         const { operation } = builder.fromExtractedOperation(op)!;
         // @ts-expect-error -- wrong type
-        const { tags } = operation;
+        const tags = operation.tags as string[];
         const { error } = TagSchema.safeParse(tags);
         if (error) {
           const prettyError = z.prettifyError(error);
@@ -43,9 +44,18 @@ async function main(): Promise<void> {
 
 ${prettyError}`);
         }
+        for (const tag of tags) {
+          usedTags.add(tag);
+        }
       }
     },
   });
+
+  for (const tag of Object.keys(TagToDescription)) {
+    if (!usedTags.has(tag)) {
+      throw new Error(`Tag "${tag}" is unused and should be removed.`);
+    }
+  }
 
   // Generate
   await generateFiles({
