@@ -75,7 +75,8 @@
     "spicedb:read:orgs": "zed relationship read organization --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
-    "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply"
+    "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
+    "docs:regenerate": "pnpm --filter @inkeep/agents-api export-openapi && pnpm --filter @inkeep/agents-docs generate-openapi && echo '✅ API docs regenerated successfully'"
   },
   "version": "0.1.0",
   "dependencies": {

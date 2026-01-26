@@ -281,3 +281,32 @@ Started: Mon Jan 26 10:32:04 UTC 2026
 
 ---
 
+## Iteration 8 - Mon Jan 26 10:58:00 UTC 2026
+
+### Story: US-008 - Add npm script for full docs regeneration workflow
+
+**Implementation:**
+- Added `docs:regenerate` script to root package.json
+- Script runs: (1) export-openapi in agents-api, (2) generate-openapi in agents-docs
+- Outputs success message on completion
+- Added "API Reference Documentation Workflow" section to AGENTS.md with:
+  - Command to regenerate docs: `pnpm docs:regenerate`
+  - Individual step commands for running separately
+  - Important note about CI validation
+
+**Script command:**
+```bash
+pnpm --filter @inkeep/agents-api export-openapi && pnpm --filter @inkeep/agents-docs generate-openapi && echo '✅ API docs regenerated successfully'
+```
+
+**Files Changed:**
+- package.json (added docs:regenerate script)
+- AGENTS.md (added API Reference Documentation Workflow section)
+
+**Learnings:**
+- Using `pnpm --filter` allows running package-specific scripts from monorepo root
+- Chaining with `&&` ensures second command only runs if first succeeds
+- AGENTS.md is the canonical location for coding/workflow documentation per CONTRIBUTING.md
+
+---
+

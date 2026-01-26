@@ -89,6 +89,20 @@ pnpm dev              # Start documentation site (port 3000)
 pnpm build           # Build documentation for production
 ```
 
+### API Reference Documentation Workflow
+When making changes to API routes in `agents-api/src/domains/**`:
+
+```bash
+# Regenerate OpenAPI spec and docs (from monorepo root)
+pnpm docs:regenerate
+
+# Or run steps individually:
+cd agents-api && pnpm export-openapi  # Generate openapi-spec.json
+cd agents-docs && pnpm generate-openapi  # Regenerate MDX files
+```
+
+**Important:** The CI will fail if the committed `openapi-spec.json` is out of sync with the codebase. Always run `pnpm docs:regenerate` after modifying API routes and commit the updated spec file.
+
 ## Code Style (Biome enforced)
 - **Imports**: Use type imports (`import type { Foo } from './bar'`), organize imports enabled, barrel exports (`export * from './module'`)
 - **Formatting**: Single quotes, semicolons required, 100 char line width, 2 space indent, ES5 trailing commas

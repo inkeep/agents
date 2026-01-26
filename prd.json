@@ -128,8 +128,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added docs:regenerate script to root package.json and documented workflow in AGENTS.md under 'API Reference Documentation Workflow' section."
     }
   ]
 }
