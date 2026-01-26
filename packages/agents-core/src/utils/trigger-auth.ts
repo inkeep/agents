@@ -1,8 +1,8 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Context } from 'hono';
-import * as jmespath from 'jmespath';
 import type { z } from 'zod';
+import { searchJMESPath } from './jmespath-utils';
 import type {
   SignatureVerificationConfig,
   TriggerAuthenticationStoredSchema,
@@ -184,7 +184,7 @@ function extractSignature(
   } else if (signature.source === 'body') {
     try {
       const bodyData = JSON.parse(body);
-      value = jmespath.search(bodyData, signature.key) as string | undefined;
+      value = searchJMESPath<string | undefined>(bodyData, signature.key);
     } catch {
       return null;
     }
@@ -248,7 +248,7 @@ function extractComponent(
     } else {
       try {
         const bodyData = JSON.parse(body);
-        value = jmespath.search(bodyData, component.key) as string | undefined;
+        value = searchJMESPath<string | undefined>(bodyData, component.key);
       } catch {
         return component.required ? null : '';
       }
