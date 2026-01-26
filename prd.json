@@ -1,0 +1,135 @@
+{
+  "project": "agents",
+  "branchName": "ralph/api-reference-docs-automation",
+  "description": "Automate API reference documentation generation for all three API domains (/manage, /run, /evals) with offline builds and CI validation",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Audit and clean up OpenAPI tags in manage domain",
+      "description": "As a developer, I need all /manage endpoints to have consistent, well-organized tags for logical grouping in the API docs.",
+      "acceptanceCriteria": [
+        "All /manage endpoints have consistent tags assigned",
+        "Tag names follow PascalCase naming convention",
+        "No duplicate or ambiguous tags within the manage domain",
+        "Each endpoint has at least one tag assigned",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Completed: All manage domain tags standardized to PascalCase. 28 files updated."
+    },
+    {
+      "id": "US-002",
+      "title": "Audit and clean up OpenAPI tags in run domain",
+      "description": "As a developer, I need all /run endpoints to have consistent, well-organized tags for logical grouping in the API docs.",
+      "acceptanceCriteria": [
+        "All /run endpoints have consistent tags assigned",
+        "Tag names follow PascalCase naming convention",
+        "No duplicate or ambiguous tags within the run domain",
+        "Each endpoint has at least one tag assigned",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Audit and clean up OpenAPI tags in evals domain",
+      "description": "As a developer, I need all /evals endpoints to have consistent, well-organized tags for logical grouping in the API docs.",
+      "acceptanceCriteria": [
+        "All /evals endpoints have consistent tags assigned",
+        "Tag names follow PascalCase naming convention",
+        "No duplicate or ambiguous tags within the evals domain",
+        "Each endpoint has at least one tag assigned",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create OpenAPI spec export script in agents-api",
+      "description": "As a developer, I need a script that extracts the combined OpenAPI spec from the Hono app so it can be committed to the repository.",
+      "acceptanceCriteria": [
+        "Script located at agents-api/scripts/export-openapi-spec.ts",
+        "Script imports the configured app from createApp.ts",
+        "Script calls app.getOpenAPI31Document() to get the spec object",
+        "Script overrides servers array with production URL first, then localhost",
+        "Script outputs to agents-api/openapi-spec.json",
+        "Can run without starting an HTTP server",
+        "Includes all route metadata (descriptions, schemas, security requirements, tags)",
+        "Script is executable via pnpm export-openapi in agents-api package",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Commit initial combined OpenAPI spec",
+      "description": "As a developer, I need the generated OpenAPI spec committed to the repository so agents-docs can read it locally.",
+      "acceptanceCriteria": [
+        "Run the export-openapi script to generate agents-api/openapi-spec.json",
+        "Spec includes all /manage/* endpoints with correct schemas",
+        "Spec includes all /run/* endpoints with correct schemas",
+        "Spec includes all /evals/* endpoints with correct schemas",
+        "Spec validates against OpenAPI 3.1.0 schema",
+        "File is not in .gitignore",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Update agents-docs to read local OpenAPI spec",
+      "description": "As a developer, I need agents-docs to read the OpenAPI spec from the local monorepo instead of fetching from remote URLs.",
+      "acceptanceCriteria": [
+        "agents-docs/src/lib/openapi.ts reads from ../../agents-api/openapi-spec.json",
+        "Remove dependency on https://agents-run-api.preview.inkeep.com/openapi.json",
+        "Remove dependency on remote index.json GitHub URL",
+        "Build succeeds when offline (no network requests for specs)",
+        "Generated docs structure remains unchanged",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add CI job to validate OpenAPI spec",
+      "description": "As a developer, I want CI to automatically detect when the OpenAPI spec is out of sync with the code so documentation drift is caught before merge.",
+      "acceptanceCriteria": [
+        "CI job runs on PRs that modify files in agents-api/src/domains/**",
+        "Job regenerates the OpenAPI spec using the export script",
+        "Job fails if regenerated spec differs from committed spec",
+        "Failure message clearly indicates how to update the spec (pnpm export-openapi)",
+        "Job runs in the fast-checks CI tier for quick feedback",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add npm script for full docs regeneration workflow",
+      "description": "As a developer, I need a single command to regenerate the OpenAPI spec and docs locally when making API changes.",
+      "acceptanceCriteria": [
+        "Root package.json has script pnpm docs:regenerate",
+        "Script runs: (1) export-openapi in agents-api, (2) generate-openapi in agents-docs",
+        "Script outputs clear success/failure messages",
+        "CONTRIBUTING.md or README updated with workflow instructions",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

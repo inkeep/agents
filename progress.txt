@@ -1,0 +1,110 @@
+# Progress Log - feature/api-docs-gen
+
+Started: Mon Jan 26 10:32:04 UTC 2026
+
+---
+
+## Iteration 1 - Mon Jan 26 10:32:04 UTC 2026
+
+
+---
+
+## Iteration 2 - Mon Jan 26 10:32:09 UTC 2026
+
+
+---
+
+## Iteration 3 - Mon Jan 26 10:32:12 UTC 2026
+
+
+---
+
+## Iteration 4 - Mon Jan 26 10:32:15 UTC 2026
+
+
+---
+
+## Iteration 5 - Mon Jan 26 10:32:18 UTC 2026
+
+
+---
+
+## Iteration 6 - Mon Jan 26 10:32:21 UTC 2026
+
+
+---
+
+## Iteration 7 - Mon Jan 26 10:32:25 UTC 2026
+
+
+---
+
+## Iteration 8 - Mon Jan 26 10:32:30 UTC 2026
+
+
+---
+
+## Iteration 9 - Mon Jan 26 10:32:33 UTC 2026
+
+
+---
+
+## Iteration 10 - Mon Jan 26 10:32:36 UTC 2026
+
+
+---
+
+## Iteration 1 - Mon Jan 26 10:33:17 UTC 2026
+
+### Story: US-001 - Audit and clean up OpenAPI tags in manage domain
+
+**Implementation:**
+- Identified inconsistent tag naming patterns across 28 manage domain route files
+- Standardized all tags to PascalCase convention (no spaces, no hyphens)
+- Fixed kebab-case tags: `user-organizations` -> `UserOrganizations`
+- Fixed lowercase tags: `invitations` -> `Invitations`, `cli` -> `CLI`
+- Fixed space-separated tags: `API Keys` -> `APIKeys`, `MCP Catalog` -> `MCPCatalog`
+- Fixed singular vs plural inconsistencies: `Credential` -> `Credentials`, `SubAgent` -> `SubAgents`
+- Fixed inconsistent naming: `Agent` -> `Agents` (unified), `Full Agent` -> `FullAgent`
+- Standardized SubAgent relation tags: e.g., `Sub Agent Relations` -> `SubAgentRelations`
+- Standardized third-party tags: `Third-Party MCP Servers` -> `ThirdPartyMCPServers`
+
+**Files Changed:**
+- agents-api/src/domains/manage/routes/agent.ts
+- agents-api/src/domains/manage/routes/agentFull.ts
+- agents-api/src/domains/manage/routes/agentToolRelations.ts
+- agents-api/src/domains/manage/routes/apiKeys.ts
+- agents-api/src/domains/manage/routes/artifactComponents.ts
+- agents-api/src/domains/manage/routes/cliAuth.ts
+- agents-api/src/domains/manage/routes/contextConfigs.ts
+- agents-api/src/domains/manage/routes/credentialStores.ts
+- agents-api/src/domains/manage/routes/credentials.ts
+- agents-api/src/domains/manage/routes/dataComponents.ts
+- agents-api/src/domains/manage/routes/externalAgents.ts
+- agents-api/src/domains/manage/routes/functionTools.ts
+- agents-api/src/domains/manage/routes/invitations.ts
+- agents-api/src/domains/manage/routes/mcpCatalog.ts
+- agents-api/src/domains/manage/routes/projectFull.ts
+- agents-api/src/domains/manage/routes/projectMembers.ts
+- agents-api/src/domains/manage/routes/projectPermissions.ts
+- agents-api/src/domains/manage/routes/subAgentArtifactComponents.ts
+- agents-api/src/domains/manage/routes/subAgentDataComponents.ts
+- agents-api/src/domains/manage/routes/subAgentExternalAgentRelations.ts
+- agents-api/src/domains/manage/routes/subAgentFunctionTools.ts
+- agents-api/src/domains/manage/routes/subAgentRelations.ts
+- agents-api/src/domains/manage/routes/subAgentTeamAgentRelations.ts
+- agents-api/src/domains/manage/routes/subAgentToolRelations.ts
+- agents-api/src/domains/manage/routes/subAgents.ts
+- agents-api/src/domains/manage/routes/thirdPartyMCPServers.ts
+- agents-api/src/domains/manage/routes/userOrganizations.ts
+- agents-api/src/domains/manage/routes/userProjectMemberships.ts
+
+**Learnings:**
+- Tags are defined in the `createRoute()` call within each route file
+- Use `replace_all: true` for batch replacements across multiple occurrences in a file
+- PascalCase without spaces is the standard: `UserOrganizations`, not `User Organizations`
+- Consistent plural form for resource collections: `Agents`, `Credentials`, `Tools`
+- Note: evals routes under manage/routes/evals/ use `Evaluations` tag - consistent and PascalCase
+
+---
+
