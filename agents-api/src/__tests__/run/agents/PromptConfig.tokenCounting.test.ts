@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
 import type { SystemPromptV1 } from '../../../domains/run/agents/types';
-import { Phase1Config } from '../../../domains/run/agents/versions/v1/Phase1Config';
+import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
-describe('Phase1Config Token Counting', () => {
+describe('PromptConfig Token Counting', () => {
   let builder: SystemPromptBuilder<SystemPromptV1>;
 
   beforeEach(() => {
-    builder = new SystemPromptBuilder('v1', new Phase1Config());
+    builder = new SystemPromptBuilder('v1', new PromptConfig());
   });
 
   describe('Artifact Token Counting', () => {
@@ -17,7 +17,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
       };
 
       const result = builder.buildSystemPrompt(config);
@@ -46,7 +45,6 @@ describe('Phase1Config Token Counting', () => {
             ],
           },
         ],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -63,7 +61,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -95,7 +92,6 @@ describe('Phase1Config Token Counting', () => {
             },
           },
         ],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -112,7 +108,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -159,7 +154,6 @@ describe('Phase1Config Token Counting', () => {
             parts: [{ kind: 'data', data: { summary: { title: 'First' } } }],
           },
         ],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: true,
       };
 
@@ -196,7 +190,6 @@ describe('Phase1Config Token Counting', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         hasAgentArtifactComponents: false,
       };
 
