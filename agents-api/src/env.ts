@@ -72,6 +72,7 @@ const envSchema = z.object({
   SLACK_CLIENT_SECRET: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
   SLACK_APP_URL: z.string().optional(),
+  SLACK_BOT_TOKEN: z.string().optional(),
 });
 
 const parseEnv = () => {

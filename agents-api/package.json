@@ -73,6 +73,8 @@
     "@opentelemetry/sdk-node": "^0.205.0",
     "@opentelemetry/sdk-trace-base": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@slack/bolt": "^4.6.0",
+    "@slack/web-api": "^7.13.0",
     "@vercel/functions": "^1.4.0",
     "@vercel/sandbox": "^0.0.24",
     "@workflow/builders": "4.0.1-beta.27",
@@ -91,6 +93,7 @@
     "llm-info": "^1.0.69",
     "openid-client": "^6.8.1",
     "pg": "^8.16.3",
+    "slack-block-builder": "^2.8.0",
     "workflow": "4.0.1-beta.33"
   },
   "peerDependencies": {
@@ -101,6 +104,7 @@
     "@hono/vite-dev-server": "^0.20.1",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/sdk-metrics": "^2.1.0",
+    "@slack/types": "^2.19.0",
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@types/pg": "^8.15.6",

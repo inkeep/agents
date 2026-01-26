@@ -5980,53 +5980,6 @@
         ],
         "type": "object"
       },
-      "SlackWorkspaceResponse": {
-        "properties": {
-          "botScopes": {
-            "type": "string"
-          },
-          "botToken": {
-            "type": "string"
-          },
-          "botUserId": {
-            "type": "string"
-          },
-          "enterpriseId": {
-            "type": "string"
-          },
-          "enterpriseName": {
-            "type": "string"
-          },
-          "error": {
-            "type": "string"
-          },
-          "installedAt": {
-            "type": "string"
-          },
-          "installerUserId": {
-            "type": "string"
-          },
-          "isEnterpriseInstall": {
-            "type": "boolean"
-          },
-          "ok": {
-            "type": "boolean"
-          },
-          "teamDomain": {
-            "type": "string"
-          },
-          "teamId": {
-            "type": "string"
-          },
-          "teamName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "ok"
-        ],
-        "type": "object"
-      },
       "StatusComponent": {
         "properties": {
           "description": {
@@ -9856,32 +9809,14 @@
     },
     "/manage/slack/install": {
       "get": {
-        "description": "Redirects users to Slack OAuth page to install the bot in their workspace. This is a public endpoint.",
+        "description": "Redirects to Slack OAuth page for workspace installation",
         "operationId": "slack-install",
         "responses": {
           "302": {
-            "description": "Redirect to Slack OAuth authorization page"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Missing Slack configuration"
+            "description": "Redirect to Slack OAuth"
           }
         },
-        "summary": "Initiate Slack app installation",
+        "summary": "Install Slack App",
         "tags": [
           "Slack"
         ]
@@ -9889,7 +9824,7 @@
     },
     "/manage/slack/oauth_redirect": {
       "get": {
-        "description": "Handles the OAuth callback from Slack after workspace admin installs the bot. Exchanges authorization code for access token.",
+        "description": "Handles the OAuth callback from Slack after workspace installation",
         "operationId": "slack-oauth-redirect",
         "parameters": [
           {
@@ -9907,77 +9842,14 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "in": "query",
-            "name": "state",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "302": {
-            "description": "Redirect to UI with installation result"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OAuth error"
+            "description": "Redirect to dashboard with workspace data"
           }
         },
-        "summary": "Slack OAuth callback handler",
-        "tags": [
-          "Slack"
-        ]
-      }
-    },
-    "/manage/slack/workspaces": {
-      "get": {
-        "description": "Returns workspaces from localStorage data passed by client. This is a placeholder for future DB integration.",
-        "operationId": "slack-list-workspaces",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "workspaces": {
-                      "items": {
-                        "$ref": "#/components/schemas/SlackWorkspaceResponse"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "workspaces",
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "List of workspaces"
-          }
-        },
-        "summary": "List installed Slack workspaces (stub)",
+        "summary": "Slack OAuth Callback",
         "tags": [
           "Slack"
         ]
