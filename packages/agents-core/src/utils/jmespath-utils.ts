@@ -121,7 +121,7 @@ export function compileJMESPath(expression: string): unknown {
  * Safely searches data using a JMESPath expression.
  * Wrapper around jmespath.search() with proper typing.
  *
- * @param data - The data to search
+ * @param data - The object to search (e.g., template context, webhook body, tool result)
  * @param expression - The JMESPath expression
  * @returns The search result
  *
@@ -130,10 +130,58 @@ export function compileJMESPath(expression: string): unknown {
  * const data = { users: [{ name: 'Alice' }] };
  * const name = searchJMESPath<string>(data, 'users[0].name');
  * // name is 'Alice'
+ *
+ * // Common use cases:
+ * // - Template contexts: { headers: {...}, body: {...} }
+ * // - Webhook payloads: { event: "...", data: {...} }
+ * // - Tool results: { status: "success", result: {...} }
  * ```
  */
-export function searchJMESPath<T = unknown>(data: unknown, expression: string): T {
+export function searchJMESPath<T = unknown>(data: Record<string, unknown>, expression: string): T {
   return jmespath.search(data, expression) as T;
+}
+
+/**
+ * Normalize a JMESPath expression by wrapping property names with dashes in quotes.
+ * JMESPath requires identifiers with special characters (like dashes) to be quoted.
+ *
+ * @param path - The JMESPath expression to normalize
+ * @returns The normalized JMESPath expression
+ *
+ * @example
+ * ```typescript
+ * normalizeJMESPath('headers.x-tenant-id');
+ * // Returns: 'headers."x-tenant-id"'
+ *
+ * normalizeJMESPath('api-responses[0].response-code');
+ * // Returns: '"api-responses"[0]."response-code"'
+ *
+ * normalizeJMESPath('simple.path');
+ * // Returns: 'simple.path' (unchanged)
+ * ```
+ */
+export function normalizeJMESPath(path: string): string {
+  const segments = path.split('.');
+  return segments
+    .map((segment) => {
+      if (!segment.includes('-')) {
+        return segment;
+      }
+
+      if (segment.startsWith('"') && segment.includes('"')) {
+        return segment;
+      }
+
+      const bracketIndex = segment.indexOf('[');
+      if (bracketIndex !== -1) {
+        const propertyName = segment.substring(0, bracketIndex);
+        const arrayAccess = segment.substring(bracketIndex);
+        return `"${propertyName}"${arrayAccess}`;
+      }
+
+      return `"${segment}"`;
+    })
+    .join('.');
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   DANGEROUS_PATTERNS,
   jmespathString,
   MAX_EXPRESSION_LENGTH,
+  normalizeJMESPath,
   searchJMESPath,
   type ValidationResult,
   validateJMESPath,
@@ -308,6 +309,65 @@ describe('jmespath-utils', () => {
       const data = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
       const result = searchJMESPath<Array<{ name: string }>>(data, 'users');
       expect(result).toEqual([{ name: 'Alice' }, { name: 'Bob' }]);
+    });
+  });
+
+  describe('normalizeJMESPath', () => {
+    it('should return simple paths unchanged', () => {
+      expect(normalizeJMESPath('simple')).toBe('simple');
+      expect(normalizeJMESPath('simple.path')).toBe('simple.path');
+      expect(normalizeJMESPath('user.name')).toBe('user.name');
+    });
+
+    it('should wrap property names with dashes in quotes', () => {
+      expect(normalizeJMESPath('x-tenant-id')).toBe('"x-tenant-id"');
+      expect(normalizeJMESPath('headers.x-tenant-id')).toBe('headers."x-tenant-id"');
+      expect(normalizeJMESPath('headers.content-type')).toBe('headers."content-type"');
+    });
+
+    it('should handle multiple dashed segments', () => {
+      expect(normalizeJMESPath('api-response.status-code')).toBe('"api-response"."status-code"');
+    });
+
+    it('should handle array access with dashed property names', () => {
+      expect(normalizeJMESPath('api-responses[0]')).toBe('"api-responses"[0]');
+      expect(normalizeJMESPath('api-responses[0].response-code')).toBe(
+        '"api-responses"[0]."response-code"'
+      );
+    });
+
+    it('should handle mixed paths with and without dashes', () => {
+      expect(normalizeJMESPath('body.user-info.name')).toBe('body."user-info".name');
+      expect(normalizeJMESPath('data.items[0].user-id')).toBe('data.items[0]."user-id"');
+    });
+
+    it('should not double-quote already quoted segments', () => {
+      expect(normalizeJMESPath('"x-tenant-id"')).toBe('"x-tenant-id"');
+      expect(normalizeJMESPath('headers."x-tenant-id"')).toBe('headers."x-tenant-id"');
+    });
+
+    it('should work with searchJMESPath for dashed property names', () => {
+      const data = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+          'content-type': 'application/json',
+        },
+      };
+
+      const normalizedPath = normalizeJMESPath('headers.x-tenant-id');
+      expect(searchJMESPath(data, normalizedPath)).toBe('tenant-123');
+    });
+
+    it('should work with searchJMESPath for nested dashed properties', () => {
+      const data = {
+        'api-response': {
+          'status-code': 200,
+          data: { 'user-id': 'u123' },
+        },
+      };
+
+      expect(searchJMESPath(data, normalizeJMESPath('api-response.status-code'))).toBe(200);
+      expect(searchJMESPath(data, normalizeJMESPath('api-response.data.user-id'))).toBe('u123');
     });
   });
 
