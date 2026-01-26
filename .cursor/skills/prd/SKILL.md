@@ -114,13 +114,17 @@ Each story should be small enough to implement in one focused session.
 **Acceptance Criteria:**
 - [ ] Specific verifiable criterion
 - [ ] Another criterion
+- [ ] Tests: Update/add tests for new functionality
 - [ ] Typecheck/lint passes
 - [ ] **[UI stories only]** Verify in browser using dev-browser skill
+- [ ] CI: Run test suite and local CI checks pass
 ```
 
 **Important:** 
 - Acceptance criteria must be verifiable, not vague. "Works correctly" is bad. "Button shows confirmation dialog before deleting" is good.
 - **For any story with UI changes:** Always include "Verify in browser using dev-browser skill" as acceptance criteria. This ensures visual verification of frontend work.
+- **Testing is mandatory:** Every story must include test-related acceptance criteria. This includes updating existing tests affected by changes, adding new tests for new functionality, and fixing any tests broken by the implementation.
+- **Final verification:** The last acceptance criterion for any story should always be running the test suite (`pnpm test --run`) and local CI checks (`pnpm typecheck`, `pnpm lint`, `pnpm build`) to ensure the implementation is complete and doesn't break existing functionality.
 
 ### 4. Functional Requirements
 Numbered list of specific functionalities:
@@ -136,6 +140,31 @@ What this feature will NOT include. Critical for managing scope.
 - UI/UX requirements
 - Link to mockups if available
 - Relevant existing components to reuse
+
+### 6.1 Diagrams (Optional)
+
+Include diagrams only when they genuinely clarify relationships that are hard to express in prose.
+
+**When diagrams help**: Complex data flows, component relationships, state machines, entity relationships, architecture overviews.
+
+**When to skip diagrams**: Simple linear processes, obvious hierarchies, anything easily described in a sentence or two.
+
+**Use Mermaid syntax**. Avoid ASCII diagrams—LLMs struggle with spatial pattern recognition since tokenization breaks ASCII art into meaningless fragments. Mermaid's structured DSL parses well for both AI agents and renders nicely for human review.
+
+**Diagram best practices**:
+- Keep diagrams focused—break large systems into smaller diagrams
+- Place diagram code before textual explanation
+- Use appropriate diagram types: `flowchart` for flows, `sequenceDiagram` for interactions, `erDiagram` for data models
+
+**Example**:
+```mermaid
+flowchart TD
+    A[User Request] --> B{Validate Input}
+    B -->|Valid| C[Process]
+    B -->|Invalid| D[Return Error]
+    C --> E[Store Result]
+    E --> F[Return Success]
+```
 
 ### 7. Technical Considerations (Optional)
 - Known constraints or dependencies
@@ -216,6 +245,19 @@ The PRD reader may be a junior developer or AI agent. Therefore:
 - **Location:** `tasks/`
 - **Filename:** `prd-[feature-name].md` (kebab-case)
 
+**Reference existing PRDs** in `tasks/` for patterns and conventions. Current examples include:
+- `prd-jmespath-utils-consolidation.md` - Good example of refactoring/consolidation work
+- `prd-schema-driven-code-generation.md` - Good example of complex architectural work
+- `prd-api-reference-docs-automation.md` - Good example of documentation/tooling work
+
+---
+
+## Writing Tips
+
+- **Reference file paths**: When discussing implementation, point to source files (e.g., `packages/agents-core/src/utils/foo.ts`)
+- **Be concrete**: "The button displays 'Save'" is better than "The button has appropriate text"
+- **Link related PRDs**: If this PRD depends on or relates to another, reference it in a "Related Tasks" section
+
 ---
 
 ## Example PRD
@@ -242,7 +284,9 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 **Acceptance Criteria:**
 - [ ] Add priority column to tasks table: 'high' | 'medium' | 'low' (default 'medium')
 - [ ] Generate and run migration successfully
+- [ ] Tests: Add unit tests for priority field validation and default value
 - [ ] Typecheck passes
+- [ ] CI: Run test suite and local CI checks pass
 
 ### US-002: Display priority indicator on task cards
 **Description:** As a user, I want to see task priority at a glance so I know what needs attention first.
@@ -250,8 +294,10 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 **Acceptance Criteria:**
 - [ ] Each task card shows colored priority badge (red=high, yellow=medium, gray=low)
 - [ ] Priority visible without hovering or clicking
+- [ ] Tests: Add component tests for priority badge rendering
 - [ ] Typecheck passes
 - [ ] Verify in browser using dev-browser skill
+- [ ] CI: Run test suite and local CI checks pass
 
 ### US-003: Add priority selector to task edit
 **Description:** As a user, I want to change a task's priority when editing it.
@@ -260,8 +306,10 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 - [ ] Priority dropdown in task edit modal
 - [ ] Shows current priority as selected
 - [ ] Saves immediately on selection change
+- [ ] Tests: Add tests for priority selection and persistence
 - [ ] Typecheck passes
 - [ ] Verify in browser using dev-browser skill
+- [ ] CI: Run test suite and local CI checks pass
 
 ### US-004: Filter tasks by priority
 **Description:** As a user, I want to filter the task list to see only high-priority items when I'm focused.
@@ -270,8 +318,10 @@ Add priority levels to tasks so users can focus on what matters most. Tasks can 
 - [ ] Filter dropdown with options: All | High | Medium | Low
 - [ ] Filter persists in URL params
 - [ ] Empty state message when no tasks match filter
+- [ ] Tests: Add tests for filter logic and URL param persistence
 - [ ] Typecheck passes
 - [ ] Verify in browser using dev-browser skill
+- [ ] CI: Run test suite and local CI checks pass
 
 ## Functional Requirements
 
