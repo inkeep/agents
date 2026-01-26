@@ -47,8 +47,8 @@ export const metadata: Metadata = {
     'msapplication-TileColor': '#69a3ff',
   },
   twitter: {
-    creator: '@inkeep',
-    site: 'https://inkeep.com',
+    creator: process.env.METADATA_TWITTER_CREATOR || '@inkeep',
+    site: process.env.METADATA_TWITTER_SITE || 'https://inkeep.com',
   },
   ...(process.env.METADATA_BASE_URL && {
     metadataBase: new URL(process.env.METADATA_BASE_URL),
