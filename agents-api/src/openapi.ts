@@ -31,7 +31,8 @@ export const TagToDescription = {
   CLI: 'CLI authentication endpoints',
   Invitations: 'Operations for managing invitations',
   Branches: 'Operations for managing branches',
-  Ref: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
+  Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
+  ProjectMembers: 'Operations for managing project members',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
