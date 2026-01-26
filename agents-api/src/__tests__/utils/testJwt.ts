@@ -4,7 +4,7 @@
  * This module provides helpers to generate RS256 key pairs and create JWTs with
  * configurable claims for testing the token exchange endpoint.
  */
-import { generateKeyPair, SignJWT, exportJWK, type JWK } from 'jose';
+import { exportJWK, generateKeyPair, type JWK, SignJWT } from 'jose';
 
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const EXPECTED_AUDIENCE = 'inkeep-agents-action';

@@ -14,31 +14,31 @@ export function createGithubRoutes() {
 
 export const githubRoutes = createGithubRoutes();
 
-export { getGitHubAppConfig, isGitHubAppConfigured, type GitHubAppConfig } from './config';
+export { type GitHubAppConfig, getGitHubAppConfig, isGitHubAppConfigured } from './config';
 export {
-  getJwkForToken,
-  clearJwksCache,
-  getJwksCacheStatus,
-  type JwksResult,
-  type JwksError,
-  type GetJwkResult,
-} from './jwks';
-export {
-  validateOidcToken,
-  type GitHubOidcClaims,
-  type ValidateTokenResult,
-  type ValidateTokenError,
-  type ValidateOidcTokenResult,
-} from './oidcToken';
-export {
-  lookupInstallationForRepo,
+  type GenerateInstallationAccessTokenResult,
+  type GenerateTokenError,
+  type GenerateTokenResult,
   generateInstallationAccessToken,
-  type InstallationInfo,
   type InstallationAccessToken,
-  type LookupInstallationResult,
+  type InstallationInfo,
   type LookupInstallationError,
   type LookupInstallationForRepoResult,
-  type GenerateTokenResult,
-  type GenerateTokenError,
-  type GenerateInstallationAccessTokenResult,
+  type LookupInstallationResult,
+  lookupInstallationForRepo,
 } from './installation';
+export {
+  clearJwksCache,
+  type GetJwkResult,
+  getJwkForToken,
+  getJwksCacheStatus,
+  type JwksError,
+  type JwksResult,
+} from './jwks';
+export {
+  type GitHubOidcClaims,
+  type ValidateOidcTokenResult,
+  type ValidateTokenError,
+  type ValidateTokenResult,
+  validateOidcToken,
+} from './oidcToken';

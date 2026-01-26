@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, type JWSHeaderParameters, type CryptoKey } from 'jose';
+import { type CryptoKey, createRemoteJWKSet, type JWSHeaderParameters } from 'jose';
 import { getLogger } from '../../logger';
 
 const logger = getLogger('github-jwks');
@@ -49,9 +49,7 @@ export interface JwksError {
 
 export type GetJwkResult = JwksResult | JwksError;
 
-export async function getJwkForToken(
-  header: JWSHeaderParameters
-): Promise<GetJwkResult> {
+export async function getJwkForToken(header: JWSHeaderParameters): Promise<GetJwkResult> {
   const kid = header.kid;
 
   if (!kid) {
@@ -81,7 +79,10 @@ export async function getJwkForToken(
       } catch (retryError) {
         const retryErrorMessage =
           retryError instanceof Error ? retryError.message : 'Unknown error';
-        logger.error({ kid, error: retryErrorMessage }, 'Failed to retrieve JWK after cache refresh');
+        logger.error(
+          { kid, error: retryErrorMessage },
+          'Failed to retrieve JWK after cache refresh'
+        );
         return {
           success: false,
           error: `Key ID '${kid}' not found in GitHub OIDC JWKS`,

@@ -1,6 +1,6 @@
-import { jwtVerify, errors, decodeProtectedHeader, type ProtectedHeaderParameters } from 'jose';
-import { getJwkForToken } from './jwks';
+import { decodeProtectedHeader, errors, jwtVerify, type ProtectedHeaderParameters } from 'jose';
 import { getLogger } from '../../logger';
+import { getJwkForToken } from './jwks';
 
 const logger = getLogger('github-oidc-token');
 
@@ -23,7 +23,13 @@ export interface ValidateTokenResult {
 
 export interface ValidateTokenError {
   success: false;
-  errorType: 'invalid_signature' | 'expired' | 'wrong_issuer' | 'wrong_audience' | 'malformed' | 'jwks_error';
+  errorType:
+    | 'invalid_signature'
+    | 'expired'
+    | 'wrong_issuer'
+    | 'wrong_audience'
+    | 'malformed'
+    | 'jwks_error';
   message: string;
 }
 
@@ -87,7 +93,8 @@ export async function validateOidcToken(token: string): Promise<ValidateOidcToke
       return {
         success: false,
         errorType: 'malformed',
-        message: 'OIDC token missing required claims: repository, repository_owner, repository_id, workflow, actor, or ref',
+        message:
+          'OIDC token missing required claims: repository, repository_owner, repository_id, workflow, actor, or ref',
       };
     }
 
@@ -132,7 +139,10 @@ export async function validateOidcToken(token: string): Promise<ValidateOidcToke
           message: `Invalid token audience: expected ${EXPECTED_AUDIENCE}`,
         };
       }
-      logger.warn({ claim: claimError.claim, reason: claimError.reason }, 'JWT claim validation failed');
+      logger.warn(
+        { claim: claimError.claim, reason: claimError.reason },
+        'JWT claim validation failed'
+      );
       return {
         success: false,
         errorType: 'malformed',
@@ -150,7 +160,10 @@ export async function validateOidcToken(token: string): Promise<ValidateOidcToke
     }
 
     if (error instanceof errors.JOSEError) {
-      logger.error({ error: error.message, code: error.code }, 'JOSE error during token validation');
+      logger.error(
+        { error: error.message, code: error.code },
+        'JOSE error during token validation'
+      );
       return {
         success: false,
         errorType: 'malformed',
