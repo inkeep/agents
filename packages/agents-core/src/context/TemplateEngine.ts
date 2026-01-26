@@ -1,4 +1,4 @@
-import jmespath from 'jmespath';
+import { normalizeJMESPath, searchJMESPath } from '../utils/jmespath-utils';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('template-engine');
@@ -53,35 +53,6 @@ export class TemplateEngine {
   }
 
   /**
-   * Normalize JMES path by wrapping property names with dashes in quotes
-   * Example: headers.x-tenant-id -> headers."x-tenant-id"
-   * Example: api-responses[0].response-code -> "api-responses"[0]."response-code"
-   */
-  private static normalizeJMESPath(path: string): string {
-    const segments = path.split('.');
-    return segments
-      .map((segment) => {
-        if (!segment.includes('-')) {
-          return segment;
-        }
-
-        if (segment.startsWith('"') && segment.includes('"')) {
-          return segment;
-        }
-
-        const bracketIndex = segment.indexOf('[');
-        if (bracketIndex !== -1) {
-          const propertyName = segment.substring(0, bracketIndex);
-          const arrayAccess = segment.substring(bracketIndex);
-          return `"${propertyName}"${arrayAccess}`;
-        }
-
-        return `"${segment}"`;
-      })
-      .join('.');
-  }
-
-  /**
    * Process variable substitutions {{variable.path}} using JMESPath
    */
   private static processVariables(
@@ -99,10 +70,10 @@ export class TemplateEngine {
         }
 
         // Normalize path to handle dashes in property names
-        const normalizedPath = TemplateEngine.normalizeJMESPath(trimmedPath);
+        const normalizedPath = normalizeJMESPath(trimmedPath);
 
         // Use JMESPath to extract value from context
-        const result = jmespath.search(context, normalizedPath);
+        const result = searchJMESPath(context, normalizedPath);
 
         if (result === undefined || result === null) {
           if (options.strict) {
@@ -147,7 +118,7 @@ export class TemplateEngine {
         return String(result);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const normalizedPath = TemplateEngine.normalizeJMESPath(trimmedPath);
+        const normalizedPath = normalizeJMESPath(trimmedPath);
 
         if (options.strict) {
           throw new Error(

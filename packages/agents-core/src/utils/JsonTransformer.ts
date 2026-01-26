@@ -1,13 +1,10 @@
 import * as jmespath from 'jmespath';
-
-// TypeScript workaround for missing compile method in type definitions
-interface JMESPathExtended {
-  search: typeof jmespath.search;
-  compile: (expression: string) => any;
-}
-
-const jmespathExt = jmespath as unknown as JMESPathExtended;
-
+import {
+  compileJMESPath,
+  DANGEROUS_PATTERNS,
+  MAX_EXPRESSION_LENGTH,
+  validateJMESPathSecure,
+} from './jmespath-utils';
 import { getLogger } from './logger';
 
 const logger = getLogger('JsonTransformer');
@@ -20,45 +17,35 @@ interface TransformOptions {
 
 export class JsonTransformer {
   private static readonly DEFAULT_TIMEOUT = 5000; // 5 seconds
-  private static readonly MAX_EXPRESSION_LENGTH = 1000;
-  private static readonly DANGEROUS_PATTERNS = [
-    /\$\{.*\}/, // Template injection
-    /eval\s*\(/, // Eval calls
-    /function\s*\(/, // Function definitions
-    /constructor/, // Constructor access
-    /prototype/, // Prototype manipulation
-    /__proto__/, // Proto access
-  ];
 
   /**
    * Validate JMESPath expression for security and correctness
    */
-  private static validateJMESPath(expression: string, _allowedFunctions?: string[]): void {
+  private static validateExpression(expression: string, _allowedFunctions?: string[]): void {
     if (!expression || typeof expression !== 'string') {
       throw new Error('JMESPath expression must be a non-empty string');
     }
 
-    if (expression.length > JsonTransformer.MAX_EXPRESSION_LENGTH) {
-      throw new Error(
-        `JMESPath expression too long (max ${JsonTransformer.MAX_EXPRESSION_LENGTH} characters)`
-      );
+    // Check length first
+    if (expression.length > MAX_EXPRESSION_LENGTH) {
+      throw new Error(`JMESPath expression too long (max ${MAX_EXPRESSION_LENGTH} characters)`);
     }
 
-    // Check for dangerous patterns
-    for (const pattern of JsonTransformer.DANGEROUS_PATTERNS) {
+    // Check dangerous patterns
+    for (const pattern of DANGEROUS_PATTERNS) {
       if (pattern.test(expression)) {
         throw new Error(`JMESPath expression contains dangerous pattern: ${pattern.source}`);
       }
     }
 
-    // Basic syntax validation - try to compile the expression
-    try {
-      // Use compile to validate syntax without requiring specific data
-      jmespathExt.compile(expression);
-    } catch (error) {
-      throw new Error(
-        `Invalid JMESPath syntax: ${error instanceof Error ? error.message : String(error)}`
-      );
+    // Use validateJMESPathSecure for syntax validation (patterns already checked above)
+    const result = validateJMESPathSecure(expression, {
+      maxLength: MAX_EXPRESSION_LENGTH + 1, // Skip length check (already done)
+      dangerousPatterns: [], // Skip pattern check (already done)
+    });
+
+    if (!result.valid) {
+      throw new Error(`Invalid JMESPath syntax: ${result.error}`);
     }
 
     logger.debug('JMESPath expression validated', `${expression.substring(0, 100)}...`);
@@ -95,7 +82,7 @@ export class JsonTransformer {
     const { timeout = JsonTransformer.DEFAULT_TIMEOUT, allowedFunctions } = options;
 
     // Validate expression before execution
-    JsonTransformer.validateJMESPath(jmesPathExpression, allowedFunctions);
+    JsonTransformer.validateExpression(jmesPathExpression, allowedFunctions);
 
     try {
       logger.debug(
@@ -137,8 +124,7 @@ export class JsonTransformer {
       }
       // Validate each path is a valid JMESPath expression
       try {
-        // Use compile to validate syntax without requiring specific data
-        jmespathExt.compile(path);
+        compileJMESPath(path);
       } catch (error) {
         throw new Error(
           `Invalid JMESPath in object transformation value "${path}": ${error instanceof Error ? error.message : String(error)}`
