@@ -16,6 +16,8 @@ tone, and formatting consistent across the agent graph while still allowing each
 2. Click **Create skill**.
 3. Fill in the required fields and save.
 
+![Create a new skill](./create-skill.png)
+
 ## Fields
 
 - [**Name**](https://agentskills.io/specification#name-field): A short identifier.
@@ -26,7 +28,13 @@ tone, and formatting consistent across the agent graph while still allowing each
 ## Attach skills to sub-agents
 
 Open an agent in the Visual Builder, select a sub-agent node, and use the **Skills** picker to attach one or more
-skills. You can drag to reorder them and control their priority.
+skills.
+
+<Callout type="warning">You can drag to reorder them to control **their priority**.</Callout>
+
+![Skills configuration in sidepane](./skills-sidepane.png)
+
+## Always loaded and On-demand skills
 
 Use **Always loaded** to include a skill in every prompt. It's off by default so skills load on demand unless you
 enable it.
