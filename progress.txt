@@ -310,3 +310,30 @@ pnpm --filter @inkeep/agents-api export-openapi && pnpm --filter @inkeep/agents-
 
 ---
 
+## Summary
+
+**Completed Stories:** 7/8 (US-001 through US-004, US-006 through US-008)
+**Blocked Stories:** 1 (US-005)
+
+### US-005 Blocker Resolution
+
+US-005 requires running `pnpm export-openapi` to generate the initial OpenAPI spec file. This cannot be done in the current Ralph environment due to node_modules platform mismatch.
+
+**To complete US-005, run on a dev machine:**
+```bash
+cd agents-api
+pnpm export-openapi
+git add openapi-spec.json
+git commit -m "[US-005] Commit initial combined OpenAPI spec"
+```
+
+### What's Ready for Use
+
+Once US-005 is completed:
+1. **Tag standardization**: All API endpoints now use PascalCase tags
+2. **Export script**: `agents-api/scripts/export-openapi-spec.ts` generates unified spec
+3. **Local docs**: `agents-docs` reads from local spec file (no remote fetches)
+4. **CI validation**: CI will fail if spec is out of sync
+5. **Developer workflow**: `pnpm docs:regenerate` updates everything
+
+---
