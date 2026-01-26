@@ -42,10 +42,11 @@ async function main(): Promise<void> {
         // biome-ignore lint/style/noNonNullAssertion: ignore
         const { operation } = builder.fromExtractedOperation(op)!;
         // @ts-expect-error -- wrong type
-        const { error } = TagSchema.safeParse(operation.tags);
+        const { tags } = operation;
+        const { error } = TagSchema.safeParse(tags);
         if (error) {
           const prettyError = z.prettifyError(error);
-          throw new Error(`Error parsing "[${op.method.toUpperCase()}] ${op.path}":
+          throw new Error(`Error parsing tags ${JSON.stringify(tags)} "[${op.method.toUpperCase()}] ${op.path}":
 
 ${prettyError}`);
         }
