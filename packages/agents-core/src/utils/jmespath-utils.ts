@@ -134,3 +134,87 @@ export function compileJMESPath(expression: string): unknown {
 export function searchJMESPath<T = unknown>(data: unknown, expression: string): T {
   return jmespath.search(data, expression) as T;
 }
+
+/**
+ * Dangerous patterns that should not appear in JMESPath expressions.
+ * These patterns are checked during secure validation to prevent injection attacks.
+ */
+export const DANGEROUS_PATTERNS: RegExp[] = [
+  /\$\{.*\}/, // Template injection
+  /eval\s*\(/, // Eval calls
+  /function\s*\(/, // Function definitions
+  /constructor/, // Constructor access
+  /prototype/, // Prototype access
+  /__proto__/, // Proto access
+];
+
+/**
+ * Options for secure JMESPath validation.
+ */
+export interface SecurityOptions {
+  maxLength?: number;
+  dangerousPatterns?: RegExp[];
+}
+
+/**
+ * Validates a JMESPath expression with security checks.
+ * Performs checks in order of cost: length (O(1)), patterns (O(n)), compile (expensive).
+ *
+ * @param expression - The JMESPath expression to validate
+ * @param options - Optional security options
+ * @returns ValidationResult with valid flag and optional error message
+ *
+ * @example
+ * ```typescript
+ * const result = validateJMESPathSecure('body.user.id');
+ * if (!result.valid) {
+ *   console.error(result.error);
+ * }
+ *
+ * // With custom options
+ * const result2 = validateJMESPathSecure('expression', { maxLength: 500 });
+ * ```
+ */
+export function validateJMESPathSecure(
+  expression: string,
+  options?: SecurityOptions
+): ValidationResult {
+  if (!expression || typeof expression !== 'string') {
+    return {
+      valid: false,
+      error: 'JMESPath expression must be a non-empty string',
+    };
+  }
+
+  const maxLength = options?.maxLength ?? MAX_EXPRESSION_LENGTH;
+  const patterns = options?.dangerousPatterns ?? DANGEROUS_PATTERNS;
+
+  // Check length first (O(1))
+  if (expression.length > maxLength) {
+    return {
+      valid: false,
+      error: `JMESPath expression exceeds maximum length of ${maxLength} characters`,
+    };
+  }
+
+  // Check dangerous patterns second (O(n))
+  for (const pattern of patterns) {
+    if (pattern.test(expression)) {
+      return {
+        valid: false,
+        error: `JMESPath expression contains dangerous pattern: ${pattern.source}`,
+      };
+    }
+  }
+
+  // Compile last (expensive)
+  try {
+    jmespathExt.compile(expression);
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Invalid JMESPath expression: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
