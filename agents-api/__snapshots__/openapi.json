@@ -8547,7 +8547,8 @@
         "nullable": true,
         "properties": {
           "jmespath": {
-            "description": "JMESPath expression for payload transformation",
+            "description": "JMESPath expression (max 1000 chars). Valid: \"data.items[0].name\", \"results[?status=='active']\", \"keys(@)\". Invalid: \"${...}\" (template injection), \"eval(...)\", \"constructor\", \"__proto__\".",
+            "maxLength": 1000,
             "type": "string"
           },
           "objectTransformation": {

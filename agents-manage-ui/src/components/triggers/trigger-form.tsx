@@ -1,6 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  validateJMESPath as coreValidateJMESPath,
+  validateRegex as coreValidateRegex,
+} from '@inkeep/agents-core/utils/signature-validation';
 import { ArrowDown, ArrowUp, Check, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -32,6 +36,19 @@ import { Switch } from '@/components/ui/switch';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
+
+// Adapter functions that convert ValidationResult to string | undefined for form validation
+const validateJMESPath = (value: string): string | undefined => {
+  if (!value.trim()) return undefined;
+  const result = coreValidateJMESPath(value);
+  return result.valid ? undefined : result.error;
+};
+
+const validateRegex = (value: string): string | undefined => {
+  if (!value.trim()) return undefined;
+  const result = coreValidateRegex(value);
+  return result.valid ? undefined : result.error;
+};
 
 // Transform type options
 const transformTypeOptions: SelectOption[] = [
@@ -407,33 +424,6 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const { isSubmitting } = form.formState;
   const transformType = form.watch('transformType');
   const signatureSource = form.watch('signatureSource');
-
-  // Validation functions for JMESPath and regex
-  const validateJMESPath = (value: string): string | undefined => {
-    if (!value.trim()) return undefined;
-
-    try {
-      // Simple JMESPath validation - check for basic syntax issues
-      // Full validation happens on the backend
-      if (value.includes('..') || value.includes('[[')) {
-        return 'Invalid JMESPath syntax';
-      }
-      return undefined;
-    } catch {
-      return 'Invalid JMESPath expression';
-    }
-  };
-
-  const validateRegex = (value: string): string | undefined => {
-    if (!value.trim()) return undefined;
-
-    try {
-      new RegExp(value);
-      return undefined;
-    } catch {
-      return 'Invalid regular expression';
-    }
-  };
 
   // Apply provider preset to form fields
   const applyPreset = (presetKey: string) => {
