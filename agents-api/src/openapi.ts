@@ -34,6 +34,7 @@ export const TagToDescription = {
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
   ProjectMembers: 'Operations for managing project members',
   ProjectPermissions: 'Operations for managing project permissions',
+  SubAgentFunctionTools: 'Operations for managing sub agent function tools',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {

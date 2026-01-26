@@ -171,7 +171,7 @@ app.openapi(
     path: '/tool/{toolId}/sub-agents',
     summary: 'Get SubAgents for Tool',
     operationId: 'get-subagents-for-tool',
-    tags: ['SubAgent Tool Relations'],
+    tags: ['SubAgentToolRelations'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         toolId: z.string(),
