@@ -108,3 +108,33 @@ Started: Mon Jan 26 10:32:04 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 2 - Mon Jan 26 10:37:44 UTC 2026
+
+### Story: US-002 - Audit and clean up OpenAPI tags in run domain
+
+**Implementation:**
+- Audited 5 route files in agents-api/src/domains/run/routes/
+- Standardized lowercase tags to PascalCase convention
+- Fixed `a2a` -> `A2A` in agents.ts
+- Fixed `chat` -> `Chat` in chat.ts and chatDataStream.ts (3 occurrences)
+- Fixed `webhooks` -> `Webhooks` in webhooks.ts
+- mcp.ts already had PascalCase `MCP` tag - no changes needed
+- TypeScript check passed successfully
+
+**Files Changed:**
+- agents-api/src/domains/run/routes/agents.ts
+- agents-api/src/domains/run/routes/chat.ts
+- agents-api/src/domains/run/routes/chatDataStream.ts
+- agents-api/src/domains/run/routes/webhooks.ts
+
+**Learnings:**
+- Run domain has fewer routes than manage domain (5 vs 28 files)
+- Same pattern applies: tags defined in `createRoute()` calls
+- Run domain had simpler tag naming (single words) vs manage domain (compound words)
+- MCP was already correctly cased - case sensitivity matters for acronyms
+
+---
+

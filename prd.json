@@ -30,8 +30,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed: Standardized 4 run domain route files to PascalCase: a2a->A2A, chat->Chat, webhooks->Webhooks. MCP was already correct."
     },
     {
       "id": "US-003",
