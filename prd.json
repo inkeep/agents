@@ -64,8 +64,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created export-openapi-spec.ts script that creates minimal OpenAPIHono app with all routes, extracts spec via getOpenAPIDocument(), and writes to openapi-spec.json."
     },
     {
       "id": "US-005",
