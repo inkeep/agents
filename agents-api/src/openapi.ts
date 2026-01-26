@@ -12,7 +12,7 @@ export const TagToDescription = {
   ContextConfigs: 'Operations for managing context configurations',
   Credential: 'Operations for managing credentials',
   CredentialStores: 'Operations for managing credential stores',
-  DataComponent: 'Operations for managing data components',
+  DataComponents: 'Operations for managing data components',
   ExternalAgents: 'Operations for managing external agents',
   FullAgent: 'Operations for managing complete agent definitions',
   FullProject: 'Operations for managing complete project definitions',
