@@ -88,3 +88,44 @@ export function validateGitHubWebhookConfigOnStartup(): void {
     );
   }
 }
+
+export function isStateSigningConfigured(): boolean {
+  return Boolean(env.GITHUB_STATE_SIGNING_SECRET);
+}
+
+export function getStateSigningSecret(): string {
+  const secret = env.GITHUB_STATE_SIGNING_SECRET;
+  if (!secret) {
+    throw new Error('GITHUB_STATE_SIGNING_SECRET is not configured');
+  }
+  return secret;
+}
+
+export function isGitHubAppNameConfigured(): boolean {
+  return Boolean(env.GITHUB_APP_NAME);
+}
+
+export function getGitHubAppName(): string {
+  const appName = env.GITHUB_APP_NAME;
+  if (!appName) {
+    throw new Error('GITHUB_APP_NAME is not configured');
+  }
+  return appName;
+}
+
+export function validateGitHubInstallFlowConfigOnStartup(): void {
+  if (!isStateSigningConfigured()) {
+    logger.warn(
+      {},
+      'GitHub state signing secret not configured. Install URL endpoint will return 500 errors. ' +
+        'Set GITHUB_STATE_SIGNING_SECRET to enable the installation flow.'
+    );
+  }
+  if (!isGitHubAppNameConfigured()) {
+    logger.warn(
+      {},
+      'GitHub App name not configured. Install URL endpoint will return 500 errors. ' +
+        'Set GITHUB_APP_NAME to enable the installation flow.'
+    );
+  }
+}

@@ -66,6 +66,11 @@ const envSchema = z.object({
   GITHUB_APP_ID: z.string().optional(),
   GITHUB_APP_PRIVATE_KEY: z.string().optional(),
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
+  GITHUB_STATE_SIGNING_SECRET: z
+    .string()
+    .min(32, 'GITHUB_STATE_SIGNING_SECRET must be at least 32 characters')
+    .optional(),
+  GITHUB_APP_NAME: z.string().optional(),
 });
 
 const parseEnv = () => {

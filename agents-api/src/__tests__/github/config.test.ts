@@ -8,6 +8,8 @@ const mockEnv = {
   GITHUB_APP_ID: undefined as string | undefined,
   GITHUB_APP_PRIVATE_KEY: undefined as string | undefined,
   GITHUB_WEBHOOK_SECRET: undefined as string | undefined,
+  GITHUB_STATE_SIGNING_SECRET: undefined as string | undefined,
+  GITHUB_APP_NAME: undefined as string | undefined,
 };
 
 vi.mock('../../env', () => ({
@@ -29,10 +31,15 @@ vi.mock('../../logger', () => ({
 import {
   clearConfigCache,
   getGitHubAppConfig,
+  getGitHubAppName,
+  getStateSigningSecret,
   getWebhookSecret,
   isGitHubAppConfigured,
+  isGitHubAppNameConfigured,
+  isStateSigningConfigured,
   isWebhookConfigured,
   validateGitHubAppConfigOnStartup,
+  validateGitHubInstallFlowConfigOnStartup,
   validateGitHubWebhookConfigOnStartup,
 } from '../../domains/github/config';
 
@@ -44,6 +51,8 @@ describe('GitHub Config', () => {
     mockEnv.GITHUB_APP_ID = undefined;
     mockEnv.GITHUB_APP_PRIVATE_KEY = undefined;
     mockEnv.GITHUB_WEBHOOK_SECRET = undefined;
+    mockEnv.GITHUB_STATE_SIGNING_SECRET = undefined;
+    mockEnv.GITHUB_APP_NAME = undefined;
   });
 
   afterEach(() => {
@@ -213,6 +222,97 @@ describe('GitHub Config', () => {
 
       expect(config2.appId).toBe('999999');
       expect(config1.appId).toBe('123456');
+    });
+  });
+
+  describe('isStateSigningConfigured', () => {
+    it('should return true when GITHUB_STATE_SIGNING_SECRET is set', () => {
+      mockEnv.GITHUB_STATE_SIGNING_SECRET = 'my-signing-secret-at-least-32-chars';
+
+      expect(isStateSigningConfigured()).toBe(true);
+    });
+
+    it('should return false when GITHUB_STATE_SIGNING_SECRET is not set', () => {
+      expect(isStateSigningConfigured()).toBe(false);
+    });
+
+    it('should return false when GITHUB_STATE_SIGNING_SECRET is empty string', () => {
+      mockEnv.GITHUB_STATE_SIGNING_SECRET = '';
+
+      expect(isStateSigningConfigured()).toBe(false);
+    });
+  });
+
+  describe('getStateSigningSecret', () => {
+    it('should return the signing secret when configured', () => {
+      mockEnv.GITHUB_STATE_SIGNING_SECRET = 'my-signing-secret-at-least-32-chars';
+
+      expect(getStateSigningSecret()).toBe('my-signing-secret-at-least-32-chars');
+    });
+
+    it('should throw error when GITHUB_STATE_SIGNING_SECRET is not configured', () => {
+      expect(() => getStateSigningSecret()).toThrow('GITHUB_STATE_SIGNING_SECRET is not configured');
+    });
+  });
+
+  describe('isGitHubAppNameConfigured', () => {
+    it('should return true when GITHUB_APP_NAME is set', () => {
+      mockEnv.GITHUB_APP_NAME = 'my-github-app';
+
+      expect(isGitHubAppNameConfigured()).toBe(true);
+    });
+
+    it('should return false when GITHUB_APP_NAME is not set', () => {
+      expect(isGitHubAppNameConfigured()).toBe(false);
+    });
+
+    it('should return false when GITHUB_APP_NAME is empty string', () => {
+      mockEnv.GITHUB_APP_NAME = '';
+
+      expect(isGitHubAppNameConfigured()).toBe(false);
+    });
+  });
+
+  describe('getGitHubAppName', () => {
+    it('should return the app name when configured', () => {
+      mockEnv.GITHUB_APP_NAME = 'my-github-app';
+
+      expect(getGitHubAppName()).toBe('my-github-app');
+    });
+
+    it('should throw error when GITHUB_APP_NAME is not configured', () => {
+      expect(() => getGitHubAppName()).toThrow('GITHUB_APP_NAME is not configured');
+    });
+  });
+
+  describe('validateGitHubInstallFlowConfigOnStartup', () => {
+    it('should log warning when state signing secret is not configured', () => {
+      validateGitHubInstallFlowConfigOnStartup();
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        {},
+        expect.stringContaining('GitHub state signing secret not configured')
+      );
+    });
+
+    it('should log warning when GitHub App name is not configured', () => {
+      mockEnv.GITHUB_STATE_SIGNING_SECRET = 'my-signing-secret-at-least-32-chars';
+
+      validateGitHubInstallFlowConfigOnStartup();
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        {},
+        expect.stringContaining('GitHub App name not configured')
+      );
+    });
+
+    it('should not log warning when both are configured', () => {
+      mockEnv.GITHUB_STATE_SIGNING_SECRET = 'my-signing-secret-at-least-32-chars';
+      mockEnv.GITHUB_APP_NAME = 'my-github-app';
+
+      validateGitHubInstallFlowConfigOnStartup();
+
+      expect(mockLogger.warn).not.toHaveBeenCalled();
     });
   });
 });

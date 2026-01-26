@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ManageAppVariables } from '../../types/app';
 import cliAuthRoutes from './routes/cliAuth';
+import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
@@ -30,6 +31,9 @@ export function createManageRoutes() {
 
   // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
   app.route('/tenants/:tenantId/signoz', signozRoutes);
+
+  // Mount GitHub routes under tenant (uses requireTenantAccess middleware for authorization)
+  app.route('/tenants/:tenantId/github', githubRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

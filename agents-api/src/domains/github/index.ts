@@ -17,9 +17,14 @@ export const githubRoutes = createGithubRoutes();
 export {
   type GitHubAppConfig,
   getGitHubAppConfig,
+  getGitHubAppName,
+  getStateSigningSecret,
   getWebhookSecret,
   isGitHubAppConfigured,
+  isGitHubAppNameConfigured,
+  isStateSigningConfigured,
   isWebhookConfigured,
+  validateGitHubInstallFlowConfigOnStartup,
   validateGitHubWebhookConfigOnStartup,
 } from './config';
 export {
