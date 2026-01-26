@@ -1,4 +1,4 @@
-import jmespath from 'jmespath';
+import { searchJMESPath } from '../utils/jmespath-utils';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('template-engine');
@@ -102,7 +102,7 @@ export class TemplateEngine {
         const normalizedPath = TemplateEngine.normalizeJMESPath(trimmedPath);
 
         // Use JMESPath to extract value from context
-        const result = jmespath.search(context, normalizedPath);
+        const result = searchJMESPath(context, normalizedPath);
 
         if (result === undefined || result === null) {
           if (options.strict) {
