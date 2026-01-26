@@ -3,6 +3,7 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
+  buildComposioMCPUrl,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
@@ -544,6 +545,7 @@ export class Agent {
             input: args,
             toolCallId,
             relationshipId,
+            inDelegatedAgent: this.isDelegatedAgent,
           };
 
           // Add approval-specific data when needed
@@ -610,6 +612,7 @@ export class Agent {
               duration,
               relationshipId,
               needsApproval,
+              inDelegatedAgent: this.isDelegatedAgent,
             });
           }
 
@@ -641,6 +644,7 @@ export class Agent {
               error: errorMessage,
               relationshipId,
               needsApproval,
+              inDelegatedAgent: this.isDelegatedAgent,
             });
           }
 
@@ -1172,20 +1176,14 @@ export class Agent {
     }
 
     // Inject user_id for Composio servers at runtime
-    if (serverConfig.url?.toString().includes('composio.dev')) {
-      const urlObj = new URL(serverConfig.url.toString());
-      if (isUserScoped && userId) {
-        // User-scoped: use actual userId
-        urlObj.searchParams.set('user_id', userId);
-      } else {
-        // Project-scoped: use tenantId||projectId
-        const SEPARATOR = '||';
-        urlObj.searchParams.set(
-          'user_id',
-          `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`
-        );
-      }
-      serverConfig.url = urlObj.toString();
+    if (serverConfig.url) {
+      serverConfig.url = buildComposioMCPUrl(
+        serverConfig.url.toString(),
+        this.config.tenantId,
+        this.config.projectId,
+        isUserScoped ? 'user' : 'project',
+        userId
+      );
     }
 
     // Merge forwarded headers (user session auth) into server config

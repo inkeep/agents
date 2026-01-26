@@ -67,6 +67,9 @@ out/
 .source/
 vite.config.d.ts
 
+# Generated skill collections
+agents-docs/skills-collections/.generated/
+
 # Turborepo
 .turbo
 
@@ -93,3 +96,6 @@ progress.txt
 .ralph-archives/
 
 .claude/settings.local.json
+
+# Ideas/drafts folder
+.ideas/
