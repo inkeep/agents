@@ -3,7 +3,12 @@
  * into a human-readable, prettified JSON format
  */
 
-import type { ActivityItem, ConversationDetail } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_TYPES,
+  type ActivityItem,
+  type ActivityKind,
+  type ConversationDetail,
+} from '@/components/traces/timeline/types';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
 import type { FullAgentDefinition } from '@/lib/types/agent-full';
@@ -21,7 +26,7 @@ interface PrettifiedTrace {
     endTime: string;
     durationMs: number;
   };
-  agentDefinition?: Record<string, unknown>;
+  agentDefinition: Record<string, unknown> | null;
   conversationHistory: string;
   timeline: Omit<ActivityItem, 'id' | 'parentSpanId'>[];
 }
@@ -91,7 +96,7 @@ function formatConversationAsPrettifiedTrace(
         : '',
       durationMs: conversation.duration,
     },
-    agentDefinition: agentDefinition as Record<string, unknown> | undefined,
+    agentDefinition: (agentDefinition as Record<string, unknown>) || null,
     conversationHistory: conversationHistory || '',
     timeline: (conversation.activities || []).map((activity) => {
       const { id: _id, parentSpanId: _parentSpanId, ...rest } = activity;
@@ -101,7 +106,7 @@ function formatConversationAsPrettifiedTrace(
 }
 
 /**
- * Copies the prettified trace to clipboard with compact defaults
+ * Copies the full trace (with agent definition) to clipboard
  */
 export async function copyFullTraceToClipboard(
   conversation: ConversationDetail,
@@ -117,9 +122,15 @@ export async function copyFullTraceToClipboard(
     ]);
 
     const agentDefinition = agentResult?.success ? agentResult.data : undefined;
-    const conversationHistory = historyResult?.success ? historyResult.data?.formatted?.llmContext : '';
+    const conversationHistory = historyResult?.success
+      ? historyResult.data?.formatted?.llmContext
+      : '';
 
-    const trace = formatConversationAsPrettifiedTrace(conversation, agentDefinition, conversationHistory);
+    const trace = formatConversationAsPrettifiedTrace(
+      conversation,
+      agentDefinition,
+      conversationHistory
+    );
     await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
     return { success: true };
   } catch (error) {
@@ -130,55 +141,72 @@ export async function copyFullTraceToClipboard(
   }
 }
 
-interface SummarizedActivity {
-  agent?: string;
-  type: string;
-  description: string;
-  status: string;
-  timestamp: string;
-  content?: string;
-  errorDetails?: string;
-}
+/**
+ * Config defining which fields are visible on the timeline for each activity type.
+ * This mirrors what timeline-item.tsx renders without clicking into details.
+ */
+const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
+  [ACTIVITY_TYPES.USER_MESSAGE]: ['messageContent', 'messageParts'],
+  [ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE]: ['aiResponseContent'],
+  [ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT]: ['aiStreamTextContent'],
+  [ACTIVITY_TYPES.CONTEXT_FETCH]: ['toolResult'],
+  [ACTIVITY_TYPES.CONTEXT_RESOLUTION]: ['contextUrl'],
+  [ACTIVITY_TYPES.TOOL_CALL]: [
+    'toolName',
+    'toolType',
+    'toolPurpose',
+    'mcpServerName',
+    'delegationFromSubAgentId',
+    'delegationToSubAgentId',
+    'transferFromSubAgentId',
+    'transferToSubAgentId',
+  ],
+  [ACTIVITY_TYPES.ARTIFACT_PROCESSING]: ['artifactType', 'artifactName', 'artifactDescription'],
+  [ACTIVITY_TYPES.AI_GENERATION]: [],
+  [ACTIVITY_TYPES.AGENT_GENERATION]: [],
+  [ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED]: ['approvalToolName'],
+  [ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED]: ['approvalToolName'],
+  [ACTIVITY_TYPES.TOOL_APPROVAL_DENIED]: ['approvalToolName'],
+  [ACTIVITY_TYPES.COMPRESSION]: ['compressionType', 'compressionRatio'],
+};
 
 /**
- * Formats an activity into a summarized view (what's visible in the timeline)
+ * Base fields always shown in timeline summaries
  */
-function formatActivityAsSummary(activity: ActivityItem): SummarizedActivity {
-  const summary: SummarizedActivity = {
-    type: activity.type,
-    description: activity.description,
-    status: activity.status,
-    timestamp: activity.timestamp,
-  };
+const BASE_VISIBLE_FIELDS: (keyof ActivityItem)[] = [
+  'type',
+  'description',
+  'status',
+  'timestamp',
+  'subAgentId',
+  'subAgentName',
+];
 
-  // Add agent info if available
-  if (activity.subAgentName && activity.subAgentId) {
-    summary.agent = `${activity.subAgentName} (${activity.subAgentId})`;
-  } else if (activity.subAgentId) {
-    summary.agent = activity.subAgentId;
+/**
+ * Error/status fields shown when status is error or warning
+ */
+const ERROR_FIELDS: (keyof ActivityItem)[] = ['otelStatusDescription', 'toolStatusMessage'];
+
+/**
+ * Formats an activity to show only what's visible on the timeline (without clicking into details)
+ */
+function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
+  const visibleFields = new Set([
+    ...BASE_VISIBLE_FIELDS,
+    ...(VISIBLE_FIELDS_BY_TYPE[activity.type] || []),
+    ...(activity.status === 'error' || activity.status === 'warning' ? ERROR_FIELDS : []),
+  ]);
+
+  const summary: Record<string, unknown> = {};
+
+  for (const field of visibleFields) {
+    const value = activity[field];
+    if (value !== undefined && value !== null && value !== '') {
+      summary[field] = value;
+    }
   }
 
-  // Add content based on activity type
-  if (activity.type === 'user_message' && activity.messageContent) {
-    summary.content = activity.messageContent;
-  } else if (activity.type === 'ai_assistant_message' && activity.aiResponseContent) {
-    summary.content = activity.aiResponseContent;
-  } else if (activity.type === 'ai_model_streamed_text' && activity.aiStreamTextContent) {
-    summary.content = activity.aiStreamTextContent;
-  } else if (activity.type === 'tool_call' && activity.toolPurpose) {
-    summary.content = activity.toolPurpose;
-  }
-
-  // Add error/warning details if present
-  const statusMessage =
-    activity.otelStatusDescription ||
-    activity.toolStatusMessage ||
-    activity.contextStatusDescription;
-  if (statusMessage && (activity.status === 'error' || activity.status === 'warning')) {
-    summary.errorDetails = statusMessage;
-  }
-
-  return summary;
+  return orderObjectKeys(summary);
 }
 
 /**
@@ -199,7 +227,9 @@ export async function copySummarizedTraceToClipboard(
     ]);
 
     const agentDefinition = agentResult?.success ? agentResult.data : undefined;
-    const conversationHistory = historyResult?.success ? historyResult.data?.formatted?.llmContext : '';
+    const conversationHistory = historyResult?.success
+      ? historyResult.data?.formatted?.llmContext
+      : '';
 
     const summarizedTrace = {
       metadata: {
@@ -208,9 +238,9 @@ export async function copySummarizedTraceToClipboard(
         agentId: conversation.agentId,
         exportedAt: new Date().toISOString(),
       },
-      agentDefinition: agentDefinition as Record<string, unknown> | undefined,
+      agentDefinition: (agentDefinition as Record<string, unknown>) || null,
       conversationHistory: conversationHistory || '',
-      timeline: (conversation.activities || []).map(formatActivityAsSummary),
+      timeline: (conversation.activities || []).map(formatActivityForSummary),
     };
 
     await navigator.clipboard.writeText(JSON.stringify(summarizedTrace, null, 2));
