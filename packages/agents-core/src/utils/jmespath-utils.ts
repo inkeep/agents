@@ -296,6 +296,6 @@ export function jmespathString(options?: JMESPathStringOptions) {
     .string()
     .max(maxLen)
     .describe(
-      `JMESPath expression (max ${maxLen} chars). Valid: "data.items[0].name", "results[?status=='active']", "keys(@)". Invalid: "\${...}" (template injection), "eval(...)", "constructor", "__proto__".`
+      `JMESPath expression (max ${maxLen} chars). Valid: "data.items[0].name", "results[?status=='active']", "keys(@)". Invalid: "\${...}" (template injection), "eval" calls, "constructor", "__proto__".`
     );
 }

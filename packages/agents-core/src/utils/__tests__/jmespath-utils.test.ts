@@ -419,7 +419,7 @@ describe('jmespath-utils', () => {
       const description = schema.description;
       // biome-ignore lint/suspicious/noTemplateCurlyInString: <This is an example of an invalid JMESPath expression>
       expect(description).toContain('${...}');
-      expect(description).toContain('eval(...)');
+      expect(description).toContain('"eval" calls');
       expect(description).toContain('constructor');
       expect(description).toContain('__proto__');
     });
