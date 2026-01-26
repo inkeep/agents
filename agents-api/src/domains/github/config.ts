@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import { env } from '../../env';
 import { getLogger } from '../../logger';
 
 const logger = getLogger('github-config');
@@ -17,9 +18,9 @@ export function getGitHubAppConfig(): GitHubAppConfig {
     return cachedConfig;
   }
 
-  const appId = process.env.GITHUB_APP_ID;
+  const appId = env.GITHUB_APP_ID;
   // Handle escaped newlines (common when setting env vars from CLI or .env files)
-  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   const result = GitHubAppConfigSchema.safeParse({
     appId,
@@ -39,7 +40,7 @@ export function getGitHubAppConfig(): GitHubAppConfig {
 }
 
 export function isGitHubAppConfigured(): boolean {
-  return Boolean(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY);
+  return Boolean(env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY);
 }
 
 export function validateGitHubAppConfigOnStartup(): void {

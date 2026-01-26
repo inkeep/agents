@@ -131,6 +131,11 @@ import type {
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   FunctionUpdateSchema,
+  GitHubAppInstallationInsertSchema,
+  GitHubAppInstallationSelectSchema,
+  GitHubAppRepositoryInsertSchema,
+  GitHubAppRepositorySelectSchema,
+  GitHubProjectRepositoryAccessSelectSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -398,6 +403,16 @@ export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
 export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
 export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
 export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
+
+export type GitHubAppInstallationSelect = z.infer<typeof GitHubAppInstallationSelectSchema>;
+export type GitHubAppInstallationInsert = z.infer<typeof GitHubAppInstallationInsertSchema>;
+export type GitHubAppRepositorySelect = z.infer<typeof GitHubAppRepositorySelectSchema>;
+export type GitHubAppRepositoryInsert = z.infer<typeof GitHubAppRepositoryInsertSchema>;
+export type GitHubProjectRepositoryAccessSelect = z.infer<
+  typeof GitHubProjectRepositoryAccessSelectSchema
+>;
+
+export type GitHubAppRepositoryInput = Omit<GitHubAppRepositoryInsert, 'id' | 'installationId'>;
 
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
 export type ConversationInsert = z.infer<typeof ConversationInsertSchema>;

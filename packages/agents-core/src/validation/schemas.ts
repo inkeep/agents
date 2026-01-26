@@ -58,6 +58,9 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  githubAppInstallations,
+  githubAppRepositories,
+  githubProjectRepositoryAccess,
   ledgerArtifacts,
   messages,
   projectMetadata,
@@ -2531,3 +2534,40 @@ export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
 export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
   createdAt: true,
 });
+
+export const GitHubAppInstallationSelectSchema = createSelectSchema(githubAppInstallations);
+export const GitHubAppInstallationInsertSchema = createInsertSchema(githubAppInstallations)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+  })
+  .extend({
+    accountType: z.enum(['Organization', 'User']),
+    status: z.enum(['pending', 'active', 'suspended', 'deleted']).optional().default('active'),
+  });
+
+export const GitHubAppInstallationApiSelectSchema = GitHubAppInstallationSelectSchema.omit({
+  tenantId: true,
+});
+export const GitHubAppInstallationApiInsertSchema = GitHubAppInstallationInsertSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const GitHubAppRepositorySelectSchema = createSelectSchema(githubAppRepositories);
+export const GitHubAppRepositoryInsertSchema = createInsertSchema(githubAppRepositories).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const GitHubAppRepositoryApiInsertSchema = GitHubAppRepositoryInsertSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const GitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
+  githubProjectRepositoryAccess
+);

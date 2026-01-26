@@ -1,64 +1,19 @@
-import { and, count, desc, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   githubAppInstallations,
   githubAppRepositories,
   githubProjectRepositoryAccess,
-  type GitHubAccountType,
-  type GitHubInstallationStatus,
 } from '../../db/runtime/runtime-schema';
+import type {
+  GitHubAppInstallationInsert,
+  GitHubAppInstallationSelect,
+  GitHubAppRepositoryInput,
+  GitHubAppRepositorySelect,
+  GitHubProjectRepositoryAccessSelect,
+} from '../../types/entities';
+import type { GitHubInstallationStatus } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface CreateInstallationInput {
-  tenantId: string;
-  installationId: string;
-  accountLogin: string;
-  accountId: string;
-  accountType: GitHubAccountType;
-  status?: GitHubInstallationStatus;
-}
-
-export interface InstallationRecord {
-  id: string;
-  tenantId: string;
-  installationId: string;
-  accountLogin: string;
-  accountId: string;
-  accountType: GitHubAccountType;
-  status: GitHubInstallationStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RepositoryInput {
-  repositoryId: string;
-  repositoryName: string;
-  repositoryFullName: string;
-  private: boolean;
-}
-
-export interface RepositoryRecord {
-  id: string;
-  installationId: string;
-  repositoryId: string;
-  repositoryName: string;
-  repositoryFullName: string;
-  private: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ProjectRepositoryAccessRecord {
-  id: string;
-  projectId: string;
-  githubRepositoryId: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 // ============================================================================
 // Installation Management Functions
@@ -69,26 +24,19 @@ export interface ProjectRepositoryAccessRecord {
  */
 export const createInstallation =
   (db: AgentsRunDatabaseClient) =>
-  async (input: CreateInstallationInput): Promise<InstallationRecord> => {
-    const id = generateId();
+  async (input: GitHubAppInstallationInsert): Promise<GitHubAppInstallationSelect> => {
     const now = new Date().toISOString();
 
     const [created] = await db
       .insert(githubAppInstallations)
       .values({
-        id,
-        tenantId: input.tenantId,
-        installationId: input.installationId,
-        accountLogin: input.accountLogin,
-        accountId: input.accountId,
-        accountType: input.accountType,
-        status: input.status ?? 'active',
+        ...input,
         createdAt: now,
         updatedAt: now,
       })
       .returning();
 
-    return created as InstallationRecord;
+    return created;
   };
 
 /**
@@ -96,14 +44,12 @@ export const createInstallation =
  */
 export const getInstallationByGitHubId =
   (db: AgentsRunDatabaseClient) =>
-  async (gitHubInstallationId: string): Promise<InstallationRecord | null> => {
-    const result = await db
-      .select()
-      .from(githubAppInstallations)
-      .where(eq(githubAppInstallations.installationId, gitHubInstallationId))
-      .limit(1);
+  async (gitHubInstallationId: string): Promise<GitHubAppInstallationSelect | null> => {
+    const result = await db.query.githubAppInstallations.findFirst({
+      where: eq(githubAppInstallations.installationId, gitHubInstallationId),
+    });
 
-    return (result[0] as InstallationRecord) ?? null;
+    return result ?? null;
   };
 
 /**
@@ -111,19 +57,15 @@ export const getInstallationByGitHubId =
  */
 export const getInstallationById =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { tenantId: string; id: string }): Promise<InstallationRecord | null> => {
-    const result = await db
-      .select()
-      .from(githubAppInstallations)
-      .where(
-        and(
-          eq(githubAppInstallations.tenantId, params.tenantId),
-          eq(githubAppInstallations.id, params.id)
-        )
-      )
-      .limit(1);
+  async (params: { tenantId: string; id: string }): Promise<GitHubAppInstallationSelect | null> => {
+    const result = await db.query.githubAppInstallations.findFirst({
+      where: and(
+        eq(githubAppInstallations.tenantId, params.tenantId),
+        eq(githubAppInstallations.id, params.id)
+      ),
+    });
 
-    return (result[0] as InstallationRecord) ?? null;
+    return result ?? null;
   };
 
 /**
@@ -134,7 +76,7 @@ export const getInstallationsByTenantId =
   async (params: {
     tenantId: string;
     includeDeleted?: boolean;
-  }): Promise<InstallationRecord[]> => {
+  }): Promise<GitHubAppInstallationSelect[]> => {
     const conditions = [eq(githubAppInstallations.tenantId, params.tenantId)];
 
     if (!params.includeDeleted) {
@@ -147,7 +89,7 @@ export const getInstallationsByTenantId =
       .where(and(...conditions))
       .orderBy(desc(githubAppInstallations.createdAt));
 
-    return result as InstallationRecord[];
+    return result;
   };
 
 /**
@@ -159,7 +101,7 @@ export const updateInstallationStatus =
     tenantId: string;
     id: string;
     status: GitHubInstallationStatus;
-  }): Promise<InstallationRecord | null> => {
+  }): Promise<GitHubAppInstallationSelect | null> => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -176,7 +118,7 @@ export const updateInstallationStatus =
       )
       .returning();
 
-    return (updated as InstallationRecord) ?? null;
+    return updated ?? null;
   };
 
 /**
@@ -187,7 +129,7 @@ export const updateInstallationStatusByGitHubId =
   async (params: {
     gitHubInstallationId: string;
     status: GitHubInstallationStatus;
-  }): Promise<InstallationRecord | null> => {
+  }): Promise<GitHubAppInstallationSelect | null> => {
     const now = new Date().toISOString();
 
     const [updated] = await db
@@ -199,7 +141,7 @@ export const updateInstallationStatusByGitHubId =
       .where(eq(githubAppInstallations.installationId, params.gitHubInstallationId))
       .returning();
 
-    return (updated as InstallationRecord) ?? null;
+    return updated ?? null;
   };
 
 /**
@@ -256,7 +198,7 @@ export const syncRepositories =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     installationId: string;
-    repositories: RepositoryInput[];
+    repositories: GitHubAppRepositoryInput[];
   }): Promise<{ added: number; removed: number; updated: number }> => {
     const now = new Date().toISOString();
 
@@ -284,9 +226,7 @@ export const syncRepositories =
         .where(inArray(githubProjectRepositoryAccess.githubRepositoryId, removeIds));
 
       // Then remove the repos
-      await db
-        .delete(githubAppRepositories)
-        .where(inArray(githubAppRepositories.id, removeIds));
+      await db.delete(githubAppRepositories).where(inArray(githubAppRepositories.id, removeIds));
     }
 
     // Add new repos
@@ -342,15 +282,15 @@ export const addRepositories =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     installationId: string;
-    repositories: RepositoryInput[];
-  }): Promise<RepositoryRecord[]> => {
+    repositories: GitHubAppRepositoryInput[];
+  }): Promise<GitHubAppRepositorySelect[]> => {
     const now = new Date().toISOString();
 
     if (params.repositories.length === 0) {
       return [];
     }
 
-    const [result] = await db
+    await db
       .insert(githubAppRepositories)
       .values(
         params.repositories.map((repo) => ({
@@ -379,7 +319,7 @@ export const addRepositories =
         )
       );
 
-    return inserted as RepositoryRecord[];
+    return inserted;
   };
 
 /**
@@ -388,10 +328,7 @@ export const addRepositories =
  */
 export const removeRepositories =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    installationId: string;
-    repositoryIds: string[];
-  }): Promise<number> => {
+  async (params: { installationId: string; repositoryIds: string[] }): Promise<number> => {
     if (params.repositoryIds.length === 0) {
       return 0;
     }
@@ -432,14 +369,14 @@ export const removeRepositories =
  */
 export const getRepositoriesByInstallationId =
   (db: AgentsRunDatabaseClient) =>
-  async (installationId: string): Promise<RepositoryRecord[]> => {
+  async (installationId: string): Promise<GitHubAppRepositorySelect[]> => {
     const result = await db
       .select()
       .from(githubAppRepositories)
       .where(eq(githubAppRepositories.installationId, installationId))
       .orderBy(githubAppRepositories.repositoryFullName);
 
-    return result as RepositoryRecord[];
+    return result;
   };
 
 /**
@@ -447,14 +384,14 @@ export const getRepositoriesByInstallationId =
  */
 export const getRepositoryByFullName =
   (db: AgentsRunDatabaseClient) =>
-  async (repositoryFullName: string): Promise<RepositoryRecord | null> => {
+  async (repositoryFullName: string): Promise<GitHubAppRepositorySelect | null> => {
     const result = await db
       .select()
       .from(githubAppRepositories)
       .where(eq(githubAppRepositories.repositoryFullName, repositoryFullName))
       .limit(1);
 
-    return (result[0] as RepositoryRecord) ?? null;
+    return result[0] ?? null;
   };
 
 /**
@@ -462,14 +399,12 @@ export const getRepositoryByFullName =
  */
 export const getRepositoryById =
   (db: AgentsRunDatabaseClient) =>
-  async (id: string): Promise<RepositoryRecord | null> => {
-    const result = await db
-      .select()
-      .from(githubAppRepositories)
-      .where(eq(githubAppRepositories.id, id))
-      .limit(1);
+  async (id: string): Promise<GitHubAppRepositorySelect | null> => {
+    const result = await db.query.githubAppRepositories.findFirst({
+      where: eq(githubAppRepositories.id, id),
+    });
 
-    return (result[0] as RepositoryRecord) ?? null;
+    return result ?? null;
   };
 
 /**
@@ -477,7 +412,9 @@ export const getRepositoryById =
  */
 export const getRepositoriesByTenantId =
   (db: AgentsRunDatabaseClient) =>
-  async (tenantId: string): Promise<(RepositoryRecord & { installationAccountLogin: string })[]> => {
+  async (
+    tenantId: string
+  ): Promise<(GitHubAppRepositorySelect & { installationAccountLogin: string })[]> => {
     const result = await db
       .select({
         id: githubAppRepositories.id,
@@ -503,7 +440,7 @@ export const getRepositoriesByTenantId =
       )
       .orderBy(githubAppRepositories.repositoryFullName);
 
-    return result as (RepositoryRecord & { installationAccountLogin: string })[];
+    return result as (GitHubAppRepositorySelect & { installationAccountLogin: string })[];
   };
 
 // ============================================================================
@@ -516,10 +453,7 @@ export const getRepositoriesByTenantId =
  */
 export const setProjectRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    projectId: string;
-    repositoryIds: string[];
-  }): Promise<void> => {
+  async (params: { projectId: string; repositoryIds: string[] }): Promise<void> => {
     const now = new Date().toISOString();
 
     // Remove all existing access for this project
@@ -547,13 +481,13 @@ export const setProjectRepositoryAccess =
  */
 export const getProjectRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
-  async (projectId: string): Promise<ProjectRepositoryAccessRecord[]> => {
+  async (projectId: string): Promise<GitHubProjectRepositoryAccessSelect[]> => {
     const result = await db
       .select()
       .from(githubProjectRepositoryAccess)
       .where(eq(githubProjectRepositoryAccess.projectId, projectId));
 
-    return result as ProjectRepositoryAccessRecord[];
+    return result;
   };
 
 /**
@@ -561,7 +495,7 @@ export const getProjectRepositoryAccess =
  */
 export const getProjectRepositoryAccessWithDetails =
   (db: AgentsRunDatabaseClient) =>
-  async (projectId: string): Promise<(RepositoryRecord & { accessId: string })[]> => {
+  async (projectId: string): Promise<(GitHubAppRepositorySelect & { accessId: string })[]> => {
     const result = await db
       .select({
         accessId: githubProjectRepositoryAccess.id,
@@ -581,7 +515,7 @@ export const getProjectRepositoryAccessWithDetails =
       )
       .where(eq(githubProjectRepositoryAccess.projectId, projectId));
 
-    return result as (RepositoryRecord & { accessId: string })[];
+    return result as (GitHubAppRepositorySelect & { accessId: string })[];
   };
 
 /**
@@ -691,10 +625,7 @@ export const clearProjectRepositoryAccess =
  */
 export const validateRepositoryOwnership =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    tenantId: string;
-    repositoryIds: string[];
-  }): Promise<string[]> => {
+  async (params: { tenantId: string; repositoryIds: string[] }): Promise<string[]> => {
     if (params.repositoryIds.length === 0) {
       return [];
     }

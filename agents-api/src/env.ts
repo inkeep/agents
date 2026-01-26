@@ -62,6 +62,10 @@ const envSchema = z.object({
   WORKFLOW_POSTGRES_URL: z.string().optional(),
   WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
   WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
+
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
 });
 
 const parseEnv = () => {

@@ -15,6 +15,8 @@ import { organization } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
   ConversationMetadata,
+  GitHubAccountType,
+  GitHubInstallationStatus,
   MessageContent,
   MessageMetadata,
   TaskMetadataConfig,
@@ -498,22 +500,6 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
 // ============================================================================
 // These tables track GitHub App installations linked to tenants, enabling
 // secure OAuth-style connection flow and optional project-level repository scoping.
-
-/**
- * GitHub App installation status.
- * - 'pending': Installation request awaiting org admin approval
- * - 'active': Installation is active and functional
- * - 'suspended': Installation suspended by GitHub or org admin
- * - 'deleted': Installation has been disconnected (soft delete)
- */
-export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'deleted';
-
-/**
- * GitHub account type for the installation target.
- * - 'Organization': Installed on a GitHub organization
- * - 'User': Installed on a personal GitHub account
- */
-export type GitHubAccountType = 'Organization' | 'User';
 
 /**
  * Tracks GitHub App installations linked to tenants.
