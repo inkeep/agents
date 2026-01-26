@@ -5395,7 +5395,8 @@
               "healthy",
               "unhealthy",
               "unknown",
-              "needs_auth"
+              "needs_auth",
+              "unavailable"
             ],
             "type": "string"
           },
@@ -8547,7 +8548,8 @@
         "nullable": true,
         "properties": {
           "jmespath": {
-            "description": "JMESPath expression for payload transformation",
+            "description": "JMESPath expression (max 1000 chars). Valid: \"data.items[0].name\", \"results[?status=='active']\", \"keys(@)\". Invalid: \"${...}\" (template injection), \"eval\" calls, \"constructor\", \"__proto__\".",
+            "maxLength": 1000,
             "type": "string"
           },
           "objectTransformation": {
@@ -29944,7 +29946,22 @@
                 "healthy",
                 "unhealthy",
                 "unknown",
-                "needs_auth"
+                "needs_auth",
+                "unavailable"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+            "in": "query",
+            "name": "skipDiscovery",
+            "required": false,
+            "schema": {
+              "description": "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+              "enum": [
+                "true",
+                "false"
               ],
               "type": "string"
             }

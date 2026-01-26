@@ -14,6 +14,7 @@ export const TEMPLATE_VARIABLE_REGEX = /\{\{(?!\{)(?<variableName>[^{}]+)}}/g;
  */
 export const STATIC_LABELS = Object.freeze({
   projects: 'Projects',
+  stats: 'Statistics',
   agents: 'Agents',
   'api-keys': 'API Keys',
   artifacts: 'Artifacts',

@@ -1,3 +1,4 @@
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
 import type { NangoCredentialData } from '../../credential-stores/nango-store';
@@ -20,6 +21,7 @@ import {
   type ToolUpdate,
 } from '../../types/index';
 import {
+  buildComposioMCPUrl,
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
@@ -30,6 +32,37 @@ import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
+
+/**
+ * Check if an error is a timeout/connection error.
+ * Uses MCP SDK ErrorCode for proper type safety.
+ */
+function isTimeoutOrConnectionError(error: unknown): boolean {
+  if (error instanceof McpError) {
+    return error.code === ErrorCode.RequestTimeout || error.code === ErrorCode.ConnectionClosed;
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    const cause = (error as any).cause;
+
+    // Check for timeout-related error messages
+    if (message.includes('timed out') || message.includes('timeout')) {
+      return true;
+    }
+
+    // Check for network error codes
+    if (
+      cause?.code === 'ETIMEDOUT' ||
+      cause?.code === 'ECONNABORTED' ||
+      cause?.code === 'ECONNRESET'
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 const logger = getLogger('tools');
 
@@ -172,17 +205,14 @@ const discoverToolsFromServer = async (
     }
 
     // Inject user_id for Composio servers at discovery time
-    if (serverConfig.url?.toString().includes('composio.dev')) {
-      const urlObj = new URL(serverConfig.url.toString());
-      if (tool.credentialScope === 'user' && userId) {
-        // User-scoped: use actual userId
-        urlObj.searchParams.set('user_id', userId);
-      } else {
-        // Project-scoped: use tenantId||projectId
-        const SEPARATOR = '||';
-        urlObj.searchParams.set('user_id', `${tool.tenantId}${SEPARATOR}${tool.projectId}`);
-      }
-      serverConfig.url = urlObj.toString();
+    if (serverConfig.url) {
+      serverConfig.url = buildComposioMCPUrl(
+        serverConfig.url.toString(),
+        tool.tenantId,
+        tool.projectId,
+        tool.credentialScope === 'user' ? 'user' : 'project',
+        userId
+      );
     }
 
     const client = new McpClient({
@@ -214,6 +244,32 @@ const discoverToolsFromServer = async (
     logger.error({ toolId: tool.id, error }, 'Tool discovery failed');
     throw error;
   }
+};
+
+/**
+ * Convert DB result to McpTool skeleton WITHOUT MCP discovery.
+ * This is a fast path that returns status='unknown' and empty availableTools.
+ * Use this for list views where you want instant page load.
+ */
+export const dbResultToMcpToolSkeleton = (
+  dbResult: ToolSelect,
+  relationshipId?: string
+): McpTool => {
+  const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
+
+  return {
+    ...rest,
+    status: 'unknown',
+    availableTools: [],
+    capabilities: capabilities || undefined,
+    credentialReferenceId: credentialReferenceId || undefined,
+    createdAt: toISODateString(createdAt),
+    updatedAt: toISODateString(dbResult.updatedAt),
+    lastError: dbResult.lastError || null,
+    headers: headers || undefined,
+    imageUrl: imageUrl || undefined,
+    relationshipId,
+  };
 };
 
 export const dbResultToMcpTool = async (
@@ -279,21 +335,27 @@ export const dbResultToMcpTool = async (
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {
-    const toolNeedsAuth =
-      error instanceof Error &&
-      (await detectAuthenticationRequired({
-        serverUrl: mcpServerUrl,
-        error,
-        logger,
-      }));
-
-    status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
-
     const errorMessage = error instanceof Error ? error.message : 'Tool discovery failed';
 
-    lastErrorComputed = toolNeedsAuth
-      ? `Authentication required - OAuth login needed. ${errorMessage}`
-      : errorMessage;
+    // Check for timeout/connection errors first using MCP SDK types
+    // These are transient and don't indicate auth issues
+    if (isTimeoutOrConnectionError(error)) {
+      status = 'unavailable';
+      const errorCode = error instanceof McpError ? ` (MCP error ${error.code})` : '';
+      lastErrorComputed = `Connection failed - the MCP server may be slow or temporarily unreachable.${errorCode} ${errorMessage}`;
+    } else {
+      // Only check for auth requirement if it's not a timeout/connection error
+      const toolNeedsAuth = await detectAuthenticationRequired({
+        serverUrl: mcpServerUrl,
+        error: error instanceof Error ? error : undefined,
+        logger,
+      });
+
+      status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
+      lastErrorComputed = toolNeedsAuth
+        ? `Authentication required - OAuth login needed. ${errorMessage}`
+        : errorMessage;
+    }
   }
 
   // Check third-party service status

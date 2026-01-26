@@ -440,7 +440,9 @@ export const Agent: FC<AgentProps> = ({
     async function doRequest(): Promise<void> {
       const [fullProjectResult, toolsResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
-        options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
+        options?.fetchTools
+          ? fetchToolsAction(tenantId, projectId, { skipDiscovery: true })
+          : Promise.resolve(null),
       ]);
 
       if (!fullProjectResult.success) {

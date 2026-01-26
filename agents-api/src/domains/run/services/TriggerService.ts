@@ -15,8 +15,10 @@ import type {
 import {
   createKeyChainStore,
   createMessage,
+  createNangoCredentialStore,
   createOrGetConversation,
   createTriggerInvocation,
+  DEFAULT_NANGO_STORE_ID,
   generateId,
   getConversationId,
   getCredentialReference,
@@ -232,7 +234,6 @@ async function resolveSigningSecret(params: {
   }
 
   // Create the credential store and fetch the secret
-  // For now we support keychain store - the credential store registry should be used for more flexibility
   let secret: string | null = null;
 
   if (
@@ -243,6 +244,41 @@ async function resolveSigningSecret(params: {
       credentialRef.credentialStoreId ?? 'keychain-default'
     );
     secret = await keychainStore.get(lookupKey);
+  } else if (
+    credentialRef.type === 'nango' ||
+    credentialRef.credentialStoreId?.startsWith('nango')
+  ) {
+    // Nango store support for cloud deployments
+    const nangoSecretKey = process.env.NANGO_SECRET_KEY;
+    if (!nangoSecretKey) {
+      logger.warn(
+        { tenantId, projectId, credentialReferenceId },
+        'NANGO_SECRET_KEY not configured, cannot resolve Nango credential'
+      );
+      return null;
+    }
+
+    try {
+      const nangoStore = createNangoCredentialStore(
+        credentialRef.credentialStoreId ?? DEFAULT_NANGO_STORE_ID,
+        {
+          secretKey: nangoSecretKey,
+          apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
+        }
+      );
+      secret = await nangoStore.get(lookupKey);
+    } catch (error) {
+      logger.error(
+        {
+          tenantId,
+          projectId,
+          credentialReferenceId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        'Failed to create or fetch from Nango credential store'
+      );
+      return null;
+    }
   } else {
     logger.warn(
       {

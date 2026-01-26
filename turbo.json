@@ -159,6 +159,11 @@
       "dependsOn": ["build", "lint", "typecheck", "test"],
       "cache": false,
       "outputs": []
+    },
+    "check:prepush": {
+      "dependsOn": ["lint", "typecheck", "test"],
+      "cache": false,
+      "outputs": []
     }
   }
 }
