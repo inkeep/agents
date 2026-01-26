@@ -37,4 +37,3 @@ export async function fetchConversationHistory(
     return null;
   }
 }
-
