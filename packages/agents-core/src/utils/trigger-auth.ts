@@ -2,13 +2,13 @@ import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { Context } from 'hono';
 import type { z } from 'zod';
-import { searchJMESPath } from './jmespath-utils';
 import type {
   SignatureVerificationConfig,
   TriggerAuthenticationStoredSchema,
   TriggerAuthHeaderInputSchema,
   TriggerAuthHeaderStoredSchema,
 } from '../validation/schemas';
+import { searchJMESPath } from './jmespath-utils';
 
 const scryptAsync = promisify(scrypt);
 

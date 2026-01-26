@@ -1,10 +1,6 @@
 import { z } from '@hono/zod-openapi';
-import {
-  jmespathString,
-  validateJMESPathSecure,
-  validateRegex,
-} from '../utils/jmespath-utils';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
+import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
 
 // Destructure defaults for use in schemas
 const {

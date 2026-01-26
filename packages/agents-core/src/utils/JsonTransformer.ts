@@ -1,12 +1,11 @@
 import * as jmespath from 'jmespath';
-
-import { getLogger } from './logger';
 import {
   compileJMESPath,
   DANGEROUS_PATTERNS,
   MAX_EXPRESSION_LENGTH,
   validateJMESPathSecure,
 } from './jmespath-utils';
+import { getLogger } from './logger';
 
 const logger = getLogger('JsonTransformer');
 
@@ -29,9 +28,7 @@ export class JsonTransformer {
 
     // Check length first
     if (expression.length > MAX_EXPRESSION_LENGTH) {
-      throw new Error(
-        `JMESPath expression too long (max ${MAX_EXPRESSION_LENGTH} characters)`
-      );
+      throw new Error(`JMESPath expression too long (max ${MAX_EXPRESSION_LENGTH} characters)`);
     }
 
     // Check dangerous patterns

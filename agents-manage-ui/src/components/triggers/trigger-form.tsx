@@ -1,6 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  validateJMESPath as coreValidateJMESPath,
+  validateRegex as coreValidateRegex,
+} from '@inkeep/agents-core/utils/signature-validation';
 import { ArrowDown, ArrowUp, Check, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -32,10 +36,6 @@ import { Switch } from '@/components/ui/switch';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
-import {
-  validateJMESPath as coreValidateJMESPath,
-  validateRegex as coreValidateRegex,
-} from '@inkeep/agents-core/utils/signature-validation';
 
 // Adapter functions that convert ValidationResult to string | undefined for form validation
 const validateJMESPath = (value: string): string | undefined => {

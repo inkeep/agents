@@ -5,10 +5,10 @@ import {
   jmespathString,
   MAX_EXPRESSION_LENGTH,
   searchJMESPath,
+  type ValidationResult,
   validateJMESPath,
   validateJMESPathSecure,
   validateRegex,
-  type ValidationResult,
 } from '../jmespath-utils';
 
 describe('jmespath-utils', () => {
