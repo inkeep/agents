@@ -3,7 +3,7 @@
 import { use } from 'react';
 import { SlackDashboard, SlackProvider } from '@/features/slack';
 
-function SlackAppPage({ params }: { params: Promise<{ tenantId: string }> }) {
+function SlackWorkAppPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = use(params);
 
   return (
@@ -13,4 +13,4 @@ function SlackAppPage({ params }: { params: Promise<{ tenantId: string }> }) {
   );
 }
 
-export default SlackAppPage;
+export default SlackWorkAppPage;

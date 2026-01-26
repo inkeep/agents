@@ -137,6 +137,10 @@ export function useSlackConnect() {
 
             console.log('[useSlackConnect] Saved to new database');
 
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('inkeep-db-update'));
+            }
+
             setNotification({
               type: 'success',
               message: 'Slack account connected successfully!',

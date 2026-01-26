@@ -144,23 +144,6 @@ export function useUsersDb(tenantId: string) {
     [refresh]
   );
 
-  const updateSessionToken = useCallback(
-    (userId: string, sessionToken: string, expiresAt: string) => {
-      try {
-        const result = localDb.users.updateSessionToken(userId, sessionToken, expiresAt);
-        if (result) {
-          refresh();
-          logger.info('useUsersDb', 'Session token updated', { userId });
-        }
-        return result;
-      } catch (err) {
-        logger.error('useUsersDb', 'Failed to update session token', err);
-        throw err;
-      }
-    },
-    [refresh]
-  );
-
   const findById = useCallback((id: string) => {
     return localDb.users.findById(id);
   }, []);
@@ -171,7 +154,6 @@ export function useUsersDb(tenantId: string) {
     error,
     refresh,
     upsertUser,
-    updateSessionToken,
     findById,
   };
 }
@@ -345,6 +327,24 @@ export function useDatabaseState() {
 
   useEffect(() => {
     refresh();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'inkeep_slack_db') {
+        refresh();
+      }
+    };
+
+    const handleCustomRefresh = () => {
+      refresh();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('inkeep-db-update', handleCustomRefresh);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('inkeep-db-update', handleCustomRefresh);
+    };
   }, [refresh]);
 
   const exportJSON = useCallback(() => {

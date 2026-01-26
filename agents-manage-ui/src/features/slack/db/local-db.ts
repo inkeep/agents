@@ -178,23 +178,6 @@ export const localDb = {
       return newUser;
     },
 
-    updateSessionToken(
-      userId: string,
-      sessionToken: string,
-      expiresAt: string
-    ): UserRecord | undefined {
-      const state = getState();
-      const user = state.users.find((u) => u.id === userId);
-      if (!user) return undefined;
-
-      user.sessionToken = sessionToken;
-      user.sessionExpiresAt = expiresAt;
-      user.updatedAt = new Date().toISOString();
-      setState(state);
-      logger.info('User session updated', { userId, expiresAt });
-      return user;
-    },
-
     delete(id: string): boolean {
       const state = getState();
       const before = state.users.length;

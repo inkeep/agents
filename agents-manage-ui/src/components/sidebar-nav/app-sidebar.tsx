@@ -11,7 +11,7 @@ import {
   Library,
   LifeBuoy,
   Lock,
-  MessageSquare,
+  Plug,
   Settings,
   Users,
   Workflow,
@@ -73,9 +73,9 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: BarChart3,
         },
         {
-          title: STATIC_LABELS['slack-app'],
-          url: `/${tenantId}/slack-app`,
-          icon: MessageSquare,
+          title: STATIC_LABELS['work-apps'],
+          url: `/${tenantId}/work-apps`,
+          icon: Plug,
         },
       ];
 

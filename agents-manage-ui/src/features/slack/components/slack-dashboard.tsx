@@ -1,10 +1,11 @@
 'use client';
 
-import { MessageSquare } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { STATIC_LABELS } from '@/constants/theme';
 import { useSlack } from '../context/slack-context';
 import { localDb } from '../db';
 import { AccountInfoCard } from './account-info-card';
@@ -18,6 +19,7 @@ import { SlackAccountLinkCard } from './slack-account-link-card';
 import { SlackWorkspaceInfoCard } from './slack-workspace-info-card';
 
 export function SlackDashboard() {
+  const { tenantId } = useParams<{ tenantId: string }>();
   const { handleInstallClick, addOrUpdateWorkspace, setNotification, user } = useSlack();
 
   useEffect(() => {
@@ -79,6 +81,10 @@ export function SlackDashboard() {
 
         console.log('[SlackDashboard] Workspace saved to new database');
 
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('inkeep-db-update'));
+        }
+
         setNotification({
           type: 'success',
           message: `Workspace "${workspace.teamName}" installed successfully!`,
@@ -94,8 +100,17 @@ export function SlackDashboard() {
 
   return (
     <>
+      <div className="mb-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={`/${tenantId}/work-apps`}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Work Apps
+          </Link>
+        </Button>
+      </div>
+
       <PageHeader
-        title={STATIC_LABELS['slack-app']}
+        title="Slack"
         description="Connect your Slack workspace to Inkeep Agents"
         action={
           <Button size="lg" className="gap-2" onClick={handleInstallClick}>

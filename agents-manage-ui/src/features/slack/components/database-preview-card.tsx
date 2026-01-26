@@ -173,7 +173,6 @@ export function DatabasePreviewCard() {
                       <th className="text-left py-2 px-2">Email</th>
                       <th className="text-left py-2 px-2">Name</th>
                       <th className="text-left py-2 px-2">Role</th>
-                      <th className="text-left py-2 px-2">Session</th>
                       <th className="text-left py-2 px-2">Created</th>
                     </tr>
                   </thead>
@@ -187,17 +186,6 @@ export function DatabasePreviewCard() {
                           <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
                             {u.role}
                           </Badge>
-                        </td>
-                        <td className="py-2 px-2">
-                          {u.sessionToken ? (
-                            <Badge variant="outline" className="text-green-600">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-gray-400">
-                              None
-                            </Badge>
-                          )}
                         </td>
                         <td className="py-2 px-2 text-xs">{formatDate(u.createdAt)}</td>
                       </tr>
