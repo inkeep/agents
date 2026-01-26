@@ -44,7 +44,7 @@ app.openapi(
     path: '/',
     summary: 'List External Agents',
     operationId: 'list-external-agents',
-    tags: ['External Agents'],
+    tags: ['ExternalAgents'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -90,7 +90,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get External Agent',
     operationId: 'get-external-agent-by-id',
-    tags: ['External Agents'],
+    tags: ['ExternalAgents'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -137,7 +137,7 @@ app.openapi(
     path: '/',
     summary: 'Create External Agent',
     operationId: 'create-external-agent',
-    tags: ['External Agents'],
+    tags: ['ExternalAgents'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -193,7 +193,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update External Agent',
     operationId: 'update-external-agent',
-    tags: ['External Agents'],
+    tags: ['ExternalAgents'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -250,7 +250,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete External Agent',
     operationId: 'delete-external-agent',
-    tags: ['External Agents'],
+    tags: ['ExternalAgents'],
     request: {
       params: TenantProjectIdParamsSchema,
     },

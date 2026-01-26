@@ -49,7 +49,7 @@ app.openapi(
     path: '/',
     summary: 'List Sub Agent External Agent Relations',
     operationId: 'list-sub-agent-external-agent-relations',
-    tags: ['Sub Agent External Agent Relations'],
+    tags: ['SubAgentExternalAgentRelations'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -97,7 +97,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Sub Agent External Agent Relation',
     operationId: 'get-sub-agent-external-agent-relation-by-id',
-    tags: ['Sub Agent External Agent Relations'],
+    tags: ['SubAgentExternalAgentRelations'],
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
     },
@@ -138,7 +138,7 @@ app.openapi(
     path: '/',
     summary: 'Create Sub Agent External Agent Relation',
     operationId: 'create-sub-agent-external-agent-relation',
-    tags: ['Sub Agent External Agent Relations'],
+    tags: ['SubAgentExternalAgentRelations'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
       body: {
@@ -203,7 +203,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Sub Agent External Agent Relation',
     operationId: 'update-sub-agent-external-agent-relation',
-    tags: ['Sub Agent External Agent Relations'],
+    tags: ['SubAgentExternalAgentRelations'],
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
       body: {
@@ -254,7 +254,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Sub Agent External Agent Relation',
     operationId: 'delete-sub-agent-external-agent-relation',
-    tags: ['Sub Agent External Agent Relations'],
+    tags: ['SubAgentExternalAgentRelations'],
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
     },

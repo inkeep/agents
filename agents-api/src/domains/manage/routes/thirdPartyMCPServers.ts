@@ -33,7 +33,7 @@ app.openapi(
     path: '/',
     summary: 'Get Third-Party MCP Server Details',
     operationId: 'get-third-party-mcp-server',
-    tags: ['Third-Party MCP Servers'],
+    tags: ['ThirdPartyMCPServers'],
     description:
       'Fetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL',
     request: {
@@ -84,7 +84,7 @@ app.openapi(
     path: '/oauth-redirect',
     summary: 'Get OAuth Redirect URL',
     operationId: 'get-oauth-redirect-url',
-    tags: ['Third-Party MCP Servers'],
+    tags: ['ThirdPartyMCPServers'],
     description:
       'Get the OAuth redirect URL for a third-party MCP server. Call this after scope selection to get the correct URL for the selected scope.',
     request: {

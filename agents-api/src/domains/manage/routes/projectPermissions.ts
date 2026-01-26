@@ -36,7 +36,7 @@ app.openapi(
     description:
       "Get the current user's permissions for a project. Returns which actions the user can perform.",
     operationId: 'get-project-permissions',
-    tags: ['Project Permissions'],
+    tags: ['ProjectPermissions'],
     request: {
       params: ProjectPermissionsParamsSchema,
     },

@@ -48,7 +48,7 @@ app.openapi(
     path: '/',
     summary: 'List Function Tools',
     operationId: 'list-function-tools',
-    tags: ['Function Tools'],
+    tags: ['FunctionTools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -94,7 +94,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Function Tool by ID',
     operationId: 'get-function-tool',
-    tags: ['Function Tools'],
+    tags: ['FunctionTools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -144,7 +144,7 @@ app.openapi(
     path: '/',
     summary: 'Create Function Tool',
     operationId: 'create-function-tool',
-    tags: ['Function Tools'],
+    tags: ['FunctionTools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -203,7 +203,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Function Tool',
     operationId: 'update-function-tool',
-    tags: ['Function Tools'],
+    tags: ['FunctionTools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -268,7 +268,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Function Tool',
     operationId: 'delete-function-tool',
-    tags: ['Function Tools'],
+    tags: ['FunctionTools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
