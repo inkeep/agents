@@ -37,6 +37,10 @@ export const TagToDescription = {
   SubAgentFunctionTools: 'Operations for managing sub agent function tools',
   Conversations: 'Operations for managing conversations',
   MCPCatalog: 'Operations for MCP catalog',
+  ThirdPartyMCPServers: 'Operations for managing third-party MCP servers',
+  Triggers: 'Operations for managing triggers',
+  Evaluations: 'Operations for managing evaluations',
+  UserProjectMemberships: 'Operations for managing user project memberships',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {

@@ -25,7 +25,7 @@ app.openapi(
     description:
       'List all projects a user has explicit access to and their role in each. Requires authz to be enabled.',
     operationId: 'list-user-project-memberships',
-    tags: ['User Project Memberships'],
+    tags: ['UserProjectMemberships'],
     request: {
       params: UserProjectMembershipParamsSchema,
     },
