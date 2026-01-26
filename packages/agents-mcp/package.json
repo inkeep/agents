@@ -21,7 +21,8 @@
     "mcpb:build": "bun i && bun src/mcp-server/build.mts --pack && tsc",
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "generate": "speakeasy run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.25.2",
