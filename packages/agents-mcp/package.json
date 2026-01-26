@@ -8,6 +8,14 @@
     "@inkeep/agents-mcp": "bin/mcp-server.js",
     "mcp": "bin/mcp-server.js"
   },
+  "main": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./esm/index.d.ts",
+      "import": "./esm/index.js"
+    }
+  },
   "scripts": {
     "build": "bun i && bun src/mcp-server/build.mts && tsc",
     "mcpb:build": "bun i && bun src/mcp-server/build.mts --pack && tsc",
