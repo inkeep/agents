@@ -14,7 +14,10 @@
 
 import crypto from 'node:crypto';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { listProjectsWithMetadataPaginated } from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
+import manageDbClient from '../../../data/db/manageDbClient';
+import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
@@ -526,6 +529,14 @@ async function findConnectionBySlackUser(slackUserId: string): Promise<{
 
     const connections = await nango.listConnections();
 
+    const matchingConnections: Array<{
+      connectionId: string;
+      appUserId: string;
+      appUserEmail: string;
+      slackDisplayName: string;
+      linkedAt: string;
+    }> = [];
+
     for (const conn of connections.connections) {
       if (conn.provider_config_key === integrationId) {
         try {
@@ -533,18 +544,33 @@ async function findConnectionBySlackUser(slackUserId: string): Promise<{
           const metadata = fullConn.metadata as Record<string, string> | undefined;
 
           if (metadata?.slack_user_id === slackUserId) {
-            return {
+            matchingConnections.push({
               connectionId: conn.connection_id,
               appUserId: metadata.app_user_id || '',
               appUserEmail: metadata.app_user_email || '',
               slackDisplayName: metadata.slack_display_name || metadata.slack_username || '',
               linkedAt: metadata.linked_at || '',
-            };
+            });
           }
         } catch {}
       }
     }
-    return null;
+
+    if (matchingConnections.length === 0) {
+      return null;
+    }
+
+    if (matchingConnections.length > 1) {
+      console.log('=== MULTIPLE CONNECTIONS FOUND FOR SLACK USER ===');
+      console.log(JSON.stringify(matchingConnections, null, 2));
+      console.log('=================================================');
+
+      matchingConnections.sort(
+        (a, b) => new Date(b.linkedAt).getTime() - new Date(a.linkedAt).getTime()
+      );
+    }
+
+    return matchingConnections[0];
   } catch (error) {
     logger.error({ error }, 'Failed to find connection by Slack user');
     return null;
@@ -686,6 +712,7 @@ app.post('/commands', async (c) => {
       });
     }
 
+    case 'logout':
     case 'disconnect': {
       const connection = await findConnectionBySlackUser(slackUserId);
 
@@ -713,7 +740,7 @@ app.post('/commands', async (c) => {
               type: 'section',
               text: {
                 type: 'mrkdwn',
-                text: '✅ *Disconnected Successfully*\n\nYour Slack account has been unlinked from Inkeep.\n\nUse `/inkeep link` to reconnect anytime.',
+                text: '✅ *Logged out successfully*\n\nYour Slack account has been unlinked from Inkeep.\n\nUse `/inkeep link` to reconnect anytime.',
               },
             },
           ],
@@ -722,7 +749,100 @@ app.post('/commands', async (c) => {
         logger.error({ error, slackUserId }, 'Failed to disconnect user');
         return c.json({
           response_type: 'ephemeral',
-          text: '❌ Failed to disconnect. Please try again or visit the dashboard.',
+          text: '❌ Failed to logout. Please try again or visit the dashboard.',
+        });
+      }
+    }
+
+    case 'list': {
+      const connection = await findConnectionBySlackUser(slackUserId);
+
+      if (!connection) {
+        return c.json({
+          response_type: 'ephemeral',
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: '❌ *Not Connected*\n\nYou need to link your Inkeep account first.\n\nUse `/inkeep link` to connect.',
+              },
+            },
+          ],
+        });
+      }
+
+      try {
+        const tenantId = 'default';
+        const listProjects = listProjectsWithMetadataPaginated(runDbClient, manageDbClient);
+        const result = await listProjects({
+          tenantId,
+          pagination: { limit: 10 },
+        });
+
+        const projects = result.data || [];
+
+        if (projects.length === 0) {
+          return c.json({
+            response_type: 'ephemeral',
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `📋 *Your Inkeep Projects*\n\n*Account:* ${connection.appUserEmail}\n\n_No projects found. Create one in the dashboard!_`,
+                },
+              },
+              {
+                type: 'actions',
+                elements: [
+                  {
+                    type: 'button',
+                    text: { type: 'plain_text', text: '➕ Create Project', emoji: true },
+                    url: `${manageUiUrl}/default/projects`,
+                    style: 'primary',
+                  },
+                ],
+              },
+            ],
+          });
+        }
+
+        const projectList = projects
+          .slice(0, 10)
+          .map(
+            (p) =>
+              `• *${p.name || p.id}* (\`${p.id}\`)${p.description ? `\n  _${p.description}_` : ''}`
+          )
+          .join('\n');
+
+        return c.json({
+          response_type: 'ephemeral',
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `📋 *Your Inkeep Projects*\n\n*Account:* ${connection.appUserEmail}\n\n${projectList}${projects.length > 10 ? `\n\n_...and ${projects.length - 10} more_` : ''}`,
+              },
+            },
+            {
+              type: 'actions',
+              elements: [
+                {
+                  type: 'button',
+                  text: { type: 'plain_text', text: '📊 View All in Dashboard', emoji: true },
+                  url: `${manageUiUrl}/default/projects`,
+                },
+              ],
+            },
+          ],
+        });
+      } catch (error) {
+        logger.error({ error }, 'Failed to fetch projects');
+        return c.json({
+          response_type: 'ephemeral',
+          text: '❌ Failed to fetch projects. Please try again or visit the dashboard.',
         });
       }
     }
@@ -743,7 +863,7 @@ app.post('/commands', async (c) => {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: '• `/inkeep link` - Connect your Slack account to Inkeep\n• `/inkeep status` - Check your connection status\n• `/inkeep disconnect` - Unlink your account\n• `/inkeep help` - Show this help message',
+              text: '• `/inkeep link` - Connect your Slack account to Inkeep\n• `/inkeep status` - Check your connection status\n• `/inkeep list` - List your Inkeep projects\n• `/inkeep logout` - Unlink your account\n• `/inkeep help` - Show this help message',
             },
           },
         ],
@@ -752,20 +872,99 @@ app.post('/commands', async (c) => {
   }
 });
 
+app.get('/workspace-info', async (c) => {
+  const connectionId = c.req.query('connectionId');
+
+  if (!connectionId) {
+    return c.json({ error: 'connectionId is required' }, 400);
+  }
+
+  try {
+    const nango = getSlackNango();
+    const integrationId = getSlackIntegrationId();
+
+    const connection = await nango.getConnection(integrationId, connectionId);
+    const accessToken = (connection as { credentials?: { access_token?: string } }).credentials
+      ?.access_token;
+
+    if (!accessToken) {
+      return c.json({ error: 'No access token found' }, 404);
+    }
+
+    const [teamResponse, channelsResponse] = await Promise.all([
+      fetch('https://slack.com/api/team.info', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }),
+      fetch('https://slack.com/api/conversations.list?types=public_channel&limit=20', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }),
+    ]);
+
+    const teamData = await teamResponse.json();
+    const channelsData = await channelsResponse.json();
+
+    console.log('=== SLACK WORKSPACE INFO ===');
+    console.log({ team: teamData.ok, channels: channelsData.ok });
+    console.log('============================');
+
+    return c.json({
+      team: teamData.ok
+        ? {
+            id: teamData.team?.id,
+            name: teamData.team?.name,
+            domain: teamData.team?.domain,
+            icon: teamData.team?.icon?.image_68,
+            url: teamData.team?.url,
+          }
+        : null,
+      channels: channelsData.ok
+        ? channelsData.channels?.map(
+            (ch: { id: string; name: string; num_members?: number; is_member?: boolean }) => ({
+              id: ch.id,
+              name: ch.name,
+              memberCount: ch.num_members,
+              isBotMember: ch.is_member,
+            })
+          )
+        : [],
+    });
+  } catch (error) {
+    logger.error({ error, connectionId }, 'Failed to fetch Slack workspace info');
+    return c.json({ error: 'Failed to fetch workspace info' }, 500);
+  }
+});
+
 app.post('/events', async (c) => {
-  const body = await c.req.json();
+  const contentType = c.req.header('content-type') || '';
+  let body: Record<string, unknown>;
+
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    const formData = await c.req.text();
+    const params = new URLSearchParams(formData);
+    const payload = params.get('payload');
+
+    if (payload) {
+      body = JSON.parse(payload);
+    } else {
+      body = Object.fromEntries(params.entries());
+    }
+  } else {
+    body = await c.req.json();
+  }
 
   console.log('=== SLACK EVENT RECEIVED ===');
   console.log(JSON.stringify(body, null, 2));
   console.log('============================');
 
-  if (body.type === 'url_verification') {
+  const eventType = body.type as string | undefined;
+
+  if (eventType === 'url_verification') {
     logger.info({}, 'Responding to Slack URL verification challenge');
-    return c.text(body.challenge);
+    return c.text(String(body.challenge));
   }
 
-  if (body.type === 'event_callback') {
-    const event = body.event;
+  if (eventType === 'event_callback') {
+    const event = body.event as { type?: string; user?: string } | undefined;
 
     console.log('=== SLACK EVENT CALLBACK ===');
     console.log(JSON.stringify(event, null, 2));
@@ -774,6 +973,12 @@ app.post('/events', async (c) => {
     if (event?.type === 'app_home_opened') {
       logger.info({ userId: event.user }, 'App home opened');
     }
+  }
+
+  if (eventType === 'block_actions' || eventType === 'interactive_message') {
+    console.log('=== SLACK INTERACTIVE EVENT ===');
+    console.log('Received interactive event, acknowledging');
+    console.log('================================');
   }
 
   return c.json({ ok: true });

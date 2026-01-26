@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  Hash,
   Link2,
   LinkIcon,
   MessageSquare,
@@ -15,6 +16,7 @@ import {
   Trash2,
   Unlink,
   User,
+  Users,
   Zap,
 } from 'lucide-react';
 import { use, useCallback, useEffect, useState } from 'react';
@@ -101,6 +103,24 @@ function saveUserLinks(links: SlackUserLink[]): void {
   localStorage.setItem(USER_LINKS_KEY, JSON.stringify(links));
 }
 
+interface SlackChannel {
+  id: string;
+  name: string;
+  memberCount?: number;
+  isBotMember?: boolean;
+}
+
+interface SlackWorkspaceInfo {
+  team: {
+    id: string;
+    name: string;
+    domain: string;
+    icon?: string;
+    url?: string;
+  } | null;
+  channels: SlackChannel[];
+}
+
 function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
   const { tenantId } = use(params);
   const { user, isLoading } = useAuthSession();
@@ -113,6 +133,8 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [slackInfo, setSlackInfo] = useState<SlackWorkspaceInfo | null>(null);
+  const [isLoadingSlackInfo, setIsLoadingSlackInfo] = useState(false);
 
   const toggleTokenVisibility = (teamId: string) => {
     setVisibleTokens((prev) => {
@@ -337,6 +359,8 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
     console.log({ userId: user.id });
     console.log('=========================');
 
+    setSlackInfo(null);
+
     setNotification({
       type: 'success',
       message: 'Slack account disconnected',
@@ -355,6 +379,36 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
     setWorkspaces([]);
     setNotification({ type: 'success', message: 'All workspaces cleared from local storage' });
   };
+
+  const fetchSlackInfo = useCallback(async () => {
+    if (!currentUserLink?.nangoConnectionId) return;
+
+    setIsLoadingSlackInfo(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+      const response = await fetch(
+        `${apiUrl}/manage/slack/workspace-info?connectionId=${currentUserLink.nangoConnectionId}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSlackInfo(data);
+        console.log('=== SLACK WORKSPACE INFO FETCHED ===');
+        console.log(JSON.stringify(data, null, 2));
+        console.log('====================================');
+      }
+    } catch (error) {
+      console.error('Failed to fetch Slack info:', error);
+    } finally {
+      setIsLoadingSlackInfo(false);
+    }
+  }, [currentUserLink?.nangoConnectionId]);
+
+  useEffect(() => {
+    if (currentUserLink?.isLinked && !slackInfo && !isLoadingSlackInfo) {
+      fetchSlackInfo();
+    }
+  }, [currentUserLink?.isLinked, slackInfo, isLoadingSlackInfo, fetchSlackInfo]);
 
   const latestWorkspace = workspaces.length > 0 ? workspaces[workspaces.length - 1] : null;
 
@@ -605,6 +659,112 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
           </CardContent>
         </Card>
       </div>
+
+      {currentUserLink?.isLinked && (
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Hash className="h-5 w-5" />
+                  Slack Workspace Info
+                </CardTitle>
+                <CardDescription>
+                  Live data from your connected Slack workspace via Nango
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchSlackInfo}
+                disabled={isLoadingSlackInfo}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingSlackInfo ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoadingSlackInfo ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-muted rounded w-1/2" />
+                <div className="h-4 bg-muted rounded w-3/4" />
+              </div>
+            ) : slackInfo ? (
+              <div className="space-y-6">
+                {slackInfo.team && (
+                  <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                    {slackInfo.team.icon && (
+                      /* biome-ignore lint: External Slack image URL */
+                      <img
+                        src={slackInfo.team.icon}
+                        alt={slackInfo.team.name}
+                        className="h-12 w-12 rounded-lg"
+                      />
+                    )}
+                    <div>
+                      <h3 className="font-semibold">{slackInfo.team.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {slackInfo.team.domain}.slack.com
+                      </p>
+                    </div>
+                    {slackInfo.team.url && (
+                      <Button variant="outline" size="sm" className="ml-auto" asChild>
+                        <a href={slackInfo.team.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Open Slack
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    Channels ({slackInfo.channels.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {slackInfo.channels.slice(0, 12).map((channel) => (
+                      <div
+                        key={channel.id}
+                        className="flex items-center justify-between p-2 bg-muted/30 rounded-md"
+                      >
+                        <span className="flex items-center gap-1 text-sm">
+                          <Hash className="h-3 w-3 text-muted-foreground" />
+                          {channel.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {channel.memberCount && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {channel.memberCount}
+                            </span>
+                          )}
+                          {channel.isBotMember && (
+                            <Badge variant="secondary" className="text-xs">
+                              Bot
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {slackInfo.channels.length > 12 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      ...and {slackInfo.channels.length - 12} more channels
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Click refresh to load workspace info from Slack
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mt-6">
         <CardHeader>
