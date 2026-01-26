@@ -17,6 +17,9 @@ async function main(): Promise<void> {
   for await (const file of glob('content/api-reference/**/*.mdx')) {
     await rm(file);
   }
+
+  const ignoreRoutes = new Set(['/manage/capabilities', '/health']);
+
   // Validate
   await generateFiles({
     input: openapi,
@@ -25,7 +28,7 @@ async function main(): Promise<void> {
     toPages(builder) {
       const { operations } = builder.extract();
       for (const op of operations) {
-        if (op.path === '/health') {
+        if (ignoreRoutes.has(op.path)) {
           continue;
         }
 
@@ -35,7 +38,9 @@ async function main(): Promise<void> {
         const { error } = TagSchema.safeParse(operation.tags);
         if (error) {
           const prettyError = z.prettifyError(error);
-          throw new Error(`Error parsing "${op.path}": ${prettyError}`);
+          throw new Error(`Error parsing "[${op.method.toUpperCase()}] ${op.path}":
+
+${prettyError}`);
         }
       }
     },

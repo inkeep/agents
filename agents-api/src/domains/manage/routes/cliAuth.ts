@@ -26,7 +26,7 @@ cliAuthRoutes.openapi(
   createRoute({
     method: 'get',
     path: '/me',
-    tags: ['cli'],
+    tags: ['CLI'],
     summary: 'Get CLI user info',
     description: 'Get the current authenticated user and their organization for CLI usage',
     middleware: [sessionAuth()],
