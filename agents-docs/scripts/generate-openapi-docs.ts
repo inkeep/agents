@@ -10,14 +10,7 @@ const OUTPUT_DIR = './content/api-reference';
 
 const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
-const ignoreRoutes = new Set([
-  '/health',
-  '/manage/capabilities',
-  '/manage/tenants/{tenantId}/playground/token',
-  '/run/v1/chat/completions',
-  '/run/v1/mcp',
-  '/run/agents/.well-known/agent.json',
-]);
+const ignoreRoutes = new Set(['/health', '/manage/capabilities']);
 
 async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');

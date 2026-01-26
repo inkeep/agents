@@ -36,6 +36,7 @@ export const TagToDescription = {
   ProjectPermissions: 'Operations for managing project permissions',
   SubAgentFunctionTools: 'Operations for managing sub agent function tools',
   Conversations: 'Operations for managing conversations',
+  MCP: 'MCP (Model Context Protocol) endpoints',
   MCPCatalog: 'Operations for MCP catalog',
   ThirdPartyMCPServers: 'Operations for managing third-party MCP servers',
   Triggers: 'Operations for managing triggers',
@@ -43,6 +44,7 @@ export const TagToDescription = {
   UserProjectMemberships: 'Operations for managing user project memberships',
   Chat: 'Chat completions endpoints',
   Webhooks: 'Webhook endpoints',
+  A2A: 'Agent-to-Agent communication endpoints',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
