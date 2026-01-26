@@ -68,6 +68,7 @@ ${prettyError}`);
           .replace('A2 A', 'A2A')
           .replace('A P I', 'API')
           .replace('C L I', 'CLI')
+          .replace('O Auth', 'OAuth')
           .replace('M C P', 'MCP'),
       };
     },
