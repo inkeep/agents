@@ -23,9 +23,7 @@ vi.mock('../../data-access/manage/agents', () => ({
 vi.mock('../../data-access/manage/functionTools', () => ({
   deleteFunctionTool: vi.fn(() => vi.fn().mockResolvedValue(true)),
   listFunctionTools: vi.fn(() =>
-    vi
-      .fn()
-      .mockResolvedValue({ data: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } })
+    vi.fn().mockResolvedValue({ data: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } })
   ),
   upsertFunctionTool: vi.fn(() => vi.fn().mockResolvedValue({ id: 'ft-1' })),
   upsertSubAgentFunctionToolRelation: vi.fn(() => mocks.upsertSubAgentFunctionToolRelationMock),
@@ -151,4 +149,3 @@ describe('agentFull update - function tool toolPolicies', () => {
     );
   });
 });
-

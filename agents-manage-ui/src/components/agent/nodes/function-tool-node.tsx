@@ -1,9 +1,9 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code, Shield } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { cn } from '@/lib/utils';
 import { toolPoliciesNeedApproval } from '@/lib/utils/tool-policies';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';

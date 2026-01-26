@@ -1,10 +1,10 @@
+import { glob, rm } from 'node:fs/promises';
 import { generateFiles } from 'fumadocs-openapi';
-// @ts-expect-error -- must specify ts extension
-import { openapi } from '../src/lib/openapi.ts';
+import { z } from 'zod';
 // @ts-expect-error -- must specify ts extension
 import { TagToDescription } from '../../agents-api/src/openapi.ts';
-import { rm, glob } from 'node:fs/promises';
-import { z } from 'zod';
+// @ts-expect-error -- must specify ts extension
+import { openapi } from '../src/lib/openapi.ts';
 
 const OUTPUT_DIR = './content/api-reference';
 
