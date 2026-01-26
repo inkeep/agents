@@ -1,3 +1,4 @@
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
 import type { NangoCredentialData } from '../../credential-stores/nango-store';
@@ -31,6 +32,37 @@ import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
+
+/**
+ * Check if an error is a timeout/connection error.
+ * Uses MCP SDK ErrorCode for proper type safety.
+ */
+function isTimeoutOrConnectionError(error: unknown): boolean {
+  if (error instanceof McpError) {
+    return error.code === ErrorCode.RequestTimeout || error.code === ErrorCode.ConnectionClosed;
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    const cause = (error as any).cause;
+
+    // Check for timeout-related error messages
+    if (message.includes('timed out') || message.includes('timeout')) {
+      return true;
+    }
+
+    // Check for network error codes
+    if (
+      cause?.code === 'ETIMEDOUT' ||
+      cause?.code === 'ECONNABORTED' ||
+      cause?.code === 'ECONNRESET'
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 const logger = getLogger('tools');
 
@@ -303,21 +335,27 @@ export const dbResultToMcpTool = async (
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {
-    const toolNeedsAuth =
-      error instanceof Error &&
-      (await detectAuthenticationRequired({
-        serverUrl: mcpServerUrl,
-        error,
-        logger,
-      }));
-
-    status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
-
     const errorMessage = error instanceof Error ? error.message : 'Tool discovery failed';
 
-    lastErrorComputed = toolNeedsAuth
-      ? `Authentication required - OAuth login needed. ${errorMessage}`
-      : errorMessage;
+    // Check for timeout/connection errors first using MCP SDK types
+    // These are transient and don't indicate auth issues
+    if (isTimeoutOrConnectionError(error)) {
+      status = 'unavailable';
+      const errorCode = error instanceof McpError ? ` (MCP error ${error.code})` : '';
+      lastErrorComputed = `Connection failed - the MCP server may be slow or temporarily unreachable.${errorCode} ${errorMessage}`;
+    } else {
+      // Only check for auth requirement if it's not a timeout/connection error
+      const toolNeedsAuth = await detectAuthenticationRequired({
+        serverUrl: mcpServerUrl,
+        error: error instanceof Error ? error : undefined,
+        logger,
+      });
+
+      status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
+      lastErrorComputed = toolNeedsAuth
+        ? `Authentication required - OAuth login needed. ${errorMessage}`
+        : errorMessage;
+    }
   }
 
   // Check third-party service status
