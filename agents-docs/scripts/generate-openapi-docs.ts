@@ -10,6 +10,15 @@ const OUTPUT_DIR = './content/api-reference';
 
 const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
+const ignoreRoutes = new Set([
+  '/health',
+  '/manage/capabilities',
+  '/manage/tenants/{tenantId}/playground/token',
+  '/run/v1/chat/completions',
+  '/run/v1/mcp',
+  '/run/agents/.well-known/agent.json',
+]);
+
 async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
   console.time('Done in');
@@ -17,8 +26,6 @@ async function main(): Promise<void> {
   for await (const file of glob('content/api-reference/**/*.mdx')) {
     await rm(file);
   }
-
-  const ignoreRoutes = new Set(['/manage/capabilities', '/health']);
 
   // Validate
   await generateFiles({

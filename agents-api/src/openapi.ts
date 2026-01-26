@@ -41,6 +41,7 @@ export const TagToDescription = {
   Triggers: 'Operations for managing triggers',
   Evaluations: 'Operations for managing evaluations',
   UserProjectMemberships: 'Operations for managing user project memberships',
+  Chat: 'Chat completions endpoints',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
