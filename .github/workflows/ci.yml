@@ -202,6 +202,7 @@ jobs:
           # These need dist/ directories for subpath exports like ./factory
           pnpm --filter @inkeep/agents-core build
           pnpm --filter @inkeep/agents-manage-mcp build
+          pnpm --filter @inkeep/agents-mcp build
           pnpm --filter @inkeep/agents-sdk build
           pnpm --filter @inkeep/agents-api build
           pnpm --filter @inkeep/agents-cli build
