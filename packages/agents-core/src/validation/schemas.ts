@@ -1,5 +1,9 @@
 import { z } from '@hono/zod-openapi';
-import * as jmespath from 'jmespath';
+import {
+  jmespathString,
+  validateJMESPathSecure,
+  validateRegex,
+} from '../utils/jmespath-utils';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 
 // Destructure defaults for use in schemas
@@ -410,7 +414,7 @@ export const TriggerAuthenticationSchema = TriggerAuthenticationInputSchema;
 
 export const TriggerOutputTransformSchema = z
   .object({
-    jmespath: z.string().optional().describe('JMESPath expression for payload transformation'),
+    jmespath: jmespathString().optional(),
     objectTransformation: z
       .record(z.string(), z.string())
       .optional()
@@ -659,14 +663,6 @@ export const TriggerSelectSchema = registerFieldSchemas(
   })
 );
 
-// TypeScript workaround for missing compile method in type definitions
-interface JMESPathExtended {
-  search: typeof jmespath.search;
-  compile: (expression: string) => any;
-}
-
-const jmespathExt = jmespath as unknown as JMESPathExtended;
-
 const TriggerInsertSchemaBase = createInsertSchema(triggers, {
   id: () => resourceIdSchema,
   name: () => z.string().trim().nonempty().describe('Trigger name'),
@@ -697,12 +693,11 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
 
   // Validate signature.regex if present
   if (config.signature.regex) {
-    try {
-      new RegExp(config.signature.regex);
-    } catch (error) {
+    const regexResult = validateRegex(config.signature.regex);
+    if (!regexResult.valid) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Invalid regex pattern in signature.regex: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
         path: ['signatureVerification', 'signature', 'regex'],
       });
     }
@@ -710,12 +705,11 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
 
   // Validate signature.key as JMESPath if source is 'body'
   if (config.signature.source === 'body' && config.signature.key) {
-    try {
-      jmespathExt.compile(config.signature.key);
-    } catch (error) {
+    const jmespathResult = validateJMESPathSecure(config.signature.key);
+    if (!jmespathResult.valid) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Invalid JMESPath expression in signature.key: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
         path: ['signatureVerification', 'signature', 'key'],
       });
     }
@@ -725,12 +719,11 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
   config.signedComponents.forEach((component, index) => {
     // Validate component.regex if present
     if (component.regex) {
-      try {
-        new RegExp(component.regex);
-      } catch (error) {
+      const regexResult = validateRegex(component.regex);
+      if (!regexResult.valid) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Invalid regex pattern in signedComponents[${index}].regex: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
           path: ['signatureVerification', 'signedComponents', index, 'regex'],
         });
       }
@@ -738,12 +731,11 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
 
     // Validate component.key as JMESPath if source is 'body'
     if (component.source === 'body' && component.key) {
-      try {
-        jmespathExt.compile(component.key);
-      } catch (error) {
+      const jmespathResult = validateJMESPathSecure(component.key);
+      if (!jmespathResult.valid) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
           path: ['signatureVerification', 'signedComponents', index, 'key'],
         });
       }
@@ -752,15 +744,13 @@ export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ct
     // Validate component.value as JMESPath if provided (for header/body extraction)
     if (component.value && component.source !== 'literal') {
       // For non-literal sources, value might be a JMESPath expression
-      try {
-        jmespathExt.compile(component.value);
-      } catch (error) {
-        // Value might not be JMESPath, which is okay
-        // Only add issue if it looks like it's trying to be a JMESPath expression
-        if (component.value.includes('.') || component.value.includes('[')) {
+      // Only validate if it looks like a JMESPath expression
+      if (component.value.includes('.') || component.value.includes('[')) {
+        const jmespathResult = validateJMESPathSecure(component.value);
+        if (!jmespathResult.valid) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
             path: ['signatureVerification', 'signedComponents', index, 'value'],
           });
         }
