@@ -1,15 +1,19 @@
 'use client';
 
+import Nango from '@nangohq/frontend';
 import {
   AlertCircle,
   CheckCircle2,
   ExternalLink,
   Eye,
   EyeOff,
+  Link2,
+  LinkIcon,
   MessageSquare,
   RefreshCw,
   Settings,
   Trash2,
+  Unlink,
   User,
   Zap,
 } from 'lucide-react';
@@ -45,7 +49,27 @@ interface SlackWorkspace {
   error?: string;
 }
 
+interface SlackUserLink {
+  slackUserId: string;
+  slackTeamId: string;
+  slackUsername?: string;
+  slackDisplayName?: string;
+  slackEmail?: string;
+  slackAvatarUrl?: string;
+  isSlackAdmin?: boolean;
+  isSlackOwner?: boolean;
+  enterpriseId?: string;
+  enterpriseName?: string;
+  appUserId: string;
+  appUserEmail?: string;
+  appUserName?: string;
+  nangoConnectionId: string;
+  isLinked: boolean;
+  linkedAt?: string;
+}
+
 const STORAGE_KEY = 'inkeep_slack_workspaces';
+const USER_LINKS_KEY = 'inkeep_slack_user_links';
 
 function getStoredWorkspaces(): SlackWorkspace[] {
   if (typeof window === 'undefined') return [];
@@ -62,16 +86,33 @@ function saveWorkspaces(workspaces: SlackWorkspace[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaces));
 }
 
+function getStoredUserLinks(): SlackUserLink[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(USER_LINKS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUserLinks(links: SlackUserLink[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(USER_LINKS_KEY, JSON.stringify(links));
+}
+
 function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
   const { tenantId } = use(params);
   const { user, isLoading } = useAuthSession();
   const [workspaces, setWorkspaces] = useState<SlackWorkspace[]>([]);
+  const [userLinks, setUserLinks] = useState<SlackUserLink[]>([]);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const toggleTokenVisibility = (teamId: string) => {
     setVisibleTokens((prev) => {
@@ -89,6 +130,8 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
     if (token.length <= 12) return '••••••••••••';
     return `${token.substring(0, 8)}...${token.substring(token.length - 4)}`;
   };
+
+  const currentUserLink = userLinks.find((link) => link.appUserId === user?.id);
 
   const processUrlParams = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -145,6 +188,7 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
   useEffect(() => {
     setMounted(true);
     setWorkspaces(getStoredWorkspaces());
+    setUserLinks(getStoredUserLinks());
     processUrlParams();
   }, [processUrlParams]);
 
@@ -158,6 +202,145 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
   const handleInstallClick = () => {
     const apiUrl = process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL || 'http://localhost:3002';
     window.location.href = `${apiUrl}/manage/slack/install`;
+  };
+
+  const handleConnectSlack = async () => {
+    if (!user) {
+      setNotification({
+        type: 'error',
+        message: 'Please log in to connect your Slack account',
+      });
+      return;
+    }
+
+    if (workspaces.length === 0) {
+      setNotification({
+        type: 'error',
+        message: 'Please install the Slack app to a workspace first',
+      });
+      return;
+    }
+
+    setIsConnecting(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+      console.log('=== INITIATING SLACK USER CONNECTION ===');
+      console.log({ userId: user.id, userEmail: user.email, userName: user.name, tenantId });
+      console.log('=========================================');
+
+      const response = await fetch(`${apiUrl}/manage/slack/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+          tenantId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create connection session');
+      }
+
+      const { sessionToken } = await response.json();
+
+      console.log('=== NANGO SESSION TOKEN RECEIVED ===');
+      console.log({ sessionToken: sessionToken ? 'present' : 'missing' });
+      console.log('====================================');
+
+      const nango = new Nango();
+      let hasConnected = false;
+
+      const connect = nango.openConnectUI({
+        onEvent: (event) => {
+          const eventType = event.type;
+          const eventPayload = 'payload' in event ? event.payload : undefined;
+          const connectionId =
+            eventPayload && 'connectionId' in eventPayload ? eventPayload.connectionId : undefined;
+          console.log('=== NANGO CONNECT EVENT ===');
+          console.log(JSON.stringify(event, null, 2));
+          console.log('===========================');
+
+          if (eventType === 'connect') {
+            hasConnected = true;
+            setIsConnecting(false);
+
+            const connId = connectionId || user.id;
+
+            const newLink: SlackUserLink = {
+              slackUserId: '',
+              slackTeamId: workspaces[0]?.teamId || '',
+              appUserId: user.id,
+              appUserEmail: user.email || undefined,
+              appUserName: user.name || undefined,
+              nangoConnectionId: connId,
+              isLinked: true,
+              linkedAt: new Date().toISOString(),
+            };
+
+            const existingLinks = getStoredUserLinks();
+            const existingIndex = existingLinks.findIndex((l) => l.appUserId === user.id);
+
+            let updatedLinks: SlackUserLink[];
+            if (existingIndex >= 0) {
+              updatedLinks = [...existingLinks];
+              updatedLinks[existingIndex] = newLink;
+            } else {
+              updatedLinks = [...existingLinks, newLink];
+            }
+
+            saveUserLinks(updatedLinks);
+            setUserLinks(updatedLinks);
+
+            console.log('=== USER LINK SAVED ===');
+            console.log(JSON.stringify(newLink, null, 2));
+            console.log('=======================');
+
+            setNotification({
+              type: 'success',
+              message: 'Slack account connected successfully!',
+            });
+          } else if (eventType === 'close') {
+            setIsConnecting(false);
+            if (!hasConnected) {
+              setNotification({
+                type: 'error',
+                message: 'Connection cancelled',
+              });
+            }
+          }
+        },
+      });
+
+      connect.setSessionToken(sessionToken);
+    } catch (error) {
+      console.error('Failed to connect Slack:', error);
+      setNotification({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to connect Slack account',
+      });
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnectSlack = () => {
+    if (!user) return;
+
+    const updatedLinks = userLinks.filter((link) => link.appUserId !== user.id);
+    saveUserLinks(updatedLinks);
+    setUserLinks(updatedLinks);
+
+    console.log('=== USER LINK REMOVED ===');
+    console.log({ userId: user.id });
+    console.log('=========================');
+
+    setNotification({
+      type: 'success',
+      message: 'Slack account disconnected',
+    });
   };
 
   const handleRemoveWorkspace = (teamId: string) => {
@@ -205,7 +388,7 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -253,6 +436,87 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Slack Account Link
+            </CardTitle>
+            <CardDescription>Connect your personal Slack account</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!mounted || isLoading ? (
+              <div className="animate-pulse space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-4 bg-muted rounded w-1/2" />
+              </div>
+            ) : !user ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Log in to connect your Slack account
+                </p>
+              </div>
+            ) : currentUserLink ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">Status</span>
+                  <Badge variant="default" className="bg-green-600">
+                    <Link2 className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground text-sm">Linked At</span>
+                  <span className="text-sm font-medium">
+                    {currentUserLink.linkedAt
+                      ? new Date(currentUserLink.linkedAt).toLocaleDateString()
+                      : '—'}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={handleDisconnectSlack}
+                >
+                  <Unlink className="h-4 w-4 mr-1" />
+                  Disconnect
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">Status</span>
+                  <Badge variant="secondary">Not Connected</Badge>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={handleConnectSlack}
+                  disabled={isConnecting || workspaces.length === 0}
+                >
+                  {isConnecting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4 mr-1" />
+                      Connect Slack Account
+                    </>
+                  )}
+                </Button>
+                {workspaces.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center mt-1">
+                    Install the app to a workspace first
+                  </p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
               Connection Status
             </CardTitle>
@@ -267,14 +531,25 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
             ) : (
               <>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground text-sm">Status</span>
+                  <span className="text-muted-foreground text-sm">Workspace</span>
                   <span className="inline-flex items-center gap-1.5 text-sm">
                     <span
                       className={`h-2 w-2 rounded-full ${
                         workspaces.length > 0 ? 'bg-green-500' : 'bg-yellow-500'
                       }`}
                     />
-                    {workspaces.length > 0 ? 'Connected' : 'Not Connected'}
+                    {workspaces.length > 0 ? 'Installed' : 'Not Installed'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">User Link</span>
+                  <span className="inline-flex items-center gap-1.5 text-sm">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        currentUserLink ? 'bg-green-500' : 'bg-yellow-500'
+                      }`}
+                    />
+                    {currentUserLink ? 'Linked' : 'Not Linked'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -483,6 +758,113 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
 
       <Card className="mt-6">
         <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Connected Users</CardTitle>
+              <CardDescription>
+                Users who have linked their Slack accounts (stored in localStorage for now)
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUserLinks(getStoredUserLinks())}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+              {mounted && userLinks.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    saveUserLinks([]);
+                    setUserLinks([]);
+                    setNotification({ type: 'success', message: 'All user links cleared' });
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!mounted ? (
+            <div className="animate-pulse space-y-4">
+              <div className="h-10 bg-muted rounded w-full" />
+              <div className="h-10 bg-muted rounded w-full" />
+            </div>
+          ) : userLinks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No users have connected their Slack accounts yet.</p>
+              <p className="text-sm mt-1">Use the "Connect Slack Account" button above.</p>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Inkeep User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Slack Team ID</TableHead>
+                    <TableHead>Nango Connection</TableHead>
+                    <TableHead>Linked At</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userLinks.map((link) => (
+                    <TableRow key={link.appUserId}>
+                      <TableCell className="font-medium">{link.appUserName || '—'}</TableCell>
+                      <TableCell className="text-sm">{link.appUserEmail || '—'}</TableCell>
+                      <TableCell className="font-mono text-xs">{link.slackTeamId || '—'}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {link.nangoConnectionId
+                          ? `${link.nangoConnectionId.substring(0, 8)}...`
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {link.linkedAt ? new Date(link.linkedAt).toLocaleDateString() : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {link.isLinked ? (
+                          <Badge variant="default" className="bg-green-600">
+                            Linked
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Not Linked</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const updated = userLinks.filter((l) => l.appUserId !== link.appUserId);
+                            saveUserLinks(updated);
+                            setUserLinks(updated);
+                            setNotification({ type: 'success', message: 'User link removed' });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
           <CardTitle>Raw Data Preview</CardTitle>
           <CardDescription>
             This shows what the database schema would look like. Data is currently in localStorage.
@@ -492,9 +874,20 @@ function SlackAppPage({ params }: PageProps<'/[tenantId]/slack-app'>) {
           {!mounted ? (
             <div className="animate-pulse h-32 bg-muted rounded-lg" />
           ) : (
-            <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-64 text-xs">
-              {JSON.stringify(workspaces, null, 2) || '[]'}
-            </pre>
+            <>
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2">Workspaces</h4>
+                <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-48 text-xs">
+                  {JSON.stringify(workspaces, null, 2) || '[]'}
+                </pre>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">User Links</h4>
+                <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-48 text-xs">
+                  {JSON.stringify(userLinks, null, 2) || '[]'}
+                </pre>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

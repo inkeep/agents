@@ -39,6 +39,11 @@ const envSchema = z.object({
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
   NANGO_SECRET_KEY: z.string().optional(),
 
+  // Slack-specific Nango configuration (falls back to main NANGO_* vars if not set)
+  // Use these to isolate Slack app auth from MCP auth in a separate Nango environment
+  NANGO_SLACK_SECRET_KEY: z.string().optional(),
+  NANGO_SLACK_INTEGRATION_ID: z.string().optional().default('slack-agent'),
+
   OTEL_BSP_SCHEDULE_DELAY: z.coerce.number().optional().default(500),
   OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
 
