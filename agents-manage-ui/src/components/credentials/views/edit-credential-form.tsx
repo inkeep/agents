@@ -22,7 +22,7 @@ import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
-import { keyValuePairSchema, keyValuePairsToRecord } from './credential-form-validation';
+import { keyValuePairsToRecord, metadataSchema } from './credential-form-validation';
 
 // Edit-specific validation schema
 const editCredentialFormSchema = z.object({
@@ -31,7 +31,7 @@ const editCredentialFormSchema = z.object({
     .min(1, 'Name is required')
     .refine((val) => val.length > 0, 'Name cannot be empty after transformation')
     .refine((val) => val.length <= 50, 'Name must be 50 characters or less'),
-  metadata: z.array(keyValuePairSchema).default([]),
+  metadata: metadataSchema,
 });
 
 export type EditCredentialFormData = z.output<typeof editCredentialFormSchema>;

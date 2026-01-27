@@ -8,6 +8,28 @@ export const keyValuePairSchema = z.object({
 
 export type KeyValuePair = z.infer<typeof keyValuePairSchema>;
 
+export const metadataSchema = z
+  .array(keyValuePairSchema)
+  .default([])
+  .superRefine((pairs, ctx) => {
+    const keys = pairs.map((pair) => pair.key.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+    for (const key of keys) {
+      if (seen.has(key)) {
+        duplicates.add(key);
+      } else {
+        seen.add(key);
+      }
+    }
+    if (duplicates.size > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Keys must be unique.',
+      });
+    }
+  });
+
 export const credentialFormSchema = z.object({
   name: z
     .string()
@@ -15,7 +37,7 @@ export const credentialFormSchema = z.object({
     .refine((val) => val.length > 0, 'Name cannot be empty after transformation')
     .refine((val) => val.length <= 50, 'Name must be 50 characters or less'),
   apiKeyToSet: z.string().min(1, 'Enter an API key'),
-  metadata: z.array(keyValuePairSchema).default([]),
+  metadata: metadataSchema,
   credentialStoreId: z.string().min(1, 'Please select a credential store'),
   credentialStoreType: z.enum(CredentialStoreType),
   selectedTool: z.string().optional(),
