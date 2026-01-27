@@ -89,9 +89,6 @@ importers:
       '@hono/mcp':
         specifier: ^0.1.5
         version: 0.1.5(@modelcontextprotocol/sdk@1.25.2(hono@4.11.1)(zod@4.2.1))(hono@4.11.1)
-      '@hono/otel':
-        specifier: ^0.4.0
-        version: 0.4.0(hono@4.11.1)
       '@hono/swagger-ui':
         specifier: ^0.5.1
         version: 0.5.2(hono@4.11.1)
@@ -2608,11 +2605,6 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
-
-  '@hono/otel@0.4.0':
-    resolution: {integrity: sha512-5c5jphVdIWqImJhhB+r8feewzKMAcTotCPWE/0EObFA6ktZ/WU5o6BB7kmzXIJPaZY4oBfSzAHtRg8rOVHMhiw==}
-    peerDependencies:
-      hono: '>=4.0.0'
 
   '@hono/swagger-ui@0.5.2':
     resolution: {integrity: sha512-7wxLKdb8h7JTdZ+K8DJNE3KXQMIpJejkBTQjrYlUWF28Z1PGOKw6kUykARe5NTfueIN37jbyG/sBYsbzXzG53A==}
@@ -15467,12 +15459,6 @@ snapshots:
 
   '@hono/node-server@1.19.8(hono@4.11.1)':
     dependencies:
-      hono: 4.11.1
-
-  '@hono/otel@0.4.0(hono@4.11.1)':
-    dependencies:
-      '@opentelemetry/api': 1.9.0
-      '@opentelemetry/semantic-conventions': 1.38.0
       hono: 4.11.1
 
   '@hono/swagger-ui@0.5.2(hono@4.11.1)':

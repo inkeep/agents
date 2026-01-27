@@ -32,6 +32,7 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
+    "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies --files",
     "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
     "well-known:copy": "tsx scripts/copy-well-known.ts",
     "dev": "pnpm workflow:build && vite",
@@ -54,7 +55,6 @@
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/openai-compatible": "2.0.4",
     "@hono/mcp": "^0.1.5",
-    "@hono/otel": "^0.4.0",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.1.5",
     "@inkeep/agents-core": "workspace:^",
