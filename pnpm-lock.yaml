@@ -399,7 +399,7 @@ importers:
         specifier: ~14.0.3
         version: 14.0.4(fumadocs-core@16.1.0(patch_hash=db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71)(@types/react@19.2.7)(lucide-react@0.503.0(react@19.3.0-canary-6a0ab4d2-20260121))(next@16.1.5(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-6a0ab4d2-20260121(react@19.3.0-canary-6a0ab4d2-20260121))(react@19.3.0-canary-6a0ab4d2-20260121))(react-dom@19.3.0-canary-6a0ab4d2-20260121(react@19.3.0-canary-6a0ab4d2-20260121))(react@19.3.0-canary-6a0ab4d2-20260121))(next@16.1.5(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-6a0ab4d2-20260121(react@19.3.0-canary-6a0ab4d2-20260121))(react@19.3.0-canary-6a0ab4d2-20260121))(react@19.3.0-canary-6a0ab4d2-20260121)(vite@7.3.1(@types/node@24.0.7)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
       fumadocs-openapi:
-        specifier: ^10.2.6
+        specifier: ~10.2.6
         version: 10.2.6(402fb2abfd3fb2cb1fddbe8716bdaab3)
       fumadocs-typescript:
         specifier: ~4.0.13

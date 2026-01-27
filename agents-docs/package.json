@@ -36,7 +36,7 @@
     "clsx": "^2.1.1",
     "fumadocs-core": "~16.1.0",
     "fumadocs-mdx": "~14.0.3",
-    "fumadocs-openapi": "^10.2.6",
+    "fumadocs-openapi": "~10.2.6",
     "fumadocs-typescript": "~4.0.13",
     "fumadocs-ui": "~16.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
