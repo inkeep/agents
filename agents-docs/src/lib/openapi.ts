@@ -2,7 +2,22 @@ import { createOpenAPI } from 'fumadocs-openapi/server';
 
 export const openapi = createOpenAPI({
   // the OpenAPI schema, you can also give it an external URL.
-  input: () => ({
-    index: '../agents-api/__snapshots__/openapi.json',
-  }),
+  async input() {
+    const { default: json } = await import('../../../agents-api/__snapshots__/openapi.json', {
+      with: {
+        type: 'json',
+      },
+    });
+    return {
+      index: {
+        ...json,
+        servers: [
+          {
+            description: 'API Server',
+            url: 'https://api.pilot.inkeep.com',
+          },
+        ],
+      },
+    };
+  },
 });
