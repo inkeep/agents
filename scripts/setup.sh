@@ -70,6 +70,12 @@ if [ ! -f ".env" ]; then
   echo -e "${YELLOW}  → Make sure to set:${NC}"
   echo -e "${YELLOW}      INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents${NC}"
   echo -e "${YELLOW}      INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents${NC}"
+  # Generate JWT keys if not already configured
+  if [ ! -f "jwt-private-key.pem" ] || [ ! -f "jwt-public-key.pem" ]; then
+    echo "Generating JWT keys..."
+    bash scripts/generate-jwt-keys.sh >> .env
+    echo -e "${GREEN}✓${NC} JWT keys generated and added to .env"
+  fi
 else
   echo -e "${GREEN}✓${NC} .env already exists"
 fi
@@ -113,6 +119,7 @@ echo ""
 echo "Installing dependencies..."
 pnpm install
 echo -e "${GREEN}✓${NC} Dependencies installed"
+
 
 # 6. Setup databases (Doltgres for manage, Postgres for runtime, optionally SpiceDB)
 echo ""

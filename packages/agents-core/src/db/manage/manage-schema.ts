@@ -591,7 +591,7 @@ export const datasetItem = pgTable(
   'dataset_item',
   {
     ...projectScoped,
-    datasetId: text('dataset_id').notNull(),
+    datasetId: varchar('dataset_id', { length: 256 }).notNull(),
     input: jsonb('input').$type<DatasetItemInput>().notNull(),
     expectedOutput: jsonb('expected_output').$type<DatasetItemExpectedOutput>(),
     simulationAgent: jsonb('simulation_agent').$type<SimulationAgent>(),
@@ -655,7 +655,7 @@ export const datasetRunConfig = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    datasetId: text('dataset_id').notNull(),
+    datasetId: varchar('dataset_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -718,8 +718,8 @@ export const evaluationSuiteConfigEvaluatorRelations = pgTable(
   'evaluation_suite_config_evaluator_relations',
   {
     ...projectScoped,
-    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
-    evaluatorId: text('evaluator_id').notNull(),
+    evaluationSuiteConfigId: varchar('evaluation_suite_config_id', { length: 256 }).notNull(),
+    evaluatorId: varchar('evaluator_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -755,8 +755,8 @@ export const evaluationRunConfigEvaluationSuiteConfigRelations = pgTable(
   'evaluation_run_config_evaluation_suite_config_relations',
   {
     ...projectScoped,
-    evaluationRunConfigId: text('evaluation_run_config_id').notNull(),
-    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
+    evaluationRunConfigId: varchar('evaluation_run_config_id', { length: 256 }).notNull(),
+    evaluationSuiteConfigId: varchar('evaluation_suite_config_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -858,8 +858,8 @@ export const evaluationJobConfigEvaluatorRelations = pgTable(
   'evaluation_job_config_evaluator_relations',
   {
     ...projectScoped,
-    evaluationJobConfigId: text('evaluation_job_config_id').notNull(),
-    evaluatorId: text('evaluator_id').notNull(),
+    evaluationJobConfigId: varchar('evaluation_job_config_id', { length: 256 }).notNull(),
+    evaluatorId: varchar('evaluator_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -1139,8 +1139,8 @@ export const datasetRunConfigAgentRelations = pgTable(
   'dataset_run_config_agent_relations',
   {
     ...projectScoped,
-    datasetRunConfigId: text('dataset_run_config_id').notNull(),
-    agentId: text('agent_id').notNull(),
+    datasetRunConfigId: varchar('dataset_run_config_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
