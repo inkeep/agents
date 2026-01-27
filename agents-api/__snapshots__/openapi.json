@@ -9998,7 +9998,7 @@
         },
         "summary": "Create Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       }
     },
@@ -10093,7 +10093,7 @@
         },
         "summary": "Delete Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       },
       "get": {
@@ -10193,7 +10193,7 @@
         },
         "summary": "Get Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       },
       "put": {
@@ -10312,7 +10312,7 @@
         },
         "summary": "Update Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       }
     },
@@ -10414,7 +10414,7 @@
         },
         "summary": "Get Full Project with Relation IDs",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       }
     },
