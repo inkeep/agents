@@ -15136,7 +15136,7 @@
         },
         "summary": "List Sub Agent Relations",
         "tags": [
-          "SubAgent Relations"
+          "SubAgents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15271,7 +15271,7 @@
         },
         "summary": "Create Sub Agent Relation",
         "tags": [
-          "SubAgent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -15338,7 +15338,7 @@
         },
         "summary": "Delete Sub Agent Relation",
         "tags": [
-          "SubAgent Relations"
+          "SubAgents"
         ]
       },
       "get": {
@@ -15460,7 +15460,7 @@
         },
         "summary": "Get Sub Agent Relation",
         "tags": [
-          "SubAgent Relations"
+          "SubAgents"
         ]
       },
       "put": {
@@ -15591,7 +15591,7 @@
         },
         "summary": "Update Sub Agent Relation",
         "tags": [
-          "SubAgent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -15733,7 +15733,8 @@
         },
         "summary": "List SubAgent Tool Relations",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15868,7 +15869,8 @@
         },
         "summary": "Create SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       }
     },
@@ -16002,7 +16004,8 @@
         },
         "summary": "Get SubAgents for Tool",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       }
     },
@@ -16069,7 +16072,8 @@
         },
         "summary": "Delete SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       },
       "get": {
@@ -16191,7 +16195,8 @@
         },
         "summary": "Get SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       },
       "put": {
@@ -16322,7 +16327,8 @@
         },
         "summary": "Update SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       }
     },
@@ -16448,7 +16454,7 @@
         },
         "summary": "List SubAgents",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -16583,7 +16589,7 @@
         },
         "summary": "Create SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       }
     },
@@ -16660,7 +16666,7 @@
         },
         "summary": "Delete SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       },
       "get": {
@@ -16782,7 +16788,7 @@
         },
         "summary": "Get SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       },
       "put": {
@@ -16913,7 +16919,7 @@
         },
         "summary": "Update SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       }
     },
@@ -17048,7 +17054,8 @@
         },
         "summary": "List Sub Agent External Agent Relations",
         "tags": [
-          "SubAgent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17192,7 +17199,8 @@
         },
         "summary": "Create Sub Agent External Agent Relation",
         "tags": [
-          "SubAgent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       }
     },
@@ -17268,7 +17276,8 @@
         },
         "summary": "Delete Sub Agent External Agent Relation",
         "tags": [
-          "SubAgent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       },
       "get": {
@@ -17399,7 +17408,8 @@
         },
         "summary": "Get Sub Agent External Agent Relation",
         "tags": [
-          "SubAgent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       },
       "put": {
@@ -17539,7 +17549,8 @@
         },
         "summary": "Update Sub Agent External Agent Relation",
         "tags": [
-          "SubAgent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       }
     },
