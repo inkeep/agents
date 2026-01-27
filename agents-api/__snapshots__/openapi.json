@@ -17804,7 +17804,7 @@
         },
         "summary": "List Sub Agent Team Agent Relations",
         "tags": [
-          "SubAgent Team Agent Relations"
+          "SubAgents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17948,7 +17948,7 @@
         },
         "summary": "Create Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgent Team Agent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -18024,7 +18024,7 @@
         },
         "summary": "Delete Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgent Team Agent Relations"
+          "SubAgents"
         ]
       },
       "get": {
@@ -18155,7 +18155,7 @@
         },
         "summary": "Get Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgent Team Agent Relations"
+          "SubAgents"
         ]
       },
       "put": {
@@ -18295,7 +18295,7 @@
         },
         "summary": "Update Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgent Team Agent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -31917,10 +31917,6 @@
     {
       "description": "Operations for managing sub agents",
       "name": "SubAgents"
-    },
-    {
-      "description": "Operations for managing sub agent team agent relationships",
-      "name": "SubAgent Team Agent Relations"
     },
     {
       "description": "Operations for managing third-party MCP servers",
