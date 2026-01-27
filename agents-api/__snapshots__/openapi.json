@@ -8885,7 +8885,7 @@
         },
         "summary": "Process workflow jobs",
         "tags": [
-          "workflow"
+          "Workflows"
         ]
       }
     },
@@ -9413,7 +9413,7 @@
         },
         "summary": "Get CLI user info",
         "tags": [
-          "cli"
+          "CLI"
         ]
       }
     },
@@ -9493,7 +9493,7 @@
         },
         "summary": "Get pending invitations",
         "tags": [
-          "invitations"
+          "Invitations"
         ]
       }
     },
@@ -9571,7 +9571,7 @@
         },
         "summary": "List user organizations",
         "tags": [
-          "user-organizations"
+          "User Organizations"
         ]
       },
       "post": {
@@ -9639,7 +9639,7 @@
         },
         "summary": "Add user to organization",
         "tags": [
-          "user-organizations"
+          "User Organizations"
         ]
       }
     },
@@ -9886,7 +9886,7 @@
         ],
         "summary": "Generate temporary API key for playground",
         "tags": [
-          "Playground"
+          "API Keys"
         ]
       }
     },
@@ -11811,7 +11811,7 @@
         },
         "summary": "List Context Configurations",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -11946,7 +11946,7 @@
         },
         "summary": "Create Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       }
     },
@@ -12063,7 +12063,7 @@
         },
         "summary": "Delete Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       },
       "get": {
@@ -12185,7 +12185,7 @@
         },
         "summary": "Get Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       },
       "put": {
@@ -12316,7 +12316,7 @@
         },
         "summary": "Update Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       }
     },
@@ -14472,7 +14472,7 @@
         },
         "summary": "Associate Function Tool with SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14590,7 +14590,7 @@
         },
         "summary": "Get SubAgents Using Function Tool",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14709,7 +14709,7 @@
         },
         "summary": "Get Function Tools for SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14836,7 +14836,7 @@
         },
         "summary": "Remove Function Tool from SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14963,7 +14963,7 @@
         },
         "summary": "Check if Function Tool is Associated with SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -15121,7 +15121,7 @@
         },
         "summary": "List Sub Agent Relations",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15256,7 +15256,7 @@
         },
         "summary": "Create Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgent Relations"
         ]
       }
     },
@@ -15323,7 +15323,7 @@
         },
         "summary": "Delete Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgent Relations"
         ]
       },
       "get": {
@@ -15445,7 +15445,7 @@
         },
         "summary": "Get Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgent Relations"
         ]
       },
       "put": {
@@ -15576,7 +15576,7 @@
         },
         "summary": "Update Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgent Relations"
         ]
       }
     },
@@ -17033,7 +17033,7 @@
         },
         "summary": "List Sub Agent External Agent Relations",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgent External Agent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17177,7 +17177,7 @@
         },
         "summary": "Create Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgent External Agent Relations"
         ]
       }
     },
@@ -17253,7 +17253,7 @@
         },
         "summary": "Delete Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgent External Agent Relations"
         ]
       },
       "get": {
@@ -17384,7 +17384,7 @@
         },
         "summary": "Get Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgent External Agent Relations"
         ]
       },
       "put": {
@@ -17524,7 +17524,7 @@
         },
         "summary": "Update Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgent External Agent Relations"
         ]
       }
     },
@@ -17778,7 +17778,7 @@
         },
         "summary": "List Sub Agent Team Agent Relations",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgent Team Agent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17922,7 +17922,7 @@
         },
         "summary": "Create Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgent Team Agent Relations"
         ]
       }
     },
@@ -17998,7 +17998,7 @@
         },
         "summary": "Delete Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgent Team Agent Relations"
         ]
       },
       "get": {
@@ -18129,7 +18129,7 @@
         },
         "summary": "Get Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgent Team Agent Relations"
         ]
       },
       "put": {
@@ -18269,7 +18269,7 @@
         },
         "summary": "Update Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgent Team Agent Relations"
         ]
       }
     },
@@ -20211,7 +20211,7 @@
         },
         "summary": "List Artifact Components",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -20337,7 +20337,7 @@
         },
         "summary": "Create Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       }
     },
@@ -20395,7 +20395,7 @@
         },
         "summary": "Delete Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       },
       "get": {
@@ -20508,7 +20508,7 @@
         },
         "summary": "Get Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       },
       "put": {
@@ -20630,7 +20630,7 @@
         },
         "summary": "Update Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       }
     },
@@ -21406,7 +21406,7 @@
         },
         "summary": "List Credential Stores",
         "tags": [
-          "Credential Store"
+          "Credential Stores"
         ]
       }
     },
@@ -21530,7 +21530,7 @@
         },
         "summary": "Create Credential in Store",
         "tags": [
-          "Credential Store"
+          "Credential Stores"
         ]
       }
     },
@@ -22183,7 +22183,7 @@
         },
         "summary": "List Data Components",
         "tags": [
-          "Data Component"
+          "Data Components"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -22309,7 +22309,7 @@
         },
         "summary": "Create Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       }
     },
@@ -22367,7 +22367,7 @@
         },
         "summary": "Delete Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       },
       "get": {
@@ -22480,7 +22480,7 @@
         },
         "summary": "Get Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       },
       "put": {
@@ -22602,7 +22602,7 @@
         },
         "summary": "Update Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       }
     },
@@ -30855,7 +30855,7 @@
           }
         ],
         "tags": [
-          "a2a"
+          "A2A"
         ]
       }
     },
@@ -31112,7 +31112,7 @@
         ],
         "summary": "Chat (Vercel Streaming Protocol)",
         "tags": [
-          "chat"
+          "Chat"
         ]
       }
     },
@@ -31239,7 +31239,7 @@
         ],
         "summary": "Approve or deny tool execution",
         "tags": [
-          "chat"
+          "Chat"
         ]
       }
     },
@@ -31445,7 +31445,7 @@
         },
         "summary": "Invoke agent via trigger webhook",
         "tags": [
-          "webhooks"
+          "Webhooks"
         ]
       }
     },
@@ -31711,7 +31711,7 @@
         ],
         "summary": "Create chat completion",
         "tags": [
-          "chat"
+          "Chat"
         ]
       }
     },
@@ -31793,6 +31793,14 @@
   ],
   "tags": [
     {
+      "description": "Agent-to-Agent communication endpoints",
+      "name": "A2A"
+    },
+    {
+      "description": "Operations for managing API keys",
+      "name": "API Keys"
+    },
+    {
       "description": "Operations for managing individual agents",
       "name": "Agent"
     },
@@ -31809,16 +31817,28 @@
       "name": "Agents"
     },
     {
-      "description": "Operations for managing API keys",
-      "name": "API Keys"
+      "description": "Operations for managing artifact components",
+      "name": "Artifact Components"
     },
     {
-      "description": "Operations for managing artifact components",
-      "name": "Artifact Component"
+      "description": "Operations for managing branches",
+      "name": "Branches"
+    },
+    {
+      "description": "CLI authentication endpoints",
+      "name": "CLI"
+    },
+    {
+      "description": "Chat completions endpoints",
+      "name": "Chat"
     },
     {
       "description": "Operations for managing context configurations",
-      "name": "Context Config"
+      "name": "Context Configs"
+    },
+    {
+      "description": "Operations for managing conversations",
+      "name": "Conversations"
     },
     {
       "description": "Operations for managing credentials",
@@ -31826,11 +31846,15 @@
     },
     {
       "description": "Operations for managing credential stores",
-      "name": "Credential Store"
+      "name": "Credential Stores"
     },
     {
       "description": "Operations for managing data components",
-      "name": "Data Component"
+      "name": "Data Components"
+    },
+    {
+      "description": "Operations for managing evaluations",
+      "name": "Evaluations"
     },
     {
       "description": "Operations for managing external agents",
@@ -31853,36 +31877,88 @@
       "name": "Functions"
     },
     {
-      "description": "OAuth authentication endpoints for MCP tools",
+      "description": "Operations for managing invitations",
+      "name": "Invitations"
+    },
+    {
+      "description": "MCP (Model Context Protocol) endpoints",
+      "name": "MCP"
+    },
+    {
+      "description": "Operations for MCP catalog",
+      "name": "MCP Catalog"
+    },
+    {
+      "description": "OAuth authentication endpoints",
       "name": "OAuth"
+    },
+    {
+      "description": "Operations for managing project members",
+      "name": "Project Members"
+    },
+    {
+      "description": "Operations for managing project permissions",
+      "name": "Project Permissions"
     },
     {
       "description": "Operations for managing projects",
       "name": "Projects"
     },
     {
-      "description": "Operations for managing sub agent external agent relationships",
-      "name": "Sub Agent External Agent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent relationships",
-      "name": "Sub Agent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent team agent relationships",
-      "name": "Sub Agent Team Agent Relations"
+      "description": "Operations for the resolved ref (branch name, tag name, or commit hash)",
+      "name": "Refs"
     },
     {
       "description": "Operations for managing sub agents",
       "name": "SubAgent"
     },
     {
+      "description": "Operations for managing sub agent external agent relationships",
+      "name": "SubAgent External Agent Relations"
+    },
+    {
+      "description": "Operations for managing sub agent function tools",
+      "name": "SubAgent Function Tools"
+    },
+    {
+      "description": "Operations for managing sub agent relationships",
+      "name": "SubAgent Relations"
+    },
+    {
+      "description": "Operations for managing sub agent team agent relationships",
+      "name": "SubAgent Team Agent Relations"
+    },
+    {
       "description": "Operations for managing sub agent tool relationships",
       "name": "SubAgent Tool Relations"
     },
     {
+      "description": "Operations for managing third-party MCP servers",
+      "name": "Third-Party MCP Servers"
+    },
+    {
       "description": "Operations for managing MCP tools",
       "name": "Tools"
+    },
+    {
+      "description": "Operations for managing triggers",
+      "name": "Triggers"
+    },
+    {
+      "description": "Operations for managing user organizations",
+      "name": "User Organizations"
+    },
+    {
+      "description": "Operations for managing user project memberships",
+      "name": "User Project Memberships"
+    },
+    {
+      "description": "Webhook endpoints",
+      "name": "Webhooks"
+    },
+    {
+      "description": "Workflow trigger endpoints",
+      "name": "Workflows"
     }
   ]
 }
