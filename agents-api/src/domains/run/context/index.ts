@@ -20,7 +20,6 @@ export type {
   ContextValidationError,
   ContextValidationResult,
   HttpRequestPart,
-  JsonSchemaValidationResult,
   ParsedHttpRequest,
 } from './validation';
 export {

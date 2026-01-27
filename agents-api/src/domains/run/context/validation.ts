@@ -107,51 +107,25 @@ export function validationHelper(jsonSchema: Record<string, unknown>) {
   return getCachedValidator(jsonSchema);
 }
 
-export interface JsonSchemaValidationResult {
-  isValid: boolean;
-  errors: Array<{
-    path: string;
-    message: string;
-    keyword: string;
-    params: Record<string, unknown>;
-    data?: unknown;
-  }>;
-}
-
-export function validateAgainstJsonSchema(
-  jsonSchema: Record<string, unknown>,
-  context: unknown
-): JsonSchemaValidationResult {
+export function validateAgainstJsonSchema(jsonSchema: Record<string, unknown>, context: unknown) {
   const validate = validationHelper(jsonSchema);
   const isValid = validate(context);
 
-  if (isValid) {
-    return { isValid: true, errors: [] };
+  if (!isValid) {
+    logger.info({ isValid, errorCount: validate.errors?.length }, 'Validation result');
+    logger.debug({ errors: validate.errors }, 'Validation errors');
   }
 
-  const errors = (validate.errors || []).map((error) => ({
-    path: error.instancePath || '/',
-    message: error.message || 'Validation failed',
-    keyword: error.keyword,
-    params: error.params as Record<string, unknown>,
-    data: error.data,
-  }));
-
-  logger.info({ isValid, errorCount: errors.length }, 'Validation result');
-  logger.debug({ errors }, 'Validation errors');
-
-  return { isValid: false, errors };
+  return { isValid, errors: validate.errors };
 }
 
-export function formatValidationErrors(
-  errors: JsonSchemaValidationResult['errors']
-): string {
-  if (errors.length === 0) {
+export function formatValidationErrors(errors: typeof import('ajv').default.prototype.errors): string {
+  if (!errors || errors.length === 0) {
     return 'Unknown validation error';
   }
 
   return errors
-    .map((error) => `${error.path || '/'}: ${error.message}`)
+    .map((error) => `${error.instancePath || '/'}: ${error.message}`)
     .join('; ');
 }
 
