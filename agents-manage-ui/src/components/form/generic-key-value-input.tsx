@@ -49,7 +49,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
   description,
   keyPlaceholder = 'key',
   valuePlaceholder = 'value',
-  addButtonLabel = 'Add header',
+  addButtonLabel = 'Add item',
   isRequired,
 }: GenericKeyValueInputProps<T>) {
   const { fields, append, remove } = useFieldArray({

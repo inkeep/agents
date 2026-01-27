@@ -207,6 +207,7 @@ export function EditCredentialForm({
                   label="Headers (optional)"
                   keyPlaceholder="Key (e.g. X-API-Key)"
                   valuePlaceholder="Value (e.g. your-api-key)"
+                  addButtonLabel="Add header"
                 />
                 <InfoCard title="How this works">
                   <p className="mb-2">
