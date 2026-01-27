@@ -200,13 +200,7 @@ jobs:
         run: |
           # Build all packages that the e2e test links to local versions
           # These need dist/ directories for subpath exports like ./factory
-          pnpm turbo run build --filter=@inkeep/create-agents
-          pnpm --filter @inkeep/agents-manage-mcp build
-          pnpm --filter @inkeep/agents-mcp build
-          pnpm --filter @inkeep/agents-sdk build
-          pnpm --filter @inkeep/agents-api build
-          pnpm --filter @inkeep/agents-cli build
-          pnpm --filter @inkeep/create-agents build
+          pnpm turbo run build --filter=@inkeep/create-agents --filter=@inkeep/agents-api --filter=@inkeep/agents-cli
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
