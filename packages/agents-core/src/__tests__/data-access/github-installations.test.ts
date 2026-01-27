@@ -1016,8 +1016,12 @@ describe('GitHub Installations Data Access', () => {
           },
         ],
       });
-      repoId1 = repos.find((r) => r.repositoryId === '111')!.id;
-      repoId2 = repos.find((r) => r.repositoryId === '222')!.id;
+      const repo1 = repos.find((r) => r.repositoryId === '111');
+      const repo2 = repos.find((r) => r.repositoryId === '222');
+      expect(repo1).toBeDefined();
+      expect(repo2).toBeDefined();
+      repoId1 = repo1?.id ?? '';
+      repoId2 = repo2?.id ?? '';
     });
 
     describe('setProjectRepositoryAccess', () => {
