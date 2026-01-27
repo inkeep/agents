@@ -1,10 +1,11 @@
 'use client';
 
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { ArrowLeft, FlaskConical, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSlack } from '../context/slack-provider';
 import { localDb } from '../db';
@@ -33,7 +34,11 @@ export function SlackDashboard() {
 
     if (error) {
       console.error('Slack OAuth Error:', error);
-      setNotification({ type: 'error', message: `Slack installation failed: ${error}` });
+      setNotification({
+        type: 'error',
+        message: `Slack installation failed: ${error}`,
+        action: 'error',
+      });
       window.history.replaceState({}, '', window.location.pathname);
       return;
     }
@@ -89,10 +94,15 @@ export function SlackDashboard() {
         setNotification({
           type: 'success',
           message: `Workspace "${workspace.teamName}" installed successfully!`,
+          action: 'installed',
         });
       } catch (e) {
         console.error('Failed to parse workspace data:', e);
-        setNotification({ type: 'error', message: 'Failed to process workspace data' });
+        setNotification({
+          type: 'error',
+          message: 'Failed to process workspace data',
+          action: 'error',
+        });
       }
 
       window.history.replaceState({}, '', window.location.pathname);
@@ -111,8 +121,16 @@ export function SlackDashboard() {
       </div>
 
       <PageHeader
-        title="Slack"
-        description="Connect your Slack workspace to Inkeep Agents"
+        title={
+          <span className="flex items-center gap-2">
+            Slack
+            <Badge variant="secondary" className="text-xs font-normal gap-1">
+              <FlaskConical className="h-3 w-3" />
+              Beta
+            </Badge>
+          </span>
+        }
+        description="Connect your Slack workspace to Inkeep Agents. This is a preview of our Slack integration — features and UI may change."
         action={
           <Button size="lg" className="gap-2" onClick={handleInstallClick}>
             <MessageSquare className="h-4 w-4" />

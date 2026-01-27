@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Settings, Zap } from 'lucide-react';
+import { Layers, Settings, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,10 @@ interface WorkAppCardProps {
   app: WorkApp;
   tenantId: string;
   onInstall?: () => void;
+  workspaceCount?: number;
 }
 
-export function WorkAppCard({ app, tenantId, onInstall }: WorkAppCardProps) {
+export function WorkAppCard({ app, tenantId, onInstall, workspaceCount = 0 }: WorkAppCardProps) {
   const getStatusBadge = () => {
     switch (app.status) {
       case 'connected':
@@ -55,20 +56,21 @@ export function WorkAppCard({ app, tenantId, onInstall }: WorkAppCardProps) {
 
     if (app.status === 'connected' || app.status === 'installed') {
       return (
-        <div className="flex gap-2 w-full">
-          <Button variant="outline" asChild className="flex-1">
+        <div className="space-y-2 w-full">
+          {workspaceCount > 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Layers className="h-3 w-3" />
+              <span>
+                {workspaceCount} workspace{workspaceCount !== 1 ? 's' : ''} connected
+              </span>
+            </div>
+          )}
+          <Button variant="outline" asChild className="w-full">
             <Link href={`/${tenantId}/work-apps/${app.id}`}>
               <Settings className="h-4 w-4 mr-2" />
               Manage
             </Link>
           </Button>
-          {app.dashboardUrl && (
-            <Button variant="ghost" size="icon" asChild>
-              <a href={app.dashboardUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-          )}
         </div>
       );
     }
@@ -112,7 +114,7 @@ export function WorkAppCard({ app, tenantId, onInstall }: WorkAppCardProps) {
               </li>
             ))}
             {app.features.length > 3 && (
-              <li className="text-muted-foreground">+{app.features.length - 3} more</li>
+              <li className="text-muted-foreground italic">& {app.features.length - 3} more</li>
             )}
           </ul>
         </div>

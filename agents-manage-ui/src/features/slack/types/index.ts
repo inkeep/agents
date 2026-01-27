@@ -53,7 +53,10 @@ export interface SlackWorkspaceInfo {
   channels: SlackChannel[];
 }
 
+export type SlackNotificationAction = 'connected' | 'disconnected' | 'installed' | 'error' | 'info';
+
 export interface SlackNotification {
   type: 'success' | 'error';
   message: string;
+  action?: SlackNotificationAction;
 }

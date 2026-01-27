@@ -49,7 +49,11 @@ export function useSlackDisconnectMutation() {
       if (variables.userId) {
         queryClient.invalidateQueries({ queryKey: slackQueryKeys.status(variables.userId) });
       }
-      queryClient.invalidateQueries({ queryKey: slackQueryKeys.all });
+      if (variables.connectionId) {
+        queryClient.removeQueries({
+          queryKey: slackQueryKeys.workspaceInfo(variables.connectionId),
+        });
+      }
     },
   });
 }

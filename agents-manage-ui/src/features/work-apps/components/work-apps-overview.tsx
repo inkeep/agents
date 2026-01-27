@@ -31,9 +31,6 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
         apps.push({
           ...config,
           status: getSlackStatus(),
-          dashboardUrl: workspaces[0]?.teamDomain
-            ? `https://${workspaces[0].teamDomain}.slack.com`
-            : undefined,
         });
       } else {
         apps.push({
@@ -52,7 +49,7 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
-  }, [getSlackStatus, workspaces]);
+  }, [getSlackStatus]);
 
   const handleInstall = useCallback(
     (appId: WorkAppId) => {
@@ -116,6 +113,7 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
             app={app}
             tenantId={tenantId}
             onInstall={() => handleInstall(app.id)}
+            workspaceCount={app.id === 'slack' ? workspaces.length : 0}
           />
         ))}
       </div>

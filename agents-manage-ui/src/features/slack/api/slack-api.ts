@@ -48,10 +48,13 @@ export const slackApi = {
     return response.json();
   },
 
-  async getWorkspaceInfo(connectionId: string): Promise<SlackWorkspaceInfoResponse> {
+  async getWorkspaceInfo(connectionId: string): Promise<SlackWorkspaceInfoResponse | null> {
     const response = await fetch(
       `${getApiUrl()}/manage/slack/workspace-info?connectionId=${encodeURIComponent(connectionId)}`
     );
+    if (response.status === 404) {
+      return null;
+    }
     if (!response.ok) {
       throw new Error('Failed to fetch workspace info');
     }

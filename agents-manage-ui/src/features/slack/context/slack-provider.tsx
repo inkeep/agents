@@ -13,7 +13,11 @@ import {
   useSlackWorkspaceInfoQuery,
 } from '../api/queries';
 import { slackApi } from '../api/slack-api';
-import { localDb } from '../db';
+import {
+  clearAllUserLinksFromLocalDb,
+  removeUserLinkFromLocalDb,
+  saveUserLinkToLocalDb,
+} from '../db/sync';
 import { useSlackStore } from '../store/slack-store';
 import type {
   SlackNotification,
@@ -21,102 +25,6 @@ import type {
   SlackWorkspace,
   SlackWorkspaceInfo,
 } from '../types';
-
-function saveUserLinkToLocalDb(
-  link: SlackUserLink,
-  tenantId: string,
-  options?: { skipAuditLog?: boolean }
-) {
-  localDb.users.upsert({
-    id: link.appUserId,
-    email: link.appUserEmail || '',
-    name: link.appUserName || '',
-    tenantId,
-    organizationId: tenantId,
-    role: 'member',
-    metadata: {},
-  });
-
-  localDb.slackUserConnections.upsert({
-    tenantId,
-    organizationId: tenantId,
-    inkeepUserId: link.appUserId,
-    inkeepUserEmail: link.appUserEmail,
-    inkeepUserName: link.appUserName,
-    slackUserId: link.slackUserId || '',
-    slackWorkspaceId: link.slackTeamId || '',
-    slackEnterpriseId: link.enterpriseId,
-    slackUsername: link.slackUsername,
-    slackDisplayName: link.slackDisplayName,
-    slackEmail: link.slackEmail,
-    isSlackAdmin: link.isSlackAdmin || false,
-    isSlackOwner: link.isSlackOwner || false,
-    slackAppClientId: '',
-    nangoConnectionId: link.nangoConnectionId,
-    nangoIntegrationId: 'slack-agent',
-    connectedAt: link.linkedAt || new Date().toISOString(),
-    status: link.isLinked ? 'active' : 'inactive',
-    metadata: {},
-  });
-
-  if (!options?.skipAuditLog) {
-    localDb.auditLogs.create({
-      tenantId,
-      userId: link.appUserId,
-      action: 'connection.create',
-      resourceType: 'connection',
-      resourceId: link.nangoConnectionId,
-      integrationType: 'slack',
-      details: {
-        slackTeamId: link.slackTeamId,
-        appUserEmail: link.appUserEmail,
-      },
-    });
-  }
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('inkeep-db-update'));
-  }
-}
-
-function removeUserLinkFromLocalDb(userId: string, tenantId: string, connectionId?: string) {
-  const connections = localDb.slackUserConnections.findByInkeepUser(userId);
-  for (const conn of connections) {
-    localDb.slackUserConnections.updateStatus(conn.id, 'inactive');
-  }
-
-  localDb.auditLogs.create({
-    tenantId,
-    userId,
-    action: 'connection.disconnect',
-    resourceType: 'connection',
-    resourceId: connectionId,
-    integrationType: 'slack',
-    details: { disconnectedAt: new Date().toISOString() },
-  });
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('inkeep-db-update'));
-  }
-}
-
-function clearAllUserLinksFromLocalDb(tenantId: string) {
-  localDb.slackUserConnections.clear();
-
-  localDb.auditLogs.create({
-    tenantId,
-    userId: undefined,
-    action: 'connection.clear_all',
-    resourceType: 'connection',
-    resourceId: undefined,
-    integrationType: 'slack',
-    details: { clearedAt: new Date().toISOString() },
-  });
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('inkeep-db-update'));
-  }
-}
 
 interface SlackContextValue {
   user: { id: string; email?: string; name?: string } | null;
@@ -261,7 +169,7 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
   ]);
 
   useEffect(() => {
-    if (notification?.type === 'success' && notification.message.includes('connected')) {
+    if (notification?.type === 'success' && notification.action === 'connected') {
       connectionStatusQuery.refetch();
       if (connectionId) {
         workspaceInfoQuery.refetch();
@@ -316,6 +224,7 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
               storeActions.setNotification({
                 type: 'success',
                 message: 'Slack account connected successfully!',
+                action: 'connected',
               });
               resolve();
             } else if (event.type === 'close') {
@@ -331,6 +240,7 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
       storeActions.setNotification({
         type: 'error',
         message: error instanceof Error ? error.message : 'Failed to connect Slack account',
+        action: 'error',
       });
     } finally {
       storeActions.setIsConnecting(false);
@@ -348,12 +258,17 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
 
       storeActions.removeUserLink(user.id);
       removeUserLinkFromLocalDb(user.id, tenantId, currentUserLink?.nangoConnectionId);
-      storeActions.setNotification({ type: 'success', message: 'Disconnected from Slack' });
+      storeActions.setNotification({
+        type: 'success',
+        message: 'Disconnected from Slack',
+        action: 'disconnected',
+      });
     } catch (error) {
       console.error('Failed to disconnect:', error);
       storeActions.setNotification({
         type: 'error',
         message: error instanceof Error ? error.message : 'Failed to disconnect',
+        action: 'error',
       });
     }
   }, [user, currentUserLink?.nangoConnectionId, disconnectMutation, storeActions, tenantId]);
