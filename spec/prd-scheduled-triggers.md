@@ -1043,8 +1043,8 @@ flowchart TD
         Status[Status: Failed]
         Timing[Scheduled: 09:00 UTC<br/>Started: 09:00:02<br/>Failed: 09:00:15]
         Attempt[Attempt 3 of 3]
-        Error[Error: "LLM rate limit exceeded"]
-        Payload[Resolved Payload:<br/>{"report_date": "2024-01-15"}]
+        Error[Error: LLM rate limit exceeded]
+        Payload[Resolved Payload]
     end
 
     Details --> Status
@@ -1055,17 +1055,17 @@ flowchart TD
 
     Error --> Links{Next steps}
 
-    Links --> ViewTrace[Click trace link<br/>→ Opens SigNoz]
-    Links --> ViewConv[Click conversation<br/>→ View partial response]
-    Links --> RerunBtn[Click Re-run<br/>→ Creates new invocation]
+    Links --> ViewTrace[Click trace link<br/>opens SigNoz]
+    Links --> ViewConv[Click conversation<br/>view partial response]
+    Links --> RerunBtn[Click Re-run<br/>creates new invocation]
 
-    ViewTrace --> Spans[Examine spans:<br/>- scheduled_trigger.execute<br/>- agent.generate<br/>- tool.call]
+    ViewTrace --> Spans[Examine trace spans]
     Spans --> RootCause[Identify root cause]
 
     RootCause --> Fix{Fix available?}
     Fix -->|Yes - transient| RerunBtn
     Fix -->|Yes - config| EditTrigger[Edit trigger config]
-    Fix -->|No - external| Wait[Wait & monitor]
+    Fix -->|No - external| Wait[Wait and monitor]
 
     EditTrigger --> Save[Save changes]
     Save --> RerunBtn
