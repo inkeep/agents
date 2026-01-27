@@ -15,11 +15,10 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
-    "fetch-openapi": "node --experimental-strip-types scripts/fetch-openapi.ts",
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
     "generate-skill-collections": "node --experimental-strip-types scripts/generate-skill-collections.ts",
-    "prebuild": "pnpm generate-classnames && pnpm fetch-openapi && pnpm generate-openapi && pnpm validate-link && pnpm generate-skill-collections",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link && pnpm generate-skill-collections",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts"
   },
   "dependencies": {
