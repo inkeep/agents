@@ -9571,7 +9571,7 @@
         },
         "summary": "List user organizations",
         "tags": [
-          "UserOrganizations"
+          "User Organizations"
         ]
       },
       "post": {
@@ -9639,7 +9639,7 @@
         },
         "summary": "Add user to organization",
         "tags": [
-          "UserOrganizations"
+          "User Organizations"
         ]
       }
     },
@@ -9886,7 +9886,7 @@
         ],
         "summary": "Generate temporary API key for playground",
         "tags": [
-          "APIKeys"
+          "API Keys"
         ]
       }
     },
@@ -9998,7 +9998,7 @@
         },
         "summary": "Create Full Project",
         "tags": [
-          "FullProject"
+          "Full Project"
         ]
       }
     },
@@ -10093,7 +10093,7 @@
         },
         "summary": "Delete Full Project",
         "tags": [
-          "FullProject"
+          "Full Project"
         ]
       },
       "get": {
@@ -10193,7 +10193,7 @@
         },
         "summary": "Get Full Project",
         "tags": [
-          "FullProject"
+          "Full Project"
         ]
       },
       "put": {
@@ -10312,7 +10312,7 @@
         },
         "summary": "Update Full Project",
         "tags": [
-          "FullProject"
+          "Full Project"
         ]
       }
     },
@@ -10414,7 +10414,7 @@
         },
         "summary": "Get Full Project with Relation IDs",
         "tags": [
-          "FullProject"
+          "Full Project"
         ]
       }
     },
@@ -11101,7 +11101,7 @@
         },
         "summary": "Create Full Agent",
         "tags": [
-          "FullAgent"
+          "Full Agent"
         ]
       }
     },
@@ -11205,7 +11205,7 @@
         },
         "summary": "Delete Full Agent",
         "tags": [
-          "FullAgent"
+          "Full Agent"
         ]
       },
       "get": {
@@ -11314,7 +11314,7 @@
         },
         "summary": "Get Full Agent",
         "tags": [
-          "FullAgent"
+          "Full Agent"
         ]
       },
       "put": {
@@ -11442,7 +11442,7 @@
         },
         "summary": "Update Full Agent",
         "tags": [
-          "FullAgent"
+          "Full Agent"
         ]
       }
     },
@@ -11811,7 +11811,7 @@
         },
         "summary": "List Context Configurations",
         "tags": [
-          "ContextConfigs"
+          "Context Configs"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -11946,7 +11946,7 @@
         },
         "summary": "Create Context Configuration",
         "tags": [
-          "ContextConfigs"
+          "Context Configs"
         ]
       }
     },
@@ -12063,7 +12063,7 @@
         },
         "summary": "Delete Context Configuration",
         "tags": [
-          "ContextConfigs"
+          "Context Configs"
         ]
       },
       "get": {
@@ -12185,7 +12185,7 @@
         },
         "summary": "Get Context Configuration",
         "tags": [
-          "ContextConfigs"
+          "Context Configs"
         ]
       },
       "put": {
@@ -12316,7 +12316,7 @@
         },
         "summary": "Update Context Configuration",
         "tags": [
-          "ContextConfigs"
+          "Context Configs"
         ]
       }
     },
@@ -12552,7 +12552,7 @@
         },
         "summary": "List Function Tools",
         "tags": [
-          "FunctionTools"
+          "Function Tools"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -12926,7 +12926,7 @@
         },
         "summary": "Get Function Tool by ID",
         "tags": [
-          "FunctionTools"
+          "Function Tools"
         ]
       },
       "put": {
@@ -13213,7 +13213,7 @@
         },
         "summary": "Associate Artifact Component with Agent",
         "tags": [
-          "AgentArtifactComponentRelations"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13332,7 +13332,7 @@
         },
         "summary": "Get Artifact Components for Agent",
         "tags": [
-          "AgentArtifactComponentRelations"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13459,7 +13459,7 @@
         },
         "summary": "Remove Artifact Component from Agent",
         "tags": [
-          "AgentArtifactComponentRelations"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13586,7 +13586,7 @@
         },
         "summary": "Check if Artifact Component is Associated with Agent",
         "tags": [
-          "AgentArtifactComponentRelations"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13704,7 +13704,7 @@
         },
         "summary": "Get Agents Using Artifact Component",
         "tags": [
-          "AgentArtifactComponentRelations"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13971,7 +13971,7 @@
         },
         "summary": "Get Data Components for Agent",
         "tags": [
-          "AgentDataComponentRelations"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14343,7 +14343,7 @@
         },
         "summary": "Get Agents Using Data Component",
         "tags": [
-          "AgentDataComponentRelations"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14472,7 +14472,7 @@
         },
         "summary": "Associate Function Tool with SubAgent",
         "tags": [
-          "SubAgentFunctionTools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14590,7 +14590,7 @@
         },
         "summary": "Get SubAgents Using Function Tool",
         "tags": [
-          "SubAgentFunctionTools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14709,7 +14709,7 @@
         },
         "summary": "Get Function Tools for SubAgent",
         "tags": [
-          "SubAgentFunctionTools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14836,7 +14836,7 @@
         },
         "summary": "Remove Function Tool from SubAgent",
         "tags": [
-          "SubAgentFunctionTools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14963,7 +14963,7 @@
         },
         "summary": "Check if Function Tool is Associated with SubAgent",
         "tags": [
-          "SubAgentFunctionTools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -15718,7 +15718,7 @@
         },
         "summary": "List SubAgent Tool Relations",
         "tags": [
-          "SubAgentToolRelations"
+          "SubAgent Tool Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -16176,7 +16176,7 @@
         },
         "summary": "Get SubAgent Tool Relation",
         "tags": [
-          "SubAgentToolRelations"
+          "SubAgent Tool Relations"
         ]
       },
       "put": {
@@ -17033,7 +17033,7 @@
         },
         "summary": "List Sub Agent External Agent Relations",
         "tags": [
-          "SubAgentExternalAgentRelations"
+          "SubAgent External Agent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17177,7 +17177,7 @@
         },
         "summary": "Create Sub Agent External Agent Relation",
         "tags": [
-          "SubAgentExternalAgentRelations"
+          "SubAgent External Agent Relations"
         ]
       }
     },
@@ -17253,7 +17253,7 @@
         },
         "summary": "Delete Sub Agent External Agent Relation",
         "tags": [
-          "SubAgentExternalAgentRelations"
+          "SubAgent External Agent Relations"
         ]
       },
       "get": {
@@ -17384,7 +17384,7 @@
         },
         "summary": "Get Sub Agent External Agent Relation",
         "tags": [
-          "SubAgentExternalAgentRelations"
+          "SubAgent External Agent Relations"
         ]
       },
       "put": {
@@ -17524,7 +17524,7 @@
         },
         "summary": "Update Sub Agent External Agent Relation",
         "tags": [
-          "SubAgentExternalAgentRelations"
+          "SubAgent External Agent Relations"
         ]
       }
     },
@@ -17778,7 +17778,7 @@
         },
         "summary": "List Sub Agent Team Agent Relations",
         "tags": [
-          "SubAgentTeamAgentRelations"
+          "SubAgent Team Agent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17922,7 +17922,7 @@
         },
         "summary": "Create Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgentTeamAgentRelations"
+          "SubAgent Team Agent Relations"
         ]
       }
     },
@@ -17998,7 +17998,7 @@
         },
         "summary": "Delete Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgentTeamAgentRelations"
+          "SubAgent Team Agent Relations"
         ]
       },
       "get": {
@@ -18129,7 +18129,7 @@
         },
         "summary": "Get Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgentTeamAgentRelations"
+          "SubAgent Team Agent Relations"
         ]
       },
       "put": {
@@ -18269,7 +18269,7 @@
         },
         "summary": "Update Sub Agent Team Agent Relation",
         "tags": [
-          "SubAgentTeamAgentRelations"
+          "SubAgent Team Agent Relations"
         ]
       }
     },
@@ -19650,7 +19650,7 @@
         },
         "summary": "List API Keys",
         "tags": [
-          "APIKeys"
+          "API Keys"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -19798,7 +19798,7 @@
         },
         "summary": "Create API Key",
         "tags": [
-          "APIKeys"
+          "API Keys"
         ]
       }
     },
@@ -19857,7 +19857,7 @@
         },
         "summary": "Delete API Key",
         "tags": [
-          "APIKeys"
+          "API Keys"
         ]
       },
       "get": {
@@ -19971,7 +19971,7 @@
         },
         "summary": "Get API Key",
         "tags": [
-          "APIKeys"
+          "API Keys"
         ]
       },
       "put": {
@@ -20094,7 +20094,7 @@
         },
         "summary": "Update API Key",
         "tags": [
-          "APIKeys"
+          "API Keys"
         ]
       }
     },
@@ -20211,7 +20211,7 @@
         },
         "summary": "List Artifact Components",
         "tags": [
-          "ArtifactComponents"
+          "Artifact Components"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -20337,7 +20337,7 @@
         },
         "summary": "Create Artifact Component",
         "tags": [
-          "ArtifactComponents"
+          "Artifact Components"
         ]
       }
     },
@@ -20395,7 +20395,7 @@
         },
         "summary": "Delete Artifact Component",
         "tags": [
-          "ArtifactComponents"
+          "Artifact Components"
         ]
       },
       "get": {
@@ -20508,7 +20508,7 @@
         },
         "summary": "Get Artifact Component",
         "tags": [
-          "ArtifactComponents"
+          "Artifact Components"
         ]
       },
       "put": {
@@ -20630,7 +20630,7 @@
         },
         "summary": "Update Artifact Component",
         "tags": [
-          "ArtifactComponents"
+          "Artifact Components"
         ]
       }
     },
@@ -21406,7 +21406,7 @@
         },
         "summary": "List Credential Stores",
         "tags": [
-          "CredentialStores"
+          "Credential Stores"
         ]
       }
     },
@@ -21530,7 +21530,7 @@
         },
         "summary": "Create Credential in Store",
         "tags": [
-          "CredentialStores"
+          "Credential Stores"
         ]
       }
     },
@@ -22183,7 +22183,7 @@
         },
         "summary": "List Data Components",
         "tags": [
-          "DataComponents"
+          "Data Components"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -22309,7 +22309,7 @@
         },
         "summary": "Create Data Component",
         "tags": [
-          "DataComponents"
+          "Data Components"
         ]
       }
     },
@@ -22367,7 +22367,7 @@
         },
         "summary": "Delete Data Component",
         "tags": [
-          "DataComponents"
+          "Data Components"
         ]
       },
       "get": {
@@ -22480,7 +22480,7 @@
         },
         "summary": "Get Data Component",
         "tags": [
-          "DataComponents"
+          "Data Components"
         ]
       },
       "put": {
@@ -22602,7 +22602,7 @@
         },
         "summary": "Update Data Component",
         "tags": [
-          "DataComponents"
+          "Data Components"
         ]
       }
     },
@@ -28960,7 +28960,7 @@
         },
         "summary": "List Project Members",
         "tags": [
-          "ProjectMembers"
+          "Project Members"
         ]
       },
       "post": {
@@ -29114,7 +29114,7 @@
         },
         "summary": "Add Project Member",
         "tags": [
-          "ProjectMembers"
+          "Project Members"
         ]
       }
     },
@@ -29228,7 +29228,7 @@
         },
         "summary": "Remove Project Member",
         "tags": [
-          "ProjectMembers"
+          "Project Members"
         ]
       },
       "patch": {
@@ -29393,7 +29393,7 @@
         },
         "summary": "Update Project Member Role",
         "tags": [
-          "ProjectMembers"
+          "Project Members"
         ]
       }
     },
@@ -29517,7 +29517,7 @@
         },
         "summary": "Get Project Permissions",
         "tags": [
-          "ProjectPermissions"
+          "Project Permissions"
         ]
       }
     },
@@ -29748,7 +29748,7 @@
         },
         "summary": "Get Third-Party MCP Server Details",
         "tags": [
-          "ThirdPartyMCPServers"
+          "Third Party MCP Servers"
         ]
       }
     },
@@ -29895,7 +29895,7 @@
         },
         "summary": "Get OAuth Redirect URL",
         "tags": [
-          "ThirdPartyMCPServers"
+          "Third Party MCP Servers"
         ]
       }
     },
@@ -31798,7 +31798,7 @@
     },
     {
       "description": "Operations for managing API keys",
-      "name": "APIKeys"
+      "name": "API Keys"
     },
     {
       "description": "Operations for managing individual agents",
@@ -31806,11 +31806,11 @@
     },
     {
       "description": "Operations for managing agent artifact component relationships",
-      "name": "AgentArtifactComponentRelations"
+      "name": "Agent Artifact Component Relations"
     },
     {
       "description": "Operations for managing agent data component relationships",
-      "name": "AgentDataComponentRelations"
+      "name": "Agent DataComponent Relations"
     },
     {
       "description": "Operations for managing agents",
@@ -31818,7 +31818,7 @@
     },
     {
       "description": "Operations for managing artifact components",
-      "name": "ArtifactComponents"
+      "name": "Artifact Components"
     },
     {
       "description": "Operations for managing branches",
@@ -31834,7 +31834,7 @@
     },
     {
       "description": "Operations for managing context configurations",
-      "name": "ContextConfigs"
+      "name": "Context Configs"
     },
     {
       "description": "Operations for managing conversations",
@@ -31846,11 +31846,11 @@
     },
     {
       "description": "Operations for managing credential stores",
-      "name": "CredentialStores"
+      "name": "Credential Stores"
     },
     {
       "description": "Operations for managing data components",
-      "name": "DataComponents"
+      "name": "Data Components"
     },
     {
       "description": "Operations for managing evaluations",
@@ -31858,19 +31858,19 @@
     },
     {
       "description": "Operations for managing external agents",
-      "name": "ExternalAgents"
+      "name": "External Agents"
     },
     {
       "description": "Operations for managing complete agent definitions",
-      "name": "FullAgent"
+      "name": "Full Agent"
     },
     {
       "description": "Operations for managing complete project definitions",
-      "name": "FullProject"
+      "name": "Full Project"
     },
     {
       "description": "Operations for managing function tools",
-      "name": "FunctionTools"
+      "name": "Function Tools"
     },
     {
       "description": "Operations for managing functions",
@@ -31886,7 +31886,7 @@
     },
     {
       "description": "Operations for MCP catalog",
-      "name": "MCPCatalog"
+      "name": "MCP Catalog"
     },
     {
       "description": "OAuth authentication endpoints",
@@ -31894,11 +31894,11 @@
     },
     {
       "description": "Operations for managing project members",
-      "name": "ProjectMembers"
+      "name": "Project Members"
     },
     {
       "description": "Operations for managing project permissions",
-      "name": "ProjectPermissions"
+      "name": "Project Permissions"
     },
     {
       "description": "Operations for managing projects",
@@ -31914,27 +31914,27 @@
     },
     {
       "description": "Operations for managing sub agent external agent relationships",
-      "name": "SubAgentExternalAgentRelations"
+      "name": "SubAgent ExternalAgent Relations"
     },
     {
       "description": "Operations for managing sub agent function tools",
-      "name": "SubAgentFunctionTools"
+      "name": "SubAgent FunctionTools"
     },
     {
       "description": "Operations for managing sub agent relationships",
-      "name": "SubAgentRelations"
+      "name": "SubAgent Relations"
     },
     {
       "description": "Operations for managing sub agent team agent relationships",
-      "name": "SubAgentTeamAgentRelations"
+      "name": "SubAgent Team Agent Relations"
     },
     {
       "description": "Operations for managing sub agent tool relationships",
-      "name": "SubAgentToolRelations"
+      "name": "SubAgent Tool Relations"
     },
     {
       "description": "Operations for managing third-party MCP servers",
-      "name": "ThirdPartyMCPServers"
+      "name": "Third Party MCP Servers"
     },
     {
       "description": "Operations for managing MCP tools",
@@ -31946,11 +31946,11 @@
     },
     {
       "description": "Operations for managing user organizations",
-      "name": "UserOrganizations"
+      "name": "User Organizations"
     },
     {
       "description": "Operations for managing user project memberships",
-      "name": "UserProjectMemberships"
+      "name": "User Project Memberships"
     },
     {
       "description": "Webhook endpoints",
