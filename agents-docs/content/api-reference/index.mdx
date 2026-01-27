@@ -11,7 +11,7 @@ import { source } from '@/lib/source';
       .getPages()
       .filter((item) => item.url.startsWith('/api-reference/'))
       .map((item) => (
-        <Card title={item.data.title} href={item.url}>
+        <Card key={item.url} title={item.data.title} href={item.url}>
           {item.data.description}
         </Card>
       ))}
