@@ -48,7 +48,7 @@ app.openapi(
     path: '/',
     summary: 'List Function Tools',
     operationId: 'list-function-tools',
-    tags: ['FunctionTools'],
+    tags: ['Function Tools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -94,7 +94,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Function Tool by ID',
     operationId: 'get-function-tool',
-    tags: ['FunctionTools'],
+    tags: ['Function Tools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

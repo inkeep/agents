@@ -45,7 +45,7 @@ app.openapi(
     path: '/agent/{subAgentId}',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
-    tags: ['AgentDataComponentRelations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -79,7 +79,7 @@ app.openapi(
     path: '/component/{dataComponentId}/agents',
     summary: 'Get Agents Using Data Component',
     operationId: 'get-agents-using-data-component',
-    tags: ['AgentDataComponentRelations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         dataComponentId: z.string(),

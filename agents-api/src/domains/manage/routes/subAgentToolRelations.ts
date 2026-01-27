@@ -49,7 +49,7 @@ app.openapi(
     path: '/',
     summary: 'List SubAgent Tool Relations',
     operationId: 'list-subagent-tool-relations',
-    tags: ['SubAgentToolRelations'],
+    tags: ['SubAgent Tool Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -130,7 +130,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get SubAgent Tool Relation',
     operationId: 'get-subagent-tool-relation',
-    tags: ['SubAgentToolRelations'],
+    tags: ['SubAgent Tool Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

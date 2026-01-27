@@ -53,7 +53,7 @@ app.openapi(
     summary: 'List Project Members',
     description: 'List all users with explicit project access. Requires authz to be enabled.',
     operationId: 'list-project-members',
-    tags: ['ProjectMembers'],
+    tags: ['Project Members'],
     request: {
       params: ProjectMemberParamsSchema,
     },
@@ -106,7 +106,7 @@ app.openapi(
     summary: 'Add Project Member',
     description: 'Add a user to a project with a specified role. Requires authz to be enabled.',
     operationId: 'add-project-member',
-    tags: ['ProjectMembers'],
+    tags: ['Project Members'],
     request: {
       params: ProjectMemberParamsSchema,
       body: {
@@ -170,7 +170,7 @@ app.openapi(
     description:
       "Update a project member's role. Requires authz to be enabled. Include previousRole to specify which role to revoke.",
     operationId: 'update-project-member',
-    tags: ['ProjectMembers'],
+    tags: ['Project Members'],
     request: {
       params: ProjectMemberUserParamsSchema,
       body: {
@@ -250,7 +250,7 @@ app.openapi(
     description:
       'Remove a user from a project. Requires authz to be enabled. Pass role as query param to specify which role to revoke.',
     operationId: 'remove-project-member',
-    tags: ['ProjectMembers'],
+    tags: ['Project Members'],
     request: {
       params: ProjectMemberUserParamsSchema,
       query: z.object({

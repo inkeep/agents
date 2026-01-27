@@ -15,7 +15,7 @@ userOrganizationsRoutes.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    tags: ['UserOrganizations'],
+    tags: ['User Organizations'],
     summary: 'List user organizations',
     description: 'Get all organizations associated with a user',
     request: {
@@ -51,7 +51,7 @@ userOrganizationsRoutes.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    tags: ['UserOrganizations'],
+    tags: ['User Organizations'],
     summary: 'Add user to organization',
     description: 'Associate a user with an organization',
     request: {
