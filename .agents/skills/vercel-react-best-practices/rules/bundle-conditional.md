@@ -21,7 +21,7 @@ function AnimationPlayer({ enabled, setEnabled }: { enabled: boolean; setEnabled
         .then(mod => setFrames(mod.frames))
         .catch(() => setEnabled(false))
     }
-  }, [enabled, frames])
+  }, [enabled, frames, setEnabled])
 
   if (!frames) return <Skeleton />
   return <Canvas frames={frames} />
