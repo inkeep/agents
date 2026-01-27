@@ -62,6 +62,8 @@ ${prettyError}`);
     input: openapi,
     output: OUTPUT_DIR,
     per: 'tag',
+    // Fumadocs splits uppercase acronyms into spaced letters (e.g. "A P I").
+    // This normalizes common cases back to their proper titles.
     frontmatter(title) {
       return {
         title: title
