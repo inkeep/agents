@@ -24,7 +24,6 @@ export type {
 } from './validation';
 export {
   contextValidationMiddleware,
-  formatValidationErrors,
   getCachedValidator,
   HTTP_REQUEST_PARTS,
   isValidHttpRequest,

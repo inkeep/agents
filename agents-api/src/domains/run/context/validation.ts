@@ -109,24 +109,7 @@ export function validationHelper(jsonSchema: Record<string, unknown>) {
 
 export function validateAgainstJsonSchema(jsonSchema: Record<string, unknown>, context: unknown) {
   const validate = validationHelper(jsonSchema);
-  const isValid = validate(context);
-
-  if (!isValid) {
-    logger.info({ isValid, errorCount: validate.errors?.length }, 'Validation result');
-    logger.debug({ errors: validate.errors }, 'Validation errors');
-  }
-
-  return { isValid, errors: validate.errors };
-}
-
-export function formatValidationErrors(errors: typeof import('ajv').default.prototype.errors): string {
-  if (!errors || errors.length === 0) {
-    return 'Unknown validation error';
-  }
-
-  return errors
-    .map((error) => `${error.instancePath || '/'}: ${error.message}`)
-    .join('; ');
+  return validate(context);
 }
 
 function filterByJsonSchema(data: any, schema: any): any {

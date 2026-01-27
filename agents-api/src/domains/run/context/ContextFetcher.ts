@@ -7,7 +7,7 @@ import {
   type TemplateContext,
   TemplateEngine,
 } from '@inkeep/agents-core';
-import { formatValidationErrors, validateAgainstJsonSchema } from './validation';
+import { validationHelper } from './validation';
 
 const logger = getLogger('context-fetcher');
 
@@ -413,16 +413,20 @@ export class ContextFetcher {
     jsonSchema: Record<string, unknown>,
     definitionId: string
   ): void {
-    const validationResult = validateAgainstJsonSchema(jsonSchema, data);
+    const validate = validationHelper(jsonSchema);
+    const isValid = validate(data);
 
-    if (!validationResult.isValid) {
-      const formattedErrors = formatValidationErrors(validationResult.errors);
+    if (!isValid) {
+      const errors = validate.errors || [];
+      const formattedErrors = errors
+        .map((e) => `${e.instancePath || '/'}: ${e.message}`)
+        .join('; ');
 
       logger.error(
         {
           definitionId,
           jsonSchema,
-          errors: validationResult.errors,
+          errors,
           formattedErrors,
         },
         'JSON Schema response validation failed'
