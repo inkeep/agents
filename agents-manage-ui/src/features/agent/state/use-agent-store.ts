@@ -462,15 +462,15 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'error': {
-            const { relationshipId } = data.details ?? {};
-            if (!relationshipId) {
+            const { relationshipId, agent } = data.details ?? {};
+            if (!relationshipId && !agent) {
               const error = new Error('[type: error] relationshipId is missing');
               sentry.captureException(error, { extra: data });
               console.warn(error);
             }
             return {
               nodes: updateNodeStatus((node) =>
-                relationshipId && relationshipId === node.data.relationshipId
+                relationshipId === node.data.relationshipId || agent === node.data.id
                   ? 'error'
                   : node.data.status
               ),

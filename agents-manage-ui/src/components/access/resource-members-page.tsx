@@ -176,6 +176,7 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                 {/* Search input with dropdown */}
                 <div className="flex-1 min-w-[80px] relative">
                   <input
+                    autoComplete="off"
                     ref={inputRef}
                     type="text"
                     value={searchQuery}
