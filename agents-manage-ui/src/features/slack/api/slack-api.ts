@@ -63,6 +63,8 @@ export const slackApi = {
     userEmail?: string;
     userName?: string;
     tenantId: string;
+    sessionToken?: string;
+    sessionExpiresAt?: string;
   }): Promise<CreateConnectSessionResponse> {
     const response = await fetch(`${getApiUrl()}/manage/slack/connect`, {
       method: 'POST',
@@ -93,5 +95,22 @@ export const slackApi = {
 
   getInstallUrl(): string {
     return `${getApiUrl()}/manage/slack/install`;
+  },
+
+  async refreshSession(params: {
+    userId: string;
+    sessionToken: string;
+    sessionExpiresAt?: string;
+  }): Promise<{ success: boolean; connectionId?: string }> {
+    const response = await fetch(`${getApiUrl()}/manage/slack/refresh-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Failed to refresh session');
+    }
+    return response.json();
   },
 };

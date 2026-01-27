@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 import { localDb } from '../db';
 import { AccountInfoCard } from './account-info-card';
 import { ConfigurationCard } from './configuration-card';
@@ -20,7 +20,8 @@ import { SlackWorkspaceInfoCard } from './slack-workspace-info-card';
 
 export function SlackDashboard() {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const { handleInstallClick, addOrUpdateWorkspace, setNotification, user } = useSlack();
+  const { user, actions } = useSlack();
+  const { handleInstallClick, addOrUpdateWorkspace, setNotification } = actions;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

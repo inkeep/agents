@@ -1,6 +1,7 @@
 'use client';
 
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,10 +13,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function ConnectedUsersCard() {
-  const { userLinks, mounted, removeUserLink, clearAllUserLinks, refreshUserLinks } = useSlack();
+  const { userLinks, actions } = useSlack();
+  const { removeUserLink, clearAllUserLinks } = actions;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Card className="mt-6">
@@ -28,10 +35,6 @@ export function ConnectedUsersCard() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={refreshUserLinks}>
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
-            </Button>
             {mounted && userLinks.length > 0 && (
               <Button variant="destructive" size="sm" onClick={clearAllUserLinks}>
                 <Trash2 className="h-4 w-4 mr-1" />

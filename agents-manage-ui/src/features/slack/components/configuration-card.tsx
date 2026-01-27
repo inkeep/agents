@@ -1,12 +1,18 @@
 'use client';
 
 import { Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function ConfigurationCard() {
-  const { latestWorkspace, mounted } = useSlack();
+  const { latestWorkspace } = useSlack();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Card>

@@ -1,3 +1,4 @@
+export * from './api-client';
 export * from './blocks';
 export * from './client';
 export * from './commands';

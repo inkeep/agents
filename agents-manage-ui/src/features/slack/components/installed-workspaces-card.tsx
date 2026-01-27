@@ -1,7 +1,7 @@
 'use client';
 
-import { ExternalLink, Eye, EyeOff, RefreshCw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ExternalLink, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,12 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function InstalledWorkspacesCard() {
-  const { workspaces, mounted, removeWorkspace, clearAllWorkspaces, refreshWorkspaces } =
-    useSlack();
+  const { workspaces, actions } = useSlack();
+  const { removeWorkspace, clearAllWorkspaces } = actions;
+  const [mounted, setMounted] = useState(false);
   const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleTokenVisibility = (teamId: string) => {
     setVisibleTokens((prev) => {
@@ -47,10 +52,6 @@ export function InstalledWorkspacesCard() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={refreshWorkspaces}>
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
-            </Button>
             {mounted && workspaces.length > 0 && (
               <Button variant="destructive" size="sm" onClick={clearAllWorkspaces}>
                 <Trash2 className="h-4 w-4 mr-1" />

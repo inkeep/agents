@@ -41,4 +41,5 @@ export const STATIC_LABELS = Object.freeze({
   'no-organization-found': 'No organization found',
   'slack-app': 'Slack App',
   'work-apps': 'Work Apps',
+  slack: 'Slack',
 });

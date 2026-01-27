@@ -1,11 +1,17 @@
 'use client';
 
 import { User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function AccountInfoCard() {
-  const { user, isLoading, mounted } = useSlack();
+  const { user, isLoading } = useSlack();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Card>

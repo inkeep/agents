@@ -4,10 +4,11 @@ import { ExternalLink, Hash, RefreshCw, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function SlackWorkspaceInfoCard() {
-  const { currentUserLink, slackInfo, isLoadingSlackInfo, fetchSlackInfo } = useSlack();
+  const { currentUserLink, workspaceInfo } = useSlack();
+  const { data: slackInfo, isLoading: isLoadingSlackInfo, refetch: fetchSlackInfo } = workspaceInfo;
 
   if (!currentUserLink?.isLinked) {
     return null;
@@ -29,7 +30,7 @@ export function SlackWorkspaceInfoCard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchSlackInfo()}
+            onClick={fetchSlackInfo}
             disabled={isLoadingSlackInfo}
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingSlackInfo ? 'animate-spin' : ''}`} />

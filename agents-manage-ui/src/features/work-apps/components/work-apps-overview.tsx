@@ -12,7 +12,8 @@ interface WorkAppsOverviewProps {
 }
 
 export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
-  const { workspaces, currentUserLink, handleInstallClick } = useSlack();
+  const { workspaces, currentUserLink, actions } = useSlack();
+  const { handleInstallClick } = actions;
 
   const getSlackStatus = useCallback((): WorkApp['status'] => {
     if (currentUserLink) return 'connected';

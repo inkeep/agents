@@ -275,7 +275,7 @@ export function DatabasePreviewCard() {
                           <Badge variant="secondary">{l.integrationType}</Badge>
                         </td>
                         <td className="py-2 px-2 font-mono text-xs">
-                          {l.resourceId.slice(0, 12)}...
+                          {l.resourceId ? `${l.resourceId.slice(0, 12)}...` : '—'}
                         </td>
                         <td className="py-2 px-2 font-mono text-xs">
                           {l.userId?.slice(0, 8) || '—'}...

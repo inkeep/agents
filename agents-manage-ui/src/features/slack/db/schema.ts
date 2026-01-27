@@ -156,9 +156,11 @@ export interface AuditLogRecord {
     | 'workspace.uninstall'
     | 'connection.create'
     | 'connection.delete'
+    | 'connection.disconnect'
+    | 'connection.clear_all'
     | 'command.execute';
   resourceType: 'workspace' | 'connection' | 'command';
-  resourceId: string;
+  resourceId?: string;
   integrationType: IntegrationType;
   details: Record<string, unknown>;
   ipAddress?: string;

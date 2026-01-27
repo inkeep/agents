@@ -1,10 +1,11 @@
 'use client';
 
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function NotificationBanner() {
-  const { notification } = useSlack();
+  const { ui } = useSlack();
+  const notification = ui.notification;
 
   if (!notification) {
     return null;

@@ -1,10 +1,16 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function RawDataPreviewCard() {
-  const { workspaces, userLinks, mounted } = useSlack();
+  const { workspaces, userLinks } = useSlack();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Card className="mt-6">

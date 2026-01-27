@@ -1,15 +1,21 @@
 'use client';
 
 import { Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function ConnectionStatusCard() {
-  const { workspaces, latestWorkspace, currentUserLink, mounted } = useSlack();
+  const { workspaces, latestWorkspace, currentUserLink, connectionStatus } = useSlack();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const hasWorkspace = workspaces.length > 0;
-  const isLinked = currentUserLink?.isLinked ?? false;
+  const isLinked = currentUserLink?.isLinked || connectionStatus.isConnected;
 
   return (
     <Card>

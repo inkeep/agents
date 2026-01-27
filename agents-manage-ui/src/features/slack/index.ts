@@ -1,5 +1,6 @@
+export * from './api/queries';
 export * from './components';
-export * from './context/slack-context';
+export * from './context/slack-provider';
 export * from './db';
-export { useSlackUserLinks, useSlackWorkspaces } from './hooks';
+export * from './store';
 export * from './types';

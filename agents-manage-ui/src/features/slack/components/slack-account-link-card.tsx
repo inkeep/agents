@@ -1,23 +1,22 @@
 'use client';
 
 import { AlertCircle, CheckCircle2, LinkIcon, Unlink } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSlack } from '../context/slack-context';
+import { useSlack } from '../context/slack-provider';
 
 export function SlackAccountLinkCard() {
-  const {
-    user,
-    currentUserLink,
-    isConnecting,
-    mounted,
-    workspaces,
-    connectSlack,
-    disconnectSlack,
-    handleInstallClick,
-  } = useSlack();
+  const { user, currentUserLink, connectionStatus, workspaces, ui, actions } = useSlack();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isWorkspaceInstalled = workspaces.length > 0;
+  const isConnecting = ui.isConnecting;
+  const isLinked = currentUserLink?.isLinked || connectionStatus.isConnected;
 
   return (
     <Card>
@@ -29,7 +28,7 @@ export function SlackAccountLinkCard() {
         <CardDescription>Connect your personal Slack account</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!mounted ? (
+        {!mounted || connectionStatus.isLoading ? (
           <div className="animate-pulse space-y-2">
             <div className="h-4 bg-muted rounded w-3/4" />
             <div className="h-4 bg-muted rounded w-1/2" />
@@ -49,12 +48,12 @@ export function SlackAccountLinkCard() {
               variant="outline"
               size="sm"
               className="w-full gap-2"
-              onClick={handleInstallClick}
+              onClick={actions.handleInstallClick}
             >
               Install to Slack First
             </Button>
           </>
-        ) : currentUserLink?.isLinked ? (
+        ) : isLinked ? (
           <>
             <div className="flex items-center gap-2 text-green-600">
               <CheckCircle2 className="h-4 w-4" />
@@ -63,12 +62,19 @@ export function SlackAccountLinkCard() {
             <div className="flex justify-between">
               <span className="text-muted-foreground text-sm">Linked At</span>
               <span className="text-sm">
-                {currentUserLink.linkedAt
-                  ? new Date(currentUserLink.linkedAt).toLocaleDateString()
+                {currentUserLink?.linkedAt || connectionStatus.connection?.linkedAt
+                  ? new Date(
+                      (currentUserLink?.linkedAt || connectionStatus.connection?.linkedAt) as string
+                    ).toLocaleDateString()
                   : '—'}
               </span>
             </div>
-            <Button variant="outline" size="sm" className="w-full gap-2" onClick={disconnectSlack}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={actions.disconnectSlack}
+            >
               <Unlink className="h-4 w-4" />
               Disconnect
             </Button>
@@ -86,7 +92,7 @@ export function SlackAccountLinkCard() {
               variant="default"
               size="sm"
               className="w-full gap-2"
-              onClick={connectSlack}
+              onClick={actions.connectSlack}
               disabled={isConnecting}
             >
               <LinkIcon className="h-4 w-4" />
