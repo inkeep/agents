@@ -4,14 +4,17 @@ import {
   commonGetErrorResponses,
   createApiError,
   deleteInstallation,
+  errorSchemaFactory,
   getInstallationById,
   getInstallationsByTenantId,
   getRepositoriesByInstallationId,
   getRepositoryCountsByInstallationIds,
   GitHubAppInstallationApiSelectSchema,
   GitHubAppRepositorySelectSchema,
+  syncRepositories,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
+import { HTTPException } from 'hono/http-exception';
 import { SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -22,6 +25,7 @@ import {
   isGitHubAppNameConfigured,
   isStateSigningConfigured,
 } from '../../github/config';
+import { createAppJwt, fetchInstallationRepositories } from '../../github/installation';
 
 const logger = getLogger('github-manage');
 
@@ -335,6 +339,154 @@ app.openapi(
     logger.info({ tenantId, installationId }, 'GitHub App installation disconnected');
 
     return c.json({ success: true as const }, 200);
+  }
+);
+
+const SyncRepositoriesResponseSchema = z.object({
+  repositories: z.array(GitHubAppRepositorySelectSchema).describe('Updated list of repositories'),
+  syncResult: z.object({
+    added: z.number().describe('Number of repositories added'),
+    removed: z.number().describe('Number of repositories removed'),
+    updated: z.number().describe('Number of repositories updated'),
+  }),
+});
+
+function createServiceUnavailableError(message: string): HTTPException {
+  const responseBody = {
+    title: 'Service Unavailable',
+    status: 503,
+    detail: message,
+    code: 'service_unavailable',
+    error: {
+      code: 'service_unavailable',
+      message: message.length > 100 ? `${message.substring(0, 97)}...` : message,
+    },
+  };
+
+  const res = new Response(JSON.stringify(responseBody), {
+    status: 503,
+    headers: {
+      'Content-Type': 'application/problem+json',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+
+  return new HTTPException(503, { message, res });
+}
+
+const serviceUnavailableSchema = {
+  description: 'Service Unavailable - GitHub API is not accessible',
+  content: {
+    'application/problem+json': {
+      schema: z.object({
+        title: z.string().openapi({ example: 'Service Unavailable' }),
+        status: z.number().openapi({ example: 503 }),
+        detail: z.string().openapi({ example: 'Failed to connect to GitHub API' }),
+        code: z.literal('service_unavailable').openapi({ example: 'service_unavailable' }),
+        error: z.object({
+          code: z.literal('service_unavailable'),
+          message: z.string(),
+        }),
+      }),
+    },
+  },
+};
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/installations/:installationId/sync',
+    summary: 'Sync repositories for a GitHub App installation',
+    operationId: 'sync-github-installation-repositories',
+    tags: ['GitHub'],
+    description:
+      'Manually refreshes the repository list for a GitHub App installation by fetching the current list from GitHub API. ' +
+      'This is useful if webhooks were missed or to ensure the local data is in sync with GitHub.',
+    request: {
+      params: TenantParamsSchema.merge(InstallationIdParamSchema),
+    },
+    responses: {
+      200: {
+        description: 'Repositories synced successfully',
+        content: {
+          'application/json': {
+            schema: SyncRepositoriesResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+      503: serviceUnavailableSchema,
+    },
+  }),
+  async (c) => {
+    const { tenantId, installationId } = c.req.valid('param');
+
+    logger.info({ tenantId, installationId }, 'Syncing repositories for GitHub App installation');
+
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    let appJwt: string;
+    try {
+      appJwt = await createAppJwt();
+    } catch (error) {
+      logger.error({ error }, 'Failed to create GitHub App JWT');
+      throw createServiceUnavailableError('GitHub App not configured properly');
+    }
+
+    const reposResult = await fetchInstallationRepositories(installation.installationId, appJwt);
+    if (!reposResult.success) {
+      logger.error(
+        { error: reposResult.error, installationId },
+        'Failed to fetch repositories from GitHub'
+      );
+      throw createServiceUnavailableError('Failed to fetch repositories from GitHub API');
+    }
+
+    const syncResult = await syncRepositories(runDbClient)({
+      installationId: installation.id,
+      repositories: reposResult.repositories.map((repo) => ({
+        repositoryId: String(repo.id),
+        repositoryName: repo.name,
+        repositoryFullName: repo.full_name,
+        private: repo.private,
+      })),
+    });
+
+    logger.info(
+      {
+        tenantId,
+        installationId,
+        added: syncResult.added,
+        removed: syncResult.removed,
+        updated: syncResult.updated,
+      },
+      'Repositories synced successfully'
+    );
+
+    const updatedRepositories = await getRepositoriesByInstallationId(runDbClient)(installation.id);
+
+    return c.json(
+      {
+        repositories: updatedRepositories,
+        syncResult: {
+          added: syncResult.added,
+          removed: syncResult.removed,
+          updated: syncResult.updated,
+        },
+      },
+      200
+    );
   }
 );
 
