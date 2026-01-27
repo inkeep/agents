@@ -19,11 +19,13 @@ const {
   getRepositoryCountsByInstallationIdsMock,
   getInstallationByIdMock,
   getRepositoriesByInstallationIdMock,
+  deleteInstallationMock,
 } = vi.hoisted(() => ({
   getInstallationsByTenantIdMock: vi.fn(),
   getRepositoryCountsByInstallationIdsMock: vi.fn(),
   getInstallationByIdMock: vi.fn(),
   getRepositoriesByInstallationIdMock: vi.fn(),
+  deleteInstallationMock: vi.fn(),
 }));
 
 vi.mock('../../../domains/github/config', () => ({
@@ -41,6 +43,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getRepositoryCountsByInstallationIds: () => getRepositoryCountsByInstallationIdsMock,
     getInstallationById: () => getInstallationByIdMock,
     getRepositoriesByInstallationId: () => getRepositoriesByInstallationIdMock,
+    deleteInstallation: () => deleteInstallationMock,
   };
 });
 
@@ -558,6 +561,150 @@ describe('GitHub Manage Routes', () => {
       expect(repo).toHaveProperty('private');
       expect(repo).toHaveProperty('createdAt');
       expect(repo).toHaveProperty('updatedAt');
+    });
+  });
+
+  describe('DELETE /installations/:installationId', () => {
+    const mockInstallation = {
+      id: 'inst-1',
+      tenantId: TEST_TENANT_ID,
+      installationId: '12345',
+      accountLogin: 'my-org',
+      accountId: '1001',
+      accountType: 'Organization',
+      status: 'active',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      updatedAt: '2024-01-15T10:00:00.000Z',
+    };
+
+    beforeEach(() => {
+      getInstallationByIdMock.mockResolvedValue(mockInstallation);
+      deleteInstallationMock.mockResolvedValue(true);
+    });
+
+    it('should disconnect installation successfully', async () => {
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+      expect(getInstallationByIdMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+      });
+      expect(deleteInstallationMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+      });
+    });
+
+    it('should return 404 when installation not found', async () => {
+      getInstallationByIdMock.mockResolvedValue(null);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/nonexistent`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+
+      expect(body.status).toBe(404);
+      expect(body.error.code).toBe('not_found');
+      expect(body.error.message).toBe('Installation not found');
+      expect(deleteInstallationMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 when installation belongs to different tenant', async () => {
+      getInstallationByIdMock.mockResolvedValue(null);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/other-tenant-inst`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+
+      expect(body.status).toBe(404);
+      expect(body.error.code).toBe('not_found');
+      expect(deleteInstallationMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 500 when delete operation fails', async () => {
+      deleteInstallationMock.mockResolvedValue(false);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+
+      expect(body.status).toBe(500);
+      expect(body.error.code).toBe('internal_server_error');
+      expect(body.error.message).toBe('Failed to disconnect installation');
+    });
+
+    it('should disconnect installation with pending status', async () => {
+      const pendingInstallation = { ...mockInstallation, status: 'pending' };
+      getInstallationByIdMock.mockResolvedValue(pendingInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+    });
+
+    it('should disconnect installation with suspended status', async () => {
+      const suspendedInstallation = { ...mockInstallation, status: 'suspended' };
+      getInstallationByIdMock.mockResolvedValue(suspendedInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+    });
+
+    it('should disconnect User account type installation', async () => {
+      const userInstallation = {
+        ...mockInstallation,
+        accountType: 'User',
+        accountLogin: 'my-user',
+      };
+      getInstallationByIdMock.mockResolvedValue(userInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+    });
+
+    it('should handle already deleted installation', async () => {
+      const deletedInstallation = { ...mockInstallation, status: 'deleted' };
+      getInstallationByIdMock.mockResolvedValue(deletedInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'DELETE',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
     });
   });
 });

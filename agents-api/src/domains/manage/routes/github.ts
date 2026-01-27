@@ -1,7 +1,9 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  commonDeleteErrorResponses,
   commonGetErrorResponses,
   createApiError,
+  deleteInstallation,
   getInstallationById,
   getInstallationsByTenantId,
   getRepositoriesByInstallationId,
@@ -266,6 +268,73 @@ app.openapi(
       },
       200
     );
+  }
+);
+
+const DisconnectInstallationResponseSchema = z.object({
+  success: z.literal(true).describe('Whether the disconnection was successful'),
+});
+
+app.openapi(
+  createRoute({
+    method: 'delete',
+    path: '/installations/:installationId',
+    summary: 'Disconnect a GitHub App installation',
+    operationId: 'disconnect-github-installation',
+    tags: ['GitHub'],
+    description:
+      'Disconnects a GitHub App installation from the tenant. ' +
+      'This soft deletes the installation (sets status to "deleted") and removes all project repository access entries. ' +
+      'Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.',
+    request: {
+      params: TenantParamsSchema.merge(InstallationIdParamSchema),
+    },
+    responses: {
+      200: {
+        description: 'Installation disconnected successfully',
+        content: {
+          'application/json': {
+            schema: DisconnectInstallationResponseSchema,
+          },
+        },
+      },
+      ...commonDeleteErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, installationId } = c.req.valid('param');
+
+    logger.info({ tenantId, installationId }, 'Disconnecting GitHub App installation');
+
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    const deleted = await deleteInstallation(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!deleted) {
+      logger.error({ tenantId, installationId }, 'Failed to disconnect installation');
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to disconnect installation',
+      });
+    }
+
+    logger.info({ tenantId, installationId }, 'GitHub App installation disconnected');
+
+    return c.json({ success: true as const }, 200);
   }
 );
 
