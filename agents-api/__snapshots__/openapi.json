@@ -14482,7 +14482,8 @@
         },
         "summary": "Associate Function Tool with SubAgent",
         "tags": [
-          "SubAgent Function Tools"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14600,7 +14601,8 @@
         },
         "summary": "Get SubAgents Using Function Tool",
         "tags": [
-          "SubAgent Function Tools"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14719,7 +14721,8 @@
         },
         "summary": "Get Function Tools for SubAgent",
         "tags": [
-          "SubAgent Function Tools"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14846,7 +14849,8 @@
         },
         "summary": "Remove Function Tool from SubAgent",
         "tags": [
-          "SubAgent Function Tools"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14973,7 +14977,8 @@
         },
         "summary": "Check if Function Tool is Associated with SubAgent",
         "tags": [
-          "SubAgent Function Tools"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
