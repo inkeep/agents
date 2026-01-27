@@ -28,6 +28,8 @@ export const TagToDescription = {
   Projects: 'Operations for managing projects',
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
   SubAgents: 'Operations for managing sub agents',
+  // TODO: which tags should be for below?
+  'SubAgent Team Agent Relations': 'Operations for managing sub agent team agent relationships',
   'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',

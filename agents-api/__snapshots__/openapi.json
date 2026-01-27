@@ -21673,7 +21673,7 @@
         },
         "summary": "List Credentials",
         "tags": [
-          "Credential"
+          "Credentials"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -21799,7 +21799,7 @@
         },
         "summary": "Create Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       }
     },
@@ -21857,7 +21857,7 @@
         },
         "summary": "Delete Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       },
       "get": {
@@ -21970,7 +21970,7 @@
         },
         "summary": "Get Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       },
       "put": {
@@ -22092,7 +22092,7 @@
         },
         "summary": "Update Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       }
     },
@@ -31917,6 +31917,10 @@
     {
       "description": "Operations for managing sub agents",
       "name": "SubAgents"
+    },
+    {
+      "description": "Operations for managing sub agent team agent relationships",
+      "name": "SubAgent Team Agent Relations"
     },
     {
       "description": "Operations for managing third-party MCP servers",
