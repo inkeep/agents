@@ -156,10 +156,7 @@ describe('Access Mode Summary Display', () => {
 });
 
 describe('Repository Selection Logic', () => {
-  const toggleRepoSelection = (
-    selected: Set<string>,
-    repoId: string
-  ): Set<string> => {
+  const toggleRepoSelection = (selected: Set<string>, repoId: string): Set<string> => {
     const newSet = new Set(selected);
     if (newSet.has(repoId)) {
       newSet.delete(repoId);

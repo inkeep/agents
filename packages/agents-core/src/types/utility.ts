@@ -395,9 +395,9 @@ export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageCo
  * - 'pending': Installation request awaiting org admin approval
  * - 'active': Installation is active and functional
  * - 'suspended': Installation suspended by GitHub or org admin
- * - 'deleted': Installation has been disconnected (soft delete)
+ * - 'disconnected': Installation has been disconnected by the user (soft delete)
  */
-export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'deleted';
+export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
 
 /**
  * GitHub account type for the installation target.

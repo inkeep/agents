@@ -7,10 +7,7 @@ export const metadata = {
   description: 'Manage your organization settings and integrations',
 } satisfies Metadata;
 
-export default async function Layout({
-  children,
-  params,
-}: LayoutProps<'/[tenantId]/settings'>) {
+export default async function Layout({ children, params }: LayoutProps<'/[tenantId]/settings'>) {
   const { tenantId } = await params;
 
   return (

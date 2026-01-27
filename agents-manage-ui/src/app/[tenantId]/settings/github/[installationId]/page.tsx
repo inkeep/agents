@@ -17,11 +17,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { InstallationDetail, GitHubRepository } from '@/lib/api/github';
+import type { GitHubRepository, InstallationDetail } from '@/lib/api/github';
 import {
+  disconnectGitHubInstallation,
   fetchGitHubInstallationDetail,
   syncGitHubRepositories,
-  disconnectGitHubInstallation,
 } from '@/lib/api/github';
 import GitHubInstallationDetailLoading from './loading';
 
@@ -233,7 +233,9 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
           <div className="space-y-2">
             <ItemLabel>Installation ID</ItemLabel>
             <ItemValue>
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{installation.installationId}</code>
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                {installation.installationId}
+              </code>
             </ItemValue>
           </div>
 

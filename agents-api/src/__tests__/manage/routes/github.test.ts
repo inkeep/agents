@@ -20,6 +20,8 @@ const {
   getInstallationByIdMock,
   getRepositoriesByInstallationIdMock,
   deleteInstallationMock,
+  disconnectInstallationMock,
+  updateInstallationStatusMock,
   syncRepositoriesMock,
 } = vi.hoisted(() => ({
   getInstallationsByTenantIdMock: vi.fn(),
@@ -27,6 +29,8 @@ const {
   getInstallationByIdMock: vi.fn(),
   getRepositoriesByInstallationIdMock: vi.fn(),
   deleteInstallationMock: vi.fn(),
+  disconnectInstallationMock: vi.fn(),
+  updateInstallationStatusMock: vi.fn(),
   syncRepositoriesMock: vi.fn(),
 }));
 
@@ -51,6 +55,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getInstallationById: () => getInstallationByIdMock,
     getRepositoriesByInstallationId: () => getRepositoriesByInstallationIdMock,
     deleteInstallation: () => deleteInstallationMock,
+    disconnectInstallation: () => disconnectInstallationMock,
+    updateInstallationStatus: () => updateInstallationStatusMock,
     syncRepositories: () => syncRepositoriesMock,
   };
 });
@@ -288,23 +294,26 @@ describe('GitHub Manage Routes', () => {
 
       expect(getInstallationsByTenantIdMock).toHaveBeenCalledWith({
         tenantId: TEST_TENANT_ID,
-        includeDeleted: false,
+        includeDisconnected: false,
       });
     });
 
-    it('should include deleted installations when includeDeleted=true', async () => {
-      const response = await app.request(`/${TEST_TENANT_ID}/installations?includeDeleted=true`, {
-        method: 'GET',
-      });
+    it('should include disconnected installations when includeDisconnected=true', async () => {
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/installations?includeDisconnected=true`,
+        {
+          method: 'GET',
+        }
+      );
 
       expect(response.status).toBe(200);
       expect(getInstallationsByTenantIdMock).toHaveBeenCalledWith({
         tenantId: TEST_TENANT_ID,
-        includeDeleted: true,
+        includeDisconnected: true,
       });
     });
 
-    it('should not include deleted installations by default', async () => {
+    it('should not include disconnected installations by default', async () => {
       const response = await app.request(`/${TEST_TENANT_ID}/installations`, {
         method: 'GET',
       });
@@ -312,11 +321,11 @@ describe('GitHub Manage Routes', () => {
       expect(response.status).toBe(200);
       expect(getInstallationsByTenantIdMock).toHaveBeenCalledWith({
         tenantId: TEST_TENANT_ID,
-        includeDeleted: false,
+        includeDisconnected: false,
       });
     });
 
-    it('should return empty array when no installations exist', async () => {
+    it('should return empty array when no disconnected installations exist', async () => {
       getInstallationsByTenantIdMock.mockResolvedValue([]);
 
       const response = await app.request(`/${TEST_TENANT_ID}/installations`, {
@@ -386,15 +395,18 @@ describe('GitHub Manage Routes', () => {
       expect(body.installations[0].accountLogin).toBe('my-user');
     });
 
-    it('should ignore invalid includeDeleted values', async () => {
-      const response = await app.request(`/${TEST_TENANT_ID}/installations?includeDeleted=invalid`, {
-        method: 'GET',
-      });
+    it('should ignore invalid includeDisconnected values', async () => {
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/installations?includeDisconnected=invalid`,
+        {
+          method: 'GET',
+        }
+      );
 
       expect(response.status).toBe(200);
       expect(getInstallationsByTenantIdMock).toHaveBeenCalledWith({
         tenantId: TEST_TENANT_ID,
-        includeDeleted: false,
+        includeDisconnected: false,
       });
     });
   });
@@ -577,6 +589,275 @@ describe('GitHub Manage Routes', () => {
     });
   });
 
+  describe('POST /installations/:installationId/disconnect', () => {
+    const mockInstallation = {
+      id: 'inst-1',
+      tenantId: TEST_TENANT_ID,
+      installationId: '12345',
+      accountLogin: 'my-org',
+      accountId: '1001',
+      accountType: 'Organization',
+      status: 'active',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      updatedAt: '2024-01-15T10:00:00.000Z',
+    };
+
+    beforeEach(() => {
+      getInstallationByIdMock.mockResolvedValue(mockInstallation);
+      disconnectInstallationMock.mockResolvedValue(true);
+    });
+
+    it('should disconnect installation successfully', async () => {
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/disconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+      expect(getInstallationByIdMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+      });
+      expect(disconnectInstallationMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+      });
+    });
+
+    it('should return 404 when installation not found', async () => {
+      getInstallationByIdMock.mockResolvedValue(null);
+
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/installations/nonexistent/disconnect`,
+        {
+          method: 'POST',
+        }
+      );
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+
+      expect(body.status).toBe(404);
+      expect(body.error.code).toBe('not_found');
+      expect(body.error.message).toBe('Installation not found');
+      expect(disconnectInstallationMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when installation is already disconnected', async () => {
+      const disconnectedInstallation = { ...mockInstallation, status: 'disconnected' };
+      getInstallationByIdMock.mockResolvedValue(disconnectedInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/disconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+
+      expect(body.status).toBe(400);
+      expect(body.error.code).toBe('bad_request');
+      expect(body.error.message).toBe('Installation is already disconnected');
+      expect(disconnectInstallationMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 500 when disconnect operation fails', async () => {
+      disconnectInstallationMock.mockResolvedValue(false);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/disconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+
+      expect(body.status).toBe(500);
+      expect(body.error.code).toBe('internal_server_error');
+      expect(body.error.message).toBe('Failed to disconnect installation');
+    });
+
+    it('should disconnect installation with pending status', async () => {
+      const pendingInstallation = { ...mockInstallation, status: 'pending' };
+      getInstallationByIdMock.mockResolvedValue(pendingInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/disconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+    });
+
+    it('should disconnect installation with suspended status', async () => {
+      const suspendedInstallation = { ...mockInstallation, status: 'suspended' };
+      getInstallationByIdMock.mockResolvedValue(suspendedInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/disconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+    });
+  });
+
+  describe('POST /installations/:installationId/reconnect', () => {
+    const mockDisconnectedInstallation = {
+      id: 'inst-1',
+      tenantId: TEST_TENANT_ID,
+      installationId: '12345',
+      accountLogin: 'my-org',
+      accountId: '1001',
+      accountType: 'Organization',
+      status: 'disconnected',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      updatedAt: '2024-01-15T10:00:00.000Z',
+    };
+
+    const mockGitHubRepos = [
+      { id: 101, name: 'repo-1', full_name: 'my-org/repo-1', private: false },
+      { id: 102, name: 'repo-2', full_name: 'my-org/repo-2', private: true },
+    ];
+
+    beforeEach(() => {
+      getInstallationByIdMock.mockResolvedValue(mockDisconnectedInstallation);
+      updateInstallationStatusMock.mockResolvedValue({
+        ...mockDisconnectedInstallation,
+        status: 'active',
+      });
+      createAppJwtMock.mockResolvedValue('mock-jwt-token');
+      fetchInstallationRepositoriesMock.mockResolvedValue({
+        success: true,
+        repositories: mockGitHubRepos,
+      });
+      syncRepositoriesMock.mockResolvedValue({ added: 2, removed: 0, updated: 0 });
+    });
+
+    it('should reconnect a disconnected installation and sync repositories', async () => {
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/reconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.success).toBe(true);
+      expect(body.syncResult).toEqual({ added: 2, removed: 0, updated: 0 });
+      expect(getInstallationByIdMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+      });
+      expect(updateInstallationStatusMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+        status: 'active',
+      });
+      expect(createAppJwtMock).toHaveBeenCalled();
+      expect(fetchInstallationRepositoriesMock).toHaveBeenCalledWith('12345', 'mock-jwt-token');
+      expect(syncRepositoriesMock).toHaveBeenCalledWith({
+        installationId: 'inst-1',
+        repositories: [
+          {
+            repositoryId: '101',
+            repositoryName: 'repo-1',
+            repositoryFullName: 'my-org/repo-1',
+            private: false,
+          },
+          {
+            repositoryId: '102',
+            repositoryName: 'repo-2',
+            repositoryFullName: 'my-org/repo-2',
+            private: true,
+          },
+        ],
+      });
+    });
+
+    it('should return 404 when installation not found', async () => {
+      getInstallationByIdMock.mockResolvedValue(null);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/nonexistent/reconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+
+      expect(body.status).toBe(404);
+      expect(body.error.code).toBe('not_found');
+      expect(body.error.message).toBe('Installation not found');
+      expect(updateInstallationStatusMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when installation is not disconnected', async () => {
+      const activeInstallation = { ...mockDisconnectedInstallation, status: 'active' };
+      getInstallationByIdMock.mockResolvedValue(activeInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/reconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+
+      expect(body.status).toBe(400);
+      expect(body.error.code).toBe('bad_request');
+      expect(body.error.message).toBe('Installation is not disconnected');
+      expect(updateInstallationStatusMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 500 when reconnect operation fails', async () => {
+      updateInstallationStatusMock.mockResolvedValue(null);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/reconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+
+      expect(body.status).toBe(500);
+      expect(body.error.code).toBe('internal_server_error');
+      expect(body.error.message).toBe('Failed to reconnect installation');
+    });
+
+    it('should return 503 when GitHub App JWT creation fails', async () => {
+      createAppJwtMock.mockRejectedValue(new Error('JWT creation failed'));
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/reconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(503);
+      const body = await response.json();
+
+      expect(body.status).toBe(503);
+      expect(body.code).toBe('service_unavailable');
+    });
+
+    it('should return 503 when fetching repositories from GitHub fails', async () => {
+      fetchInstallationRepositoriesMock.mockResolvedValue({
+        success: false,
+        error: 'GitHub API error',
+      });
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1/reconnect`, {
+        method: 'POST',
+      });
+
+      expect(response.status).toBe(503);
+      const body = await response.json();
+
+      expect(body.status).toBe(503);
+      expect(body.code).toBe('service_unavailable');
+    });
+  });
+
   describe('DELETE /installations/:installationId', () => {
     const mockInstallation = {
       id: 'inst-1',
@@ -595,7 +876,7 @@ describe('GitHub Manage Routes', () => {
       deleteInstallationMock.mockResolvedValue(true);
     });
 
-    it('should disconnect installation successfully', async () => {
+    it('should delete installation permanently', async () => {
       const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
         method: 'DELETE',
       });
@@ -630,21 +911,6 @@ describe('GitHub Manage Routes', () => {
       expect(deleteInstallationMock).not.toHaveBeenCalled();
     });
 
-    it('should return 404 when installation belongs to different tenant', async () => {
-      getInstallationByIdMock.mockResolvedValue(null);
-
-      const response = await app.request(`/${TEST_TENANT_ID}/installations/other-tenant-inst`, {
-        method: 'DELETE',
-      });
-
-      expect(response.status).toBe(404);
-      const body = await response.json();
-
-      expect(body.status).toBe(404);
-      expect(body.error.code).toBe('not_found');
-      expect(deleteInstallationMock).not.toHaveBeenCalled();
-    });
-
     it('should return 500 when delete operation fails', async () => {
       deleteInstallationMock.mockResolvedValue(false);
 
@@ -657,58 +923,12 @@ describe('GitHub Manage Routes', () => {
 
       expect(body.status).toBe(500);
       expect(body.error.code).toBe('internal_server_error');
-      expect(body.error.message).toBe('Failed to disconnect installation');
+      expect(body.error.message).toBe('Failed to delete installation');
     });
 
-    it('should disconnect installation with pending status', async () => {
-      const pendingInstallation = { ...mockInstallation, status: 'pending' };
-      getInstallationByIdMock.mockResolvedValue(pendingInstallation);
-
-      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
-        method: 'DELETE',
-      });
-
-      expect(response.status).toBe(200);
-      const body = await response.json();
-
-      expect(body.success).toBe(true);
-    });
-
-    it('should disconnect installation with suspended status', async () => {
-      const suspendedInstallation = { ...mockInstallation, status: 'suspended' };
-      getInstallationByIdMock.mockResolvedValue(suspendedInstallation);
-
-      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
-        method: 'DELETE',
-      });
-
-      expect(response.status).toBe(200);
-      const body = await response.json();
-
-      expect(body.success).toBe(true);
-    });
-
-    it('should disconnect User account type installation', async () => {
-      const userInstallation = {
-        ...mockInstallation,
-        accountType: 'User',
-        accountLogin: 'my-user',
-      };
-      getInstallationByIdMock.mockResolvedValue(userInstallation);
-
-      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
-        method: 'DELETE',
-      });
-
-      expect(response.status).toBe(200);
-      const body = await response.json();
-
-      expect(body.success).toBe(true);
-    });
-
-    it('should handle already deleted installation', async () => {
-      const deletedInstallation = { ...mockInstallation, status: 'deleted' };
-      getInstallationByIdMock.mockResolvedValue(deletedInstallation);
+    it('should delete disconnected installation', async () => {
+      const disconnectedInstallation = { ...mockInstallation, status: 'disconnected' };
+      getInstallationByIdMock.mockResolvedValue(disconnectedInstallation);
 
       const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
         method: 'DELETE',
@@ -808,9 +1028,24 @@ describe('GitHub Manage Routes', () => {
       expect(syncRepositoriesMock).toHaveBeenCalledWith({
         installationId: 'inst-1',
         repositories: [
-          { repositoryId: '100001', repositoryName: 'repo-1', repositoryFullName: 'my-org/repo-1', private: false },
-          { repositoryId: '100002', repositoryName: 'repo-2', repositoryFullName: 'my-org/repo-2', private: true },
-          { repositoryId: '100003', repositoryName: 'repo-3', repositoryFullName: 'my-org/repo-3', private: false },
+          {
+            repositoryId: '100001',
+            repositoryName: 'repo-1',
+            repositoryFullName: 'my-org/repo-1',
+            private: false,
+          },
+          {
+            repositoryId: '100002',
+            repositoryName: 'repo-2',
+            repositoryFullName: 'my-org/repo-2',
+            private: true,
+          },
+          {
+            repositoryId: '100003',
+            repositoryName: 'repo-3',
+            repositoryFullName: 'my-org/repo-3',
+            private: false,
+          },
         ],
       });
       expect(getRepositoriesByInstallationIdMock).toHaveBeenCalledWith('inst-1');
@@ -835,9 +1070,12 @@ describe('GitHub Manage Routes', () => {
     it('should return 404 when installation belongs to different tenant', async () => {
       getInstallationByIdMock.mockResolvedValue(null);
 
-      const response = await app.request(`/${TEST_TENANT_ID}/installations/other-tenant-inst/sync`, {
-        method: 'POST',
-      });
+      const response = await app.request(
+        `/${TEST_TENANT_ID}/installations/other-tenant-inst/sync`,
+        {
+          method: 'POST',
+        }
+      );
 
       expect(response.status).toBe(404);
       const body = await response.json();

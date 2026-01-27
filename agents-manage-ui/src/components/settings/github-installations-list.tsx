@@ -1,7 +1,6 @@
 'use client';
 
-import type { GitHubInstallation } from '@/lib/api/github';
-import { Building2, ChevronDown, ExternalLink, Github, MoreHorizontal, RefreshCw, User } from 'lucide-react';
+import { Building2, ExternalLink, Github, MoreHorizontal, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,7 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { disconnectGitHubInstallation, syncGitHubRepositories } from '@/lib/api/github';
+import type { GitHubInstallation } from '@/lib/api/github';
+import {
+  disconnectGitHubInstallation,
+  reconnectGitHubInstallation,
+  syncGitHubRepositories,
+} from '@/lib/api/github';
 import { DisconnectInstallationDialog } from './github-disconnect-dialog';
 
 interface GitHubInstallationsListProps {
@@ -39,8 +43,8 @@ function getStatusBadgeVariant(status: GitHubInstallation['status']) {
       return 'warning';
     case 'suspended':
       return 'error';
-    case 'deleted':
-      return 'code';
+    case 'disconnected':
+      return 'error';
     default:
       return 'code';
   }
@@ -54,8 +58,8 @@ function getStatusLabel(status: GitHubInstallation['status']) {
       return 'Pending';
     case 'suspended':
       return 'Suspended';
-    case 'deleted':
-      return 'Deleted';
+    case 'disconnected':
+      return 'Disconnected';
     default:
       return status;
   }
@@ -76,6 +80,7 @@ export function GitHubInstallationsList({
 }: GitHubInstallationsListProps) {
   const router = useRouter();
   const [syncingInstallationId, setSyncingInstallationId] = useState<string | null>(null);
+  const [reconnectingInstallationId, setReconnectingInstallationId] = useState<string | null>(null);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   const [selectedInstallation, setSelectedInstallation] = useState<GitHubInstallation | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -95,6 +100,24 @@ export function GitHubInstallationsList({
       });
     } finally {
       setSyncingInstallationId(null);
+    }
+  };
+
+  const handleReconnect = async (installation: GitHubInstallation) => {
+    setReconnectingInstallationId(installation.id);
+    try {
+      await reconnectGitHubInstallation(tenantId, installation.id);
+      toast.success('Installation reconnected', {
+        description: `${installation.accountLogin} has been reconnected`,
+      });
+      onInstallationsChange?.();
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to reconnect installation', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      });
+    } finally {
+      setReconnectingInstallationId(null);
     }
   };
 
@@ -196,32 +219,64 @@ export function GitHubInstallationsList({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/${tenantId}/settings/github/${installation.id}`}>
-                          <Github className="size-4 mr-2" />
-                          View Details
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSync(installation)} disabled={isSyncing}>
-                        <RefreshCw className={`size-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                        Sync Repositories
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={`https://github.com/settings/installations/${installation.installationId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="size-4 mr-2" />
-                          View on GitHub
-                        </a>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => openDisconnectDialog(installation)}
-                      >
-                        Disconnect
-                      </DropdownMenuItem>
+                      {installation.status === 'disconnected' ? (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => handleReconnect(installation)}
+                            disabled={reconnectingInstallationId === installation.id}
+                          >
+                            <RefreshCw
+                              className={`size-4 mr-2 ${reconnectingInstallationId === installation.id ? 'animate-spin' : ''}`}
+                            />
+                            Reconnect
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={`https://github.com/settings/installations/${installation.installationId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <ExternalLink className="size-4 mr-2" />
+                              Uninstall on GitHub
+                            </a>
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/${tenantId}/settings/github/${installation.id}`}>
+                              <Github className="size-4 mr-2" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSync(installation)}
+                            disabled={isSyncing}
+                          >
+                            <RefreshCw
+                              className={`size-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`}
+                            />
+                            Sync Repositories
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={`https://github.com/settings/installations/${installation.installationId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="size-4 mr-2" />
+                              View on GitHub
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDisconnectDialog(installation)}
+                          >
+                            Disconnect
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

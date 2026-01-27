@@ -32,7 +32,7 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-import projectGitHubAccessRoutes from '../../../domains/manage/routes/project-github-access';
+import projectGitHubAccessRoutes from '../../../domains/manage/routes/projectGithubAccess';
 
 const TEST_TENANT_ID = 'test-tenant-123';
 const TEST_PROJECT_ID = 'test-project-456';
@@ -71,7 +71,9 @@ describe('Project GitHub Access Routes', () => {
     });
 
     it('should return mode=selected with repositories when access entries exist', async () => {
-      const mockAccessEntries = [{ id: 'access-1', projectId: TEST_PROJECT_ID, githubRepositoryId: 'repo-1' }];
+      const mockAccessEntries = [
+        { id: 'access-1', projectId: TEST_PROJECT_ID, githubRepositoryId: 'repo-1' },
+      ];
       const mockRepositories = [
         {
           accessId: 'access-1',
@@ -281,7 +283,10 @@ describe('Project GitHub Access Routes', () => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'selected', repositoryIds: ['repo-1', 'invalid-repo-1', 'invalid-repo-2'] }),
+          body: JSON.stringify({
+            mode: 'selected',
+            repositoryIds: ['repo-1', 'invalid-repo-1', 'invalid-repo-2'],
+          }),
         }
       );
 

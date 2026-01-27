@@ -70,7 +70,7 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-import app from '../../../domains/github/routes/callback';
+import app from '../../../domains/github/routes/setup';
 
 const TEST_SECRET = 'test-secret-key-that-is-at-least-32-characters-long';
 const STATE_JWT_ISSUER = 'inkeep-agents-api';
@@ -100,7 +100,7 @@ async function createExpiredStateToken(tenantId: string): Promise<string> {
   return jwt;
 }
 
-describe('GitHub Callback Route', () => {
+describe('GitHub Setup Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isStateSigningConfiguredMock.mockReturnValue(true);
@@ -152,8 +152,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('/settings/github');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
       expect(location).toContain('message=');
     });
 
@@ -168,7 +167,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
     });
 
     it('should redirect with error for missing setup_action', async () => {
@@ -182,7 +181,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
     });
 
     it('should redirect with error for missing state', async () => {
@@ -192,7 +191,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
     });
 
     it('should redirect with error for expired state token', async () => {
@@ -204,7 +203,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
       expect(location).toMatch(/expired/i);
     });
 
@@ -225,7 +224,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
     });
 
     it('should redirect with error when state signing is not configured', async () => {
@@ -239,7 +238,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
       expect(location).toMatch(/not.+configured/i);
     });
 
@@ -252,7 +251,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('status=error');
+      expect(location).toContain('/github/setup-error');
     });
 
     it('should handle setup_action=request as pending status', async () => {
@@ -274,7 +273,7 @@ describe('GitHub Callback Route', () => {
   });
 
   describe('Redirect URL construction', () => {
-    it('should redirect to configured MANAGE_UI_URL on success', async () => {
+    it('should redirect to configured MANAGE_UI_URL with tenant ID on success', async () => {
       const state = await createValidStateToken('tenant-123');
 
       const response = await app.request(
@@ -285,7 +284,7 @@ describe('GitHub Callback Route', () => {
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
       expect(location).toContain('https://app.example.com');
-      expect(location).toContain('/settings/github');
+      expect(location).toContain('/tenant-123/settings/github');
       expect(location).toContain('status=success');
     });
 
@@ -420,6 +419,7 @@ describe('GitHub Callback Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
+      expect(location).toContain('/tenant-123/settings/github');
       expect(location).toContain('status=error');
     });
 

@@ -1,18 +1,20 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  commonCreateErrorResponses,
   commonDeleteErrorResponses,
   commonGetErrorResponses,
   createApiError,
   deleteInstallation,
-  errorSchemaFactory,
+  disconnectInstallation,
+  GitHubAppInstallationApiSelectSchema,
+  GitHubAppRepositorySelectSchema,
   getInstallationById,
   getInstallationsByTenantId,
   getRepositoriesByInstallationId,
   getRepositoryCountsByInstallationIds,
-  GitHubAppInstallationApiSelectSchema,
-  GitHubAppRepositorySelectSchema,
   syncRepositories,
   TenantParamsSchema,
+  updateInstallationStatus,
 } from '@inkeep/agents-core';
 import { HTTPException } from 'hono/http-exception';
 import { SignJWT } from 'jose';
@@ -127,11 +129,11 @@ const ListInstallationsResponseSchema = z.object({
 });
 
 const ListInstallationsQuerySchema = z.object({
-  includeDeleted: z
+  includeDisconnected: z
     .string()
     .optional()
     .transform((val) => val === 'true')
-    .describe('Include deleted installations in the response'),
+    .describe('Include disconnected installations in the response'),
 });
 
 app.openapi(
@@ -144,7 +146,7 @@ app.openapi(
     description:
       'Returns a list of GitHub App installations connected to this tenant. ' +
       'By default, deleted installations are filtered out. ' +
-      'Use the includeDeleted query parameter to include them.',
+      'Use the includeDisconnected query parameter to include them.',
     request: {
       params: TenantParamsSchema,
       query: ListInstallationsQuerySchema,
@@ -163,13 +165,13 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId } = c.req.valid('param');
-    const { includeDeleted } = c.req.valid('query');
+    const { includeDisconnected } = c.req.valid('query');
 
-    logger.info({ tenantId, includeDeleted }, 'Listing GitHub App installations');
+    logger.info({ tenantId, includeDisconnected }, 'Listing GitHub App installations');
 
     const installations = await getInstallationsByTenantId(runDbClient)({
       tenantId,
-      includeDeleted,
+      includeDisconnected,
     });
 
     const installationIds = installations.map((i) => i.id);
@@ -281,14 +283,15 @@ const DisconnectInstallationResponseSchema = z.object({
 
 app.openapi(
   createRoute({
-    method: 'delete',
-    path: '/installations/:installationId',
+    method: 'post',
+    path: '/installations/:installationId/disconnect',
     summary: 'Disconnect a GitHub App installation',
     operationId: 'disconnect-github-installation',
     tags: ['GitHub'],
     description:
       'Disconnects a GitHub App installation from the tenant. ' +
-      'This soft deletes the installation (sets status to "deleted") and removes all project repository access entries. ' +
+      'This soft deletes the installation (sets status to "disconnected") and removes all project repository access entries. ' +
+      'The installation record is preserved for audit purposes. ' +
       'Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.',
     request: {
       params: TenantParamsSchema.merge(InstallationIdParamSchema),
@@ -302,7 +305,7 @@ app.openapi(
           },
         },
       },
-      ...commonDeleteErrorResponses,
+      ...commonCreateErrorResponses,
     },
   }),
   async (c) => {
@@ -323,12 +326,20 @@ app.openapi(
       });
     }
 
-    const deleted = await deleteInstallation(runDbClient)({
+    if (installation.status === 'disconnected') {
+      logger.warn({ tenantId, installationId }, 'Installation already disconnected');
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Installation is already disconnected',
+      });
+    }
+
+    const disconnected = await disconnectInstallation(runDbClient)({
       tenantId,
       id: installationId,
     });
 
-    if (!deleted) {
+    if (!disconnected) {
       logger.error({ tenantId, installationId }, 'Failed to disconnect installation');
       throw createApiError({
         code: 'internal_server_error',
@@ -342,13 +353,16 @@ app.openapi(
   }
 );
 
-const SyncRepositoriesResponseSchema = z.object({
-  repositories: z.array(GitHubAppRepositorySelectSchema).describe('Updated list of repositories'),
-  syncResult: z.object({
-    added: z.number().describe('Number of repositories added'),
-    removed: z.number().describe('Number of repositories removed'),
-    updated: z.number().describe('Number of repositories updated'),
-  }),
+const ReconnectInstallationResponseSchema = z.object({
+  success: z.literal(true).describe('Whether the reconnection was successful'),
+  syncResult: z
+    .object({
+      added: z.number().describe('Number of repositories added'),
+      removed: z.number().describe('Number of repositories removed'),
+      updated: z.number().describe('Number of repositories updated'),
+    })
+    .optional()
+    .describe('Repository sync results (if sync was performed)'),
 });
 
 function createServiceUnavailableError(message: string): HTTPException {
@@ -391,6 +405,208 @@ const serviceUnavailableSchema = {
     },
   },
 };
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/installations/:installationId/reconnect',
+    summary: 'Reconnect a disconnected GitHub App installation',
+    operationId: 'reconnect-github-installation',
+    tags: ['GitHub'],
+    description:
+      'Reconnects a previously disconnected GitHub App installation by setting its status back to "active" ' +
+      'and syncing the available repositories from GitHub. ' +
+      'This can only be used on installations with "disconnected" status.',
+    request: {
+      params: TenantParamsSchema.merge(InstallationIdParamSchema),
+    },
+    responses: {
+      200: {
+        description: 'Installation reconnected successfully',
+        content: {
+          'application/json': {
+            schema: ReconnectInstallationResponseSchema,
+          },
+        },
+      },
+      ...commonCreateErrorResponses,
+      503: serviceUnavailableSchema,
+    },
+  }),
+  async (c) => {
+    const { tenantId, installationId } = c.req.valid('param');
+
+    logger.info({ tenantId, installationId }, 'Reconnecting GitHub App installation');
+
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    if (installation.status !== 'disconnected') {
+      logger.warn(
+        { tenantId, installationId, status: installation.status },
+        'Installation is not disconnected'
+      );
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Installation is not disconnected',
+      });
+    }
+
+    const updated = await updateInstallationStatus(runDbClient)({
+      tenantId,
+      id: installationId,
+      status: 'active',
+    });
+
+    if (!updated) {
+      logger.error({ tenantId, installationId }, 'Failed to reconnect installation');
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to reconnect installation',
+      });
+    }
+
+    logger.info(
+      { tenantId, installationId },
+      'GitHub App installation reconnected, syncing repositories'
+    );
+
+    let appJwt: string;
+    try {
+      appJwt = await createAppJwt();
+    } catch (error) {
+      logger.error({ error }, 'Failed to create GitHub App JWT');
+      throw createServiceUnavailableError('GitHub App not configured properly');
+    }
+
+    const reposResult = await fetchInstallationRepositories(installation.installationId, appJwt);
+    if (!reposResult.success) {
+      logger.error(
+        { error: reposResult.error, installationId },
+        'Failed to fetch repositories from GitHub'
+      );
+      throw createServiceUnavailableError('Failed to fetch repositories from GitHub API');
+    }
+
+    const syncResult = await syncRepositories(runDbClient)({
+      installationId: installation.id,
+      repositories: reposResult.repositories.map((repo) => ({
+        repositoryId: String(repo.id),
+        repositoryName: repo.name,
+        repositoryFullName: repo.full_name,
+        private: repo.private,
+      })),
+    });
+
+    logger.info(
+      {
+        tenantId,
+        installationId,
+        added: syncResult.added,
+        removed: syncResult.removed,
+        updated: syncResult.updated,
+      },
+      'GitHub App installation reconnected and repositories synced'
+    );
+
+    return c.json(
+      {
+        success: true as const,
+        syncResult: {
+          added: syncResult.added,
+          removed: syncResult.removed,
+          updated: syncResult.updated,
+        },
+      },
+      200
+    );
+  }
+);
+
+app.openapi(
+  createRoute({
+    method: 'delete',
+    path: '/installations/:installationId',
+    summary: 'Delete a GitHub App installation permanently',
+    operationId: 'delete-github-installation',
+    tags: ['GitHub'],
+    description:
+      'Permanently deletes a GitHub App installation from the tenant. ' +
+      'This hard deletes the installation record, all associated repositories, and project repository access entries. ' +
+      'This action cannot be undone. Use POST /disconnect for soft delete instead. ' +
+      'Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.',
+    request: {
+      params: TenantParamsSchema.merge(InstallationIdParamSchema),
+    },
+    responses: {
+      200: {
+        description: 'Installation deleted successfully',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.literal(true).describe('Whether the deletion was successful'),
+            }),
+          },
+        },
+      },
+      ...commonDeleteErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, installationId } = c.req.valid('param');
+
+    logger.info({ tenantId, installationId }, 'Deleting GitHub App installation permanently');
+
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    const deleted = await deleteInstallation(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!deleted) {
+      logger.error({ tenantId, installationId }, 'Failed to delete installation');
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to delete installation',
+      });
+    }
+
+    logger.info({ tenantId, installationId }, 'GitHub App installation deleted permanently');
+
+    return c.json({ success: true as const }, 200);
+  }
+);
+
+const SyncRepositoriesResponseSchema = z.object({
+  repositories: z.array(GitHubAppRepositorySelectSchema).describe('Updated list of repositories'),
+  syncResult: z.object({
+    added: z.number().describe('Number of repositories added'),
+    removed: z.number().describe('Number of repositories removed'),
+    updated: z.number().describe('Number of repositories updated'),
+  }),
+});
 
 app.openapi(
   createRoute({

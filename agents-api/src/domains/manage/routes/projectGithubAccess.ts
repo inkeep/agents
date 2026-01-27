@@ -3,9 +3,9 @@ import {
   commonGetErrorResponses,
   commonUpdateErrorResponses,
   createApiError,
+  GitHubAppRepositorySelectSchema,
   getProjectRepositoryAccess,
   getProjectRepositoryAccessWithDetails,
-  GitHubAppRepositorySelectSchema,
   setProjectRepositoryAccess,
   TenantProjectParamsSchema,
   validateRepositoryOwnership,
@@ -18,10 +18,12 @@ const logger = getLogger('project-github-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const GitHubAccessModeSchema = z.enum(['all', 'selected']).describe(
-  'Access mode: "all" means project has access to all tenant repositories, ' +
-    '"selected" means project is scoped to specific repositories'
-);
+const GitHubAccessModeSchema = z
+  .enum(['all', 'selected'])
+  .describe(
+    'Access mode: "all" means project has access to all tenant repositories, ' +
+      '"selected" means project is scoped to specific repositories'
+  );
 
 const SetGitHubAccessRequestSchema = z.object({
   mode: GitHubAccessModeSchema,
@@ -35,7 +37,9 @@ const GetGitHubAccessResponseSchema = z.object({
   mode: GitHubAccessModeSchema,
   repositories: z
     .array(GitHubAppRepositorySelectSchema)
-    .describe('List of repositories the project has access to (only populated when mode="selected")'),
+    .describe(
+      'List of repositories the project has access to (only populated when mode="selected")'
+    ),
 });
 
 const SetGitHubAccessResponseSchema = z.object({

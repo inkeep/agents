@@ -75,12 +75,12 @@ export const getInstallationsByTenantId =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     tenantId: string;
-    includeDeleted?: boolean;
+    includeDisconnected?: boolean;
   }): Promise<GitHubAppInstallationSelect[]> => {
     const conditions = [eq(githubAppInstallations.tenantId, params.tenantId)];
 
-    if (!params.includeDeleted) {
-      conditions.push(ne(githubAppInstallations.status, 'deleted'));
+    if (!params.includeDisconnected) {
+      conditions.push(ne(githubAppInstallations.status, 'disconnected'));
     }
 
     const result = await db
@@ -145,10 +145,10 @@ export const updateInstallationStatusByGitHubId =
   };
 
 /**
- * Soft delete an installation (set status to 'deleted')
+ * Soft delete an installation (set status to 'disconnected')
  * Also removes all project repository access for this installation's repositories
  */
-export const deleteInstallation =
+export const disconnectInstallation =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string; id: string }): Promise<boolean> => {
     const now = new Date().toISOString();
@@ -172,7 +172,7 @@ export const deleteInstallation =
     const [updated] = await db
       .update(githubAppInstallations)
       .set({
-        status: 'deleted',
+        status: 'disconnected',
         updatedAt: now,
       })
       .where(
@@ -184,6 +184,20 @@ export const deleteInstallation =
       .returning();
 
     return !!updated;
+  };
+
+/**
+ * Delete an installation (hard delete)
+ */
+export const deleteInstallation =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { tenantId: string; id: string }): Promise<boolean> => {
+    const result = await db
+      .delete(githubAppInstallations)
+      .where(eq(githubAppInstallations.id, params.id))
+      .returning();
+
+    return result.length > 0;
   };
 
 // ============================================================================
@@ -435,7 +449,7 @@ export const getRepositoriesByTenantId =
       .where(
         and(
           eq(githubAppInstallations.tenantId, tenantId),
-          ne(githubAppInstallations.status, 'deleted')
+          ne(githubAppInstallations.status, 'disconnected')
         )
       )
       .orderBy(githubAppRepositories.repositoryFullName);
@@ -552,7 +566,7 @@ export const checkProjectRepositoryAccess =
           and(
             eq(githubAppRepositories.repositoryFullName, params.repositoryFullName),
             eq(githubAppInstallations.tenantId, params.tenantId),
-            ne(githubAppInstallations.status, 'deleted')
+            ne(githubAppInstallations.status, 'disconnected')
           )
         )
         .limit(1);
@@ -587,7 +601,7 @@ export const checkProjectRepositoryAccess =
           eq(githubProjectRepositoryAccess.projectId, params.projectId),
           eq(githubAppRepositories.repositoryFullName, params.repositoryFullName),
           eq(githubAppInstallations.tenantId, params.tenantId),
-          ne(githubAppInstallations.status, 'deleted')
+          ne(githubAppInstallations.status, 'disconnected')
         )
       )
       .limit(1);
@@ -641,7 +655,7 @@ export const validateRepositoryOwnership =
       .where(
         and(
           eq(githubAppInstallations.tenantId, params.tenantId),
-          ne(githubAppInstallations.status, 'deleted'),
+          ne(githubAppInstallations.status, 'disconnected'),
           inArray(githubAppRepositories.id, params.repositoryIds)
         )
       );
@@ -686,7 +700,8 @@ export const getRepositoryCountsByInstallationIds =
 
     const countsMap = new Map<string, number>();
     for (const row of results) {
-      const total = typeof row.count === 'string' ? Number.parseInt(row.count, 10) : (row.count as number);
+      const total =
+        typeof row.count === 'string' ? Number.parseInt(row.count, 10) : (row.count as number);
       countsMap.set(row.installationId, total);
     }
 

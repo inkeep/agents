@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { validateGitHubAppConfigOnStartup, validateGitHubWebhookConfigOnStartup } from './config';
-import callbackRoutes from './routes/callback';
+import setupRoutes from './routes/setup';
 import tokenExchangeRoutes from './routes/tokenExchange';
 import webhooksRoutes from './routes/webhooks';
 
@@ -11,7 +11,7 @@ export function createGithubRoutes() {
   const app = new Hono();
 
   app.route('/token-exchange', tokenExchangeRoutes);
-  app.route('/callback', callbackRoutes);
+  app.route('/setup', setupRoutes);
   app.route('/webhooks', webhooksRoutes);
 
   return app;
@@ -59,4 +59,4 @@ export {
   type ValidateTokenResult,
   validateOidcToken,
 } from './oidcToken';
-export { type WebhookVerificationResult, verifyWebhookSignature } from './routes/webhooks';
+export { verifyWebhookSignature, type WebhookVerificationResult } from './routes/webhooks';

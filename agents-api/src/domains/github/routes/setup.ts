@@ -19,7 +19,7 @@ import {
   fetchInstallationRepositories,
 } from '../installation';
 
-const logger = getLogger('github-callback');
+const logger = getLogger('github-setup');
 
 const STATE_JWT_ISSUER = 'inkeep-agents-api';
 const STATE_JWT_AUDIENCE = 'github-app-install';
@@ -31,16 +31,24 @@ const CallbackQuerySchema = z.object({
 });
 
 function getManageUiUrl(): string {
-  return env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3001';
+  return env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+}
+
+function buildErrorRedirectUrl(message: string): string {
+  const baseUrl = getManageUiUrl();
+  const url = new URL('/github/setup-error', baseUrl);
+  url.searchParams.set('message', message);
+  return url.toString();
 }
 
 function buildRedirectUrl(params: {
+  tenantId: string;
   status: 'success' | 'error';
   message?: string;
   installationId?: string;
 }): string {
   const baseUrl = getManageUiUrl();
-  const url = new URL('/settings/github', baseUrl);
+  const url = new URL(`/${params.tenantId}/settings/github`, baseUrl);
 
   url.searchParams.set('status', params.status);
   if (params.message) {
@@ -104,12 +112,7 @@ app.get('/', async (c) => {
 
   if (!parseResult.success) {
     logger.warn({ errors: parseResult.error.issues }, 'Invalid callback parameters');
-    return c.redirect(
-      buildRedirectUrl({
-        status: 'error',
-        message: 'Invalid callback parameters',
-      })
-    );
+    return c.redirect(buildErrorRedirectUrl('Invalid callback parameters'));
   }
 
   const { installation_id, setup_action, state } = parseResult.data;
@@ -119,12 +122,7 @@ app.get('/', async (c) => {
   const stateResult = await verifyStateToken(state);
   if (!stateResult.success) {
     logger.warn({ error: stateResult.error }, 'State verification failed');
-    return c.redirect(
-      buildRedirectUrl({
-        status: 'error',
-        message: stateResult.error,
-      })
-    );
+    return c.redirect(buildErrorRedirectUrl(stateResult.error));
   }
 
   const { tenantId } = stateResult;
@@ -135,18 +133,14 @@ app.get('/', async (c) => {
     appJwt = await createAppJwt();
   } catch (error) {
     logger.error({ error }, 'Failed to create GitHub App JWT');
-    return c.redirect(
-      buildRedirectUrl({
-        status: 'error',
-        message: 'GitHub App not configured properly',
-      })
-    );
+    return c.redirect(buildErrorRedirectUrl('GitHub App not configured properly'));
   }
 
   const installationResult = await fetchInstallationDetails(installation_id, appJwt);
   if (!installationResult.success) {
     return c.redirect(
       buildRedirectUrl({
+        tenantId,
         status: 'error',
         message: 'Failed to verify installation with GitHub',
       })
@@ -246,6 +240,7 @@ app.get('/', async (c) => {
 
     return c.redirect(
       buildRedirectUrl({
+        tenantId,
         status: 'success',
         installationId: internalInstallationId,
       })
@@ -254,6 +249,7 @@ app.get('/', async (c) => {
     logger.error({ error, tenantId, installation_id }, 'Failed to store installation in database');
     return c.redirect(
       buildRedirectUrl({
+        tenantId,
         status: 'error',
         message: 'Failed to complete installation setup',
       })

@@ -30,12 +30,12 @@ import {
 } from '@/components/ui/table';
 import {
   fetchGitHubInstallations,
-  getProjectGitHubAccess,
-  setProjectGitHubAccess,
   type GitHubAccessMode,
   type GitHubInstallation,
   type GitHubRepository,
+  getProjectGitHubAccess,
   type ProjectGitHubAccess,
+  setProjectGitHubAccess,
 } from '@/lib/api/github';
 
 interface ProjectGitHubAccessSectionProps {
@@ -136,7 +136,11 @@ export function ProjectGitHubAccessSection({
         </p>
       </div>
 
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-md bg-background">
+      <Collapsible
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        className="border rounded-md bg-background"
+      >
         <CollapsibleTrigger asChild>
           <Button
             type="button"
@@ -147,7 +151,9 @@ export function ProjectGitHubAccessSection({
             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
             Configure GitHub access
             <span className="ml-auto text-muted-foreground font-normal">
-              {accessConfig?.mode === 'all' ? 'All repositories' : `${accessConfig?.repositories.length || 0} selected`}
+              {accessConfig?.mode === 'all'
+                ? 'All repositories'
+                : `${accessConfig?.repositories.length || 0} selected`}
             </span>
           </Button>
         </CollapsibleTrigger>
@@ -369,10 +375,7 @@ function ConfigureAccessDialog({
     }
   };
 
-  const totalRepos = installationsWithRepos.reduce(
-    (acc, i) => acc + i.repositories.length,
-    0
-  );
+  const totalRepos = installationsWithRepos.reduce((acc, i) => acc + i.repositories.length, 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -402,8 +405,8 @@ function ConfigureAccessDialog({
                     All repositories
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Project can access any repository from connected GitHub organizations ({totalRepos}{' '}
-                    repositories available)
+                    Project can access any repository from connected GitHub organizations (
+                    {totalRepos} repositories available)
                   </p>
                 </div>
               </div>
@@ -483,7 +486,9 @@ function ConfigureAccessDialog({
                                 checked={allSelected}
                                 ref={(el) => {
                                   if (el) {
-                                    (el as HTMLButtonElement & { indeterminate: boolean }).indeterminate = someSelected;
+                                    (
+                                      el as HTMLButtonElement & { indeterminate: boolean }
+                                    ).indeterminate = someSelected;
                                   }
                                 }}
                                 onCheckedChange={(checked) =>

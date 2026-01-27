@@ -91,8 +91,8 @@ describe('Status Badge Mapping', () => {
         return 'warning';
       case 'suspended':
         return 'error';
-      case 'deleted':
-        return 'code';
+      case 'disconnected':
+        return 'error';
       default:
         return 'code';
     }
@@ -110,8 +110,8 @@ describe('Status Badge Mapping', () => {
     expect(getStatusBadgeVariant('suspended')).toBe('error');
   });
 
-  it('should map deleted status to code variant', () => {
-    expect(getStatusBadgeVariant('deleted')).toBe('code');
+  it('should map disconnected status to error variant', () => {
+    expect(getStatusBadgeVariant('disconnected')).toBe('error');
   });
 });
 

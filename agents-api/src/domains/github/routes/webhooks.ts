@@ -197,7 +197,10 @@ async function handleInstallationEvent(
         if (existing) {
           // If existing with 'pending' status, activate it
           if (existing.status === 'pending') {
-            logger.info({ installationId, existingId: existing.id }, 'Activating pending installation');
+            logger.info(
+              { installationId, existingId: existing.id },
+              'Activating pending installation'
+            );
             await updateInstallationStatusByGitHubId(runDbClient)({
               gitHubInstallationId: installationId,
               status: 'active',
@@ -296,7 +299,10 @@ async function handleInstallationEvent(
 
     return c.json({ received: true, action }, 200);
   } catch (error) {
-    logger.error({ error, action, installationId, deliveryId }, 'Failed to process installation event');
+    logger.error(
+      { error, action, installationId, deliveryId },
+      'Failed to process installation event'
+    );
     // Return 200 to acknowledge receipt - GitHub will retry on 5xx
     return c.json({ received: true, error: 'Processing failed' }, 200);
   }

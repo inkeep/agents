@@ -438,8 +438,18 @@ describe('GitHub Webhooks', () => {
         expect(mockAddRepositories).toHaveBeenCalledWith({
           installationId: 'internal-id-123',
           repositories: [
-            { repositoryId: '111', repositoryName: 'repo1', repositoryFullName: 'test-org/repo1', private: false },
-            { repositoryId: '222', repositoryName: 'repo2', repositoryFullName: 'test-org/repo2', private: true },
+            {
+              repositoryId: '111',
+              repositoryName: 'repo1',
+              repositoryFullName: 'test-org/repo1',
+              private: false,
+            },
+            {
+              repositoryId: '222',
+              repositoryName: 'repo2',
+              repositoryFullName: 'test-org/repo2',
+              private: true,
+            },
           ],
         });
       });
@@ -753,8 +763,18 @@ describe('GitHub Webhooks', () => {
         expect(mockAddRepositories).toHaveBeenCalledWith({
           installationId: 'internal-id-123',
           repositories: [
-            { repositoryId: '111', repositoryName: 'repo1', repositoryFullName: 'test-org/repo1', private: false },
-            { repositoryId: '222', repositoryName: 'repo2', repositoryFullName: 'test-org/repo2', private: true },
+            {
+              repositoryId: '111',
+              repositoryName: 'repo1',
+              repositoryFullName: 'test-org/repo1',
+              private: false,
+            },
+            {
+              repositoryId: '222',
+              repositoryName: 'repo2',
+              repositoryFullName: 'test-org/repo2',
+              private: true,
+            },
           ],
         });
       });

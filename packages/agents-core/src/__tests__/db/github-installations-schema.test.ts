@@ -110,7 +110,7 @@ describe('GitHub App Installation Schema Tests', () => {
     });
 
     it('should support all status values', async () => {
-      const statuses = ['pending', 'active', 'suspended', 'deleted'] as const;
+      const statuses = ['pending', 'active', 'suspended', 'disconnected'] as const;
 
       for (const status of statuses) {
         const id = generateId();

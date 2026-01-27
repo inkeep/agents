@@ -8,7 +8,7 @@ import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
-import projectGitHubAccessRoutes from './routes/project-github-access';
+import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
 import userOrganizationsRoutes from './routes/userOrganizations';
 

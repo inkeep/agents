@@ -35,11 +35,7 @@ export function GitHubInstallButton({
 
   return (
     <Button onClick={handleInstall} disabled={loading} variant={variant} size={size}>
-      {loading ? (
-        <Loader2 className="size-4 animate-spin" />
-      ) : (
-        <Github className="size-4" />
-      )}
+      {loading ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
       Connect GitHub Organization
     </Button>
   );

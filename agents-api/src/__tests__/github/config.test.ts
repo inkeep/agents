@@ -63,13 +63,15 @@ describe('GitHub Config', () => {
   describe('isGitHubAppConfigured', () => {
     it('should return true when both GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY are set', () => {
       mockEnv.GITHUB_APP_ID = '123456';
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
       expect(isGitHubAppConfigured()).toBe(true);
     });
 
     it('should return false when GITHUB_APP_ID is missing', () => {
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
       expect(isGitHubAppConfigured()).toBe(false);
     });
@@ -88,21 +90,27 @@ describe('GitHub Config', () => {
   describe('getGitHubAppConfig', () => {
     it('should return config when both values are set', () => {
       mockEnv.GITHUB_APP_ID = '123456';
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
       const config = getGitHubAppConfig();
 
       expect(config.appId).toBe('123456');
-      expect(config.privateKey).toBe('-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----');
+      expect(config.privateKey).toBe(
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----'
+      );
     });
 
     it('should handle escaped newlines in private key', () => {
       mockEnv.GITHUB_APP_ID = '123456';
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\\ntest\\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\\ntest\\n-----END RSA PRIVATE KEY-----';
 
       const config = getGitHubAppConfig();
 
-      expect(config.privateKey).toBe('-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----');
+      expect(config.privateKey).toBe(
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----'
+      );
     });
 
     it('should throw error when GITHUB_APP_ID is missing', () => {
@@ -120,7 +128,8 @@ describe('GitHub Config', () => {
 
     it('should cache config after first successful call', () => {
       mockEnv.GITHUB_APP_ID = '123456';
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
       const config1 = getGitHubAppConfig();
 
@@ -146,12 +155,16 @@ describe('GitHub Config', () => {
 
     it('should not log warning when GitHub App is configured', () => {
       mockEnv.GITHUB_APP_ID = '123456';
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
       validateGitHubAppConfigOnStartup();
 
       expect(mockLogger.warn).not.toHaveBeenCalled();
-      expect(mockLogger.info).toHaveBeenCalledWith({}, 'GitHub App credentials loaded successfully');
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        {},
+        'GitHub App credentials loaded successfully'
+      );
     });
   });
 
@@ -207,7 +220,8 @@ describe('GitHub Config', () => {
   describe('clearConfigCache', () => {
     it('should clear the cached config', () => {
       mockEnv.GITHUB_APP_ID = '123456';
-      mockEnv.GITHUB_APP_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
+      mockEnv.GITHUB_APP_PRIVATE_KEY =
+        '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----';
 
       // Get config to cache it
       const config1 = getGitHubAppConfig();
@@ -252,7 +266,9 @@ describe('GitHub Config', () => {
     });
 
     it('should throw error when GITHUB_STATE_SIGNING_SECRET is not configured', () => {
-      expect(() => getStateSigningSecret()).toThrow('GITHUB_STATE_SIGNING_SECRET is not configured');
+      expect(() => getStateSigningSecret()).toThrow(
+        'GITHUB_STATE_SIGNING_SECRET is not configured'
+      );
     });
   });
 

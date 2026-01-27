@@ -5,6 +5,7 @@ import {
   clearProjectRepositoryAccess,
   createInstallation,
   deleteInstallation,
+  disconnectInstallation,
   getInstallationByGitHubId,
   getInstallationById,
   getInstallationsByTenantId,
@@ -229,7 +230,7 @@ describe('GitHub Installations Data Access', () => {
           accountLogin: 'org-2',
           accountId: '222',
           accountType: 'Organization',
-          status: 'deleted',
+          status: 'disconnected',
         });
 
         const result = await getInstallationsByTenantId(dbClient)({ tenantId });
@@ -256,12 +257,12 @@ describe('GitHub Installations Data Access', () => {
           accountLogin: 'org-2',
           accountId: '222',
           accountType: 'Organization',
-          status: 'deleted',
+          status: 'disconnected',
         });
 
         const result = await getInstallationsByTenantId(dbClient)({
           tenantId,
-          includeDeleted: true,
+          includeDisconnected: true,
         });
 
         expect(result).toHaveLength(2);
@@ -327,8 +328,8 @@ describe('GitHub Installations Data Access', () => {
       });
     });
 
-    describe('deleteInstallation', () => {
-      it('should soft delete an installation', async () => {
+    describe('disconnectInstallation', () => {
+      it('should soft delete an installation (set status to disconnected)', async () => {
         const created = await createInstallation(dbClient)({
           id: generateId(),
           tenantId,
@@ -339,7 +340,7 @@ describe('GitHub Installations Data Access', () => {
           status: 'active',
         });
 
-        const result = await deleteInstallation(dbClient)({
+        const result = await disconnectInstallation(dbClient)({
           tenantId,
           id: created.id,
         });
@@ -350,7 +351,7 @@ describe('GitHub Installations Data Access', () => {
           tenantId,
           id: created.id,
         });
-        expect(after?.status).toBe('deleted');
+        expect(after?.status).toBe('disconnected');
       });
 
       it('should remove project repository access when installation is deleted', async () => {
@@ -386,7 +387,7 @@ describe('GitHub Installations Data Access', () => {
         expect(accessBefore).toHaveLength(1);
 
         // Delete installation
-        await deleteInstallation(dbClient)({
+        await disconnectInstallation(dbClient)({
           tenantId,
           id: installation.id,
         });
@@ -394,6 +395,127 @@ describe('GitHub Installations Data Access', () => {
         // Verify access is removed
         const accessAfter = await getProjectRepositoryAccess(dbClient)('project-1');
         expect(accessAfter).toHaveLength(0);
+      });
+    });
+
+    describe('deleteInstallation (hard delete)', () => {
+      it('should permanently delete an installation', async () => {
+        const created = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId,
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '987654',
+          accountType: 'Organization',
+          status: 'active',
+        });
+
+        const result = await deleteInstallation(dbClient)({
+          tenantId,
+          id: created.id,
+        });
+
+        expect(result).toBe(true);
+
+        const after = await getInstallationById(dbClient)({
+          tenantId,
+          id: created.id,
+        });
+        expect(after).toBeNull();
+      });
+
+      it('should cascade delete repositories when installation is hard deleted', async () => {
+        const installation = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId,
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '987654',
+          accountType: 'Organization',
+          status: 'active',
+        });
+
+        const repos = await addRepositories(dbClient)({
+          installationId: installation.id,
+          repositories: [
+            {
+              repositoryId: '111',
+              repositoryName: 'repo-1',
+              repositoryFullName: 'test-org/repo-1',
+              private: false,
+            },
+            {
+              repositoryId: '222',
+              repositoryName: 'repo-2',
+              repositoryFullName: 'test-org/repo-2',
+              private: true,
+            },
+          ],
+        });
+
+        expect(repos).toHaveLength(2);
+
+        // Hard delete installation
+        await deleteInstallation(dbClient)({
+          tenantId,
+          id: installation.id,
+        });
+
+        // Verify repositories are cascade deleted
+        const reposAfter = await getRepositoriesByInstallationId(dbClient)(installation.id);
+        expect(reposAfter).toHaveLength(0);
+      });
+
+      it('should cascade delete project repository access when installation is hard deleted', async () => {
+        const installation = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId,
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '987654',
+          accountType: 'Organization',
+          status: 'active',
+        });
+
+        const repos = await addRepositories(dbClient)({
+          installationId: installation.id,
+          repositories: [
+            {
+              repositoryId: '111',
+              repositoryName: 'repo-1',
+              repositoryFullName: 'test-org/repo-1',
+              private: false,
+            },
+          ],
+        });
+
+        await setProjectRepositoryAccess(dbClient)({
+          projectId: 'project-1',
+          repositoryIds: [repos[0].id],
+        });
+
+        // Verify access exists
+        const accessBefore = await getProjectRepositoryAccess(dbClient)('project-1');
+        expect(accessBefore).toHaveLength(1);
+
+        // Hard delete installation
+        await deleteInstallation(dbClient)({
+          tenantId,
+          id: installation.id,
+        });
+
+        // Verify access is cascade deleted
+        const accessAfter = await getProjectRepositoryAccess(dbClient)('project-1');
+        expect(accessAfter).toHaveLength(0);
+      });
+
+      it('should return false when installation does not exist', async () => {
+        const result = await deleteInstallation(dbClient)({
+          tenantId,
+          id: 'non-existent-id',
+        });
+
+        expect(result).toBe(false);
       });
     });
   });
@@ -794,7 +916,7 @@ describe('GitHub Installations Data Access', () => {
           accountLogin: 'deleted-org',
           accountId: '222',
           accountType: 'Organization',
-          status: 'deleted',
+          status: 'disconnected',
         });
 
         await addRepositories(dbClient)({
@@ -1028,7 +1150,7 @@ describe('GitHub Installations Data Access', () => {
         });
 
         // Delete the installation
-        await deleteInstallation(dbClient)({
+        await disconnectInstallation(dbClient)({
           tenantId,
           id: installationId,
         });
@@ -1097,7 +1219,7 @@ describe('GitHub Installations Data Access', () => {
 
       it('should not include repos from deleted installations', async () => {
         // Delete the installation (soft delete)
-        await deleteInstallation(dbClient)({
+        await disconnectInstallation(dbClient)({
           tenantId,
           id: installationId,
         });

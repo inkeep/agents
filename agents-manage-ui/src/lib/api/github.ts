@@ -5,7 +5,7 @@ import { makeManagementApiRequest } from './api-config';
 import { validateTenantId } from './resource-validation';
 
 export type GitHubAccountType = 'Organization' | 'User';
-export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'deleted';
+export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
 
 export interface GitHubInstallation {
   id: string;
@@ -67,11 +67,11 @@ interface DisconnectResponse {
  */
 async function $fetchGitHubInstallations(
   tenantId: string,
-  includeDeleted = false
+  includeDisconnected = true
 ): Promise<GitHubInstallation[]> {
   validateTenantId(tenantId);
 
-  const queryParams = includeDeleted ? '?includeDeleted=true' : '';
+  const queryParams = includeDisconnected ? '?includeDisconnected=true' : '';
   const response = await makeManagementApiRequest<ListInstallationsResponse>(
     `tenants/${tenantId}/github/installations${queryParams}`
   );
@@ -146,9 +146,31 @@ export async function disconnectGitHubInstallation(
   validateTenantId(tenantId);
 
   await makeManagementApiRequest<DisconnectResponse>(
-    `tenants/${tenantId}/github/installations/${installationId}`,
+    `tenants/${tenantId}/github/installations/${installationId}/disconnect`,
     {
-      method: 'DELETE',
+      method: 'POST',
+    }
+  );
+}
+
+interface ReconnectResponse {
+  success: boolean;
+}
+
+/**
+ * Reconnects a previously disconnected GitHub App installation.
+ * This sets the installation status back to "active".
+ */
+export async function reconnectGitHubInstallation(
+  tenantId: string,
+  installationId: string
+): Promise<void> {
+  validateTenantId(tenantId);
+
+  await makeManagementApiRequest<ReconnectResponse>(
+    `tenants/${tenantId}/github/installations/${installationId}/reconnect`,
+    {
+      method: 'POST',
     }
   );
 }

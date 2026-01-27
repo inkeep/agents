@@ -2544,7 +2544,7 @@ export const GitHubAppInstallationInsertSchema = createInsertSchema(githubAppIns
   })
   .extend({
     accountType: z.enum(['Organization', 'User']),
-    status: z.enum(['pending', 'active', 'suspended', 'deleted']).optional().default('active'),
+    status: z.enum(['pending', 'active', 'suspended', 'disconnected']).optional().default('active'),
   });
 
 export const GitHubAppInstallationApiSelectSchema = GitHubAppInstallationSelectSchema.omit({

@@ -36,8 +36,8 @@ export function DisconnectInstallationDialog({
           </DialogTitle>
           <DialogDescription>
             Are you sure you want to disconnect <strong>{accountLogin}</strong>? This will remove
-            access to all repositories from this installation and delete any project-level repository
-            access configurations.
+            access to all repositories from this installation and delete any project-level
+            repository access configurations.
           </DialogDescription>
         </DialogHeader>
 
