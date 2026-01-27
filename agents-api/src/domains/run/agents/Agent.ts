@@ -1269,6 +1269,7 @@ export class Agent {
           },
           (span) => {
             setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
+            const relationshipId = this.#getRelationshipIdForTool(tool.name, 'mcp');
             agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
               message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
               code: 'no_tools_available',
@@ -1278,6 +1279,7 @@ export class Agent {
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
                 operation: 'mcp_tool_discovery',
               },
+              relationshipId,
             });
             span.end();
           }

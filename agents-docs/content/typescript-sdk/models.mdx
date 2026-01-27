@@ -55,6 +55,13 @@ const mySubAgent = subAgent({
 
 </SkillRule>
 
+<SkillRule
+  id="supported-models"
+  skills="typescript-sdk"
+  title="Supported Models Reference"
+  description="List of supported model providers and their API keys"
+>
+
 ## Supported Models
 
 | Provider | Example Models | API Key |
@@ -97,6 +104,15 @@ models: {
   }
 }
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="provider-options"
+  skills="typescript-sdk"
+  title="Model Provider Options"
+  description="Configuration options for different model providers"
+>
 
 ## Provider Options
 
@@ -283,6 +299,8 @@ models: {
 <Note>
 Custom OpenAI-compatible providers **require** a base URL to be specified in `providerOptions.baseURL` or `providerOptions.baseUrl`. The `CUSTOM_LLM_API_KEY` environment variable will be automatically used for authentication if present.
 </Note>
+
+</SkillRule>
 
 ## CLI Defaults
 

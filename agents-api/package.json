@@ -59,6 +59,7 @@
     "@hono/zod-openapi": "^1.1.5",
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-mcp": "workspace:^",
+    "@inkeep/agents-mcp": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",

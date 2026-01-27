@@ -24,14 +24,13 @@ export function isOriginAllowed(origin: string | undefined): origin is string {
 
   try {
     const requestUrl = new URL(origin);
-    const apiUrl = new URL(env.INKEEP_AGENTS_API_URL || `http://localhost:3002`);
+    const apiUrl = new URL(env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
     const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
     // Development: allow any localhost
     if (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') {
       return true;
     }
-
     // If UI URL is explicitly configured, allow that exact hostname
     if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
       return true;

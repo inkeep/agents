@@ -14,11 +14,11 @@ Ask yourself: *"Would this help an AI write correct code?"* If yes, include it. 
 
 1. Add rules — Use `<SkillRule>` blocks, file frontmatter, or folder `meta.json`
 2. Create templates — Define each skill's `SKILL.md` with required metadata
-3. Generate — Run `pnpm generate-skill-collections` to produce output
+3. Generate — Automatically handled by the `publish-skills.yml` GitHub workflow on merge to main (or run `pnpm generate-skill-collections` locally to preview)
 
 ## Adding Rules to a Skill
 
-There are three ways to add content to a skill, from most selective to least selective. **Choose the approach that matches your content.**
+There are three ways to add rules to a skill, from most selective to least selective. **Choose the approach that matches your content.**
 
 ### Inline Rules with `<SkillRule>` (Most Selective)
 

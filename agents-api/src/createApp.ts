@@ -7,6 +7,7 @@ import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { githubRoutes } from './domains/github';
 import { manageRoutes } from './domains/manage';
+import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
@@ -200,7 +201,7 @@ function createAgentsHono(config: AppConfig) {
     createRoute({
       method: 'get',
       path: '/api/workflow/process',
-      tags: ['workflow'],
+      tags: ['Workflows'],
       summary: 'Process workflow jobs',
       description: 'Keeps the workflow worker active to process queued jobs (called by cron)',
       responses: {
@@ -364,6 +365,10 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/api/github', githubRoutes);
+
+  // Mount MCP routes at top level (eclipses both manage and run services)
+  // Also available at /manage/mcp for backward compatibility
+  app.route('/mcp', mcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

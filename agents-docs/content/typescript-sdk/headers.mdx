@@ -13,6 +13,13 @@ Headers allow you to pass request-specific values (like user IDs, authentication
 - **External Tools**: Authentication and personalization for API calls
 - **Agent Prompts**: Personalized responses using context variables
 
+<SkillRule
+  id="headers-passing-context"
+  skills="typescript-sdk"
+  title="Passing Context via Headers"
+  description="How to pass dynamic context to agents via HTTP headers"
+>
+
 ## Passing context via headers
 
 Include context values as HTTP headers when calling your agent API. These headers are validated against your configured schema and cached for the conversation.
@@ -128,6 +135,15 @@ const myAgent = agent({
   Context values persist across conversation turns. To update them, send new header values with the same conversation ID.
 </Tip>
 
+</SkillRule>
+
+<SkillRule
+  id="headers-usage"
+  skills="typescript-sdk"
+  title="Using Headers in Agents"
+  description="How to use header values in prompts, context fetchers, and external tools"
+>
+
 ## Using headers in your agents
 
 Header values can be used in your agent prompts and fetch definitions using JSONPath template syntax `{{headers.field_name}}`.
@@ -232,6 +248,8 @@ const personalAgentContext = contextConfig({
   headers: personalAgentHeaders,
 });
 ```
+
+</SkillRule>
 
 ## Best practices
 
