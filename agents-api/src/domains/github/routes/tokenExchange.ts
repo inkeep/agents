@@ -1,5 +1,7 @@
+import { checkProjectRepositoryAccess, getInstallationByGitHubId } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { isGitHubAppConfigured } from '../config';
 import { generateInstallationAccessToken, lookupInstallationForRepo } from '../installation';
@@ -9,6 +11,7 @@ const logger = getLogger('github-token-exchange');
 
 const TokenExchangeRequestSchema = z.object({
   oidc_token: z.string(),
+  project_id: z.string().optional(),
 });
 
 const app = new Hono();
@@ -140,6 +143,150 @@ app.post('/', async (c) => {
     'Found GitHub App installation'
   );
 
+  // Validate installation is registered in our database
+  const dbInstallation = await getInstallationByGitHubId(runDbClient)(
+    installation.installationId.toString()
+  );
+
+  if (!dbInstallation) {
+    const errorMessage =
+      'GitHub App installation not registered. Please connect your GitHub organization in the Inkeep dashboard.';
+    logger.warn(
+      { installationId: installation.installationId, repository: claims.repository },
+      'Installation not found in database'
+    );
+    c.header('Content-Type', 'application/problem+json');
+    return c.json(
+      {
+        title: 'Installation Not Registered',
+        status: 403,
+        detail: errorMessage,
+        error: errorMessage,
+      },
+      403
+    );
+  }
+
+  // Validate installation status
+  if (dbInstallation.status === 'pending') {
+    const errorMessage = 'GitHub App installation is pending organization admin approval';
+    logger.warn(
+      {
+        installationId: installation.installationId,
+        repository: claims.repository,
+        status: dbInstallation.status,
+      },
+      'Installation is pending approval'
+    );
+    c.header('Content-Type', 'application/problem+json');
+    return c.json(
+      {
+        title: 'Installation Pending',
+        status: 403,
+        detail: errorMessage,
+        error: errorMessage,
+      },
+      403
+    );
+  }
+
+  if (dbInstallation.status === 'suspended') {
+    const errorMessage = 'GitHub App installation is suspended';
+    logger.warn(
+      {
+        installationId: installation.installationId,
+        repository: claims.repository,
+        status: dbInstallation.status,
+      },
+      'Installation is suspended'
+    );
+    c.header('Content-Type', 'application/problem+json');
+    return c.json(
+      {
+        title: 'Installation Suspended',
+        status: 403,
+        detail: errorMessage,
+        error: errorMessage,
+      },
+      403
+    );
+  }
+
+  if (dbInstallation.status === 'deleted') {
+    const errorMessage = 'GitHub App installation has been disconnected';
+    logger.warn(
+      {
+        installationId: installation.installationId,
+        repository: claims.repository,
+        status: dbInstallation.status,
+      },
+      'Installation has been deleted'
+    );
+    c.header('Content-Type', 'application/problem+json');
+    return c.json(
+      {
+        title: 'Installation Disconnected',
+        status: 403,
+        detail: errorMessage,
+        error: errorMessage,
+      },
+      403
+    );
+  }
+
+  logger.info(
+    {
+      installationId: installation.installationId,
+      tenantId: dbInstallation.tenantId,
+      repository: claims.repository,
+    },
+    'Installation validated against database'
+  );
+
+  // If project_id is provided, check project-level repository access
+  if (body.project_id) {
+    const accessCheck = await checkProjectRepositoryAccess(runDbClient)({
+      projectId: body.project_id,
+      repositoryFullName: claims.repository,
+      tenantId: dbInstallation.tenantId,
+    });
+
+    if (!accessCheck.hasAccess) {
+      const errorMessage = `Project does not have access to repository ${claims.repository}. ${accessCheck.reason}`;
+      logger.warn(
+        {
+          installationId: installation.installationId,
+          tenantId: dbInstallation.tenantId,
+          projectId: body.project_id,
+          repository: claims.repository,
+          reason: accessCheck.reason,
+        },
+        'Project does not have access to repository'
+      );
+      c.header('Content-Type', 'application/problem+json');
+      return c.json(
+        {
+          title: 'Repository Access Denied',
+          status: 403,
+          detail: errorMessage,
+          error: errorMessage,
+        },
+        403
+      );
+    }
+
+    logger.info(
+      {
+        installationId: installation.installationId,
+        tenantId: dbInstallation.tenantId,
+        projectId: body.project_id,
+        repository: claims.repository,
+        reason: accessCheck.reason,
+      },
+      'Project has access to repository'
+    );
+  }
+
   const tokenResult = await generateInstallationAccessToken(installation.installationId);
 
   if (!tokenResult.success) {
@@ -169,6 +316,7 @@ app.post('/', async (c) => {
   logger.info(
     {
       installationId: installation.installationId,
+      tenantId: dbInstallation.tenantId,
       repository: claims.repository,
       expiresAt: accessToken.expiresAt,
     },
@@ -181,6 +329,7 @@ app.post('/', async (c) => {
       expires_at: accessToken.expiresAt,
       repository: claims.repository,
       installation_id: installation.installationId,
+      tenant_id: dbInstallation.tenantId,
     },
     200
   );

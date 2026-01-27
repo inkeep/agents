@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import { env } from '../../env';
 import { getLogger } from '../../logger';
 
 const logger = getLogger('github-config');
@@ -17,9 +18,9 @@ export function getGitHubAppConfig(): GitHubAppConfig {
     return cachedConfig;
   }
 
-  const appId = process.env.GITHUB_APP_ID;
+  const appId = env.GITHUB_APP_ID;
   // Handle escaped newlines (common when setting env vars from CLI or .env files)
-  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   const result = GitHubAppConfigSchema.safeParse({
     appId,
@@ -39,7 +40,7 @@ export function getGitHubAppConfig(): GitHubAppConfig {
 }
 
 export function isGitHubAppConfigured(): boolean {
-  return Boolean(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY);
+  return Boolean(env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY);
 }
 
 export function validateGitHubAppConfigOnStartup(): void {
@@ -64,4 +65,67 @@ export function validateGitHubAppConfigOnStartup(): void {
 
 export function clearConfigCache(): void {
   cachedConfig = null;
+}
+
+export function isWebhookConfigured(): boolean {
+  return Boolean(env.GITHUB_WEBHOOK_SECRET);
+}
+
+export function getWebhookSecret(): string {
+  const secret = env.GITHUB_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new Error('GITHUB_WEBHOOK_SECRET is not configured');
+  }
+  return secret;
+}
+
+export function validateGitHubWebhookConfigOnStartup(): void {
+  if (!isWebhookConfigured()) {
+    logger.warn(
+      {},
+      'GitHub webhook secret not configured. Webhook endpoints will reject all requests. ' +
+        'Set GITHUB_WEBHOOK_SECRET to enable webhook processing.'
+    );
+  }
+}
+
+export function isStateSigningConfigured(): boolean {
+  return Boolean(env.GITHUB_STATE_SIGNING_SECRET);
+}
+
+export function getStateSigningSecret(): string {
+  const secret = env.GITHUB_STATE_SIGNING_SECRET;
+  if (!secret) {
+    throw new Error('GITHUB_STATE_SIGNING_SECRET is not configured');
+  }
+  return secret;
+}
+
+export function isGitHubAppNameConfigured(): boolean {
+  return Boolean(env.GITHUB_APP_NAME);
+}
+
+export function getGitHubAppName(): string {
+  const appName = env.GITHUB_APP_NAME;
+  if (!appName) {
+    throw new Error('GITHUB_APP_NAME is not configured');
+  }
+  return appName;
+}
+
+export function validateGitHubInstallFlowConfigOnStartup(): void {
+  if (!isStateSigningConfigured()) {
+    logger.warn(
+      {},
+      'GitHub state signing secret not configured. Install URL endpoint will return 500 errors. ' +
+        'Set GITHUB_STATE_SIGNING_SECRET to enable the installation flow.'
+    );
+  }
+  if (!isGitHubAppNameConfigured()) {
+    logger.warn(
+      {},
+      'GitHub App name not configured. Install URL endpoint will return 500 errors. ' +
+        'Set GITHUB_APP_NAME to enable the installation flow.'
+    );
+  }
 }

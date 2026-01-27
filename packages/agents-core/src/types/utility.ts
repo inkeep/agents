@@ -389,3 +389,19 @@ export type DatasetItemInput = {
 };
 
 export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;
+
+/**
+ * GitHub App installation status.
+ * - 'pending': Installation request awaiting org admin approval
+ * - 'active': Installation is active and functional
+ * - 'suspended': Installation suspended by GitHub or org admin
+ * - 'disconnected': Installation has been disconnected by the user (soft delete)
+ */
+export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
+
+/**
+ * GitHub account type for the installation target.
+ * - 'Organization': Installed on a GitHub organization
+ * - 'User': Installed on a personal GitHub account
+ */
+export type GitHubAccountType = 'Organization' | 'User';

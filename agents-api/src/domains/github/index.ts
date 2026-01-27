@@ -1,20 +1,37 @@
 import { Hono } from 'hono';
-import { validateGitHubAppConfigOnStartup } from './config';
+import { validateGitHubAppConfigOnStartup, validateGitHubWebhookConfigOnStartup } from './config';
+import setupRoutes from './routes/setup';
 import tokenExchangeRoutes from './routes/tokenExchange';
+import webhooksRoutes from './routes/webhooks';
 
 export function createGithubRoutes() {
   validateGitHubAppConfigOnStartup();
+  validateGitHubWebhookConfigOnStartup();
 
   const app = new Hono();
 
   app.route('/token-exchange', tokenExchangeRoutes);
+  app.route('/setup', setupRoutes);
+  app.route('/webhooks', webhooksRoutes);
 
   return app;
 }
 
 export const githubRoutes = createGithubRoutes();
 
-export { type GitHubAppConfig, getGitHubAppConfig, isGitHubAppConfigured } from './config';
+export {
+  type GitHubAppConfig,
+  getGitHubAppConfig,
+  getGitHubAppName,
+  getStateSigningSecret,
+  getWebhookSecret,
+  isGitHubAppConfigured,
+  isGitHubAppNameConfigured,
+  isStateSigningConfigured,
+  isWebhookConfigured,
+  validateGitHubInstallFlowConfigOnStartup,
+  validateGitHubWebhookConfigOnStartup,
+} from './config';
 export {
   type GenerateInstallationAccessTokenResult,
   type GenerateTokenError,
@@ -42,3 +59,4 @@ export {
   type ValidateTokenResult,
   validateOidcToken,
 } from './oidcToken';
+export { verifyWebhookSignature, type WebhookVerificationResult } from './routes/webhooks';
