@@ -9,6 +9,7 @@ import { githubRoutes } from './domains/github';
 import { manageRoutes } from './domains/manage';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
+import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
@@ -365,6 +366,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/api/github', githubRoutes);
+
+  // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
+  app.route('/work-apps', workAppsRoutes);
 
   // Mount MCP routes at top level (eclipses both manage and run services)
   // Also available at /manage/mcp for backward compatibility

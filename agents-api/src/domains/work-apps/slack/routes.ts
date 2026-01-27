@@ -1,5 +1,5 @@
 /**
- * Slack App Routes
+ * Slack Work App Routes
  *
  * Handles Slack workspace installation and user connection:
  * - GET /install - Redirects to Slack's OAuth page for workspace install
@@ -14,7 +14,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import type { ManageAppVariables } from '../../../types/app';
+import type { WorkAppsVariables } from '../types';
 import {
   createConnectSession,
   deleteConnection,
@@ -33,11 +33,11 @@ import {
   type SlackCommandPayload,
   updateConnectionMetadata,
   verifySlackRequest,
-} from '../services/slack';
+} from './services';
 
 const logger = getLogger('slack-routes');
 
-const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 const pendingSessionTokens = new Map<
   string,
@@ -79,7 +79,7 @@ app.openapi(
     summary: 'Install Slack App',
     description: 'Redirects to Slack OAuth page for workspace installation',
     operationId: 'slack-install',
-    tags: ['Slack'],
+    tags: ['Work Apps', 'Slack'],
     responses: {
       302: {
         description: 'Redirect to Slack OAuth',
@@ -88,7 +88,7 @@ app.openapi(
   }),
   (c) => {
     const clientId = env.SLACK_CLIENT_ID;
-    const redirectUri = `${env.SLACK_APP_URL}/manage/slack/oauth_redirect`;
+    const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
     const scopes = 'commands,chat:write,users:read,team:read,users:read.email,channels:read';
 
     const slackAuthUrl = new URL('https://slack.com/oauth/v2/authorize');
@@ -109,7 +109,7 @@ app.openapi(
     summary: 'Slack OAuth Callback',
     description: 'Handles the OAuth callback from Slack after workspace installation',
     operationId: 'slack-oauth-redirect',
-    tags: ['Slack'],
+    tags: ['Work Apps', 'Slack'],
     request: {
       query: z.object({
         code: z.string().optional(),
@@ -145,7 +145,7 @@ app.openapi(
           client_id: env.SLACK_CLIENT_ID || '',
           client_secret: env.SLACK_CLIENT_SECRET || '',
           code,
-          redirect_uri: `${env.SLACK_APP_URL}/manage/slack/oauth_redirect`,
+          redirect_uri: `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`,
         }),
       });
 

@@ -8,7 +8,6 @@ import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import signozRoutes from './routes/signoz';
-import slackRoutes from './routes/slack';
 import userOrganizationsRoutes from './routes/userOrganizations';
 
 export function createManageRoutes() {
@@ -39,9 +38,6 @@ export function createManageRoutes() {
   app.route('/oauth', oauthRoutes);
 
   app.route('/mcp', mcpRoutes);
-
-  // Mount Slack routes - workspace installation and OAuth
-  app.route('/slack', slackRoutes);
 
   return app;
 }

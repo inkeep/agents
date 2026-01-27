@@ -40,7 +40,7 @@ export interface DisconnectResponse {
 export const slackApi = {
   async getConnectionStatus(userId: string): Promise<SlackConnectionStatus> {
     const response = await fetch(
-      `${getApiUrl()}/manage/slack/status?userId=${encodeURIComponent(userId)}`
+      `${getApiUrl()}/work-apps/slack/status?userId=${encodeURIComponent(userId)}`
     );
     if (!response.ok) {
       throw new Error('Failed to fetch connection status');
@@ -50,7 +50,7 @@ export const slackApi = {
 
   async getWorkspaceInfo(connectionId: string): Promise<SlackWorkspaceInfoResponse | null> {
     const response = await fetch(
-      `${getApiUrl()}/manage/slack/workspace-info?connectionId=${encodeURIComponent(connectionId)}`
+      `${getApiUrl()}/work-apps/slack/workspace-info?connectionId=${encodeURIComponent(connectionId)}`
     );
     if (response.status === 404) {
       return null;
@@ -69,7 +69,7 @@ export const slackApi = {
     sessionToken?: string;
     sessionExpiresAt?: string;
   }): Promise<CreateConnectSessionResponse> {
-    const response = await fetch(`${getApiUrl()}/manage/slack/connect`, {
+    const response = await fetch(`${getApiUrl()}/work-apps/slack/connect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -84,7 +84,7 @@ export const slackApi = {
     userId?: string;
     connectionId?: string;
   }): Promise<DisconnectResponse> {
-    const response = await fetch(`${getApiUrl()}/manage/slack/disconnect`, {
+    const response = await fetch(`${getApiUrl()}/work-apps/slack/disconnect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -97,7 +97,7 @@ export const slackApi = {
   },
 
   getInstallUrl(): string {
-    return `${getApiUrl()}/manage/slack/install`;
+    return `${getApiUrl()}/work-apps/slack/install`;
   },
 
   async refreshSession(params: {
@@ -105,7 +105,7 @@ export const slackApi = {
     sessionToken: string;
     sessionExpiresAt?: string;
   }): Promise<{ success: boolean; connectionId?: string }> {
-    const response = await fetch(`${getApiUrl()}/manage/slack/refresh-session`, {
+    const response = await fetch(`${getApiUrl()}/work-apps/slack/refresh-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
