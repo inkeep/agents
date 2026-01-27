@@ -116,7 +116,7 @@ app.openapi(
     path: '/',
     summary: 'Associate Data Component with Agent',
     operationId: 'associate-data-component-with-agent',
-    tags: ['AgentDataComponentRelations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -199,7 +199,7 @@ app.openapi(
     path: '/agent/{subAgentId}/component/{dataComponentId}',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
-    tags: ['AgentDataComponentRelations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
@@ -246,7 +246,7 @@ app.openapi(
     path: '/agent/{subAgentId}/component/{dataComponentId}/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
-    tags: ['AgentDataComponentRelations'],
+    tags: ['Agent Data Component Relations'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),

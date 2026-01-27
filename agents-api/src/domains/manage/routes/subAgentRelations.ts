@@ -52,7 +52,7 @@ app.openapi(
     path: '/',
     summary: 'List Sub Agent Relations',
     operationId: 'list-sub-agent-relations',
-    tags: ['SubAgentRelations'],
+    tags: ['SubAgent Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.merge(SubAgentRelationQuerySchema),
@@ -118,7 +118,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Sub Agent Relation',
     operationId: 'get-sub-agent-relation-by-id',
-    tags: ['SubAgentRelations'],
+    tags: ['SubAgent Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -159,7 +159,7 @@ app.openapi(
     path: '/',
     summary: 'Create Sub Agent Relation',
     operationId: 'create-sub-agent-relation',
-    tags: ['SubAgentRelations'],
+    tags: ['SubAgent Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -243,7 +243,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Sub Agent Relation',
     operationId: 'update-sub-agent-relation',
-    tags: ['SubAgentRelations'],
+    tags: ['SubAgent Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -294,7 +294,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Sub Agent Relation',
     operationId: 'delete-sub-agent-relation',
-    tags: ['SubAgentRelations'],
+    tags: ['SubAgent Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

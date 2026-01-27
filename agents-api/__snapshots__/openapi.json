@@ -12687,7 +12687,7 @@
         },
         "summary": "Create Function Tool",
         "tags": [
-          "FunctionTools"
+          "Function Tools"
         ]
       }
     },
@@ -12804,7 +12804,7 @@
         },
         "summary": "Delete Function Tool",
         "tags": [
-          "FunctionTools"
+          "Function Tools"
         ]
       },
       "get": {
@@ -13057,7 +13057,7 @@
         },
         "summary": "Update Function Tool",
         "tags": [
-          "FunctionTools"
+          "Function Tools"
         ]
       }
     },
@@ -13852,7 +13852,7 @@
         },
         "summary": "Associate Data Component with Agent",
         "tags": [
-          "AgentDataComponentRelations"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14098,7 +14098,7 @@
         },
         "summary": "Remove Data Component from Agent",
         "tags": [
-          "AgentDataComponentRelations"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14225,7 +14225,7 @@
         },
         "summary": "Check if Data Component is Associated with Agent",
         "tags": [
-          "AgentDataComponentRelations"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -15121,7 +15121,7 @@
         },
         "summary": "List Sub Agent Relations",
         "tags": [
-          "SubAgentRelations"
+          "SubAgent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15256,7 +15256,7 @@
         },
         "summary": "Create Sub Agent Relation",
         "tags": [
-          "SubAgentRelations"
+          "SubAgent Relations"
         ]
       }
     },
@@ -15323,7 +15323,7 @@
         },
         "summary": "Delete Sub Agent Relation",
         "tags": [
-          "SubAgentRelations"
+          "SubAgent Relations"
         ]
       },
       "get": {
@@ -15445,7 +15445,7 @@
         },
         "summary": "Get Sub Agent Relation",
         "tags": [
-          "SubAgentRelations"
+          "SubAgent Relations"
         ]
       },
       "put": {
@@ -15576,7 +15576,7 @@
         },
         "summary": "Update Sub Agent Relation",
         "tags": [
-          "SubAgentRelations"
+          "SubAgent Relations"
         ]
       }
     },
@@ -15853,7 +15853,7 @@
         },
         "summary": "Create SubAgent Tool Relation",
         "tags": [
-          "SubAgentToolRelations"
+          "SubAgent Tool Relations"
         ]
       }
     },
@@ -15987,7 +15987,7 @@
         },
         "summary": "Get SubAgents for Tool",
         "tags": [
-          "SubAgentToolRelations"
+          "SubAgent Tool Relations"
         ]
       }
     },
@@ -16054,7 +16054,7 @@
         },
         "summary": "Delete SubAgent Tool Relation",
         "tags": [
-          "SubAgentToolRelations"
+          "SubAgent Tool Relations"
         ]
       },
       "get": {
@@ -16307,7 +16307,7 @@
         },
         "summary": "Update SubAgent Tool Relation",
         "tags": [
-          "SubAgentToolRelations"
+          "SubAgent Tool Relations"
         ]
       }
     },
@@ -27725,7 +27725,7 @@
         },
         "summary": "List External Agents",
         "tags": [
-          "ExternalAgents"
+          "External Agents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -27851,7 +27851,7 @@
         },
         "summary": "Create External Agent",
         "tags": [
-          "ExternalAgents"
+          "External Agents"
         ]
       }
     },
@@ -27909,7 +27909,7 @@
         },
         "summary": "Delete External Agent",
         "tags": [
-          "ExternalAgents"
+          "External Agents"
         ]
       },
       "get": {
@@ -28022,7 +28022,7 @@
         },
         "summary": "Get External Agent",
         "tags": [
-          "ExternalAgents"
+          "External Agents"
         ]
       },
       "put": {
@@ -28144,7 +28144,7 @@
         },
         "summary": "Update External Agent",
         "tags": [
-          "ExternalAgents"
+          "External Agents"
         ]
       }
     },
@@ -28832,7 +28832,7 @@
         },
         "summary": "List MCP Server Catalog",
         "tags": [
-          "MCPCatalog"
+          "MCP Catalog"
         ]
       }
     },
@@ -30753,7 +30753,7 @@
         },
         "summary": "List User Project Memberships",
         "tags": [
-          "UserProjectMemberships"
+          "User Project Memberships"
         ]
       }
     },
@@ -31810,7 +31810,7 @@
     },
     {
       "description": "Operations for managing agent data component relationships",
-      "name": "Agent DataComponent Relations"
+      "name": "Agent Data Component Relations"
     },
     {
       "description": "Operations for managing agents",
@@ -31914,11 +31914,11 @@
     },
     {
       "description": "Operations for managing sub agent external agent relationships",
-      "name": "SubAgent ExternalAgent Relations"
+      "name": "SubAgent External Agent Relations"
     },
     {
       "description": "Operations for managing sub agent function tools",
-      "name": "SubAgent FunctionTools"
+      "name": "SubAgent Function Tools"
     },
     {
       "description": "Operations for managing sub agent relationships",

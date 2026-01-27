@@ -171,7 +171,7 @@ app.openapi(
     path: '/tool/{toolId}/sub-agents',
     summary: 'Get SubAgents for Tool',
     operationId: 'get-subagents-for-tool',
-    tags: ['SubAgentToolRelations'],
+    tags: ['SubAgent Tool Relations'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         toolId: z.string(),
@@ -211,7 +211,7 @@ app.openapi(
     path: '/',
     summary: 'Create SubAgent Tool Relation',
     operationId: 'create-subagent-tool-relation',
-    tags: ['SubAgentToolRelations'],
+    tags: ['SubAgent Tool Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -280,7 +280,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update SubAgent Tool Relation',
     operationId: 'update-subagent-tool-relation',
-    tags: ['SubAgentToolRelations'],
+    tags: ['SubAgent Tool Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -338,7 +338,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete SubAgent Tool Relation',
     operationId: 'delete-subagent-tool-relation',
-    tags: ['SubAgentToolRelations'],
+    tags: ['SubAgent Tool Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

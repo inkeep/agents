@@ -144,7 +144,7 @@ app.openapi(
     path: '/',
     summary: 'Create Function Tool',
     operationId: 'create-function-tool',
-    tags: ['FunctionTools'],
+    tags: ['Function Tools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -203,7 +203,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Function Tool',
     operationId: 'update-function-tool',
-    tags: ['FunctionTools'],
+    tags: ['Function Tools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -268,7 +268,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Function Tool',
     operationId: 'delete-function-tool',
-    tags: ['FunctionTools'],
+    tags: ['Function Tools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

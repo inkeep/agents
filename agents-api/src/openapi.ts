@@ -8,7 +8,7 @@ export const TagToDescription = {
   Agent: 'Operations for managing individual agents',
   'Agent Artifact Component Relations':
     'Operations for managing agent artifact component relationships',
-  'Agent DataComponent Relations': 'Operations for managing agent data component relationships',
+  'Agent Data Component Relations': 'Operations for managing agent data component relationships',
   Agents: 'Operations for managing agents',
   'Artifact Components': 'Operations for managing artifact components',
   Branches: 'Operations for managing branches',
@@ -34,9 +34,9 @@ export const TagToDescription = {
   Projects: 'Operations for managing projects',
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
   SubAgent: 'Operations for managing sub agents',
-  'SubAgent ExternalAgent Relations':
+  'SubAgent External Agent Relations':
     'Operations for managing sub agent external agent relationships',
-  'SubAgent FunctionTools': 'Operations for managing sub agent function tools',
+  'SubAgent Function Tools': 'Operations for managing sub agent function tools',
   'SubAgent Relations': 'Operations for managing sub agent relationships',
   'SubAgent Team Agent Relations': 'Operations for managing sub agent team agent relationships',
   'SubAgent Tool Relations': 'Operations for managing sub agent tool relationships',

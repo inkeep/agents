@@ -448,7 +448,7 @@ app.openapi(
     path: '/',
     summary: 'List MCP Server Catalog',
     operationId: 'list-mcp-catalog',
-    tags: ['MCPCatalog'],
+    tags: ['MCP Catalog'],
     description:
       'Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured, also includes Composio servers for the tenant/project.',
     request: {
