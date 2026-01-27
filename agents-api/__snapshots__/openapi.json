@@ -9998,7 +9998,7 @@
         },
         "summary": "Create Full Project",
         "tags": [
-          "Projects"
+          "Full Project"
         ]
       }
     },
@@ -10093,7 +10093,7 @@
         },
         "summary": "Delete Full Project",
         "tags": [
-          "Projects"
+          "Full Project"
         ]
       },
       "get": {
@@ -10193,7 +10193,7 @@
         },
         "summary": "Get Full Project",
         "tags": [
-          "Projects"
+          "Full Project"
         ]
       },
       "put": {
@@ -10312,7 +10312,7 @@
         },
         "summary": "Update Full Project",
         "tags": [
-          "Projects"
+          "Full Project"
         ]
       }
     },
@@ -10414,7 +10414,7 @@
         },
         "summary": "Get Full Project with Relation IDs",
         "tags": [
-          "Projects"
+          "Full Project"
         ]
       }
     },
@@ -11101,7 +11101,7 @@
         },
         "summary": "Create Full Agent",
         "tags": [
-          "Agents"
+          "Full Agent"
         ]
       }
     },
@@ -11205,7 +11205,7 @@
         },
         "summary": "Delete Full Agent",
         "tags": [
-          "Agents"
+          "Full Agent"
         ]
       },
       "get": {
@@ -11314,7 +11314,7 @@
         },
         "summary": "Get Full Agent",
         "tags": [
-          "Agents"
+          "Full Agent"
         ]
       },
       "put": {
@@ -11442,7 +11442,7 @@
         },
         "summary": "Update Full Agent",
         "tags": [
-          "Agents"
+          "Full Agent"
         ]
       }
     },
@@ -12426,7 +12426,7 @@
         },
         "summary": "Get Full Agent Definition",
         "tags": [
-          "Agents"
+          "Agent"
         ]
       }
     },
@@ -13213,8 +13213,7 @@
         },
         "summary": "Associate Artifact Component with Agent",
         "tags": [
-          "Agents",
-          "Artifact Components"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13333,8 +13332,7 @@
         },
         "summary": "Get Artifact Components for Agent",
         "tags": [
-          "Agents",
-          "Artifact Components"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13461,8 +13459,7 @@
         },
         "summary": "Remove Artifact Component from Agent",
         "tags": [
-          "Agents",
-          "Artifact Components"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13589,8 +13586,7 @@
         },
         "summary": "Check if Artifact Component is Associated with Agent",
         "tags": [
-          "Agents",
-          "Artifact Components"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13708,8 +13704,7 @@
         },
         "summary": "Get Agents Using Artifact Component",
         "tags": [
-          "Agents",
-          "Artifact Components"
+          "Agent Artifact Component Relations"
         ]
       }
     },
@@ -13857,8 +13852,7 @@
         },
         "summary": "Associate Data Component with Agent",
         "tags": [
-          "Agents",
-          "Data Components"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -13977,8 +13971,7 @@
         },
         "summary": "Get Data Components for Agent",
         "tags": [
-          "Agents",
-          "Data Components"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14105,8 +14098,7 @@
         },
         "summary": "Remove Data Component from Agent",
         "tags": [
-          "Agents",
-          "Data Components"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14233,8 +14225,7 @@
         },
         "summary": "Check if Data Component is Associated with Agent",
         "tags": [
-          "Agents",
-          "Data Components"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14352,8 +14343,7 @@
         },
         "summary": "Get Agents Using Data Component",
         "tags": [
-          "Agents",
-          "Data Components"
+          "Agent Data Component Relations"
         ]
       }
     },
@@ -14482,8 +14472,7 @@
         },
         "summary": "Associate Function Tool with SubAgent",
         "tags": [
-          "SubAgents",
-          "Function Tools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14601,8 +14590,7 @@
         },
         "summary": "Get SubAgents Using Function Tool",
         "tags": [
-          "SubAgents",
-          "Function Tools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14721,8 +14709,7 @@
         },
         "summary": "Get Function Tools for SubAgent",
         "tags": [
-          "SubAgents",
-          "Function Tools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14849,8 +14836,7 @@
         },
         "summary": "Remove Function Tool from SubAgent",
         "tags": [
-          "SubAgents",
-          "Function Tools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -14977,8 +14963,7 @@
         },
         "summary": "Check if Function Tool is Associated with SubAgent",
         "tags": [
-          "SubAgents",
-          "Function Tools"
+          "SubAgent Function Tools"
         ]
       }
     },
@@ -15136,7 +15121,7 @@
         },
         "summary": "List Sub Agent Relations",
         "tags": [
-          "SubAgents"
+          "SubAgent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15271,7 +15256,7 @@
         },
         "summary": "Create Sub Agent Relation",
         "tags": [
-          "SubAgents"
+          "SubAgent Relations"
         ]
       }
     },
@@ -15338,7 +15323,7 @@
         },
         "summary": "Delete Sub Agent Relation",
         "tags": [
-          "SubAgents"
+          "SubAgent Relations"
         ]
       },
       "get": {
@@ -15460,7 +15445,7 @@
         },
         "summary": "Get Sub Agent Relation",
         "tags": [
-          "SubAgents"
+          "SubAgent Relations"
         ]
       },
       "put": {
@@ -15591,7 +15576,7 @@
         },
         "summary": "Update Sub Agent Relation",
         "tags": [
-          "SubAgents"
+          "SubAgent Relations"
         ]
       }
     },
@@ -15733,8 +15718,7 @@
         },
         "summary": "List SubAgent Tool Relations",
         "tags": [
-          "SubAgents",
-          "Tools"
+          "SubAgent Tool Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15869,8 +15853,7 @@
         },
         "summary": "Create SubAgent Tool Relation",
         "tags": [
-          "SubAgents",
-          "Tools"
+          "SubAgent Tool Relations"
         ]
       }
     },
@@ -16004,8 +15987,7 @@
         },
         "summary": "Get SubAgents for Tool",
         "tags": [
-          "SubAgents",
-          "Tools"
+          "SubAgent Tool Relations"
         ]
       }
     },
@@ -16072,8 +16054,7 @@
         },
         "summary": "Delete SubAgent Tool Relation",
         "tags": [
-          "SubAgents",
-          "Tools"
+          "SubAgent Tool Relations"
         ]
       },
       "get": {
@@ -16195,8 +16176,7 @@
         },
         "summary": "Get SubAgent Tool Relation",
         "tags": [
-          "SubAgents",
-          "Tools"
+          "SubAgent Tool Relations"
         ]
       },
       "put": {
@@ -16327,8 +16307,7 @@
         },
         "summary": "Update SubAgent Tool Relation",
         "tags": [
-          "SubAgents",
-          "Tools"
+          "SubAgent Tool Relations"
         ]
       }
     },
@@ -16454,7 +16433,7 @@
         },
         "summary": "List SubAgents",
         "tags": [
-          "SubAgents"
+          "SubAgent"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -16589,7 +16568,7 @@
         },
         "summary": "Create SubAgent",
         "tags": [
-          "SubAgents"
+          "SubAgent"
         ]
       }
     },
@@ -16666,7 +16645,7 @@
         },
         "summary": "Delete SubAgent",
         "tags": [
-          "SubAgents"
+          "SubAgent"
         ]
       },
       "get": {
@@ -16788,7 +16767,7 @@
         },
         "summary": "Get SubAgent",
         "tags": [
-          "SubAgents"
+          "SubAgent"
         ]
       },
       "put": {
@@ -16919,7 +16898,7 @@
         },
         "summary": "Update SubAgent",
         "tags": [
-          "SubAgents"
+          "SubAgent"
         ]
       }
     },
@@ -17054,8 +17033,7 @@
         },
         "summary": "List Sub Agent External Agent Relations",
         "tags": [
-          "SubAgents",
-          "External Agents"
+          "SubAgent External Agent Relations"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17199,8 +17177,7 @@
         },
         "summary": "Create Sub Agent External Agent Relation",
         "tags": [
-          "SubAgents",
-          "External Agents"
+          "SubAgent External Agent Relations"
         ]
       }
     },
@@ -17276,8 +17253,7 @@
         },
         "summary": "Delete Sub Agent External Agent Relation",
         "tags": [
-          "SubAgents",
-          "External Agents"
+          "SubAgent External Agent Relations"
         ]
       },
       "get": {
@@ -17408,8 +17384,7 @@
         },
         "summary": "Get Sub Agent External Agent Relation",
         "tags": [
-          "SubAgents",
-          "External Agents"
+          "SubAgent External Agent Relations"
         ]
       },
       "put": {
@@ -17549,8 +17524,7 @@
         },
         "summary": "Update Sub Agent External Agent Relation",
         "tags": [
-          "SubAgents",
-          "External Agents"
+          "SubAgent External Agent Relations"
         ]
       }
     },
@@ -17669,7 +17643,7 @@
         },
         "summary": "Get Related Agent Infos",
         "tags": [
-          "Agents"
+          "Agent"
         ]
       }
     },
@@ -21673,7 +21647,7 @@
         },
         "summary": "List Credentials",
         "tags": [
-          "Credentials"
+          "Credential"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -21799,7 +21773,7 @@
         },
         "summary": "Create Credential",
         "tags": [
-          "Credentials"
+          "Credential"
         ]
       }
     },
@@ -21857,7 +21831,7 @@
         },
         "summary": "Delete Credential",
         "tags": [
-          "Credentials"
+          "Credential"
         ]
       },
       "get": {
@@ -21970,7 +21944,7 @@
         },
         "summary": "Get Credential",
         "tags": [
-          "Credentials"
+          "Credential"
         ]
       },
       "put": {
@@ -22092,7 +22066,7 @@
         },
         "summary": "Update Credential",
         "tags": [
-          "Credentials"
+          "Credential"
         ]
       }
     },
@@ -31827,6 +31801,18 @@
       "name": "API Keys"
     },
     {
+      "description": "Operations for managing individual agents",
+      "name": "Agent"
+    },
+    {
+      "description": "Operations for managing agent artifact component relationships",
+      "name": "Agent Artifact Component Relations"
+    },
+    {
+      "description": "Operations for managing agent data component relationships",
+      "name": "Agent Data Component Relations"
+    },
+    {
       "description": "Operations for managing agents",
       "name": "Agents"
     },
@@ -31856,7 +31842,7 @@
     },
     {
       "description": "Operations for managing credentials",
-      "name": "Credentials"
+      "name": "Credential"
     },
     {
       "description": "Operations for managing credential stores",
@@ -31873,6 +31859,14 @@
     {
       "description": "Operations for managing external agents",
       "name": "External Agents"
+    },
+    {
+      "description": "Operations for managing complete agent definitions",
+      "name": "Full Agent"
+    },
+    {
+      "description": "Operations for managing complete project definitions",
+      "name": "Full Project"
     },
     {
       "description": "Operations for managing function tools",
@@ -31916,11 +31910,27 @@
     },
     {
       "description": "Operations for managing sub agents",
-      "name": "SubAgents"
+      "name": "SubAgent"
+    },
+    {
+      "description": "Operations for managing sub agent external agent relationships",
+      "name": "SubAgent External Agent Relations"
+    },
+    {
+      "description": "Operations for managing sub agent function tools",
+      "name": "SubAgent Function Tools"
+    },
+    {
+      "description": "Operations for managing sub agent relationships",
+      "name": "SubAgent Relations"
     },
     {
       "description": "Operations for managing sub agent team agent relationships",
       "name": "SubAgent Team Agent Relations"
+    },
+    {
+      "description": "Operations for managing sub agent tool relationships",
+      "name": "SubAgent Tool Relations"
     },
     {
       "description": "Operations for managing third-party MCP servers",
