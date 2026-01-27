@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import { enforceProjectFilter } from '../../../utils/signozHelpers';
+import { enforceSecurityFilters } from '../../../utils/signozHelpers';
 
 const logger = getLogger('signoz-proxy');
 
@@ -49,11 +49,11 @@ app.post('/query', async (c) => {
         403
       );
     }
-
-    // Enforce server-side project filter
-    payload = enforceProjectFilter(payload, requestedProjectId);
-    logger.debug({ projectId: requestedProjectId }, 'Project filter enforced');
   }
+
+  // Always enforce server-side tenant filter, and project filter if provided
+  payload = enforceSecurityFilters(payload, tenantId, requestedProjectId);
+  logger.debug({ tenantId, projectId: requestedProjectId }, 'Security filters enforced');
 
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
   const signozApiKey = env.SIGNOZ_API_KEY;

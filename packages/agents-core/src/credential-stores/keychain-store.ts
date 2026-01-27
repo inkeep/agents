@@ -1,4 +1,4 @@
-import type * as Keytar from 'keytar';
+import type { Entry } from '@napi-rs/keyring';
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
@@ -11,16 +11,16 @@ import { getLogger } from '../utils/logger';
  * - Windows: Credential Vault
  * - Linux: Secret Service API/libsecret
  *
- * Requires the 'keytar' npm package to be installed.
- * Falls back gracefully if keytar is not available.
+ * Requires the '@napi-rs/keyring' npm package to be installed.
+ * Falls back gracefully if keyring is not available.
  *
  * ## macOS Permission Handling
  *
- * On macOS, when your Node.js app first calls keytar operations:
+ * On macOS, when your Node.js app first calls keyring operations:
  * - `setPassword()` creates a new Keychain item (no prompt required)
  * - `getPassword()` may prompt the user for permission on first access
  * - Users can click "Allow", "Always Allow", or "Deny"
- * - If denied, keytar returns `null` which this implementation handles gracefully
+ * - If denied, keyring returns `null` which this implementation handles gracefully
  * - The calling binary (usually `node`) will be shown in the permission prompt
  * - For better UX in packaged apps, consider code signing and app bundling
  *
@@ -34,40 +34,89 @@ export class KeyChainStore implements CredentialStore {
   public readonly type = CredentialStoreType.keychain;
   private readonly service: string;
   private readonly logger = getLogger('KeyChainStore');
-  private keytarAvailable = false;
-  private keytar: typeof Keytar | null = null;
+  private keyringAvailable = false;
+  private EntryClass: typeof Entry | null = null;
   private initializationPromise: Promise<void>;
 
   constructor(id: string, servicePrefix = 'inkeep-agent-framework') {
     this.id = id;
     // Use service prefix to isolate credentials by store ID
     this.service = `${servicePrefix}-${id}`;
-    this.initializationPromise = this.initializeKeytar();
+    this.initializationPromise = this.initializeKeyring();
   }
 
   /**
-   * Initialize keytar dynamically to handle optional availability
+   * Initialize keyring dynamically to handle optional availability
    */
-  private async initializeKeytar(): Promise<void> {
-    if (this.keytar) {
-      this.keytarAvailable = true;
+  private async initializeKeyring(): Promise<void> {
+    if (this.EntryClass) {
+      this.keyringAvailable = true;
       return;
     }
 
     try {
       // Dynamic import with `webpackIgnore` to prevent Webpack/Turbopack from bundling
-      // or analyzing the `keytar` module (must be loaded at runtime only).
-      this.keytar = (await import(/* webpackIgnore: true */ 'keytar')).default;
-      this.keytarAvailable = true;
+      // or analyzing the `@napi-rs/keyring` module (must be loaded at runtime only).
+      const keyringModule = await import(/* webpackIgnore: true */ '@napi-rs/keyring');
+      this.EntryClass = keyringModule.Entry;
+      this.keyringAvailable = true;
     } catch (error) {
       this.logger.warn(
         {
           storeId: this.id,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Keytar not available - KeyChainStore will return null for all operations'
+        'Keyring not available - KeyChainStore will return null for all operations'
       );
-      this.keytarAvailable = false;
+      this.keyringAvailable = false;
+    }
+  }
+
+  /**
+   * Add a key to the index
+   */
+  private addKeyToIndex(key: string): void {
+    if (!this.EntryClass) return;
+
+    try {
+      const indexEntry = new this.EntryClass(this.service, '__key_index__');
+      const indexJson = indexEntry.getPassword();
+      const keys: string[] = indexJson ? JSON.parse(indexJson) : [];
+
+      if (!keys.includes(key)) {
+        keys.push(key);
+        indexEntry.setPassword(JSON.stringify(keys));
+      }
+    } catch (error) {
+      this.logger.warn(
+        { storeId: this.id, key, error: error instanceof Error ? error.message : 'Unknown error' },
+        'Failed to update key index'
+      );
+    }
+  }
+
+  /**
+   * Remove a key from the index
+   */
+  private removeKeyFromIndex(key: string): void {
+    if (!this.EntryClass) return;
+
+    try {
+      const indexEntry = new this.EntryClass(this.service, '__key_index__');
+      const indexJson = indexEntry.getPassword();
+      if (!indexJson) return;
+
+      const keys: string[] = JSON.parse(indexJson);
+      const filteredKeys = keys.filter((k) => k !== key);
+
+      if (filteredKeys.length !== keys.length) {
+        indexEntry.setPassword(JSON.stringify(filteredKeys));
+      }
+    } catch (error) {
+      this.logger.warn(
+        { storeId: this.id, key, error: error instanceof Error ? error.message : 'Unknown error' },
+        'Failed to update key index'
+      );
     }
   }
 
@@ -77,19 +126,21 @@ export class KeyChainStore implements CredentialStore {
   async get(key: string): Promise<string | null> {
     await this.initializationPromise;
 
-    if (!this.keytarAvailable || !this.keytar) {
-      this.logger.debug({ storeId: this.id, key }, 'Keytar not available, returning null');
+    if (!this.keyringAvailable || !this.EntryClass) {
+      this.logger.debug({ storeId: this.id, key }, 'Keyring not available, returning null');
       return null;
     }
 
     try {
-      const password = await this.keytar.getPassword(this.service, key);
+      const entry = new this.EntryClass(this.service, key);
+      const password = entry.getPassword();
 
-      if (password === null) {
+      if (password === null || password === undefined) {
         this.logger.debug(
           { storeId: this.id, service: this.service, account: key },
           'No credential found in keychain'
         );
+        return null;
       }
 
       return password;
@@ -118,13 +169,15 @@ export class KeyChainStore implements CredentialStore {
   ): Promise<void> {
     await this.initializationPromise;
 
-    if (!this.keytarAvailable || !this.keytar) {
-      this.logger.warn({ storeId: this.id, key }, 'Keytar not available, cannot set credential');
-      throw new Error('Keytar not available - cannot store credentials in system keychain');
+    if (!this.keyringAvailable || !this.EntryClass) {
+      this.logger.warn({ storeId: this.id, key }, 'Keyring not available, cannot set credential');
+      throw new Error('Keyring not available - cannot store credentials in system keychain');
     }
 
     try {
-      await this.keytar.setPassword(this.service, key, value);
+      const entry = new this.EntryClass(this.service, key);
+      entry.setPassword(value);
+      this.addKeyToIndex(key);
 
       this.logger.debug(
         { storeId: this.id, service: this.service, account: key },
@@ -160,10 +213,10 @@ export class KeyChainStore implements CredentialStore {
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
     await this.initializationPromise;
 
-    if (!this.keytarAvailable || !this.keytar) {
+    if (!this.keyringAvailable || !this.EntryClass) {
       return {
         available: false,
-        reason: 'Keytar not available - cannot store credentials in system keychain',
+        reason: 'Keyring not available - cannot store credentials in system keychain',
       };
     }
 
@@ -178,27 +231,25 @@ export class KeyChainStore implements CredentialStore {
   async delete(key: string): Promise<boolean> {
     await this.initializationPromise;
 
-    if (!this.keytarAvailable || !this.keytar) {
-      this.logger.warn({ storeId: this.id, key }, 'Keytar not available, cannot delete credential');
+    if (!this.keyringAvailable || !this.EntryClass) {
+      this.logger.warn(
+        { storeId: this.id, key },
+        'Keyring not available, cannot delete credential'
+      );
       return false;
     }
 
     try {
-      const result = await this.keytar.deletePassword(this.service, key);
+      const entry = new this.EntryClass(this.service, key);
+      entry.deletePassword();
+      this.removeKeyFromIndex(key);
 
-      if (result) {
-        this.logger.debug(
-          { storeId: this.id, service: this.service, account: key },
-          'Credential deleted from keychain'
-        );
-      } else {
-        this.logger.debug(
-          { storeId: this.id, service: this.service, account: key },
-          'Credential not found in keychain for deletion'
-        );
-      }
+      this.logger.debug(
+        { storeId: this.id, service: this.service, account: key },
+        'Credential deleted from keychain'
+      );
 
-      return result;
+      return true;
     } catch (error) {
       this.logger.error(
         {
@@ -216,17 +267,43 @@ export class KeyChainStore implements CredentialStore {
   /**
    * Find all credentials for this service
    * Useful for debugging and listing stored credentials
+   *
+   * NOTE: @napi-rs/keyring does not have a findCredentials equivalent.
+   * This implementation uses a key index to track all stored keys.
+   * The index is maintained separately and updated during set/delete operations.
    */
   async findAllCredentials(): Promise<Array<{ account: string; password: string }>> {
     await this.initializationPromise;
 
-    if (!this.keytarAvailable || !this.keytar) {
+    if (!this.keyringAvailable || !this.EntryClass) {
       return [];
     }
 
     try {
-      const credentials = await this.keytar.findCredentials(this.service);
-      return credentials || [];
+      // Try to get the index of all keys
+      const indexEntry = new this.EntryClass(this.service, '__key_index__');
+      const indexJson = indexEntry.getPassword();
+
+      if (!indexJson) {
+        return [];
+      }
+
+      const keys: string[] = JSON.parse(indexJson);
+      const credentials: Array<{ account: string; password: string }> = [];
+
+      for (const key of keys) {
+        try {
+          const entry = new this.EntryClass(this.service, key);
+          const password = entry.getPassword();
+          if (password) {
+            credentials.push({ account: key, password });
+          }
+        } catch {
+          // Skip keys that can't be retrieved
+        }
+      }
+
+      return credentials;
     } catch (error) {
       this.logger.error(
         {
@@ -252,6 +329,19 @@ export class KeyChainStore implements CredentialStore {
       const deleted = await this.delete(cred.account);
       if (deleted) {
         deletedCount++;
+      }
+    }
+
+    // Clear the key index
+    if (this.EntryClass && deletedCount > 0) {
+      try {
+        const indexEntry = new this.EntryClass(this.service, '__key_index__');
+        indexEntry.deletePassword();
+      } catch (error) {
+        this.logger.warn(
+          { storeId: this.id, error: error instanceof Error ? error.message : 'Unknown error' },
+          'Failed to delete key index'
+        );
       }
     }
 

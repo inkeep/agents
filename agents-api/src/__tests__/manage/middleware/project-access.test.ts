@@ -130,7 +130,6 @@ describe('requireProjectPermission middleware', () => {
       const res = await app.request('/projects/test-project');
       expect(res.status).toBe(200);
       expect(canViewProject).toHaveBeenCalledWith({
-        tenantId: 'test-tenant',
         userId: 'test-user',
         projectId: 'test-project',
         orgRole: 'member',

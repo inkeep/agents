@@ -27,6 +27,7 @@ interface ModelSelectorProps {
   inheritedValue?: string;
   isRequired?: boolean;
   canClear?: boolean;
+  disabled?: boolean;
 }
 
 export function ModelSelector({
@@ -39,6 +40,7 @@ export function ModelSelector({
   inheritedValue,
   isRequired = false,
   canClear = true,
+  disabled = false,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState<
@@ -110,15 +112,17 @@ export function ModelSelector({
       )}
       <div className="relative">
         <div className="flex w-full shadow-xs rounded-md">
-          <Popover open={open} onOpenChange={setOpen}>
+          <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
+                disabled={disabled}
                 className={cn(
                   'justify-between bg-background dark:bg-input/30 flex-1 text-foreground shadow-none truncate',
-                  selectedModel && canClear ? 'rounded-r-none border-r-0' : 'rounded-r-md'
+                  selectedModel && canClear ? 'rounded-r-none border-r-0' : 'rounded-r-md',
+                  disabled && 'opacity-50 cursor-not-allowed'
                 )}
               >
                 {selectedModel ? (
@@ -493,7 +497,7 @@ export function ModelSelector({
               </div>
             </div>
           )}
-          {canClear && (
+          {canClear && !disabled && (
             <div
               className={cn(
                 'transition-all duration-200 ease-in-out overflow-hidden',

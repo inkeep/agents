@@ -10,7 +10,6 @@ import {
 import NextLink from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
@@ -25,8 +24,12 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
-import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
+import {
+  copyFullTraceToClipboard,
+  copySummarizedTraceToClipboard,
+} from '@/lib/utils/trace-formatter';
 
 export default function ConversationDetail({
   params,
@@ -41,15 +44,40 @@ export default function ConversationDetail({
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
-  const handleCopyTrace = async () => {
+  const handleCopyFullTrace = async () => {
     if (!conversation) return;
 
     setIsCopying(true);
     try {
-      const result = await copyTraceToClipboard(conversation);
+      const result = await copyFullTraceToClipboard(conversation, tenantId, projectId);
       if (result.success) {
-        toast.success('Trace copied to clipboard', {
-          description: 'The OTEL trace has been copied successfully.',
+        toast.success('Full trace copied to clipboard', {
+          description: 'The complete OTEL trace has been copied successfully.',
+        });
+      } else {
+        toast.error('Failed to copy trace', {
+          description: result.error || 'An unknown error occurred',
+        });
+      }
+    } catch (err) {
+      toast.error('Failed to copy trace', {
+        description: err instanceof Error ? err.message : 'An unknown error occurred',
+      });
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setIsCopying(false);
+    }
+  };
+
+  const handleCopySummarizedTrace = async () => {
+    if (!conversation) return;
+
+    setIsCopying(true);
+    try {
+      const result = await copySummarizedTraceToClipboard(conversation, tenantId, projectId);
+      if (result.success) {
+        toast.success('Summarized trace copied to clipboard', {
+          description: 'The activity timeline has been copied successfully.',
         });
       } else {
         toast.error('Failed to copy trace', {
@@ -336,7 +364,10 @@ export default function ConversationDetail({
           <TimelineWrapper
             conversation={conversation}
             conversationId={conversationId}
-            onCopyTrace={handleCopyTrace}
+            tenantId={tenantId}
+            projectId={projectId}
+            onCopyFullTrace={handleCopyFullTrace}
+            onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}
           />
         </ResizablePanelGroup>

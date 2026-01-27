@@ -2,9 +2,11 @@ export const MONACO_THEME_NAME = Object.freeze({
   light: 'inkeep-light',
   dark: 'inkeep-dark',
 });
-
+export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';
+
+export const TEMPLATE_VARIABLE_REGEX = /\{\{(?!\{)(?<variableName>[^{}]+)}}/g;
 
 /**
  * Used in `/[tenantId]/@breadcrumbs/[...slug]/page.tsx` parallel route and sidebar-nav/app-sidebar
@@ -12,6 +14,7 @@ export const VARIABLE_TOKEN = 'variable';
  */
 export const STATIC_LABELS = Object.freeze({
   projects: 'Projects',
+  stats: 'Statistics',
   agents: 'Agents',
   'api-keys': 'API Keys',
   artifacts: 'Artifacts',
@@ -35,4 +38,5 @@ export const STATIC_LABELS = Object.freeze({
   runs: 'Runs',
   triggers: 'Triggers',
   invocations: 'Invocations',
+  'no-organization-found': 'No organization found',
 });

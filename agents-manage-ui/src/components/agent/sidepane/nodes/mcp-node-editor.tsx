@@ -1,9 +1,8 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { getActiveTools } from '@/app/utils/active-tools';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,10 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProjectPermissions } from '@/contexts/project';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
+import { getActiveTools } from '@/lib/utils/active-tools';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
@@ -36,6 +38,7 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  const { canEdit } = useProjectPermissions();
   const { deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
@@ -47,11 +50,23 @@ export function MCPServerNodeEditor({
   }>();
   const { markUnsaved } = useAgentActions();
 
-  // Only use toolLookup - single source of truth
+  // Get skeleton data from store
   const { toolLookup, edges } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
     edges: state.edges,
   }));
+
+  // Lazy-load actual tool status
+  const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
+    tenantId,
+    projectId,
+    toolId: selectedNode.data.toolId,
+    enabled: !!selectedNode.data.toolId && !!tenantId && !!projectId,
+  });
+
+  // Use live data if available, fall back to skeleton from store
+  const skeletonToolData = toolLookup[selectedNode.data.toolId];
+  const toolData = liveToolData ?? skeletonToolData;
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
     return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
@@ -66,8 +81,6 @@ export function MCPServerNodeEditor({
     const newHeaders = getCurrentHeaders();
     setHeadersInputValue(JSON.stringify(newHeaders, null, 2));
   }, [selectedNode.id]);
-
-  const toolData = toolLookup[selectedNode.data.toolId];
 
   const availableTools = toolData?.availableTools;
 
@@ -312,7 +325,12 @@ export function MCPServerNodeEditor({
             })()}
         </div>
 
-        {(activeTools && activeTools.length > 0) || orphanedTools.length > 0 ? (
+        {isLoadingToolStatus ? (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground border rounded-md bg-muted/10">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Loading...
+          </div>
+        ) : (activeTools && activeTools.length > 0) || orphanedTools.length > 0 ? (
           <div className="border rounded-md">
             {/* Header */}
             <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md border-b">
@@ -443,13 +461,17 @@ export function MCPServerNodeEditor({
       >
         View MCP Server
       </ExternalLink>
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
+      {canEdit && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

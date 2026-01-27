@@ -35,24 +35,49 @@ const logger = getLogger('projectFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-// Creating a project is an org-level action
+// ============================================================================
+// Authorization Middleware (explicit per-route)
+// ============================================================================
+
+// POST /project-full → org 'project:create'
 app.use('/project-full', async (c, next) => {
-  if (c.req.method === 'POST') {
-    return requirePermission({ project: ['create'] })(c, next);
-  }
+  if (c.req.method === 'POST') return requirePermission({ project: ['create'] })(c, next);
   return next();
 });
 
-// Updating/deleting a project requires project-level 'edit' permission
+// GET /project-full/:projectId/* → project 'view'
 app.use('/project-full/:projectId', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
-    return requireProjectPermission('edit')(c, next);
-  }
+  if (c.req.method === 'GET') return requireProjectPermission('view')(c, next);
   return next();
 });
+app.use('/project-full/:projectId/with-relation-ids', async (c, next) => {
+  if (c.req.method === 'GET') return requireProjectPermission('view')(c, next);
+  return next();
+});
+
+// PUT /project-full/:projectId → dynamic: 'project:create' (new) or 'edit' (existing)
+const requireProjectUpsertPermission = async (
+  c: Parameters<ReturnType<typeof requireProjectPermission>>[0],
+  next: Parameters<ReturnType<typeof requireProjectPermission>>[1]
+) => {
+  const tenantId = c.get('tenantId');
+  const projectId = c.req.param('projectId');
+  if (!tenantId || !projectId) {
+    throw createApiError({ code: 'bad_request', message: 'Missing tenantId or projectId' });
+  }
+  const exists = await getProjectMetadata(runDbClient)({ tenantId, projectId });
+  c.set('isProjectCreate', !exists);
+  return exists
+    ? requireProjectPermission('edit')(c, next)
+    : requirePermission({ project: ['create'] })(c, next);
+};
+
+// DELETE /project-full/:projectId → org 'project:delete'
+// Note: Registered after PUT to avoid path conflicts
+
+// ============================================================================
+// Routes
+// ============================================================================
 
 app.openapi(
   createRoute({
@@ -60,7 +85,7 @@ app.openapi(
     path: '/project-full',
     summary: 'Create Full Project',
     operationId: 'create-full-project',
-    tags: ['Full Project'],
+    tags: ['Projects'],
     description:
       'Create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     request: {
@@ -160,7 +185,7 @@ app.openapi(
     path: '/project-full/{projectId}',
     summary: 'Get Full Project',
     operationId: 'get-full-project',
-    tags: ['Full Project'],
+    tags: ['Projects'],
     description:
       'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
     request: {
@@ -217,7 +242,7 @@ app.openapi(
     path: '/project-full/{projectId}/with-relation-ids',
     summary: 'Get Full Project with Relation IDs',
     operationId: 'get-full-project-with-relation-ids',
-    tags: ['Full Project'],
+    tags: ['Projects'],
     description:
       'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
     request: {
@@ -269,13 +294,19 @@ app.openapi(
 );
 
 // Update/upsert full project
+// Authorization: dynamic - 'project:create' (new) or 'edit' (existing)
+app.use('/project-full/:projectId', async (c, next) => {
+  if (c.req.method === 'PUT') return requireProjectUpsertPermission(c, next);
+  return next();
+});
+
 app.openapi(
   createRoute({
     method: 'put',
     path: '/project-full/{projectId}',
     summary: 'Update Full Project',
     operationId: 'update-full-project',
-    tags: ['Full Project'],
+    tags: ['Projects'],
     description:
       'Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     request: {
@@ -324,9 +355,8 @@ app.openapi(
         });
       }
 
-      // Check if project exists in runtime DB (source of truth)
-      const runtimeProject = await getProjectMetadata(runDbClient)({ tenantId, projectId });
-      const isCreate = !runtimeProject;
+      // Use cached result from middleware (permission already checked there)
+      const isCreate = c.get('isProjectCreate') ?? false;
 
       if (isCreate) {
         // Project doesn't exist - create it with branch first
@@ -381,13 +411,19 @@ app.openapi(
   }
 );
 
+// Authorization: org 'project:delete'
+app.use('/project-full/:projectId', async (c, next) => {
+  if (c.req.method === 'DELETE') return requirePermission({ project: ['delete'] })(c, next);
+  return next();
+});
+
 app.openapi(
   createRoute({
     method: 'delete',
     path: '/project-full/{projectId}',
     summary: 'Delete Full Project',
     operationId: 'delete-full-project',
-    tags: ['Full Project'],
+    tags: ['Projects'],
     description:
       'Delete a complete project and cascade to all related entities (Agents, Sub Agents, tools, relationships)',
     request: {

@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   Lock,
   Settings,
+  Users,
   Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -27,8 +28,7 @@ import {
   SidebarHeader,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { STATIC_LABELS } from '@/constants/theme';
+import { DOCS_BASE_URL, STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
@@ -66,6 +66,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects`,
           icon: Layers,
         },
+        {
+          title: STATIC_LABELS.stats,
+          url: `/${tenantId}/stats`,
+          icon: BarChart3,
+        },
       ];
 
   const orgNavItems: NavItemProps[] = [
@@ -93,11 +98,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
-        // {
-        //   title: 'Members',
-        //   url: `/${tenantId}/projects/${projectId}/members`,
-        //   icon: Users,
-        // },
+        ...(tenantId === 'default'
+          ? [
+              {
+                title: 'Members',
+                url: `/${tenantId}/projects/${projectId}/members`,
+                icon: Users,
+              },
+            ]
+          : []),
       ]
     : [];
 

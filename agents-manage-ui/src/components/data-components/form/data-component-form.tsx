@@ -29,6 +29,7 @@ interface DataComponentFormProps {
   projectId: string;
   id?: string;
   initialData?: DataComponentFormData;
+  readOnly?: boolean;
   className?: string;
 }
 
@@ -47,6 +48,7 @@ export function DataComponentForm({
   projectId,
   id,
   initialData,
+  readOnly = false,
   className,
 }: DataComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -113,13 +115,14 @@ export function DataComponentForm({
               </>
             }
             isRequired
+            disabled={readOnly}
           />
           <GenericInput
             control={form.control}
             name="id"
             label="Id"
             placeholder="my-data-component"
-            disabled={!!id}
+            disabled={!!id || readOnly}
             description={
               id
                 ? ''
@@ -133,6 +136,7 @@ export function DataComponentForm({
             label="Description"
             placeholder="Display a list of user orders with interactive options"
             className="min-h-[80px]"
+            disabled={readOnly}
           />
           <JsonSchemaInput
             control={form.control}
@@ -141,9 +145,10 @@ export function DataComponentForm({
             placeholder="Enter a valid JSON Schema..."
             uri="json-schema-data-component.json"
             isRequired
+            readOnly={readOnly}
           />
 
-          {id && (
+          {id && !readOnly && (
             <ComponentRenderGenerator
               tenantId={tenantId}
               projectId={projectId}
@@ -155,18 +160,20 @@ export function DataComponentForm({
             />
           )}
 
-          <div className="flex w-full justify-between">
-            <Button type="submit" disabled={isSubmitting}>
-              Save
-            </Button>
-            {id && (
-              <DialogTrigger asChild>
-                <Button type="button" variant="destructive-outline">
-                  Delete Component
-                </Button>
-              </DialogTrigger>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="flex w-full justify-between">
+              <Button type="submit" disabled={isSubmitting}>
+                Save
+              </Button>
+              {id && (
+                <DialogTrigger asChild>
+                  <Button type="button" variant="destructive-outline">
+                    Delete Component
+                  </Button>
+                </DialogTrigger>
+              )}
+            </div>
+          )}
         </form>
       </Form>
       {isDeleteOpen && id && (

@@ -12,9 +12,13 @@ import { z } from 'zod';
 export const docs = defineDocs({
   dir: 'content',
   docs: {
+    postprocess: {
+      includeProcessedMarkdown: true,
+    },
     schema: frontmatterSchema.extend({
       sidebarTitle: z.string().optional(),
       keywords: z.string().optional(),
+      skills: z.array(z.string()).optional(),
     }),
   },
 });

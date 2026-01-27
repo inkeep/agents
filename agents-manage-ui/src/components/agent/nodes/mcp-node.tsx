@@ -1,11 +1,19 @@
 import { type NodeProps, Position } from '@xyflow/react';
+import { Shield } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import type { FC, ReactNode } from 'react';
-import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { cn } from '@/lib/utils';
-import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
+import { getActiveTools } from '@/lib/utils/active-tools';
+import {
+  getCurrentSelectedToolsForNode,
+  getCurrentToolPoliciesForNode,
+} from '@/lib/utils/orphaned-tools-detector';
+import { toolPolicyNeedsApprovalForTool } from '@/lib/utils/tool-policies';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
@@ -27,17 +35,54 @@ export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
+const TruncateToolBadge: FC<{
+  label: string;
+  needsApproval?: boolean;
+}> = ({ label, needsApproval }) => {
+  if (!needsApproval) {
+    return <TruncateBadge>{label}</TruncateBadge>;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="relative">
+          <TruncateBadge>{label}</TruncateBadge>
+          <div className="absolute -top-1 -right-2 rounded-full bg-background p-0.5">
+            <Shield className="h-3 w-3 text-muted-foreground" />
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>Requires approval</TooltipContent>
+    </Tooltip>
+  );
+};
+
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { toolLookup, agentToolConfigLookup, edges } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
     agentToolConfigLookup: state.agentToolConfigLookup,
     edges: state.edges,
   }));
 
+  // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
+  const skeletonToolData = toolLookup[data.toolId];
+
+  // Lazy-load actual status for this specific tool
+  const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
+    tenantId,
+    projectId,
+    toolId: data.toolId,
+    enabled: !!data.toolId && !!tenantId && !!projectId,
+  });
+
+  // Use live data if available, fall back to skeleton
+  const toolData = liveToolData ?? skeletonToolData;
+
   const name = data.name || `Tool: ${data.toolId}`;
-  const imageUrl = data.imageUrl;
-  const toolData = toolLookup[data.toolId];
+  const imageUrl = data.imageUrl ?? toolData?.imageUrl;
 
   const availableTools = toolData?.availableTools;
 
@@ -47,6 +92,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   });
 
   const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup, edges);
+  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup, edges);
 
   // Format the tool display
   const getToolDisplay = () => {
@@ -91,31 +137,50 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     return [...toolsToShow, `+${remainingCount}`];
   };
 
-  const toolBadges = getToolDisplay();
+  const toolBadges = getToolDisplay().map((label) => {
+    const isSynthetic =
+      label === '0' || label.startsWith('+') || label.endsWith('(ALL)') || label.includes('(ALL)');
+
+    return {
+      label,
+      needsApproval: isSynthetic ? false : toolPolicyNeedsApprovalForTool(toolPolicies, label),
+    };
+  });
   const isDelegating = data.status === 'delegating';
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
   const hasErrors = data.status === 'error';
   const needsAuth = toolData?.status === 'needs_auth';
+  const isTimeout = toolData?.status === 'unavailable';
+
   return (
     <BaseNode
       isSelected={selected || isDelegating}
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
+        isConnecting && 'animate-pulse opacity-80',
         hasErrors && 'ring-2 ring-red-300 border-red-300',
-        needsAuth && 'ring-2 ring-red-400 border-red-400 bg-red-50 dark:bg-red-950/30',
+        needsAuth && 'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
         isInvertedDelegating && 'node-delegating-inverted'
       )}
     >
       <BaseNodeHeader className="flex items-center justify-between gap-2">
-        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="flex-shrink-0" />
+        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
         <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
       <BaseNodeContent className="flex-row gap-2 flex-wrap">
-        {toolBadges.map((label) => (
-          <TruncateBadge key={label}>{label}</TruncateBadge>
-        ))}
+        {isConnecting ? (
+          <TruncateBadge>Connecting...</TruncateBadge>
+        ) : isTimeout ? (
+          <TruncateBadge>Unavailable</TruncateBadge>
+        ) : toolBadges.length > 0 ? (
+          toolBadges.map(({ label, needsApproval }) => (
+            <TruncateToolBadge key={label} label={label} needsApproval={needsApproval} />
+          ))
+        ) : (
+          <TruncateBadge>No tools</TruncateBadge>
+        )}
       </BaseNodeContent>
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
     </BaseNode>

@@ -1,5 +1,6 @@
 'use server';
 
+import type { ProjectPermissions } from '@inkeep/agents-core';
 import { cache } from 'react';
 import type { ProjectFormData } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
@@ -101,3 +102,19 @@ export async function deleteProject(tenantId: string, projectId: string): Promis
     method: 'DELETE',
   });
 }
+
+/**
+ * Fetch project permissions for the current user.
+ * Wrapped with React's cache() to deduplicate calls within a single request.
+ */
+export const fetchProjectPermissions = cache(
+  async (tenantId: string, projectId: string): Promise<ProjectPermissions> => {
+    validateTenantId(tenantId);
+
+    const response = await makeManagementApiRequest<{ data: ProjectPermissions }>(
+      `tenants/${tenantId}/projects/${projectId}/permissions`
+    );
+
+    return response.data;
+  }
+);

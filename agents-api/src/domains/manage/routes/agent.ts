@@ -40,10 +40,7 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
+  if (['PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -134,7 +131,7 @@ app.openapi(
     path: '/{agentId}/sub-agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
-    tags: ['Agent'],
+    tags: ['Agents'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -178,7 +175,7 @@ app.openapi(
     path: '/{agentId}/full',
     summary: 'Get Full Agent Definition',
     operationId: 'get-full-agent-definition',
-    tags: ['Agent'],
+    tags: ['Agents'],
     request: {
       params: TenantProjectAgentParamsSchema,
     },

@@ -49,7 +49,7 @@ app.openapi(
     path: '/',
     summary: 'List SubAgents',
     operationId: 'list-subagents',
-    tags: ['SubAgent'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -96,7 +96,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get SubAgent',
     operationId: 'get-subagent-by-id',
-    tags: ['SubAgent'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -144,7 +144,7 @@ app.openapi(
     path: '/',
     summary: 'Create SubAgent',
     operationId: 'create-subagent',
-    tags: ['SubAgent'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -196,7 +196,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update SubAgent',
     operationId: 'update-subagent',
-    tags: ['SubAgent'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -253,7 +253,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete SubAgent',
     operationId: 'delete-subagent',
-    tags: ['SubAgent'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

@@ -9,11 +9,16 @@ import {
 } from '../sync';
 
 // Mock the client module
-vi.mock('../client', () => ({
-  getSpiceClient: vi.fn(),
-  writeRelationship: vi.fn(),
-  deleteRelationship: vi.fn(),
-}));
+vi.mock('../client', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../client')>();
+  return {
+    ...original,
+    getSpiceClient: vi.fn(),
+    writeRelationship: vi.fn(),
+    deleteRelationship: vi.fn(),
+    readRelationships: vi.fn(),
+  };
+});
 
 // Mock the config module
 vi.mock('../config', async (importOriginal) => {
@@ -24,12 +29,18 @@ vi.mock('../config', async (importOriginal) => {
   };
 });
 
-import { deleteRelationship, getSpiceClient, writeRelationship } from '../client';
+import {
+  deleteRelationship,
+  getSpiceClient,
+  readRelationships,
+  writeRelationship,
+} from '../client';
 import { isAuthzEnabled } from '../config';
 
 describe('authz/sync', () => {
   const mockWriteRelationship = vi.mocked(writeRelationship);
   const mockDeleteRelationship = vi.mocked(deleteRelationship);
+  const mockReadRelationships = vi.mocked(readRelationships);
   const mockIsAuthzEnabled = vi.mocked(isAuthzEnabled);
   const mockGetSpiceClient = vi.mocked(getSpiceClient);
 
@@ -43,6 +54,8 @@ describe('authz/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSpiceClient.mockReturnValue(mockSpiceClient as any);
+    // Default: user has no existing org roles (not admin/owner)
+    mockReadRelationships.mockResolvedValue([]);
   });
 
   afterEach(() => {

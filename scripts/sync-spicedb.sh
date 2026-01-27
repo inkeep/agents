@@ -14,7 +14,7 @@
 #   - INKEEP_AGENTS_RUN_DATABASE_URL (or DATABASE_URL) - Runtime database connection
 #   - SPICEDB_ENDPOINT - SpiceDB gRPC endpoint (default: localhost:50051)
 #   - SPICEDB_PRESHARED_KEY - SpiceDB auth token
-#   - TENANT_ID - (optional) Sync only this organization ID. If not set, syncs all orgs.
+#   - SYNC_TENANT_ID - (optional) Sync only this organization ID. If not set, syncs all orgs.
 #
 # Tables queried (from runtime DB):
 #   - organization: org IDs and names
@@ -24,13 +24,13 @@
 # Usage (Local Dev - uses .env automatically):
 #   ./scripts/sync-spicedb.sh                    # Dry run (all orgs)
 #   ./scripts/sync-spicedb.sh --apply            # Apply to local SpiceDB
-#   TENANT_ID=default ./scripts/sync-spicedb.sh --apply  # Sync only one org
+#   SYNC_TENANT_ID=default ./scripts/sync-spicedb.sh --apply  # Sync only one org
 #
 # Usage (Production - Authzed Cloud):
 #   SPICEDB_ENDPOINT=<your-endpoint>:443 \
 #   SPICEDB_PRESHARED_KEY=<your-api-key> \
 #   INKEEP_AGENTS_RUN_DATABASE_URL=<prod-db-url> \
-#   TENANT_ID=<org-id> \
+#   SYNC_TENANT_ID=<org-id> \
 #   ./scripts/sync-spicedb.sh --apply
 #
 # What it does:
@@ -88,7 +88,7 @@ done
 DATABASE_URL="${INKEEP_AGENTS_RUN_DATABASE_URL:-${DATABASE_URL:-}}"
 SPICEDB_ENDPOINT="${SPICEDB_ENDPOINT:-localhost:50051}"
 SPICEDB_TOKEN="${SPICEDB_PRESHARED_KEY:-dev-secret-key}"
-TENANT_ID="${TENANT_ID:-}"  # Optional: sync only this org
+SYNC_TENANT_ID="${SYNC_TENANT_ID:-}"  # Optional: sync only this org (won't conflict with .env TENANT_ID)
 
 # Validate required env vars
 if [ -z "$DATABASE_URL" ]; then
@@ -138,8 +138,8 @@ else
 fi
 echo "SpiceDB:  $SPICEDB_ENDPOINT"
 echo "Database: ${DATABASE_URL//:*@/:****@}"
-if [ -n "$TENANT_ID" ]; then
-  echo -e "Tenant:   ${GREEN}$TENANT_ID${NC} (filtering to this org only)"
+if [ -n "$SYNC_TENANT_ID" ]; then
+  echo -e "Tenant:   ${GREEN}$SYNC_TENANT_ID${NC} (filtering to this org only)"
 else
   echo "Tenant:   (all organizations)"
 fi
@@ -180,10 +180,10 @@ sync_organizations() {
   echo -e "${BLUE}📁 Syncing Organizations...${NC}"
   echo ""
   
-  # Query organizations (filter by TENANT_ID if set)
+  # Query organizations (filter by SYNC_TENANT_ID if set)
   local org_query="SELECT id, name FROM organization"
-  if [ -n "$TENANT_ID" ]; then
-    org_query="$org_query WHERE id = '$TENANT_ID'"
+  if [ -n "$SYNC_TENANT_ID" ]; then
+    org_query="$org_query WHERE id = '$SYNC_TENANT_ID'"
   fi
   local orgs=$(psql "$DATABASE_URL" -t -A -F '|' -c "$org_query")
   
@@ -215,10 +215,10 @@ sync_projects() {
   echo -e "${BLUE}📂 Syncing Projects...${NC}"
   echo ""
   
-  # Query project_metadata (runtime DB) - filter by TENANT_ID if set
+  # Query project_metadata (runtime DB) - filter by SYNC_TENANT_ID if set
   local project_query="SELECT id, tenant_id FROM project_metadata"
-  if [ -n "$TENANT_ID" ]; then
-    project_query="$project_query WHERE tenant_id = '$TENANT_ID'"
+  if [ -n "$SYNC_TENANT_ID" ]; then
+    project_query="$project_query WHERE tenant_id = '$SYNC_TENANT_ID'"
   fi
   local projects=$(psql "$DATABASE_URL" -t -A -F '|' -c "$project_query")
   local project_count=0

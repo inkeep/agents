@@ -30,6 +30,9 @@ import {
   type FunctionApiInsertSchema,
   type ModelSettings,
   ModelSettingsSchema,
+  type SignatureSource,
+  type SignatureVerificationConfig,
+  type SignedComponent,
   type StopWhen,
   StopWhenSchema,
   type SubAgentStopWhen,
@@ -57,6 +60,7 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
@@ -66,7 +70,12 @@ export {
   TriggerInvocationStatusEnum,
   TriggerListResponse,
   TriggerResponse,
+  TriggerWithWebhookUrlListResponse,
+  TriggerWithWebhookUrlResponse,
+  TriggerWithWebhookUrlSchema,
 } from './validation/schemas';
+
+export type { SignatureVerificationConfig, SignatureSource, SignedComponent };
 
 export const TenantParamsSchema = z.object({
   tenantId: z.string(),
@@ -319,6 +328,7 @@ export type AgentAgentInsert = AgentAgentApiInsert;
 
 export { CredentialStoreType, MCPTransportType };
 
+export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/config';
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';

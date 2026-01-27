@@ -34,10 +34,7 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
+  if (['PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -49,7 +46,7 @@ app.openapi(
     path: '/',
     summary: 'List Agent Tool Relations',
     operationId: 'list-agent-tool-relations',
-    tags: ['Agent Tool Relations'],
+    tags: ['Agents', 'Tools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.extend({
@@ -130,7 +127,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Agent Tool Relation',
     operationId: 'get-agent-tool-relation',
-    tags: ['Agent Tool Relations'],
+    tags: ['Agent', 'Tools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -171,7 +168,7 @@ app.openapi(
     path: '/tool/{toolId}/agents',
     summary: 'Get Agents for Tool',
     operationId: 'get-agents-for-tool',
-    tags: ['Agent Tool Relations'],
+    tags: ['Agent', 'Tools'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         toolId: z.string(),
@@ -211,7 +208,7 @@ app.openapi(
     path: '/',
     summary: 'Create Agent Tool Relation',
     operationId: 'create-agent-tool-relation',
-    tags: ['Agent Tool Relations'],
+    tags: ['Agent', 'Tools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -280,7 +277,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Agent Tool Relation',
     operationId: 'update-agent-tool-relation',
-    tags: ['Agent Tool Relations'],
+    tags: ['Agent', 'Tools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -338,7 +335,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Agent Tool Relation',
     operationId: 'delete-agent-tool-relation',
-    tags: ['Agent Tool Relations'],
+    tags: ['Agent', 'Tools'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

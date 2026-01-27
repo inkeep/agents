@@ -32,10 +32,7 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:id', async (c, next) => {
-  if (c.req.method === 'PATCH') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
+  if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -47,7 +44,7 @@ app.openapi(
     path: '/',
     summary: 'List Data Components',
     operationId: 'list-data-components',
-    tags: ['Data Component'],
+    tags: ['Data Components'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -85,7 +82,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Data Component',
     operationId: 'get-data-component-by-id',
-    tags: ['Data Component'],
+    tags: ['Data Components'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -126,7 +123,7 @@ app.openapi(
     path: '/',
     summary: 'Create Data Component',
     operationId: 'create-data-component',
-    tags: ['Data Component'],
+    tags: ['Data Components'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -185,7 +182,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Data Component',
     operationId: 'update-data-component',
-    tags: ['Data Component'],
+    tags: ['Data Components'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -249,7 +246,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Data Component',
     operationId: 'delete-data-component',
-    tags: ['Data Component'],
+    tags: ['Data Components'],
     request: {
       params: TenantProjectIdParamsSchema,
     },

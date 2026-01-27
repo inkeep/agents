@@ -3,6 +3,7 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
+  buildComposioMCPUrl,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
@@ -544,6 +545,7 @@ export class Agent {
             input: args,
             toolCallId,
             relationshipId,
+            inDelegatedAgent: this.isDelegatedAgent,
           };
 
           // Add approval-specific data when needed
@@ -610,6 +612,7 @@ export class Agent {
               duration,
               relationshipId,
               needsApproval,
+              inDelegatedAgent: this.isDelegatedAgent,
             });
           }
 
@@ -641,11 +644,12 @@ export class Agent {
               error: errorMessage,
               relationshipId,
               needsApproval,
+              inDelegatedAgent: this.isDelegatedAgent,
             });
           }
 
           if (streamRequestId && streamHelper && !isInternalToolForUi) {
-            await streamHelper.writeToolOutputError({ toolCallId, error: errorMessage });
+            await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
           }
 
           throw error;
@@ -964,6 +968,7 @@ export class Agent {
                       errorMessage,
                       relationshipId,
                     },
+                    relationshipId,
                   });
                 }
 
@@ -1171,20 +1176,14 @@ export class Agent {
     }
 
     // Inject user_id for Composio servers at runtime
-    if (serverConfig.url?.toString().includes('composio.dev')) {
-      const urlObj = new URL(serverConfig.url.toString());
-      if (isUserScoped && userId) {
-        // User-scoped: use actual userId
-        urlObj.searchParams.set('user_id', userId);
-      } else {
-        // Project-scoped: use tenantId||projectId
-        const SEPARATOR = '||';
-        urlObj.searchParams.set(
-          'user_id',
-          `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`
-        );
-      }
-      serverConfig.url = urlObj.toString();
+    if (serverConfig.url) {
+      serverConfig.url = buildComposioMCPUrl(
+        serverConfig.url.toString(),
+        this.config.tenantId,
+        this.config.projectId,
+        isUserScoped ? 'user' : 'project',
+        userId
+      );
     }
 
     // Merge forwarded headers (user session auth) into server config
@@ -1270,6 +1269,7 @@ export class Agent {
           },
           (span) => {
             setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
+            const relationshipId = this.#getRelationshipIdForTool(tool.name, 'mcp');
             agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
               message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
               code: 'no_tools_available',
@@ -1279,6 +1279,7 @@ export class Agent {
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
                 operation: 'mcp_tool_discovery',
               },
+              relationshipId,
             });
             span.end();
           }
@@ -1382,11 +1383,18 @@ export class Agent {
         }
 
         const zodSchema = jsonSchemaToZod(functionData.inputSchema);
+        const toolPolicies = (functionToolDef as any).toolPolicies as
+          | Record<string, { needsApproval?: boolean }>
+          | null
+          | undefined;
+        const needsApproval =
+          !!toolPolicies?.['*']?.needsApproval ||
+          !!toolPolicies?.[functionToolDef.name]?.needsApproval;
 
         const aiTool = tool({
           description: functionToolDef.description || functionToolDef.name,
           inputSchema: zodSchema,
-          execute: async (args, { toolCallId }) => {
+          execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             let processedArgs: typeof args;
             try {
@@ -1409,6 +1417,137 @@ export class Agent {
 
             // Use processed args for all subsequent operations
             const finalArgs = processedArgs;
+
+            if (needsApproval) {
+              logger.info(
+                { toolName: functionToolDef.name, toolCallId, args: finalArgs },
+                'Function tool requires approval - waiting for user response'
+              );
+
+              const currentSpan = trace.getActiveSpan();
+              if (currentSpan) {
+                currentSpan.addEvent('tool.approval.requested', {
+                  'tool.name': functionToolDef.name,
+                  'tool.callId': toolCallId,
+                  'subAgent.id': this.config.id,
+                });
+              }
+
+              tracer.startActiveSpan(
+                'tool.approval_requested',
+                {
+                  attributes: {
+                    'tool.name': functionToolDef.name,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (requestSpan: Span) => {
+                  requestSpan.setStatus({ code: SpanStatusCode.OK });
+                  requestSpan.end();
+                }
+              );
+
+              const streamHelper = this.getStreamingHelper();
+              if (streamHelper) {
+                await streamHelper.writeToolApprovalRequest({
+                  approvalId: `aitxt-${toolCallId}`,
+                  toolCallId,
+                });
+              } else if (this.isDelegatedAgent) {
+                const streamRequestId = this.getStreamRequestId();
+                if (streamRequestId) {
+                  await toolApprovalUiBus.publish(streamRequestId, {
+                    type: 'approval-needed',
+                    toolCallId,
+                    toolName: functionToolDef.name,
+                    input: finalArgs,
+                    providerMetadata,
+                    approvalId: `aitxt-${toolCallId}`,
+                  });
+                }
+              }
+
+              const approvalResult = await pendingToolApprovalManager.waitForApproval(
+                toolCallId,
+                functionToolDef.name,
+                args,
+                this.conversationId || 'unknown',
+                this.config.id
+              );
+
+              if (!approvalResult.approved) {
+                if (!streamHelper && this.isDelegatedAgent) {
+                  const streamRequestId = this.getStreamRequestId();
+                  if (streamRequestId) {
+                    await toolApprovalUiBus.publish(streamRequestId, {
+                      type: 'approval-resolved',
+                      toolCallId,
+                      approved: false,
+                    });
+                  }
+                }
+
+                return tracer.startActiveSpan(
+                  'tool.approval_denied',
+                  {
+                    attributes: {
+                      'tool.name': functionToolDef.name,
+                      'tool.callId': toolCallId,
+                      'subAgent.id': this.config.id,
+                      'subAgent.name': this.config.name,
+                    },
+                  },
+                  (denialSpan: Span) => {
+                    logger.info(
+                      { toolName: functionToolDef.name, toolCallId, reason: approvalResult.reason },
+                      'Function tool execution denied by user'
+                    );
+
+                    denialSpan.setStatus({ code: SpanStatusCode.OK });
+                    denialSpan.end();
+
+                    return {
+                      __inkeepToolDenied: true,
+                      toolCallId,
+                      reason: approvalResult.reason,
+                    };
+                  }
+                );
+              }
+
+              tracer.startActiveSpan(
+                'tool.approval_approved',
+                {
+                  attributes: {
+                    'tool.name': functionToolDef.name,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (approvedSpan: Span) => {
+                  logger.info(
+                    { toolName: functionToolDef.name, toolCallId },
+                    'Function tool approved, continuing with execution'
+                  );
+                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
+                  approvedSpan.end();
+                }
+              );
+
+              if (!streamHelper && this.isDelegatedAgent) {
+                const streamRequestId = this.getStreamRequestId();
+                if (streamRequestId) {
+                  await toolApprovalUiBus.publish(streamRequestId, {
+                    type: 'approval-resolved',
+                    toolCallId,
+                    approved: true,
+                  });
+                }
+              }
+            }
 
             logger.debug(
               { toolName: functionToolDef.name, toolCallId, args: finalArgs },
@@ -1462,7 +1601,8 @@ export class Agent {
           functionToolDef.name,
           aiTool,
           streamRequestId || '',
-          'tool'
+          'tool',
+          { needsApproval }
         );
       }
     } catch (error) {

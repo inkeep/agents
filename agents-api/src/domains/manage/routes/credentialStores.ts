@@ -26,7 +26,7 @@ app.openapi(
     path: '/',
     summary: 'List Credential Stores',
     operationId: 'list-credential-stores',
-    tags: ['Credential Store'],
+    tags: ['Credential Stores'],
     request: {
       params: TenantProjectParamsSchema,
     },
@@ -71,7 +71,7 @@ app.openapi(
     path: '/{id}/credentials',
     summary: 'Create Credential in Store',
     operationId: 'create-credential-in-store',
-    tags: ['Credential Store'],
+    tags: ['Credential Stores'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {

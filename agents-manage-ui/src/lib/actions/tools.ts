@@ -13,13 +13,17 @@ import type { ActionResult } from './types';
 
 /**
  * Fetch all tools for a project
+ * @param skipDiscovery - If true, returns skeleton data without MCP discovery (instant response)
  */
 export async function fetchToolsAction(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: { skipDiscovery?: boolean }
 ): Promise<ActionResult<MCPTool[]>> {
   try {
-    const tools = await fetchMCPTools(tenantId, projectId);
+    const tools = await fetchMCPTools(tenantId, projectId, {
+      skipDiscovery: options?.skipDiscovery,
+    });
     return {
       success: true,
       data: tools,

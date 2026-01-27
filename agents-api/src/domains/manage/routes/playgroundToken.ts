@@ -33,7 +33,7 @@ app.openapi(
     path: '/',
     summary: 'Generate temporary API key for playground',
     operationId: 'create-playground-token',
-    tags: ['Playground'],
+    tags: ['API Keys'],
     description:
       'Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground',
     security: [{ cookieAuth: [] }],
@@ -88,7 +88,6 @@ app.openapi(
     // Check SpiceDB 'use' permission for this project
     // This allows project_admin and project_member roles, but not project_viewer
     const canUse = await canUseProject({
-      tenantId,
       userId,
       projectId,
       orgRole: tenantRole,

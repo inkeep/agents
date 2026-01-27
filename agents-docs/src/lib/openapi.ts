@@ -1,10 +1,24 @@
 import { createOpenAPI } from 'fumadocs-openapi/server';
 
 export const openapi = createOpenAPI({
+  proxyUrl: '/api/proxy',
   // the OpenAPI schema, you can also give it an external URL.
-  input: () => ({
-    index:
-      'https://raw.githubusercontent.com/inkeep/agents/b1662340abdb842477389c13f22382a54c1ede75/agents-docs/src/lib/index.json',
-    'run-api': 'https://agents-run-api.preview.inkeep.com/openapi.json',
-  }),
+  async input() {
+    const { default: json } = await import('../../../agents-api/__snapshots__/openapi.json', {
+      with: {
+        type: 'json',
+      },
+    });
+    return {
+      index: {
+        ...json,
+        servers: [
+          {
+            description: 'API Server',
+            url: 'https://api.pilot.inkeep.com',
+          },
+        ],
+      },
+    };
+  },
 });

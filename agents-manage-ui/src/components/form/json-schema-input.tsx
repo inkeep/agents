@@ -78,6 +78,7 @@ export function JsonSchemaInput<T extends FieldValues>({
                 hasInPreview={hasInPreview}
                 hasError={!!fieldState.error}
                 allRequired={allRequired}
+                readOnly={readOnly}
               />
             )}
             <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">

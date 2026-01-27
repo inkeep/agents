@@ -1,8 +1,13 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTrigger, type Trigger } from '@/lib/api/triggers';
+
+export const metadata = {
+  description: 'Update the webhook trigger configuration.',
+} satisfies Metadata;
 
 export default async function EditTriggerPage({
   params,
@@ -26,10 +31,7 @@ export default async function EditTriggerPage({
 
   return (
     <>
-      <PageHeader
-        title={`Edit ${trigger.name}`}
-        description="Update the webhook trigger configuration."
-      />
+      <PageHeader title={`Edit ${trigger.name}`} description={metadata.description} />
       <TriggerForm
         tenantId={tenantId}
         projectId={projectId}

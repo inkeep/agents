@@ -4,41 +4,22 @@
  * Feature flag and configuration for the SpiceDB authorization system.
  */
 
-/**
- * Check if authorization is enabled.
- *
- * When called without tenantId:
- * - Returns true if ENABLE_AUTHZ=true
- *
- * When called with tenantId:
- * - If ENABLE_AUTHZ=false → returns false
- * - If ENABLE_AUTHZ=true and TENANT_ID is not set → returns true (all tenants)
- * - If ENABLE_AUTHZ=true and TENANT_ID is set → returns true only if tenantId matches
- */
-export function isAuthzEnabled(tenantId: string): boolean {
-  if (process.env.ENABLE_AUTHZ !== 'true') {
-    return false;
-  }
-
-  const configuredTenantId = process.env.TENANT_ID?.trim();
-
-  // If no specific tenant configured, authz applies to all
-  if (!configuredTenantId) {
-    return true;
-  }
-
-  // Only enable for the configured tenant
-  return tenantId === configuredTenantId;
+export function isAuthzEnabled(): boolean {
+  return process.env.ENABLE_AUTHZ === 'true';
 }
 
 /**
  * Get SpiceDB connection configuration from environment variables.
+ * TLS is auto-detected: disabled for localhost, enabled for remote endpoints.
  */
 export function getSpiceDbConfig() {
+  const endpoint = process.env.SPICEDB_ENDPOINT || 'localhost:50051';
+  const isLocalhost = endpoint.startsWith('localhost') || endpoint.startsWith('127.0.0.1');
+
   return {
-    endpoint: process.env.SPICEDB_ENDPOINT || 'localhost:50051',
+    endpoint,
     token: process.env.SPICEDB_PRESHARED_KEY || '',
-    tlsEnabled: process.env.SPICEDB_TLS_ENABLED === 'true',
+    tlsEnabled: !isLocalhost,
   };
 }
 
@@ -70,29 +51,75 @@ export const SpiceDbRelations = {
 } as const;
 
 /**
- * SpiceDB permissions used in the schema
+ * SpiceDB permissions for organization resources.
  *
- * Permissions are named as verbs (actions) per SpiceDB best practices.
+ * From schema.zed definition organization:
+ * - view: owner + admin + member
+ * - manage: owner + admin (includes managing org settings and all projects)
  */
-/**
- * SpiceDB permissions used in permission checks.
- *
- * Note: Organization-level permissions (manage) are handled via
- * orgRole bypass in permission functions, not direct SpiceDB checks.
- */
-export const SpiceDbPermissions = {
+export const SpiceDbOrgPermissions = {
   VIEW: 'view',
-  USE: 'use', // Can invoke agents, create API keys
-  EDIT: 'edit', // Can modify configurations and manage members
-  DELETE: 'delete',
+  MANAGE: 'manage',
 } as const;
 
-export type OrgRole = 'owner' | 'admin' | 'member';
+export type SpiceDbOrgPermission =
+  (typeof SpiceDbOrgPermissions)[keyof typeof SpiceDbOrgPermissions];
 
 /**
- * Project roles hierarchy:
- * - project_admin: Full access (view + use + edit + manage members + delete)
+ * SpiceDB permissions for project resources.
+ *
+ * From schema.zed definition project:
+ * - view: read-only access to project and its resources
+ * - use: invoke agents, create API keys, view traces
+ * - edit: modify configurations, manage members
+ */
+export const SpiceDbProjectPermissions = {
+  VIEW: 'view',
+  USE: 'use',
+  EDIT: 'edit',
+} as const;
+
+export type SpiceDbProjectPermission =
+  (typeof SpiceDbProjectPermissions)[keyof typeof SpiceDbProjectPermissions];
+
+/**
+ * Permission levels for project access checks.
+ */
+export type ProjectPermissionLevel = SpiceDbProjectPermission;
+
+/**
+ * Organization roles from SpiceDB schema.
+ */
+export const OrgRoles = {
+  OWNER: 'owner',
+  ADMIN: 'admin',
+  MEMBER: 'member',
+} as const;
+
+export type OrgRole = (typeof OrgRoles)[keyof typeof OrgRoles];
+
+/**
+ * Project roles from SpiceDB schema.
+ *
+ * Hierarchy:
+ * - project_admin: Full access (view + use + edit + manage members)
  * - project_member: Operator access (view + use: invoke agents, create API keys)
  * - project_viewer: Read-only access (view only)
  */
-export type ProjectRole = 'project_admin' | 'project_member' | 'project_viewer';
+export const ProjectRoles = {
+  ADMIN: 'project_admin',
+  MEMBER: 'project_member',
+  VIEWER: 'project_viewer',
+} as const;
+
+export type ProjectRole = (typeof ProjectRoles)[keyof typeof ProjectRoles];
+
+/**
+ * Project permission capabilities.
+ * Maps to the SpiceDB permission checks (view, use, edit).
+ */
+export interface ProjectPermissions {
+  canView: boolean;
+  canUse: boolean;
+  canEdit: boolean;
+}

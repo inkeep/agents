@@ -25,7 +25,7 @@ const project: Project = {
 };
 
 const ProjectsConsumer: FC<{ label: string }> = ({ label }) => {
-  const { data, isPending } = useProjectsQuery('tenant-1');
+  const { data, isPending } = useProjectsQuery({ tenantId: 'tenant-1' });
 
   if (isPending) {
     return <div data-testid={`loading-${label}`}>Loading</div>;

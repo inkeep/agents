@@ -52,7 +52,7 @@ app.openapi(
     path: '/',
     summary: 'List Sub Agent Relations',
     operationId: 'list-sub-agent-relations',
-    tags: ['Sub Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.merge(SubAgentRelationQuerySchema),
@@ -103,7 +103,7 @@ app.openapi(
       }
 
       return c.json(result);
-    } catch (_error) {
+    } catch {
       throw createApiError({
         code: 'internal_server_error',
         message: 'Failed to retrieve sub agent relations',
@@ -118,7 +118,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Sub Agent Relation',
     operationId: 'get-sub-agent-relation-by-id',
-    tags: ['Sub Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
@@ -137,10 +137,10 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const agentRelation = (await getAgentRelationById(db)({
+    const agentRelation = await getAgentRelationById(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
-    })) as SubAgentRelationApiSelect | null;
+    });
 
     if (!agentRelation) {
       throw createApiError({
@@ -159,7 +159,7 @@ app.openapi(
     path: '/',
     summary: 'Create Sub Agent Relation',
     operationId: 'create-sub-agent-relation',
-    tags: ['Sub Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -243,7 +243,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Sub Agent Relation',
     operationId: 'update-sub-agent-relation',
-    tags: ['Sub Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -294,7 +294,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Sub Agent Relation',
     operationId: 'delete-sub-agent-relation',
-    tags: ['Sub Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },

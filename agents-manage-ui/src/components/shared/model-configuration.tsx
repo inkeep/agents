@@ -32,6 +32,8 @@ interface ModelConfigurationProps {
   editorNamePrefix?: string;
   /** Custom placeholder for the JSON editor based on model type */
   getJsonPlaceholder?: (model?: string) => string;
+  /** Whether the component is disabled/read-only */
+  disabled?: boolean;
 }
 
 export function ModelConfiguration({
@@ -47,6 +49,7 @@ export function ModelConfiguration({
   onProviderOptionsChange,
   editorNamePrefix = 'model',
   getJsonPlaceholder,
+  disabled = false,
 }: ModelConfigurationProps) {
   // Internal state for provider options to handle immediate updates
   const [internalProviderOptions, setInternalProviderOptions] = useState<
@@ -123,6 +126,7 @@ export function ModelConfiguration({
           placeholder={placeholder}
           canClear={canClear}
           isRequired={isRequired}
+          disabled={disabled}
         />
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
@@ -143,7 +147,7 @@ export function ModelConfiguration({
             }
             placeholder={jsonPlaceholder}
             customTemplate={jsonPlaceholder}
-            readOnly={false}
+            readOnly={disabled}
           />
         </div>
       )}
@@ -154,6 +158,7 @@ export function ModelConfiguration({
           providerOptions={internalProviderOptions}
           onProviderOptionsChange={handleProviderOptionsStringChange}
           editorNamePrefix={editorNamePrefix}
+          disabled={disabled}
         />
       )}
     </div>

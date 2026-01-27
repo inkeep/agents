@@ -25,6 +25,7 @@ interface GenericKeyValueInputProps<T extends FieldValues> {
   valuePlaceholder?: string;
   addButtonLabel?: string;
   isRequired?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -51,6 +52,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
   valuePlaceholder = 'value',
   addButtonLabel = 'Add item',
   isRequired,
+  disabled = false,
 }: GenericKeyValueInputProps<T>) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -124,6 +126,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
                         isDuplicate && 'ring-2 ring-destructive/50 focus-visible:ring-destructive'
                       )}
                       aria-invalid={isDuplicate || undefined}
+                      disabled={disabled}
                     />
                   </FormControl>
                 )}
@@ -141,33 +144,38 @@ export function GenericKeyValueInput<T extends FieldValues>({
                       placeholder={valuePlaceholder}
                       onKeyDown={(e) => handleKeyDown(e, index, 'value')}
                       className="flex-1"
+                      disabled={disabled}
                     />
                   </FormControl>
                 )}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(index)}
-                aria-label="Remove entry"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              {!disabled && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => remove(index)}
+                  aria-label="Remove entry"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           );
         })}
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => append({ key: '', value: '' } as never)}
-          className="text-primary hover:text-primary"
-        >
-          <Plus className="h-4 w-4" />
-          {addButtonLabel}
-        </Button>
+        {!disabled && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => append({ key: '', value: '' } as never)}
+            className="text-primary hover:text-primary"
+          >
+            <Plus className="h-4 w-4" />
+            {addButtonLabel}
+          </Button>
+        )}
       </div>
 
       {description && <FormDescription>{description}</FormDescription>}

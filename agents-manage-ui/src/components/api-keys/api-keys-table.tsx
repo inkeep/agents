@@ -1,4 +1,3 @@
-import { formatDateAgo } from '@/app/utils/format-date';
 import {
   Table,
   TableBody,
@@ -9,15 +8,17 @@ import {
 } from '@/components/ui/table';
 import type { ApiKey } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
+import { formatDateAgo } from '@/lib/utils/format-date';
 import { ApiKeyItemMenu } from './api-key-item-menu';
 import { ExpirationIndicator } from './expiration-indicator';
 
 interface ApiKeysTableProps {
   apiKeys: ApiKey[];
   agentLookup: Record<string, Agent>;
+  canUse: boolean;
 }
 
-export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
+export function ApiKeysTable({ apiKeys, agentLookup, canUse }: ApiKeysTableProps) {
   return (
     <div className="rounded-lg border">
       <Table>
@@ -64,9 +65,7 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
                 <TableCell className="text-sm text-muted-foreground">
                   {apiKey.createdAt ? formatDateAgo(apiKey.createdAt) : ''}
                 </TableCell>
-                <TableCell>
-                  <ApiKeyItemMenu apiKey={apiKey} />
-                </TableCell>
+                <TableCell>{canUse && <ApiKeyItemMenu apiKey={apiKey} />}</TableCell>
               </TableRow>
             ))
           )}

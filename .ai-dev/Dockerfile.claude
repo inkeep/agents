@@ -5,14 +5,22 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     ca-certificates \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Claude Code globally
-RUN npm install -g @anthropic-ai/claude-code
+# Create non-root user with sudo access for CA cert updates
+RUN useradd -m -s /bin/bash user && \
+    echo "user ALL=(ALL) NOPASSWD: /usr/sbin/update-ca-certificates, /bin/cp" >> /etc/sudoers.d/user
 
-# Create non-root user
-RUN useradd -m -s /bin/bash user
 USER user
+WORKDIR /home/user
+
+# Install Claude Code using official installer
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Set PATH to include Claude binary
+ENV PATH="/home/user/.claude/bin:$PATH"
+
 WORKDIR /workspace
 
-ENTRYPOINT ["claude"]
+ENTRYPOINT ["/bin/bash"]

@@ -14,7 +14,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
     tenantId: string;
     projectId: string;
   }>();
-  const { data: externalAgents, isFetching, error } = useExternalAgentsQuery(tenantId, projectId);
+  const { data: externalAgents, isFetching, error } = useExternalAgentsQuery();
 
   const handleSelect = (externalAgent: ExternalAgent) => {
     updateNode(selectedNode.id, {
@@ -62,7 +62,7 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
       <div className="space-y-2">
         <h3 className="text-sm font-medium mb-2">Select external agent</h3>
         <div className="flex flex-col gap-2 min-w-0 min-h-0">
-          {externalAgents.map((externalAgent: ExternalAgent) => (
+          {externalAgents.map((externalAgent) => (
             <ExternalAgentItem
               key={externalAgent.id}
               externalAgent={externalAgent}

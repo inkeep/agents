@@ -2,11 +2,11 @@
 
 import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
+import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
@@ -38,38 +38,19 @@ export function ViewMCPServerDetailsProjectScope({
       window.location.reload();
     },
   });
+  const { canEdit } = useProjectPermissions();
 
   const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
-  const [thirdPartyConnectUrl, setThirdPartyConnectUrl] = useState<string>();
-  const [isLoadingThirdParty, setIsLoadingThirdParty] = useState(false);
-
-  useEffect(() => {
-    if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
-      const fetchServerDetails = async () => {
-        setIsLoadingThirdParty(true);
-        try {
-          const response = await fetchThirdPartyMCPServer(
-            tenantId,
-            projectId,
-            tool.config.mcp.server.url,
-            'project'
-          );
-          if (response.data?.thirdPartyConnectAccountUrl) {
-            setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
-          }
-        } catch (error) {
-          console.error('Failed to fetch third-party MCP server details:', error);
-        } finally {
-          setIsLoadingThirdParty(false);
-        }
-      };
-
-      fetchServerDetails();
-    }
-  }, [isThirdPartyMCPServer, tool.status, tool.config.mcp.server.url, tenantId, projectId]);
+  const shouldFetchThirdParty = isThirdPartyMCPServer && tool.status === 'needs_auth';
+  const { data: thirdPartyServer, isFetching: isLoadingThirdParty } = useThirdPartyMCPServerQuery({
+    url: tool.config.mcp.server.url,
+    credentialScope: 'project',
+    enabled: shouldFetchThirdParty,
+  });
+  const thirdPartyConnectUrl = thirdPartyServer?.thirdPartyConnectAccountUrl;
 
   return (
-    <div className="max-w-2xl mx-auto py-4 space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -84,12 +65,14 @@ export function ViewMCPServerDetailsProjectScope({
             <p className="text-sm text-muted-foreground">MCP server details</p>
           </div>
         </div>
-        <Button asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
-            <Pencil className="w-4 h-4" />
-            Edit
-          </Link>
-        </Button>
+        {canEdit && (
+          <Button asChild>
+            <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
+              <Pencil className="w-4 h-4" />
+              Edit
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Basic Information */}

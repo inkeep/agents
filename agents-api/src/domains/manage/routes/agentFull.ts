@@ -32,10 +32,7 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:agentId', async (c, next) => {
-  if (c.req.method === 'PUT') {
-    return requireProjectPermission('edit')(c, next);
-  }
-  if (c.req.method === 'DELETE') {
+  if (['PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -47,7 +44,7 @@ app.openapi(
     path: '/',
     summary: 'Create Full Agent',
     operationId: 'create-full-agent',
-    tags: ['Full Agent'],
+    tags: ['Agents'],
     description:
       'Create a complete agent with all agents, tools, and relationships from JSON definition',
     request: {
@@ -102,7 +99,7 @@ app.openapi(
     path: '/{agentId}',
     summary: 'Get Full Agent',
     operationId: 'get-full-agent',
-    tags: ['Full Agent'],
+    tags: ['Agents'],
     description: 'Retrieve a complete agent definition with all agents, tools, and relationships',
     request: {
       params: TenantProjectAgentParamsSchema,
@@ -162,7 +159,7 @@ app.openapi(
     path: '/{agentId}',
     summary: 'Update Full Agent',
     operationId: 'update-full-agent',
-    tags: ['Full Agent'],
+    tags: ['Agents'],
     description:
       'Update or create a complete agent with all agents, tools, and relationships from JSON definition',
     request: {
@@ -254,7 +251,7 @@ app.openapi(
     path: '/{agentId}',
     summary: 'Delete Full Agent',
     operationId: 'delete-full-agent',
-    tags: ['Full Agent'],
+    tags: ['Agents'],
     description:
       'Delete a complete agent and cascade to all related entities (relationships, not other agents/tools)',
     request: {

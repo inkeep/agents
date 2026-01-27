@@ -29,6 +29,13 @@ This allows agents to access both a human-readable summary via the text part and
 The data part is included whenever the webhook payload is not null/undefined. Even an empty object `{}` is included as a data part.
 </Note>
 
+<SkillRule
+  id="triggers-overview"
+  skills="typescript-sdk"
+  title="Triggers Overview"
+  description="Creating webhook endpoints to invoke agents from external services"
+>
+
 ## Overview
 
 Triggers are useful for:
@@ -169,6 +176,15 @@ const bearerTrigger = trigger({
 Header values are securely hashed before storage. The original values are never stored in the database.
 </Note>
 
+</SkillRule>
+
+<SkillRule
+  id="triggers-config-options"
+  skills="typescript-sdk"
+  title="Trigger Configuration Options"
+  description="Configuration options for triggers including authentication, schemas, and transforms"
+>
+
 ## Configuration Options
 
 | Option | Type | Required | Description |
@@ -302,6 +318,10 @@ Object Transformation is converted to JMESPath under the hood. For example, `{ u
 
 ### Signature Verification
 
+<Warning>
+**Beta Feature**: Signature verification is currently in beta. The API may change in future releases.
+</Warning>
+
 For services that sign webhooks (like GitHub, Stripe, Slack), use `signingSecret`:
 
 ```typescript
@@ -412,6 +432,8 @@ export default agent({
   triggers: () => [githubIssueTrigger],
 });
 ```
+
+</SkillRule>
 
 ## Best Practices
 

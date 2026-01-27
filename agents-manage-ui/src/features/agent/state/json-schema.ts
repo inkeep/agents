@@ -542,10 +542,17 @@ interface JsonSchemaStateData {
   fields: EditableField[];
   hasInPreview: boolean;
   allRequired: boolean;
+  readOnly: boolean;
 }
 
 interface JsonSchemaActions {
-  setFields: (schemaJson: string, hasInPreview?: boolean, allRequired?: boolean) => void;
+  setFields: (
+    schemaJson: string,
+    hasInPreview?: boolean,
+    allRequired?: boolean,
+    readOnly?: boolean
+  ) => void;
+  setReadOnly: (readOnly: boolean) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
   addChild: (parentId?: string) => void;
@@ -561,12 +568,16 @@ const jsonSchemaState: StateCreator<JsonSchemaState> = (set) => ({
   fields: [],
   hasInPreview: false,
   allRequired: false,
+  readOnly: false,
   actions: {
-    setFields(schemaJson, hasInPreview, allRequired) {
-      // Update preview mode and allRequired before parsing the schema
-      set({ hasInPreview, allRequired: allRequired ?? false });
+    setFields(schemaJson, hasInPreview, allRequired, readOnly) {
+      // Update preview mode, allRequired, and readOnly before parsing the schema
+      set({ hasInPreview, allRequired: allRequired ?? false, readOnly: readOnly ?? false });
       // Parse fields from the JSON schema using the updated `hasInPreview` state
       set({ fields: parseFieldsFromJson(schemaJson) });
+    },
+    setReadOnly(readOnly) {
+      set({ readOnly });
     },
     updateField(id, patch) {
       set((state) => {

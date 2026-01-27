@@ -90,12 +90,112 @@ function formatOutputTransform(transform: any, style: CodeStyle, indentLevel: nu
 }
 
 /**
+ * Format signature verification configuration
+ * Generates code for signatureVerification object with all nested structures
+ */
+function formatSignatureVerification(config: any, style: CodeStyle, indentLevel: number): string {
+  if (!config) return '';
+
+  const { indentation, quotes } = style;
+  const q = quotes === 'single' ? "'" : '"';
+  const indent = indentation.repeat(indentLevel);
+  const lines: string[] = [];
+
+  lines.push(`${indent}signatureVerification: {`);
+
+  // Algorithm
+  const algorithmIndent = indentation.repeat(indentLevel + 1);
+  lines.push(`${algorithmIndent}algorithm: ${formatString(config.algorithm, q)},`);
+
+  // Encoding
+  lines.push(`${algorithmIndent}encoding: ${formatString(config.encoding, q)},`);
+
+  // Signature object
+  lines.push(`${algorithmIndent}signature: {`);
+  const sigIndent = indentation.repeat(indentLevel + 2);
+  lines.push(`${sigIndent}source: ${formatString(config.signature.source, q)},`);
+  lines.push(`${sigIndent}key: ${formatString(config.signature.key, q)},`);
+  if (config.signature.prefix !== undefined && config.signature.prefix !== null) {
+    lines.push(`${sigIndent}prefix: ${formatString(config.signature.prefix, q)},`);
+  }
+  if (config.signature.regex !== undefined && config.signature.regex !== null) {
+    lines.push(`${sigIndent}regex: ${formatString(config.signature.regex, q)},`);
+  }
+  // Remove trailing comma from last signature field
+  if (lines[lines.length - 1].endsWith(',')) {
+    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+  }
+  lines.push(`${algorithmIndent}},`);
+
+  // Signed components array
+  lines.push(`${algorithmIndent}signedComponents: [`);
+  for (const component of config.signedComponents) {
+    lines.push(`${sigIndent}{`);
+    const compIndent = indentation.repeat(indentLevel + 3);
+    lines.push(`${compIndent}source: ${formatString(component.source, q)},`);
+    if (component.key !== undefined && component.key !== null) {
+      lines.push(`${compIndent}key: ${formatString(component.key, q)},`);
+    }
+    if (component.value !== undefined && component.value !== null) {
+      lines.push(`${compIndent}value: ${formatString(component.value, q)},`);
+    }
+    if (component.regex !== undefined && component.regex !== null) {
+      lines.push(`${compIndent}regex: ${formatString(component.regex, q)},`);
+    }
+    if (component.required !== undefined && component.required !== null) {
+      lines.push(`${compIndent}required: ${component.required},`);
+    }
+    // Remove trailing comma from last component field
+    if (lines[lines.length - 1].endsWith(',')) {
+      lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+    }
+    lines.push(`${sigIndent}},`);
+  }
+  lines.push(`${algorithmIndent}],`);
+
+  // Component join
+  lines.push(`${algorithmIndent}componentJoin: {`);
+  lines.push(`${sigIndent}strategy: ${formatString(config.componentJoin.strategy, q)},`);
+  lines.push(`${sigIndent}separator: ${formatString(config.componentJoin.separator, q)}`);
+  lines.push(`${algorithmIndent}},`);
+
+  // Validation options (optional)
+  if (config.validation) {
+    lines.push(`${algorithmIndent}validation: {`);
+    if (config.validation.headerCaseSensitive !== undefined) {
+      lines.push(`${sigIndent}headerCaseSensitive: ${config.validation.headerCaseSensitive},`);
+    }
+    if (config.validation.allowEmptyBody !== undefined) {
+      lines.push(`${sigIndent}allowEmptyBody: ${config.validation.allowEmptyBody},`);
+    }
+    if (config.validation.normalizeUnicode !== undefined) {
+      lines.push(`${sigIndent}normalizeUnicode: ${config.validation.normalizeUnicode},`);
+    }
+    // Remove trailing comma from last validation field
+    if (lines[lines.length - 1].endsWith(',')) {
+      lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+    }
+    lines.push(`${algorithmIndent}},`);
+  }
+
+  // Remove trailing comma from last field
+  if (lines[lines.length - 1].endsWith(',')) {
+    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+  }
+
+  lines.push(`${indent}},`);
+
+  return lines.join('\n');
+}
+
+/**
  * Generate Trigger Definition using Trigger class
  */
 export function generateTriggerDefinition(
   triggerId: string,
   triggerData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: any
 ): string {
   // Validate required parameters
   if (!triggerId || typeof triggerId !== 'string') {
@@ -178,8 +278,38 @@ export function generateTriggerDefinition(
     }
   }
 
-  // Signing secret (optional) - not included in generated code for security reasons
-  // signingSecret should be set via environment variables
+  // Signature verification (optional)
+  if (triggerData.signatureVerification) {
+    const sigVerificationFormatted = formatSignatureVerification(
+      triggerData.signatureVerification,
+      style,
+      1
+    );
+    if (sigVerificationFormatted) {
+      lines.push(sigVerificationFormatted);
+    }
+  }
+
+  // Signing secret credential reference (optional)
+  if (triggerData.signingSecretCredentialReferenceId) {
+    if (!registry) {
+      throw new Error('Registry is required for signingSecretCredentialReferenceId generation');
+    }
+
+    // Reference to a credential variable - use registry
+    const credentialVar = registry.getVariableName(
+      triggerData.signingSecretCredentialReferenceId,
+      'credentials'
+    );
+
+    if (!credentialVar) {
+      throw new Error(
+        `Failed to resolve variable name for credential reference: ${triggerData.signingSecretCredentialReferenceId}`
+      );
+    }
+
+    lines.push(`${indentation}signingSecretCredentialReference: ${credentialVar},`);
+  }
 
   // Remove trailing comma from last line
   if (lines.length > 0 && lines[lines.length - 1].endsWith(',')) {
@@ -194,11 +324,35 @@ export function generateTriggerDefinition(
 /**
  * Generate imports needed for a trigger file
  */
-export function generateTriggerImports(style: CodeStyle = DEFAULT_STYLE): string[] {
+export function generateTriggerImports(
+  triggerId: string,
+  triggerData: any,
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: any
+): string[] {
   const imports: string[] = [];
 
   // Always import Trigger from SDK
   imports.push(generateImport(['Trigger'], '@inkeep/agents-sdk', style));
+
+  // Generate imports for referenced credentials if registry is available
+  if (
+    triggerData.signingSecretCredentialReferenceId &&
+    typeof triggerData.signingSecretCredentialReferenceId === 'string'
+  ) {
+    if (!registry) {
+      throw new Error('Registry is required for credential reference imports');
+    }
+
+    const currentFilePath = `agents/triggers/${triggerId}.ts`;
+    const credentialRefs = [
+      { id: triggerData.signingSecretCredentialReferenceId, type: 'credentials' as const },
+    ];
+
+    // Get import statements for referenced credentials
+    const componentImports = registry.getImportsForFile(currentFilePath, credentialRefs);
+    imports.push(...componentImports);
+  }
 
   return imports;
 }
@@ -209,10 +363,11 @@ export function generateTriggerImports(style: CodeStyle = DEFAULT_STYLE): string
 export function generateTriggerFile(
   triggerId: string,
   triggerData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: any
 ): string {
-  const imports = generateTriggerImports(style);
-  const definition = generateTriggerDefinition(triggerId, triggerData, style);
+  const imports = generateTriggerImports(triggerId, triggerData, style, registry);
+  const definition = generateTriggerDefinition(triggerId, triggerData, style, registry);
 
   return generateFileContent(imports, [definition]);
 }

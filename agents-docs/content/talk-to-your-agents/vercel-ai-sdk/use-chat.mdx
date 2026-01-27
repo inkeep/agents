@@ -13,6 +13,10 @@ Agents built with Inkeep have an `/api/chat` [API endpoint](/talk-to-your-agents
 To build totally custom UIs, you have two options in the AI SDK ecosystem:
 - Use `useChat` hook to build custom UIs in React, Svelte, Vue.js, and Angular. (**← this guide**)
 - Use the [AI Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) library for a shadcn-like chat primitives.
+
+<Tip>
+  If your agent uses tools that require user confirmation, the stream can include tool approval requests. See [Tool approvals](/typescript-sdk/tools/tool-approvals).
+</Tip>
 ## Using `useChat`
 
 Install the Vercel AI SDK in your React application:

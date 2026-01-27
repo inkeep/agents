@@ -1,4 +1,4 @@
-import { createApiError, getUserOrganizations } from '@inkeep/agents-core';
+import { createApiError, getUserOrganizationsFromDb, OrgRoles } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
@@ -40,7 +40,7 @@ export const requireTenantAccess = () =>
     // System user (bypass authentication) has access to all tenants
     if (userId === 'system') {
       c.set('tenantId', tenantId);
-      c.set('tenantRole', 'owner');
+      c.set('tenantRole', OrgRoles.OWNER);
       await next();
       return;
     }
@@ -55,13 +55,13 @@ export const requireTenantAccess = () =>
         });
       }
       c.set('tenantId', tenantId);
-      c.set('tenantRole', 'owner'); // API keys have full access to their tenant
+      c.set('tenantRole', OrgRoles.OWNER); // API keys have full access to their tenant
       await next();
       return;
     }
 
     try {
-      const userOrganizations = await getUserOrganizations(runDbClient)(userId);
+      const userOrganizations = await getUserOrganizationsFromDb(runDbClient)(userId);
       const organizationAccess = userOrganizations.find((org) => org.organizationId === tenantId);
 
       if (!organizationAccess) {

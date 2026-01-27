@@ -212,6 +212,7 @@ export const getFunctionToolsForSubAgent = (db: AgentsManageDatabaseClient) => {
             projectId: functionTools.projectId,
             agentId: functionTools.agentId,
             relationshipId: subAgentFunctionToolRelations.id,
+            toolPolicies: subAgentFunctionToolRelations.toolPolicies,
           })
           .from(subAgentFunctionToolRelations)
           .innerJoin(
@@ -256,9 +257,10 @@ export const upsertSubAgentFunctionToolRelation =
     scopes: AgentScopeConfig;
     subAgentId: string;
     functionToolId: string;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
-    const { scopes, subAgentId, functionToolId, relationId } = params;
+    const { scopes, subAgentId, functionToolId, toolPolicies, relationId } = params;
     const { tenantId, projectId, agentId } = scopes;
 
     // If relationId is provided, update that specific relationship
@@ -269,6 +271,7 @@ export const upsertSubAgentFunctionToolRelation =
         data: {
           subAgentId,
           functionToolId,
+          ...(toolPolicies !== undefined ? { toolPolicies } : {}),
         },
       });
     }
@@ -324,8 +327,9 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
     scopes: AgentScopeConfig;
     subAgentId: string;
     functionToolId: string;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
-    const { scopes, subAgentId, functionToolId } = params;
+    const { scopes, subAgentId, functionToolId, toolPolicies } = params;
     const { tenantId, projectId, agentId } = scopes;
 
     try {
@@ -340,6 +344,7 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
           agentId,
           subAgentId,
           functionToolId,
+          ...(toolPolicies !== undefined ? { toolPolicies } : {}),
         })
         .returning();
 
@@ -369,6 +374,7 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
     data: {
       subAgentId: string;
       functionToolId: string;
+      toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     };
   }) => {
     const { scopes, relationId, data } = params;
@@ -380,6 +386,7 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
         .set({
           subAgentId: data.subAgentId,
           functionToolId: data.functionToolId,
+          ...(data.toolPolicies !== undefined ? { toolPolicies: data.toolPolicies } : {}),
         })
         .where(
           and(

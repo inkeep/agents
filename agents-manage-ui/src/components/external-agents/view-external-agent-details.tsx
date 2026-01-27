@@ -4,6 +4,7 @@ import { Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { useProjectPermissions } from '@/contexts/project';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -30,6 +31,8 @@ export function ViewExternalAgentDetails({
   projectId,
   className,
 }: ExternalAgentProps) {
+  const { canEdit } = useProjectPermissions();
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -50,14 +53,16 @@ export function ViewExternalAgentDetails({
             <p className="text-sm text-muted-foreground">External agent details</p>
           </div>
         </div>
-        <Button asChild>
-          <Link
-            href={`/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}/edit`}
-          >
-            <Pencil className="w-4 h-4" />
-            Edit
-          </Link>
-        </Button>
+        {canEdit && (
+          <Button asChild>
+            <Link
+              href={`/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}/edit`}
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Basic Information */}

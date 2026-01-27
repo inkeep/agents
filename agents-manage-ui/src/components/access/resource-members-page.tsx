@@ -2,18 +2,12 @@
 
 import { Loader2, Search, X } from 'lucide-react';
 import { type FC, useRef, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AccessRoleDropdown } from './access-role-dropdown';
 import { PrincipalAvatar } from './principal-avatar';
+import { ProjectRoleSelector } from './project-role-selector';
 import type { AccessPrincipal, AccessRole, PrincipalType } from './types';
 
 /**
@@ -53,15 +47,17 @@ interface ResourceMembersPageProps {
   canManage: boolean;
   /** Callback when adding a principal */
   onAdd: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
+  /** Callback to refresh the data */
+  onRefresh?: () => Promise<void>;
   /** Callback when changing a principal's role */
   onRoleChange: (
     principalId: string,
     principalType: PrincipalType,
     oldRole: string,
     newRole: string
-  ) => void;
+  ) => Promise<void>;
   /** Callback when removing a principal */
-  onRemove: (principalId: string, principalType: PrincipalType, role: string) => void;
+  onRemove: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
   /** Loading state */
   isLoading?: boolean;
   /** Adding/mutating state */
@@ -80,6 +76,7 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   membersConfig,
   canManage,
   onAdd,
+  onRefresh,
   onRoleChange,
   onRemove,
   isLoading = false,
@@ -119,6 +116,11 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
     for (const member of selectedMembers) {
       await onAdd(member.id, member.type, selectedRole);
     }
+
+    if (onRefresh) {
+      await onRefresh();
+    }
+
     setSelectedMembers([]);
   };
 
@@ -137,113 +139,105 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
         <div className="space-y-3">
           <div className="flex gap-2 items-start">
             {/* Member search with badges */}
-            <div className="flex-1 flex items-center flex-wrap gap-1.5 min-h-10 px-3 py-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-              {/* Search icon first */}
-              <Search className="size-4 text-muted-foreground shrink-0" />
+            <div className="flex-1 flex items-center gap-2 min-h-10 px-3 py-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              {/* Left side: search icon, badges, input (wraps) */}
+              <div className="flex-1 flex items-center flex-wrap gap-1.5 min-w-0">
+                {/* Search icon first */}
+                <Search className="size-4 text-muted-foreground shrink-0" />
 
-              {/* Selected member badges (after search icon) */}
-              <TooltipProvider>
-                {selectedMembers.map((member) => (
-                  <Tooltip key={member.id}>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
-                        <span className="max-w-[100px] truncate">
-                          {member.displayName.split(' ')[0]}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeMember(member.id)}
-                          className="hover:text-destructive"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="font-medium">{member.displayName}</p>
-                      {member.subtitle && (
-                        <p className="text-xs text-muted-foreground">{member.subtitle}</p>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </TooltipProvider>
-
-              {/* Search input with dropdown */}
-              <div className="flex-1 min-w-[120px] relative">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setSearchOpen(e.target.value.length > 0);
-                  }}
-                  onFocus={() => setSearchOpen(searchQuery.length > 0)}
-                  onBlur={() => {
-                    // Delay closing to allow click on dropdown items
-                    setTimeout(() => setSearchOpen(false), 150);
-                  }}
-                  placeholder={selectedMembers.length === 0 ? 'Search by name or email...' : ''}
-                  className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground"
-                />
-                {/* Dropdown results */}
-                {searchOpen && searchQuery.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border rounded-md shadow-md min-w-[280px]">
-                    {filteredMembers.length === 0 ? (
-                      <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                        No member found matching "{searchQuery}"
-                      </div>
-                    ) : (
-                      <div className="py-1">
-                        {filteredMembers.slice(0, 10).map((member) => (
+                {/* Selected member badges (after search icon) */}
+                <TooltipProvider>
+                  {selectedMembers.map((member) => (
+                    <Tooltip key={member.id}>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-sm bg-primary/10 text-primary rounded-full">
+                          <span className="max-w-[100px] truncate">
+                            {member.displayName.split(' ')[0]}
+                          </span>
                           <button
-                            key={member.id}
                             type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault(); // Prevent blur
-                              selectMember(member);
-                            }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent cursor-pointer"
+                            onClick={() => removeMember(member.id)}
+                            className="hover:text-destructive"
                           >
-                            <PrincipalAvatar principal={member} size="sm" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{member.displayName}</p>
-                              {member.subtitle && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {member.subtitle}
-                                </p>
-                              )}
-                            </div>
+                            <X className="size-3" />
                           </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="font-medium">{member.displayName}</p>
+                        {member.subtitle && (
+                          <p className="text-xs text-muted-foreground">{member.subtitle}</p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+
+                {/* Search input with dropdown */}
+                <div className="flex-1 min-w-[80px] relative">
+                  <input
+                    autoComplete="off"
+                    ref={inputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setSearchOpen(true);
+                    }}
+                    onFocus={() => setSearchOpen(true)}
+                    onBlur={() => {
+                      // Delay closing to allow click on dropdown items
+                      setTimeout(() => setSearchOpen(false), 150);
+                    }}
+                    placeholder={selectedMembers.length === 0 ? 'Search by name or email...' : ''}
+                    className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                  />
+                  {/* Dropdown results */}
+                  {searchOpen && (
+                    <div className="absolute top-full left-0 mt-2 z-50 bg-popover border rounded-md shadow-md min-w-[280px] max-h-[300px] overflow-y-auto">
+                      {filteredMembers.length === 0 ? (
+                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          {searchQuery
+                            ? `No member found matching "${searchQuery}"`
+                            : 'No members available to add'}
+                        </div>
+                      ) : (
+                        <div className="py-1">
+                          {filteredMembers.map((member) => (
+                            <button
+                              key={member.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault(); // Prevent blur
+                                selectMember(member);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent cursor-pointer"
+                            >
+                              <PrincipalAvatar principal={member} size="sm" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{member.displayName}</p>
+                                {member.subtitle && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {member.subtitle}
+                                  </p>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Role selector (appears when there are selected members) */}
+              {/* Role selector - fixed on right side */}
               {selectedMembers.length > 0 && (
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
-                  <SelectTrigger className="w-auto h-7 border-0 bg-muted/50 text-xs gap-1 px-2">
-                    <SelectValue>{roles.find((r) => r.value === selectedRole)?.label}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    {roles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div className="flex flex-col items-start">
-                          <span>{role.label}</span>
-                          {role.description && (
-                            <span className="text-xs text-muted-foreground">
-                              {role.description}
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProjectRoleSelector
+                  value={selectedRole as import('@inkeep/agents-core/client-exports').ProjectRole}
+                  onChange={(role) => setSelectedRole(role)}
+                  triggerClassName="h-7 bg-muted/50 px-2 shrink-0"
+                />
               )}
             </div>
             <Button
@@ -311,19 +305,19 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   {canManage ? (
-                    <AccessRoleDropdown
-                      currentRole={principal.role}
-                      roles={roles}
-                      onRoleChange={(newRole) =>
+                    <ProjectRoleSelector
+                      value={
+                        principal.role as import('@inkeep/agents-core/client-exports').ProjectRole
+                      }
+                      onChange={(newRole) =>
                         onRoleChange(principal.id, principal.type, principal.role, newRole)
                       }
                       onRemove={() => onRemove(principal.id, principal.type, principal.role)}
-                      showRemove
                     />
                   ) : (
-                    <span className="text-sm text-muted-foreground">
+                    <Badge variant="code">
                       {roles.find((r) => r.value === principal.role)?.label || principal.role}
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>

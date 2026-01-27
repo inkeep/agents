@@ -95,6 +95,75 @@ export const StreamFinishEventSchema = z.object({
 });
 
 // =============================================================================
+// TOOL EVENTS
+// =============================================================================
+
+/**
+ * Tool input start event - marks beginning of tool input streaming
+ */
+export const ToolInputStartEventSchema = z.object({
+  type: z.literal('tool-input-start'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+});
+
+/**
+ * Tool input delta event - streaming chunks of tool input
+ */
+export const ToolInputDeltaEventSchema = z.object({
+  type: z.literal('tool-input-delta'),
+  toolCallId: z.string(),
+  inputTextDelta: z.string(),
+});
+
+/**
+ * Tool input available event - complete tool input is available
+ */
+export const ToolInputAvailableEventSchema = z.object({
+  type: z.literal('tool-input-available'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  input: z.any(),
+  providerMetadata: z.any().optional(),
+});
+
+/**
+ * Tool output available event - tool execution result
+ */
+export const ToolOutputAvailableEventSchema = z.object({
+  type: z.literal('tool-output-available'),
+  toolCallId: z.string(),
+  output: z.any(),
+});
+
+/**
+ * Tool output error event - tool execution failed
+ */
+export const ToolOutputErrorEventSchema = z.object({
+  type: z.literal('tool-output-error'),
+  toolCallId: z.string(),
+  errorText: z.string(),
+  output: z.any().nullable(),
+});
+
+/**
+ * Tool approval request event - requesting user approval for tool execution
+ */
+export const ToolApprovalRequestEventSchema = z.object({
+  type: z.literal('tool-approval-request'),
+  approvalId: z.string(),
+  toolCallId: z.string(),
+});
+
+/**
+ * Tool output denied event - tool execution was denied by user
+ */
+export const ToolOutputDeniedEventSchema = z.object({
+  type: z.literal('tool-output-denied'),
+  toolCallId: z.string(),
+});
+
+// =============================================================================
 // DISCRIMINATED UNION
 // =============================================================================
 
@@ -111,6 +180,14 @@ export const StreamEventSchema = z.discriminatedUnion('type', [
   DataSummaryStreamEventSchema,
   StreamErrorEventSchema,
   StreamFinishEventSchema,
+  // Tool events
+  ToolInputStartEventSchema,
+  ToolInputDeltaEventSchema,
+  ToolInputAvailableEventSchema,
+  ToolOutputAvailableEventSchema,
+  ToolOutputErrorEventSchema,
+  ToolApprovalRequestEventSchema,
+  ToolOutputDeniedEventSchema,
 ]);
 
 // =============================================================================
@@ -125,6 +202,15 @@ export type DataOperationStreamEvent = z.infer<typeof DataOperationStreamEventSc
 export type DataSummaryStreamEvent = z.infer<typeof DataSummaryStreamEventSchema>;
 export type StreamErrorEvent = z.infer<typeof StreamErrorEventSchema>;
 export type StreamFinishEvent = z.infer<typeof StreamFinishEventSchema>;
+
+// Tool event types
+export type ToolInputStartEvent = z.infer<typeof ToolInputStartEventSchema>;
+export type ToolInputDeltaEvent = z.infer<typeof ToolInputDeltaEventSchema>;
+export type ToolInputAvailableEvent = z.infer<typeof ToolInputAvailableEventSchema>;
+export type ToolOutputAvailableEvent = z.infer<typeof ToolOutputAvailableEventSchema>;
+export type ToolOutputErrorEvent = z.infer<typeof ToolOutputErrorEventSchema>;
+export type ToolApprovalRequestEvent = z.infer<typeof ToolApprovalRequestEventSchema>;
+export type ToolOutputDeniedEvent = z.infer<typeof ToolOutputDeniedEventSchema>;
 
 /**
  * Union type of all possible stream events

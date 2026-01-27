@@ -7,6 +7,9 @@
 import { v1 } from '@authzed/authzed-node';
 import { getSpiceDbConfig } from './config';
 
+// Import enums from v1 namespace
+const { RelationshipUpdate_Operation, CheckPermissionResponse_Permissionship } = v1;
+
 type ZedClientInterface = ReturnType<typeof v1.NewClient>;
 
 let client: ZedClientInterface | null = null;
@@ -34,16 +37,16 @@ export function resetSpiceClient(): void {
   client = null;
 }
 
-// Constants for permission check results
-const PERMISSIONSHIP_HAS_PERMISSION = 2;
-const RELATIONSHIP_OPERATION_CREATE = 1;
+// Re-export enums for use in other modules
+export const RelationshipOperation = RelationshipUpdate_Operation;
+export const Permissionship = CheckPermissionResponse_Permissionship;
 
 // Re-export v1 for access to types
 export { v1 };
 
 /**
  * Check if a subject has a permission on a resource.
- * Note: Caller must verify isAuthzEnabled(tenantId) before calling.
+ * Note: Caller must verify isAuthzEnabled() before calling.
  */
 export async function checkPermission(params: {
   resourceType: string;
@@ -63,15 +66,15 @@ export async function checkPermission(params: {
     },
     consistency: {
       requirement: {
-        oneofKind: 'minimizeLatency',
-        minimizeLatency: true,
+        oneofKind: 'fullyConsistent',
+        fullyConsistent: true,
       },
     },
     context: undefined,
     withTracing: false,
   });
 
-  return response.permissionship === PERMISSIONSHIP_HAS_PERMISSION;
+  return response.permissionship === CheckPermissionResponse_Permissionship.HAS_PERMISSION;
 }
 
 /**
@@ -111,8 +114,8 @@ export async function checkBulkPermissions(params: {
       items,
       consistency: {
         requirement: {
-          oneofKind: 'minimizeLatency',
-          minimizeLatency: true,
+          oneofKind: 'fullyConsistent',
+          fullyConsistent: true,
         },
       },
     })
@@ -126,7 +129,8 @@ export async function checkBulkPermissions(params: {
 
     // Check if the response indicates permission
     if (pair.response.oneofKind === 'item') {
-      result[permission] = pair.response.item.permissionship === PERMISSIONSHIP_HAS_PERMISSION;
+      result[permission] =
+        pair.response.item.permissionship === CheckPermissionResponse_Permissionship.HAS_PERMISSION;
     } else {
       // Error case - treat as no permission
       result[permission] = false;
@@ -156,8 +160,8 @@ export async function lookupResources(params: {
     },
     consistency: {
       requirement: {
-        oneofKind: 'minimizeLatency',
-        minimizeLatency: true,
+        oneofKind: 'fullyConsistent',
+        fullyConsistent: true,
       },
     },
     context: undefined,
@@ -183,7 +187,7 @@ export async function writeRelationship(params: {
   await spice.promises.writeRelationships({
     updates: [
       {
-        operation: RELATIONSHIP_OPERATION_CREATE,
+        operation: RelationshipUpdate_Operation.TOUCH, // TOUCH = upsert, idempotent and safe for retries
         relationship: {
           resource: { objectType: params.resourceType, objectId: params.resourceId },
           relation: params.relation,
@@ -233,26 +237,38 @@ export async function deleteRelationship(params: {
 
 /**
  * Read relationships for a resource to list subjects with access.
+ * Optionally filter by subject type and ID.
  */
 export async function readRelationships(params: {
   resourceType: string;
-  resourceId: string;
+  resourceId?: string;
   relation?: string;
-}): Promise<Array<{ subjectType: string; subjectId: string; relation: string }>> {
+  subjectType?: string;
+  subjectId?: string;
+}): Promise<
+  Array<{ resourceId: string; subjectType: string; subjectId: string; relation: string }>
+> {
   const spice = getSpiceClient();
 
   const responses = await spice.promises.readRelationships({
     relationshipFilter: {
       resourceType: params.resourceType,
-      optionalResourceId: params.resourceId,
+      optionalResourceId: params.resourceId || '',
       optionalResourceIdPrefix: '',
       optionalRelation: params.relation || '',
-      optionalSubjectFilter: undefined,
+      optionalSubjectFilter:
+        params.subjectType || params.subjectId
+          ? {
+              subjectType: params.subjectType || '',
+              optionalSubjectId: params.subjectId || '',
+              optionalRelation: undefined,
+            }
+          : undefined,
     },
     consistency: {
       requirement: {
-        oneofKind: 'minimizeLatency',
-        minimizeLatency: true,
+        oneofKind: 'fullyConsistent',
+        fullyConsistent: true,
       },
     },
     optionalLimit: 0,
@@ -260,6 +276,7 @@ export async function readRelationships(params: {
   });
 
   return responses.map((item: v1.ReadRelationshipsResponse) => ({
+    resourceId: item.relationship?.resource?.objectId || '',
     subjectType: item.relationship?.subject?.object?.objectType || '',
     subjectId: item.relationship?.subject?.object?.objectId || '',
     relation: item.relationship?.relation || '',

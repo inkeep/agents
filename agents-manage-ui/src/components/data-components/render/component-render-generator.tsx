@@ -48,7 +48,7 @@ export function ComponentRenderGenerator({
   const [isSaved, setIsSaved] = useState(!!existingRender);
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const project = useProject();
+  const { project } = useProject();
   const baseModel = project.models?.base?.model;
 
   const generatePreview = async (instructions?: string) => {
@@ -194,7 +194,7 @@ export function ComponentRenderGenerator({
                 <Info className="w-3 h-3 text-muted-foreground ml-1" />
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                   Generates a React/Tailwind component from your schema using your project's base
                   model
                   {baseModel && (
@@ -212,7 +212,7 @@ export function ComponentRenderGenerator({
                       Edit in settings
                     </ExternalLink>
                   </div>
-                </p>
+                </div>
               </TooltipContent>
             </Tooltip>
           </div>

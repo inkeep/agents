@@ -168,8 +168,8 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
     # Run claude and stream output while also saving to file
     claude --dangerously-skip-permissions --print -p "$(cat "$PROMPT_FILE")" 2>&1 | tee "$OUTPUT_FILE" || true
 
-    # Check for completion signal
-    if grep -q "<promise>COMPLETE</promise>" "$OUTPUT_FILE"; then
+    # Check for completion signal (must be on its own line, not in explanatory text)
+    if grep -qE "^<promise>COMPLETE</promise>$" "$OUTPUT_FILE"; then
         rm -f "$OUTPUT_FILE"
         echo ""
         echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

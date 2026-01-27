@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { getUserOrganizations } from '@inkeep/agents-core';
+import { getUserOrganizationsFromDb } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
@@ -26,7 +26,7 @@ cliAuthRoutes.openapi(
   createRoute({
     method: 'get',
     path: '/me',
-    tags: ['cli'],
+    tags: ['CLI'],
     summary: 'Get CLI user info',
     description: 'Get the current authenticated user and their organization for CLI usage',
     middleware: [sessionAuth()],
@@ -56,7 +56,7 @@ cliAuthRoutes.openapi(
     }
 
     // Get user's organizations (assuming single org per user)
-    const organizations = await getUserOrganizations(runDbClient)(userId);
+    const organizations = await getUserOrganizationsFromDb(runDbClient)(userId);
 
     if (organizations.length === 0) {
       return c.json({ error: 'User has no organization' }, 404);

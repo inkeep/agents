@@ -3,7 +3,6 @@
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
@@ -28,6 +27,7 @@ import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results'
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 type AnyRecord = Record<string, unknown>;
 const isPlainObject = (v: unknown): v is AnyRecord =>

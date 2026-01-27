@@ -1,11 +1,13 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
+import { githubRoutes } from './domains/github';
 import { manageRoutes } from './domains/manage';
+import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
@@ -50,6 +52,29 @@ function createAgentsHono(config: AppConfig) {
 
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
+  const CapabilitiesResponseSchema = z
+    .object({
+      sandbox: z
+        .object({
+          configured: z
+            .boolean()
+            .describe(
+              'Whether a sandbox provider is configured. Required for Function Tools execution.'
+            ),
+          provider: z
+            .enum(['native', 'vercel'])
+            .optional()
+            .describe('The configured sandbox provider, if enabled.'),
+          runtime: z
+            .enum(['node22', 'typescript'])
+            .optional()
+            .describe('The configured sandbox runtime, if enabled.'),
+        })
+        .describe('Sandbox execution capabilities (used by Function Tools).'),
+    })
+    .describe('Optional server capabilities and configuration.')
+    .openapi('CapabilitiesResponseSchema');
+
   // Core middleware
   app.use('*', requestId());
 
@@ -86,6 +111,12 @@ function createAgentsHono(config: AppConfig) {
     if (c.req.path.includes('/signoz/')) {
       return next();
     }
+
+    // GitHub OIDC token exchange - server-to-server API called from GitHub Actions.
+    if (c.req.path.includes('/api/github/')) {
+      return next();
+    }
+
     return cors(defaultCorsConfig)(c, next);
   });
 
@@ -170,7 +201,7 @@ function createAgentsHono(config: AppConfig) {
     createRoute({
       method: 'get',
       path: '/api/workflow/process',
-      tags: ['workflow'],
+      tags: ['Workflows'],
       summary: 'Process workflow jobs',
       description: 'Keeps the workflow worker active to process queued jobs (called by cron)',
       responses: {
@@ -202,6 +233,55 @@ function createAgentsHono(config: AppConfig) {
 
     return sessionAuth()(c as any, next);
   });
+
+  // Authentication middleware for non-tenant manage routes
+  app.use('/manage/capabilities', async (c, next) => {
+    // Capabilities should be gated the same way as other manage routes, but still work
+    // when auth is disabled or not configured.
+    if (!auth || env.DISABLE_AUTH || isTestEnvironment()) {
+      await next();
+      return;
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      return manageApiKeyAuth()(c as any, next);
+    }
+
+    return sessionAuth()(c as any, next);
+  });
+
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/manage/capabilities',
+      operationId: 'capabilities',
+      summary: 'Get server capabilities',
+      description: 'Get information about optional server-side capabilities and configuration.',
+      responses: {
+        200: {
+          description: 'Server capabilities',
+          content: {
+            'application/json': {
+              schema: CapabilitiesResponseSchema,
+            },
+          },
+        },
+      },
+    }),
+    (c) => {
+      if (!sandboxConfig) {
+        return c.json({ sandbox: { configured: false } });
+      }
+      return c.json({
+        sandbox: {
+          configured: true,
+          provider: sandboxConfig.provider,
+          runtime: sandboxConfig.runtime,
+        },
+      });
+    }
+  );
 
   // Tenant access check (skip in DISABLE_AUTH and test environments)
   if (env.DISABLE_AUTH || isTestEnvironment()) {
@@ -282,6 +362,13 @@ function createAgentsHono(config: AppConfig) {
   });
 
   app.route('/evals', evalRoutes);
+
+  // Mount GitHub routes - unauthenticated, OIDC token is the authentication
+  app.route('/api/github', githubRoutes);
+
+  // Mount MCP routes at top level (eclipses both manage and run services)
+  // Also available at /manage/mcp for backward compatibility
+  app.route('/mcp', mcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

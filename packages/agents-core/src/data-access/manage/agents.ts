@@ -444,6 +444,7 @@ const getFullAgentDefinitionInternal =
             projectId: functionTools.projectId,
             agentId: functionTools.agentId,
             agentToolRelationId: subAgentFunctionToolRelations.id,
+            toolPolicies: subAgentFunctionToolRelations.toolPolicies,
           })
           .from(subAgentFunctionToolRelations)
           .innerJoin(
@@ -495,7 +496,7 @@ const getFullAgentDefinitionInternal =
           toolId: tool.id,
           toolSelection: null, // Function tools don't have tool selection
           headers: null, // Function tools don't have headers
-          toolPolicies: null, // Function tools don't have tool policies (yet)
+          toolPolicies: tool.toolPolicies || null,
         }));
 
         const canUse = [...mcpToolCanUse, ...functionToolCanUse];
@@ -746,21 +747,33 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      const toolsList = await listTools(db)({
-        scopes: { tenantId, projectId },
-        pagination: { page: 1, limit: 1000 },
-      });
+      const usedToolIds = new Set(
+        Object.values(agentsObject)
+          .flatMap((a) => (Array.isArray((a as any)?.canUse) ? (a as any).canUse : []))
+          .map((ref) => ref?.toolId)
+          .filter(Boolean)
+      );
 
       const toolsObject: Record<string, any> = {};
-      for (const tool of toolsList.data) {
-        toolsObject[tool.id] = {
-          id: tool.id,
-          name: tool.name,
-          description: tool.description,
-          config: tool.config,
-          credentialReferenceId: tool.credentialReferenceId,
-          imageUrl: tool.imageUrl,
-        };
+
+      if (usedToolIds.size > 0) {
+        const { data } = await listTools(db)({
+          scopes: { tenantId, projectId },
+          pagination: { page: 1, limit: 1000 },
+        });
+
+        for (const tool of data) {
+          if (!usedToolIds.has(tool.id)) continue;
+
+          toolsObject[tool.id] = {
+            id: tool.id,
+            name: tool.name,
+            description: tool.description,
+            config: tool.config,
+            credentialReferenceId: tool.credentialReferenceId,
+            imageUrl: tool.imageUrl,
+          };
+        }
       }
       result.tools = toolsObject;
 
@@ -838,7 +851,8 @@ const getFullAgentDefinitionInternal =
             outputTransform: trigger.outputTransform,
             messageTemplate: trigger.messageTemplate,
             authentication: trigger.authentication,
-            signingSecret: trigger.signingSecret,
+            signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
+            signatureVerification: trigger.signatureVerification,
           };
         }
         result.triggers = triggersObject;

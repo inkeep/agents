@@ -81,6 +81,7 @@ export function getStatusBadgeVariant(status: string) {
     case 'disabled':
       return 'code';
     case 'needs_auth':
+    case 'unavailable':
       return 'warning';
     default:
       return 'warning';

@@ -4,7 +4,6 @@ import { MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { formatDate } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -21,8 +20,10 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { useProjectPermissions } from '@/contexts/project';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import type { Credential } from '@/lib/api/credentials';
+import { formatDate } from '@/lib/utils/format-date';
 import { ProviderIcon } from '../icons/provider-icon';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
 
@@ -109,6 +110,7 @@ export function CredentialItem({
   tenantId: string;
   projectId: string;
 }) {
+  const { canEdit } = useProjectPermissions();
   const linkPath = `/${tenantId}/projects/${projectId}/credentials/${id}`;
 
   return (
@@ -120,7 +122,7 @@ export function CredentialItem({
             <span className="flex-1 min-w-0 truncate">{name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        <CredentialDialogMenu credentialId={id} credentialName={name} />
+        {canEdit && <CredentialDialogMenu credentialId={id} credentialName={name} />}
       </ItemCardHeader>
       <ItemCardContent className="gap-2">
         {createdBy && (

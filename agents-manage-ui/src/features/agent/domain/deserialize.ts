@@ -209,6 +209,10 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
           imageUrl: (tool as any)?.imageUrl,
         };
 
+        if (nodeType === NodeType.FunctionTool) {
+          nodeData.tempToolPolicies = canUseItem.toolPolicies ?? {};
+        }
+
         // Add function details for function tools
         if (nodeType === NodeType.FunctionTool && data.functionTools?.[toolId]) {
           const functionTool = data.functionTools[toolId];

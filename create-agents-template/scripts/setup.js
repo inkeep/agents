@@ -140,6 +140,9 @@ async function setupProjectInDatabase(isCloud) {
   } else {
     logInfo('JWT keys already configured, skipping generation');
   }
+  // Check if authz is enabled
+  const enableAuthz = process.env.ENABLE_AUTHZ === 'true';
+
   // Step 1: Start database (skip if --cloud flag is set)
   if (isCloud) {
     logStep(
@@ -148,11 +151,16 @@ async function setupProjectInDatabase(isCloud) {
     );
   } else {
     logStep(1, 'Starting databases with Docker (DoltgreSQL + PostgreSQL)');
+    logInfo('DoltgreSQL (port 5432) - Management database');
+    logInfo('PostgreSQL (port 5433) - Runtime database');
+    if (enableAuthz) {
+      logInfo('SpiceDB (port 5434) - Authorization');
+    }
+
     try {
-      await execAsync('docker-compose -f docker-compose.db.yml up -d');
+      const profileFlag = enableAuthz ? '--profile authz ' : '';
+      await execAsync(`docker-compose -f docker-compose.db.yml ${profileFlag}up -d`);
       logSuccess('Database containers started successfully');
-      logInfo('DoltgreSQL (port 5432) - Management database');
-      logInfo('PostgreSQL (port 5433) - Runtime database');
       logInfo('Waiting for databases to be ready (10 seconds)...');
       await new Promise((resolve) => setTimeout(resolve, 10000));
       logSuccess('Databases should be ready');
@@ -194,6 +202,61 @@ async function setupProjectInDatabase(isCloud) {
   } catch (error) {
     logError('Failed to run database migrations', error);
     logWarning('This may cause issues with the setup. Consider checking your database schema.');
+  }
+
+  // Step 2.5: Setup SpiceDB schema (if ENABLE_AUTHZ=true)
+  if (enableAuthz && !isCloud) {
+    logStep('2.5', 'Setting up SpiceDB schema (ENABLE_AUTHZ=true)');
+
+    // Check if zed CLI is installed
+    try {
+      await execAsync('which zed');
+
+      // Wait for SpiceDB to be ready
+      logInfo('Waiting for SpiceDB to be ready...');
+      let spicedbReady = false;
+      for (let i = 0; i < 30; i++) {
+        try {
+          await execAsync(
+            'zed schema read --insecure --endpoint localhost:50051 --token dev-secret-key'
+          );
+          spicedbReady = true;
+          break;
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (spicedbReady) {
+        // Write schema from bundled file in @inkeep/agents-core
+        const schemaPath = 'node_modules/@inkeep/agents-core/spicedb/schema.zed';
+        logInfo(`Writing SpiceDB schema from ${schemaPath}...`);
+        try {
+          await execAsync(
+            `zed schema write ${schemaPath} --insecure --endpoint localhost:50051 --token dev-secret-key`
+          );
+          logSuccess('SpiceDB schema applied');
+        } catch {
+          logWarning('Could not write SpiceDB schema (SpiceDB may still be starting)');
+          logInfo(
+            'Run manually: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+          );
+        }
+      } else {
+        logWarning('SpiceDB did not become ready in time');
+        logInfo(
+          'Run manually after SpiceDB is ready: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+        );
+      }
+    } catch {
+      logWarning('zed CLI not installed - skipping SpiceDB schema setup');
+      logInfo('Install with: brew install authzed/tap/zed');
+      logInfo(
+        'Then run: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key'
+      );
+    }
+  } else if (enableAuthz && isCloud) {
+    logInfo('Skipping SpiceDB schema setup (cloud mode - configure SpiceDB separately)');
   }
 
   // Step 3: Start development servers

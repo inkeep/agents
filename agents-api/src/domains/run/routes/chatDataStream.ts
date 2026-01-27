@@ -36,7 +36,7 @@ const logger = getLogger('chatDataStream');
 const chatDataStreamRoute = createRoute({
   method: 'post',
   path: '/chat',
-  tags: ['chat'],
+  tags: ['Chat'],
   summary: 'Chat (Vercel Streaming Protocol)',
   description: 'Chat completion endpoint streaming with Vercel data stream protocol.',
   security: [{ bearerAuth: [] }],
@@ -65,11 +65,13 @@ const chatDataStreamRoute = createRoute({
                         type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
                         toolCallId: z.string(),
                         state: z.any(),
-                        approval: z.object({
-                          id: z.string(),
-                          approved: z.boolean().optional(),
-                          reason: z.string().optional(),
-                        }),
+                        approval: z
+                          .object({
+                            id: z.string(),
+                            approved: z.boolean().optional(),
+                            reason: z.string().optional(),
+                          })
+                          .optional(),
                         input: z.any().optional(),
                         callProviderMetadata: z.any().optional(),
                       }),
@@ -535,7 +537,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
 const toolApprovalRoute = createRoute({
   method: 'post',
   path: '/tool-approvals',
-  tags: ['chat'],
+  tags: ['Chat'],
   summary: 'Approve or deny tool execution',
   description: 'Handle user approval/denial of tool execution requests during conversations',
   security: [{ bearerAuth: [] }],

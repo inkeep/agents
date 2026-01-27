@@ -17,6 +17,7 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
@@ -93,6 +94,8 @@ export function EditCredentialForm({
   const [isDeleting, setIsDeleting] = useState(false);
   const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
 
+  const { canEdit } = useProjectPermissions();
+
   const form = useForm({
     resolver: zodResolver(editCredentialFormSchema),
     defaultValues: initialFormData,
@@ -164,6 +167,7 @@ export function EditCredentialForm({
               name="name"
               label="Name"
               placeholder="e.g., production-api-key"
+              disabled={!canEdit}
             />
 
             {/* Credential Type Display */}
@@ -208,6 +212,7 @@ export function EditCredentialForm({
                   keyPlaceholder="Key (e.g. X-API-Key)"
                   valuePlaceholder="Value (e.g. your-api-key)"
                   addButtonLabel="Add header"
+                  disabled={!canEdit}
                 />
                 <InfoCard title="How this works">
                   <p className="mb-2">
@@ -238,18 +243,20 @@ export function EditCredentialForm({
             />
           </div>
 
-          <div className="flex w-full justify-between">
-            {credential.type === CredentialStoreType.nango && (
-              <Button type="submit" disabled={isSubmitting}>
-                Save
-              </Button>
-            )}
-            <DialogTrigger asChild>
-              <Button type="button" variant="destructive-outline">
-                Delete Credential
-              </Button>
-            </DialogTrigger>
-          </div>
+          {canEdit && (
+            <div className="flex w-full justify-between">
+              {credential.type === CredentialStoreType.nango && (
+                <Button type="submit" disabled={isSubmitting}>
+                  Save
+                </Button>
+              )}
+              <DialogTrigger asChild>
+                <Button type="button" variant="destructive-outline">
+                  Delete Credential
+                </Button>
+              </DialogTrigger>
+            </div>
+          )}
         </form>
       </Form>
       {isDeleteOpen && (

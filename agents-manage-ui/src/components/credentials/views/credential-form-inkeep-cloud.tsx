@@ -40,11 +40,7 @@ const defaultValues: CredentialFormData = {
   selectedExternalAgent: undefined,
 };
 
-export function CredentialFormInkeepCloud({
-  onCreateCredential,
-  tenantId,
-  projectId,
-}: CredentialFormProps) {
+export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialFormProps) {
   'use memo';
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
@@ -55,11 +51,8 @@ export function CredentialFormInkeepCloud({
   });
 
   const { isSubmitting } = form.formState;
-  const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery(
-    tenantId,
-    projectId
-  );
-  const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery(tenantId, projectId);
+  const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery();
+  const { data: mcpTools, isFetching: toolsLoading } = useMcpToolsQuery();
 
   const availableExternalAgents = externalAgents.filter((agent) => !agent.credentialReferenceId);
   const availableMCPServers = mcpTools.filter((tool) => !tool.credentialReferenceId);

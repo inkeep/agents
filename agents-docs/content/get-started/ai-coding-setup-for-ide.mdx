@@ -1,0 +1,60 @@
+---
+title: Add Inkeep Skills and MCP Server to your IDE or coding tools
+sidebarTitle: AI Coding Setup
+description: Install Skills and MCP to help AI coding assistants build Inkeep agents.
+icon: "brand/Inkeep"
+---
+
+Set up your IDE so AI coding assistants can help you build Inkeep agents.
+
+## Install Inkeep skills
+
+Install [Inkeep skills](https://github.com/inkeep/skills) so AI assistants know how to use the SDK:
+
+```bash
+npx skills add inkeep/skills
+```
+
+## Install Inkeep MCP
+
+If you didn't opt-in during `npx @inkeep/create-agents`, add the Inkeep MCP server to your IDE:
+
+### Cursor
+
+Click the button below to add the Inkeep MCP server to Cursor.
+
+<div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "16px", justifyContent: "center" }}>
+<a href="cursor://anysphere.cursor-deeplink/mcp/install?name=inkeep-agents&config=eyJ1cmwiOiJodHRwczovL2FnZW50cy5pbmtlZXAuY29tL21jcCJ9">
+  <Image
+    src="https://cursor.com/deeplink/mcp-install-dark.png"
+    alt="Add to Cursor"
+    style={{ height: "36px", verticalAlign: "middle", marginTop: "10px", marginBottom: "10px" }}
+  />
+</a>
+</div>
+
+### VS Code
+
+Click the button below to add the Inkeep MCP server to VS Code.
+
+<div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "16px", justifyContent: "center" }}>
+<a href="vscode:mcp/install?%7B%22name%22%3A%22inkeep-agents-mcp%22%2C%22type%22%3A%22sse%22%2C%22url%22%3A%22https%3A%2F%2Fagents.inkeep.com%2Fmcp%22%7D">
+  <Image
+    src="https://img.shields.io/badge/VS_Code-Install_Inkeep_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff"
+    alt="Install in VS Code"
+    style={{ height: "28px", verticalAlign: "middle", marginTop: "10px", marginBottom: "10px" }}
+  />
+</a>
+</div>
+
+### Claude Code
+
+To add to **Claude Code**, run this in your terminal:
+
+```bash
+claude mcp add --transport http inkeep-agents https://agents.inkeep.com/mcp --scope project
+```
+
+### Other MCP clients
+
+Manually add `https://agents.inkeep.com/mcp` as an MCP Server to any MCP client.
