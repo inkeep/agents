@@ -10,6 +10,13 @@ icon: LuSettings2
 
 The Inkeep Agent Framework includes sensible defaults for execution limits, timeouts, and constraints. However, certain use cases—like long-running orchestration agents—may require different configurations.
 
+<SkillRule
+  id="runtime-limits-overview"
+  skills="typescript-sdk"
+  title="Runtime Limits Configuration"
+  description="How to configure execution limits, timeouts, and constraints"
+>
+
 ## How Runtime Configuration Works
 
 ### Two Types of Limits
@@ -111,6 +118,15 @@ AGENTS_STREAM_MAX_LIFETIME_MS=1800000  # 30min, Default: 10min
 - **Timeouts**: Code generation and analysis can take time, especially for large files or complex refactoring
 - **Cache Duration**: Keeps tool results available throughout long sessions for artifact processing
 
+</SkillRule>
+
+<SkillRule
+  id="runtime-limits-variables"
+  skills="typescript-sdk"
+  title="Runtime Configuration Variables"
+  description="All available environment variables for configuring runtime limits"
+>
+
 ## All Available Configuration Variables
 
 All runtime configuration variables are defined as TypeScript constants. To explore available overrides and their detailed documentation:
@@ -144,3 +160,5 @@ The runtime configuration is organized into functional categories:
 - **Artifact Processing**: UI component generation with retry mechanisms
 - **Session Management**: Tool result caching and cleanup
 - **Streaming**: Frequency, batching, and lifetime limits for streams
+
+</SkillRule>
