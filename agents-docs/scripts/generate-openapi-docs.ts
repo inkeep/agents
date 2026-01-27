@@ -18,7 +18,9 @@ async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
   console.time('Done in');
 
-  for await (const file of glob('content/api-reference/**/*.mdx')) {
+  for await (const file of glob('content/api-reference/**/*.mdx', {
+    exclude: ['content/api-reference/index.mdx'],
+  })) {
     await rm(file);
   }
 
