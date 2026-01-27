@@ -29748,7 +29748,7 @@
         },
         "summary": "Get Third-Party MCP Server Details",
         "tags": [
-          "Third Party MCP Servers"
+          "Third-Party MCP Servers"
         ]
       }
     },
@@ -29895,7 +29895,7 @@
         },
         "summary": "Get OAuth Redirect URL",
         "tags": [
-          "Third Party MCP Servers"
+          "Third-Party MCP Servers"
         ]
       }
     },
@@ -31934,7 +31934,7 @@
     },
     {
       "description": "Operations for managing third-party MCP servers",
-      "name": "Third Party MCP Servers"
+      "name": "Third-Party MCP Servers"
     },
     {
       "description": "Operations for managing MCP tools",
