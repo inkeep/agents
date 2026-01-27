@@ -40,7 +40,7 @@ export const TagToDescription = {
   'SubAgent Relations': 'Operations for managing sub agent relationships',
   'SubAgent Team Agent Relations': 'Operations for managing sub agent team agent relationships',
   'SubAgent Tool Relations': 'Operations for managing sub agent tool relationships',
-  'Third Party MCP Servers': 'Operations for managing third-party MCP servers',
+  'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',
   'User Organizations': 'Operations for managing user organizations',
