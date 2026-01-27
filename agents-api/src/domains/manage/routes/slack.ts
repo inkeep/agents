@@ -39,6 +39,21 @@ const logger = getLogger('slack-routes');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
+const pendingSessionTokens = new Map<
+  string,
+  { token: string; expiresAt: string; createdAt: number }
+>();
+
+setInterval(() => {
+  const now = Date.now();
+  const maxAge = 10 * 60 * 1000;
+  for (const [key, value] of pendingSessionTokens.entries()) {
+    if (now - value.createdAt > maxAge) {
+      pendingSessionTokens.delete(key);
+    }
+  }
+}, 60 * 1000);
+
 const SlackUserLinkSchema = z.object({
   slackUserId: z.string(),
   slackTeamId: z.string(),
@@ -110,7 +125,7 @@ app.openapi(
   async (c) => {
     const { code, error } = c.req.valid('query');
     const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-    const dashboardUrl = `${manageUiUrl}/default/slack-app`;
+    const dashboardUrl = `${manageUiUrl}/default/work-apps/slack`;
 
     if (error) {
       logger.error({ error }, 'Slack OAuth error');
@@ -181,15 +196,26 @@ app.openapi(
 
 app.post('/connect', async (c) => {
   const body = await c.req.json();
-  const { userId, userEmail, userName, tenantId } = body as {
+  const { userId, userEmail, userName, tenantId, sessionToken, sessionExpiresAt } = body as {
     userId?: string;
     userEmail?: string;
     userName?: string;
     tenantId?: string;
+    sessionToken?: string;
+    sessionExpiresAt?: string;
   };
 
   if (!userId) {
     return c.json({ error: 'userId is required' }, 400);
+  }
+
+  if (sessionToken && sessionExpiresAt) {
+    pendingSessionTokens.set(userId, {
+      token: sessionToken,
+      expiresAt: sessionExpiresAt,
+      createdAt: Date.now(),
+    });
+    logger.info({ userId }, 'Stored pending session token for Slack connection');
   }
 
   console.log('=== NANGO CONNECT SESSION CREATED ===');
@@ -198,6 +224,7 @@ app.post('/connect', async (c) => {
     userEmail,
     userName,
     integrationId: getSlackIntegrationId(),
+    hasSessionToken: !!sessionToken,
   });
   console.log('=====================================');
 
@@ -311,6 +338,12 @@ app.post('/nango-webhook', async (c) => {
 
         const tenantId = payload.organization?.id || 'default';
 
+        const pendingSession = pendingSessionTokens.get(endUser.endUserId);
+        if (pendingSession) {
+          pendingSessionTokens.delete(endUser.endUserId);
+          logger.info({ userId: endUser.endUserId }, 'Retrieved pending session token');
+        }
+
         await updateConnectionMetadata(connectionId, {
           linked_at: userLink.linkedAt || '',
           app_user_id: endUser.endUserId,
@@ -326,6 +359,12 @@ app.post('/nango-webhook', async (c) => {
           is_slack_owner: String(isSlackOwner),
           enterprise_id: rawResponse.enterprise?.id || '',
           enterprise_name: rawResponse.enterprise?.name || '',
+          ...(pendingSession
+            ? {
+                inkeep_session_token: pendingSession.token,
+                inkeep_session_expires_at: pendingSession.expiresAt,
+              }
+            : {}),
         });
 
         console.log('=== USER LINK CREATED (ENRICHED) ===');
@@ -513,6 +552,50 @@ app.post('/disconnect', async (c) => {
   } catch (error) {
     logger.error({ error, userId, connectionId }, 'Failed to disconnect from Slack');
     return c.json({ error: 'Failed to disconnect' }, 500);
+  }
+});
+
+app.post('/refresh-session', async (c) => {
+  const body = await c.req.json();
+  const { userId, sessionToken, sessionExpiresAt } = body as {
+    userId?: string;
+    sessionToken?: string;
+    sessionExpiresAt?: string;
+  };
+
+  if (!userId) {
+    return c.json({ error: 'userId is required' }, 400);
+  }
+
+  if (!sessionToken) {
+    return c.json({ error: 'sessionToken is required' }, 400);
+  }
+
+  try {
+    const connection = await findConnectionByAppUser(userId);
+
+    if (!connection) {
+      return c.json({ error: 'No connection found for this user', needsRelink: true }, 404);
+    }
+
+    await updateConnectionMetadata(connection.connectionId, {
+      inkeep_session_token: sessionToken,
+      inkeep_session_expires_at: sessionExpiresAt || '',
+    });
+
+    console.log('=== SLACK SESSION REFRESHED ===');
+    console.log({ userId, connectionId: connection.connectionId, hasNewToken: true });
+    console.log('===============================');
+
+    logger.info(
+      { userId, connectionId: connection.connectionId },
+      'Refreshed Inkeep session token in Nango'
+    );
+
+    return c.json({ success: true, connectionId: connection.connectionId });
+  } catch (error) {
+    logger.error({ error, userId }, 'Failed to refresh session token');
+    return c.json({ error: 'Failed to refresh session' }, 500);
   }
 });
 

@@ -44,6 +44,8 @@ export async function findConnectionBySlackUser(
               tenantId: metadata.tenant_id || 'default',
               slackUserId: metadata.slack_user_id,
               slackTeamId: metadata.slack_team_id,
+              inkeepSessionToken: metadata.inkeep_session_token,
+              inkeepSessionExpiresAt: metadata.inkeep_session_expires_at,
             });
           }
         } catch {}

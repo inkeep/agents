@@ -91,11 +91,13 @@ export async function postMessage(
   blocks?: unknown[]
 ) {
   try {
-    const result = await client.chat.postMessage({
-      channel,
-      text,
-      blocks: blocks as Parameters<WebClient['chat']['postMessage']>[0]['blocks'],
-    });
+    const args: { channel: string; text: string; blocks?: unknown[] } = { channel, text };
+    if (blocks) {
+      args.blocks = blocks;
+    }
+    const result = await client.chat.postMessage(
+      args as Parameters<typeof client.chat.postMessage>[0]
+    );
     return result;
   } catch (error) {
     logger.error({ error, channel }, 'Failed to post Slack message');

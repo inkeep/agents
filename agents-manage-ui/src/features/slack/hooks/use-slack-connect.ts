@@ -11,6 +11,8 @@ interface ConnectSlackOptions {
   userName?: string;
   tenantId: string;
   slackTeamId?: string;
+  inkeepSessionToken?: string;
+  inkeepSessionExpiresAt?: string;
   onSuccess?: (link: SlackUserLink) => void;
   onError?: (error: string) => void;
 }
@@ -20,7 +22,17 @@ export function useSlackConnect() {
   const [notification, setNotification] = useState<SlackNotification | null>(null);
 
   const connectSlack = useCallback(async (options: ConnectSlackOptions) => {
-    const { userId, userEmail, userName, tenantId, slackTeamId, onSuccess, onError } = options;
+    const {
+      userId,
+      userEmail,
+      userName,
+      tenantId,
+      slackTeamId,
+      inkeepSessionToken,
+      inkeepSessionExpiresAt,
+      onSuccess,
+      onError,
+    } = options;
 
     if (!userId) {
       const errorMsg = 'Please log in to connect your Slack account';
@@ -46,6 +58,8 @@ export function useSlackConnect() {
           userEmail,
           userName,
           tenantId,
+          sessionToken: inkeepSessionToken,
+          sessionExpiresAt: inkeepSessionExpiresAt,
         }),
       });
 
@@ -53,10 +67,10 @@ export function useSlackConnect() {
         throw new Error('Failed to create Nango session');
       }
 
-      const { sessionToken } = await response.json();
+      const { sessionToken: nangoSessionToken } = await response.json();
 
       console.log('=== NANGO SESSION TOKEN RECEIVED ===');
-      console.log({ sessionToken: sessionToken ? 'present' : 'missing' });
+      console.log({ sessionToken: nangoSessionToken ? 'present' : 'missing' });
       console.log('====================================');
 
       const nango = new Nango();
@@ -158,7 +172,7 @@ export function useSlackConnect() {
         },
       });
 
-      connect.setSessionToken(sessionToken);
+      connect.setSessionToken(nangoSessionToken);
     } catch (error) {
       console.error('Failed to connect Slack:', error);
       const errorMsg = error instanceof Error ? error.message : 'Failed to connect Slack account';

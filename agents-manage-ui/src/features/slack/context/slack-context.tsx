@@ -39,7 +39,7 @@ interface SlackContextValue {
   connectSlack: () => void;
   disconnectSlack: () => void;
 
-  fetchSlackInfo: () => void;
+  fetchSlackInfo: (connectionIdOverride?: string) => void;
   resetSlackInfo: () => void;
 
   clearNotification: () => void;
@@ -56,7 +56,7 @@ interface SlackProviderProps {
 }
 
 export function SlackProvider({ children, tenantId }: SlackProviderProps) {
-  const { user, isLoading } = useAuthSession();
+  const { user, session, isLoading } = useAuthSession();
 
   const {
     workspaces,
@@ -91,7 +91,11 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
     clearNotification,
   } = useSlackConnect();
 
-  useSlackSync(user?.id, currentUserLink, addOrUpdateUserLink, removeUserLink);
+  useSlackSync(user?.id, currentUserLink, addOrUpdateUserLink, removeUserLink, {
+    sessionToken: session?.token,
+    sessionExpiresAt:
+      session?.expiresAt instanceof Date ? session.expiresAt.toISOString() : session?.expiresAt,
+  });
 
   const connectSlack = useCallback(() => {
     if (!user) return;
@@ -102,11 +106,27 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
       userName: user.name || undefined,
       tenantId,
       slackTeamId: latestWorkspace?.teamId,
+      inkeepSessionToken: session?.token,
+      inkeepSessionExpiresAt:
+        session?.expiresAt instanceof Date ? session.expiresAt.toISOString() : session?.expiresAt,
       onSuccess: (link) => {
         addOrUpdateUserLink(link);
+        if (link.nangoConnectionId) {
+          setTimeout(() => {
+            fetchSlackInfo(link.nangoConnectionId);
+          }, 300);
+        }
       },
     });
-  }, [user, tenantId, latestWorkspace?.teamId, connectSlackFn, addOrUpdateUserLink]);
+  }, [
+    user,
+    session,
+    tenantId,
+    latestWorkspace?.teamId,
+    connectSlackFn,
+    addOrUpdateUserLink,
+    fetchSlackInfo,
+  ]);
 
   const disconnectSlack = useCallback(async () => {
     if (!user) return;

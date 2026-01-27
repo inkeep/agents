@@ -80,6 +80,7 @@ export function useSlackWorkspaces() {
 export function useSlackUserLinks(currentUserId?: string) {
   const [userLinks, setUserLinks] = useState<SlackUserLink[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [, forceUpdate] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -95,14 +96,15 @@ export function useSlackUserLinks(currentUserId?: string) {
 
       if (existingIndex >= 0) {
         updated = [...prev];
-        updated[existingIndex] = link;
+        updated[existingIndex] = { ...link };
       } else {
-        updated = [...prev, link];
+        updated = [...prev, { ...link }];
       }
 
       saveToStorage(USER_LINKS_STORAGE_KEY, updated);
       return updated;
     });
+    forceUpdate((v) => v + 1);
   }, []);
 
   const removeUserLink = useCallback((appUserId: string) => {

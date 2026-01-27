@@ -29,7 +29,7 @@ export function SlackWorkspaceInfoCard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchSlackInfo}
+            onClick={() => fetchSlackInfo()}
             disabled={isLoadingSlackInfo}
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingSlackInfo ? 'animate-spin' : ''}`} />
