@@ -13,6 +13,7 @@ import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { cn } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
+import { ProjectGitHubAccessSection } from './project-github-access-section';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { type ProjectFormData, projectSchema } from './validation';
@@ -189,6 +190,18 @@ export function ProjectForm({
         <Separator />
 
         <ProjectStopWhenSection control={form.control} disabled={readOnly} />
+
+        {projectId && (
+          <>
+            <Separator />
+
+            <ProjectGitHubAccessSection
+              tenantId={tenantId}
+              projectId={projectId}
+              disabled={readOnly}
+            />
+          </>
+        )}
 
         {!readOnly && (
           <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>

@@ -152,3 +152,61 @@ export async function disconnectGitHubInstallation(
     }
   );
 }
+
+export type GitHubAccessMode = 'all' | 'selected';
+
+export interface ProjectGitHubAccess {
+  mode: GitHubAccessMode;
+  repositories: GitHubRepository[];
+}
+
+interface SetProjectGitHubAccessResponse {
+  mode: GitHubAccessMode;
+  repositoryCount: number;
+}
+
+/**
+ * Fetches the GitHub repository access configuration for a project.
+ * Returns mode='all' with empty repositories array when project has access to all repos.
+ * Returns mode='selected' with populated repositories array when scoped.
+ */
+async function $getProjectGitHubAccess(
+  tenantId: string,
+  projectId: string
+): Promise<ProjectGitHubAccess> {
+  validateTenantId(tenantId);
+
+  const response = await makeManagementApiRequest<ProjectGitHubAccess>(
+    `tenants/${tenantId}/projects/${projectId}/github-access`
+  );
+
+  return response;
+}
+export const getProjectGitHubAccess = cache($getProjectGitHubAccess);
+
+/**
+ * Sets the GitHub repository access configuration for a project.
+ * When mode='all', the project has access to all repositories from tenant installations.
+ * When mode='selected', the project is scoped to specific repositories.
+ */
+export async function setProjectGitHubAccess(
+  tenantId: string,
+  projectId: string,
+  mode: GitHubAccessMode,
+  repositoryIds?: string[]
+): Promise<SetProjectGitHubAccessResponse> {
+  validateTenantId(tenantId);
+
+  const response = await makeManagementApiRequest<SetProjectGitHubAccessResponse>(
+    `tenants/${tenantId}/projects/${projectId}/github-access`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        mode,
+        repositoryIds: mode === 'selected' ? repositoryIds : undefined,
+      }),
+    }
+  );
+
+  return response;
+}
