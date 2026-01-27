@@ -24,24 +24,22 @@ export function isOriginAllowed(origin: string | undefined): origin is string {
 
   try {
     const requestUrl = new URL(origin);
-    const apiUrl = new URL(env.INKEEP_AGENTS_API_URL || `http://localhost:3002`);
+    const apiUrl = new URL(env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
     const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
     // Development: allow any localhost
     if (requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1') {
       return true;
     }
-
+    const requestBaseDomain = getBaseDomain(requestUrl.hostname);
     // If UI URL is explicitly configured, allow that exact hostname
-    if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
+    if (uiUrl && requestBaseDomain === getBaseDomain(uiUrl.hostname)) {
       return true;
     }
 
     // Production: allow origins from the same base domain as the API URL
     // This handles cases like agents-manage-ui.preview.inkeep.com -> agents-api.preview.inkeep.com
-    const requestBaseDomain = getBaseDomain(requestUrl.hostname);
-    const apiBaseDomain = getBaseDomain(apiUrl.hostname);
-    if (requestBaseDomain === apiBaseDomain) {
+    if (requestBaseDomain === getBaseDomain(apiUrl.hostname)) {
       return true;
     }
 
