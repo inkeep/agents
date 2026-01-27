@@ -110,7 +110,6 @@ export function EditCredentialForm({
       const initialMetadataRecord = keyValuePairsToRecord(initialFormData.metadata);
       const metadataChanged =
         normalizeMetadata(metadataRecord) !== normalizeMetadata(initialMetadataRecord);
-      console.log('metadataChanged', metadataChanged);
       if (
         credential.retrievalParams?.providerConfigKey &&
         credential.retrievalParams?.connectionId &&
