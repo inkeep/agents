@@ -31801,18 +31801,6 @@
       "name": "API Keys"
     },
     {
-      "description": "Operations for managing individual agents",
-      "name": "Agent"
-    },
-    {
-      "description": "Operations for managing agent artifact component relationships",
-      "name": "Agent Artifact Component Relations"
-    },
-    {
-      "description": "Operations for managing agent data component relationships",
-      "name": "Agent Data Component Relations"
-    },
-    {
       "description": "Operations for managing agents",
       "name": "Agents"
     },
@@ -31842,7 +31830,7 @@
     },
     {
       "description": "Operations for managing credentials",
-      "name": "Credential"
+      "name": "Credentials"
     },
     {
       "description": "Operations for managing credential stores",
@@ -31859,14 +31847,6 @@
     {
       "description": "Operations for managing external agents",
       "name": "External Agents"
-    },
-    {
-      "description": "Operations for managing complete agent definitions",
-      "name": "Full Agent"
-    },
-    {
-      "description": "Operations for managing complete project definitions",
-      "name": "Full Project"
     },
     {
       "description": "Operations for managing function tools",
@@ -31910,27 +31890,7 @@
     },
     {
       "description": "Operations for managing sub agents",
-      "name": "SubAgent"
-    },
-    {
-      "description": "Operations for managing sub agent external agent relationships",
-      "name": "SubAgent External Agent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent function tools",
-      "name": "SubAgent Function Tools"
-    },
-    {
-      "description": "Operations for managing sub agent relationships",
-      "name": "SubAgent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent team agent relationships",
-      "name": "SubAgent Team Agent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent tool relationships",
-      "name": "SubAgent Tool Relations"
+      "name": "SubAgents"
     },
     {
       "description": "Operations for managing third-party MCP servers",
