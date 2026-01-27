@@ -25,6 +25,13 @@ All commands support the following global options:
 - `--version` - Display CLI version
 - `--help` - Display help for a command
 
+<SkillRule
+  id="cli-init-command"
+  skills="typescript-sdk"
+  title="CLI inkeep init Command"
+  description="Initialize a new Inkeep configuration file in your project"
+>
+
 ## Commands
 
 ### `inkeep init`
@@ -76,6 +83,15 @@ inkeep init --no-interactive
 # Use specific config as template
 inkeep init --config ./template-config.ts
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="cli-push-command"
+  skills="typescript-sdk"
+  title="CLI inkeep push Command"
+  description="Push agent configurations to your server"
+>
 
 ### `inkeep push`
 
@@ -280,6 +296,15 @@ When pushing, the CLI:
 - Validates Sub Agent relationships and tool configurations across all projects
 - Deploys all projects to the management API
 - Prints deployment summary with resource counts per project
+
+</SkillRule>
+
+<SkillRule
+  id="cli-pull-command"
+  skills="typescript-sdk"
+  title="CLI inkeep pull Command"
+  description="Pull project configuration from server and update local TypeScript files"
+>
 
 ### `inkeep pull`
 
@@ -532,6 +557,15 @@ The generated files may not work correctly with `inkeep push`.
 - Try pulling as JSON first to verify the source data: `inkeep pull --json`
 - If round-trip validation fails, report the issue with the error details
 
+</SkillRule>
+
+<SkillRule
+  id="cli-list-agents-command"
+  skills="typescript-sdk"
+  title="CLI inkeep list-agents Command"
+  description="List all available agents for a specific project"
+>
+
 ### `inkeep list-agents`
 
 List all available agents for a specific project.
@@ -560,6 +594,15 @@ inkeep list-agents --project my-project --config ./inkeep.config.ts
 # Override tenant and API URL
 inkeep list-agents --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="cli-dev-command"
+  skills="typescript-sdk"
+  title="CLI inkeep dev Command"
+  description="Start the Inkeep dashboard server for visual agents orchestration"
+>
 
 ### `inkeep dev`
 
@@ -608,6 +651,15 @@ docker build -t inkeep-dashboard $(inkeep dev --path)
 # Use with other deployment tools
 rsync -av $(inkeep dev --path)/ user@server:/var/www/dashboard/
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="cli-config-command"
+  skills="typescript-sdk"
+  title="CLI inkeep config Command"
+  description="Manage Inkeep configuration values"
+>
 
 ### `inkeep config`
 
@@ -670,6 +722,15 @@ inkeep config list
 
 - `--config <path>` - Path to configuration file
 - `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
+
+</SkillRule>
+
+<SkillRule
+  id="cli-profile-command"
+  skills="typescript-sdk"
+  title="CLI inkeep profile Command"
+  description="Manage named CLI profiles for multiple remotes, credentials, and environments"
+>
 
 ### `inkeep profile`
 
@@ -743,6 +804,15 @@ inkeep pull --profile local
 - Repeat `login --profile <name>` for every profile/remote you operate against.
 - Use `inkeep logout --profile <name>` to clear a profile’s stored credentials if you need to rotate access.
 
+</SkillRule>
+
+<SkillRule
+  id="cli-add-command"
+  skills="typescript-sdk"
+  title="CLI inkeep add Command"
+  description="Pull a template project or MCP from the Inkeep Agents Cookbook"
+>
+
 ### `inkeep add`
 
 Pull a template project or MCP from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents/tree/main/agents-cookbook).
@@ -786,6 +856,15 @@ inkeep add --project activities-planner --config ./my-config.ts
 - If no app directory is found, you'll be prompted to confirm whether to add to the current directory
 - Project templates are added to the current directory or specified `--target-path`
 - Model configurations are automatically injected based on available API keys in your environment (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY`)
+
+</SkillRule>
+
+<SkillRule
+  id="cli-update-command"
+  skills="typescript-sdk"
+  title="CLI inkeep update Command"
+  description="Update the Inkeep CLI to the latest version"
+>
 
 ### `inkeep update`
 
@@ -862,6 +941,15 @@ The CLI automatically detects which package manager you used by checking global 
 
 If automatic detection fails, the CLI will prompt you to select your package manager.
 
+</SkillRule>
+
+<SkillRule
+  id="cli-config-file-structure"
+  skills="typescript-sdk"
+  title="CLI Configuration File Structure"
+  description="Structure of inkeep.config.ts and configuration priority"
+>
+
 ## Configuration File
 
 The CLI uses a configuration file (typically `inkeep.config.ts`) to store settings:
@@ -884,6 +972,15 @@ Effective resolution order:
 2. Environment variables (override config values)
 3. `inkeep.config.ts` values
 
+</SkillRule>
+
+<SkillRule
+  id="cli-environment-variables"
+  skills="typescript-sdk"
+  title="CLI Environment Variables"
+  description="Environment variables respected by the CLI and SDK"
+>
+
 ## Environment Variables
 
 The CLI and SDK respect the following environment variables:
@@ -894,6 +991,8 @@ The CLI and SDK respect the following environment variables:
 - `INKEEP_ENV` - Environment name for credentials loading during `inkeep push`
 - `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` - Optional bearer for Manage API (advanced)
 - `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` - Optional bearer for Run API (advanced)
+
+</SkillRule>
 
 ## Troubleshooting
 
