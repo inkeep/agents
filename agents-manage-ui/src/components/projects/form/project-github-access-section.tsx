@@ -317,7 +317,7 @@ function ConfigureAccessDialog({
       await syncGitHubRepositories(tenantId, installationId);
       await loadInstallations();
       toast.success('Repositories synced');
-    } catch (error) {
+    } catch {
       toast.error('Failed to sync repositories');
     } finally {
       setSyncing(null);
@@ -514,8 +514,16 @@ function ConfigureAccessDialog({
                               {repositories.map((repo) => (
                                 <div
                                   key={repo.id}
+                                  role="button"
+                                  tabIndex={0}
                                   className="flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer"
                                   onClick={() => handleRepoToggle(repo.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      handleRepoToggle(repo.id);
+                                    }
+                                  }}
                                 >
                                   <Checkbox
                                     checked={selectedRepoIds.has(repo.id)}
