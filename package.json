@@ -12,7 +12,7 @@
     "sync:licenses": "node scripts/sync-licenses.mjs",
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build --filter='!agents-cookbook-templates'",
-    "knip": "turbo knip",
+    "knip": "turbo knip && knip --files",
     "dev": "turbo dev --filter='!@inkeep/create-agents'",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
