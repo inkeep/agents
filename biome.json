@@ -19,7 +19,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!packages/agents-manage-mcp"]
+    "includes": ["**", "!packages/agents-manage-mcp", "!packages/agents-mcp"]
   },
   "linter": {
     "enabled": true,
