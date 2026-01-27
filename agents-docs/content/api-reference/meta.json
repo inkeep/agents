@@ -1,4 +1,5 @@
 {
   "icon": "LuBraces",
-  "title": "API Reference"
+  "title": "API Reference",
+  "pages": ["index", "..."]
 }
