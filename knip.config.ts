@@ -11,6 +11,7 @@ export default {
     'agents-docs/content/**': ['files'],
     'packages/agents-manage-mcp/src/**': ['files'],
     'packages/agents-mcp/src/**': ['files'],
+    'agents-cli/vitest.setup.ts': ['files'],
     // Inkeep configs
     'agents-cli/inkeep.config.ts': ['files'],
     'test-agents/inkeep.config.ts': ['files'],
