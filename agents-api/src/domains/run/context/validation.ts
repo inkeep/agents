@@ -107,9 +107,52 @@ export function validationHelper(jsonSchema: Record<string, unknown>) {
   return getCachedValidator(jsonSchema);
 }
 
-export function validateAgainstJsonSchema(jsonSchema: Record<string, unknown>, context: unknown) {
+export interface JsonSchemaValidationResult {
+  isValid: boolean;
+  errors: Array<{
+    path: string;
+    message: string;
+    keyword: string;
+    params: Record<string, unknown>;
+    data?: unknown;
+  }>;
+}
+
+export function validateAgainstJsonSchema(
+  jsonSchema: Record<string, unknown>,
+  context: unknown
+): JsonSchemaValidationResult {
   const validate = validationHelper(jsonSchema);
-  return validate(context);
+  const isValid = validate(context);
+
+  if (isValid) {
+    return { isValid: true, errors: [] };
+  }
+
+  const errors = (validate.errors || []).map((error) => ({
+    path: error.instancePath || '/',
+    message: error.message || 'Validation failed',
+    keyword: error.keyword,
+    params: error.params as Record<string, unknown>,
+    data: error.data,
+  }));
+
+  logger.info({ isValid, errorCount: errors.length }, 'Validation result');
+  logger.debug({ errors }, 'Validation errors');
+
+  return { isValid: false, errors };
+}
+
+export function formatValidationErrors(
+  errors: JsonSchemaValidationResult['errors']
+): string {
+  if (errors.length === 0) {
+    return 'Unknown validation error';
+  }
+
+  return errors
+    .map((error) => `${error.path || '/'}: ${error.message}`)
+    .join('; ');
 }
 
 function filterByJsonSchema(data: any, schema: any): any {

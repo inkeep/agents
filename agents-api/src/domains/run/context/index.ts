@@ -20,10 +20,12 @@ export type {
   ContextValidationError,
   ContextValidationResult,
   HttpRequestPart,
+  JsonSchemaValidationResult,
   ParsedHttpRequest,
 } from './validation';
 export {
   contextValidationMiddleware,
+  formatValidationErrors,
   getCachedValidator,
   HTTP_REQUEST_PARTS,
   isValidHttpRequest,
