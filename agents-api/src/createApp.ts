@@ -201,7 +201,7 @@ function createAgentsHono(config: AppConfig) {
     createRoute({
       method: 'get',
       path: '/api/workflow/process',
-      tags: ['workflow'],
+      tags: ['Workflows'],
       summary: 'Process workflow jobs',
       description: 'Keeps the workflow worker active to process queued jobs (called by cron)',
       responses: {

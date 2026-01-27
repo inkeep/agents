@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import { defineConfig } from 'cypress';
 
 export default defineConfig({
+  // Fix: We detected that the Chrome Renderer process just crashed.
+  experimentalMemoryManagement: true,
   // Default is Electron, we choose Chrome instead
   defaultBrowser: 'chrome',
   e2e: {

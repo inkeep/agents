@@ -24,7 +24,7 @@ invitationsRoutes.openapi(
   createRoute({
     method: 'get',
     path: '/pending',
-    tags: ['invitations'],
+    tags: ['Invitations'],
     summary: 'Get pending invitations',
     description: 'Get all pending (non-expired) invitations for a given email address',
     request: {
