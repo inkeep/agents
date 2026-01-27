@@ -4,6 +4,13 @@ description: Learn how to add Sub Agent relationships to your agent
 icon: LuUsers
 ---
 
+<SkillRule
+  id="agent-relationships-overview"
+  skills="typescript-sdk"
+  title="Sub Agent Relationships Overview"
+  description="Transfer and delegation relationships between Sub Agents"
+>
+
 Sub Agent relationships are used to coordinate specialized Sub Agents for complex workflows. This framework implements Sub Agent relationships through using `canDelegateTo()` and `canTransferTo()`, allowing a parent Sub Agent to automatically coordinate specialized Sub Agents for complex workflows.
 
 ## Understanding Sub Agent Relationships
@@ -123,6 +130,15 @@ const mathAgent = agent({
 });
 ```
 
+</SkillRule>
+
+<SkillRule
+  id="agent-relationships-when-to-use"
+  skills="typescript-sdk"
+  title="When to Use Transfers vs Delegation"
+  description="Guidelines for choosing between transfer and delegation relationships"
+>
+
 ## When to Use Each Relationship
 
 ### Use Transfers for Complex Tasks
@@ -158,6 +174,15 @@ const mathSupervisor = subAgent({
   canDelegateTo: () => [numberProducerA, numberProducerB],
 });
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="delegation-types"
+  skills="typescript-sdk"
+  title="Types of Delegation Relationships"
+  description="Sub agent, external agent, and team agent delegation"
+>
 
 ## Types of Delegation Relationships
 
@@ -212,3 +237,5 @@ const mathSupervisor = subAgent({
   canDelegateTo: () => [myAgent.with({ headers: { "authorization": "my-api-key" } })],
 });
 ```
+
+</SkillRule>

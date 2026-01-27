@@ -8,6 +8,13 @@ keywords: memory, context window, conversation history, message limits, token li
 
 import { CompressionModelsTable } from '../../src/components/compression-models-table';
 
+<SkillRule
+  id="memory-overview"
+  skills="typescript-sdk"
+  title="Conversation Memory Overview"
+  description="How conversation history is managed and included in context windows"
+>
+
 ## Overview
 
 Conversation memory determines how much of the conversation history is included in the context window when your Agent processes a new message. The Inkeep Agent Framework automatically manages conversation history to balance context retention with token efficiency, with specialized handling for delegated agents and tool results.
@@ -153,3 +160,5 @@ The tool results include both the input parameters and output results, formatted
   "results": [...]
 }
 ```
+
+</SkillRule>
