@@ -11101,7 +11101,7 @@
         },
         "summary": "Create Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       }
     },
@@ -11205,7 +11205,7 @@
         },
         "summary": "Delete Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       },
       "get": {
@@ -11314,7 +11314,7 @@
         },
         "summary": "Get Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       },
       "put": {
@@ -11442,7 +11442,7 @@
         },
         "summary": "Update Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       }
     },
@@ -12426,7 +12426,7 @@
         },
         "summary": "Get Full Agent Definition",
         "tags": [
-          "Agent"
+          "Agents"
         ]
       }
     },
@@ -13213,7 +13213,8 @@
         },
         "summary": "Associate Artifact Component with Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13332,7 +13333,8 @@
         },
         "summary": "Get Artifact Components for Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13459,7 +13461,8 @@
         },
         "summary": "Remove Artifact Component from Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13586,7 +13589,8 @@
         },
         "summary": "Check if Artifact Component is Associated with Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13704,7 +13708,8 @@
         },
         "summary": "Get Agents Using Artifact Component",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13852,7 +13857,8 @@
         },
         "summary": "Associate Data Component with Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -13971,7 +13977,8 @@
         },
         "summary": "Get Data Components for Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14098,7 +14105,8 @@
         },
         "summary": "Remove Data Component from Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14225,7 +14233,8 @@
         },
         "summary": "Check if Data Component is Associated with Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14343,7 +14352,8 @@
         },
         "summary": "Get Agents Using Data Component",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -17643,7 +17653,7 @@
         },
         "summary": "Get Related Agent Infos",
         "tags": [
-          "Agent"
+          "Agents"
         ]
       }
     },
