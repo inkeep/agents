@@ -226,13 +226,7 @@ describe('GitHub Webhooks', () => {
     });
 
     it('should handle various GitHub event types', async () => {
-      const eventTypes = [
-        'installation',
-        'installation_repositories',
-        'push',
-        'pull_request',
-        'ping',
-      ];
+      const eventTypes = ['push', 'pull_request', 'ping', 'issues', 'check_run'];
 
       for (const eventType of eventTypes) {
         const payload = JSON.stringify({ action: 'created' });

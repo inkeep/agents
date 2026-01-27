@@ -664,3 +664,31 @@ export const getRepositoryCount =
     const total = result[0]?.count ?? 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
   };
+
+/**
+ * Get repository counts for multiple installations in a single query
+ */
+export const getRepositoryCountsByInstallationIds =
+  (db: AgentsRunDatabaseClient) =>
+  async (installationIds: string[]): Promise<Map<string, number>> => {
+    if (installationIds.length === 0) {
+      return new Map();
+    }
+
+    const results = await db
+      .select({
+        installationId: githubAppRepositories.installationId,
+        count: count(),
+      })
+      .from(githubAppRepositories)
+      .where(inArray(githubAppRepositories.installationId, installationIds))
+      .groupBy(githubAppRepositories.installationId);
+
+    const countsMap = new Map<string, number>();
+    for (const row of results) {
+      const total = typeof row.count === 'string' ? Number.parseInt(row.count, 10) : (row.count as number);
+      countsMap.set(row.installationId, total);
+    }
+
+    return countsMap;
+  };

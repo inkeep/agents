@@ -2,11 +2,11 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
+  GitHubAppInstallationApiSelectSchema,
   getInstallationsByTenantId,
-  getRepositoryCount,
+  getRepositoryCountsByInstallationIds,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
-import type { GitHubAccountType, GitHubInstallationStatus } from '@inkeep/agents-core';
 import { SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -107,22 +107,14 @@ app.openapi(
   }
 );
 
-const InstallationStatusSchema = z.enum(['pending', 'active', 'suspended', 'deleted']);
-const AccountTypeSchema = z.enum(['Organization', 'User']);
-
-const InstallationSchema = z.object({
-  id: z.string().describe('Internal installation ID'),
-  installationId: z.string().describe('GitHub installation ID'),
-  accountLogin: z.string().describe('GitHub account login (org or user name)'),
-  accountType: AccountTypeSchema.describe('Account type: Organization or User'),
-  status: InstallationStatusSchema.describe('Installation status'),
+const InstallationWithRepoCountSchema = GitHubAppInstallationApiSelectSchema.extend({
   repositoryCount: z.number().describe('Number of repositories accessible to this installation'),
-  createdAt: z.string().describe('ISO timestamp when the installation was created'),
-  updatedAt: z.string().describe('ISO timestamp when the installation was last updated'),
 });
 
 const ListInstallationsResponseSchema = z.object({
-  installations: z.array(InstallationSchema).describe('List of GitHub App installations'),
+  installations: z
+    .array(InstallationWithRepoCountSchema)
+    .describe('List of GitHub App installations'),
 });
 
 const ListInstallationsQuerySchema = z.object({
@@ -171,22 +163,21 @@ app.openapi(
       includeDeleted,
     });
 
-    const installationsWithCounts = await Promise.all(
-      installations.map(async (installation) => {
-        const repositoryCount = await getRepositoryCount(runDbClient)(installation.id);
+    const installationIds = installations.map((i) => i.id);
+    const repositoryCounts =
+      await getRepositoryCountsByInstallationIds(runDbClient)(installationIds);
 
-        return {
-          id: installation.id,
-          installationId: installation.installationId,
-          accountLogin: installation.accountLogin,
-          accountType: installation.accountType as GitHubAccountType,
-          status: installation.status as GitHubInstallationStatus,
-          repositoryCount,
-          createdAt: installation.createdAt,
-          updatedAt: installation.updatedAt,
-        };
-      })
-    );
+    const installationsWithCounts = installations.map((installation) => ({
+      id: installation.id,
+      installationId: installation.installationId,
+      accountLogin: installation.accountLogin,
+      accountId: installation.accountId,
+      accountType: installation.accountType,
+      status: installation.status,
+      repositoryCount: repositoryCounts.get(installation.id) ?? 0,
+      createdAt: installation.createdAt,
+      updatedAt: installation.updatedAt,
+    }));
 
     logger.info(
       { tenantId, count: installationsWithCounts.length },

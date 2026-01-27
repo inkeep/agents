@@ -14,10 +14,12 @@ const {
   getGitHubAppNameMock: vi.fn(),
 }));
 
-const { getInstallationsByTenantIdMock, getRepositoryCountMock } = vi.hoisted(() => ({
-  getInstallationsByTenantIdMock: vi.fn(),
-  getRepositoryCountMock: vi.fn(),
-}));
+const { getInstallationsByTenantIdMock, getRepositoryCountsByInstallationIdsMock } = vi.hoisted(
+  () => ({
+    getInstallationsByTenantIdMock: vi.fn(),
+    getRepositoryCountsByInstallationIdsMock: vi.fn(),
+  })
+);
 
 vi.mock('../../../domains/github/config', () => ({
   isStateSigningConfigured: isStateSigningConfiguredMock,
@@ -31,7 +33,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     getInstallationsByTenantId: () => getInstallationsByTenantIdMock,
-    getRepositoryCount: () => getRepositoryCountMock,
+    getRepositoryCountsByInstallationIds: () => getRepositoryCountsByInstallationIdsMock,
   };
 });
 
@@ -232,7 +234,12 @@ describe('GitHub Manage Routes', () => {
 
     beforeEach(() => {
       getInstallationsByTenantIdMock.mockResolvedValue(mockInstallations);
-      getRepositoryCountMock.mockResolvedValue(5);
+      getRepositoryCountsByInstallationIdsMock.mockResolvedValue(
+        new Map([
+          ['inst-1', 5],
+          ['inst-2', 5],
+        ])
+      );
     });
 
     it('should return list of installations with repository counts', async () => {
@@ -248,6 +255,7 @@ describe('GitHub Manage Routes', () => {
         id: 'inst-1',
         installationId: '12345',
         accountLogin: 'my-org',
+        accountId: '1001',
         accountType: 'Organization',
         status: 'active',
         repositoryCount: 5,
@@ -298,11 +306,12 @@ describe('GitHub Manage Routes', () => {
     });
 
     it('should fetch repository count for each installation', async () => {
-      getRepositoryCountMock.mockImplementation((installationId: string) => {
-        if (installationId === 'inst-1') return Promise.resolve(10);
-        if (installationId === 'inst-2') return Promise.resolve(3);
-        return Promise.resolve(0);
-      });
+      getRepositoryCountsByInstallationIdsMock.mockResolvedValue(
+        new Map([
+          ['inst-1', 10],
+          ['inst-2', 3],
+        ])
+      );
 
       const response = await app.request(`/${TEST_TENANT_ID}/installations`, {
         method: 'GET',
