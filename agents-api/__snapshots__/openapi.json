@@ -9807,6 +9807,54 @@
         ]
       }
     },
+    "/manage/slack/install": {
+      "get": {
+        "description": "Redirects to Slack OAuth page for workspace installation",
+        "operationId": "slack-install",
+        "responses": {
+          "302": {
+            "description": "Redirect to Slack OAuth"
+          }
+        },
+        "summary": "Install Slack App",
+        "tags": [
+          "Slack"
+        ]
+      }
+    },
+    "/manage/slack/oauth_redirect": {
+      "get": {
+        "description": "Handles the OAuth callback from Slack after workspace installation",
+        "operationId": "slack-oauth-redirect",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to dashboard with workspace data"
+          }
+        },
+        "summary": "Slack OAuth Callback",
+        "tags": [
+          "Slack"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/playground/token": {
       "post": {
         "description": "Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground",
