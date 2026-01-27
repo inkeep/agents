@@ -44,6 +44,13 @@ interface EditCredentialFormProps {
   className?: string;
 }
 
+const normalizeMetadata = (metadata: Record<string, string>): string =>
+  JSON.stringify(
+    Object.keys(metadata)
+      .sort()
+      .map((key) => [key, metadata[key]])
+  );
+
 function getCredentialAuthenticationType(credential: Credential): string | undefined {
   if (
     credential.type === CredentialStoreType.nango &&
@@ -99,13 +106,15 @@ export function EditCredentialForm({
         name: formData.name.trim(),
       });
 
-      // Convert metadata array to record for API
       const metadataRecord = keyValuePairsToRecord(formData.metadata);
-
+      const initialMetadataRecord = keyValuePairsToRecord(initialFormData.metadata);
+      const metadataChanged =
+        normalizeMetadata(metadataRecord) !== normalizeMetadata(initialMetadataRecord);
+      console.log('metadataChanged', metadataChanged);
       if (
         credential.retrievalParams?.providerConfigKey &&
         credential.retrievalParams?.connectionId &&
-        Object.keys(metadataRecord).length > 0
+        metadataChanged
       ) {
         await setNangoConnectionMetadata({
           providerConfigKey: credential.retrievalParams.providerConfigKey as string,
