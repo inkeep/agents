@@ -21,9 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const composioCallbackUrl = new URL(
-    'https://backend.composio.dev/api/v3/toolkits/auth/callback'
-  );
+  const composioCallbackUrl = new URL('https://backend.composio.dev/api/v3/toolkits/auth/callback');
 
   // Pass along ALL original query parameters
   request.nextUrl.searchParams.forEach((value, key) => {
