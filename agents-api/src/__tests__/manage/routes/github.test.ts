@@ -14,12 +14,17 @@ const {
   getGitHubAppNameMock: vi.fn(),
 }));
 
-const { getInstallationsByTenantIdMock, getRepositoryCountsByInstallationIdsMock } = vi.hoisted(
-  () => ({
-    getInstallationsByTenantIdMock: vi.fn(),
-    getRepositoryCountsByInstallationIdsMock: vi.fn(),
-  })
-);
+const {
+  getInstallationsByTenantIdMock,
+  getRepositoryCountsByInstallationIdsMock,
+  getInstallationByIdMock,
+  getRepositoriesByInstallationIdMock,
+} = vi.hoisted(() => ({
+  getInstallationsByTenantIdMock: vi.fn(),
+  getRepositoryCountsByInstallationIdsMock: vi.fn(),
+  getInstallationByIdMock: vi.fn(),
+  getRepositoriesByInstallationIdMock: vi.fn(),
+}));
 
 vi.mock('../../../domains/github/config', () => ({
   isStateSigningConfigured: isStateSigningConfiguredMock,
@@ -34,6 +39,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     getInstallationsByTenantId: () => getInstallationsByTenantIdMock,
     getRepositoryCountsByInstallationIds: () => getRepositoryCountsByInstallationIdsMock,
+    getInstallationById: () => getInstallationByIdMock,
+    getRepositoriesByInstallationId: () => getRepositoriesByInstallationIdMock,
   };
 });
 
@@ -373,6 +380,184 @@ describe('GitHub Manage Routes', () => {
         tenantId: TEST_TENANT_ID,
         includeDeleted: false,
       });
+    });
+  });
+
+  describe('GET /installations/:installationId', () => {
+    const mockInstallation = {
+      id: 'inst-1',
+      tenantId: TEST_TENANT_ID,
+      installationId: '12345',
+      accountLogin: 'my-org',
+      accountId: '1001',
+      accountType: 'Organization',
+      status: 'active',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      updatedAt: '2024-01-15T10:00:00.000Z',
+    };
+
+    const mockRepositories = [
+      {
+        id: 'repo-1',
+        installationId: 'inst-1',
+        repositoryId: '100001',
+        repositoryName: 'my-repo',
+        repositoryFullName: 'my-org/my-repo',
+        private: false,
+        createdAt: '2024-01-15T10:00:00.000Z',
+        updatedAt: '2024-01-15T10:00:00.000Z',
+      },
+      {
+        id: 'repo-2',
+        installationId: 'inst-1',
+        repositoryId: '100002',
+        repositoryName: 'private-repo',
+        repositoryFullName: 'my-org/private-repo',
+        private: true,
+        createdAt: '2024-01-15T11:00:00.000Z',
+        updatedAt: '2024-01-15T11:00:00.000Z',
+      },
+    ];
+
+    beforeEach(() => {
+      getInstallationByIdMock.mockResolvedValue(mockInstallation);
+      getRepositoriesByInstallationIdMock.mockResolvedValue(mockRepositories);
+    });
+
+    it('should return installation details with repositories', async () => {
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.installation).toEqual({
+        id: 'inst-1',
+        installationId: '12345',
+        accountLogin: 'my-org',
+        accountId: '1001',
+        accountType: 'Organization',
+        status: 'active',
+        createdAt: '2024-01-15T10:00:00.000Z',
+        updatedAt: '2024-01-15T10:00:00.000Z',
+      });
+
+      expect(body.repositories).toHaveLength(2);
+      expect(body.repositories[0]).toEqual(mockRepositories[0]);
+      expect(body.repositories[1]).toEqual(mockRepositories[1]);
+
+      expect(getInstallationByIdMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        id: 'inst-1',
+      });
+      expect(getRepositoriesByInstallationIdMock).toHaveBeenCalledWith('inst-1');
+    });
+
+    it('should return 404 when installation not found', async () => {
+      getInstallationByIdMock.mockResolvedValue(null);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/nonexistent`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+
+      expect(body.status).toBe(404);
+      expect(body.error.code).toBe('not_found');
+      expect(body.error.message).toBe('Installation not found');
+    });
+
+    it('should return 404 when installation belongs to different tenant', async () => {
+      getInstallationByIdMock.mockResolvedValue(null);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/other-tenant-inst`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(404);
+      const body = await response.json();
+
+      expect(body.status).toBe(404);
+      expect(body.error.code).toBe('not_found');
+    });
+
+    it('should return empty repositories array when installation has no repos', async () => {
+      getRepositoriesByInstallationIdMock.mockResolvedValue([]);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.installation).toBeDefined();
+      expect(body.repositories).toEqual([]);
+    });
+
+    it('should handle different installation statuses', async () => {
+      const pendingInstallation = { ...mockInstallation, status: 'pending' };
+      getInstallationByIdMock.mockResolvedValue(pendingInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.installation.status).toBe('pending');
+    });
+
+    it('should handle User account type', async () => {
+      const userInstallation = {
+        ...mockInstallation,
+        accountType: 'User',
+        accountLogin: 'my-user',
+      };
+      getInstallationByIdMock.mockResolvedValue(userInstallation);
+
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.installation.accountType).toBe('User');
+      expect(body.installation.accountLogin).toBe('my-user');
+    });
+
+    it('should not include tenantId in the response', async () => {
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      expect(body.installation.tenantId).toBeUndefined();
+    });
+
+    it('should include all repository fields', async () => {
+      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      const repo = body.repositories[0];
+      expect(repo).toHaveProperty('id');
+      expect(repo).toHaveProperty('installationId');
+      expect(repo).toHaveProperty('repositoryId');
+      expect(repo).toHaveProperty('repositoryName');
+      expect(repo).toHaveProperty('repositoryFullName');
+      expect(repo).toHaveProperty('private');
+      expect(repo).toHaveProperty('createdAt');
+      expect(repo).toHaveProperty('updatedAt');
     });
   });
 });

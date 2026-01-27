@@ -2,9 +2,12 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
-  GitHubAppInstallationApiSelectSchema,
+  getInstallationById,
   getInstallationsByTenantId,
+  getRepositoriesByInstallationId,
   getRepositoryCountsByInstallationIds,
+  GitHubAppInstallationApiSelectSchema,
+  GitHubAppRepositorySelectSchema,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { SignJWT } from 'jose';
@@ -185,6 +188,84 @@ app.openapi(
     );
 
     return c.json({ installations: installationsWithCounts }, 200);
+  }
+);
+
+const InstallationIdParamSchema = z.object({
+  installationId: z.string().describe('The internal installation ID'),
+});
+
+const InstallationDetailResponseSchema = z.object({
+  installation: GitHubAppInstallationApiSelectSchema.describe('Installation details'),
+  repositories: z.array(GitHubAppRepositorySelectSchema).describe('List of repositories'),
+});
+
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/installations/:installationId',
+    summary: 'Get GitHub App installation details',
+    operationId: 'get-github-installation-details',
+    tags: ['GitHub'],
+    description:
+      'Returns detailed information about a specific GitHub App installation, ' +
+      'including the full list of repositories.',
+    request: {
+      params: TenantParamsSchema.merge(InstallationIdParamSchema),
+    },
+    responses: {
+      200: {
+        description: 'Installation details retrieved successfully',
+        content: {
+          'application/json': {
+            schema: InstallationDetailResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, installationId } = c.req.valid('param');
+
+    logger.info({ tenantId, installationId }, 'Getting GitHub App installation details');
+
+    const installation = await getInstallationById(runDbClient)({
+      tenantId,
+      id: installationId,
+    });
+
+    if (!installation) {
+      logger.warn({ tenantId, installationId }, 'Installation not found');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Installation not found',
+      });
+    }
+
+    const repositories = await getRepositoriesByInstallationId(runDbClient)(installation.id);
+
+    logger.info(
+      { tenantId, installationId, repositoryCount: repositories.length },
+      'Got GitHub App installation details'
+    );
+
+    return c.json(
+      {
+        installation: {
+          id: installation.id,
+          installationId: installation.installationId,
+          accountLogin: installation.accountLogin,
+          accountId: installation.accountId,
+          accountType: installation.accountType,
+          status: installation.status,
+          createdAt: installation.createdAt,
+          updatedAt: installation.updatedAt,
+        },
+        repositories,
+      },
+      200
+    );
   }
 );
 
