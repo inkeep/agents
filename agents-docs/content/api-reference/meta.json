@@ -1,5 +1,3 @@
 {
-  "icon": "LuBraces",
-  "title": "API Reference",
   "pages": ["index", "..."]
 }
