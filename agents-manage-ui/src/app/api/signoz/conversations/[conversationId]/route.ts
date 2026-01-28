@@ -587,6 +587,14 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
@@ -1487,6 +1495,10 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiAssistantMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const statusMessage = hasError
+        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
+          getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
+        : '';
       activities.push({
         id: aiAssistantMessageSpanId,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
@@ -1501,6 +1513,8 @@ export async function GET(
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
         aiResponseContent: getString(span, SPAN_KEYS.AI_RESPONSE_CONTENT, ''),
         aiResponseTimestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP, '') || undefined,
+        hasError,
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 

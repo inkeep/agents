@@ -289,6 +289,13 @@ export function renderPanelContent({
             />
 
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
