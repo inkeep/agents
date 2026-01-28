@@ -604,11 +604,12 @@ async function executeAgentAsync(params: {
 
   const tracer = trace.getTracer('trigger-service');
 
-  let baggage = propagation.createBaggage();
-  baggage = baggage.setEntry('conversation.id', { value: conversationId });
-  baggage = baggage.setEntry('tenant.id', { value: tenantId });
-  baggage = baggage.setEntry('project.id', { value: projectId });
-  baggage = baggage.setEntry('agent.id', { value: agentId });
+  const baggage = propagation
+    .createBaggage()
+    .setEntry('conversation.id', { value: conversationId })
+    .setEntry('tenant.id', { value: tenantId })
+    .setEntry('project.id', { value: projectId })
+    .setEntry('agent.id', { value: agentId });
   const ctxWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
 
   // Create and immediately flush the trigger message span so it shows up in SigNoz right away
