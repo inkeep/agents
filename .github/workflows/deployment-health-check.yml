@@ -33,3 +33,9 @@ jobs:
           echo "Response: $response"
           # Verify the response indicates healthy status
           echo "$response" | jq -e '.status == "ok"'
+
+      - name: Notify Vercel (agents-api)
+        if: always()
+        uses: vercel/repository-dispatch/actions/status@v1
+        with:
+          name: Vercel - agents-api: Health Check
