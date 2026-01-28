@@ -44,8 +44,6 @@ import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 
-const tracer = trace.getTracer('trigger');
-
 // Import waitUntil synchronously (only available on Vercel)
 let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
 if (process.env.VERCEL) {
@@ -612,6 +610,9 @@ async function executeAgentAsync(params: {
     .setEntry('project.id', { value: projectId })
     .setEntry('agent.id', { value: agentId });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
+
+  // Get tracer at runtime to avoid module-level initialization issues
+  const tracer = trace.getTracer('trigger');
 
   // Execute the agent in a new trace root with baggage
   return tracer.startActiveSpan(
