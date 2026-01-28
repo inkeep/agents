@@ -7,19 +7,12 @@ import { validateVercelSignature } from './signature';
 
 const logger = getLogger('vercel-checks-webhook');
 
-interface VercelChecksEnv {
-  VERCEL_CHECKS_ENABLED?: boolean;
-  VERCEL_INTEGRATION_SECRET?: string;
-  VERCEL_CHECKS_TOKEN?: string;
-  VERCEL_TEAM_ID?: string;
-}
-
-function getVercelChecksConfig(): VercelChecksEnv {
+function getVercelChecksConfig() {
   return {
-    VERCEL_CHECKS_ENABLED: (env as VercelChecksEnv).VERCEL_CHECKS_ENABLED,
-    VERCEL_INTEGRATION_SECRET: (env as VercelChecksEnv).VERCEL_INTEGRATION_SECRET,
-    VERCEL_CHECKS_TOKEN: (env as VercelChecksEnv).VERCEL_CHECKS_TOKEN,
-    VERCEL_TEAM_ID: (env as VercelChecksEnv).VERCEL_TEAM_ID,
+    VERCEL_CHECKS_ENABLED: env.VERCEL_CHECKS_ENABLED,
+    VERCEL_INTEGRATION_SECRET: env.VERCEL_INTEGRATION_SECRET,
+    VERCEL_CHECKS_TOKEN: env.VERCEL_CHECKS_TOKEN,
+    VERCEL_TEAM_ID: env.VERCEL_TEAM_ID,
   };
 }
 

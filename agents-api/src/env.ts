@@ -62,6 +62,16 @@ const envSchema = z.object({
   WORKFLOW_POSTGRES_URL: z.string().optional(),
   WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
   WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
+
+  // Vercel Checks integration (opt-in deployment protection)
+  VERCEL_CHECKS_ENABLED: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((val) => val === 'true'),
+  VERCEL_INTEGRATION_SECRET: z.string().optional(),
+  VERCEL_CHECKS_TOKEN: z.string().optional(),
+  VERCEL_TEAM_ID: z.string().optional(),
 });
 
 const parseEnv = () => {
