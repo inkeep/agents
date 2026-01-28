@@ -5,8 +5,14 @@ on:
 
 jobs:
   health-check:
-    # Only run when deployment succeeds (Vercel sets this when deployment is ready)
-    if: github.event.deployment_status.state == 'success'
+    # Only run when:
+    # 1. Deployment succeeded (Vercel sets this when deployment is ready)
+    # 2. Deployment is for agents-api (not manage-ui or docs)
+    # 3. Deployment is for production (preview deployments may not have required env vars)
+    if: |
+      github.event.deployment_status.state == 'success' &&
+      contains(github.event.deployment_status.environment, 'agents-api') &&
+      contains(github.event.deployment_status.environment, 'Production')
     runs-on: ubuntu-latest
     steps:
       - name: Wait for cold start
