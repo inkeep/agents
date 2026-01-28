@@ -599,11 +599,7 @@ export PATH="$PATH:/path/to/agents-cli/dist"
 
 - **commander**: Command-line framework
 - **chalk**: Terminal styling
-- **dotenv**: Environment variable loading
-- **ora**: Loading spinners
 - **cli-table3**: Table formatting
-- **inquirer**: Interactive prompts
-- **inquirer-autocomplete-prompt**: Searchable selections
 
 ### Development Dependencies
 

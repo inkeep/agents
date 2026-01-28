@@ -264,9 +264,6 @@ importers:
       degit:
         specifier: ^2.8.4
         version: 2.8.4
-      dotenv:
-        specifier: ^17.2.1
-        version: 17.2.3
       find-up:
         specifier: ^7.0.0
         version: 7.0.0

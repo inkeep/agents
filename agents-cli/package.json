@@ -47,7 +47,6 @@
     "cli-table3": "^0.6.3",
     "commander": "^14.0.0",
     "degit": "^2.8.4",
-    "dotenv": "^17.2.1",
     "find-up": "^7.0.0",
     "fs-extra": "^11.2.0",
     "json-schema-to-zod": "^2.6.1",
