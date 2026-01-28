@@ -33,12 +33,12 @@ const { envMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../domains/github/config', () => ({
+vi.mock('../../../github/config', () => ({
   isStateSigningConfigured: isStateSigningConfiguredMock,
   getStateSigningSecret: getStateSigningSecretMock,
 }));
 
-vi.mock('../../../domains/github/installation', () => ({
+vi.mock('../../../github/installation', () => ({
   createAppJwt: createAppJwtMock,
   determineStatus: determineStatusMock,
   fetchInstallationDetails: fetchInstallationDetailsMock,
@@ -57,7 +57,7 @@ vi.mock('@inkeep/agents-core', () => ({
   generateId: generateIdMock,
 }));
 
-vi.mock('../../../data/db/runDbClient', () => ({
+vi.mock('../../../db/runDbClient', () => ({
   default: {},
 }));
 
@@ -70,7 +70,7 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-import app from '../../../domains/github/routes/setup';
+import app from '../../../github/routes/setup';
 
 const TEST_SECRET = 'test-secret-key-that-is-at-least-32-characters-long';
 const STATE_JWT_ISSUER = 'inkeep-agents-api';

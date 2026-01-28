@@ -24,17 +24,17 @@ const {
 }));
 
 // Mock the config module
-vi.mock('../../../domains/github/config', () => ({
+vi.mock('../../../github/config', () => ({
   isGitHubAppConfigured: isGitHubAppConfiguredMock,
 }));
 
 // Mock the oidcToken module
-vi.mock('../../../domains/github/oidcToken', () => ({
+vi.mock('../../../github/oidcToken', () => ({
   validateOidcToken: validateOidcTokenMock,
 }));
 
 // Mock the installation module
-vi.mock('../../../domains/github/installation', () => ({
+vi.mock('../../../github/installation', () => ({
   lookupInstallationForRepo: lookupInstallationForRepoMock,
   generateInstallationAccessToken: generateInstallationAccessTokenMock,
 }));
@@ -46,12 +46,12 @@ vi.mock('@inkeep/agents-core', () => ({
 }));
 
 // Mock the database client
-vi.mock('../../../data/db/runDbClient', () => ({
+vi.mock('../../../db/runDbClient', () => ({
   default: {},
 }));
 
 // Import the app after mocks are set up
-import app from '../../../domains/github/routes/tokenExchange';
+import app from '../../../github/routes/tokenExchange';
 
 describe('GitHub Token Exchange Route', () => {
   beforeEach(async () => {

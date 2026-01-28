@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
-import { env } from '../../env';
-import { getLogger } from '../../logger';
+import { env } from '../env';
+import { getLogger } from '../logger';
 
 const logger = getLogger('github-config');
 
@@ -35,7 +35,7 @@ export function getGitHubAppConfig(): GitHubAppConfig {
   }
 
   cachedConfig = result.data;
-  logger.info({}, 'GitHub App credentials loaded successfully');
+  logger.info({ appId: cachedConfig.appId }, 'GitHub App credentials loaded successfully');
   return cachedConfig;
 }
 

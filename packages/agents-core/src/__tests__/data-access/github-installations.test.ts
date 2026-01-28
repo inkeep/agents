@@ -25,10 +25,10 @@ import {
 } from '../../data-access/runtime/github-installations';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
-  githubAppInstallations,
-  githubAppRepositories,
-  githubProjectRepositoryAccess,
   organization,
+  workappsGithubAppInstallations,
+  workappsGithubAppRepositories,
+  workappsGithubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
 import { testRunDbClient } from '../setup';
@@ -44,9 +44,9 @@ describe('GitHub Installations Data Access', () => {
 
   beforeEach(async () => {
     // Clean up in correct FK order
-    await dbClient.delete(githubProjectRepositoryAccess);
-    await dbClient.delete(githubAppRepositories);
-    await dbClient.delete(githubAppInstallations);
+    await dbClient.delete(workappsGithubProjectRepositoryAccess);
+    await dbClient.delete(workappsGithubAppRepositories);
+    await dbClient.delete(workappsGithubAppInstallations);
 
     // Create test organizations
     await dbClient
@@ -378,6 +378,7 @@ describe('GitHub Installations Data Access', () => {
         });
 
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId: 'project-1',
           repositoryIds: [repos[0].id],
         });
@@ -490,6 +491,7 @@ describe('GitHub Installations Data Access', () => {
         });
 
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId: 'project-1',
           repositoryIds: [repos[0].id],
         });
@@ -645,6 +647,7 @@ describe('GitHub Installations Data Access', () => {
         });
 
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId: 'project-1',
           repositoryIds: [repos[0].id],
         });
@@ -777,6 +780,7 @@ describe('GitHub Installations Data Access', () => {
         });
 
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId: 'project-1',
           repositoryIds: [repos[0].id],
         });
@@ -1027,38 +1031,43 @@ describe('GitHub Installations Data Access', () => {
     describe('setProjectRepositoryAccess', () => {
       it('should set project repository access', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
 
         const access = await getProjectRepositoryAccess(dbClient)(projectId);
         expect(access).toHaveLength(1);
-        expect(access[0].githubRepositoryId).toBe(repoId1);
+        expect(access[0].repositoryDbId).toBe(repoId1);
       });
 
       it('should replace existing access', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
 
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId2],
         });
 
         const access = await getProjectRepositoryAccess(dbClient)(projectId);
         expect(access).toHaveLength(1);
-        expect(access[0].githubRepositoryId).toBe(repoId2);
+        expect(access[0].repositoryDbId).toBe(repoId2);
       });
 
       it('should clear access when given empty array', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1, repoId2],
         });
 
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [],
         });
@@ -1078,6 +1087,7 @@ describe('GitHub Installations Data Access', () => {
     describe('getProjectRepositoryAccessWithDetails', () => {
       it('should return access entries with full repository details', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
@@ -1116,6 +1126,7 @@ describe('GitHub Installations Data Access', () => {
 
       it('should allow access when repo is in explicit access list', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
@@ -1132,6 +1143,7 @@ describe('GitHub Installations Data Access', () => {
 
       it('should deny access when repo not in explicit access list', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
@@ -1149,6 +1161,7 @@ describe('GitHub Installations Data Access', () => {
       it('should deny access for deleted installation repos', async () => {
         // Set up access
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
@@ -1174,6 +1187,7 @@ describe('GitHub Installations Data Access', () => {
     describe('clearProjectRepositoryAccess', () => {
       it('should clear all access for a project', async () => {
         await setProjectRepositoryAccess(dbClient)({
+          tenantId,
           projectId,
           repositoryIds: [repoId1, repoId2],
         });

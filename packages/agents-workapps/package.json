@@ -1,0 +1,60 @@
+{
+  "name": "@inkeep/agents-workapps",
+  "version": "0.42.0",
+  "description": "Workapp integrations for Inkeep Agents",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./github": {
+      "types": "./dist/github/index.d.ts",
+      "import": "./dist/github/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "pnpm build --watch",
+    "test": "vitest --run",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome check --write src",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inkeep/agents-core": "workspace:*",
+    "drizzle-orm": "^0.44.7",
+    "hono": "^4.10.4",
+    "jose": "^6.1.0"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "packages/agents-workapps"
+  }
+}

@@ -106,7 +106,7 @@ app.openapi(
         mode: 'selected' as const,
         repositories: repositoriesWithDetails.map((repo) => ({
           id: repo.id,
-          installationId: repo.installationId,
+          installationDbId: repo.installationDbId,
           repositoryId: repo.repositoryId,
           repositoryName: repo.repositoryName,
           repositoryFullName: repo.repositoryFullName,
@@ -186,6 +186,7 @@ app.openapi(
       }
 
       await setProjectRepositoryAccess(runDbClient)({
+        tenantId,
         projectId,
         repositoryIds,
       });
@@ -205,6 +206,7 @@ app.openapi(
     }
 
     await setProjectRepositoryAccess(runDbClient)({
+      tenantId,
       projectId,
       repositoryIds: [],
     });

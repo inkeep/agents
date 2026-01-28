@@ -35,11 +35,11 @@ vi.mock('@inkeep/agents-core', () => ({
   removeRepositories: () => mockRemoveRepositories,
 }));
 
-vi.mock('../../../data/db/runDbClient', () => ({
+vi.mock('../../../db/runDbClient', () => ({
   default: {},
 }));
 
-import webhooksApp, { verifyWebhookSignature } from '../../../domains/github/routes/webhooks';
+import webhooksApp, { verifyWebhookSignature } from '../../../github/routes/webhooks';
 
 function generateSignature(payload: string, secret: string): string {
   const hmac = createHmac('sha256', secret);

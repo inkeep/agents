@@ -1,6 +1,6 @@
 import { createPrivateKey } from 'node:crypto';
 import { SignJWT } from 'jose';
-import { getLogger } from '../../logger';
+import { getLogger } from '../logger';
 import { getGitHubAppConfig } from './config';
 
 const logger = getLogger('github-installation');
@@ -69,6 +69,8 @@ export type GenerateInstallationAccessTokenResult = GenerateTokenResult | Genera
 
 export async function createAppJwt(): Promise<string> {
   const config = getGitHubAppConfig();
+
+  logger.debug({ appId: config.appId }, 'Creating GitHub App JWT');
 
   // Use Node's crypto to handle both PKCS#1 (RSA PRIVATE KEY) and PKCS#8 (PRIVATE KEY) formats
   const privateKey = createPrivateKey({

@@ -16,18 +16,19 @@ import {
   TenantParamsSchema,
   updateInstallationStatus,
 } from '@inkeep/agents-core';
+import {
+  createAppJwt,
+  fetchInstallationRepositories,
+  getGitHubAppName,
+  getStateSigningSecret,
+  isGitHubAppNameConfigured,
+  isStateSigningConfigured,
+} from '@inkeep/agents-workapps/github';
 import { HTTPException } from 'hono/http-exception';
 import { SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import {
-  getGitHubAppName,
-  getStateSigningSecret,
-  isGitHubAppNameConfigured,
-  isStateSigningConfigured,
-} from '../../github/config';
-import { createAppJwt, fetchInstallationRepositories } from '../../github/installation';
 
 const logger = getLogger('github-manage');
 

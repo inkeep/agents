@@ -412,7 +412,7 @@ export type GitHubProjectRepositoryAccessSelect = z.infer<
   typeof GitHubProjectRepositoryAccessSelectSchema
 >;
 
-export type GitHubAppRepositoryInput = Omit<GitHubAppRepositoryInsert, 'id' | 'installationId'>;
+export type GitHubAppRepositoryInput = Omit<GitHubAppRepositoryInsert, 'id' | 'installationDbId'>;
 
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
 export type ConversationInsert = z.infer<typeof ConversationInsertSchema>;

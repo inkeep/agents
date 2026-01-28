@@ -1,9 +1,9 @@
 import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
-  githubAppInstallations,
-  githubAppRepositories,
-  githubProjectRepositoryAccess,
+  workappsGithubAppInstallations,
+  workappsGithubAppRepositories,
+  workappsGithubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type {
   GitHubAppInstallationInsert,
@@ -28,7 +28,7 @@ export const createInstallation =
     const now = new Date().toISOString();
 
     const [created] = await db
-      .insert(githubAppInstallations)
+      .insert(workappsGithubAppInstallations)
       .values({
         ...input,
         createdAt: now,
@@ -45,8 +45,8 @@ export const createInstallation =
 export const getInstallationByGitHubId =
   (db: AgentsRunDatabaseClient) =>
   async (gitHubInstallationId: string): Promise<GitHubAppInstallationSelect | null> => {
-    const result = await db.query.githubAppInstallations.findFirst({
-      where: eq(githubAppInstallations.installationId, gitHubInstallationId),
+    const result = await db.query.workappsGithubAppInstallations.findFirst({
+      where: eq(workappsGithubAppInstallations.installationId, gitHubInstallationId),
     });
 
     return result ?? null;
@@ -58,10 +58,10 @@ export const getInstallationByGitHubId =
 export const getInstallationById =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string; id: string }): Promise<GitHubAppInstallationSelect | null> => {
-    const result = await db.query.githubAppInstallations.findFirst({
+    const result = await db.query.workappsGithubAppInstallations.findFirst({
       where: and(
-        eq(githubAppInstallations.tenantId, params.tenantId),
-        eq(githubAppInstallations.id, params.id)
+        eq(workappsGithubAppInstallations.tenantId, params.tenantId),
+        eq(workappsGithubAppInstallations.id, params.id)
       ),
     });
 
@@ -77,17 +77,17 @@ export const getInstallationsByTenantId =
     tenantId: string;
     includeDisconnected?: boolean;
   }): Promise<GitHubAppInstallationSelect[]> => {
-    const conditions = [eq(githubAppInstallations.tenantId, params.tenantId)];
+    const conditions = [eq(workappsGithubAppInstallations.tenantId, params.tenantId)];
 
     if (!params.includeDisconnected) {
-      conditions.push(ne(githubAppInstallations.status, 'disconnected'));
+      conditions.push(ne(workappsGithubAppInstallations.status, 'disconnected'));
     }
 
     const result = await db
       .select()
-      .from(githubAppInstallations)
+      .from(workappsGithubAppInstallations)
       .where(and(...conditions))
-      .orderBy(desc(githubAppInstallations.createdAt));
+      .orderBy(desc(workappsGithubAppInstallations.createdAt));
 
     return result;
   };
@@ -105,15 +105,15 @@ export const updateInstallationStatus =
     const now = new Date().toISOString();
 
     const [updated] = await db
-      .update(githubAppInstallations)
+      .update(workappsGithubAppInstallations)
       .set({
         status: params.status,
         updatedAt: now,
       })
       .where(
         and(
-          eq(githubAppInstallations.tenantId, params.tenantId),
-          eq(githubAppInstallations.id, params.id)
+          eq(workappsGithubAppInstallations.tenantId, params.tenantId),
+          eq(workappsGithubAppInstallations.id, params.id)
         )
       )
       .returning();
@@ -133,12 +133,12 @@ export const updateInstallationStatusByGitHubId =
     const now = new Date().toISOString();
 
     const [updated] = await db
-      .update(githubAppInstallations)
+      .update(workappsGithubAppInstallations)
       .set({
         status: params.status,
         updatedAt: now,
       })
-      .where(eq(githubAppInstallations.installationId, params.gitHubInstallationId))
+      .where(eq(workappsGithubAppInstallations.installationId, params.gitHubInstallationId))
       .returning();
 
     return updated ?? null;
@@ -155,30 +155,30 @@ export const disconnectInstallation =
 
     // Get all repository IDs for this installation
     const repos = await db
-      .select({ id: githubAppRepositories.id })
-      .from(githubAppRepositories)
-      .where(eq(githubAppRepositories.installationId, params.id));
+      .select({ id: workappsGithubAppRepositories.id })
+      .from(workappsGithubAppRepositories)
+      .where(eq(workappsGithubAppRepositories.installationDbId, params.id));
 
     const repoIds = repos.map((r) => r.id);
 
     // Remove project repository access for all repositories
     if (repoIds.length > 0) {
       await db
-        .delete(githubProjectRepositoryAccess)
-        .where(inArray(githubProjectRepositoryAccess.githubRepositoryId, repoIds));
+        .delete(workappsGithubProjectRepositoryAccess)
+        .where(inArray(workappsGithubProjectRepositoryAccess.repositoryDbId, repoIds));
     }
 
     // Soft delete the installation
     const [updated] = await db
-      .update(githubAppInstallations)
+      .update(workappsGithubAppInstallations)
       .set({
         status: 'disconnected',
         updatedAt: now,
       })
       .where(
         and(
-          eq(githubAppInstallations.tenantId, params.tenantId),
-          eq(githubAppInstallations.id, params.id)
+          eq(workappsGithubAppInstallations.tenantId, params.tenantId),
+          eq(workappsGithubAppInstallations.id, params.id)
         )
       )
       .returning();
@@ -193,8 +193,8 @@ export const deleteInstallation =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string; id: string }): Promise<boolean> => {
     const result = await db
-      .delete(githubAppInstallations)
-      .where(eq(githubAppInstallations.id, params.id))
+      .delete(workappsGithubAppInstallations)
+      .where(eq(workappsGithubAppInstallations.id, params.id))
       .returning();
 
     return result.length > 0;
@@ -219,8 +219,8 @@ export const syncRepositories =
     // Get existing repositories
     const existingRepos = await db
       .select()
-      .from(githubAppRepositories)
-      .where(eq(githubAppRepositories.installationId, params.installationId));
+      .from(workappsGithubAppRepositories)
+      .where(eq(workappsGithubAppRepositories.installationDbId, params.installationId));
 
     const existingRepoIds = new Set(existingRepos.map((r) => r.repositoryId));
     const newRepoIds = new Set(params.repositories.map((r) => r.repositoryId));
@@ -236,19 +236,21 @@ export const syncRepositories =
 
       // First remove project access for these repos
       await db
-        .delete(githubProjectRepositoryAccess)
-        .where(inArray(githubProjectRepositoryAccess.githubRepositoryId, removeIds));
+        .delete(workappsGithubProjectRepositoryAccess)
+        .where(inArray(workappsGithubProjectRepositoryAccess.repositoryDbId, removeIds));
 
       // Then remove the repos
-      await db.delete(githubAppRepositories).where(inArray(githubAppRepositories.id, removeIds));
+      await db
+        .delete(workappsGithubAppRepositories)
+        .where(inArray(workappsGithubAppRepositories.id, removeIds));
     }
 
     // Add new repos
     if (toAdd.length > 0) {
-      await db.insert(githubAppRepositories).values(
+      await db.insert(workappsGithubAppRepositories).values(
         toAdd.map((repo) => ({
           id: generateId(),
-          installationId: params.installationId,
+          installationDbId: params.installationId,
           repositoryId: repo.repositoryId,
           repositoryName: repo.repositoryName,
           repositoryFullName: repo.repositoryFullName,
@@ -270,14 +272,14 @@ export const syncRepositories =
           existing.private !== repo.private)
       ) {
         await db
-          .update(githubAppRepositories)
+          .update(workappsGithubAppRepositories)
           .set({
             repositoryName: repo.repositoryName,
             repositoryFullName: repo.repositoryFullName,
             private: repo.private,
             updatedAt: now,
           })
-          .where(eq(githubAppRepositories.id, existing.id));
+          .where(eq(workappsGithubAppRepositories.id, existing.id));
         updatedCount++;
       }
     }
@@ -305,11 +307,11 @@ export const addRepositories =
     }
 
     await db
-      .insert(githubAppRepositories)
+      .insert(workappsGithubAppRepositories)
       .values(
         params.repositories.map((repo) => ({
           id: generateId(),
-          installationId: params.installationId,
+          installationDbId: params.installationId,
           repositoryId: repo.repositoryId,
           repositoryName: repo.repositoryName,
           repositoryFullName: repo.repositoryFullName,
@@ -325,11 +327,11 @@ export const addRepositories =
     const insertedRepoIds = params.repositories.map((r) => r.repositoryId);
     const inserted = await db
       .select()
-      .from(githubAppRepositories)
+      .from(workappsGithubAppRepositories)
       .where(
         and(
-          eq(githubAppRepositories.installationId, params.installationId),
-          inArray(githubAppRepositories.repositoryId, insertedRepoIds)
+          eq(workappsGithubAppRepositories.installationDbId, params.installationId),
+          inArray(workappsGithubAppRepositories.repositoryId, insertedRepoIds)
         )
       );
 
@@ -349,12 +351,12 @@ export const removeRepositories =
 
     // Get internal IDs for these GitHub repository IDs
     const repos = await db
-      .select({ id: githubAppRepositories.id })
-      .from(githubAppRepositories)
+      .select({ id: workappsGithubAppRepositories.id })
+      .from(workappsGithubAppRepositories)
       .where(
         and(
-          eq(githubAppRepositories.installationId, params.installationId),
-          inArray(githubAppRepositories.repositoryId, params.repositoryIds)
+          eq(workappsGithubAppRepositories.installationDbId, params.installationId),
+          inArray(workappsGithubAppRepositories.repositoryId, params.repositoryIds)
         )
       );
 
@@ -366,13 +368,13 @@ export const removeRepositories =
 
     // First remove project access for these repos
     await db
-      .delete(githubProjectRepositoryAccess)
-      .where(inArray(githubProjectRepositoryAccess.githubRepositoryId, repoIds));
+      .delete(workappsGithubProjectRepositoryAccess)
+      .where(inArray(workappsGithubProjectRepositoryAccess.repositoryDbId, repoIds));
 
     // Then remove the repos
     const deleted = await db
-      .delete(githubAppRepositories)
-      .where(inArray(githubAppRepositories.id, repoIds))
+      .delete(workappsGithubAppRepositories)
+      .where(inArray(workappsGithubAppRepositories.id, repoIds))
       .returning();
 
     return deleted.length;
@@ -386,9 +388,9 @@ export const getRepositoriesByInstallationId =
   async (installationId: string): Promise<GitHubAppRepositorySelect[]> => {
     const result = await db
       .select()
-      .from(githubAppRepositories)
-      .where(eq(githubAppRepositories.installationId, installationId))
-      .orderBy(githubAppRepositories.repositoryFullName);
+      .from(workappsGithubAppRepositories)
+      .where(eq(workappsGithubAppRepositories.installationDbId, installationId))
+      .orderBy(workappsGithubAppRepositories.repositoryFullName);
 
     return result;
   };
@@ -401,8 +403,8 @@ export const getRepositoryByFullName =
   async (repositoryFullName: string): Promise<GitHubAppRepositorySelect | null> => {
     const result = await db
       .select()
-      .from(githubAppRepositories)
-      .where(eq(githubAppRepositories.repositoryFullName, repositoryFullName))
+      .from(workappsGithubAppRepositories)
+      .where(eq(workappsGithubAppRepositories.repositoryFullName, repositoryFullName))
       .limit(1);
 
     return result[0] ?? null;
@@ -414,8 +416,8 @@ export const getRepositoryByFullName =
 export const getRepositoryById =
   (db: AgentsRunDatabaseClient) =>
   async (id: string): Promise<GitHubAppRepositorySelect | null> => {
-    const result = await db.query.githubAppRepositories.findFirst({
-      where: eq(githubAppRepositories.id, id),
+    const result = await db.query.workappsGithubAppRepositories.findFirst({
+      where: eq(workappsGithubAppRepositories.id, id),
     });
 
     return result ?? null;
@@ -431,28 +433,28 @@ export const getRepositoriesByTenantId =
   ): Promise<(GitHubAppRepositorySelect & { installationAccountLogin: string })[]> => {
     const result = await db
       .select({
-        id: githubAppRepositories.id,
-        installationId: githubAppRepositories.installationId,
-        repositoryId: githubAppRepositories.repositoryId,
-        repositoryName: githubAppRepositories.repositoryName,
-        repositoryFullName: githubAppRepositories.repositoryFullName,
-        private: githubAppRepositories.private,
-        createdAt: githubAppRepositories.createdAt,
-        updatedAt: githubAppRepositories.updatedAt,
-        installationAccountLogin: githubAppInstallations.accountLogin,
+        id: workappsGithubAppRepositories.id,
+        installationDbId: workappsGithubAppRepositories.installationDbId,
+        repositoryId: workappsGithubAppRepositories.repositoryId,
+        repositoryName: workappsGithubAppRepositories.repositoryName,
+        repositoryFullName: workappsGithubAppRepositories.repositoryFullName,
+        private: workappsGithubAppRepositories.private,
+        createdAt: workappsGithubAppRepositories.createdAt,
+        updatedAt: workappsGithubAppRepositories.updatedAt,
+        installationAccountLogin: workappsGithubAppInstallations.accountLogin,
       })
-      .from(githubAppRepositories)
+      .from(workappsGithubAppRepositories)
       .innerJoin(
-        githubAppInstallations,
-        eq(githubAppRepositories.installationId, githubAppInstallations.id)
+        workappsGithubAppInstallations,
+        eq(workappsGithubAppRepositories.installationDbId, workappsGithubAppInstallations.id)
       )
       .where(
         and(
-          eq(githubAppInstallations.tenantId, tenantId),
-          ne(githubAppInstallations.status, 'disconnected')
+          eq(workappsGithubAppInstallations.tenantId, tenantId),
+          ne(workappsGithubAppInstallations.status, 'disconnected')
         )
       )
-      .orderBy(githubAppRepositories.repositoryFullName);
+      .orderBy(workappsGithubAppRepositories.repositoryFullName);
 
     return result as (GitHubAppRepositorySelect & { installationAccountLogin: string })[];
   };
@@ -467,21 +469,26 @@ export const getRepositoriesByTenantId =
  */
 export const setProjectRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { projectId: string; repositoryIds: string[] }): Promise<void> => {
+  async (params: {
+    tenantId: string;
+    projectId: string;
+    repositoryIds: string[];
+  }): Promise<void> => {
     const now = new Date().toISOString();
 
     // Remove all existing access for this project
     await db
-      .delete(githubProjectRepositoryAccess)
-      .where(eq(githubProjectRepositoryAccess.projectId, params.projectId));
+      .delete(workappsGithubProjectRepositoryAccess)
+      .where(eq(workappsGithubProjectRepositoryAccess.projectId, params.projectId));
 
     // Add new access entries
     if (params.repositoryIds.length > 0) {
-      await db.insert(githubProjectRepositoryAccess).values(
+      await db.insert(workappsGithubProjectRepositoryAccess).values(
         params.repositoryIds.map((repoId) => ({
           id: generateId(),
+          tenantId: params.tenantId,
           projectId: params.projectId,
-          githubRepositoryId: repoId,
+          repositoryDbId: repoId,
           createdAt: now,
           updatedAt: now,
         }))
@@ -498,8 +505,8 @@ export const getProjectRepositoryAccess =
   async (projectId: string): Promise<GitHubProjectRepositoryAccessSelect[]> => {
     const result = await db
       .select()
-      .from(githubProjectRepositoryAccess)
-      .where(eq(githubProjectRepositoryAccess.projectId, projectId));
+      .from(workappsGithubProjectRepositoryAccess)
+      .where(eq(workappsGithubProjectRepositoryAccess.projectId, projectId));
 
     return result;
   };
@@ -512,22 +519,22 @@ export const getProjectRepositoryAccessWithDetails =
   async (projectId: string): Promise<(GitHubAppRepositorySelect & { accessId: string })[]> => {
     const result = await db
       .select({
-        accessId: githubProjectRepositoryAccess.id,
-        id: githubAppRepositories.id,
-        installationId: githubAppRepositories.installationId,
-        repositoryId: githubAppRepositories.repositoryId,
-        repositoryName: githubAppRepositories.repositoryName,
-        repositoryFullName: githubAppRepositories.repositoryFullName,
-        private: githubAppRepositories.private,
-        createdAt: githubAppRepositories.createdAt,
-        updatedAt: githubAppRepositories.updatedAt,
+        accessId: workappsGithubProjectRepositoryAccess.id,
+        id: workappsGithubAppRepositories.id,
+        installationDbId: workappsGithubAppRepositories.installationDbId,
+        repositoryId: workappsGithubAppRepositories.repositoryId,
+        repositoryName: workappsGithubAppRepositories.repositoryName,
+        repositoryFullName: workappsGithubAppRepositories.repositoryFullName,
+        private: workappsGithubAppRepositories.private,
+        createdAt: workappsGithubAppRepositories.createdAt,
+        updatedAt: workappsGithubAppRepositories.updatedAt,
       })
-      .from(githubProjectRepositoryAccess)
+      .from(workappsGithubProjectRepositoryAccess)
       .innerJoin(
-        githubAppRepositories,
-        eq(githubProjectRepositoryAccess.githubRepositoryId, githubAppRepositories.id)
+        workappsGithubAppRepositories,
+        eq(workappsGithubProjectRepositoryAccess.repositoryDbId, workappsGithubAppRepositories.id)
       )
-      .where(eq(githubProjectRepositoryAccess.projectId, projectId));
+      .where(eq(workappsGithubProjectRepositoryAccess.projectId, projectId));
 
     return result as (GitHubAppRepositorySelect & { accessId: string })[];
   };
@@ -547,26 +554,26 @@ export const checkProjectRepositoryAccess =
   }): Promise<{ hasAccess: boolean; reason: string }> => {
     // Get project's access configuration
     const accessEntries = await db
-      .select({ id: githubProjectRepositoryAccess.id })
-      .from(githubProjectRepositoryAccess)
-      .where(eq(githubProjectRepositoryAccess.projectId, params.projectId))
+      .select({ id: workappsGithubProjectRepositoryAccess.id })
+      .from(workappsGithubProjectRepositoryAccess)
+      .where(eq(workappsGithubProjectRepositoryAccess.projectId, params.projectId))
       .limit(1);
 
     // If no access entries, project has access to all repos (mode='all')
     if (accessEntries.length === 0) {
       // Verify the repo belongs to a tenant installation
       const repo = await db
-        .select({ id: githubAppRepositories.id })
-        .from(githubAppRepositories)
+        .select({ id: workappsGithubAppRepositories.id })
+        .from(workappsGithubAppRepositories)
         .innerJoin(
-          githubAppInstallations,
-          eq(githubAppRepositories.installationId, githubAppInstallations.id)
+          workappsGithubAppInstallations,
+          eq(workappsGithubAppRepositories.installationDbId, workappsGithubAppInstallations.id)
         )
         .where(
           and(
-            eq(githubAppRepositories.repositoryFullName, params.repositoryFullName),
-            eq(githubAppInstallations.tenantId, params.tenantId),
-            ne(githubAppInstallations.status, 'disconnected')
+            eq(workappsGithubAppRepositories.repositoryFullName, params.repositoryFullName),
+            eq(workappsGithubAppInstallations.tenantId, params.tenantId),
+            ne(workappsGithubAppInstallations.status, 'disconnected')
           )
         )
         .limit(1);
@@ -586,22 +593,22 @@ export const checkProjectRepositoryAccess =
 
     // Check if this specific repository is in the access list
     const accessCheck = await db
-      .select({ id: githubProjectRepositoryAccess.id })
-      .from(githubProjectRepositoryAccess)
+      .select({ id: workappsGithubProjectRepositoryAccess.id })
+      .from(workappsGithubProjectRepositoryAccess)
       .innerJoin(
-        githubAppRepositories,
-        eq(githubProjectRepositoryAccess.githubRepositoryId, githubAppRepositories.id)
+        workappsGithubAppRepositories,
+        eq(workappsGithubProjectRepositoryAccess.repositoryDbId, workappsGithubAppRepositories.id)
       )
       .innerJoin(
-        githubAppInstallations,
-        eq(githubAppRepositories.installationId, githubAppInstallations.id)
+        workappsGithubAppInstallations,
+        eq(workappsGithubAppRepositories.installationDbId, workappsGithubAppInstallations.id)
       )
       .where(
         and(
-          eq(githubProjectRepositoryAccess.projectId, params.projectId),
-          eq(githubAppRepositories.repositoryFullName, params.repositoryFullName),
-          eq(githubAppInstallations.tenantId, params.tenantId),
-          ne(githubAppInstallations.status, 'disconnected')
+          eq(workappsGithubProjectRepositoryAccess.projectId, params.projectId),
+          eq(workappsGithubAppRepositories.repositoryFullName, params.repositoryFullName),
+          eq(workappsGithubAppInstallations.tenantId, params.tenantId),
+          ne(workappsGithubAppInstallations.status, 'disconnected')
         )
       )
       .limit(1);
@@ -626,8 +633,8 @@ export const clearProjectRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
   async (projectId: string): Promise<number> => {
     const deleted = await db
-      .delete(githubProjectRepositoryAccess)
-      .where(eq(githubProjectRepositoryAccess.projectId, projectId))
+      .delete(workappsGithubProjectRepositoryAccess)
+      .where(eq(workappsGithubProjectRepositoryAccess.projectId, projectId))
       .returning();
 
     return deleted.length;
@@ -646,17 +653,17 @@ export const validateRepositoryOwnership =
 
     // Get all valid repository IDs that belong to this tenant's installations
     const validRepos = await db
-      .select({ id: githubAppRepositories.id })
-      .from(githubAppRepositories)
+      .select({ id: workappsGithubAppRepositories.id })
+      .from(workappsGithubAppRepositories)
       .innerJoin(
-        githubAppInstallations,
-        eq(githubAppRepositories.installationId, githubAppInstallations.id)
+        workappsGithubAppInstallations,
+        eq(workappsGithubAppRepositories.installationDbId, workappsGithubAppInstallations.id)
       )
       .where(
         and(
-          eq(githubAppInstallations.tenantId, params.tenantId),
-          ne(githubAppInstallations.status, 'disconnected'),
-          inArray(githubAppRepositories.id, params.repositoryIds)
+          eq(workappsGithubAppInstallations.tenantId, params.tenantId),
+          ne(workappsGithubAppInstallations.status, 'disconnected'),
+          inArray(workappsGithubAppRepositories.id, params.repositoryIds)
         )
       );
 
@@ -672,8 +679,8 @@ export const getRepositoryCount =
   async (installationId: string): Promise<number> => {
     const result = await db
       .select({ count: count() })
-      .from(githubAppRepositories)
-      .where(eq(githubAppRepositories.installationId, installationId));
+      .from(workappsGithubAppRepositories)
+      .where(eq(workappsGithubAppRepositories.installationDbId, installationId));
 
     const total = result[0]?.count ?? 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
@@ -691,12 +698,12 @@ export const getRepositoryCountsByInstallationIds =
 
     const results = await db
       .select({
-        installationId: githubAppRepositories.installationId,
+        installationId: workappsGithubAppRepositories.installationDbId,
         count: count(),
       })
-      .from(githubAppRepositories)
-      .where(inArray(githubAppRepositories.installationId, installationIds))
-      .groupBy(githubAppRepositories.installationId);
+      .from(workappsGithubAppRepositories)
+      .where(inArray(workappsGithubAppRepositories.installationDbId, installationIds))
+      .groupBy(workappsGithubAppRepositories.installationDbId);
 
     const countsMap = new Map<string, number>();
     for (const row of results) {

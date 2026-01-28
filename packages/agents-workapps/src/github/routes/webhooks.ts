@@ -8,8 +8,8 @@ import {
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
-import runDbClient from '../../../data/db/runDbClient';
-import { getLogger } from '../../../logger';
+import runDbClient from '../../db/runDbClient';
+import { getLogger } from '../../logger';
 import { getWebhookSecret, isWebhookConfigured } from '../config';
 
 const logger = getLogger('github-webhooks');

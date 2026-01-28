@@ -8,9 +8,9 @@ import {
 import { Hono } from 'hono';
 import { jwtVerify } from 'jose';
 import { z } from 'zod';
-import runDbClient from '../../../data/db/runDbClient';
-import { env } from '../../../env';
-import { getLogger } from '../../../logger';
+import runDbClient from '../../db/runDbClient';
+import { env } from '../../env';
+import { getLogger } from '../../logger';
 import { getStateSigningSecret, isStateSigningConfigured } from '../config';
 import {
   createAppJwt,

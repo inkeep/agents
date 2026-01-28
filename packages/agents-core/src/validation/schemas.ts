@@ -58,15 +58,15 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
-  githubAppInstallations,
-  githubAppRepositories,
-  githubProjectRepositoryAccess,
   ledgerArtifacts,
   messages,
   projectMetadata,
   taskRelations,
   tasks,
   triggerInvocations,
+  workappsGithubAppInstallations,
+  workappsGithubAppRepositories,
+  workappsGithubProjectRepositoryAccess,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -2535,8 +2535,8 @@ export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).o
   createdAt: true,
 });
 
-export const GitHubAppInstallationSelectSchema = createSelectSchema(githubAppInstallations);
-export const GitHubAppInstallationInsertSchema = createInsertSchema(githubAppInstallations)
+export const GitHubAppInstallationSelectSchema = createSelectSchema(workappsGithubAppInstallations);
+export const GitHubAppInstallationInsertSchema = createInsertSchema(workappsGithubAppInstallations)
   .omit({
     createdAt: true,
     updatedAt: true,
@@ -2556,8 +2556,10 @@ export const GitHubAppInstallationApiInsertSchema = GitHubAppInstallationInsertS
   updatedAt: true,
 });
 
-export const GitHubAppRepositorySelectSchema = createSelectSchema(githubAppRepositories);
-export const GitHubAppRepositoryInsertSchema = createInsertSchema(githubAppRepositories).omit({
+export const GitHubAppRepositorySelectSchema = createSelectSchema(workappsGithubAppRepositories);
+export const GitHubAppRepositoryInsertSchema = createInsertSchema(
+  workappsGithubAppRepositories
+).omit({
   createdAt: true,
   updatedAt: true,
 });
@@ -2569,5 +2571,5 @@ export const GitHubAppRepositoryApiInsertSchema = GitHubAppRepositoryInsertSchem
 });
 
 export const GitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
-  githubProjectRepositoryAccess
+  workappsGithubProjectRepositoryAccess
 );

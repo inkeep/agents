@@ -41,7 +41,7 @@ import {
   validateGitHubAppConfigOnStartup,
   validateGitHubInstallFlowConfigOnStartup,
   validateGitHubWebhookConfigOnStartup,
-} from '../../domains/github/config';
+} from '../../github/config';
 
 describe('GitHub Config', () => {
   beforeEach(() => {

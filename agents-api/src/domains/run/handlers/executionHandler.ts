@@ -635,8 +635,9 @@ export class ExecutionHandler {
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
-      logger.error({ error }, 'Error in execution handler');
       const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ errorMessage, errorStack }, 'Error in execution handler');
 
       // Stream error operation
       // Send error operation for execution exception

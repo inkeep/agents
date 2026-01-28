@@ -1,8 +1,8 @@
 import { checkProjectRepositoryAccess, getInstallationByGitHubId } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import runDbClient from '../../../data/db/runDbClient';
-import { getLogger } from '../../../logger';
+import runDbClient from '../../db/runDbClient';
+import { getLogger } from '../../logger';
 import { isGitHubAppConfigured } from '../config';
 import { generateInstallationAccessToken, lookupInstallationForRepo } from '../installation';
 import { validateOidcToken } from '../oidcToken';
