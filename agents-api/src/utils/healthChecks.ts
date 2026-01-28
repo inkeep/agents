@@ -4,7 +4,7 @@ import type { Pool } from 'pg';
 const HEALTH_CHECK_TIMEOUT_MS = 5000;
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout>;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
       reject(new Error(`Health check timed out after ${timeoutMs}ms`));
@@ -14,7 +14,9 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   try {
     return await Promise.race([promise, timeoutPromise]);
   } finally {
-    clearTimeout(timeoutId!);
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

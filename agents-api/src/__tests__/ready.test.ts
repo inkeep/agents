@@ -106,8 +106,8 @@ describe('GET /ready', () => {
   });
 
   it('runs database checks in parallel', async () => {
-    let manageDbStartTime: number;
-    let runDbStartTime: number;
+    let manageDbStartTime = 0;
+    let runDbStartTime = 0;
 
     vi.mocked(healthChecks.checkManageDb).mockImplementation(async () => {
       manageDbStartTime = performance.now();
@@ -127,7 +127,7 @@ describe('GET /ready', () => {
 
     // If run in parallel, both checks should start nearly simultaneously
     // and total time should be ~10ms, not ~20ms
-    expect(Math.abs(manageDbStartTime! - runDbStartTime!)).toBeLessThan(5);
+    expect(Math.abs(manageDbStartTime - runDbStartTime)).toBeLessThan(5);
     expect(elapsed).toBeLessThan(50); // Allow some overhead but not 2x sequential time
   });
 });

@@ -109,17 +109,16 @@ describe('validateVercelSignature', () => {
     // signatures that differ at different positions consistently.
 
     // Signature differs at the start
-    const diffStartSignature = 'z' + validSignature.slice(1);
+    const diffStartSignature = `z${validSignature.slice(1)}`;
     expect(validateVercelSignature(testBody, diffStartSignature, testSecret)).toBe(false);
 
     // Signature differs at the end
-    const diffEndSignature = validSignature.slice(0, -1) + 'z';
+    const diffEndSignature = `${validSignature.slice(0, -1)}z`;
     expect(validateVercelSignature(testBody, diffEndSignature, testSecret)).toBe(false);
 
     // Signature differs in the middle
     const midPoint = Math.floor(validSignature.length / 2);
-    const diffMidSignature =
-      validSignature.slice(0, midPoint) + 'z' + validSignature.slice(midPoint + 1);
+    const diffMidSignature = `${validSignature.slice(0, midPoint)}z${validSignature.slice(midPoint + 1)}`;
     expect(validateVercelSignature(testBody, diffMidSignature, testSecret)).toBe(false);
   });
 });
