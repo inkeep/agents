@@ -1,4 +1,5 @@
 ---
+"@inkeep/agents-core": minor
 "@inkeep/agents-sdk": minor
 "@inkeep/agents-api": minor
 "@inkeep/agents-cli": minor
