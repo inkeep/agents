@@ -95,7 +95,7 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
           endTime: clampedEndMs,
         };
       }
-      const hoursBack = TIME_RANGES['15d'].hours;
+      const hoursBack = TIME_RANGES['30d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
@@ -103,7 +103,7 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
     }
 
     const hoursBack =
-      TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES]?.hours || TIME_RANGES['15d'].hours;
+      TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES]?.hours || TIME_RANGES['30d'].hours;
     const calculatedStart = currentEndTime - hoursBack * 60 * 60 * 1000;
 
     return {
@@ -209,7 +209,7 @@ export default function ProjectsStatsPage({ params }: { params: Promise<{ tenant
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"
-          onRemove={() => setSelectedTimeRange('15d')}
+          onRemove={() => setSelectedTimeRange('30d')}
           value={
             selectedTimeRange === CUSTOM
               ? { from: customStartDate, to: customEndDate }

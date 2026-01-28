@@ -23,6 +23,7 @@ const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
   '7d': { label: 'Last 7 days', hours: 24 * 7 },
   '15d': { label: 'Last 15 days', hours: 24 * 15 },
+  '30d': { label: 'Last 30 days', hours: 24 * 30 },
 } as const;
 
 export default function TracesOverview({
@@ -74,8 +75,8 @@ export default function TracesOverview({
           endTime: clampedEndMs,
         };
       }
-      // Default to 15 days if custom dates not set
-      const hoursBack = TIME_RANGES['15d'].hours;
+      // Default to 30 days if custom dates not set
+      const hoursBack = TIME_RANGES['30d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
@@ -276,7 +277,7 @@ export default function TracesOverview({
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"
-          onRemove={() => setSelectedTimeRange('15d')}
+          onRemove={() => setSelectedTimeRange('30d')}
           value={
             selectedTimeRange === CUSTOM
               ? { from: customStartDate, to: customEndDate }

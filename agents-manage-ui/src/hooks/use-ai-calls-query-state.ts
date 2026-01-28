@@ -1,13 +1,13 @@
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 
 // Define the time range options as a const assertion for type safety
-const timeRanges = ['24h', '7d', '15d', 'custom'] as const;
+const timeRanges = ['24h', '7d', '15d', '30d', 'custom'] as const;
 export type TimeRange = (typeof timeRanges)[number];
 
 /**
  * Hook for managing AI calls breakdown query state with nuqs
  * Provides type-safe query parameter management for:
- * - Time range selection (24h, 7d, 15d, custom)
+ * - Time range selection (24h, 7d, 15d, 30d, custom)
  * - Custom date range (start/end dates)
  * - Agent filtering
  * - Model filtering
@@ -15,7 +15,7 @@ export type TimeRange = (typeof timeRanges)[number];
 export function useAICallsQueryState() {
   const [queryState, setQueryState] = useQueryStates({
     // Time range selection with default
-    timeRange: parseAsStringLiteral(timeRanges).withDefault('15d'),
+    timeRange: parseAsStringLiteral(timeRanges).withDefault('30d'),
 
     // Custom date range - using descriptive names instead of 'cs'/'ce'
     customStartDate: parseAsString.withDefault(''),
@@ -47,7 +47,7 @@ export function useAICallsQueryState() {
       setQueryState({
         selectedAgent: 'all',
         selectedModel: 'all',
-        timeRange: '15d',
+        timeRange: '30d',
         customStartDate: '',
         customEndDate: '',
       }),
