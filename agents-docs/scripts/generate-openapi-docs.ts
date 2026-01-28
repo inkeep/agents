@@ -14,6 +14,41 @@ const ignoreRoutes = new Set(['/health', '/ready', '/manage/capabilities']);
 
 const usedTags = new Set<string>();
 
+const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
+  A2A: 'LuNetwork',
+  'API Keys': 'LuKeyRound',
+  Agents: 'LuUser',
+  'Artifact Components': 'TbInputSpark',
+  Branches: 'LuGitBranch',
+  CLI: 'LuTerminal',
+  Chat: 'LuMessagesSquare',
+  'Context Configs': 'LuCirclePlus',
+  Conversations: 'LuMessageSquare',
+  Credentials: 'LuKey',
+  'Credential Stores': 'LuDatabase',
+  'Data Components': 'LuBlocks',
+  Evaluations: 'LuFlaskConical',
+  'External Agents': 'LuGlobe',
+  'Function Tools': 'LuCode',
+  Functions: 'LuCode2',
+  Invitations: 'LuUserPlus',
+  MCP: 'LuServer',
+  'MCP Catalog': 'LuLibrary',
+  OAuth: 'LuShieldCheck',
+  'Project Members': 'LuUsers',
+  'Project Permissions': 'LuShield',
+  Projects: 'LuFolderOpen',
+  Refs: 'LuLink',
+  SubAgents: 'LuSpline',
+  'Third-Party MCP Servers': 'LuServerCog',
+  Tools: 'LuHammer',
+  Triggers: 'LuWebhook',
+  'User Organizations': 'LuBuilding',
+  'User Project Memberships': 'LuUserCheck',
+  Webhooks: 'LuWebhook',
+  Workflows: 'LuWorkflow',
+};
+
 async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
   console.time('Done in');
@@ -70,10 +105,16 @@ ${prettyError}`);
         .replace('A P I', 'API')
         .replace('C L I', 'CLI')
         .replace('O Auth', 'OAuth')
-        .replace('M C P', 'MCP');
+        .replace('M C P', 'MCP') as keyof typeof TagToDescription;
+      const icon = Object.hasOwn(TitleToIcon, title) ? TitleToIcon[title] : null;
+
+      if (!icon) {
+        throw new Error(`Unknown icon for tag "${title}"`);
+      }
+
       return {
         title,
-        icon: `api/${title.toLowerCase().replaceAll(' ', '-')}`,
+        icon,
       };
     },
   });

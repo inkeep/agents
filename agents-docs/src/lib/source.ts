@@ -3,7 +3,6 @@ import * as luIcons from 'lucide-react';
 import { createElement, type FC } from 'react';
 import * as tbIcons from 'react-icons/tb';
 import * as brandIcons from '@/components/brand-icons';
-import { getApiIcon } from '@/lib/api-icons';
 import { docs } from '../../.source/server';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
@@ -18,10 +17,6 @@ export const source = loader({
 
     let icon: FC | null = null;
 
-    if (iconName.startsWith('api/')) {
-      const endpoint = iconName.slice(4);
-      icon = getApiIcon(endpoint);
-    }
     if (iconName.startsWith('brand/')) {
       icon = brandIcons[iconName.slice(6) as keyof typeof brandIcons];
     } else if (iconName.startsWith('Lu')) {
