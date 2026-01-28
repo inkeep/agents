@@ -32,7 +32,7 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies --files",
+    "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies",
     "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
     "well-known:copy": "tsx scripts/copy-well-known.ts",
     "dev": "pnpm workflow:build && vite",
