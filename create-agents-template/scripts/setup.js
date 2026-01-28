@@ -264,7 +264,7 @@ async function setupProjectInDatabase(isCloud) {
   const { spawn } = await import('node:child_process');
 
   try {
-    const devProcess = spawn('pnpm', ['dev:apis'], {
+    const devProcess = spawn('pnpm', ['dev:api'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: true,
       cwd: process.cwd(),
@@ -419,7 +419,7 @@ async function setupProjectInDatabase(isCloud) {
           logWarning(
             'Could not cleanly stop dev servers - they may still be running in background'
           );
-          logInfo('You may need to manually stop them using: pkill -f "pnpm dev:apis"');
+          logInfo('You may need to manually stop them using: pkill -f "pnpm dev:api"');
         }
       } else {
         logWarning('Dev process PID not found, servers may still be running');

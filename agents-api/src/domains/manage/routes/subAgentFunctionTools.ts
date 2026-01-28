@@ -45,7 +45,7 @@ app.openapi(
     path: '/sub-agent/{subAgentId}',
     summary: 'Get Function Tools for SubAgent',
     operationId: 'get-function-tools-for-sub-agent',
-    tags: ['SubAgent Function Tool Relations'],
+    tags: ['SubAgents', 'Function Tools'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -80,7 +80,7 @@ app.openapi(
     path: '/function-tool/{functionToolId}/sub-agents',
     summary: 'Get SubAgents Using Function Tool',
     operationId: 'get-sub-agents-using-function-tool',
-    tags: ['SubAgent Function Tool Relations'],
+    tags: ['SubAgents', 'Function Tools'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         functionToolId: z.string(),
@@ -117,7 +117,7 @@ app.openapi(
     path: '/',
     summary: 'Associate Function Tool with SubAgent',
     operationId: 'associate-function-tool-with-sub-agent',
-    tags: ['SubAgent Function Tool Relations'],
+    tags: ['SubAgents', 'Function Tools'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -201,7 +201,7 @@ app.openapi(
     path: '/sub-agent/{subAgentId}/function-tool/{functionToolId}',
     summary: 'Remove Function Tool from SubAgent',
     operationId: 'remove-function-tool-from-sub-agent',
-    tags: ['SubAgent Function Tool Relations'],
+    tags: ['SubAgents', 'Function Tools'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         functionToolId: z.string(),
@@ -249,7 +249,7 @@ app.openapi(
     path: '/sub-agent/{subAgentId}/function-tool/{functionToolId}/exists',
     summary: 'Check if Function Tool is Associated with SubAgent',
     operationId: 'check-function-tool-sub-agent-association',
-    tags: ['SubAgent Function Tool Relations'],
+    tags: ['SubAgents', 'Function Tools'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         functionToolId: z.string(),

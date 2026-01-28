@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "mprocs",
-    "dev:all": "concurrently \"turbo dev --filter manage-api-quickstart --filter run-api-quickstart --filter mcp-quickstart\" \"inkeep dev\" \"wait-on http://localhost:3000 && node scripts/show-services.js\" --names \"APIs,Dashboard,Info\" --prefix-colors \"blue,green,magenta\" --success first",
-    "dev:apis": "turbo dev --filter manage-api-quickstart --filter run-api-quickstart",
+    "dev:all": "concurrently \"turbo dev --filter agents-api-quickstart --filter mcp-quickstart\" \"inkeep dev\" \"wait-on http://localhost:3000 && node scripts/show-services.js\" --names \"API,Dashboard,Info\" --prefix-colors \"blue,green,magenta\" --success first",
+    "dev:api": "turbo dev --filter agents-api-quickstart",
     "dev:ui": "inkeep dev",
     "dev:mcp": "turbo dev --filter mcp-quickstart",
     "db:migrate": "pnpm db:manage:migrate && pnpm db:run:migrate",

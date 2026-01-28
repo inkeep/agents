@@ -1,11 +1,20 @@
 'use client';
 
-import { X } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { FormFieldWrapper } from './form-field-wrapper';
+import { cn } from '@/lib/utils';
 
 interface GenericKeyValueInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -14,142 +23,168 @@ interface GenericKeyValueInputProps<T extends FieldValues> {
   description?: string;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
-  examples?: string[];
+  addButtonLabel?: string;
+  isRequired?: boolean;
   disabled?: boolean;
 }
 
+/**
+ * A key-value input component using react-hook-form's useFieldArray.
+ *
+ * Expected form schema shape:
+ * ```ts
+ * z.object({
+ *   headers: z.array(z.object({
+ *     key: z.string(),
+ *     value: z.string(),
+ *   })).default([])
+ * })
+ * ```
+ *
+ * Convert to record on submit using `keyValuePairsToRecord()` helper.
+ */
 export function GenericKeyValueInput<T extends FieldValues>({
   control,
   name,
   label,
   description,
-  keyPlaceholder = 'Key',
-  valuePlaceholder = 'Value',
-  examples = [],
+  keyPlaceholder = 'key',
+  valuePlaceholder = 'value',
+  addButtonLabel = 'Add item',
+  isRequired,
   disabled = false,
 }: GenericKeyValueInputProps<T>) {
-  const [currentKey, setCurrentKey] = useState('');
-  const [currentValue, setCurrentValue] = useState('');
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: name as never,
+  });
+
+  const watchedFields = useWatch({ control, name: name as never }) as
+    | { key: string; value: string }[]
+    | undefined;
+
+  const duplicateKeys = useMemo(() => {
+    if (!watchedFields) return new Set<string>();
+    const keys = watchedFields.map((f) => f.key?.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+    for (const key of keys) {
+      if (seen.has(key)) {
+        duplicates.add(key);
+      }
+      seen.add(key);
+    }
+    return duplicates;
+  }, [watchedFields]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'key' | 'value') => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (field === 'key') {
+          const valueInput = document.querySelector(
+            `[data-index="${index}"][data-field="value"]`
+          ) as HTMLInputElement;
+          valueInput?.focus();
+        } else {
+          append({ key: '', value: '' } as never);
+          setTimeout(() => {
+            const keyInput = document.querySelector(
+              `[data-index="${index + 1}"][data-field="key"]`
+            ) as HTMLInputElement;
+            keyInput?.focus();
+          }, 0);
+        }
+      }
+    },
+    [append]
+  );
 
   return (
-    <FormFieldWrapper control={control} name={name} label={label}>
-      {(field) => {
-        const currentData: Record<string, string> = field.value || {};
+    <FormItem>
+      <FormLabel isRequired={isRequired}>{label}</FormLabel>
+      <div className="space-y-2">
+        {fields.map((field, index) => {
+          const currentKey = watchedFields?.[index]?.key?.trim() || '';
+          const isDuplicate = currentKey && duplicateKeys.has(currentKey);
 
-        const addKeyValue = () => {
-          if (currentKey.trim() && currentValue.trim()) {
-            const newData = {
-              ...currentData,
-              [currentKey.trim()]: currentValue.trim(),
-            };
-            field.onChange(newData);
-            setCurrentKey('');
-            setCurrentValue('');
-          }
-        };
-
-        const removeKeyValue = (keyToRemove: string) => {
-          const newData = { ...currentData };
-          delete newData[keyToRemove];
-          field.onChange(newData);
-        };
-
-        const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, isValueField = false) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (isValueField) {
-              addKeyValue();
-            } else {
-              // Move to value field
-              const valueInput = e.currentTarget.parentElement?.querySelector(
-                'input:nth-child(2)'
-              ) as HTMLInputElement;
-              valueInput?.focus();
-            }
-          }
-        };
-
-        const handleBlur = () => {
-          if (currentKey.trim() && currentValue.trim()) {
-            addKeyValue();
-          }
-        };
-
-        return (
-          <div className="space-y-3">
-            {/* Display existing key-value pairs */}
-            {Object.entries(currentData).length > 0 && (
-              <div className="space-y-2">
-                {Object.entries(currentData).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex items-center gap-2 py-1.5 px-3 border rounded-md bg-muted/30"
-                  >
-                    <span className="font-medium text-sm">{key}:</span>
-                    <span className="text-sm text-muted-foreground flex-1">{value}</span>
-                    {!disabled && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeKeyValue(key)}
-                        className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <X className="h-4 w-4 opacity-50" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add new key-value pair */}
-            {!disabled && (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={keyPlaceholder}
-                    value={currentKey}
-                    onChange={(e) => setCurrentKey(e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, false)}
-                  />
-                  <Input
-                    placeholder={valuePlaceholder}
-                    value={currentValue}
-                    onChange={(e) => setCurrentValue(e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, true)}
-                    onBlur={handleBlur}
-                  />
-                </div>
-                {(currentKey.trim() || currentValue.trim()) && (
-                  <p className="text-xs text-muted-foreground">
-                    Press Enter or click outside to add this entry
-                  </p>
+          return (
+            <div key={field.id} className="flex items-center gap-2">
+              <FormField
+                control={control}
+                name={`${name}.${index}.key` as FieldPath<T>}
+                render={({ field: keyField }) => (
+                  <FormControl>
+                    <Input
+                      {...keyField}
+                      data-index={index}
+                      data-field="key"
+                      placeholder={keyPlaceholder}
+                      onKeyDown={(e) => handleKeyDown(e, index, 'key')}
+                      className={cn(
+                        'flex-1',
+                        isDuplicate && 'ring-2 ring-destructive/50 focus-visible:ring-destructive'
+                      )}
+                      aria-invalid={isDuplicate || undefined}
+                      disabled={disabled}
+                    />
+                  </FormControl>
                 )}
-              </div>
-            )}
-
-            {/* Description and examples */}
-            {(description || examples.length > 0) && (
-              <div className="text-sm text-muted-foreground">
-                {description && <p>{description}</p>}
-                {examples.length > 0 && (
-                  <p>
-                    Examples:{' '}
-                    {examples.map((example, index) => (
-                      <span key={example}>
-                        <code className="bg-muted px-1 py-0.5 rounded text-xs">{example}</code>
-                        {index < examples.length - 1 && ', '}
-                      </span>
-                    ))}
-                    .
-                  </p>
+              />
+              <span className="text-muted-foreground select-none">:</span>
+              <FormField
+                control={control}
+                name={`${name}.${index}.value` as FieldPath<T>}
+                render={({ field: valueField }) => (
+                  <FormControl>
+                    <Input
+                      {...valueField}
+                      data-index={index}
+                      data-field="value"
+                      placeholder={valuePlaceholder}
+                      onKeyDown={(e) => handleKeyDown(e, index, 'value')}
+                      className="flex-1"
+                      disabled={disabled}
+                    />
+                  </FormControl>
                 )}
-              </div>
-            )}
-          </div>
-        );
-      }}
-    </FormFieldWrapper>
+              />
+              {!disabled && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => remove(index)}
+                  aria-label="Remove entry"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+
+        {!disabled && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => append({ key: '', value: '' } as never)}
+            className="text-primary hover:text-primary"
+          >
+            <Plus className="h-4 w-4" />
+            {addButtonLabel}
+          </Button>
+        )}
+      </div>
+
+      {description && <FormDescription>{description}</FormDescription>}
+      {duplicateKeys.size > 0 && (
+        <p className="text-sm font-medium text-destructive">
+          Keys must be unique. Duplicate keys: {Array.from(duplicateKeys).join(', ')}
+        </p>
+      )}
+      <FormMessage />
+    </FormItem>
   );
 }

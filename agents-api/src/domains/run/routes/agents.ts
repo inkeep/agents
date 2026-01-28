@@ -26,7 +26,7 @@ app.openapi(
     request: {
       headers: HeadersScopeSchema,
     },
-    tags: ['a2a'],
+    tags: ['A2A'],
     security: [{ bearerAuth: [] }],
     responses: {
       200: {
