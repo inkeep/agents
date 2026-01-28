@@ -33,12 +33,18 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
+import {
+  propagation,
+  ROOT_CONTEXT,
+  SpanStatusCode,
+  trace,
+} from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
@@ -598,8 +604,16 @@ async function executeAgentAsync(params: {
 
   const tracer = trace.getTracer('trigger-service');
 
-  return tracer.startActiveSpan(
-    'trigger.execute_async',
+  let baggage = propagation.createBaggage();
+  baggage = baggage.setEntry('conversation.id', { value: conversationId });
+  baggage = baggage.setEntry('tenant.id', { value: tenantId });
+  baggage = baggage.setEntry('project.id', { value: projectId });
+  baggage = baggage.setEntry('agent.id', { value: agentId });
+  const ctxWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
+
+  // Create and immediately flush the trigger message span so it shows up in SigNoz right away
+  const messageSpan = tracer.startSpan(
+    'trigger.message_received',
     {
       attributes: {
         'tenant.id': tenantId,
@@ -614,7 +628,26 @@ async function executeAgentAsync(params: {
         'message.parts': JSON.stringify(messageParts),
       },
     },
-    ROOT_CONTEXT,
+    ctxWithBaggage
+  );
+  messageSpan.end();
+  await flushBatchProcessor();
+
+  // Now execute the agent in a separate span with baggage context
+  return tracer.startActiveSpan(
+    'trigger.execute_async',
+    {
+      attributes: {
+        'tenant.id': tenantId,
+        'project.id': projectId,
+        'agent.id': agentId,
+        'trigger.id': triggerId,
+        'trigger.invocation.id': invocationId,
+        'conversation.id': conversationId,
+        'invocation.type': 'trigger',
+      },
+    },
+    ctxWithBaggage,
     async (span) => {
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
@@ -780,6 +813,7 @@ async function executeAgentAsync(params: {
         throw error;
       } finally {
         span.end();
+        await flushBatchProcessor();
       }
     }
   );
