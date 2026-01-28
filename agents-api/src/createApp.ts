@@ -36,6 +36,7 @@ import {
 import { sessionAuth, sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
+import { healthChecksHandler } from './routes/healthChecks';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -176,24 +177,8 @@ function createAgentsHono(config: AppConfig) {
   // Global session middleware - sets user and session in context for all routes
   app.use('*', sessionContext());
 
-  // Health check endpoint
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/health',
-      operationId: 'health',
-      summary: 'Health check',
-      description: 'Check if the management service is healthy',
-      responses: {
-        204: {
-          description: 'Service is healthy',
-        },
-      },
-    }),
-    (c) => {
-      return c.body(null, 204);
-    }
-  );
+  // Mount health check routes at root level
+  app.route('/', healthChecksHandler);
 
   // Workflow process endpoint - called by Vercel cron to keep worker active
   // The worker processes queued jobs while this request is active

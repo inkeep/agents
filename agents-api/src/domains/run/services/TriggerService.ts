@@ -39,6 +39,7 @@ import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
@@ -507,26 +508,6 @@ async function dispatchExecution(params: {
   const conversationId = getConversationId();
   const invocationId = generateId();
 
-  // Set trigger-related attributes on the HTTP request span
-  // These attributes are used by the trace UI to identify trigger invocations
-  const activeSpan = trace.getActiveSpan();
-  if (activeSpan) {
-    activeSpan.setAttributes({
-      'conversation.id': conversationId,
-      'tenant.id': tenantId,
-      'project.id': projectId,
-      'agent.id': agentId,
-      // Trigger-specific attributes used by the trace UI
-      'invocation.type': 'trigger',
-      'trigger.id': triggerId,
-      'trigger.invocation.id': invocationId,
-      // Message attributes for display in traces
-      'message.content': userMessageText,
-      'message.timestamp': new Date().toISOString(),
-      'message.parts': JSON.stringify(messageParts),
-    });
-  }
-
   // Create invocation record (status: pending)
   // Note: transformedPayload can be any JSON value (object, array, primitive) from JMESPath transforms
   await createTriggerInvocation(runDbClient)({
@@ -545,6 +526,28 @@ async function dispatchExecution(params: {
     { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
     'Trigger invocation created'
   );
+
+  const tracer = trace.getTracer('trigger-service');
+  const messageSpan = tracer.startSpan(
+    'trigger.message_received',
+    {
+      attributes: {
+        'tenant.id': tenantId,
+        'project.id': projectId,
+        'agent.id': agentId,
+        'trigger.id': triggerId,
+        'trigger.invocation.id': invocationId,
+        'conversation.id': conversationId,
+        'invocation.type': 'trigger',
+        'message.content': userMessageText,
+        'message.timestamp': new Date().toISOString(),
+        'message.parts': JSON.stringify(messageParts),
+      },
+    },
+    ROOT_CONTEXT
+  );
+  messageSpan.end();
+  await flushBatchProcessor();
 
   // Create the execution promise
   const executionPromise = executeAgentAsync({
@@ -618,17 +621,15 @@ async function executeAgentAsync(params: {
 
   const tracer = trace.getTracer('trigger-service');
 
-  // Create baggage for context propagation to child spans
   const baggage = propagation
     .createBaggage()
+    .setEntry('conversation.id', { value: conversationId })
     .setEntry('tenant.id', { value: tenantId })
     .setEntry('project.id', { value: projectId })
-    .setEntry('agent.id', { value: agentId })
-    .setEntry('conversation.id', { value: conversationId });
+    .setEntry('agent.id', { value: agentId });
+  const ctxWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
 
-  // Start with ROOT_CONTEXT (fresh trace) but add baggage for child span propagation
-  const contextWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
-
+  // Execute the agent in a span with baggage context
   return tracer.startActiveSpan(
     'trigger.execute_async',
     {
@@ -642,7 +643,7 @@ async function executeAgentAsync(params: {
         'invocation.type': 'trigger',
       },
     },
-    contextWithBaggage,
+    ctxWithBaggage,
     async (span) => {
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
@@ -670,6 +671,9 @@ async function executeAgentAsync(params: {
         if (!defaultSubAgentId) {
           throw new Error(`Agent ${agentId} has no default sub-agent configured`);
         }
+
+        // Add agent.name to span now that we have it
+        span.setAttribute('agent.name', agent.name || agentId);
 
         // Create conversation and set active agent
         await createOrGetConversation(runDbClient)({
@@ -805,6 +809,7 @@ async function executeAgentAsync(params: {
         throw error;
       } finally {
         span.end();
+        await flushBatchProcessor();
       }
     }
   );

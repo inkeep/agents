@@ -2574,6 +2574,7 @@
             "type": "string"
           },
           "datasetId": {
+            "maxLength": 256,
             "type": "string"
           },
           "expectedOutput": {
@@ -5752,6 +5753,78 @@
             "$ref": "#/components/schemas/StopWhen"
           }
         },
+        "type": "object"
+      },
+      "ReadyErrorChecks": {
+        "properties": {
+          "manageDb": {
+            "description": "Whether the manage database check passed",
+            "type": "boolean"
+          },
+          "runDb": {
+            "description": "Whether the run database check passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "manageDb",
+          "runDb"
+        ],
+        "type": "object"
+      },
+      "ReadyErrorResponse": {
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/ReadyErrorChecks"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence",
+            "type": "string"
+          },
+          "status": {
+            "description": "The HTTP status code",
+            "type": "number"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference that identifies the problem type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "ReadyResponse": {
+        "properties": {
+          "manageDb": {
+            "description": "Whether the manage database is reachable",
+            "type": "boolean"
+          },
+          "runDb": {
+            "description": "Whether the run database is reachable",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "manageDb",
+          "runDb"
+        ],
         "type": "object"
       },
       "RelatedAgentInfo": {
@@ -9338,7 +9411,10 @@
             "description": "Service is healthy"
           }
         },
-        "summary": "Health check"
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/manage/api/cli/me": {
@@ -30780,6 +30856,38 @@
         "summary": "List User Project Memberships",
         "tags": [
           "User Project Memberships"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "Check if the service is ready to serve traffic by verifying database connectivity",
+        "operationId": "ready",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            },
+            "description": "Service is ready - all health checks passed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyErrorResponse"
+                }
+              }
+            },
+            "description": "Service is not ready - one or more health checks failed"
+          }
+        },
+        "summary": "Readiness check",
+        "tags": [
+          "Health"
         ]
       }
     },

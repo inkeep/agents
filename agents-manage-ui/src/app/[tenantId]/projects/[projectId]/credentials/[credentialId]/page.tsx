@@ -1,3 +1,4 @@
+import { recordToKeyValuePairs } from '@/components/credentials/views/credential-form-validation';
 import {
   EditCredentialForm,
   type EditCredentialFormData,
@@ -19,7 +20,7 @@ async function credentialToFormData(credential: Credential): Promise<EditCredent
 
   return {
     name: credential.name,
-    metadata: connectionMetadata,
+    metadata: recordToKeyValuePairs(connectionMetadata),
   };
 }
 
