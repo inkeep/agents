@@ -33,7 +33,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { propagation, ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, SpanStatusCode } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
@@ -43,6 +43,18 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { tracer } from '../utils/tracer';
+
+// Import waitUntil synchronously (only available on Vercel)
+let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+if (process.env.VERCEL) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    ({ waitUntil } = require('@vercel/functions'));
+  } catch {
+    // Not on Vercel or package not available
+  }
+}
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
@@ -527,10 +539,11 @@ async function dispatchExecution(params: {
     'Trigger invocation created'
   );
 
-  const tracer = trace.getTracer('trigger-service');
-  const messageSpan = tracer.startSpan(
-    'trigger.message_received',
-    {
+  // Wrap span creation and agent execution in a single promise
+  // This ensures both are protected by waitUntil on Vercel
+  const executionPromise = (async () => {
+    const messageSpan = tracer.startSpan('trigger.message_received', {
+      root: true,
       attributes: {
         'tenant.id': tenantId,
         'project.id': projectId,
@@ -543,35 +556,28 @@ async function dispatchExecution(params: {
         'message.timestamp': new Date().toISOString(),
         'message.parts': JSON.stringify(messageParts),
       },
-    },
-    ROOT_CONTEXT
-  );
-  messageSpan.end();
-  await flushBatchProcessor();
+    });
+    messageSpan.end();
+    await flushBatchProcessor();
 
-  // Create the execution promise
-  const executionPromise = executeAgentAsync({
-    tenantId,
-    projectId,
-    agentId,
-    triggerId,
-    invocationId,
-    conversationId,
-    userMessage: userMessageText,
-    messageParts,
-    resolvedRef,
-  });
+    // Execute the agent
+    await executeAgentAsync({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      invocationId,
+      conversationId,
+      userMessage: userMessageText,
+      messageParts,
+      resolvedRef,
+    });
+  })();
 
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
-  if (process.env.VERCEL) {
-    import('@vercel/functions')
-      .then(({ waitUntil }) => {
-        waitUntil(executionPromise);
-      })
-      .catch((err) => {
-        logger.error({ err }, 'Failed to import @vercel/functions');
-      });
+  if (waitUntil) {
+    waitUntil(executionPromise);
   } else {
     // For local/non-Vercel: fire-and-forget with error logging
     executionPromise.catch((error) => {
@@ -619,20 +625,20 @@ async function executeAgentAsync(params: {
     resolvedRef,
   } = params;
 
-  const tracer = trace.getTracer('trigger-service');
-
+  // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
     .createBaggage()
     .setEntry('conversation.id', { value: conversationId })
     .setEntry('tenant.id', { value: tenantId })
     .setEntry('project.id', { value: projectId })
     .setEntry('agent.id', { value: agentId });
-  const ctxWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
+  const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
 
-  // Execute the agent in a span with baggage context
+  // Execute the agent in a new trace root with baggage
   return tracer.startActiveSpan(
     'trigger.execute_async',
     {
+      root: true,
       attributes: {
         'tenant.id': tenantId,
         'project.id': projectId,
