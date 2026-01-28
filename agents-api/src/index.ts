@@ -11,9 +11,7 @@ import {
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
-import { env } from './env';
 import { createAgentsAuth } from './factory';
-import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
 
@@ -35,7 +33,6 @@ export {
   createAgentsHono,
   createAuth0Provider,
   createOIDCProvider,
-  initializeDefaultUser,
 } from './factory';
 
 // Create default configuration
@@ -104,10 +101,5 @@ const app = createAgentsHono({
   auth,
   sandboxConfig,
 });
-
-// Initialize default user for development environment only
-if (env.ENVIRONMENT === 'development') {
-  void initializeDefaultUser(auth);
-}
 
 export default app;

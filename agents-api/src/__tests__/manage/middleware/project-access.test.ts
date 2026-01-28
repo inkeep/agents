@@ -2,22 +2,11 @@ import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManageAppVariables } from '../../../types/app';
 
-// Use vi.hoisted to define mock values that are available when vi.mock factory runs
-const mockEnv = vi.hoisted(() => ({
-  DISABLE_AUTH: false,
-}));
-
-// Mock the env module to control DISABLE_AUTH
-vi.mock('../../../env', () => ({
-  env: mockEnv,
-}));
-
 // Mock the authz module
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    isAuthzEnabled: vi.fn(() => false),
     canViewProject: vi.fn(() => Promise.resolve(true)),
     canUseProject: vi.fn(() => Promise.resolve(true)),
     canEditProject: vi.fn(() => Promise.resolve(false)),
@@ -26,7 +15,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 });
 
 // Import mocked functions
-import { canEditProject, canUseProject, canViewProject, isAuthzEnabled } from '@inkeep/agents-core';
+import { canEditProject, canUseProject, canViewProject } from '@inkeep/agents-core';
 // Import after mocks are set up
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 
@@ -35,8 +24,6 @@ describe('requireProjectPermission middleware', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock env state
-    mockEnv.DISABLE_AUTH = false;
     // Set ENVIRONMENT to non-test so middleware doesn't bypass
     process.env.ENVIRONMENT = 'development';
 
@@ -55,19 +42,6 @@ describe('requireProjectPermission middleware', () => {
 
   afterEach(() => {
     delete process.env.ENVIRONMENT;
-  });
-
-  describe('when DISABLE_AUTH is true', () => {
-    it('should skip checks and allow access', async () => {
-      mockEnv.DISABLE_AUTH = true;
-
-      app.use('/projects/:projectId', requireProjectPermission('view'));
-      app.get('/projects/:projectId', (c) => c.json({ success: true }));
-
-      const res = await app.request('/projects/test-project');
-      expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({ success: true });
-    });
   });
 
   describe('when in test environment', () => {
@@ -136,20 +110,8 @@ describe('requireProjectPermission middleware', () => {
       });
     });
 
-    it('should deny access when canViewProject returns false (authz disabled)', async () => {
+    it('should return 404 when canViewProject returns false', async () => {
       vi.mocked(canViewProject).mockResolvedValue(false);
-      vi.mocked(isAuthzEnabled).mockReturnValue(false);
-
-      app.use('/projects/:projectId', requireProjectPermission('view'));
-      app.get('/projects/:projectId', (c) => c.json({ success: true }));
-
-      const res = await app.request('/projects/test-project');
-      expect(res.status).toBe(403);
-    });
-
-    it('should return 404 when canViewProject returns false (authz enabled)', async () => {
-      vi.mocked(canViewProject).mockResolvedValue(false);
-      vi.mocked(isAuthzEnabled).mockReturnValue(true);
 
       app.use('/projects/:projectId', requireProjectPermission('view'));
       app.get('/projects/:projectId', (c) => c.json({ success: true }));
@@ -171,15 +133,14 @@ describe('requireProjectPermission middleware', () => {
       expect(canUseProject).toHaveBeenCalled();
     });
 
-    it('should deny access when canUseProject returns false', async () => {
+    it('should return 404 when canUseProject returns false', async () => {
       vi.mocked(canUseProject).mockResolvedValue(false);
-      vi.mocked(isAuthzEnabled).mockReturnValue(false);
 
       app.use('/projects/:projectId', requireProjectPermission('use'));
       app.get('/projects/:projectId', (c) => c.json({ success: true }));
 
       const res = await app.request('/projects/test-project');
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
     });
   });
 
@@ -195,15 +156,14 @@ describe('requireProjectPermission middleware', () => {
       expect(canEditProject).toHaveBeenCalled();
     });
 
-    it('should deny access when canEditProject returns false', async () => {
+    it('should return 404 when canEditProject returns false', async () => {
       vi.mocked(canEditProject).mockResolvedValue(false);
-      vi.mocked(isAuthzEnabled).mockReturnValue(false);
 
       app.use('/projects/:projectId', requireProjectPermission('edit'));
       app.get('/projects/:projectId', (c) => c.json({ success: true }));
 
       const res = await app.request('/projects/test-project');
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
     });
   });
 

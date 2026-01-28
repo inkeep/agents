@@ -4,7 +4,6 @@ import {
   commonGetErrorResponses,
   createApiError,
   grantProjectAccess,
-  isAuthzEnabled,
   listProjectMembers,
   ProjectRoles,
   revokeProjectAccess,
@@ -79,10 +78,6 @@ app.openapi(
   async (c) => {
     const { projectId, tenantId } = c.req.valid('param');
 
-    if (!isAuthzEnabled()) {
-      return c.json({ data: [] });
-    }
-
     const members = await listProjectMembers({ tenantId, projectId });
 
     return c.json({ data: members });
@@ -132,14 +127,6 @@ app.openapi(
   async (c) => {
     const { projectId, tenantId } = c.req.valid('param');
     const { userId, role } = c.req.valid('json');
-
-    if (!isAuthzEnabled()) {
-      throw createApiError({
-        code: 'bad_request',
-        message:
-          'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
-      });
-    }
 
     await grantProjectAccess({
       tenantId,
@@ -196,14 +183,6 @@ app.openapi(
   async (c) => {
     const { projectId, userId, tenantId } = c.req.valid('param');
     const { role: newRole, previousRole } = c.req.valid('json');
-
-    if (!isAuthzEnabled()) {
-      throw createApiError({
-        code: 'bad_request',
-        message:
-          'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
-      });
-    }
 
     if (!previousRole) {
       throw createApiError({
@@ -267,14 +246,6 @@ app.openapi(
   async (c) => {
     const { projectId, userId, tenantId } = c.req.valid('param');
     const { role } = c.req.valid('query');
-
-    if (!isAuthzEnabled()) {
-      throw createApiError({
-        code: 'bad_request',
-        message:
-          'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
-      });
-    }
 
     await revokeProjectAccess({
       tenantId,

@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertCircle, Check, Copy, UserPlus } from 'lucide-react';
+import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
+import { AlertCircle, Check } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,14 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthClient } from '@/contexts/auth-client';
+import { OrgRoleSelector } from './org-role-selector';
 
 interface InviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isOrgAdmin: boolean;
+  onInvitationsSent?: () => void;
 }
 
 interface InvitationResult {
@@ -29,16 +32,21 @@ interface InvitationResult {
   error?: string;
 }
 
-export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogProps) {
+export function InviteMemberDialog({
+  open,
+  onOpenChange,
+  isOrgAdmin,
+  onInvitationsSent,
+}: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
   const authClient = useAuthClient();
 
   const [emails, setEmails] = useState('');
+  const [selectedRole, setSelectedRole] = useState<OrgRole>(OrgRoles.MEMBER);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationResults, setInvitationResults] = useState<InvitationResult[]>([]);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +58,11 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
 
     if (!organizationId) {
       setError('No organization selected');
+      return;
+    }
+
+    if (!isOrgAdmin) {
+      setError('You are not authorized to invite members');
       return;
     }
 
@@ -80,7 +93,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
       try {
         const result = await authClient.organization.inviteMember({
           email,
-          role: 'admin',
+          role: selectedRole,
           organizationId,
         });
 
@@ -88,7 +101,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           results.push({
             email,
             status: 'error',
-            error: result.error.message || 'Failed to create invitation',
+            error: result.error.message || 'Failed to add member',
           });
         } else if ('data' in result && result.data && 'id' in result.data) {
           const invitationId = result.data.id;
@@ -103,14 +116,14 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
           results.push({
             email,
             status: 'error',
-            error: 'Failed to generate invitation link',
+            error: 'Failed to add member',
           });
         }
       } catch (err) {
         results.push({
           email,
           status: 'error',
-          error: err instanceof Error ? err.message : 'Failed to create invitation',
+          error: err instanceof Error ? err.message : 'Failed to add member',
         });
       }
     }
@@ -119,23 +132,17 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     setIsSubmitting(false);
   };
 
-  const handleCopyLink = async (link: string, index: number) => {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch {
-      setError('Failed to copy to clipboard');
-    }
-  };
-
   const handleOpenChange = (newOpen: boolean) => {
     if (!isSubmitting) {
+      const hadSuccessfulInvitations = invitationResults.some((r) => r.status === 'success');
       setEmails('');
+      setSelectedRole(OrgRoles.MEMBER);
       setError(null);
       setInvitationResults([]);
-      setCopiedIndex(null);
       onOpenChange(newOpen);
+      if (!newOpen && hadSuccessfulInvitations) {
+        onInvitationsSent?.();
+      }
     }
   };
 
@@ -148,13 +155,12 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            {hasResults ? 'Invitations Created' : 'Invite Team Members'}
+            {hasResults ? 'Team Members Added' : 'Add Team Members'}
           </DialogTitle>
           <DialogDescription>
             {hasResults
               ? `${successCount} successful, ${errorCount} failed`
-              : 'Enter one or more email addresses (comma-separated) to invite members to your organization.'}
+              : 'Enter one or more email addresses (comma-separated) to add members to your organization.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -179,10 +185,14 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                 </p>
               </div>
 
-              <div className="rounded-md bg-muted p-3 text-sm">
-                <p className="text-muted-foreground">
-                  <span className="font-medium">Role:</span> Member (read-only access)
-                </p>
+              <div className="grid gap-2">
+                <Label>Role</Label>
+                <OrgRoleSelector
+                  value={selectedRole}
+                  onChange={setSelectedRole}
+                  disabled={isSubmitting}
+                  triggerClassName="w-full h-auto py-2"
+                />
               </div>
 
               {error && (
@@ -201,7 +211,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || !emails.trim()}>
-                {isSubmitting ? 'Creating...' : 'Create Invitations'}
+                {isSubmitting ? 'Adding...' : 'Add Members'}
               </Button>
             </DialogFooter>
           </form>
@@ -227,31 +237,6 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                         )}
                         <span className="font-medium text-sm truncate">{result.email}</span>
                       </div>
-                      {result.status === 'success' && result.link ? (
-                        <div className="flex gap-2 mt-2">
-                          <Input
-                            value={result.link}
-                            readOnly
-                            className="font-mono text-xs h-8"
-                            onClick={(e) => e.currentTarget.select()}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleCopyLink(result.link ?? '', index)}
-                            className="shrink-0 h-8 w-8"
-                          >
-                            {copiedIndex === index ? (
-                              <Check className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-                      ) : result.error ? (
-                        <p className="text-xs text-red-600 mt-1">{result.error}</p>
-                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -262,8 +247,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
               <div className="rounded-md bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
                 <p className="font-medium mb-1">Next Steps:</p>
                 <ol className="list-decimal list-inside space-y-1 text-xs">
-                  <li>Share the invitation links with the corresponding users</li>
-                  <li>They'll sign in or create an account</li>
+                  <li>They'll sign in with the email they were added with</li>
                   <li>They'll click "Accept Invitation" to join your organization</li>
                 </ol>
               </div>
