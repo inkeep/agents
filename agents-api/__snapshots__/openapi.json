@@ -2574,6 +2574,7 @@
             "type": "string"
           },
           "datasetId": {
+            "maxLength": 256,
             "type": "string"
           },
           "expectedOutput": {

@@ -14,17 +14,22 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
-import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
+import {
+  type CredentialFormData,
+  type CredentialFormOutput,
+  credentialFormSchema,
+  keyValuePairsToRecord,
+} from './credential-form-validation';
 
 interface CredentialFormProps {
-  /** Handler for creating new credentials */
-  onCreateCredential: (data: CredentialFormData) => Promise<void>;
+  /** Handler for creating new credentials (receives metadata as record) */
+  onCreateCredential: (data: CredentialFormOutput) => Promise<void>;
 }
 
 const defaultValues: CredentialFormData = {
   name: '',
   apiKeyToSet: '',
-  metadata: {},
+  metadata: [{ key: '', value: '' }],
   credentialStoreId: DEFAULT_NANGO_STORE_ID,
   credentialStoreType: 'nango',
   selectedTool: undefined,
@@ -89,7 +94,13 @@ export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialForm
         return;
       }
 
-      await onCreateCredential(data);
+      // Convert metadata array to record for API
+      const submitData: CredentialFormOutput = {
+        ...data,
+        metadata: keyValuePairsToRecord(data.metadata),
+      };
+
+      await onCreateCredential(submitData);
     } catch (err) {
       console.error('Failed to create credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to create credential');
@@ -168,8 +179,9 @@ export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialForm
               control={form.control}
               name="metadata"
               label="Headers (optional)"
-              keyPlaceholder="Header name (e.g., X-API-Key)"
-              valuePlaceholder="Header value"
+              keyPlaceholder="Key (e.g. X-API-Key)"
+              valuePlaceholder="Value (e.g. your-api-key)"
+              addButtonLabel="Add header"
             />
             <InfoCard title="How this works">
               <p className="mb-2">Add extra headers to be included with authentication requests.</p>
