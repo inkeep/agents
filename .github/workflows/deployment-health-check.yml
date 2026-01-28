@@ -1,0 +1,41 @@
+name: Deployment Health Check
+
+on:
+  deployment_status:
+
+jobs:
+  health-check:
+    # Only run when:
+    # 1. Deployment succeeded (Vercel sets this when deployment is ready)
+    # 2. Deployment is for agents-api (not manage-ui or docs)
+    # 3. Deployment is for production (preview deployments may not have required env vars)
+    if: |
+      github.event.deployment_status.state == 'success' &&
+      contains(github.event.deployment_status.environment, 'agents-api') &&
+      contains(github.event.deployment_status.environment, 'Production')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for cold start
+        run: sleep 10
+
+      - name: Check /health endpoint (liveness)
+        run: |
+          echo "Checking health endpoint at ${{ github.event.deployment_status.target_url }}/health"
+          curl -f -s -o /dev/null -w "%{http_code}" \
+            "${{ github.event.deployment_status.target_url }}/health" \
+            --retry 3 --retry-delay 5
+
+      - name: Check /ready endpoint (readiness)
+        run: |
+          echo "Checking ready endpoint at ${{ github.event.deployment_status.target_url }}/ready"
+          response=$(curl -f -s "${{ github.event.deployment_status.target_url }}/ready" \
+            --retry 3 --retry-delay 5)
+          echo "Response: $response"
+          # Verify the response indicates healthy status
+          echo "$response" | jq -e '.status == "ok"'
+
+      - name: Notify Vercel (agents-api)
+        if: always()
+        uses: vercel/repository-dispatch/actions/status@v1
+        with:
+          name: "Vercel - agents-api: Health Check"
