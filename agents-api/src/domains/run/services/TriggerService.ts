@@ -527,6 +527,28 @@ async function dispatchExecution(params: {
     'Trigger invocation created'
   );
 
+  const tracer = trace.getTracer('trigger-service');
+  const messageSpan = tracer.startSpan(
+    'trigger.message_received',
+    {
+      attributes: {
+        'tenant.id': tenantId,
+        'project.id': projectId,
+        'agent.id': agentId,
+        'trigger.id': triggerId,
+        'trigger.invocation.id': invocationId,
+        'conversation.id': conversationId,
+        'invocation.type': 'trigger',
+        'message.content': userMessageText,
+        'message.timestamp': new Date().toISOString(),
+        'message.parts': JSON.stringify(messageParts),
+      },
+    },
+    ROOT_CONTEXT
+  );
+  messageSpan.end();
+  await flushBatchProcessor();
+
   // Create the execution promise
   const executionPromise = executeAgentAsync({
     tenantId,
@@ -607,29 +629,7 @@ async function executeAgentAsync(params: {
     .setEntry('agent.id', { value: agentId });
   const ctxWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
 
-  // Create and immediately flush the trigger message span so it shows up in SigNoz right away
-  const messageSpan = tracer.startSpan(
-    'trigger.message_received',
-    {
-      attributes: {
-        'tenant.id': tenantId,
-        'project.id': projectId,
-        'agent.id': agentId,
-        'trigger.id': triggerId,
-        'trigger.invocation.id': invocationId,
-        'conversation.id': conversationId,
-        'invocation.type': 'trigger',
-        'message.content': userMessage,
-        'message.timestamp': new Date().toISOString(),
-        'message.parts': JSON.stringify(messageParts),
-      },
-    },
-    ctxWithBaggage
-  );
-  messageSpan.end();
-  await flushBatchProcessor();
-
-  // Now execute the agent in a separate span with baggage context
+  // Execute the agent in a span with baggage context
   return tracer.startActiveSpan(
     'trigger.execute_async',
     {
