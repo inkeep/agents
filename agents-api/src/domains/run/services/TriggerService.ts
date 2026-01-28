@@ -33,12 +33,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import {
-  propagation,
-  ROOT_CONTEXT,
-  SpanStatusCode,
-  trace,
-} from '@opentelemetry/api';
+import { propagation, ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
