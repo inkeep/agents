@@ -50,11 +50,7 @@ const validateTransformation = (value: string | Record<string, string>): boolean
 };
 
 export const mcpToolSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Name is required.')
-    .max(100, 'Name must be less than 100 characters.')
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Name can only contain letters, numbers, hyphens, and underscores.'),
+  name: z.string().min(1, 'Name is required.'),
   config: z.object({
     type: z.literal('mcp'),
     mcp: z.object({
