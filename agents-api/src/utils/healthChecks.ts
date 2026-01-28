@@ -1,5 +1,5 @@
-import type { Pool } from 'pg';
 import type { AgentsRunDatabaseClient } from '@inkeep/agents-core';
+import type { Pool } from 'pg';
 
 const HEALTH_CHECK_TIMEOUT_MS = 5000;
 

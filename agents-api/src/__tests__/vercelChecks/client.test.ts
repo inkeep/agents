@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  type CheckResponse,
   createCheck,
   updateCheck,
   VercelApiError,
-  type CheckResponse,
   type VercelChecksClientConfig,
 } from '../../domains/manage/routes/vercelChecks/client';
 

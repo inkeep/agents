@@ -11,7 +11,11 @@ import crypto from 'node:crypto';
  * @param secret - The Vercel integration secret used to sign payloads
  * @returns true if the signature is valid, false otherwise
  */
-export function validateVercelSignature(rawBody: string, signature: string, secret: string): boolean {
+export function validateVercelSignature(
+  rawBody: string,
+  signature: string,
+  secret: string
+): boolean {
   if (!rawBody || !signature || !secret) {
     return false;
   }

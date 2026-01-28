@@ -33,14 +33,20 @@ describe('validateVercelSignature', () => {
   });
 
   it('should return false for a signature computed with wrong secret', () => {
-    const wrongSecretSignature = crypto.createHmac('sha1', 'wrong-secret').update(testBody).digest('hex');
+    const wrongSecretSignature = crypto
+      .createHmac('sha1', 'wrong-secret')
+      .update(testBody)
+      .digest('hex');
     const result = validateVercelSignature(testBody, wrongSecretSignature, testSecret);
     expect(result).toBe(false);
   });
 
   it('should return false for a signature computed from different body', () => {
     const differentBody = JSON.stringify({ different: 'payload' });
-    const differentSignature = crypto.createHmac('sha1', testSecret).update(differentBody).digest('hex');
+    const differentSignature = crypto
+      .createHmac('sha1', testSecret)
+      .update(differentBody)
+      .digest('hex');
     const result = validateVercelSignature(testBody, differentSignature, testSecret);
     expect(result).toBe(false);
   });
@@ -78,7 +84,10 @@ describe('validateVercelSignature', () => {
       message: 'Hello "world" with <special> & characters',
       unicode: '日本語テスト',
     });
-    const specialSignature = crypto.createHmac('sha1', testSecret).update(specialBody).digest('hex');
+    const specialSignature = crypto
+      .createHmac('sha1', testSecret)
+      .update(specialBody)
+      .digest('hex');
     const result = validateVercelSignature(specialBody, specialSignature, testSecret);
     expect(result).toBe(true);
   });
@@ -109,7 +118,8 @@ describe('validateVercelSignature', () => {
 
     // Signature differs in the middle
     const midPoint = Math.floor(validSignature.length / 2);
-    const diffMidSignature = validSignature.slice(0, midPoint) + 'z' + validSignature.slice(midPoint + 1);
+    const diffMidSignature =
+      validSignature.slice(0, midPoint) + 'z' + validSignature.slice(midPoint + 1);
     expect(validateVercelSignature(testBody, diffMidSignature, testSecret)).toBe(false);
   });
 });

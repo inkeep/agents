@@ -145,6 +145,10 @@ export type DeploymentCreatedPayload = z.infer<typeof DeploymentCreatedPayloadSc
 export type DeploymentCreatedWebhook = z.infer<typeof DeploymentCreatedWebhookSchema>;
 export type DeploymentReadyPayload = z.infer<typeof DeploymentReadyPayloadSchema>;
 export type DeploymentReadyWebhook = z.infer<typeof DeploymentReadyWebhookSchema>;
-export type DeploymentCheckRerequestedPayload = z.infer<typeof DeploymentCheckRerequestedPayloadSchema>;
-export type DeploymentCheckRerequestedWebhook = z.infer<typeof DeploymentCheckRerequestedWebhookSchema>;
+export type DeploymentCheckRerequestedPayload = z.infer<
+  typeof DeploymentCheckRerequestedPayloadSchema
+>;
+export type DeploymentCheckRerequestedWebhook = z.infer<
+  typeof DeploymentCheckRerequestedWebhookSchema
+>;
 export type VercelWebhookEvent = z.infer<typeof VercelWebhookEventSchema>;

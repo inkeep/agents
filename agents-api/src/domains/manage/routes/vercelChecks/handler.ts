@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { createCheck, updateCheck, type VercelChecksClientConfig } from './client';
-import { VercelWebhookEventSchema, type VercelWebhookEvent } from './schemas';
+import { type VercelWebhookEvent, VercelWebhookEventSchema } from './schemas';
 import { validateVercelSignature } from './signature';
 
 const logger = getLogger('vercel-checks-webhook');
@@ -167,10 +167,7 @@ async function handleCheckRerequested(event: VercelWebhookEvent): Promise<void> 
     return;
   }
 
-  logger.info(
-    { deploymentId: deployment.id, checkId: check.id },
-    'Re-running readiness check'
-  );
+  logger.info({ deploymentId: deployment.id, checkId: check.id }, 'Re-running readiness check');
 
   const isReady = await performReadinessCheck(deployment.url);
 
@@ -193,7 +190,10 @@ async function handleCheckRerequested(event: VercelWebhookEvent): Promise<void> 
       'Updated check conclusion after rerun'
     );
   } catch (error) {
-    logger.error({ error, deploymentId: deployment.id, checkId: check.id }, 'Failed to update check after rerun');
+    logger.error(
+      { error, deploymentId: deployment.id, checkId: check.id },
+      'Failed to update check after rerun'
+    );
   }
 }
 

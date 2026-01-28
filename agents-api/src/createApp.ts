@@ -13,7 +13,6 @@ import { vercelChecksWebhookHandler } from './domains/manage/routes/vercelChecks
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
 import { env } from './env';
-import { checkManageDb, checkRunDb } from './utils/healthChecks';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import {
@@ -41,6 +40,7 @@ import { sessionAuth, sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import type { AppConfig, AppVariables } from './types';
+import { checkManageDb, checkRunDb } from './utils/healthChecks';
 
 const logger = getLogger('agents-api');
 

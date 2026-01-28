@@ -14,9 +14,7 @@ export type CreateCheckRequest = z.infer<typeof CreateCheckRequestSchema>;
 export const CheckResponseSchema = z.object({
   id: z.string().describe('Unique check ID'),
   name: z.string().describe('The name of the check'),
-  status: z
-    .enum(['registered', 'running', 'completed'])
-    .describe('Current status of the check'),
+  status: z.enum(['registered', 'running', 'completed']).describe('Current status of the check'),
   blocking: z.boolean().describe('Whether the check blocks deployment'),
   integrationId: z.string().describe('Integration ID that created the check'),
   deploymentId: z.string().describe('Associated deployment ID'),
@@ -34,10 +32,7 @@ export const CheckResponseSchema = z.object({
 export type CheckResponse = z.infer<typeof CheckResponseSchema>;
 
 export const UpdateCheckRequestSchema = z.object({
-  status: z
-    .enum(['running', 'completed'])
-    .optional()
-    .describe('Updated status of the check'),
+  status: z.enum(['running', 'completed']).optional().describe('Updated status of the check'),
   conclusion: z
     .enum(['canceled', 'failed', 'neutral', 'succeeded', 'skipped'])
     .optional()
@@ -63,10 +58,7 @@ export class VercelApiError extends Error {
   }
 }
 
-function buildUrl(
-  path: string,
-  teamId?: string
-): string {
+function buildUrl(path: string, teamId?: string): string {
   const url = new URL(path, VERCEL_API_BASE_URL);
   if (teamId) {
     url.searchParams.set('teamId', teamId);
