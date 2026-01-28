@@ -38,4 +38,4 @@ jobs:
         if: always()
         uses: vercel/repository-dispatch/actions/status@v1
         with:
-          name: Vercel - agents-api: Health Check
+          name: "Vercel - agents-api: Health Check"
