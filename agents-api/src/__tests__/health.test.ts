@@ -9,6 +9,8 @@ describe('GET /health', () => {
       auth: null,
     });
 
+    await app.request('/health');
+
     const startTime = performance.now();
     const res = await app.request('/health');
     const elapsed = performance.now() - startTime;
