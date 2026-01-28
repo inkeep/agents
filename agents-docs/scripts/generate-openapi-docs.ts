@@ -105,6 +105,8 @@ ${prettyError}`);
         .replace('A P I', 'API')
         .replace('C L I', 'CLI')
         .replace('O Auth', 'OAuth')
+        .replace('Sub Agents', 'SubAgents')
+        .replace('Third Party', 'Third-Party')
         .replace('M C P', 'MCP') as keyof typeof TagToDescription;
       const icon = Object.hasOwn(TitleToIcon, title) ? TitleToIcon[title] : null;
 
