@@ -24,10 +24,6 @@ import {
 interface CredentialFormProps {
   /** Handler for creating new credentials (receives metadata as record) */
   onCreateCredential: (data: CredentialFormOutput) => Promise<void>;
-  /** Tenant ID */
-  tenantId: string;
-  /** Project ID */
-  projectId: string;
 }
 
 const defaultValues: CredentialFormData = {
