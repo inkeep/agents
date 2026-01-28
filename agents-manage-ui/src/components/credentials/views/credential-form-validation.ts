@@ -1,7 +1,7 @@
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
-export const keyValuePairSchema = z.object({
+const keyValuePairSchema = z.object({
   key: z.string(),
   value: z.string(),
 });
