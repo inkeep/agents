@@ -1,25 +1,14 @@
 import { WebClient } from '@slack/web-api';
-import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 
 const logger = getLogger('slack-client');
 
-let webClient: WebClient | null = null;
-
-export function getSlackClient(token?: string): WebClient {
-  if (token) {
-    return new WebClient(token);
-  }
-
-  if (!webClient) {
-    const botToken = env.SLACK_BOT_TOKEN;
-    if (!botToken) {
-      logger.warn({}, 'No SLACK_BOT_TOKEN configured, creating client without token');
-    }
-    webClient = new WebClient(botToken);
-  }
-
-  return webClient;
+/**
+ * Create a Slack WebClient with the provided token.
+ * Token must be provided - it comes from Nango connection at runtime.
+ */
+export function getSlackClient(token: string): WebClient {
+  return new WebClient(token);
 }
 
 export async function getSlackUserInfo(client: WebClient, userId: string) {
@@ -101,6 +90,32 @@ export async function postMessage(
     return result;
   } catch (error) {
     logger.error({ error, channel }, 'Failed to post Slack message');
+    throw error;
+  }
+}
+
+export async function postMessageInThread(
+  client: WebClient,
+  channel: string,
+  threadTs: string,
+  text: string,
+  blocks?: unknown[]
+) {
+  try {
+    const args: { channel: string; text: string; thread_ts: string; blocks?: unknown[] } = {
+      channel,
+      text,
+      thread_ts: threadTs,
+    };
+    if (blocks) {
+      args.blocks = blocks;
+    }
+    const result = await client.chat.postMessage(
+      args as Parameters<typeof client.chat.postMessage>[0]
+    );
+    return result;
+  } catch (error) {
+    logger.error({ error, channel, threadTs }, 'Failed to post Slack message in thread');
     throw error;
   }
 }

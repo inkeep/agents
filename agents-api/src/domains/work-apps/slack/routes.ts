@@ -17,8 +17,12 @@ import { getLogger } from '../../../logger';
 import type { WorkAppsVariables } from '../types';
 import {
   createConnectSession,
+  createSlackApiClient,
+  type DefaultAgentConfig,
   deleteConnection,
   findConnectionByAppUser,
+  findConnectionBySlackUser,
+  findWorkspaceConnectionByTeamId,
   getConnectionAccessToken,
   getConnectionStatus,
   getSlackChannels,
@@ -27,10 +31,13 @@ import {
   getSlackNango,
   getSlackTeamInfo,
   getSlackUserInfo,
+  getWorkspaceDefaultAgentFromNango,
   handleCommand,
   parseSlackCommandBody,
   parseSlackEventBody,
+  postMessageInThread,
   type SlackCommandPayload,
+  setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
   updateConnectionMetadata,
   verifySlackRequest,
 } from './services';
@@ -44,6 +51,11 @@ const pendingSessionTokens = new Map<
   { token: string; expiresAt: string; createdAt: number }
 >();
 
+const workspaceBotTokens = new Map<
+  string,
+  { botToken: string; teamName: string; installedAt: string }
+>();
+
 setInterval(() => {
   const now = Date.now();
   const maxAge = 10 * 60 * 1000;
@@ -53,6 +65,519 @@ setInterval(() => {
     }
   }
 }, 60 * 1000);
+
+export function getBotTokenForTeam(teamId: string): string | null {
+  const workspace = workspaceBotTokens.get(teamId);
+  return workspace?.botToken || null;
+}
+
+async function handleAppMention(params: {
+  slackUserId: string;
+  channel: string;
+  text: string;
+  threadTs: string;
+  messageTs: string;
+  teamId: string;
+}) {
+  const { slackUserId, channel, text, threadTs, messageTs, teamId } = params;
+  const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+
+  logger.info({ slackUserId, channel, teamId, text: text.slice(0, 50) }, 'Handling app mention');
+
+  // Try to get bot token from multiple sources:
+  // 1. Nango connection (persisted) - most reliable
+  // 2. In-memory cache (populated during OAuth, lost on restart)
+  // 3. Environment variable (fallback)
+  let botToken: string | null = null;
+
+  // First, try to get from Nango (persisted across restarts)
+  const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+  if (workspaceConnection?.botToken) {
+    botToken = workspaceConnection.botToken;
+    logger.debug({ teamId, source: 'nango' }, 'Got bot token from Nango connection');
+  }
+
+  // Fall back to in-memory cache
+  if (!botToken) {
+    botToken = getBotTokenForTeam(teamId);
+    if (botToken) {
+      logger.debug({ teamId, source: 'memory' }, 'Got bot token from in-memory cache');
+    }
+  }
+
+  // Fall back to environment variable
+  if (!botToken) {
+    botToken = env.SLACK_BOT_TOKEN || null;
+    if (botToken) {
+      logger.debug({ teamId, source: 'env' }, 'Got bot token from environment variable');
+    }
+  }
+
+  if (!botToken) {
+    logger.error({ teamId }, 'No bot token available for app mention response');
+    return;
+  }
+
+  const slackClient = getSlackClient(botToken);
+  const replyThreadTs = threadTs || messageTs;
+
+  try {
+    const connection = await findConnectionBySlackUser(slackUserId);
+    const tenantId = connection?.tenantId || 'default';
+    const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
+
+    logger.debug({ slackUserId, hasConnection: !!connection }, 'Looked up user connection');
+
+    let queryText = text;
+
+    if (!text && threadTs && threadTs !== messageTs) {
+      logger.debug({ channel, threadTs }, 'Empty mention in thread - fetching thread context');
+
+      try {
+        const threadMessages = await slackClient.conversations.replies({
+          channel,
+          ts: threadTs,
+          limit: 50,
+        });
+
+        if (threadMessages.messages && threadMessages.messages.length > 1) {
+          const contextMessages = threadMessages.messages
+            .filter((msg) => msg.ts !== messageTs)
+            .filter((msg) => !msg.bot_id)
+            .map((msg) => {
+              const userName = msg.user ? `<@${msg.user}>` : 'Unknown';
+              return `${userName}: ${msg.text || ''}`;
+            })
+            .join('\n');
+
+          if (contextMessages.trim()) {
+            queryText = `Based on the following conversation thread, please provide a helpful response or summary:\n\n${contextMessages}`;
+            logger.debug(
+              { threadMessageCount: threadMessages.messages.length },
+              'Using thread context as query'
+            );
+          }
+        }
+      } catch (threadError) {
+        logger.warn({ threadError }, 'Failed to fetch thread context, falling back to greeting');
+      }
+    }
+
+    if (!queryText) {
+      logger.debug({ channel, replyThreadTs }, 'Sending empty mention greeting');
+      await postMessageInThread(
+        slackClient,
+        channel,
+        replyThreadTs,
+        `👋 Hi! I'm your Inkeep AI assistant. Ask me anything!\n\n` +
+          `*Examples:*\n` +
+          `• \`@Inkeep Agent How do I reset my password?\`\n` +
+          `• \`@Inkeep Agent Summarize our return policy\`\n\n` +
+          `Or use \`/inkeep help\` for more commands.`
+      );
+      return;
+    }
+
+    if (!connection) {
+      logger.debug({ channel, replyThreadTs }, 'Sending connect prompt');
+      await postMessageInThread(
+        slackClient,
+        channel,
+        replyThreadTs,
+        `👋 Hi! To use Inkeep, please connect your account first.\n\n` +
+          `👉 *<${manageUiUrl}/default/work-apps/slack|Connect your account>*`
+      );
+      return;
+    }
+
+    let defaultAgent: {
+      projectId: string;
+      agentId: string;
+      subAgentId?: string;
+      name: string;
+    } | null = null;
+
+    if (connection?.defaultAgent) {
+      try {
+        defaultAgent = JSON.parse(connection.defaultAgent);
+        logger.debug({ source: 'user' }, 'Using user default agent');
+      } catch {}
+    }
+
+    if (!defaultAgent) {
+      const workspaceDefault = await getWorkspaceDefaultAgent(teamId);
+      if (workspaceDefault) {
+        defaultAgent = {
+          projectId: workspaceDefault.projectId,
+          agentId: workspaceDefault.agentId,
+          name: workspaceDefault.agentName,
+        };
+        logger.debug({ source: 'workspace' }, 'Using workspace default agent');
+      }
+    }
+
+    logger.debug({ hasDefaultAgent: !!defaultAgent }, 'Checked default agent config');
+
+    if (!defaultAgent) {
+      logger.debug({ channel, replyThreadTs }, 'Sending no default agent prompt');
+      await postMessageInThread(
+        slackClient,
+        channel,
+        replyThreadTs,
+        `⚙️ No default agent configured.\n\n` +
+          `👉 *<${dashboardUrl}|Set up your default agent>*\n\n` +
+          `Or use \`/inkeep run [agent-id] [question]\` to specify an agent.`
+      );
+      return;
+    }
+
+    if (!connection?.inkeepSessionToken) {
+      logger.debug({ channel, replyThreadTs }, 'User session token missing or expired');
+      await postMessageInThread(
+        slackClient,
+        channel,
+        replyThreadTs,
+        `🔑 Your session has expired. Please re-connect your account.\n\n` +
+          `👉 *<${dashboardUrl}|Reconnect your account>*`
+      );
+      return;
+    }
+
+    if (connection.inkeepSessionExpiresAt) {
+      const expiresAt = new Date(connection.inkeepSessionExpiresAt);
+      if (expiresAt < new Date()) {
+        logger.debug({ channel, replyThreadTs, expiresAt }, 'User session token expired');
+        await postMessageInThread(
+          slackClient,
+          channel,
+          replyThreadTs,
+          `🔑 Your session has expired. Please re-connect your account.\n\n` +
+            `👉 *<${dashboardUrl}|Reconnect your account>*`
+        );
+        return;
+      }
+    }
+
+    const apiClient = createSlackApiClient(connection);
+
+    const agentDisplayName = defaultAgent.name || defaultAgent.subAgentId || defaultAgent.agentId;
+
+    logger.debug(
+      { channel, replyThreadTs, agentName: agentDisplayName },
+      'Sending thinking message'
+    );
+    const thinkingMessage = await slackClient.chat.postMessage({
+      channel,
+      thread_ts: replyThreadTs,
+      text: `🤔 _${agentDisplayName} is thinking..._`,
+    });
+
+    logger.info(
+      { projectId: defaultAgent.projectId, agentId: defaultAgent.agentId },
+      'Getting API key for agent'
+    );
+    const apiKey = await apiClient.getOrCreateAgentApiKey(
+      defaultAgent.projectId,
+      defaultAgent.agentId
+    );
+
+    logger.info(
+      { projectId: defaultAgent.projectId, agentId: defaultAgent.agentId },
+      'Triggering agent with streaming'
+    );
+
+    await streamAgentResponse({
+      slackClient,
+      channel,
+      threadTs: replyThreadTs,
+      thinkingMessageTs: thinkingMessage.ts || '',
+      slackUserId,
+      teamId,
+      apiKey,
+      question: queryText,
+      agentName: agentDisplayName,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error({ errorMessage, errorStack, channel, teamId }, 'Failed in app mention handler');
+
+    try {
+      await postMessageInThread(
+        slackClient,
+        channel,
+        replyThreadTs,
+        `❌ Sorry, I encountered an error.\n\n` +
+          `Try again or use \`/inkeep help\` for more options.`
+      );
+    } catch (postError) {
+      const postErrorMessage = postError instanceof Error ? postError.message : String(postError);
+      logger.error({ postErrorMessage }, 'Failed to post error message to Slack');
+    }
+  }
+}
+
+async function streamAgentResponse(params: {
+  slackClient: ReturnType<typeof getSlackClient>;
+  channel: string;
+  threadTs: string;
+  thinkingMessageTs: string;
+  slackUserId: string;
+  teamId: string;
+  apiKey: string;
+  question: string;
+  agentName: string;
+}): Promise<void> {
+  const {
+    slackClient,
+    channel,
+    threadTs,
+    thinkingMessageTs,
+    slackUserId,
+    teamId,
+    apiKey,
+    question,
+    agentName,
+  } = params;
+
+  const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+  const response = await fetch(`${apiUrl.replace(/\/$/, '')}/run/v1/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'default',
+      messages: [{ role: 'user', content: question }],
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'Unknown error');
+    logger.error({ status: response.status, errorBody }, 'Agent streaming request failed');
+    throw new Error(`Agent execution failed: ${response.status}`);
+  }
+
+  if (thinkingMessageTs) {
+    try {
+      await slackClient.chat.delete({
+        channel,
+        ts: thinkingMessageTs,
+      });
+    } catch (deleteError) {
+      logger.warn({ deleteError }, 'Failed to delete thinking message');
+    }
+  }
+
+  const streamer = slackClient.chatStream({
+    channel,
+    recipient_team_id: teamId,
+    recipient_user_id: slackUserId,
+    thread_ts: threadTs,
+  });
+
+  if (!response.body) {
+    throw new Error('No response body from agent');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr || jsonStr === '[DONE]') continue;
+
+        try {
+          const data = JSON.parse(jsonStr);
+
+          if (data.type === 'data-operation') {
+            continue;
+          }
+
+          if (data.type === 'text-start' || data.type === 'text-end') {
+            continue;
+          }
+
+          if (data.type === 'text-delta' && data.delta) {
+            fullText += data.delta;
+            await streamer.append({ markdown_text: data.delta });
+          } else if (data.object === 'chat.completion.chunk' && data.choices?.[0]?.delta?.content) {
+            const content = data.choices[0].delta.content;
+            try {
+              const parsed = JSON.parse(content);
+              if (parsed.type === 'data-operation') {
+                continue;
+              }
+            } catch {
+              // Not JSON, use as-is
+            }
+            fullText += content;
+            await streamer.append({ markdown_text: content });
+          }
+        } catch {
+          // Skip invalid JSON
+        }
+      }
+    }
+
+    const shareButton = {
+      type: 'button' as const,
+      text: { type: 'plain_text' as const, text: '📢 Share to Channel', emoji: true },
+      action_id: 'share_to_channel',
+      value: JSON.stringify({
+        channelId: channel,
+        text: fullText,
+        agentName,
+      }),
+    };
+
+    const contextBlock = {
+      type: 'context' as const,
+      elements: [
+        {
+          type: 'mrkdwn' as const,
+          text: `Powered by *${agentName}* via Inkeep`,
+        },
+      ],
+    };
+
+    const actionsBlock = {
+      type: 'actions' as const,
+      elements: [shareButton],
+    };
+
+    await streamer.stop({ blocks: [contextBlock, actionsBlock] });
+
+    logger.debug({ channel, threadTs, responseLength: fullText.length }, 'Streaming completed');
+  } catch (streamError) {
+    logger.error({ streamError }, 'Error during Slack streaming');
+    await streamer.stop();
+    throw streamError;
+  }
+}
+
+async function handleShareToChannel(params: {
+  teamId: string;
+  channelId: string;
+  userId: string;
+  actionValue: string;
+  responseUrl: string;
+}) {
+  const { teamId, channelId, userId, actionValue, responseUrl } = params;
+
+  logger.info({ teamId, channelId, userId }, 'Handling share_to_channel action');
+
+  // Parse the action value
+  let textToShare = '';
+  let agentName = 'Inkeep';
+
+  try {
+    const valueData = JSON.parse(actionValue);
+    textToShare = valueData.text || '';
+    agentName = valueData.agentName || 'Inkeep';
+  } catch {
+    logger.warn({ actionValue }, 'Failed to parse share_to_channel action value');
+    return;
+  }
+
+  if (!textToShare) {
+    logger.warn({}, 'No text content found to share');
+    if (responseUrl) {
+      await sendResponseUrlMessage(responseUrl, {
+        text: '❌ Could not find content to share.',
+        response_type: 'ephemeral',
+      });
+    }
+    return;
+  }
+
+  // Get bot token from Nango
+  const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+  if (!workspaceConnection?.botToken) {
+    logger.error({ teamId }, 'No bot token available for share_to_channel');
+    if (responseUrl) {
+      await sendResponseUrlMessage(responseUrl, {
+        text: '❌ Could not share to channel. Please try again.',
+        response_type: 'ephemeral',
+      });
+    }
+    return;
+  }
+
+  const slackClient = getSlackClient(workspaceConnection.botToken);
+
+  try {
+    await slackClient.chat.postMessage({
+      channel: channelId,
+      text: textToShare,
+      blocks: [
+        {
+          type: 'section',
+          text: { type: 'mrkdwn', text: textToShare },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: `Shared by <@${userId}> • Powered by *${agentName}* via Inkeep`,
+            },
+          ],
+        },
+      ],
+    });
+
+    logger.info({ channelId, userId }, 'Successfully shared message to channel');
+
+    if (responseUrl) {
+      await sendResponseUrlMessage(responseUrl, {
+        text: '✅ Response shared to channel!',
+        response_type: 'ephemeral',
+      });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error({ errorMessage, channelId }, 'Failed to share message to channel');
+
+    if (responseUrl) {
+      await sendResponseUrlMessage(responseUrl, {
+        text: '❌ Failed to share to channel. Please try again.',
+        response_type: 'ephemeral',
+      });
+    }
+  }
+}
+
+async function sendResponseUrlMessage(
+  responseUrl: string,
+  message: { text: string; response_type?: 'ephemeral' | 'in_channel' }
+): Promise<void> {
+  try {
+    await fetch(responseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error({ errorMessage }, 'Failed to send response_url message');
+  }
+}
 
 const SlackUserLinkSchema = z.object({
   slackUserId: z.string(),
@@ -179,6 +704,15 @@ app.openapi(
         installerUserId: tokenData.authed_user?.id,
         installedAt: new Date().toISOString(),
       };
+
+      if (workspaceData.teamId && workspaceData.botToken) {
+        workspaceBotTokens.set(workspaceData.teamId, {
+          botToken: workspaceData.botToken,
+          teamName: workspaceData.teamName || '',
+          installedAt: workspaceData.installedAt,
+        });
+        logger.info({ teamId: workspaceData.teamId }, 'Stored bot token for workspace');
+      }
 
       logger.info(
         { teamId: workspaceData.teamId, teamName: workspaceData.teamName },
@@ -469,7 +1003,24 @@ app.post('/events', async (c) => {
   }
 
   if (eventType === 'event_callback') {
-    const event = eventBody.event as { type?: string; user?: string } | undefined;
+    const teamId = eventBody.team_id as string | undefined;
+    const event = eventBody.event as
+      | {
+          type?: string;
+          user?: string;
+          text?: string;
+          channel?: string;
+          ts?: string;
+          thread_ts?: string;
+          bot_id?: string;
+          subtype?: string;
+        }
+      | undefined;
+
+    if (event?.bot_id || event?.subtype === 'bot_message') {
+      logger.debug({ botId: event.bot_id }, 'Ignoring bot message');
+      return c.json({ ok: true });
+    }
 
     console.log('=== SLACK EVENT CALLBACK ===');
     console.log(JSON.stringify(event, null, 2));
@@ -479,15 +1030,62 @@ app.post('/events', async (c) => {
       logger.info({ userId: event.user }, 'App home opened');
     }
 
-    if (event?.type === 'app_mention') {
-      logger.info({ userId: event.user }, 'Bot was mentioned');
+    if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
+      logger.info({ userId: event.user, channel: event.channel, teamId }, 'Bot was mentioned');
+
+      const question = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
+
+      handleAppMention({
+        slackUserId: event.user,
+        channel: event.channel,
+        text: question,
+        threadTs: event.thread_ts || event.ts || '',
+        messageTs: event.ts || '',
+        teamId,
+      }).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const errorStack = err instanceof Error ? err.stack : undefined;
+        logger.error({ errorMessage, errorStack }, 'Failed to handle app mention (outer catch)');
+      });
     }
   }
 
   if (eventType === 'block_actions' || eventType === 'interactive_message') {
     console.log('=== SLACK INTERACTIVE EVENT ===');
-    console.log('Received interactive event, acknowledging');
+    console.log('Received interactive event, processing actions');
     console.log('================================');
+
+    const actions = eventBody.actions as
+      | Array<{
+          action_id: string;
+          value?: string;
+        }>
+      | undefined;
+
+    const teamId = (eventBody.team as { id?: string })?.id;
+    const channelId = (eventBody.channel as { id?: string })?.id;
+    const userId = (eventBody.user as { id?: string })?.id;
+    const responseUrl = eventBody.response_url as string | undefined;
+
+    if (actions && teamId) {
+      for (const action of actions) {
+        if (action.action_id === 'share_to_channel' && action.value) {
+          handleShareToChannel({
+            teamId,
+            channelId: channelId || '',
+            userId: userId || '',
+            actionValue: action.value,
+            responseUrl: responseUrl || '',
+          }).catch((err) => {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error(
+              { errorMessage, actionId: action.action_id },
+              'Failed to handle share_to_channel'
+            );
+          });
+        }
+      }
+    }
   }
 
   return c.json({ ok: true });
@@ -598,5 +1196,187 @@ app.post('/refresh-session', async (c) => {
     return c.json({ error: 'Failed to refresh session' }, 500);
   }
 });
+
+app.post('/register-workspace', async (c) => {
+  const body = await c.req.json();
+  const { teamId, teamName, botToken } = body as {
+    teamId?: string;
+    teamName?: string;
+    botToken?: string;
+  };
+
+  if (!teamId) {
+    return c.json({ error: 'teamId is required' }, 400);
+  }
+
+  if (!botToken) {
+    return c.json({ error: 'botToken is required' }, 400);
+  }
+
+  workspaceBotTokens.set(teamId, {
+    botToken,
+    teamName: teamName || '',
+    installedAt: new Date().toISOString(),
+  });
+
+  logger.info({ teamId, teamName }, 'Registered workspace bot token');
+
+  return c.json({ success: true, teamId });
+});
+
+app.get('/workspaces', async (c) => {
+  const workspaces = Array.from(workspaceBotTokens.entries()).map(([teamId, data]) => ({
+    teamId,
+    teamName: data.teamName,
+    installedAt: data.installedAt,
+    hasToken: !!data.botToken,
+  }));
+
+  return c.json({ workspaces });
+});
+
+const workspaceSettings = new Map<
+  string,
+  {
+    defaultAgent?: {
+      agentId: string;
+      agentName: string;
+      projectId: string;
+      projectName: string;
+    };
+    updatedAt: string;
+  }
+>();
+
+app.get('/agents', async (c) => {
+  const tenantId = c.req.query('tenantId') || 'default';
+
+  try {
+    const baseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+    const projectsResponse = await fetch(
+      `${baseUrl}/manage/tenants/${tenantId}/projects?limit=100`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Inkeep-Bypass-Secret': env.INKEEP_AGENTS_API_BYPASS_SECRET || '',
+        },
+      }
+    );
+
+    if (!projectsResponse.ok) {
+      logger.error({ status: projectsResponse.status }, 'Failed to fetch projects');
+      return c.json({ agents: [] });
+    }
+
+    const projectsData = (await projectsResponse.json()) as {
+      data: Array<{ id: string; name: string | null }>;
+    };
+
+    const allAgents: Array<{
+      id: string;
+      name: string | null;
+      projectId: string;
+      projectName: string | null;
+    }> = [];
+
+    for (const project of projectsData.data || []) {
+      try {
+        const agentsResponse = await fetch(
+          `${baseUrl}/manage/tenants/${tenantId}/projects/${project.id}/agents?limit=100`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Inkeep-Bypass-Secret': env.INKEEP_AGENTS_API_BYPASS_SECRET || '',
+            },
+          }
+        );
+
+        if (agentsResponse.ok) {
+          const agentsData = (await agentsResponse.json()) as {
+            data: Array<{ id: string; name: string | null }>;
+          };
+
+          for (const agent of agentsData.data || []) {
+            allAgents.push({
+              id: agent.id,
+              name: agent.name,
+              projectId: project.id,
+              projectName: project.name,
+            });
+          }
+        }
+      } catch {
+        logger.warn({ projectId: project.id }, 'Failed to fetch agents for project');
+      }
+    }
+
+    return c.json({ agents: allAgents });
+  } catch (error) {
+    logger.error({ error }, 'Failed to list agents');
+    return c.json({ agents: [] });
+  }
+});
+
+app.post('/workspace-settings', async (c) => {
+  const body = await c.req.json();
+  const { teamId, defaultAgent } = body as {
+    teamId: string;
+    defaultAgent?: DefaultAgentConfig;
+  };
+
+  if (!teamId) {
+    return c.json({ error: 'teamId is required' }, 400);
+  }
+
+  if (defaultAgent) {
+    const success = await setWorkspaceDefaultAgentInNango(teamId, defaultAgent);
+    if (!success) {
+      logger.warn({ teamId }, 'Failed to persist to Nango, using in-memory fallback');
+    }
+  }
+
+  const existing = workspaceSettings.get(teamId) || { updatedAt: '' };
+  workspaceSettings.set(teamId, {
+    ...existing,
+    defaultAgent,
+    updatedAt: new Date().toISOString(),
+  });
+
+  logger.info(
+    { teamId, agentId: defaultAgent?.agentId, agentName: defaultAgent?.agentName },
+    'Saved workspace default agent'
+  );
+
+  return c.json({ success: true });
+});
+
+app.get('/workspace-settings', async (c) => {
+  const teamId = c.req.query('teamId');
+
+  if (!teamId) {
+    return c.json({ error: 'teamId is required' }, 400);
+  }
+
+  const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
+  if (nangoDefault) {
+    return c.json({ defaultAgent: nangoDefault });
+  }
+
+  const settings = workspaceSettings.get(teamId);
+  return c.json({
+    defaultAgent: settings?.defaultAgent,
+  });
+});
+
+export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultAgentConfig | null> {
+  const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
+  if (nangoDefault) {
+    return nangoDefault;
+  }
+
+  const settings = workspaceSettings.get(teamId);
+  return settings?.defaultAgent || null;
+}
 
 export default app;

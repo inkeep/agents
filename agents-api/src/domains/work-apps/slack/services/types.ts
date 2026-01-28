@@ -67,6 +67,7 @@ export interface SlackUserConnection {
   slackTeamId?: string;
   inkeepSessionToken?: string;
   inkeepSessionExpiresAt?: string;
+  defaultAgent?: string;
 }
 
 export interface SlackConfig {

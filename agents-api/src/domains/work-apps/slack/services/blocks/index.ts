@@ -171,3 +171,149 @@ export function createErrorMessage(message: string) {
     .blocks(Blocks.Section().text(`❌ ${message}`))
     .buildToObject();
 }
+
+export function createAgentResponseMessage(
+  agentName: string,
+  response: string,
+  channelId?: string
+) {
+  if (channelId) {
+    const truncatedResponse = response.length > 1800 ? `${response.slice(0, 1800)}...` : response;
+
+    return Message()
+      .blocks(
+        Blocks.Section().text(response),
+        Blocks.Context().elements(`Powered by ${Md.bold(agentName)} via Inkeep`),
+        Blocks.Actions().elements(
+          Elements.Button()
+            .text('📢 Share to Channel')
+            .actionId('share_to_channel')
+            .value(JSON.stringify({ channelId, text: truncatedResponse, agentName }))
+        )
+      )
+      .buildToObject();
+  }
+
+  return Message()
+    .blocks(
+      Blocks.Section().text(response),
+      Blocks.Context().elements(`Powered by ${Md.bold(agentName)} via Inkeep`)
+    )
+    .buildToObject();
+}
+
+export function createSettingsMessage(
+  email: string,
+  defaultAgentName: string | undefined,
+  dashboardUrl: string
+) {
+  const agentStatus = defaultAgentName
+    ? `✅ ${Md.bold(defaultAgentName)}`
+    : `❌ ${Md.italic('Not configured')}`;
+
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        `${Md.bold('⚙️ Your Slack Settings')}\n\n` +
+          `${Md.bold('Inkeep Account:')} ${email}\n` +
+          `${Md.bold('Default Agent:')} ${agentStatus}\n\n` +
+          'Use `/inkeep settings set [agent-name]` to change your default agent.'
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('📊 Manage in Dashboard').url(dashboardUrl).actionId('open_settings')
+      )
+    )
+    .buildToObject();
+}
+
+export function createSettingsUpdatedMessage(agentName: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        `${Md.bold('✅ Default Agent Updated')}\n\n` +
+          `Your default agent is now: ${Md.bold(agentName)}\n\n` +
+          'You can now use `/inkeep [question]` to ask questions.'
+      )
+    )
+    .buildToObject();
+}
+
+export function createAgentListMessage(
+  agents: Array<{ id: string; name: string | null; projectName: string | null }>,
+  dashboardUrl: string
+) {
+  const agentList = agents
+    .slice(0, 15)
+    .map(
+      (a) => `• ${Md.bold(a.name || a.id)} ${a.projectName ? `(${Md.italic(a.projectName)})` : ''}`
+    )
+    .join('\n');
+
+  const moreText = agents.length > 15 ? `\n\n...and ${agents.length - 15} more` : '';
+
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        `${Md.bold('🤖 Available Agents')}\n\n` +
+          agentList +
+          moreText +
+          '\n\n' +
+          'Use `/inkeep run [agent-name] [question]` to run a specific agent.\n' +
+          'Use `/inkeep settings set [agent-name]` to set your default.'
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('📊 View All in Dashboard').url(dashboardUrl).actionId('view_agents')
+      )
+    )
+    .buildToObject();
+}
+
+export function createNoDefaultAgentMessage(dashboardUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        `${Md.bold('⚠️ No Default Agent Configured')}\n\n` +
+          'To use `/inkeep [question]`, you need to set a default agent first.\n\n' +
+          '1. Use `/inkeep list` to see available agents\n' +
+          '2. Use `/inkeep settings set [agent-name]` to set your default'
+      ),
+      Blocks.Actions().elements(
+        Elements.Button()
+          .text('🔗 Configure in Dashboard')
+          .url(dashboardUrl)
+          .actionId('configure_default')
+          .primary()
+      )
+    )
+    .buildToObject();
+}
+
+export function createThinkingMessage(agentName: string) {
+  return Message()
+    .blocks(Blocks.Section().text(`🤔 ${Md.italic(`${agentName} is thinking...`)}`))
+    .buildToObject();
+}
+
+export function createUpdatedHelpMessage() {
+  return Message()
+    .blocks(
+      Blocks.Section().text(`${Md.bold('Inkeep Slack Commands')}\n\nAvailable commands:`),
+      Blocks.Section().text(
+        `${Md.bold('Ask Questions:')}\n` +
+          '• `@inkeep [question]` - Ask in channel (public, creates thread)\n' +
+          '• `/inkeep [question]` - Ask channel/global default (ephemeral)\n' +
+          '• `/inkeep trigger [question]` - Ask your personal default\n' +
+          '• `/inkeep run [agent] [question]` - Ask a specific agent\n\n' +
+          `${Md.bold('Configuration:')}\n` +
+          '• `/inkeep settings` - View your settings\n' +
+          '• `/inkeep settings set [agent]` - Set your personal default agent\n' +
+          '• `/inkeep list` - List available agents\n\n' +
+          `${Md.bold('Account:')}\n` +
+          '• `/inkeep connect` - Connect your Inkeep account\n' +
+          '• `/inkeep status` - Check connection status\n' +
+          '• `/inkeep logout` - Disconnect your account\n' +
+          '• `/inkeep help` - Show this help message'
+      )
+    )
+    .buildToObject();
+}

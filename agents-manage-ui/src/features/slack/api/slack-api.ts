@@ -116,4 +116,59 @@ export const slackApi = {
     }
     return response.json();
   },
+
+  async listAgents(tenantId: string): Promise<{
+    agents: Array<{
+      id: string;
+      name: string | null;
+      projectId: string;
+      projectName: string | null;
+    }>;
+  }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/agents?tenantId=${encodeURIComponent(tenantId)}`
+    );
+    if (!response.ok) {
+      throw new Error('Failed to fetch agents');
+    }
+    return response.json();
+  },
+
+  async setWorkspaceDefaultAgent(params: {
+    teamId: string;
+    defaultAgent: {
+      agentId: string;
+      agentName: string;
+      projectId: string;
+      projectName: string;
+    };
+  }): Promise<{ success: boolean }> {
+    const response = await fetch(`${getApiUrl()}/work-apps/slack/workspace-settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || 'Failed to save workspace settings');
+    }
+    return response.json();
+  },
+
+  async getWorkspaceSettings(teamId: string): Promise<{
+    defaultAgent?: {
+      agentId: string;
+      agentName: string;
+      projectId: string;
+      projectName: string;
+    };
+  }> {
+    const response = await fetch(
+      `${getApiUrl()}/work-apps/slack/workspace-settings?teamId=${encodeURIComponent(teamId)}`
+    );
+    if (!response.ok) {
+      return {};
+    }
+    return response.json();
+  },
 };

@@ -14,6 +14,7 @@ import { ConfigurationCard } from './configuration-card';
 import { ConnectedUsersCard } from './connected-users-card';
 import { ConnectionStatusCard } from './connection-status-card';
 import { DatabasePreviewCard } from './database-preview-card';
+import { DefaultAgentCard } from './default-agent-card';
 import { InstalledWorkspacesCard } from './installed-workspaces-card';
 import { NotificationBanner } from './notification-banner';
 import { SlackAccountLinkCard } from './slack-account-link-card';
@@ -146,6 +147,10 @@ export function SlackDashboard() {
         <SlackAccountLinkCard />
         <ConnectionStatusCard />
         <ConfigurationCard />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mt-4">
+        <DefaultAgentCard />
       </div>
 
       <SlackWorkspaceInfoCard />
