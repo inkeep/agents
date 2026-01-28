@@ -17,6 +17,128 @@ function sortObjectKeys(obj: any): any {
     );
 }
 
+interface JsonDiff {
+  path: string;
+  type: 'added' | 'removed' | 'changed';
+  oldValue?: any;
+  newValue?: any;
+}
+
+function computeJsonDiff(
+  oldObj: any,
+  newObj: any,
+  path = '',
+  diffs: JsonDiff[] = [],
+  maxDepth = 6
+): JsonDiff[] {
+  if (maxDepth <= 0) {
+    if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
+      diffs.push({ path: path || '(root)', type: 'changed', oldValue: '...', newValue: '...' });
+    }
+    return diffs;
+  }
+
+  if (oldObj === newObj) return diffs;
+  if (oldObj === null || newObj === null || typeof oldObj !== typeof newObj) {
+    diffs.push({ path: path || '(root)', type: 'changed', oldValue: oldObj, newValue: newObj });
+    return diffs;
+  }
+
+  if (typeof oldObj !== 'object') {
+    if (oldObj !== newObj) {
+      diffs.push({ path: path || '(root)', type: 'changed', oldValue: oldObj, newValue: newObj });
+    }
+    return diffs;
+  }
+
+  if (Array.isArray(oldObj) && Array.isArray(newObj)) {
+    if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
+      diffs.push({
+        path: path || '(root)',
+        type: 'changed',
+        oldValue: `Array[${oldObj.length}]`,
+        newValue: `Array[${newObj.length}]`,
+      });
+    }
+    return diffs;
+  }
+
+  const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
+  for (const key of allKeys) {
+    const newPath = path ? `${path}.${key}` : key;
+    if (!(key in oldObj)) {
+      diffs.push({ path: newPath, type: 'added', newValue: summarizeValue(newObj[key]) });
+    } else if (!(key in newObj)) {
+      diffs.push({ path: newPath, type: 'removed', oldValue: summarizeValue(oldObj[key]) });
+    } else {
+      computeJsonDiff(oldObj[key], newObj[key], newPath, diffs, maxDepth - 1);
+    }
+  }
+
+  return diffs;
+}
+
+function summarizeValue(val: any): string {
+  if (val === null) return 'null';
+  if (val === undefined) return 'undefined';
+  if (typeof val === 'string') return val.length > 50 ? `"${val.substring(0, 50)}..."` : `"${val}"`;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) return `Array[${val.length}]`;
+  if (typeof val === 'object') {
+    const keys = Object.keys(val);
+    return keys.length > 3 ? `{${keys.slice(0, 3).join(', ')}, ...}` : `{${keys.join(', ')}}`;
+  }
+  return String(val);
+}
+
+function formatDiffOutput(diffs: JsonDiff[], maxLines = 50): string[] {
+  const lines: string[] = [];
+  const grouped: Record<string, JsonDiff[]> = {};
+
+  for (const diff of diffs) {
+    const topLevel = diff.path.split('.').slice(0, 2).join('.');
+    if (!grouped[topLevel]) grouped[topLevel] = [];
+    grouped[topLevel].push(diff);
+  }
+
+  let lineCount = 0;
+  for (const [group, groupDiffs] of Object.entries(grouped)) {
+    if (lineCount >= maxLines) {
+      lines.push(`     ... and ${diffs.length - lineCount} more changes`);
+      break;
+    }
+
+    lines.push(`     📁 ${group}`);
+    lineCount++;
+
+    for (const diff of groupDiffs.slice(0, 5)) {
+      if (lineCount >= maxLines) break;
+
+      const shortPath = diff.path.replace(group, '').replace(/^\./, '') || '(value)';
+      if (diff.type === 'added') {
+        lines.push(`        + ${shortPath}: ${diff.newValue}`);
+      } else if (diff.type === 'removed') {
+        lines.push(`        - ${shortPath}: ${diff.oldValue}`);
+      } else {
+        lines.push(`        ~ ${shortPath}`);
+        lines.push(`            was: ${summarizeValue(diff.oldValue)}`);
+        lines.push(`            now: ${summarizeValue(diff.newValue)}`);
+      }
+      lineCount++;
+    }
+
+    if (groupDiffs.length > 5) {
+      lines.push(`        ... and ${groupDiffs.length - 5} more in this section`);
+      lineCount++;
+    }
+
+    lines.push('');
+    lineCount++;
+  }
+
+  return lines;
+}
+
 describe('OpenAPI Specification - Integration Tests (Unified agents-api)', () => {
   describe('GET /openapi.json', () => {
     let cachedSpec: any;
@@ -220,6 +342,13 @@ describe('OpenAPI Specification - Integration Tests (Unified agents-api)', () =>
         ) {
           lines.push('  ⚠️  Changes detected in existing paths/schemas (not additions or removals)');
           lines.push('');
+        }
+
+        const diffs = computeJsonDiff(normalizedSnapshot, normalizedSpec);
+        if (diffs.length > 0) {
+          lines.push('  📋 DETAILED CHANGES:');
+          lines.push('');
+          lines.push(...formatDiffOutput(diffs));
         }
 
         lines.push('  ─'.repeat(35));

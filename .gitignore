@@ -89,13 +89,13 @@ node-compile-cache/
 tasks
 prd.json
 progress.txt
-
+.ralph-last-branch
 # PID files from auto-started services
 .pid
-
 .ralph-archives/
-
 .claude/settings.local.json
 
 # Ideas/drafts folder
 .ideas/
+
+

@@ -6,19 +6,54 @@ import { TagToDescription } from '../../agents-api/src/openapi.ts';
 // @ts-expect-error -- must specify ts extension
 import { openapi } from '../src/lib/openapi.ts';
 
-const OUTPUT_DIR = './content/api-reference';
+const OUTPUT_DIR = 'content/api-reference/(openapi)';
 
 const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
-const ignoreRoutes = new Set(['/health', '/manage/capabilities']);
+const ignoreRoutes = new Set(['/health', '/ready', '/manage/capabilities']);
 
 const usedTags = new Set<string>();
+
+const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
+  A2A: 'LuNetwork',
+  'API Keys': 'LuKeyRound',
+  Agents: 'LuUser',
+  'Artifact Components': 'TbInputSpark',
+  Branches: 'LuGitBranch',
+  CLI: 'LuTerminal',
+  Chat: 'LuMessagesSquare',
+  'Context Configs': 'LuCirclePlus',
+  Conversations: 'LuMessageSquare',
+  Credentials: 'LuKey',
+  'Credential Stores': 'LuDatabase',
+  'Data Components': 'LuBlocks',
+  Evaluations: 'LuFlaskConical',
+  'External Agents': 'LuGlobe',
+  'Function Tools': 'LuCode',
+  Functions: 'LuCode2',
+  Invitations: 'LuUserPlus',
+  MCP: 'LuServer',
+  'MCP Catalog': 'LuLibrary',
+  OAuth: 'LuShieldCheck',
+  'Project Members': 'LuUsers',
+  'Project Permissions': 'LuShield',
+  Projects: 'LuFolderOpen',
+  Refs: 'LuLink',
+  SubAgents: 'LuSpline',
+  'Third-Party MCP Servers': 'LuServerCog',
+  Tools: 'LuHammer',
+  Triggers: 'LuWebhook',
+  'User Organizations': 'LuBuilding',
+  'User Project Memberships': 'LuUserCheck',
+  Webhooks: 'LuWebhook',
+  Workflows: 'LuWorkflow',
+};
 
 async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
   console.time('Done in');
 
-  for await (const file of glob('content/api-reference/**/*.mdx')) {
+  for await (const file of glob(`${OUTPUT_DIR}/**/*.mdx`)) {
     await rm(file);
   }
 
@@ -64,14 +99,24 @@ ${prettyError}`);
     per: 'tag',
     // Fumadocs splits uppercase acronyms into spaced letters (e.g. "A P I").
     // This normalizes common cases back to their proper titles.
-    frontmatter(title) {
+    frontmatter(_title) {
+      const title = _title
+        .replace('A2 A', 'A2A')
+        .replace('A P I', 'API')
+        .replace('C L I', 'CLI')
+        .replace('O Auth', 'OAuth')
+        .replace('Sub Agents', 'SubAgents')
+        .replace('Third Party', 'Third-Party')
+        .replace('M C P', 'MCP') as keyof typeof TagToDescription;
+      const icon = Object.hasOwn(TitleToIcon, title) ? TitleToIcon[title] : null;
+
+      if (!icon) {
+        throw new Error(`Unknown icon for tag "${title}"`);
+      }
+
       return {
-        title: title
-          .replace('A2 A', 'A2A')
-          .replace('A P I', 'API')
-          .replace('C L I', 'CLI')
-          .replace('O Auth', 'OAuth')
-          .replace('M C P', 'MCP'),
+        title,
+        icon,
       };
     },
   });
