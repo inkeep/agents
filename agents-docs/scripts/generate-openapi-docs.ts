@@ -64,14 +64,16 @@ ${prettyError}`);
     per: 'tag',
     // Fumadocs splits uppercase acronyms into spaced letters (e.g. "A P I").
     // This normalizes common cases back to their proper titles.
-    frontmatter(title) {
+    frontmatter(_title) {
+      const title = _title
+        .replace('A2 A', 'A2A')
+        .replace('A P I', 'API')
+        .replace('C L I', 'CLI')
+        .replace('O Auth', 'OAuth')
+        .replace('M C P', 'MCP');
       return {
-        title: title
-          .replace('A2 A', 'A2A')
-          .replace('A P I', 'API')
-          .replace('C L I', 'CLI')
-          .replace('O Auth', 'OAuth')
-          .replace('M C P', 'MCP'),
+        title,
+        icon: `api/${title.toLowerCase().replaceAll(' ', '-')}`,
       };
     },
   });
