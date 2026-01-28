@@ -142,7 +142,6 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
     <div className="border rounded-lg p-4 space-y-3">
       {/* Tool header */}
       <div className="flex items-center justify-between">
-        {/* flex-wrap */}
         <div className="flex items-center gap-2 min-w-0 max-w-full">
           <Badge
             variant={isActive ? 'primary' : 'code'}
