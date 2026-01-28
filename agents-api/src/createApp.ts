@@ -7,7 +7,6 @@ import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { githubRoutes } from './domains/github';
 import { manageRoutes } from './domains/manage';
-import { vercelChecksWebhookHandler } from './domains/manage/routes/vercelChecks/handler';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
 import { env } from './env';
@@ -355,11 +354,6 @@ function createAgentsHono(config: AppConfig) {
   // Mount MCP routes at top level (eclipses both manage and run services)
   // Also available at /manage/mcp for backward compatibility
   app.route('/mcp', mcpRoutes);
-
-  // Mount Vercel Checks webhook handler
-  // This is opt-in and returns 404 when VERCEL_CHECKS_ENABLED is not true
-  // NOT exposed in public OpenAPI spec
-  app.route('/api/vercel', vercelChecksWebhookHandler);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

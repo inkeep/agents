@@ -9411,7 +9411,10 @@
             "description": "Service is healthy"
           }
         },
-        "summary": "Health check"
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/manage/api/cli/me": {
@@ -30882,7 +30885,10 @@
             "description": "Service is not ready - one or more health checks failed"
           }
         },
-        "summary": "Readiness check"
+        "summary": "Readiness check",
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/run/agents/.well-known/agent.json": {

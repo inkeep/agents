@@ -394,102 +394,88 @@ curl https://your-api.vercel.app/ready
 }
 ```
 
-### Vercel Checks Integration (Optional)
+### Vercel Deployment Checks with GitHub Actions
 
-Enable automated deployment protection using Vercel's Checks API. When enabled, deployments will be blocked until the `/ready` endpoint returns healthy.
-
-<Note>
-  This feature is **opt-in** and disabled by default. It requires additional configuration and Vercel API credentials.
-</Note>
+Enable automated deployment protection using [Vercel Deployment Checks](https://vercel.com/docs/deployment-checks) combined with a GitHub Action. This approach blocks production deployments from being promoted until your health checks pass.
 
 #### How It Works
 
-1. **Deployment Created**: When Vercel starts a deployment, a blocking check is registered
-2. **Deployment Ready**: Once the deployment is ready, the `/ready` endpoint is called
-3. **Check Updated**: The check is marked as succeeded (green) or failed (red) based on readiness
-4. **Re-requestable**: Failed checks can be re-run from the Vercel dashboard
+1. **Deployment Created**: Vercel creates a production deployment but doesn't promote it yet
+2. **GitHub Action Runs**: A workflow triggers when the deployment is ready and hits the `/ready` endpoint
+3. **Status Reported**: The GitHub Action reports success/failure back to GitHub
+4. **Vercel Reads Status**: Vercel reads the GitHub commit status and promotes the deployment only if checks pass
 
-#### Step 1: Create a Vercel Integration
+#### Step 1: Add the GitHub Action Workflow
 
-1. Go to your Vercel Dashboard
-2. Navigate to **Settings > Integrations > Create Integration** (or use an existing integration)
-3. Configure your integration with the following webhook events:
-   - `deployment.created`
-   - `deployment.ready`
-   - `deployment.check-rerequested`
-4. Set the webhook URL to: `https://your-api.vercel.app/api/vercel/checks-webhook`
-5. Note the **Integration Secret** (used for webhook signature validation)
+The Inkeep Agent Framework includes a pre-configured workflow at `.github/workflows/deployment-health-check.yml`:
 
-#### Step 2: Create an API Token with Checks Scope
+```yaml
+name: Deployment Health Check
 
-1. Go to [vercel.com/account/tokens](https://vercel.com/account/tokens)
-2. Create a new token with the **Checks** scope
-3. Save the token securely
+on:
+  deployment_status:
 
-#### Step 3: Configure Environment Variables
+jobs:
+  health-check:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for cold start
+        run: sleep 10
 
-Add the following environment variables to your API deployment:
+      - name: Check /health endpoint (liveness)
+        run: |
+          curl -f -s -o /dev/null -w "%{http_code}" \
+            "${{ github.event.deployment_status.target_url }}/health" \
+            --retry 3 --retry-delay 5
 
-```dotenv
-# Enable Vercel Checks (opt-in)
-VERCEL_CHECKS_ENABLED=true
-
-# Webhook signature validation secret (from Step 1)
-VERCEL_INTEGRATION_SECRET=your-integration-secret
-
-# API token for Vercel Checks API (from Step 2)
-VERCEL_CHECKS_TOKEN=your-vercel-api-token
-
-# Optional: Team ID for team-scoped deployments
-VERCEL_TEAM_ID=team_xxxxxxxxxx
+      - name: Check /ready endpoint (readiness)
+        run: |
+          response=$(curl -f -s "${{ github.event.deployment_status.target_url }}/ready" \
+            --retry 3 --retry-delay 5)
+          echo "Response: $response"
+          echo "$response" | jq -e '.status == "ok"'
 ```
 
-| Environment Variable | Required | Description |
-| -------------------- | -------- | ----------- |
-| `VERCEL_CHECKS_ENABLED` | Yes | Set to `true` to enable the feature |
-| `VERCEL_INTEGRATION_SECRET` | Yes | Secret from your Vercel Integration for webhook signature validation |
-| `VERCEL_CHECKS_TOKEN` | Yes | Vercel API token with Checks scope |
-| `VERCEL_TEAM_ID` | No | Required for team-scoped deployments |
+#### Step 2: Enable Deployment Checks in Vercel
 
-#### Step 4: Deploy and Test
+1. Ensure your project is connected to GitHub using [Vercel for GitHub](https://vercel.com/docs/git/vercel-for-github)
+2. Go to **Project Settings > Deployment Checks**
+3. Click **Add Checks** and select the `health-check` job from your GitHub Actions
+4. Production deployments will now wait for the health check to pass before being promoted
 
-1. Deploy your API with the new environment variables
-2. Trigger a new deployment of your project
-3. Verify the check appears in the Vercel deployment details
+#### Step 3: Test the Integration
+
+1. Push a change to your default branch
+2. Vercel creates a production deployment
+3. The GitHub Action runs and checks the `/ready` endpoint
+4. Once the check passes, Vercel promotes the deployment to your production domains
 
 <Accordions>
-  <Accordion title="Troubleshooting Vercel Checks">
-    <strong>Webhook returns 404:</strong>
+  <Accordion title="Troubleshooting Deployment Checks">
+    <strong>GitHub Action not running:</strong>
     <ul>
-      <li>Ensure <code>VERCEL_CHECKS_ENABLED=true</code> is set</li>
-      <li>Verify the webhook URL ends with <code>/api/vercel/checks-webhook</code></li>
+      <li>Ensure the workflow file exists at <code>.github/workflows/deployment-health-check.yml</code></li>
+      <li>Verify the workflow is enabled in your repository's Actions settings</li>
     </ul>
 
-    <strong>Webhook returns 401 Unauthorized:</strong>
+    <strong>Check not appearing in Vercel:</strong>
     <ul>
-      <li>Verify <code>VERCEL_INTEGRATION_SECRET</code> matches your integration's secret</li>
-      <li>Ensure the webhook signature header (<code>x-vercel-signature</code>) is being sent</li>
+      <li>Verify your project is connected to GitHub via Vercel for GitHub</li>
+      <li>Ensure the check is selected in Project Settings > Deployment Checks</li>
     </ul>
 
-    <strong>Check not appearing in deployment:</strong>
-    <ul>
-      <li>Verify <code>VERCEL_CHECKS_TOKEN</code> has the Checks scope</li>
-      <li>For team deployments, ensure <code>VERCEL_TEAM_ID</code> is set correctly</li>
-      <li>Check API logs for error messages from the Vercel Checks API</li>
-    </ul>
-
-    <strong>Check stays in "running" state:</strong>
-    <ul>
-      <li>Ensure the <code>deployment.ready</code> webhook event is subscribed</li>
-      <li>Check that the deployment URL is accessible</li>
-      <li>Verify the <code>/ready</code> endpoint responds correctly</li>
-    </ul>
-
-    <strong>Check fails but service is healthy:</strong>
+    <strong>Health check fails but service is healthy:</strong>
     <ul>
       <li>The <code>/ready</code> endpoint checks database connectivity</li>
       <li>Ensure database connection strings are correct in the deployment</li>
       <li>Check database accessibility from the Vercel deployment region</li>
+      <li>Increase the cold start wait time if needed</li>
+    </ul>
+
+    <strong>Bypassing checks:</strong>
+    <ul>
+      <li>Use <strong>Force Promote</strong> from the deployment details page in Vercel</li>
     </ul>
   </Accordion>
 </Accordions>

@@ -1,0 +1,29 @@
+name: Deployment Health Check
+
+on:
+  deployment_status:
+
+jobs:
+  health-check:
+    # Only run when deployment succeeds (Vercel sets this when deployment is ready)
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for cold start
+        run: sleep 10
+
+      - name: Check /health endpoint (liveness)
+        run: |
+          echo "Checking health endpoint at ${{ github.event.deployment_status.target_url }}/health"
+          curl -f -s -o /dev/null -w "%{http_code}" \
+            "${{ github.event.deployment_status.target_url }}/health" \
+            --retry 3 --retry-delay 5
+
+      - name: Check /ready endpoint (readiness)
+        run: |
+          echo "Checking ready endpoint at ${{ github.event.deployment_status.target_url }}/ready"
+          response=$(curl -f -s "${{ github.event.deployment_status.target_url }}/ready" \
+            --retry 3 --retry-delay 5)
+          echo "Response: $response"
+          # Verify the response indicates healthy status
+          echo "$response" | jq -e '.status == "ok"'

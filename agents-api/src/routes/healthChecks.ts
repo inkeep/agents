@@ -1,8 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { checkManageDb, checkRunDb } from '../utils/healthChecks';
 import manageDbPool from '../data/db/manageDbPool';
 import runDbClient from '../data/db/runDbClient';
 import type { AppVariables } from '../types';
+import { checkManageDb, checkRunDb } from '../utils/healthChecks';
 
 // Create a new Hono instance for health check routes
 export const healthChecksHandler = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -13,6 +13,7 @@ healthChecksHandler.openapi(
     method: 'get',
     path: '/health',
     operationId: 'health',
+    tags: ['Health'],
     summary: 'Health check',
     description: 'Check if the management service is healthy',
     responses: {
@@ -58,6 +59,7 @@ healthChecksHandler.openapi(
     method: 'get',
     path: '/ready',
     operationId: 'ready',
+    tags: ['Health'],
     summary: 'Readiness check',
     description:
       'Check if the service is ready to serve traffic by verifying database connectivity',

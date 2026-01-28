@@ -10,7 +10,7 @@ const OUTPUT_DIR = './content/api-reference';
 
 const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
-const ignoreRoutes = new Set(['/health', '/manage/capabilities']);
+const ignoreRoutes = new Set(['/health', '/ready', '/manage/capabilities']);
 
 const usedTags = new Set<string>();
 
