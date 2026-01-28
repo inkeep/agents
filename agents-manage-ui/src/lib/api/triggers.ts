@@ -135,7 +135,7 @@ export async function fetchTriggerInvocations(
   agentId: string,
   triggerId: string,
   options?: {
-    status?: 'pending' | 'success' | 'failed';
+    status?: 'pending' | 'success' | 'failed' | 'rejected';
     limit?: number;
     page?: number;
   }
