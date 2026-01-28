@@ -33,7 +33,7 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { context as otelContext, propagation, SpanStatusCode } from '@opentelemetry/api';
+import { context as otelContext, propagation, SpanStatusCode, trace } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
@@ -43,7 +43,8 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
-import { tracer } from '../utils/tracer';
+
+const tracer = trace.getTracer('trigger');
 
 // Import waitUntil synchronously (only available on Vercel)
 let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
@@ -540,7 +541,6 @@ async function dispatchExecution(params: {
   );
 
   // Wrap agent execution in a single promise protected by waitUntil
-  // The trigger.message_received span is created inside executeAgentAsync
   const executionPromise = executeAgentAsync({
     tenantId,
     projectId,
@@ -626,33 +626,13 @@ async function executeAgentAsync(params: {
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
         'invocation.type': 'trigger',
+        'message.content': userMessage,
+        'message.timestamp': new Date().toISOString(),
+        'message.parts': JSON.stringify(messageParts),
       },
     },
     ctxWithBaggage,
     async (span) => {
-      // Create trigger.message_received as a child span, explicitly using active context
-      // This ensures it attaches to trigger.execute_async as its parent
-      const messageSpan = tracer.startSpan(
-        'trigger.message_received',
-        {
-          attributes: {
-            'tenant.id': tenantId,
-            'project.id': projectId,
-            'agent.id': agentId,
-            'trigger.id': triggerId,
-            'trigger.invocation.id': invocationId,
-            'conversation.id': conversationId,
-            'invocation.type': 'trigger',
-            'message.content': userMessage,
-            'message.timestamp': new Date().toISOString(),
-            'message.parts': JSON.stringify(messageParts),
-          },
-        },
-        otelContext.active() // Explicitly use current context with execute_async as parent
-      );
-      messageSpan.end();
-      await flushBatchProcessor();
-
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
         'Starting async trigger execution'
