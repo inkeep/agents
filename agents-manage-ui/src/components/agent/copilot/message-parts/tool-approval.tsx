@@ -217,6 +217,9 @@ export const ToolApproval = ({
   }) =>
     !submitted && (
       <div className="flex gap-2 justify-end">
+        <Button variant="outline" size="xs" type="button" onClick={() => handleApproval(false)}>
+          {rejectLabel}
+        </Button>
         <Button
           variant={approveVariant}
           size="xs"
@@ -225,9 +228,6 @@ export const ToolApproval = ({
         >
           {approveIcon}
           {approveLabel}
-        </Button>
-        <Button variant="outline" size="xs" type="button" onClick={() => handleApproval(false)}>
-          {rejectLabel}
         </Button>
       </div>
     );
