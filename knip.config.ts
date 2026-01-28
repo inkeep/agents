@@ -8,7 +8,6 @@ export default {
     'create-agents-template/**': ['files'],
     'agents-docs/_snippets/**': ['files'],
     'agents-docs/skills-collections/_templates/**': ['files'],
-    'agents-docs/content/**': ['files'],
     'packages/agents-manage-mcp/src/**': ['files'],
     'packages/agents-mcp/src/**': ['files'],
     'agents-cli/vitest.setup.ts': ['files'],
@@ -27,6 +26,7 @@ export default {
     'packages/agents-manage-mcp/tsdown.config.ts': ['files'],
     'packages/agents-core/tsdown.config.ts': ['files'],
     'agents-cli/tsdown.config.ts': ['files'],
+    'tsdown.config.ts': ['files'],
     // Specified scripts/README-MCP-GENERATOR.md
     'scripts/generate-mcp-package.mjs': ['files'],
     // Specified in package.json
