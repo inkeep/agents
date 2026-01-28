@@ -142,10 +142,14 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
     <div className="border rounded-lg p-4 space-y-3">
       {/* Tool header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        {/* flex-wrap */}
+        <div className="flex items-center gap-2 min-w-0 max-w-full">
           <Badge
             variant={isActive ? 'primary' : 'code'}
-            className={cn(!isActive && 'bg-transparent text-foreground')}
+            className={cn(
+              'truncate max-w-full inline-block min-w-0 flex-1',
+              !isActive && 'bg-transparent text-foreground'
+            )}
           >
             {override?.displayName || tool.name}
           </Badge>

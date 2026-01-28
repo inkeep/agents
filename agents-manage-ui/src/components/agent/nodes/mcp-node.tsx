@@ -46,7 +46,7 @@ const TruncateToolBadge: FC<{
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="relative">
+        <div className="relative max-w-full">
           <TruncateBadge>{label}</TruncateBadge>
           <div className="absolute -top-1 -right-2 rounded-full bg-background p-0.5">
             <Shield className="h-3 w-3 text-muted-foreground" />
