@@ -32,9 +32,14 @@ export const makeRequest = async (url: string, options: TestRequestOptions = {})
     authHeaders['x-inkeep-tenant-id'] = 'test-tenant';
     authHeaders['x-inkeep-project-id'] = 'default';
     authHeaders['x-inkeep-agent-id'] = 'test-agent';
-  } else if (env.INKEEP_AGENTS_API_BYPASS_SECRET) {
+  } else {
     // Manage routes use the manage API bypass secret
-    authHeaders.Authorization = `Bearer ${env.INKEEP_AGENTS_API_BYPASS_SECRET}`;
+    // Use hardcoded fallback for integration tests where env may not be loaded in time
+    const bypassSecret =
+      env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ||
+      process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET ||
+      'integration-test-bypass-secret';
+    authHeaders.Authorization = `Bearer ${bypassSecret}`;
   }
 
   const response = await app.request(url, {
