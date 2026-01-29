@@ -172,7 +172,7 @@ describe('GitHub Manage Routes', () => {
       const stateParam = url.searchParams.get('state');
       expect(stateParam).toBeTruthy();
 
-      const state = decodeURIComponent(stateParam!);
+      const state = decodeURIComponent(stateParam ?? '');
       const secret = new TextEncoder().encode(TEST_SECRET);
       const { payload } = await jwtVerify(state, secret, {
         issuer: STATE_JWT_ISSUER,
