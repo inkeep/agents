@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { generateId } from '../../src/lib/utils/id-utils';
+
 describe('Agent', () => {
   describe('Unsaved changes dialog', () => {
     beforeEach(() => {
@@ -65,5 +67,12 @@ describe('Agent', () => {
       cy.typeInMonaco('agent-prompt.template', 'Hello {{unknown}} {{$env.MY_ENV}}');
       cy.get('.squiggly-error').should('have.length', 1);
     });
+  });
+
+  it.only('Editing sub-agent ID removes linked tools', () => {
+    cy.visit('/default/projects/my-weather-project');
+    cy.contains('Create agent').click();
+    cy.get('[name=name]').type(generateId());
+    cy.get('button[type=submit]').click();
   });
 });
