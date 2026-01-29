@@ -21,7 +21,6 @@ export default defineConfig({
     port: 3002,
     strictPort: true,
     cors: false,
-    allowedHosts: ['inkeep-agents.ngrok.io'],
   },
   optimizeDeps: {
     exclude: [
