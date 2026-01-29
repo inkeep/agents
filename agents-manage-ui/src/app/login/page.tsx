@@ -21,23 +21,73 @@ function LoginForm() {
   const invitationId = searchParams.get('invitation');
   const returnUrl = searchParams.get('returnUrl');
   const authClient = useAuthClient();
+
+  // Detect if this is an OAuth authorization flow (redirected from /api/auth/oauth2/authorize)
+  // OAuth params are: response_type, client_id, redirect_uri, scope, state, code_challenge, exp, sig
+  const isOAuthFlow = searchParams.get('client_id') && searchParams.get('sig');
+
+  // Build the OAuth authorize URL to resume after login
+  const getOAuthAuthorizeUrl = (): string | null => {
+    if (!isOAuthFlow) return null;
+
+    // Reconstruct the authorize URL with all OAuth params
+    const oauthParams = new URLSearchParams();
+    const oauthKeys = [
+      'response_type',
+      'client_id',
+      'redirect_uri',
+      'scope',
+      'state',
+      'code_challenge',
+      'code_challenge_method',
+      'prompt',
+      'resource',
+      'exp',
+      'sig',
+    ];
+
+    for (const key of oauthKeys) {
+      const value = searchParams.get(key);
+      if (value) {
+        oauthParams.set(key, value);
+      }
+    }
+
+    // Point back to manage-api's authorize endpoint
+    const manageApiUrl = process.env.NEXT_PUBLIC_MANAGEMENT_API_URL || 'http://localhost:3002';
+    return `${manageApiUrl}/api/auth/oauth2/authorize?${oauthParams.toString()}`;
+  };
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
   const posthog = usePostHog();
 
   // Get the validated return URL for post-login redirect (used for email login)
   const getRedirectUrl = (): string => {
+    // If this is an OAuth flow, redirect back to the authorize endpoint
+    const oauthUrl = getOAuthAuthorizeUrl();
+    if (oauthUrl) {
+      return oauthUrl;
+    }
+
     if (invitationId) {
       return `/accept-invitation/${invitationId}`;
     }
     return getSafeReturnUrl(returnUrl, '/');
   };
 
-  // For OAuth, we need the full URL to redirect back to the UI
-  // OAuth must callback to `/` (home page) which handles the auth completion
-  // We pass returnUrl/invitation as query params for post-auth redirect
+  // For OAuth (Google/SSO), we need the full URL to redirect back after authentication
+  // If we're in an OAuth authorization flow, we need to return to the authorize endpoint
   const getFullCallbackURL = () => {
     if (typeof window === 'undefined') return '/';
     const baseURL = window.location.origin;
+
+    // If this is an OAuth authorization flow, pass the authorize URL as returnUrl
+    // so the home page redirects back to it after login
+    const oauthUrl = getOAuthAuthorizeUrl();
+    if (oauthUrl) {
+      const params = new URLSearchParams();
+      params.set('returnUrl', oauthUrl);
+      return `${baseURL}/?${params.toString()}`;
+    }
 
     // Build callback URL with appropriate query params
     const params = new URLSearchParams();
@@ -92,7 +142,13 @@ function LoginForm() {
       }
 
       // Redirect to the intended destination
-      router.push(getRedirectUrl());
+      // Use window.location.href for external URLs (OAuth flow back to manage-api)
+      const redirectUrl = getRedirectUrl();
+      if (redirectUrl.startsWith('http://') || redirectUrl.startsWith('https://')) {
+        window.location.href = redirectUrl;
+      } else {
+        router.push(redirectUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);

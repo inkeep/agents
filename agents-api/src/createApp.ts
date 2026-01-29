@@ -6,6 +6,8 @@ import { pinoLogger } from 'hono-pino';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
+import loginRedirectRoutes from './domains/manage/routes/login-redirect';
+import wellKnownRoutes from './domains/manage/routes/well-known';
 import { runRoutes } from './domains/run';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
@@ -56,7 +58,63 @@ function createAgentsHono(config: AppConfig) {
   // Route-specific CORS (must be registered before global CORS)
   // Better Auth routes - only mount if auth is enabled
   if (auth) {
+    // Well-known endpoints for OAuth discovery - must be publicly accessible
+    app.use(
+      '/.well-known/*',
+      cors({
+        origin: '*',
+        allowHeaders: ['Content-Type', 'Accept'],
+        allowMethods: ['GET', 'OPTIONS'],
+        maxAge: 86400, // Cache preflight for 24 hours
+      })
+    );
+    // Set auth context for well-known routes (needed for OAuth discovery endpoints)
+    app.use('/.well-known/*', async (c, next) => {
+      c.set('auth', auth);
+      await next();
+    });
+    app.route('/.well-known', wellKnownRoutes);
+
+    // OAuth login redirect - forwards to manage-ui/login with returnUrl so OAuth flow
+    // can resume after authentication. See routes/login-redirect.ts for full explanation.
+    app.route('/login', loginRedirectRoutes);
+
     app.use('/api/auth/*', cors(authCorsConfig));
+
+    // Debug logging for OAuth authorize endpoint
+    app.use('/api/auth/oauth2/authorize', async (c, next) => {
+      const url = new URL(c.req.url, 'http://localhost');
+      const params = Object.fromEntries(url.searchParams);
+      logger.info({ path: '/api/auth/oauth2/authorize', params }, 'OAuth authorize request');
+      return next();
+    });
+
+    // Debug logging for OAuth token endpoint (to debug refresh token issues)
+    app.use('/api/auth/oauth2/token', async (c, next) => {
+      // Clone the request to read the body without consuming it
+      const clonedReq = c.req.raw.clone();
+      try {
+        const contentType = c.req.header('content-type') || '';
+        let bodyParams: Record<string, string> = {};
+
+        if (contentType.includes('application/x-www-form-urlencoded')) {
+          const text = await clonedReq.text();
+          bodyParams = Object.fromEntries(new URLSearchParams(text));
+          // Redact sensitive values
+          if (bodyParams.refresh_token) bodyParams.refresh_token = '[REDACTED]';
+          if (bodyParams.code) bodyParams.code = '[REDACTED]';
+          if (bodyParams.client_secret) bodyParams.client_secret = '[REDACTED]';
+        }
+
+        logger.info(
+          { path: '/api/auth/oauth2/token', grant_type: bodyParams.grant_type, bodyParams },
+          'OAuth token request'
+        );
+      } catch (e) {
+        logger.warn({ error: e }, 'Failed to parse token request body for logging');
+      }
+      return next();
+    });
 
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {

@@ -6,6 +6,7 @@ import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
+import oauthClientsRoutes from './routes/oauth-clients';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import signozRoutes from './routes/signoz';
@@ -40,6 +41,9 @@ export function createManageRoutes() {
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
+
+  // Mount OAuth clients routes - for registering OAuth clients (e.g., for Nango)
+  app.route('/api/oauth-clients', oauthClientsRoutes);
 
   app.route('/mcp', mcpRoutes);
 

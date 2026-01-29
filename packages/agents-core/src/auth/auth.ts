@@ -1,10 +1,11 @@
+import { oauthProvider } from '@better-auth/oauth-provider';
 import { sso } from '@better-auth/sso';
 import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
+import { bearer, deviceAuthorization, jwt, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
-import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
+import { type AgentsRunDatabaseClient, createAgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
@@ -188,6 +189,13 @@ export function createAuth(config: BetterAuthConfig) {
   // Extract cookie domain from baseURL for cross-subdomain cookie sharing
   const cookieDomain = extractCookieDomain(config.baseURL);
 
+  // Debug: Log validAudiences at startup
+  const validAudiences = [env.INKEEP_AGENTS_API_URL].filter(
+    (url): url is string => typeof url === 'string' && url.length > 0
+  );
+  console.log('[OAuth Provider] validAudiences:', validAudiences);
+  console.log('[OAuth Provider] INKEEP_AGENTS_API_URL:', env.INKEEP_AGENTS_API_URL);
+
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -236,12 +244,14 @@ export function createAuth(config: BetterAuthConfig) {
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
+      storeSessionInDatabase: true,
       cookieCache: {
         enabled: true,
         maxAge: 5 * 60,
         strategy: 'compact',
       },
     },
+    disabledPaths: ['/token'],
     advanced: {
       crossSubDomainCookies: {
         enabled: true,
@@ -354,6 +364,65 @@ export function createAuth(config: BetterAuthConfig) {
         interval: '5s', // 5 second polling interval
         userCodeLength: 8, // e.g., "ABCD-EFGH"
       }),
+      jwt(),
+      oauthProvider({
+        // OAuth clients are managed in the database (oauth_client table).
+        // Clients with skip_consent=true will skip the consent screen.
+        // No in-memory trustedClients needed - all clients are looked up from DB.
+
+        // Login page: Points directly to manage-ui's login page.
+        // Better Auth will append the returnUrl automatically so the OAuth flow
+        // resumes after login. This avoids an extra redirect through manage-api.
+        loginPage: env.INKEEP_AGENTS_MANAGE_UI_URL
+          ? `${env.INKEEP_AGENTS_MANAGE_UI_URL}/login`
+          : 'http://localhost:3000/login',
+        // Consent page: Served by manage-ui for full React/Tailwind component support.
+        // The page at /oauth/consent in manage-ui fetches client info and POSTs consent
+        // decisions back to manage-api's /api/auth/oauth2/consent endpoint.
+        consentPage: env.INKEEP_AGENTS_MANAGE_UI_URL
+          ? `${env.INKEEP_AGENTS_MANAGE_UI_URL}/oauth/consent`
+          : 'http://localhost:3000/oauth/consent',
+
+        scopes: ['openid', 'profile', 'email', 'offline_access', 'agents'],
+        // Organization context in tokens
+        postLogin: {
+          page: env.INKEEP_AGENTS_MANAGE_UI_URL
+            ? `${env.INKEEP_AGENTS_MANAGE_UI_URL}/oauth/consent`
+            : 'http://localhost:3000/oauth/consent',
+          shouldRedirect: () => false, // Don't require org selection for now
+          consentReferenceId: ({ session }): string | undefined => {
+            // activeOrganizationId is set automatically on session creation via databaseHooks
+            // (see above). This stores the org_id as referenceId for the consent/tokens.
+            const orgId = session?.activeOrganizationId as string | undefined;
+            console.log('[OAuth Provider] consentReferenceId called:', {
+              activeOrganizationId: orgId,
+            });
+            return orgId;
+          },
+        },
+
+        // Claims - minimal info for API authorization
+        customAccessTokenClaims: ({ user, referenceId }) => {
+          console.log('[OAuth Provider] customAccessTokenClaims called:', {
+            userId: user?.id,
+            referenceId,
+          });
+          return {
+            'https://inkeep.com/org_id': referenceId,
+            'https://inkeep.com/user_id': user?.id,
+          };
+        },
+
+        // Valid audiences (APIs that accept these tokens)
+        // When a client passes `resource` param matching one of these, a JWT access token is issued
+        validAudiences,
+
+        // Advertise supported scopes/claims
+        advertisedMetadata: {
+          scopes_supported: ['openid', 'profile', 'email', 'offline_access', 'agents'],
+          claims_supported: ['https://inkeep.com/org_id', 'https://inkeep.com/user_id'],
+        },
+      }),
     ],
   });
 
@@ -372,4 +441,9 @@ export function createAuth(config: BetterAuthConfig) {
 // Type placeholder for type inference in consuming code (e.g., app.ts AppVariables)
 // Actual auth instances should be created using createAuth() with a real database client
 // This is cast as any to avoid instantiation while preserving type information
-export const auth = null as any as ReturnType<typeof createAuth>;
+// export const auth = null as any as ReturnType<typeof createAuth>;
+export const auth = createAuth({
+  baseURL: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
+  secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
+  dbClient: createAgentsRunDatabaseClient(),
+});

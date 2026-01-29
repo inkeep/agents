@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { invitation, member, organization } from '../../auth/auth-schema';
 import type { UserOrganization } from '../../auth/auth-validation-schemas';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
@@ -31,7 +31,7 @@ export const getUserOrganizations =
       .from(member)
       .leftJoin(organization, eq(member.organizationId, organization.id))
       .where(eq(member.userId, userId))
-      .orderBy(desc(member.createdAt));
+      .orderBy(member.createdAt); // ASC: oldest org first (consistent with auth session hook)
 
     return result.map((row) => ({
       ...row,

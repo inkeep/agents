@@ -47,8 +47,21 @@ export function buildLoginUrlWithCurrentPath(): string {
 }
 
 /**
+ * Trusted origins for OAuth redirects.
+ * These are allowed in addition to relative paths for the OAuth flow.
+ */
+const TRUSTED_ORIGINS = [
+  'http://localhost:3002', // manage-api local
+  'http://localhost:3001', // run-api local
+  process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
+  process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+].filter(Boolean) as string[];
+
+/**
  * Validates a return URL to ensure it's safe to redirect to.
- * Only allows relative paths (starting with /) to prevent open redirect vulnerabilities.
+ * Allows:
+ * - Relative paths (starting with /)
+ * - Full URLs to trusted origins (for OAuth flows between manage-ui and manage-api)
  *
  * @param returnUrl - The return URL to validate
  * @returns Whether the return URL is safe to use
@@ -58,28 +71,35 @@ export function isValidReturnUrl(returnUrl: string | null | undefined): returnUr
     return false;
   }
 
-  // Must start with / (relative path)
-  if (!returnUrl.startsWith('/')) {
-    return false;
-  }
-
-  // Reject protocol-relative URLs (//example.com)
-  if (returnUrl.startsWith('//')) {
-    return false;
-  }
-
-  // Reject URLs that try to break out with encoded characters
-  try {
-    const decoded = decodeURIComponent(returnUrl);
-    if (decoded.startsWith('//') || decoded.includes('://')) {
+  // Allow relative paths (most common case)
+  if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+    // Reject URLs that try to break out with encoded characters
+    try {
+      const decoded = decodeURIComponent(returnUrl);
+      if (decoded.startsWith('//') || decoded.includes('://')) {
+        return false;
+      }
+    } catch {
       return false;
     }
+    return true;
+  }
+
+  // Allow full URLs to trusted origins (for OAuth flows)
+  // This is needed for the manage-api OAuth flow where we redirect back
+  // to the authorize endpoint after login in manage-ui
+  try {
+    const url = new URL(returnUrl);
+    const origin = url.origin;
+    if (TRUSTED_ORIGINS.includes(origin)) {
+      return true;
+    }
   } catch {
-    // If decoding fails, reject the URL
+    // Invalid URL format
     return false;
   }
 
-  return true;
+  return false;
 }
 
 /**

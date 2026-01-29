@@ -53,6 +53,7 @@
     "@ai-sdk/google": "3.0.4",
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/openai-compatible": "2.0.4",
+    "@better-auth/oauth-provider": "catalog:",
     "@hono/mcp": "^0.1.5",
     "@hono/otel": "^0.4.0",
     "@hono/swagger-ui": "^0.5.1",

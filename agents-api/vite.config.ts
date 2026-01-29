@@ -18,7 +18,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3002,
+    port: Number(process.env.PORT) || 3002,
     strictPort: true,
     cors: false,
   },

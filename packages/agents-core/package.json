@@ -132,6 +132,7 @@
     "@ai-sdk/openai-compatible": "2.0.4",
     "@authzed/authzed-node": "^1.6.1",
     "@better-auth/sso": "catalog:",
+    "@better-auth/oauth-provider": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
     "@modelcontextprotocol/sdk": "^1.17.2",

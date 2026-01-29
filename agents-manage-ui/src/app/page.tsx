@@ -68,9 +68,17 @@ function HomeContent() {
       }
 
       // Authenticated with valid returnUrl - redirect to that destination
+      // This handles both relative paths (use router.push) and external URLs (use window.location)
+      // External URLs are used for OAuth flows (e.g., redirecting back to manage-api)
       if (returnUrl && isValidReturnUrl(returnUrl)) {
         setIsRedirecting(true);
-        router.push(returnUrl);
+        if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
+          // External URL - use window.location for cross-origin redirect
+          window.location.href = returnUrl;
+        } else {
+          // Relative path - use Next.js router
+          router.push(returnUrl);
+        }
         return;
       }
 

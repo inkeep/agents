@@ -71,6 +71,13 @@
       "when": 1768646273355,
       "tag": "0009_freezing_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769204766180,
+      "tag": "0010_parched_ser_duncan",
+      "breakpoints": true
     }
   ]
 }
