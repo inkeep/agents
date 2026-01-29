@@ -1,3 +1,4 @@
+import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
@@ -1668,6 +1669,34 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
+
+const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
+  try {
+    const ast = parse(val, {
+      sourceType: 'module',
+      allowReturnOutsideFunction: true,
+      plugins: [],
+    });
+    const hasExportDefaultFunction = ast.program.body.some(
+      (node) =>
+        node.type === 'ExportDefaultDeclaration' && node.declaration?.type === 'FunctionDeclaration'
+    );
+    if (hasExportDefaultFunction) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Export default function declarations are not allowed',
+        input: val,
+      });
+    }
+  } catch {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Invalid JavaScript syntax. TypeScript and JSX are not allowed.',
+      input: val,
+    });
+  }
+};
+
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
   .openapi('FunctionCreate')
   .extend({
@@ -1675,19 +1704,7 @@ export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchem
       .string()
       .trim()
       .nonempty()
-      .superRefine((val, ctx) => {
-        // No global return
-        // No TypeScript syntax
-        // No global const declaration
-        // Only one function declaration
-        if (val.includes('return')) {
-          ctx.addIssue({
-            code: 'custom',
-            message: "Global return isn't allowed",
-            input: val,
-          });
-        }
-      }),
+      .superRefine(validateExecuteCode),
   });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
