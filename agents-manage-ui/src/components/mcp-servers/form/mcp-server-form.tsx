@@ -284,8 +284,14 @@ export function MCPServerForm({
                   placeholder="Select credential scope"
                   disabled={!!tool}
                   options={[
-                    { value: CredentialScopeEnum.project, label: 'Project (shared team credential)' },
-                    { value: CredentialScopeEnum.user, label: 'User (each user connects their own)' },
+                    {
+                      value: CredentialScopeEnum.project,
+                      label: 'Project (shared team credential)',
+                    },
+                    {
+                      value: CredentialScopeEnum.user,
+                      label: 'User (each user connects their own)',
+                    },
                   ]}
                 />
                 <InfoCard title="Credential Scope">
@@ -322,8 +328,9 @@ export function MCPServerForm({
                   <InfoCard title="How this works">
                     <div className="space-y-2">
                       <p>
-                        Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code>{' '}
-                        to authenticate with the MCP server's OAuth flow, which will start after you
+                        Select{' '}
+                        <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code> to
+                        authenticate with the MCP server's OAuth flow, which will start after you
                         click "Create".
                       </p>
                       <p>

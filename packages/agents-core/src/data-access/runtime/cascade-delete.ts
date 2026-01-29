@@ -141,7 +141,7 @@ export const cascadeDeleteByProject =
       .returning();
 
     // Delete all MCP tool access mode entries for tools in this project
-    const mcpToolAccessModesDeleted = await cascadeDeleteGitHubAccessByProject(db)({
+    await cascadeDeleteGitHubAccessByProject(db)({
       tenantId: scopes.tenantId,
       projectId: scopes.projectId,
     });
