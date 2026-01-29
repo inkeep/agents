@@ -281,7 +281,7 @@ export function AvailableToolsCard({
   activeTools,
   toolOverrides,
 }: {
-  tools: MCPTool['availableTools'];
+  tools: NonNullable<MCPTool['availableTools']>;
   activeTools: string[] | undefined;
   toolOverrides?: Record<
     string,
@@ -293,8 +293,7 @@ export function AvailableToolsCard({
     }
   >;
 }) {
-  if (!tools) return null; // parent component already makes sure to handle this
-
+  'use memo';
   return (
     <div className="space-y-2">
       <div className="flex gap-2 items-center">
@@ -302,19 +301,26 @@ export function AvailableToolsCard({
         <Badge variant="count">{tools.length}</Badge>
       </div>
       <div className="space-y-2">
-        {tools.map((availableTool) => {
-          const isActive =
-            activeTools === undefined ? true : activeTools?.includes(availableTool.name);
-          const override = toolOverrides?.[availableTool.name];
-          return (
+        {tools
+          .map((tool) => ({
+            ...tool,
+            isActive: activeTools?.includes(tool.name) ?? true,
+            override: toolOverrides?.[tool.name],
+          }))
+          .sort((a, b) => {
+            if (a.isActive !== b.isActive) {
+              return a.isActive ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+          })
+          .map((tool) => (
             <ToolCard
-              key={availableTool.name}
-              tool={availableTool}
-              isActive={!!isActive}
-              override={override}
+              key={tool.name}
+              tool={tool}
+              isActive={tool.isActive}
+              override={tool.override}
             />
-          );
-        })}
+          ))}
       </div>
     </div>
   );
