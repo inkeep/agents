@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, ChevronRight, ExternalLink, Github, Info, RefreshCw, User } from 'lucide-react';
+import { Building2, ChevronRight, ExternalLink, Github, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,34 +28,34 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  fetchGitHubInstallations,
-  type GitHubAccessMode,
-  type GitHubInstallation,
-  type GitHubRepository,
-  getProjectGitHubAccess,
-  type ProjectGitHubAccess,
-  setProjectGitHubAccess,
+  fetchWorkAppGitHubInstallations,
+  getProjectWorkAppGitHubAccess,
+  setProjectWorkAppGitHubAccess,
+  type WorkAppGitHubAccessMode,
+  type WorkAppGitHubInstallation,
+  type WorkAppGitHubProjectAccess,
+  type WorkAppGitHubRepository,
 } from '@/lib/api/github';
 
-interface ProjectGitHubAccessSectionProps {
+interface ProjectWorkAppGitHubAccessSectionProps {
   tenantId: string;
   projectId: string;
   disabled?: boolean;
 }
 
 interface InstallationWithRepos {
-  installation: GitHubInstallation;
-  repositories: GitHubRepository[];
+  installation: WorkAppGitHubInstallation;
+  repositories: WorkAppGitHubRepository[];
 }
 
-export function ProjectGitHubAccessSection({
+export function ProjectWorkAppGitHubAccessSection({
   tenantId,
   projectId,
   disabled = false,
-}: ProjectGitHubAccessSectionProps) {
+}: ProjectWorkAppGitHubAccessSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [accessConfig, setAccessConfig] = useState<ProjectGitHubAccess | null>(null);
+  const [accessConfig, setAccessConfig] = useState<WorkAppGitHubProjectAccess | null>(null);
   const [hasInstallations, setHasInstallations] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -64,8 +63,8 @@ export function ProjectGitHubAccessSection({
     try {
       setIsLoading(true);
       const [access, installations] = await Promise.all([
-        getProjectGitHubAccess(tenantId, projectId),
-        fetchGitHubInstallations(tenantId),
+        getProjectWorkAppGitHubAccess(tenantId, projectId),
+        fetchWorkAppGitHubInstallations(tenantId),
       ]);
       setAccessConfig(access);
       setHasInstallations(installations.length > 0);
@@ -115,7 +114,7 @@ export function ProjectGitHubAccessSection({
                 No GitHub organizations connected to this tenant.
               </p>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/${tenantId}/settings/github`}>
+                <Link href={`/${tenantId}/work-apps/github`}>
                   Connect GitHub
                   <ExternalLink className="size-3 ml-1.5" />
                 </Link>
@@ -169,7 +168,7 @@ export function ProjectGitHubAccessSection({
                   <p className="text-sm text-muted-foreground">
                     {accessConfig?.mode === 'all'
                       ? 'This project can access all repositories from connected GitHub organizations'
-                      : `This project can access ${accessConfig?.repositories.length || 0} specific repositories`}
+                      : `This project can access ${accessConfig?.repositories.length || 0} ${accessConfig?.repositories.length === 1 ? 'repository' : 'repositories'}`}
                   </p>
                 </div>
               </div>
@@ -191,7 +190,7 @@ export function ProjectGitHubAccessSection({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {accessConfig.repositories.map((repo) => (
+                  {accessConfig.repositories.map((repo: WorkAppGitHubRepository) => (
                     <TableRow key={repo.id} noHover>
                       <TableCell>
                         <a
@@ -218,22 +217,6 @@ export function ProjectGitHubAccessSection({
               </Table>
             </div>
           )}
-
-          <InfoCard title="About GitHub access:" Icon={Info}>
-            <ul className="space-y-1.5 list-disc list-outside pl-4">
-              <li>
-                <span className="font-medium">All repositories</span>: Project can access any
-                repository from connected GitHub organizations
-              </li>
-              <li>
-                <span className="font-medium">Selected repositories</span>: Project is scoped to
-                specific repositories you choose
-              </li>
-              <li>
-                Repository access is used for GitHub-related tools and integrations within agents
-              </li>
-            </ul>
-          </InfoCard>
         </CollapsibleContent>
       </Collapsible>
 
@@ -254,7 +237,7 @@ export function ProjectGitHubAccessSection({
 interface ConfigureAccessDialogProps {
   tenantId: string;
   projectId: string;
-  currentConfig: ProjectGitHubAccess | null;
+  currentConfig: WorkAppGitHubProjectAccess | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
@@ -268,9 +251,9 @@ function ConfigureAccessDialog({
   onOpenChange,
   onSaved,
 }: ConfigureAccessDialogProps) {
-  const [mode, setMode] = useState<GitHubAccessMode>(currentConfig?.mode || 'all');
+  const [mode, setMode] = useState<WorkAppGitHubAccessMode>(currentConfig?.mode || 'all');
   const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(
-    new Set(currentConfig?.repositories.map((r) => r.id) || [])
+    new Set(currentConfig?.repositories.map((r: WorkAppGitHubRepository) => r.id) || [])
   );
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -280,14 +263,14 @@ function ConfigureAccessDialog({
   const loadInstallations = useCallback(async () => {
     try {
       setIsLoading(true);
-      const installations = await fetchGitHubInstallations(tenantId);
+      const installations = await fetchWorkAppGitHubInstallations(tenantId);
 
       const installationsData = await Promise.all(
         installations
           .filter((i) => i.status === 'active')
           .map(async (installation) => {
-            const { fetchGitHubInstallationDetail } = await import('@/lib/api/github');
-            const detail = await fetchGitHubInstallationDetail(tenantId, installation.id);
+            const { fetchWorkAppGitHubInstallationDetail } = await import('@/lib/api/github');
+            const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installation.id);
             return {
               installation,
               repositories: detail.repositories,
@@ -313,8 +296,8 @@ function ConfigureAccessDialog({
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);
     try {
-      const { syncGitHubRepositories } = await import('@/lib/api/github');
-      await syncGitHubRepositories(tenantId, installationId);
+      const { syncWorkAppGitHubRepositories } = await import('@/lib/api/github');
+      await syncWorkAppGitHubRepositories(tenantId, installationId);
       await loadInstallations();
       toast.success('Repositories synced');
     } catch {
@@ -336,7 +319,7 @@ function ConfigureAccessDialog({
     });
   };
 
-  const handleSelectAllForInstallation = (repos: GitHubRepository[], checked: boolean) => {
+  const handleSelectAllForInstallation = (repos: WorkAppGitHubRepository[], checked: boolean) => {
     setSelectedRepoIds((prev) => {
       const newSet = new Set(prev);
       for (const repo of repos) {
@@ -358,7 +341,7 @@ function ConfigureAccessDialog({
 
     setIsSaving(true);
     try {
-      await setProjectGitHubAccess(
+      await setProjectWorkAppGitHubAccess(
         tenantId,
         projectId,
         mode,
@@ -395,33 +378,35 @@ function ConfigureAccessDialog({
             <Label className="text-sm font-medium">Access Mode</Label>
             <RadioGroup
               value={mode}
-              onValueChange={(value) => setMode(value as GitHubAccessMode)}
+              onValueChange={(value) => setMode(value as WorkAppGitHubAccessMode)}
               className="space-y-2"
             >
-              <div className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+              <label
+                htmlFor="mode-all"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+              >
                 <RadioGroupItem value="all" id="mode-all" className="mt-1" />
                 <div className="flex-1">
-                  <Label htmlFor="mode-all" className="cursor-pointer font-medium">
-                    All repositories
-                  </Label>
+                  <span className="font-medium">All repositories</span>
                   <p className="text-sm text-muted-foreground mt-1">
                     Project can access any repository from connected GitHub organizations (
                     {totalRepos} repositories available)
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+              </label>
+              <label
+                htmlFor="mode-selected"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+              >
                 <RadioGroupItem value="selected" id="mode-selected" className="mt-1" />
                 <div className="flex-1">
-                  <Label htmlFor="mode-selected" className="cursor-pointer font-medium">
-                    Selected repositories
-                  </Label>
+                  <span className="font-medium">Selected repositories</span>
                   <p className="text-sm text-muted-foreground mt-1">
                     Project can only access specific repositories you select below
                     {selectedRepoIds.size > 0 && ` (${selectedRepoIds.size} selected)`}
                   </p>
                 </div>
-              </div>
+              </label>
             </RadioGroup>
           </div>
 

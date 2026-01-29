@@ -1,24 +1,24 @@
 'use client';
 
-import { Settings } from 'lucide-react';
+import { Github } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-interface SettingsNavProps {
+interface WorkAppsNavProps {
   tenantId: string;
 }
 
 const navItems = [
   {
-    label: 'Organization',
-    href: (tenantId: string) => `/${tenantId}/settings`,
-    icon: Settings,
-    exact: true,
+    label: 'GitHub',
+    href: (tenantId: string) => `/${tenantId}/work-apps/github`,
+    icon: Github,
+    exact: false,
   },
 ];
 
-export function SettingsNav({ tenantId }: SettingsNavProps) {
+export function WorkAppsNav({ tenantId }: WorkAppsNavProps) {
   const pathname = usePathname();
 
   return (

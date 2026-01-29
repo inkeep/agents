@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
-import { DisconnectInstallationDialog } from '@/components/settings/github-disconnect-dialog';
+import { DisconnectInstallationDialog } from '@/components/settings/work-app-github-disconnect-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,12 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { GitHubRepository, InstallationDetail } from '@/lib/api/github';
+import type { WorkAppGitHubInstallationDetail, WorkAppGitHubRepository } from '@/lib/api/github';
 import {
-  disconnectGitHubInstallation,
-  fetchGitHubInstallationDetail,
-  syncGitHubRepositories,
+  disconnectWorkAppGitHubInstallation,
+  fetchWorkAppGitHubInstallationDetail,
+  syncWorkAppGitHubRepositories,
 } from '@/lib/api/github';
+import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import GitHubInstallationDetailLoading from './loading';
 
 interface PageParams {
@@ -88,7 +89,7 @@ const ItemValue = ({ children }: { children: React.ReactNode }) => {
 export default function GitHubInstallationDetailPage({ params }: PageParams) {
   const { tenantId, installationId } = use(params);
   const router = useRouter();
-  const [data, setData] = useState<InstallationDetail | null>(null);
+  const [data, setData] = useState<WorkAppGitHubInstallationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -97,7 +98,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
 
   const loadInstallation = useCallback(async () => {
     try {
-      const detail = await fetchGitHubInstallationDetail(tenantId, installationId);
+      const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installationId);
       setData(detail);
       setError(null);
     } catch (err) {
@@ -114,7 +115,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const result = await syncGitHubRepositories(tenantId, installationId);
+      const result = await syncWorkAppGitHubRepositories(tenantId, installationId);
       toast.success('Repositories synced', {
         description: `Added ${result.syncResult.added}, removed ${result.syncResult.removed}, updated ${result.syncResult.updated} repositories`,
       });
@@ -133,11 +134,11 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
 
     setDisconnecting(true);
     try {
-      await disconnectGitHubInstallation(tenantId, installationId);
+      await disconnectWorkAppGitHubInstallation(tenantId, installationId);
       toast.success('Installation disconnected', {
         description: `${data.installation.accountLogin} has been disconnected`,
       });
-      router.push(`/${tenantId}/settings/github`);
+      router.push(`/${tenantId}/work-apps/github`);
     } catch (err) {
       toast.error('Failed to disconnect installation', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred',
@@ -163,7 +164,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
       {/* Back link and Header */}
       <div className="space-y-4">
         <Link
-          href={`/${tenantId}/settings/github`}
+          href={`/${tenantId}/work-apps/github`}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
@@ -253,7 +254,11 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
             <ItemLabel>GitHub Settings</ItemLabel>
             <ItemValue>
               <a
-                href={`https://github.com/settings/installations/${installation.installationId}`}
+                href={getGitHubInstallationSettingsUrl(
+                  installation.installationId,
+                  installation.accountType,
+                  installation.accountLogin
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary hover:underline"
@@ -286,7 +291,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {repositories.map((repo: GitHubRepository) => (
+              {repositories.map((repo: WorkAppGitHubRepository) => (
                 <TableRow key={repo.id} noHover>
                   <TableCell>
                     <div className="space-y-1">

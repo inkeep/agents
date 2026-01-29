@@ -1,7 +1,8 @@
-import type { GitHubInstallation } from '@/lib/api/github';
+import type { WorkAppGitHubInstallation } from '@/lib/api/github';
+import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 
 // Mock data for testing
-const mockInstallation: GitHubInstallation = {
+const mockInstallation: WorkAppGitHubInstallation = {
   id: 'inst_123',
   installationId: 12345,
   accountLogin: 'test-org',
@@ -13,7 +14,7 @@ const mockInstallation: GitHubInstallation = {
   updatedAt: '2024-01-20T15:30:00Z',
 };
 
-const mockUserInstallation: GitHubInstallation = {
+const mockUserInstallation: WorkAppGitHubInstallation = {
   id: 'inst_456',
   installationId: 54321,
   accountLogin: 'test-user',
@@ -25,7 +26,7 @@ const mockUserInstallation: GitHubInstallation = {
   updatedAt: '2024-01-18T12:00:00Z',
 };
 
-const mockPendingInstallation: GitHubInstallation = {
+const mockPendingInstallation: WorkAppGitHubInstallation = {
   id: 'inst_789',
   installationId: 99999,
   accountLogin: 'pending-org',
@@ -37,7 +38,7 @@ const mockPendingInstallation: GitHubInstallation = {
   updatedAt: '2024-01-22T10:00:00Z',
 };
 
-const mockSuspendedInstallation: GitHubInstallation = {
+const mockSuspendedInstallation: WorkAppGitHubInstallation = {
   id: 'inst_321',
   installationId: 88888,
   accountLogin: 'suspended-org',
@@ -83,7 +84,7 @@ describe('GitHubInstallation Types', () => {
 });
 
 describe('Status Badge Mapping', () => {
-  const getStatusBadgeVariant = (status: GitHubInstallation['status']) => {
+  const getStatusBadgeVariant = (status: WorkAppGitHubInstallation['status']) => {
     switch (status) {
       case 'active':
         return 'success';
@@ -133,41 +134,48 @@ describe('Date Formatting', () => {
 });
 
 describe('Settings Navigation', () => {
-  const navItems = [
+  const settingsNavItems = [
     {
       label: 'Organization',
       href: (tenantId: string) => `/${tenantId}/settings`,
       exact: true,
     },
+  ];
+
+  const workAppsNavItems = [
     {
       label: 'GitHub',
-      href: (tenantId: string) => `/${tenantId}/settings/github`,
+      href: (tenantId: string) => `/${tenantId}/work-apps/github`,
       exact: false,
     },
   ];
 
-  it('should have Organization and GitHub nav items', () => {
-    expect(navItems).toHaveLength(2);
-    expect(navItems[0].label).toBe('Organization');
-    expect(navItems[1].label).toBe('GitHub');
+  it('should have Organization nav item in settings', () => {
+    expect(settingsNavItems).toHaveLength(1);
+    expect(settingsNavItems[0].label).toBe('Organization');
+  });
+
+  it('should have GitHub nav item in work-apps', () => {
+    expect(workAppsNavItems).toHaveLength(1);
+    expect(workAppsNavItems[0].label).toBe('GitHub');
   });
 
   it('should generate correct hrefs for tenant', () => {
     const tenantId = 'my-tenant';
-    expect(navItems[0].href(tenantId)).toBe('/my-tenant/settings');
-    expect(navItems[1].href(tenantId)).toBe('/my-tenant/settings/github');
+    expect(settingsNavItems[0].href(tenantId)).toBe('/my-tenant/settings');
+    expect(workAppsNavItems[0].href(tenantId)).toBe('/my-tenant/work-apps/github');
   });
 
   it('should have correct exact match settings', () => {
-    expect(navItems[0].exact).toBe(true);
-    expect(navItems[1].exact).toBe(false);
+    expect(settingsNavItems[0].exact).toBe(true);
+    expect(workAppsNavItems[0].exact).toBe(false);
   });
 });
 
 // Mock repository data for installation detail tests
-import type { GitHubRepository, InstallationDetail } from '@/lib/api/github';
+import type { WorkAppGitHubInstallationDetail, WorkAppGitHubRepository } from '@/lib/api/github';
 
-const mockRepository: GitHubRepository = {
+const mockRepository: WorkAppGitHubRepository = {
   id: 'repo_123',
   installationId: 'inst_123',
   repositoryId: '456789',
@@ -178,7 +186,7 @@ const mockRepository: GitHubRepository = {
   updatedAt: '2024-01-20T15:30:00Z',
 };
 
-const mockPrivateRepository: GitHubRepository = {
+const mockPrivateRepository: WorkAppGitHubRepository = {
   id: 'repo_456',
   installationId: 'inst_123',
   repositoryId: '789123',
@@ -209,7 +217,7 @@ describe('GitHubRepository Types', () => {
 });
 
 describe('InstallationDetail Types', () => {
-  const mockInstallationDetail: InstallationDetail = {
+  const mockInstallationDetail: WorkAppGitHubInstallationDetail = {
     installation: {
       id: 'inst_123',
       installationId: 12345,
@@ -288,31 +296,35 @@ describe('Repository Visibility Badge', () => {
 
 describe('GitHub URL Generation', () => {
   const getGitHubRepoUrl = (fullName: string) => `https://github.com/${fullName}`;
-  const getGitHubInstallationSettingsUrl = (installationId: number) =>
-    `https://github.com/settings/installations/${installationId}`;
 
   it('should generate correct repository URL', () => {
     expect(getGitHubRepoUrl('test-org/test-repo')).toBe('https://github.com/test-org/test-repo');
   });
 
-  it('should generate correct installation settings URL', () => {
-    expect(getGitHubInstallationSettingsUrl(12345)).toBe(
+  it('should generate correct installation settings URL for User accounts', () => {
+    expect(getGitHubInstallationSettingsUrl(12345, 'User', 'test-user')).toBe(
       'https://github.com/settings/installations/12345'
+    );
+  });
+
+  it('should generate correct installation settings URL for Organization accounts', () => {
+    expect(getGitHubInstallationSettingsUrl(12345, 'Organization', 'test-org')).toBe(
+      'https://github.com/organizations/test-org/settings/installations/12345'
     );
   });
 });
 
 describe('Installation Detail Navigation', () => {
-  const getBackLink = (tenantId: string) => `/${tenantId}/settings/github`;
+  const getBackLink = (tenantId: string) => `/${tenantId}/work-apps/github`;
   const getDetailLink = (tenantId: string, installationId: string) =>
-    `/${tenantId}/settings/github/${installationId}`;
+    `/${tenantId}/work-apps/github/${installationId}`;
 
-  it('should generate correct back link to settings', () => {
-    expect(getBackLink('my-tenant')).toBe('/my-tenant/settings/github');
+  it('should generate correct back link to work-apps github', () => {
+    expect(getBackLink('my-tenant')).toBe('/my-tenant/work-apps/github');
   });
 
   it('should generate correct detail page link', () => {
-    expect(getDetailLink('my-tenant', 'inst_123')).toBe('/my-tenant/settings/github/inst_123');
+    expect(getDetailLink('my-tenant', 'inst_123')).toBe('/my-tenant/work-apps/github/inst_123');
   });
 });
 

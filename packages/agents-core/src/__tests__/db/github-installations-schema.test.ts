@@ -3,9 +3,9 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   organization,
-  workappsGithubAppInstallations,
-  workappsGithubAppRepositories,
-  workappsGithubProjectRepositoryAccess,
+  workAppGitHubInstallations,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
 import { testRunDbClient } from '../setup';
@@ -20,9 +20,9 @@ describe('GitHub App Installation Schema Tests', () => {
 
   beforeEach(async () => {
     // Clean up GitHub tables in correct order (respecting FK constraints)
-    await dbClient.delete(workappsGithubProjectRepositoryAccess);
-    await dbClient.delete(workappsGithubAppRepositories);
-    await dbClient.delete(workappsGithubAppInstallations);
+    await dbClient.delete(workAppGitHubProjectRepositoryAccess);
+    await dbClient.delete(workAppGitHubRepositories);
+    await dbClient.delete(workAppGitHubInstallations);
 
     // Create test organization (tenant)
     await dbClient
@@ -40,7 +40,7 @@ describe('GitHub App Installation Schema Tests', () => {
     it('should create an installation record', async () => {
       const installationId = generateId();
 
-      await dbClient.insert(workappsGithubAppInstallations).values({
+      await dbClient.insert(workAppGitHubInstallations).values({
         id: installationId,
         tenantId,
         installationId: '12345678',
@@ -52,8 +52,8 @@ describe('GitHub App Installation Schema Tests', () => {
 
       const result = await dbClient
         .select()
-        .from(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.id, installationId));
+        .from(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.id, installationId));
 
       expect(result).toHaveLength(1);
       expect(result[0].installationId).toBe('12345678');
@@ -67,7 +67,7 @@ describe('GitHub App Installation Schema Tests', () => {
       const id2 = generateId();
       const sharedInstallationId = '12345678';
 
-      await dbClient.insert(workappsGithubAppInstallations).values({
+      await dbClient.insert(workAppGitHubInstallations).values({
         id: id1,
         tenantId,
         installationId: sharedInstallationId,
@@ -78,7 +78,7 @@ describe('GitHub App Installation Schema Tests', () => {
 
       // Attempting to insert another record with the same installationId should fail
       await expect(
-        dbClient.insert(workappsGithubAppInstallations).values({
+        dbClient.insert(workAppGitHubInstallations).values({
           id: id2,
           tenantId,
           installationId: sharedInstallationId,
@@ -92,7 +92,7 @@ describe('GitHub App Installation Schema Tests', () => {
     it('should default status to active', async () => {
       const installationId = generateId();
 
-      await dbClient.insert(workappsGithubAppInstallations).values({
+      await dbClient.insert(workAppGitHubInstallations).values({
         id: installationId,
         tenantId,
         installationId: '12345678',
@@ -103,8 +103,8 @@ describe('GitHub App Installation Schema Tests', () => {
 
       const result = await dbClient
         .select()
-        .from(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.id, installationId));
+        .from(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.id, installationId));
 
       expect(result[0].status).toBe('active');
     });
@@ -116,7 +116,7 @@ describe('GitHub App Installation Schema Tests', () => {
         const id = generateId();
         const githubInstallId = `status-test-${status}`;
 
-        await dbClient.insert(workappsGithubAppInstallations).values({
+        await dbClient.insert(workAppGitHubInstallations).values({
           id,
           tenantId,
           installationId: githubInstallId,
@@ -128,8 +128,8 @@ describe('GitHub App Installation Schema Tests', () => {
 
         const result = await dbClient
           .select()
-          .from(workappsGithubAppInstallations)
-          .where(eq(workappsGithubAppInstallations.id, id));
+          .from(workAppGitHubInstallations)
+          .where(eq(workAppGitHubInstallations.id, id));
 
         expect(result[0].status).toBe(status);
       }
@@ -142,7 +142,7 @@ describe('GitHub App Installation Schema Tests', () => {
         const id = generateId();
         const githubInstallId = `type-test-${accountType}`;
 
-        await dbClient.insert(workappsGithubAppInstallations).values({
+        await dbClient.insert(workAppGitHubInstallations).values({
           id,
           tenantId,
           installationId: githubInstallId,
@@ -153,8 +153,8 @@ describe('GitHub App Installation Schema Tests', () => {
 
         const result = await dbClient
           .select()
-          .from(workappsGithubAppInstallations)
-          .where(eq(workappsGithubAppInstallations.id, id));
+          .from(workAppGitHubInstallations)
+          .where(eq(workAppGitHubInstallations.id, id));
 
         expect(result[0].accountType).toBe(accountType);
       }
@@ -166,7 +166,7 @@ describe('GitHub App Installation Schema Tests', () => {
 
     beforeEach(async () => {
       installationRecordId = generateId();
-      await dbClient.insert(workappsGithubAppInstallations).values({
+      await dbClient.insert(workAppGitHubInstallations).values({
         id: installationRecordId,
         tenantId,
         installationId: '12345678',
@@ -179,7 +179,7 @@ describe('GitHub App Installation Schema Tests', () => {
     it('should create a repository record', async () => {
       const repoId = generateId();
 
-      await dbClient.insert(workappsGithubAppRepositories).values({
+      await dbClient.insert(workAppGitHubRepositories).values({
         id: repoId,
         installationDbId: installationRecordId,
         repositoryId: '111222333',
@@ -190,8 +190,8 @@ describe('GitHub App Installation Schema Tests', () => {
 
       const result = await dbClient
         .select()
-        .from(workappsGithubAppRepositories)
-        .where(eq(workappsGithubAppRepositories.id, repoId));
+        .from(workAppGitHubRepositories)
+        .where(eq(workAppGitHubRepositories.id, repoId));
 
       expect(result).toHaveLength(1);
       expect(result[0].repositoryName).toBe('my-repo');
@@ -204,7 +204,7 @@ describe('GitHub App Installation Schema Tests', () => {
       const repoId2 = generateId();
       const sharedGitHubRepoId = '111222333';
 
-      await dbClient.insert(workappsGithubAppRepositories).values({
+      await dbClient.insert(workAppGitHubRepositories).values({
         id: repoId1,
         installationDbId: installationRecordId,
         repositoryId: sharedGitHubRepoId,
@@ -215,7 +215,7 @@ describe('GitHub App Installation Schema Tests', () => {
 
       // Attempting to insert another record with the same (installationId, repositoryId) should fail
       await expect(
-        dbClient.insert(workappsGithubAppRepositories).values({
+        dbClient.insert(workAppGitHubRepositories).values({
           id: repoId2,
           installationDbId: installationRecordId,
           repositoryId: sharedGitHubRepoId,
@@ -230,7 +230,7 @@ describe('GitHub App Installation Schema Tests', () => {
       const repoId1 = generateId();
       const repoId2 = generateId();
 
-      await dbClient.insert(workappsGithubAppRepositories).values([
+      await dbClient.insert(workAppGitHubRepositories).values([
         {
           id: repoId1,
           installationDbId: installationRecordId,
@@ -252,20 +252,20 @@ describe('GitHub App Installation Schema Tests', () => {
       // Verify repositories exist
       const reposBefore = await dbClient
         .select()
-        .from(workappsGithubAppRepositories)
-        .where(eq(workappsGithubAppRepositories.installationDbId, installationRecordId));
+        .from(workAppGitHubRepositories)
+        .where(eq(workAppGitHubRepositories.installationDbId, installationRecordId));
       expect(reposBefore).toHaveLength(2);
 
       // Delete the installation
       await dbClient
-        .delete(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.id, installationRecordId));
+        .delete(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.id, installationRecordId));
 
       // Verify repositories are cascade deleted
       const reposAfter = await dbClient
         .select()
-        .from(workappsGithubAppRepositories)
-        .where(eq(workappsGithubAppRepositories.installationDbId, installationRecordId));
+        .from(workAppGitHubRepositories)
+        .where(eq(workAppGitHubRepositories.installationDbId, installationRecordId));
       expect(reposAfter).toHaveLength(0);
     });
   });
@@ -279,7 +279,7 @@ describe('GitHub App Installation Schema Tests', () => {
       installationRecordId = generateId();
       repoRecordId = generateId();
 
-      await dbClient.insert(workappsGithubAppInstallations).values({
+      await dbClient.insert(workAppGitHubInstallations).values({
         id: installationRecordId,
         tenantId,
         installationId: '12345678',
@@ -288,7 +288,7 @@ describe('GitHub App Installation Schema Tests', () => {
         accountType: 'Organization',
       });
 
-      await dbClient.insert(workappsGithubAppRepositories).values({
+      await dbClient.insert(workAppGitHubRepositories).values({
         id: repoRecordId,
         installationDbId: installationRecordId,
         repositoryId: '111222333',
@@ -301,7 +301,7 @@ describe('GitHub App Installation Schema Tests', () => {
     it('should create a project repository access record', async () => {
       const accessId = generateId();
 
-      await dbClient.insert(workappsGithubProjectRepositoryAccess).values({
+      await dbClient.insert(workAppGitHubProjectRepositoryAccess).values({
         id: accessId,
         projectId,
         tenantId,
@@ -310,8 +310,8 @@ describe('GitHub App Installation Schema Tests', () => {
 
       const result = await dbClient
         .select()
-        .from(workappsGithubProjectRepositoryAccess)
-        .where(eq(workappsGithubProjectRepositoryAccess.id, accessId));
+        .from(workAppGitHubProjectRepositoryAccess)
+        .where(eq(workAppGitHubProjectRepositoryAccess.id, accessId));
 
       expect(result).toHaveLength(1);
       expect(result[0].projectId).toBe(projectId);
@@ -322,7 +322,7 @@ describe('GitHub App Installation Schema Tests', () => {
       const accessId1 = generateId();
       const accessId2 = generateId();
 
-      await dbClient.insert(workappsGithubProjectRepositoryAccess).values({
+      await dbClient.insert(workAppGitHubProjectRepositoryAccess).values({
         id: accessId1,
         projectId,
         tenantId,
@@ -331,7 +331,7 @@ describe('GitHub App Installation Schema Tests', () => {
 
       // Attempting to insert another record with the same (projectId, githubRepositoryId) should fail
       await expect(
-        dbClient.insert(workappsGithubProjectRepositoryAccess).values({
+        dbClient.insert(workAppGitHubProjectRepositoryAccess).values({
           id: accessId2,
           projectId,
           tenantId,
@@ -343,7 +343,7 @@ describe('GitHub App Installation Schema Tests', () => {
     it('should cascade delete access records when repository is deleted', async () => {
       const accessId = generateId();
 
-      await dbClient.insert(workappsGithubProjectRepositoryAccess).values({
+      await dbClient.insert(workAppGitHubProjectRepositoryAccess).values({
         id: accessId,
         projectId,
         tenantId,
@@ -353,27 +353,27 @@ describe('GitHub App Installation Schema Tests', () => {
       // Verify access record exists
       const accessBefore = await dbClient
         .select()
-        .from(workappsGithubProjectRepositoryAccess)
-        .where(eq(workappsGithubProjectRepositoryAccess.projectId, projectId));
+        .from(workAppGitHubProjectRepositoryAccess)
+        .where(eq(workAppGitHubProjectRepositoryAccess.projectId, projectId));
       expect(accessBefore).toHaveLength(1);
 
       // Delete the repository
       await dbClient
-        .delete(workappsGithubAppRepositories)
-        .where(eq(workappsGithubAppRepositories.id, repoRecordId));
+        .delete(workAppGitHubRepositories)
+        .where(eq(workAppGitHubRepositories.id, repoRecordId));
 
       // Verify access record is cascade deleted
       const accessAfter = await dbClient
         .select()
-        .from(workappsGithubProjectRepositoryAccess)
-        .where(eq(workappsGithubProjectRepositoryAccess.projectId, projectId));
+        .from(workAppGitHubProjectRepositoryAccess)
+        .where(eq(workAppGitHubProjectRepositoryAccess.projectId, projectId));
       expect(accessAfter).toHaveLength(0);
     });
 
     it('should cascade delete access records when installation is deleted (via repository cascade)', async () => {
       const accessId = generateId();
 
-      await dbClient.insert(workappsGithubProjectRepositoryAccess).values({
+      await dbClient.insert(workAppGitHubProjectRepositoryAccess).values({
         id: accessId,
         projectId,
         tenantId,
@@ -382,20 +382,20 @@ describe('GitHub App Installation Schema Tests', () => {
 
       // Delete the installation (should cascade to repos, then to access records)
       await dbClient
-        .delete(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.id, installationRecordId));
+        .delete(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.id, installationRecordId));
 
       // Verify all related records are deleted
       const reposAfter = await dbClient
         .select()
-        .from(workappsGithubAppRepositories)
-        .where(eq(workappsGithubAppRepositories.installationDbId, installationRecordId));
+        .from(workAppGitHubRepositories)
+        .where(eq(workAppGitHubRepositories.installationDbId, installationRecordId));
       expect(reposAfter).toHaveLength(0);
 
       const accessAfter = await dbClient
         .select()
-        .from(workappsGithubProjectRepositoryAccess)
-        .where(eq(workappsGithubProjectRepositoryAccess.projectId, projectId));
+        .from(workAppGitHubProjectRepositoryAccess)
+        .where(eq(workAppGitHubProjectRepositoryAccess.projectId, projectId));
       expect(accessAfter).toHaveLength(0);
     });
   });
@@ -404,7 +404,7 @@ describe('GitHub App Installation Schema Tests', () => {
     it('should cascade delete installations when organization is deleted', async () => {
       const installId = generateId();
 
-      await dbClient.insert(workappsGithubAppInstallations).values({
+      await dbClient.insert(workAppGitHubInstallations).values({
         id: installId,
         tenantId,
         installationId: '12345678',
@@ -416,8 +416,8 @@ describe('GitHub App Installation Schema Tests', () => {
       // Verify installation exists
       const installBefore = await dbClient
         .select()
-        .from(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.tenantId, tenantId));
+        .from(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.tenantId, tenantId));
       expect(installBefore).toHaveLength(1);
 
       // Delete the organization
@@ -426,8 +426,8 @@ describe('GitHub App Installation Schema Tests', () => {
       // Verify installation is cascade deleted
       const installAfter = await dbClient
         .select()
-        .from(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.tenantId, tenantId));
+        .from(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.tenantId, tenantId));
       expect(installAfter).toHaveLength(0);
     });
 
@@ -448,7 +448,7 @@ describe('GitHub App Installation Schema Tests', () => {
       const install1Id = generateId();
       const install2Id = generateId();
 
-      await dbClient.insert(workappsGithubAppInstallations).values([
+      await dbClient.insert(workAppGitHubInstallations).values([
         {
           id: install1Id,
           tenantId,
@@ -469,27 +469,27 @@ describe('GitHub App Installation Schema Tests', () => {
 
       // Delete tenant 1's installation
       await dbClient
-        .delete(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.id, install1Id));
+        .delete(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.id, install1Id));
 
       // Verify tenant 1's installation is deleted
       const tenant1InstallsAfter = await dbClient
         .select()
-        .from(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.tenantId, tenantId));
+        .from(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.tenantId, tenantId));
       expect(tenant1InstallsAfter).toHaveLength(0);
 
       // Verify tenant 2's installation still exists
       const tenant2InstallsAfter = await dbClient
         .select()
-        .from(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.tenantId, tenant2Id));
+        .from(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.tenantId, tenant2Id));
       expect(tenant2InstallsAfter).toHaveLength(1);
 
       // Cleanup tenant 2
       await dbClient
-        .delete(workappsGithubAppInstallations)
-        .where(eq(workappsGithubAppInstallations.tenantId, tenant2Id));
+        .delete(workAppGitHubInstallations)
+        .where(eq(workAppGitHubInstallations.tenantId, tenant2Id));
       await dbClient.delete(organization).where(eq(organization.id, tenant2Id));
     });
   });

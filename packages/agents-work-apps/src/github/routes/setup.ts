@@ -2,6 +2,8 @@ import {
   createInstallation,
   generateId,
   getInstallationByGitHubId,
+  listProjectsMetadata,
+  setProjectAccessMode,
   syncRepositories,
   updateInstallationStatusByGitHubId,
 } from '@inkeep/agents-core';
@@ -48,7 +50,7 @@ function buildRedirectUrl(params: {
   installationId?: string;
 }): string {
   const baseUrl = getManageUiUrl();
-  const url = new URL(`/${params.tenantId}/settings/github`, baseUrl);
+  const url = new URL(`/${params.tenantId}/work-apps/github`, baseUrl);
 
   url.searchParams.set('status', params.status);
   if (params.message) {
@@ -205,6 +207,25 @@ app.get('/', async (c) => {
       });
 
       internalInstallationId = newInstallation.id;
+
+      // Set GitHub access mode to 'all' for all existing projects in this tenant
+      // This ensures projects have access to all repositories when an app is first installed
+      const projectsInTenant = await listProjectsMetadata(runDbClient)({ tenantId });
+      if (projectsInTenant.length > 0) {
+        logger.info(
+          { tenantId, projectCount: projectsInTenant.length },
+          'Setting GitHub access mode to "all" for all existing projects'
+        );
+        await Promise.all(
+          projectsInTenant.map((project) =>
+            setProjectAccessMode(runDbClient)({
+              tenantId,
+              projectId: project.id,
+              mode: 'all',
+            })
+          )
+        );
+      }
     }
 
     if (repositories.length > 0) {

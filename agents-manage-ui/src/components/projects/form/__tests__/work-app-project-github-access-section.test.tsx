@@ -1,12 +1,12 @@
 import type {
-  GitHubAccessMode,
-  GitHubInstallation,
-  GitHubRepository,
-  ProjectGitHubAccess,
+  WorkAppGitHubAccessMode,
+  WorkAppGitHubInstallation,
+  WorkAppGitHubProjectAccess,
+  WorkAppGitHubRepository,
 } from '@/lib/api/github';
 
 // Mock installation data
-const mockInstallation: GitHubInstallation = {
+const mockInstallation: WorkAppGitHubInstallation = {
   id: 'inst_123',
   installationId: 12345,
   accountLogin: 'test-org',
@@ -18,7 +18,7 @@ const mockInstallation: GitHubInstallation = {
   updatedAt: '2024-01-20T15:30:00Z',
 };
 
-const mockUserInstallation: GitHubInstallation = {
+const mockUserInstallation: WorkAppGitHubInstallation = {
   id: 'inst_456',
   installationId: 54321,
   accountLogin: 'test-user',
@@ -31,7 +31,7 @@ const mockUserInstallation: GitHubInstallation = {
 };
 
 // Mock repository data
-const mockRepository: GitHubRepository = {
+const mockRepository: WorkAppGitHubRepository = {
   id: 'repo_123',
   installationId: 'inst_123',
   repositoryId: '456789',
@@ -42,7 +42,7 @@ const mockRepository: GitHubRepository = {
   updatedAt: '2024-01-20T15:30:00Z',
 };
 
-const mockPrivateRepository: GitHubRepository = {
+const mockPrivateRepository: WorkAppGitHubRepository = {
   id: 'repo_456',
   installationId: 'inst_123',
   repositoryId: '789123',
@@ -53,7 +53,7 @@ const mockPrivateRepository: GitHubRepository = {
   updatedAt: '2024-01-21T15:30:00Z',
 };
 
-const mockUserRepository: GitHubRepository = {
+const mockUserRepository: WorkAppGitHubRepository = {
   id: 'repo_789',
   installationId: 'inst_456',
   repositoryId: '111222',
@@ -66,7 +66,7 @@ const mockUserRepository: GitHubRepository = {
 
 describe('ProjectGitHubAccess Types', () => {
   it('should support mode "all" with empty repositories', () => {
-    const access: ProjectGitHubAccess = {
+    const access: WorkAppGitHubProjectAccess = {
       mode: 'all',
       repositories: [],
     };
@@ -76,7 +76,7 @@ describe('ProjectGitHubAccess Types', () => {
   });
 
   it('should support mode "selected" with populated repositories', () => {
-    const access: ProjectGitHubAccess = {
+    const access: WorkAppGitHubProjectAccess = {
       mode: 'selected',
       repositories: [mockRepository, mockPrivateRepository],
     };
@@ -100,18 +100,18 @@ describe('ProjectGitHubAccess Types', () => {
 
 describe('GitHubAccessMode', () => {
   it('should accept "all" as valid mode', () => {
-    const mode: GitHubAccessMode = 'all';
+    const mode: WorkAppGitHubAccessMode = 'all';
     expect(['all', 'selected']).toContain(mode);
   });
 
   it('should accept "selected" as valid mode', () => {
-    const mode: GitHubAccessMode = 'selected';
+    const mode: WorkAppGitHubAccessMode = 'selected';
     expect(['all', 'selected']).toContain(mode);
   });
 });
 
 describe('Access Mode Display Logic', () => {
-  const getAccessModeDescription = (mode: GitHubAccessMode, repoCount: number) => {
+  const getAccessModeDescription = (mode: WorkAppGitHubAccessMode, repoCount: number) => {
     if (mode === 'all') {
       return 'This project can access all repositories from connected GitHub organizations';
     }
@@ -135,7 +135,7 @@ describe('Access Mode Display Logic', () => {
 });
 
 describe('Access Mode Summary Display', () => {
-  const getAccessSummary = (mode: GitHubAccessMode, repoCount: number) => {
+  const getAccessSummary = (mode: WorkAppGitHubAccessMode, repoCount: number) => {
     if (mode === 'all') {
       return 'All repositories';
     }
@@ -193,7 +193,7 @@ describe('Repository Selection Logic', () => {
 describe('Select All Logic', () => {
   const selectAllForInstallation = (
     selected: Set<string>,
-    repos: GitHubRepository[],
+    repos: WorkAppGitHubRepository[],
     shouldSelect: boolean
   ): Set<string> => {
     const newSet = new Set(selected);
@@ -236,8 +236,8 @@ describe('Select All Logic', () => {
 });
 
 describe('Installation Grouping', () => {
-  const groupReposByInstallation = (repos: GitHubRepository[]) => {
-    const groups = new Map<string, GitHubRepository[]>();
+  const groupReposByInstallation = (repos: WorkAppGitHubRepository[]) => {
+    const groups = new Map<string, WorkAppGitHubRepository[]>();
     for (const repo of repos) {
       const existing = groups.get(repo.installationId) || [];
       groups.set(repo.installationId, [...existing, repo]);
@@ -296,7 +296,7 @@ describe('Checkbox State Calculation', () => {
 
 describe('Validation for Selected Mode', () => {
   const validateSelectedMode = (
-    mode: GitHubAccessMode,
+    mode: WorkAppGitHubAccessMode,
     selectedIds: Set<string>
   ): string | null => {
     if (mode === 'selected' && selectedIds.size === 0) {
@@ -323,9 +323,9 @@ describe('Validation for Selected Mode', () => {
 
 describe('API Request Body Construction', () => {
   const buildRequestBody = (
-    mode: GitHubAccessMode,
+    mode: WorkAppGitHubAccessMode,
     selectedIds: Set<string>
-  ): { mode: GitHubAccessMode; repositoryIds?: string[] } => {
+  ): { mode: WorkAppGitHubAccessMode; repositoryIds?: string[] } => {
     return {
       mode,
       repositoryIds: mode === 'selected' ? Array.from(selectedIds) : undefined,
@@ -348,7 +348,7 @@ describe('API Request Body Construction', () => {
 });
 
 describe('Empty State Detection', () => {
-  const shouldShowEmptyState = (installations: GitHubInstallation[]) => {
+  const shouldShowEmptyState = (installations: WorkAppGitHubInstallation[]) => {
     return installations.length === 0;
   };
 
@@ -399,7 +399,7 @@ describe('Repository URL Generation', () => {
 });
 
 describe('Installation Type Icon Logic', () => {
-  const getInstallationIcon = (accountType: GitHubInstallation['accountType']) => {
+  const getInstallationIcon = (accountType: WorkAppGitHubInstallation['accountType']) => {
     return accountType === 'Organization' ? 'Building2' : 'User';
   };
 
@@ -413,17 +413,17 @@ describe('Installation Type Icon Logic', () => {
 });
 
 describe('Active Installation Filter', () => {
-  const filterActiveInstallations = (installations: GitHubInstallation[]) => {
+  const filterActiveInstallations = (installations: WorkAppGitHubInstallation[]) => {
     return installations.filter((i) => i.status === 'active');
   };
 
-  const mockPendingInstallation: GitHubInstallation = {
+  const mockPendingInstallation: WorkAppGitHubInstallation = {
     ...mockInstallation,
     id: 'inst_pending',
     status: 'pending',
   };
 
-  const mockSuspendedInstallation: GitHubInstallation = {
+  const mockSuspendedInstallation: WorkAppGitHubInstallation = {
     ...mockInstallation,
     id: 'inst_suspended',
     status: 'suspended',

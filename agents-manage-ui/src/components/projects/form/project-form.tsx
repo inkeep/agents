@@ -13,9 +13,9 @@ import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { cn } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
-import { ProjectGitHubAccessSection } from './project-github-access-section';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
+import { ProjectWorkAppGitHubAccessSection } from './project-work-app-github-access-section';
 import { type ProjectFormData, projectSchema } from './validation';
 
 interface ProjectFormProps {
@@ -195,7 +195,7 @@ export function ProjectForm({
           <>
             <Separator />
 
-            <ProjectGitHubAccessSection
+            <ProjectWorkAppGitHubAccessSection
               tenantId={tenantId}
               projectId={projectId}
               disabled={readOnly}

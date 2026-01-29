@@ -4,22 +4,22 @@ import { cache } from 'react';
 import { makeManagementApiRequest } from './api-config';
 import { validateTenantId } from './resource-validation';
 
-export type GitHubAccountType = 'Organization' | 'User';
-export type GitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
+export type WorkAppGitHubAccountType = 'Organization' | 'User';
+export type WorkAppGitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
 
-export interface GitHubInstallation {
+export interface WorkAppGitHubInstallation {
   id: string;
   installationId: number;
   accountLogin: string;
   accountId: number;
-  accountType: GitHubAccountType;
-  status: GitHubInstallationStatus;
+  accountType: WorkAppGitHubAccountType;
+  status: WorkAppGitHubInstallationStatus;
   repositoryCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface GitHubRepository {
+export interface WorkAppGitHubRepository {
   id: string;
   installationId: string;
   repositoryId: string;
@@ -30,26 +30,26 @@ export interface GitHubRepository {
   updatedAt: string;
 }
 
-export interface InstallationDetail {
-  installation: Omit<GitHubInstallation, 'repositoryCount'>;
-  repositories: GitHubRepository[];
+export interface WorkAppGitHubInstallationDetail {
+  installation: Omit<WorkAppGitHubInstallation, 'repositoryCount'>;
+  repositories: WorkAppGitHubRepository[];
 }
 
-interface ListInstallationsResponse {
-  installations: GitHubInstallation[];
+interface ListWorkAppGitHubInstallationsResponse {
+  installations: WorkAppGitHubInstallation[];
 }
 
-interface InstallationDetailResponse {
-  installation: GitHubInstallation;
-  repositories: GitHubRepository[];
+interface WorkAppGitHubInstallationDetailResponse {
+  installation: WorkAppGitHubInstallation;
+  repositories: WorkAppGitHubRepository[];
 }
 
-interface InstallUrlResponse {
+interface WorkAppGitHubInstallUrlResponse {
   url: string;
 }
 
-interface SyncRepositoriesResponse {
-  repositories: GitHubRepository[];
+interface WorkAppGitHubSyncRepositoriesResponse {
+  repositories: WorkAppGitHubRepository[];
   syncResult: {
     added: number;
     removed: number;
@@ -57,7 +57,7 @@ interface SyncRepositoriesResponse {
   };
 }
 
-interface DisconnectResponse {
+interface WorkAppGitHubDisconnectResponse {
   success: boolean;
 }
 
@@ -65,31 +65,31 @@ interface DisconnectResponse {
  * Fetches all GitHub App installations for a tenant.
  * By default, deleted installations are filtered out.
  */
-async function $fetchGitHubInstallations(
+async function $fetchWorkAppGitHubInstallations(
   tenantId: string,
   includeDisconnected = true
-): Promise<GitHubInstallation[]> {
+): Promise<WorkAppGitHubInstallation[]> {
   validateTenantId(tenantId);
 
   const queryParams = includeDisconnected ? '?includeDisconnected=true' : '';
-  const response = await makeManagementApiRequest<ListInstallationsResponse>(
+  const response = await makeManagementApiRequest<ListWorkAppGitHubInstallationsResponse>(
     `tenants/${tenantId}/github/installations${queryParams}`
   );
 
   return response.installations;
 }
-export const fetchGitHubInstallations = cache($fetchGitHubInstallations);
+export const fetchWorkAppGitHubInstallations = cache($fetchWorkAppGitHubInstallations);
 
 /**
  * Fetches details of a specific GitHub App installation including its repositories.
  */
-async function $fetchGitHubInstallationDetail(
+async function $fetchWorkAppGitHubInstallationDetail(
   tenantId: string,
   installationId: string
-): Promise<InstallationDetail> {
+): Promise<WorkAppGitHubInstallationDetail> {
   validateTenantId(tenantId);
 
-  const response = await makeManagementApiRequest<InstallationDetailResponse>(
+  const response = await makeManagementApiRequest<WorkAppGitHubInstallationDetailResponse>(
     `tenants/${tenantId}/github/installations/${installationId}`
   );
 
@@ -98,16 +98,16 @@ async function $fetchGitHubInstallationDetail(
     repositories: response.repositories,
   };
 }
-export const fetchGitHubInstallationDetail = cache($fetchGitHubInstallationDetail);
+export const fetchWorkAppGitHubInstallationDetail = cache($fetchWorkAppGitHubInstallationDetail);
 
 /**
  * Gets the GitHub App installation URL with a signed state parameter.
  * The URL redirects the user to GitHub to install the app.
  */
-export async function getGitHubInstallUrl(tenantId: string): Promise<string> {
+export async function getWorkAppGitHubInstallUrl(tenantId: string): Promise<string> {
   validateTenantId(tenantId);
 
-  const response = await makeManagementApiRequest<InstallUrlResponse>(
+  const response = await makeManagementApiRequest<WorkAppGitHubInstallUrlResponse>(
     `tenants/${tenantId}/github/install-url`
   );
 
@@ -118,13 +118,13 @@ export async function getGitHubInstallUrl(tenantId: string): Promise<string> {
  * Manually syncs repositories for a GitHub App installation.
  * This fetches the current repository list from GitHub and updates our database.
  */
-export async function syncGitHubRepositories(
+export async function syncWorkAppGitHubRepositories(
   tenantId: string,
   installationId: string
-): Promise<SyncRepositoriesResponse> {
+): Promise<WorkAppGitHubSyncRepositoriesResponse> {
   validateTenantId(tenantId);
 
-  const response = await makeManagementApiRequest<SyncRepositoriesResponse>(
+  const response = await makeManagementApiRequest<WorkAppGitHubSyncRepositoriesResponse>(
     `tenants/${tenantId}/github/installations/${installationId}/sync`,
     {
       method: 'POST',
@@ -139,13 +139,13 @@ export async function syncGitHubRepositories(
  * This soft deletes the installation and removes all project repository access.
  * Note: This does NOT uninstall the GitHub App from GitHub.
  */
-export async function disconnectGitHubInstallation(
+export async function disconnectWorkAppGitHubInstallation(
   tenantId: string,
   installationId: string
 ): Promise<void> {
   validateTenantId(tenantId);
 
-  await makeManagementApiRequest<DisconnectResponse>(
+  await makeManagementApiRequest<WorkAppGitHubDisconnectResponse>(
     `tenants/${tenantId}/github/installations/${installationId}/disconnect`,
     {
       method: 'POST',
@@ -153,7 +153,7 @@ export async function disconnectGitHubInstallation(
   );
 }
 
-interface ReconnectResponse {
+interface WorkAppGitHubReconnectResponse {
   success: boolean;
 }
 
@@ -161,13 +161,13 @@ interface ReconnectResponse {
  * Reconnects a previously disconnected GitHub App installation.
  * This sets the installation status back to "active".
  */
-export async function reconnectGitHubInstallation(
+export async function reconnectWorkAppGitHubInstallation(
   tenantId: string,
   installationId: string
 ): Promise<void> {
   validateTenantId(tenantId);
 
-  await makeManagementApiRequest<ReconnectResponse>(
+  await makeManagementApiRequest<WorkAppGitHubReconnectResponse>(
     `tenants/${tenantId}/github/installations/${installationId}/reconnect`,
     {
       method: 'POST',
@@ -175,15 +175,15 @@ export async function reconnectGitHubInstallation(
   );
 }
 
-export type GitHubAccessMode = 'all' | 'selected';
+export type WorkAppGitHubAccessMode = 'all' | 'selected';
 
-export interface ProjectGitHubAccess {
-  mode: GitHubAccessMode;
-  repositories: GitHubRepository[];
+export interface WorkAppGitHubProjectAccess {
+  mode: WorkAppGitHubAccessMode;
+  repositories: WorkAppGitHubRepository[];
 }
 
-interface SetProjectGitHubAccessResponse {
-  mode: GitHubAccessMode;
+interface SetProjectWorkAppGitHubAccessResponse {
+  mode: WorkAppGitHubAccessMode;
   repositoryCount: number;
 }
 
@@ -192,35 +192,99 @@ interface SetProjectGitHubAccessResponse {
  * Returns mode='all' with empty repositories array when project has access to all repos.
  * Returns mode='selected' with populated repositories array when scoped.
  */
-async function $getProjectGitHubAccess(
+async function $getProjectWorkAppGitHubAccess(
   tenantId: string,
   projectId: string
-): Promise<ProjectGitHubAccess> {
+): Promise<WorkAppGitHubProjectAccess> {
   validateTenantId(tenantId);
 
-  const response = await makeManagementApiRequest<ProjectGitHubAccess>(
+  const response = await makeManagementApiRequest<WorkAppGitHubProjectAccess>(
     `tenants/${tenantId}/projects/${projectId}/github-access`
   );
 
   return response;
 }
-export const getProjectGitHubAccess = cache($getProjectGitHubAccess);
+export const getProjectWorkAppGitHubAccess = cache($getProjectWorkAppGitHubAccess);
 
 /**
  * Sets the GitHub repository access configuration for a project.
  * When mode='all', the project has access to all repositories from tenant installations.
  * When mode='selected', the project is scoped to specific repositories.
  */
-export async function setProjectGitHubAccess(
+export async function setProjectWorkAppGitHubAccess(
   tenantId: string,
   projectId: string,
-  mode: GitHubAccessMode,
+  mode: WorkAppGitHubAccessMode,
   repositoryIds?: string[]
-): Promise<SetProjectGitHubAccessResponse> {
+): Promise<SetProjectWorkAppGitHubAccessResponse> {
   validateTenantId(tenantId);
 
-  const response = await makeManagementApiRequest<SetProjectGitHubAccessResponse>(
+  const response = await makeManagementApiRequest<SetProjectWorkAppGitHubAccessResponse>(
     `tenants/${tenantId}/projects/${projectId}/github-access`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        mode,
+        repositoryIds: mode === 'selected' ? repositoryIds : undefined,
+      }),
+    }
+  );
+
+  return response;
+}
+
+// MCP Tool GitHub Access
+
+export interface McpToolGitHubRepository extends WorkAppGitHubRepository {
+  installationAccountLogin: string;
+}
+
+export interface McpToolWorkAppGitHubAccess {
+  mode: WorkAppGitHubAccessMode;
+  repositories: McpToolGitHubRepository[];
+}
+
+interface SetMcpToolWorkAppGitHubAccessResponse {
+  mode: WorkAppGitHubAccessMode;
+  repositoryCount: number;
+}
+
+/**
+ * Fetches the GitHub repository access configuration for an MCP tool.
+ * Returns mode='all' with empty repositories array when tool has access to all project repos.
+ * Returns mode='selected' with populated repositories array when scoped to specific repos.
+ */
+async function $getMcpToolWorkAppGitHubAccess(
+  tenantId: string,
+  projectId: string,
+  toolId: string
+): Promise<McpToolWorkAppGitHubAccess> {
+  validateTenantId(tenantId);
+
+  const response = await makeManagementApiRequest<McpToolWorkAppGitHubAccess>(
+    `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/github-access`
+  );
+
+  return response;
+}
+export const getMcpToolWorkAppGitHubAccess = cache($getMcpToolWorkAppGitHubAccess);
+
+/**
+ * Sets the GitHub repository access configuration for an MCP tool.
+ * When mode='all', the tool has access to all repositories the project can access.
+ * When mode='selected', the tool is scoped to specific repositories.
+ */
+export async function setMcpToolWorkAppGitHubAccess(
+  tenantId: string,
+  projectId: string,
+  toolId: string,
+  mode: WorkAppGitHubAccessMode,
+  repositoryIds?: string[]
+): Promise<SetMcpToolWorkAppGitHubAccessResponse> {
+  validateTenantId(tenantId);
+
+  const response = await makeManagementApiRequest<SetMcpToolWorkAppGitHubAccessResponse>(
+    `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/github-access`,
     {
       method: 'PUT',
       body: JSON.stringify({

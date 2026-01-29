@@ -3,15 +3,16 @@ import {
   commonGetErrorResponses,
   commonUpdateErrorResponses,
   createApiError,
-  getProjectRepositoryAccess,
+  getProjectAccessMode,
   getProjectRepositoryAccessWithDetails,
-  GitHubAccessGetResponseSchema,
-  GitHubAccessModeSchema,
-  GitHubAccessSetRequestSchema,
-  GitHubAccessSetResponseSchema,
+  setProjectAccessMode,
   setProjectRepositoryAccess,
   TenantProjectParamsSchema,
   validateRepositoryOwnership,
+  WorkAppGitHubAccessGetResponseSchema,
+  WorkAppGitHubAccessModeSchema,
+  WorkAppGitHubAccessSetRequestSchema,
+  WorkAppGitHubAccessSetResponseSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -21,20 +22,20 @@ const logger = getLogger('project-github-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const ProjectGitHubAccessModeSchema = GitHubAccessModeSchema.describe(
+const ProjectGitHubAccessModeSchema = WorkAppGitHubAccessModeSchema.describe(
   'Access mode: "all" means project has access to all tenant repositories, ' +
     '"selected" means project is scoped to specific repositories'
 );
 
-const SetGitHubAccessRequestSchema = GitHubAccessSetRequestSchema.extend({
+const SetGitHubAccessRequestSchema = WorkAppGitHubAccessSetRequestSchema.extend({
   mode: ProjectGitHubAccessModeSchema,
 });
 
-const GetGitHubAccessResponseSchema = GitHubAccessGetResponseSchema.extend({
+const GetGitHubAccessResponseSchema = WorkAppGitHubAccessGetResponseSchema.extend({
   mode: ProjectGitHubAccessModeSchema,
 }).describe('GitHub access configuration for a project');
 
-const SetGitHubAccessResponseSchema = GitHubAccessSetResponseSchema.extend({
+const SetGitHubAccessResponseSchema = WorkAppGitHubAccessSetResponseSchema.extend({
   mode: ProjectGitHubAccessModeSchema,
   repositoryCount: z
     .number()
@@ -72,9 +73,10 @@ app.openapi(
 
     logger.info({ tenantId, projectId }, 'Getting project GitHub access configuration');
 
-    const accessEntries = await getProjectRepositoryAccess(runDbClient)(projectId);
+    // Get explicit mode from mode table (defaults to 'selected' if not set)
+    const mode = await getProjectAccessMode(runDbClient)({ tenantId, projectId });
 
-    if (accessEntries.length === 0) {
+    if (mode === 'all') {
       logger.info({ tenantId, projectId }, 'Project has access to all repositories (mode=all)');
       return c.json(
         {
@@ -85,6 +87,7 @@ app.openapi(
       );
     }
 
+    // mode === 'selected': get the specific repositories
     const repositoriesWithDetails =
       await getProjectRepositoryAccessWithDetails(runDbClient)(projectId);
 
@@ -177,6 +180,8 @@ app.openapi(
         });
       }
 
+      // Set explicit mode and repository access
+      await setProjectAccessMode(runDbClient)({ tenantId, projectId, mode: 'selected' });
       await setProjectRepositoryAccess(runDbClient)({
         tenantId,
         projectId,
@@ -197,6 +202,8 @@ app.openapi(
       );
     }
 
+    // mode === 'all': Set explicit mode and clear any repository access entries
+    await setProjectAccessMode(runDbClient)({ tenantId, projectId, mode: 'all' });
     await setProjectRepositoryAccess(runDbClient)({
       tenantId,
       projectId,

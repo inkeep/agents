@@ -6,6 +6,8 @@ const {
   getStateSigningSecretMock,
   createInstallationMock,
   getInstallationByGitHubIdMock,
+  listProjectsMetadataMock,
+  setProjectAccessModeMock,
   syncRepositoriesMock,
   updateInstallationStatusByGitHubIdMock,
   generateIdMock,
@@ -18,6 +20,8 @@ const {
   getStateSigningSecretMock: vi.fn(),
   createInstallationMock: vi.fn(),
   getInstallationByGitHubIdMock: vi.fn(),
+  listProjectsMetadataMock: vi.fn(),
+  setProjectAccessModeMock: vi.fn(),
   syncRepositoriesMock: vi.fn(),
   updateInstallationStatusByGitHubIdMock: vi.fn(),
   generateIdMock: vi.fn(),
@@ -52,6 +56,8 @@ vi.mock('../../../env', () => ({
 vi.mock('@inkeep/agents-core', () => ({
   createInstallation: () => createInstallationMock,
   getInstallationByGitHubId: () => getInstallationByGitHubIdMock,
+  listProjectsMetadata: () => listProjectsMetadataMock,
+  setProjectAccessMode: () => setProjectAccessModeMock,
   syncRepositories: () => syncRepositoriesMock,
   updateInstallationStatusByGitHubId: () => updateInstallationStatusByGitHubIdMock,
   generateId: generateIdMock,
@@ -135,6 +141,8 @@ describe('GitHub Setup Route', () => {
       updatedAt: new Date().toISOString(),
     });
     getInstallationByGitHubIdMock.mockResolvedValue(null);
+    listProjectsMetadataMock.mockResolvedValue([]);
+    setProjectAccessModeMock.mockResolvedValue(undefined);
     syncRepositoriesMock.mockResolvedValue({ added: 0, removed: 0, updated: 0 });
     updateInstallationStatusByGitHubIdMock.mockResolvedValue({
       id: 'test-installation-id',
@@ -284,7 +292,7 @@ describe('GitHub Setup Route', () => {
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
       expect(location).toContain('https://app.example.com');
-      expect(location).toContain('/tenant-123/settings/github');
+      expect(location).toContain('/tenant-123/work-apps/github');
       expect(location).toContain('status=success');
     });
 
@@ -345,6 +353,77 @@ describe('GitHub Setup Route', () => {
         status: 'active',
       });
       expect(createInstallationMock).not.toHaveBeenCalled();
+    });
+
+    it('should set access mode to "all" for all existing projects when creating new installation', async () => {
+      const state = await createValidStateToken('tenant-123');
+      getInstallationByGitHubIdMock.mockResolvedValue(null);
+      listProjectsMetadataMock.mockResolvedValue([
+        { id: 'project-1', tenantId: 'tenant-123', mainBranchName: 'main' },
+        { id: 'project-2', tenantId: 'tenant-123', mainBranchName: 'main' },
+        { id: 'project-3', tenantId: 'tenant-123', mainBranchName: 'main' },
+      ]);
+
+      const response = await app.request(
+        `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
+        { method: 'GET' }
+      );
+
+      expect(response.status).toBe(302);
+      expect(listProjectsMetadataMock).toHaveBeenCalledWith({ tenantId: 'tenant-123' });
+      expect(setProjectAccessModeMock).toHaveBeenCalledTimes(3);
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: 'tenant-123',
+        projectId: 'project-1',
+        mode: 'all',
+      });
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: 'tenant-123',
+        projectId: 'project-2',
+        mode: 'all',
+      });
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: 'tenant-123',
+        projectId: 'project-3',
+        mode: 'all',
+      });
+    });
+
+    it('should not set access mode when updating existing installation', async () => {
+      const state = await createValidStateToken('tenant-123');
+      getInstallationByGitHubIdMock.mockResolvedValue({
+        id: 'existing-id',
+        tenantId: 'tenant-123',
+        installationId: '12345',
+        status: 'pending',
+      });
+      listProjectsMetadataMock.mockResolvedValue([
+        { id: 'project-1', tenantId: 'tenant-123', mainBranchName: 'main' },
+      ]);
+
+      const response = await app.request(
+        `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
+        { method: 'GET' }
+      );
+
+      expect(response.status).toBe(302);
+      expect(listProjectsMetadataMock).not.toHaveBeenCalled();
+      expect(setProjectAccessModeMock).not.toHaveBeenCalled();
+    });
+
+    it('should not call setProjectAccessMode when no projects exist', async () => {
+      const state = await createValidStateToken('tenant-123');
+      getInstallationByGitHubIdMock.mockResolvedValue(null);
+      listProjectsMetadataMock.mockResolvedValue([]);
+
+      const response = await app.request(
+        `/?installation_id=12345&setup_action=install&state=${encodeURIComponent(state)}`,
+        { method: 'GET' }
+      );
+
+      expect(response.status).toBe(302);
+      expect(listProjectsMetadataMock).toHaveBeenCalledWith({ tenantId: 'tenant-123' });
+      expect(setProjectAccessModeMock).not.toHaveBeenCalled();
     });
   });
 
@@ -419,7 +498,7 @@ describe('GitHub Setup Route', () => {
 
       expect(response.status).toBe(302);
       const location = response.headers.get('Location');
-      expect(location).toContain('/tenant-123/settings/github');
+      expect(location).toContain('/tenant-123/work-apps/github');
       expect(location).toContain('status=error');
     });
 

@@ -6,27 +6,27 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
-import { GitHubInstallButton } from '@/components/settings/github-install-button';
-import { GitHubInstallationsList } from '@/components/settings/github-installations-list';
-import type { GitHubInstallation } from '@/lib/api/github';
-import { fetchGitHubInstallations } from '@/lib/api/github';
+import { WorkAppGitHubInstallButton } from '@/components/settings/work-app-github-install-button';
+import { WorkAppGitHubInstallationsList } from '@/components/settings/work-app-github-installations-list';
+import type { WorkAppGitHubInstallation } from '@/lib/api/github';
+import { fetchWorkAppGitHubInstallations } from '@/lib/api/github';
 import GitHubSettingsLoading from './loading';
 
 interface PageParams {
   params: Promise<{ tenantId: string }>;
 }
 
-export default function GitHubSettingsPage({ params }: PageParams) {
+export default function WorkAppGitHubSettingsPage({ params }: PageParams) {
   const { tenantId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [installations, setInstallations] = useState<GitHubInstallation[] | null>(null);
+  const [installations, setInstallations] = useState<WorkAppGitHubInstallation[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadInstallations = useCallback(async () => {
     try {
-      const data = await fetchGitHubInstallations(tenantId);
+      const data = await fetchWorkAppGitHubInstallations(tenantId);
       setInstallations(data);
       setError(null);
     } catch (err) {
@@ -49,13 +49,13 @@ export default function GitHubSettingsPage({ params }: PageParams) {
       toast.success('GitHub connected', {
         description: 'Your GitHub organization has been connected successfully.',
       });
-      router.replace(`/${tenantId}/settings/github`);
+      router.replace(`/${tenantId}/work-apps/github`);
       loadInstallations();
     } else if (status === 'error' && errorMessage) {
       toast.error('Connection failed', {
         description: decodeURIComponent(errorMessage),
       });
-      router.replace(`/${tenantId}/settings/github`);
+      router.replace(`/${tenantId}/work-apps/github`);
     }
   }, [searchParams, router, tenantId, loadInstallations]);
 
@@ -74,9 +74,9 @@ export default function GitHubSettingsPage({ params }: PageParams) {
       {hasInstallations ? (
         <>
           <div className="flex items-center justify-end">
-            <GitHubInstallButton tenantId={tenantId} variant="outline" size="sm" />
+            <WorkAppGitHubInstallButton tenantId={tenantId} variant="outline" size="sm" />
           </div>
-          <GitHubInstallationsList
+          <WorkAppGitHubInstallationsList
             installations={installations}
             tenantId={tenantId}
             onInstallationsChange={loadInstallations}
@@ -91,7 +91,7 @@ export default function GitHubSettingsPage({ params }: PageParams) {
               <Github className="size-12 text-muted-foreground" />
             </div>
           }
-          action={<GitHubInstallButton tenantId={tenantId} />}
+          action={<WorkAppGitHubInstallButton tenantId={tenantId} />}
         />
       )}
     </div>

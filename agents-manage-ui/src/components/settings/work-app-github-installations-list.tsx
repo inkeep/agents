@@ -21,21 +21,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { GitHubInstallation } from '@/lib/api/github';
+import type { WorkAppGitHubInstallation } from '@/lib/api/github';
 import {
-  disconnectGitHubInstallation,
-  reconnectGitHubInstallation,
-  syncGitHubRepositories,
+  disconnectWorkAppGitHubInstallation,
+  reconnectWorkAppGitHubInstallation,
+  syncWorkAppGitHubRepositories,
 } from '@/lib/api/github';
-import { DisconnectInstallationDialog } from './github-disconnect-dialog';
+import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
+import { DisconnectInstallationDialog } from './work-app-github-disconnect-dialog';
 
-interface GitHubInstallationsListProps {
-  installations: GitHubInstallation[];
+interface WorkAppGitHubInstallationsListProps {
+  installations: WorkAppGitHubInstallation[];
   tenantId: string;
   onInstallationsChange?: () => void;
 }
 
-function getStatusBadgeVariant(status: GitHubInstallation['status']) {
+function getStatusBadgeVariant(status: WorkAppGitHubInstallation['status']) {
   switch (status) {
     case 'active':
       return 'success';
@@ -50,7 +51,7 @@ function getStatusBadgeVariant(status: GitHubInstallation['status']) {
   }
 }
 
-function getStatusLabel(status: GitHubInstallation['status']) {
+function getStatusLabel(status: WorkAppGitHubInstallation['status']) {
   switch (status) {
     case 'active':
       return 'Active';
@@ -73,22 +74,23 @@ function formatDate(dateString: string) {
   });
 }
 
-export function GitHubInstallationsList({
+export function WorkAppGitHubInstallationsList({
   installations,
   tenantId,
   onInstallationsChange,
-}: GitHubInstallationsListProps) {
+}: WorkAppGitHubInstallationsListProps) {
   const router = useRouter();
   const [syncingInstallationId, setSyncingInstallationId] = useState<string | null>(null);
   const [reconnectingInstallationId, setReconnectingInstallationId] = useState<string | null>(null);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
-  const [selectedInstallation, setSelectedInstallation] = useState<GitHubInstallation | null>(null);
+  const [selectedInstallation, setSelectedInstallation] =
+    useState<WorkAppGitHubInstallation | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const handleSync = async (installation: GitHubInstallation) => {
+  const handleSync = async (installation: WorkAppGitHubInstallation) => {
     setSyncingInstallationId(installation.id);
     try {
-      const result = await syncGitHubRepositories(tenantId, installation.id);
+      const result = await syncWorkAppGitHubRepositories(tenantId, installation.id);
       toast.success('Repositories synced', {
         description: `Added ${result.syncResult.added}, removed ${result.syncResult.removed}, updated ${result.syncResult.updated} repositories`,
       });
@@ -103,10 +105,10 @@ export function GitHubInstallationsList({
     }
   };
 
-  const handleReconnect = async (installation: GitHubInstallation) => {
+  const handleReconnect = async (installation: WorkAppGitHubInstallation) => {
     setReconnectingInstallationId(installation.id);
     try {
-      await reconnectGitHubInstallation(tenantId, installation.id);
+      await reconnectWorkAppGitHubInstallation(tenantId, installation.id);
       toast.success('Installation reconnected', {
         description: `${installation.accountLogin} has been reconnected`,
       });
@@ -121,7 +123,7 @@ export function GitHubInstallationsList({
     }
   };
 
-  const openDisconnectDialog = (installation: GitHubInstallation) => {
+  const openDisconnectDialog = (installation: WorkAppGitHubInstallation) => {
     setSelectedInstallation(installation);
     setDisconnectDialogOpen(true);
   };
@@ -131,7 +133,7 @@ export function GitHubInstallationsList({
 
     setDisconnecting(true);
     try {
-      await disconnectGitHubInstallation(tenantId, selectedInstallation.id);
+      await disconnectWorkAppGitHubInstallation(tenantId, selectedInstallation.id);
       toast.success('Installation disconnected', {
         description: `${selectedInstallation.accountLogin} has been disconnected`,
       });
@@ -174,13 +176,13 @@ export function GitHubInstallationsList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {installations.map((installation) => {
+          {installations.map((installation: WorkAppGitHubInstallation) => {
             const isSyncing = syncingInstallationId === installation.id;
             return (
               <TableRow key={installation.id} noHover>
                 <TableCell>
                   <Link
-                    href={`/${tenantId}/settings/github/${installation.id}`}
+                    href={`/${tenantId}/work-apps/github/${installation.id}`}
                     className="flex items-center gap-2 hover:underline"
                   >
                     <div className="flex size-8 items-center justify-center rounded-full bg-muted">
@@ -232,7 +234,11 @@ export function GitHubInstallationsList({
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <a
-                              href={`https://github.com/settings/installations/${installation.installationId}`}
+                              href={getGitHubInstallationSettingsUrl(
+                                installation.installationId,
+                                installation.accountType,
+                                installation.accountLogin
+                              )}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-destructive focus:text-destructive"
@@ -245,7 +251,7 @@ export function GitHubInstallationsList({
                       ) : (
                         <>
                           <DropdownMenuItem asChild>
-                            <Link href={`/${tenantId}/settings/github/${installation.id}`}>
+                            <Link href={`/${tenantId}/work-apps/github/${installation.id}`}>
                               <Github className="size-4 mr-2" />
                               View Details
                             </Link>
@@ -261,7 +267,11 @@ export function GitHubInstallationsList({
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <a
-                              href={`https://github.com/settings/installations/${installation.installationId}`}
+                              href={getGitHubInstallationSettingsUrl(
+                                installation.installationId,
+                                installation.accountType,
+                                installation.accountLogin
+                              )}
                               target="_blank"
                               rel="noopener noreferrer"
                             >

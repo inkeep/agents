@@ -21,19 +21,22 @@ import {
   getRepositoryCount,
   removeRepositories,
   setMcpToolRepositoryAccess,
+  setProjectAccessMode,
   setProjectRepositoryAccess,
   syncRepositories,
   updateInstallationStatus,
   updateInstallationStatusByGitHubId,
   validateRepositoryOwnership,
-} from '../../data-access/runtime/github-installations';
+} from '../../data-access/runtime/github-work-app-installations';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   organization,
-  workappsGithubAppInstallations,
-  workappsGithubAppRepositories,
-  workappsGithubMcpToolRepositoryAccess,
-  workappsGithubProjectRepositoryAccess,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolAccessMode,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectAccessMode,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
 import { testRunDbClient } from '../setup';
@@ -49,10 +52,12 @@ describe('GitHub Installations Data Access', () => {
 
   beforeEach(async () => {
     // Clean up in correct FK order
-    await dbClient.delete(workappsGithubMcpToolRepositoryAccess);
-    await dbClient.delete(workappsGithubProjectRepositoryAccess);
-    await dbClient.delete(workappsGithubAppRepositories);
-    await dbClient.delete(workappsGithubAppInstallations);
+    await dbClient.delete(workAppGitHubMcpToolRepositoryAccess);
+    await dbClient.delete(workAppGitHubMcpToolAccessMode);
+    await dbClient.delete(workAppGitHubProjectRepositoryAccess);
+    await dbClient.delete(workAppGitHubProjectAccessMode);
+    await dbClient.delete(workAppGitHubRepositories);
+    await dbClient.delete(workAppGitHubInstallations);
 
     // Create test organizations
     await dbClient
@@ -1108,7 +1113,10 @@ describe('GitHub Installations Data Access', () => {
     });
 
     describe('checkProjectRepositoryAccess', () => {
-      it('should allow access when no scoping configured (mode=all)', async () => {
+      it('should allow access when mode is explicitly set to all', async () => {
+        // Explicitly set mode to 'all'
+        await setProjectAccessMode(dbClient)({ tenantId, projectId, mode: 'all' });
+
         const result = await checkProjectRepositoryAccess(dbClient)({
           projectId,
           repositoryFullName: 'test-org/repo-1',
@@ -1119,7 +1127,10 @@ describe('GitHub Installations Data Access', () => {
         expect(result.reason).toBe('Project has access to all repositories');
       });
 
-      it('should deny access when repo not in tenant', async () => {
+      it('should deny access when repo not in tenant (with mode=all)', async () => {
+        // Explicitly set mode to 'all' to test tenant-level validation
+        await setProjectAccessMode(dbClient)({ tenantId, projectId, mode: 'all' });
+
         const result = await checkProjectRepositoryAccess(dbClient)({
           projectId,
           repositoryFullName: 'other-org/other-repo',
@@ -1128,6 +1139,18 @@ describe('GitHub Installations Data Access', () => {
 
         expect(result.hasAccess).toBe(false);
         expect(result.reason).toBe('Repository not found in tenant installations');
+      });
+
+      it('should deny access when no mode configured (defaults to selected)', async () => {
+        // No mode set - should default to 'selected' which means no access without explicit rows
+        const result = await checkProjectRepositoryAccess(dbClient)({
+          projectId,
+          repositoryFullName: 'test-org/repo-1',
+          tenantId,
+        });
+
+        expect(result.hasAccess).toBe(false);
+        expect(result.reason).toBe('Repository not in project access list');
       });
 
       it('should allow access when repo is in explicit access list', async () => {

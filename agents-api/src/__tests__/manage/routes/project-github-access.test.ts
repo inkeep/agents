@@ -2,13 +2,17 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
+  getProjectAccessModeMock,
   getProjectRepositoryAccessMock,
   getProjectRepositoryAccessWithDetailsMock,
+  setProjectAccessModeMock,
   setProjectRepositoryAccessMock,
   validateRepositoryOwnershipMock,
 } = vi.hoisted(() => ({
+  getProjectAccessModeMock: vi.fn(),
   getProjectRepositoryAccessMock: vi.fn(),
   getProjectRepositoryAccessWithDetailsMock: vi.fn(),
+  setProjectAccessModeMock: vi.fn(),
   setProjectRepositoryAccessMock: vi.fn(),
   validateRepositoryOwnershipMock: vi.fn(),
 }));
@@ -17,8 +21,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
+    getProjectAccessMode: () => getProjectAccessModeMock,
     getProjectRepositoryAccess: () => getProjectRepositoryAccessMock,
     getProjectRepositoryAccessWithDetails: () => getProjectRepositoryAccessWithDetailsMock,
+    setProjectAccessMode: () => setProjectAccessModeMock,
     setProjectRepositoryAccess: () => setProjectRepositoryAccessMock,
     validateRepositoryOwnership: () => validateRepositoryOwnershipMock,
   };
@@ -48,6 +54,8 @@ const app = createTestApp();
 describe('Project GitHub Access Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getProjectAccessModeMock.mockResolvedValue('selected');
+    setProjectAccessModeMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -55,8 +63,8 @@ describe('Project GitHub Access Routes', () => {
   });
 
   describe('GET /projects/:projectId/github-access', () => {
-    it('should return mode=all when no access entries exist', async () => {
-      getProjectRepositoryAccessMock.mockResolvedValue([]);
+    it('should return mode=all when access mode is set to all', async () => {
+      getProjectAccessModeMock.mockResolvedValue('all');
 
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/github-access`,
@@ -71,14 +79,11 @@ describe('Project GitHub Access Routes', () => {
     });
 
     it('should return mode=selected with repositories when access entries exist', async () => {
-      const mockAccessEntries = [
-        { id: 'access-1', projectId: TEST_PROJECT_ID, githubRepositoryId: 'repo-1' },
-      ];
       const mockRepositories = [
         {
           accessId: 'access-1',
           id: 'repo-1',
-          installationId: 'inst-1',
+          installationDbId: 'inst-1',
           repositoryId: '100001',
           repositoryName: 'my-repo',
           repositoryFullName: 'my-org/my-repo',
@@ -89,7 +94,7 @@ describe('Project GitHub Access Routes', () => {
         {
           accessId: 'access-2',
           id: 'repo-2',
-          installationId: 'inst-1',
+          installationDbId: 'inst-1',
           repositoryId: '100002',
           repositoryName: 'another-repo',
           repositoryFullName: 'my-org/another-repo',
@@ -99,7 +104,6 @@ describe('Project GitHub Access Routes', () => {
         },
       ];
 
-      getProjectRepositoryAccessMock.mockResolvedValue(mockAccessEntries);
       getProjectRepositoryAccessWithDetailsMock.mockResolvedValue(mockRepositories);
 
       const response = await app.request(
@@ -114,7 +118,7 @@ describe('Project GitHub Access Routes', () => {
       expect(body.repositories).toHaveLength(2);
       expect(body.repositories[0]).toEqual({
         id: 'repo-1',
-        installationId: 'inst-1',
+        installationDbId: 'inst-1',
         repositoryId: '100001',
         repositoryName: 'my-repo',
         repositoryFullName: 'my-org/my-repo',
@@ -125,12 +129,11 @@ describe('Project GitHub Access Routes', () => {
     });
 
     it('should not include accessId in repository response', async () => {
-      const mockAccessEntries = [{ id: 'access-1' }];
       const mockRepositories = [
         {
           accessId: 'access-1',
           id: 'repo-1',
-          installationId: 'inst-1',
+          installationDbId: 'inst-1',
           repositoryId: '100001',
           repositoryName: 'my-repo',
           repositoryFullName: 'my-org/my-repo',
@@ -140,7 +143,6 @@ describe('Project GitHub Access Routes', () => {
         },
       ];
 
-      getProjectRepositoryAccessMock.mockResolvedValue(mockAccessEntries);
       getProjectRepositoryAccessWithDetailsMock.mockResolvedValue(mockRepositories);
 
       const response = await app.request(
@@ -155,12 +157,11 @@ describe('Project GitHub Access Routes', () => {
     });
 
     it('should handle private repositories correctly', async () => {
-      const mockAccessEntries = [{ id: 'access-1' }];
       const mockRepositories = [
         {
           accessId: 'access-1',
           id: 'repo-1',
-          installationId: 'inst-1',
+          installationDbId: 'inst-1',
           repositoryId: '100001',
           repositoryName: 'private-repo',
           repositoryFullName: 'my-org/private-repo',
@@ -170,7 +171,6 @@ describe('Project GitHub Access Routes', () => {
         },
       ];
 
-      getProjectRepositoryAccessMock.mockResolvedValue(mockAccessEntries);
       getProjectRepositoryAccessWithDetailsMock.mockResolvedValue(mockRepositories);
 
       const response = await app.request(
@@ -203,7 +203,13 @@ describe('Project GitHub Access Routes', () => {
 
       expect(body.mode).toBe('all');
       expect(body.repositoryCount).toBe(0);
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'all',
+      });
       expect(setProjectRepositoryAccessMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
         projectId: TEST_PROJECT_ID,
         repositoryIds: [],
       });
@@ -233,7 +239,13 @@ describe('Project GitHub Access Routes', () => {
         tenantId: TEST_TENANT_ID,
         repositoryIds,
       });
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'selected',
+      });
       expect(setProjectRepositoryAccessMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
         projectId: TEST_PROJECT_ID,
         repositoryIds,
       });
@@ -318,7 +330,13 @@ describe('Project GitHub Access Routes', () => {
       expect(body.mode).toBe('all');
       expect(body.repositoryCount).toBe(0);
       expect(validateRepositoryOwnershipMock).not.toHaveBeenCalled();
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'all',
+      });
       expect(setProjectRepositoryAccessMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
         projectId: TEST_PROJECT_ID,
         repositoryIds: [],
       });
@@ -355,6 +373,11 @@ describe('Project GitHub Access Routes', () => {
 
       expect(body.mode).toBe('selected');
       expect(body.repositoryCount).toBe(1);
+      expect(setProjectAccessModeMock).toHaveBeenCalledWith({
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'selected',
+      });
     });
 
     it('should validate all repository IDs belong to tenant', async () => {

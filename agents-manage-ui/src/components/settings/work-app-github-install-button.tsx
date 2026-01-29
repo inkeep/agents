@@ -4,25 +4,25 @@ import { Github, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { getGitHubInstallUrl } from '@/lib/api/github';
+import { getWorkAppGitHubInstallUrl } from '@/lib/api/github';
 
-interface GitHubInstallButtonProps {
+interface WorkAppGitHubInstallButtonProps {
   tenantId: string;
   variant?: 'default' | 'outline';
   size?: 'default' | 'sm' | 'lg';
 }
 
-export function GitHubInstallButton({
+export function WorkAppGitHubInstallButton({
   tenantId,
   variant = 'default',
   size = 'default',
-}: GitHubInstallButtonProps) {
+}: WorkAppGitHubInstallButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleInstall = async () => {
     setLoading(true);
     try {
-      const url = await getGitHubInstallUrl(tenantId);
+      const url = await getWorkAppGitHubInstallUrl(tenantId);
       window.open(url, '_blank');
     } catch (error) {
       toast.error('Failed to get installation URL', {

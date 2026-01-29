@@ -64,10 +64,10 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
-  workappsGithubAppInstallations,
-  workappsGithubAppRepositories,
-  workappsGithubMcpToolRepositoryAccess,
-  workappsGithubProjectRepositoryAccess,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -2536,8 +2536,8 @@ export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).o
   createdAt: true,
 });
 
-export const GitHubAppInstallationSelectSchema = createSelectSchema(workappsGithubAppInstallations);
-export const GitHubAppInstallationInsertSchema = createInsertSchema(workappsGithubAppInstallations)
+export const WorkAppGitHubInstallationSelectSchema = createSelectSchema(workAppGitHubInstallations);
+export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppGitHubInstallations)
   .omit({
     createdAt: true,
     updatedAt: true,
@@ -2548,54 +2548,54 @@ export const GitHubAppInstallationInsertSchema = createInsertSchema(workappsGith
     status: z.enum(['pending', 'active', 'suspended', 'disconnected']).optional().default('active'),
   });
 
-export const GitHubAppInstallationApiSelectSchema = GitHubAppInstallationSelectSchema.omit({
+export const WorkAppGithubInstallationApiSelectSchema = WorkAppGitHubInstallationSelectSchema.omit({
   tenantId: true,
 });
-export const GitHubAppInstallationApiInsertSchema = GitHubAppInstallationInsertSchema.omit({
+export const WorkAppGitHubInstallationApiInsertSchema = WorkAppGitHubInstallationInsertSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const GitHubAppRepositorySelectSchema = createSelectSchema(workappsGithubAppRepositories);
-export const GitHubAppRepositoryInsertSchema = createInsertSchema(
-  workappsGithubAppRepositories
+export const WorkAppGitHubRepositorySelectSchema = createSelectSchema(workAppGitHubRepositories);
+export const WorkAppGitHubRepositoryInsertSchema = createInsertSchema(
+  workAppGitHubRepositories
 ).omit({
   createdAt: true,
   updatedAt: true,
 });
 
-export const GitHubAppRepositoryApiInsertSchema = GitHubAppRepositoryInsertSchema.omit({
+export const WorkAppGitHubRepositoryApiInsertSchema = WorkAppGitHubRepositoryInsertSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const GitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
-  workappsGithubProjectRepositoryAccess
+export const WorkAppGitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubProjectRepositoryAccess
 );
 
-export const GitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
-  workappsGithubMcpToolRepositoryAccess
+export const WorkAppGitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubMcpToolRepositoryAccess
 );
 
 // Shared GitHub Access API Schemas
-export const GitHubAccessModeSchema = z.enum(['all', 'selected']);
+export const WorkAppGitHubAccessModeSchema = z.enum(['all', 'selected']);
 
-export const GitHubAccessSetRequestSchema = z.object({
-  mode: GitHubAccessModeSchema,
+export const WorkAppGitHubAccessSetRequestSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
   repositoryIds: z
     .array(z.string())
     .optional()
     .describe('Internal repository IDs (required when mode="selected")'),
 });
 
-export const GitHubAccessSetResponseSchema = z.object({
-  mode: GitHubAccessModeSchema,
+export const WorkAppGitHubAccessSetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
   repositoryCount: z.number(),
 });
 
-export const GitHubAccessGetResponseSchema = z.object({
-  mode: GitHubAccessModeSchema,
-  repositories: z.array(GitHubAppRepositorySelectSchema),
+export const WorkAppGitHubAccessGetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });

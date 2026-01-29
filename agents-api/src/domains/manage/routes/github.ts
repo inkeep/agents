@@ -6,8 +6,6 @@ import {
   createApiError,
   deleteInstallation,
   disconnectInstallation,
-  GitHubAppInstallationApiSelectSchema,
-  GitHubAppRepositorySelectSchema,
   getInstallationById,
   getInstallationsByTenantId,
   getRepositoriesByInstallationId,
@@ -15,7 +13,11 @@ import {
   syncRepositories,
   TenantParamsSchema,
   updateInstallationStatus,
+  WorkAppGitHubRepositorySelectSchema,
+  WorkAppGithubInstallationApiSelectSchema,
 } from '@inkeep/agents-core';
+import { HTTPException } from 'hono/http-exception';
+import { SignJWT } from 'jose';
 import {
   createAppJwt,
   fetchInstallationRepositories,
@@ -23,9 +25,7 @@ import {
   getStateSigningSecret,
   isGitHubAppNameConfigured,
   isStateSigningConfigured,
-} from '@inkeep/agents-workapps/github';
-import { HTTPException } from 'hono/http-exception';
-import { SignJWT } from 'jose';
+} from '../../../../../packages/agents-work-apps/dist/github';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
@@ -119,7 +119,7 @@ app.openapi(
   }
 );
 
-const InstallationWithRepoCountSchema = GitHubAppInstallationApiSelectSchema.extend({
+const InstallationWithRepoCountSchema = WorkAppGithubInstallationApiSelectSchema.extend({
   repositoryCount: z.number().describe('Number of repositories accessible to this installation'),
 });
 
@@ -205,8 +205,8 @@ const InstallationIdParamSchema = z.object({
 });
 
 const InstallationDetailResponseSchema = z.object({
-  installation: GitHubAppInstallationApiSelectSchema.describe('Installation details'),
-  repositories: z.array(GitHubAppRepositorySelectSchema).describe('List of repositories'),
+  installation: WorkAppGithubInstallationApiSelectSchema.describe('Installation details'),
+  repositories: z.array(WorkAppGitHubRepositorySelectSchema).describe('List of repositories'),
 });
 
 app.openapi(
@@ -601,7 +601,9 @@ app.openapi(
 );
 
 const SyncRepositoriesResponseSchema = z.object({
-  repositories: z.array(GitHubAppRepositorySelectSchema).describe('Updated list of repositories'),
+  repositories: z
+    .array(WorkAppGitHubRepositorySelectSchema)
+    .describe('Updated list of repositories'),
   syncResult: z.object({
     added: z.number().describe('Number of repositories added'),
     removed: z.number().describe('Number of repositories removed'),

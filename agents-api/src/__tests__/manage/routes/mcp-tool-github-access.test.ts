@@ -3,14 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   getToolByIdMock,
+  getMcpToolAccessModeMock,
   getMcpToolRepositoryAccessMock,
   getMcpToolRepositoryAccessWithDetailsMock,
+  setMcpToolAccessModeMock,
   setMcpToolRepositoryAccessMock,
   validateRepositoryOwnershipMock,
 } = vi.hoisted(() => ({
   getToolByIdMock: vi.fn(),
+  getMcpToolAccessModeMock: vi.fn(),
   getMcpToolRepositoryAccessMock: vi.fn(),
   getMcpToolRepositoryAccessWithDetailsMock: vi.fn(),
+  setMcpToolAccessModeMock: vi.fn(),
   setMcpToolRepositoryAccessMock: vi.fn(),
   validateRepositoryOwnershipMock: vi.fn(),
 }));
@@ -20,8 +24,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     getToolById: () => getToolByIdMock,
+    getMcpToolAccessMode: () => getMcpToolAccessModeMock,
     getMcpToolRepositoryAccess: () => getMcpToolRepositoryAccessMock,
     getMcpToolRepositoryAccessWithDetails: () => getMcpToolRepositoryAccessWithDetailsMock,
+    setMcpToolAccessMode: () => setMcpToolAccessModeMock,
     setMcpToolRepositoryAccess: () => setMcpToolRepositoryAccessMock,
     validateRepositoryOwnership: () => validateRepositoryOwnershipMock,
   };
@@ -95,6 +101,8 @@ describe('MCP Tool GitHub Access Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getToolByIdMock.mockResolvedValue(VALID_GITHUB_WORKAPP_TOOL);
+    getMcpToolAccessModeMock.mockResolvedValue('selected');
+    setMcpToolAccessModeMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -102,8 +110,8 @@ describe('MCP Tool GitHub Access Routes', () => {
   });
 
   describe('GET /tools/:toolId/github-access', () => {
-    it('should return mode=all when no access entries exist', async () => {
-      getMcpToolRepositoryAccessMock.mockResolvedValue([]);
+    it('should return mode=all when access mode is set to all', async () => {
+      getMcpToolAccessModeMock.mockResolvedValue('all');
 
       const response = await app.request(
         `/${TEST_TENANT_ID}/projects/${TEST_PROJECT_ID}/tools/${TEST_TOOL_ID}/github-access`,
@@ -236,6 +244,12 @@ describe('MCP Tool GitHub Access Routes', () => {
 
       expect(body.mode).toBe('all');
       expect(body.repositoryCount).toBe(0);
+      expect(setMcpToolAccessModeMock).toHaveBeenCalledWith({
+        toolId: TEST_TOOL_ID,
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'all',
+      });
       expect(setMcpToolRepositoryAccessMock).toHaveBeenCalledWith({
         toolId: TEST_TOOL_ID,
         tenantId: TEST_TENANT_ID,
@@ -267,6 +281,12 @@ describe('MCP Tool GitHub Access Routes', () => {
       expect(validateRepositoryOwnershipMock).toHaveBeenCalledWith({
         tenantId: TEST_TENANT_ID,
         repositoryIds,
+      });
+      expect(setMcpToolAccessModeMock).toHaveBeenCalledWith({
+        toolId: TEST_TOOL_ID,
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'selected',
       });
       expect(setMcpToolRepositoryAccessMock).toHaveBeenCalledWith({
         toolId: TEST_TOOL_ID,
@@ -411,6 +431,12 @@ describe('MCP Tool GitHub Access Routes', () => {
       expect(body.mode).toBe('all');
       expect(body.repositoryCount).toBe(0);
       expect(validateRepositoryOwnershipMock).not.toHaveBeenCalled();
+      expect(setMcpToolAccessModeMock).toHaveBeenCalledWith({
+        toolId: TEST_TOOL_ID,
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        mode: 'all',
+      });
       expect(setMcpToolRepositoryAccessMock).toHaveBeenCalledWith({
         toolId: TEST_TOOL_ID,
         tenantId: TEST_TENANT_ID,
