@@ -168,6 +168,41 @@ export function MCPServerNodeEditor({
     markUnsaved();
   };
 
+  const toggleAllApprovalsForEnabledTools = () => {
+    // Get enabled tool names
+    const enabledToolNames =
+      selectedTools === null
+        ? activeTools?.map((tool) => tool.name) || []
+        : selectedTools.filter((toolName) => activeTools?.some((tool) => tool.name === toolName));
+
+    if (enabledToolNames.length === 0) return;
+
+    // Check if all enabled tools currently need approval
+    const allEnabledNeedApproval = enabledToolNames.every(
+      (toolName) => currentToolPolicies[toolName]?.needsApproval
+    );
+
+    const updatedPolicies = { ...currentToolPolicies };
+
+    if (allEnabledNeedApproval) {
+      // Remove approval from all enabled tools
+      for (const toolName of enabledToolNames) {
+        delete updatedPolicies[toolName];
+      }
+    } else {
+      // Add approval to all enabled tools
+      for (const toolName of enabledToolNames) {
+        updatedPolicies[toolName] = { needsApproval: true };
+      }
+    }
+
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      tempToolPolicies: updatedPolicies,
+    });
+    markUnsaved();
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (selectedNode) {
@@ -337,15 +372,50 @@ export function MCPServerNodeEditor({
               <div>Tool</div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1 cursor-help mcp-needs-approval">
+                  <div className="flex items-center gap-1.5 cursor-help mcp-needs-approval">
                     <Shield className="w-3 h-3" />
                     Needs Approval?
+                    {(() => {
+                      const enabledToolNames =
+                        selectedTools === null
+                          ? activeTools?.map((tool) => tool.name) || []
+                          : selectedTools.filter((toolName) =>
+                              activeTools?.some((tool) => tool.name === toolName)
+                            );
+                      const hasEnabledTools = enabledToolNames.length > 0;
+                      const allEnabledNeedApproval =
+                        hasEnabledTools &&
+                        enabledToolNames.every(
+                          (toolName) => currentToolPolicies[toolName]?.needsApproval
+                        );
+                      const someEnabledNeedApproval =
+                        hasEnabledTools &&
+                        enabledToolNames.some(
+                          (toolName) => currentToolPolicies[toolName]?.needsApproval
+                        );
+
+                      return (
+                        <Checkbox
+                          checked={
+                            allEnabledNeedApproval
+                              ? true
+                              : someEnabledNeedApproval
+                                ? 'indeterminate'
+                                : false
+                          }
+                          disabled={!hasEnabledTools}
+                          onCheckedChange={() => toggleAllApprovalsForEnabledTools()}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Toggle approval for all enabled tools"
+                        />
+                      );
+                    })()}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <div className="text-sm">
                     Tools requiring approval will pause execution and wait for user confirmation
-                    before running.
+                    before running. Use the checkbox to toggle approval for all enabled tools.
                   </div>
                 </TooltipContent>
               </Tooltip>
