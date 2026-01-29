@@ -3,9 +3,12 @@ import {
   commonGetErrorResponses,
   commonUpdateErrorResponses,
   createApiError,
-  GitHubAppRepositorySelectSchema,
   getProjectRepositoryAccess,
   getProjectRepositoryAccessWithDetails,
+  GitHubAccessGetResponseSchema,
+  GitHubAccessModeSchema,
+  GitHubAccessSetRequestSchema,
+  GitHubAccessSetResponseSchema,
   setProjectRepositoryAccess,
   TenantProjectParamsSchema,
   validateRepositoryOwnership,
@@ -18,32 +21,21 @@ const logger = getLogger('project-github-access');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const GitHubAccessModeSchema = z
-  .enum(['all', 'selected'])
-  .describe(
-    'Access mode: "all" means project has access to all tenant repositories, ' +
-      '"selected" means project is scoped to specific repositories'
-  );
+const ProjectGitHubAccessModeSchema = GitHubAccessModeSchema.describe(
+  'Access mode: "all" means project has access to all tenant repositories, ' +
+    '"selected" means project is scoped to specific repositories'
+);
 
-const SetGitHubAccessRequestSchema = z.object({
-  mode: GitHubAccessModeSchema,
-  repositoryIds: z
-    .array(z.string())
-    .optional()
-    .describe('Internal repository IDs (required when mode="selected")'),
+const SetGitHubAccessRequestSchema = GitHubAccessSetRequestSchema.extend({
+  mode: ProjectGitHubAccessModeSchema,
 });
 
-const GetGitHubAccessResponseSchema = z.object({
-  mode: GitHubAccessModeSchema,
-  repositories: z
-    .array(GitHubAppRepositorySelectSchema)
-    .describe(
-      'List of repositories the project has access to (only populated when mode="selected")'
-    ),
-});
+const GetGitHubAccessResponseSchema = GitHubAccessGetResponseSchema.extend({
+  mode: ProjectGitHubAccessModeSchema,
+}).describe('GitHub access configuration for a project');
 
-const SetGitHubAccessResponseSchema = z.object({
-  mode: GitHubAccessModeSchema,
+const SetGitHubAccessResponseSchema = GitHubAccessSetResponseSchema.extend({
+  mode: ProjectGitHubAccessModeSchema,
   repositoryCount: z
     .number()
     .describe('Number of repositories the project now has access to (0 when mode="all")'),

@@ -2578,3 +2578,24 @@ export const GitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
 export const GitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
   workappsGithubMcpToolRepositoryAccess
 );
+
+// Shared GitHub Access API Schemas
+export const GitHubAccessModeSchema = z.enum(['all', 'selected']);
+
+export const GitHubAccessSetRequestSchema = z.object({
+  mode: GitHubAccessModeSchema,
+  repositoryIds: z
+    .array(z.string())
+    .optional()
+    .describe('Internal repository IDs (required when mode="selected")'),
+});
+
+export const GitHubAccessSetResponseSchema = z.object({
+  mode: GitHubAccessModeSchema,
+  repositoryCount: z.number(),
+});
+
+export const GitHubAccessGetResponseSchema = z.object({
+  mode: GitHubAccessModeSchema,
+  repositories: z.array(GitHubAppRepositorySelectSchema),
+});
