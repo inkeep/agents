@@ -1677,21 +1677,15 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
       allowReturnOutsideFunction: true,
       plugins: [],
     });
-    const hasExportDefaultFunction = ast.program.body.some(
-      (node) =>
-        node.type === 'ExportDefaultDeclaration' && node.declaration?.type === 'FunctionDeclaration'
-    );
-    if (hasExportDefaultFunction) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Export default function declarations are not allowed',
-        input: val,
-      });
+    for (const node of ast.program.body) {
+      if (node.type === 'ExportDefaultDeclaration') {
+        throw SyntaxError('Export default is not allowed');
+      }
     }
-  } catch {
+  } catch (error) {
     ctx.addIssue({
       code: 'custom',
-      message: 'Invalid JavaScript syntax. TypeScript and JSX are not allowed.',
+      message: error instanceof Error ? error.message : JSON.stringify(error),
       input: val,
     });
   }

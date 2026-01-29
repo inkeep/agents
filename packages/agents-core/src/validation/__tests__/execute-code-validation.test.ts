@@ -1,29 +1,27 @@
-import { describe, expect, it } from 'vitest';
 import { FunctionApiInsertSchema } from '../schemas';
 
 const basePayload = {
   id: 'fn-1',
-  inputSchema: {},
-  dependencies: {},
 };
 
 describe('FunctionApiInsertSchema executeCode validation', () => {
   it('rejects export default function', () => {
-    const result = FunctionApiInsertSchema.safeParse({
-      ...basePayload,
-      executeCode: 'export default function test() { return 1; }',
-    });
-    expect(result.success).toBe(false);
+    expect(() =>
+      FunctionApiInsertSchema.parse({
+        ...basePayload,
+        executeCode: 'export default function() {}',
+      })
+    ).toThrowError(/Export default is not allowed/);
   });
 
-  // it('allows arrow functions', () => {
-  //   const result = FunctionApiInsertSchema.safeParse({
-  //     ...basePayload,
-  //     executeCode: '() => 1',
-  //   });
-  //   expect(result.success).toBe(true);
-  // });
-  //
+  it('allows arrow functions', () => {
+    const result = FunctionApiInsertSchema.safeParse({
+      ...basePayload,
+      executeCode: '() => 1',
+    });
+    expect(result.success).toBe(true);
+  });
+
   // it('rejects TypeScript syntax', () => {
   //   const result = FunctionApiInsertSchema.safeParse({
   //     ...basePayload,
