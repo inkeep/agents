@@ -48,7 +48,7 @@ app.openapi(
     path: '/',
     summary: 'Get project GitHub repository access',
     operationId: 'get-project-github-access',
-    tags: ['GitHub', 'Projects'],
+    tags: ['Projects'],
     description:
       'Returns the current GitHub repository access configuration for a project. ' +
       'If mode is "all", the project has access to all repositories from tenant GitHub installations. ' +
@@ -121,7 +121,7 @@ app.openapi(
     path: '/',
     summary: 'Set project GitHub repository access',
     operationId: 'set-project-github-access',
-    tags: ['GitHub', 'Projects'],
+    tags: ['Projects'],
     description:
       'Configures which GitHub repositories a project can access. ' +
       'When mode is "all", the project has access to all repositories from tenant GitHub installations. ' +

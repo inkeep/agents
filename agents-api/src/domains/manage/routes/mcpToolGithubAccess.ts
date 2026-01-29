@@ -103,7 +103,7 @@ app.openapi(
     path: '/',
     summary: 'Get MCP tool GitHub repository access',
     operationId: 'get-mcp-tool-github-access',
-    tags: ['GitHub', 'Tools'],
+    tags: ['Tools'],
     description:
       'Returns the current GitHub repository access configuration for an MCP tool. ' +
       'If mode is "all", the tool has access to all repositories the project can access. ' +
@@ -183,7 +183,7 @@ app.openapi(
     path: '/',
     summary: 'Set MCP tool GitHub repository access',
     operationId: 'set-mcp-tool-github-access',
-    tags: ['GitHub', 'Tools'],
+    tags: ['Tools'],
     description:
       'Configures which GitHub repositories an MCP tool can access. ' +
       'When mode is "all", the tool has access to all repositories the project can access. ' +
