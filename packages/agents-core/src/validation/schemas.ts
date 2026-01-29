@@ -77,14 +77,8 @@ import {
   createInsertSchema,
   createResourceIdSchema,
   createSelectSchema,
-  MAX_ID_LENGTH,
-  MIN_ID_LENGTH,
   registerFieldSchemas,
-  resourceIdSchema,
-  URL_SAFE_ID_PATTERN,
 } from './drizzle-schema-helpers';
-
-export { MAX_ID_LENGTH, MIN_ID_LENGTH, resourceIdSchema, URL_SAFE_ID_PATTERN };
 
 export const StopWhenSchema = z
   .object({
@@ -114,6 +108,23 @@ export const SubAgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true })
 export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
+
+const MIN_ID_LENGTH = 1;
+export const MAX_ID_LENGTH = 255;
+const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+
+export const resourceIdSchema = z
+  .string()
+  .min(MIN_ID_LENGTH)
+  .max(MAX_ID_LENGTH)
+  .regex(URL_SAFE_ID_PATTERN, {
+    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
+  })
+  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
+  .openapi({
+    description: 'Resource identifier',
+    example: 'resource_789',
+  });
 
 const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
 const limitNumber = z.coerce
