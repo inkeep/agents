@@ -604,13 +604,37 @@ async function executeAgentAsync(params: {
     resolvedRef,
   } = params;
 
+  // Load project FIRST to get agent name
+  const project = await withRef(manageDbPool, resolvedRef, async (db) => {
+    return await getFullProjectWithRelationIds(db)({
+      scopes: { tenantId, projectId },
+    });
+  });
+
+  if (!project) {
+    throw new Error(`Project ${projectId} not found`);
+  }
+
+  // Find the agent's default sub-agent
+  const agent = project.agents?.[agentId];
+  if (!agent) {
+    throw new Error(`Agent ${agentId} not found in project`);
+  }
+  const defaultSubAgentId = agent.defaultSubAgentId;
+  if (!defaultSubAgentId) {
+    throw new Error(`Agent ${agentId} has no default sub-agent configured`);
+  }
+
+  const agentName = agent.name || agentId;
+
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
     .createBaggage()
     .setEntry('conversation.id', { value: conversationId })
     .setEntry('tenant.id', { value: tenantId })
     .setEntry('project.id', { value: projectId })
-    .setEntry('agent.id', { value: agentId });
+    .setEntry('agent.id', { value: agentId })
+    .setEntry('agent.name', { value: agentName });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
 
   // Execute the agent in a new trace root with baggage
@@ -622,6 +646,7 @@ async function executeAgentAsync(params: {
         'tenant.id': tenantId,
         'project.id': projectId,
         'agent.id': agentId,
+        'agent.name': agentName,
         'trigger.id': triggerId,
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
@@ -639,6 +664,7 @@ async function executeAgentAsync(params: {
             'tenant.id': tenantId,
             'project.id': projectId,
             'agent.id': agentId,
+            'agent.name': agentName,
             'trigger.id': triggerId,
             'trigger.invocation.id': invocationId,
             'conversation.id': conversationId,
@@ -659,30 +685,6 @@ async function executeAgentAsync(params: {
       );
 
       try {
-        // Load project
-        const project = await withRef(manageDbPool, resolvedRef, async (db) => {
-          return await getFullProjectWithRelationIds(db)({
-            scopes: { tenantId, projectId },
-          });
-        });
-
-        if (!project) {
-          throw new Error(`Project ${projectId} not found`);
-        }
-
-        // Find the agent's default sub-agent
-        const agent = project.agents?.[agentId];
-        if (!agent) {
-          throw new Error(`Agent ${agentId} not found in project`);
-        }
-        const defaultSubAgentId = agent.defaultSubAgentId;
-        if (!defaultSubAgentId) {
-          throw new Error(`Agent ${agentId} has no default sub-agent configured`);
-        }
-
-        // Add agent.name to span now that we have it
-        span.setAttribute('agent.name', agent.name || agentId);
-
         // Create conversation and set active agent
         await createOrGetConversation(runDbClient)({
           id: conversationId,
