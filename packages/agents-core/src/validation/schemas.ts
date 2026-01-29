@@ -66,6 +66,7 @@ import {
   triggerInvocations,
   workappsGithubAppInstallations,
   workappsGithubAppRepositories,
+  workappsGithubMcpToolRepositoryAccess,
   workappsGithubProjectRepositoryAccess,
 } from '../db/runtime/runtime-schema';
 import {
@@ -2572,4 +2573,8 @@ export const GitHubAppRepositoryApiInsertSchema = GitHubAppRepositoryInsertSchem
 
 export const GitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
   workappsGithubProjectRepositoryAccess
+);
+
+export const GitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
+  workappsGithubMcpToolRepositoryAccess
 );

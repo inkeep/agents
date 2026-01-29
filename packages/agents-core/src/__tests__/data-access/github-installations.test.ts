@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   addRepositories,
   checkProjectRepositoryAccess,
+  clearMcpToolRepositoryAccess,
   clearProjectRepositoryAccess,
   createInstallation,
   deleteInstallation,
@@ -9,6 +10,8 @@ import {
   getInstallationByGitHubId,
   getInstallationById,
   getInstallationsByTenantId,
+  getMcpToolRepositoryAccess,
+  getMcpToolRepositoryAccessWithDetails,
   getProjectRepositoryAccess,
   getProjectRepositoryAccessWithDetails,
   getRepositoriesByInstallationId,
@@ -17,6 +20,7 @@ import {
   getRepositoryById,
   getRepositoryCount,
   removeRepositories,
+  setMcpToolRepositoryAccess,
   setProjectRepositoryAccess,
   syncRepositories,
   updateInstallationStatus,
@@ -28,6 +32,7 @@ import {
   organization,
   workappsGithubAppInstallations,
   workappsGithubAppRepositories,
+  workappsGithubMcpToolRepositoryAccess,
   workappsGithubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
@@ -44,6 +49,7 @@ describe('GitHub Installations Data Access', () => {
 
   beforeEach(async () => {
     // Clean up in correct FK order
+    await dbClient.delete(workappsGithubMcpToolRepositoryAccess);
     await dbClient.delete(workappsGithubProjectRepositoryAccess);
     await dbClient.delete(workappsGithubAppRepositories);
     await dbClient.delete(workappsGithubAppInstallations);
@@ -1280,6 +1286,237 @@ describe('GitHub Installations Data Access', () => {
         });
 
         expect(invalid).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('MCP Tool Repository Access', () => {
+    let installationId: string;
+    let repoId1: string;
+    let repoId2: string;
+    const toolId = 'test-tool-123';
+    const projectId = 'test-project-mcp';
+
+    beforeEach(async () => {
+      const installation = await createInstallation(dbClient)({
+        id: generateId(),
+        tenantId,
+        installationId: '12345678',
+        accountLogin: 'test-org',
+        accountId: '987654',
+        accountType: 'Organization',
+        status: 'active',
+      });
+      installationId = installation.id;
+
+      const repos = await addRepositories(dbClient)({
+        installationId,
+        repositories: [
+          {
+            repositoryId: '111',
+            repositoryName: 'repo-1',
+            repositoryFullName: 'test-org/repo-1',
+            private: false,
+          },
+          {
+            repositoryId: '222',
+            repositoryName: 'repo-2',
+            repositoryFullName: 'test-org/repo-2',
+            private: true,
+          },
+        ],
+      });
+      const repo1 = repos.find((r) => r.repositoryId === '111');
+      const repo2 = repos.find((r) => r.repositoryId === '222');
+      expect(repo1).toBeDefined();
+      expect(repo2).toBeDefined();
+      repoId1 = repo1?.id ?? '';
+      repoId2 = repo2?.id ?? '';
+    });
+
+    describe('setMcpToolRepositoryAccess', () => {
+      it('should set MCP tool repository access', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(1);
+        expect(access[0].repositoryDbId).toBe(repoId1);
+      });
+
+      it('should replace existing access', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId2],
+        });
+
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(1);
+        expect(access[0].repositoryDbId).toBe(repoId2);
+      });
+
+      it('should set multiple repositories', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(2);
+      });
+
+      it('should clear access when given empty array', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [],
+        });
+
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(0);
+      });
+    });
+
+    describe('getMcpToolRepositoryAccess', () => {
+      it('should return empty array when no access configured', async () => {
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(0);
+      });
+
+      it('should return access entries with correct fields', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(1);
+        expect(access[0]).toMatchObject({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryDbId: repoId1,
+        });
+        expect(access[0].id).toBeDefined();
+        expect(access[0].createdAt).toBeDefined();
+      });
+    });
+
+    describe('getMcpToolRepositoryAccessWithDetails', () => {
+      it('should return access entries with full repository details', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+
+        expect(access).toHaveLength(1);
+        expect(access[0].repositoryName).toBe('repo-1');
+        expect(access[0].repositoryFullName).toBe('test-org/repo-1');
+        expect(access[0].private).toBe(false);
+        expect(access[0].accessId).toBeDefined();
+        expect(access[0].installationAccountLogin).toBe('test-org');
+      });
+
+      it('should return empty array when no access configured', async () => {
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+        expect(access).toHaveLength(0);
+      });
+
+      it('should return multiple repositories with details', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+
+        expect(access).toHaveLength(2);
+        const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
+        const repo2Access = access.find((a) => a.repositoryName === 'repo-2');
+        expect(repo1Access).toBeDefined();
+        expect(repo2Access).toBeDefined();
+        expect(repo1Access?.private).toBe(false);
+        expect(repo2Access?.private).toBe(true);
+      });
+    });
+
+    describe('clearMcpToolRepositoryAccess', () => {
+      it('should clear all access for a tool', async () => {
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        const deleted = await clearMcpToolRepositoryAccess(dbClient)(toolId);
+
+        expect(deleted).toBe(2);
+
+        const access = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(access).toHaveLength(0);
+      });
+
+      it('should return 0 when no access to clear', async () => {
+        const deleted = await clearMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(deleted).toBe(0);
+      });
+
+      it('should only clear access for the specified tool', async () => {
+        const otherToolId = 'other-tool-456';
+
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId: otherToolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId2],
+        });
+
+        await clearMcpToolRepositoryAccess(dbClient)(toolId);
+
+        const access1 = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        const access2 = await getMcpToolRepositoryAccess(dbClient)(otherToolId);
+
+        expect(access1).toHaveLength(0);
+        expect(access2).toHaveLength(1);
       });
     });
   });

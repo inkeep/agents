@@ -135,6 +135,7 @@ import type {
   GitHubAppInstallationSelectSchema,
   GitHubAppRepositoryInsertSchema,
   GitHubAppRepositorySelectSchema,
+  GitHubMcpToolRepositoryAccessSelectSchema,
   GitHubProjectRepositoryAccessSelectSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
@@ -410,6 +411,9 @@ export type GitHubAppRepositorySelect = z.infer<typeof GitHubAppRepositorySelect
 export type GitHubAppRepositoryInsert = z.infer<typeof GitHubAppRepositoryInsertSchema>;
 export type GitHubProjectRepositoryAccessSelect = z.infer<
   typeof GitHubProjectRepositoryAccessSelectSchema
+>;
+export type GitHubMcpToolRepositoryAccessSelect = z.infer<
+  typeof GitHubMcpToolRepositoryAccessSelectSchema
 >;
 
 export type GitHubAppRepositoryInput = Omit<GitHubAppRepositoryInsert, 'id' | 'installationDbId'>;

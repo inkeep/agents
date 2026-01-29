@@ -344,6 +344,7 @@ export const tools = pgTable(
     imageUrl: text('image_url'),
     capabilities: jsonb('capabilities').$type<ToolServerCapabilities>(),
     lastError: text('last_error'),
+    isWorkapp: boolean('is_workapp').notNull().default(false),
     ...timestamps,
   },
   (table) => [

@@ -3,6 +3,7 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   workappsGithubAppInstallations,
   workappsGithubAppRepositories,
+  workappsGithubMcpToolRepositoryAccess,
   workappsGithubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type {
@@ -713,4 +714,119 @@ export const getRepositoryCountsByInstallationIds =
     }
 
     return countsMap;
+  };
+
+// ============================================================================
+// MCP Tool Repository Access Functions
+// ============================================================================
+
+/**
+ * Set MCP tool repository access (full replacement)
+ * Pass empty array to clear all access (effectively mode='all' - inherits from project)
+ */
+export const setMcpToolRepositoryAccess =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    toolId: string;
+    tenantId: string;
+    projectId: string;
+    repositoryIds: string[];
+  }): Promise<void> => {
+    const now = new Date().toISOString();
+
+    // Remove all existing access for this tool
+    await db
+      .delete(workappsGithubMcpToolRepositoryAccess)
+      .where(eq(workappsGithubMcpToolRepositoryAccess.toolId, params.toolId));
+
+    // Add new access entries
+    if (params.repositoryIds.length > 0) {
+      await db.insert(workappsGithubMcpToolRepositoryAccess).values(
+        params.repositoryIds.map((repoId) => ({
+          id: generateId(),
+          toolId: params.toolId,
+          tenantId: params.tenantId,
+          projectId: params.projectId,
+          repositoryDbId: repoId,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      );
+    }
+  };
+
+/**
+ * Get MCP tool repository access entries
+ * Empty result means tool has access to all project repos (mode='all')
+ */
+export const getMcpToolRepositoryAccess =
+  (db: AgentsRunDatabaseClient) =>
+  async (
+    toolId: string
+  ): Promise<
+    {
+      id: string;
+      toolId: string;
+      tenantId: string;
+      projectId: string;
+      repositoryDbId: string;
+      createdAt: string;
+      updatedAt: string;
+    }[]
+  > => {
+    const result = await db
+      .select()
+      .from(workappsGithubMcpToolRepositoryAccess)
+      .where(eq(workappsGithubMcpToolRepositoryAccess.toolId, toolId));
+
+    return result;
+  };
+
+/**
+ * Get MCP tool repository access with full repository details
+ */
+export const getMcpToolRepositoryAccessWithDetails =
+  (db: AgentsRunDatabaseClient) =>
+  async (
+    toolId: string
+  ): Promise<(GitHubAppRepositorySelect & { accessId: string; installationAccountLogin: string })[]> => {
+    const result = await db
+      .select({
+        accessId: workappsGithubMcpToolRepositoryAccess.id,
+        id: workappsGithubAppRepositories.id,
+        installationDbId: workappsGithubAppRepositories.installationDbId,
+        repositoryId: workappsGithubAppRepositories.repositoryId,
+        repositoryName: workappsGithubAppRepositories.repositoryName,
+        repositoryFullName: workappsGithubAppRepositories.repositoryFullName,
+        private: workappsGithubAppRepositories.private,
+        createdAt: workappsGithubAppRepositories.createdAt,
+        updatedAt: workappsGithubAppRepositories.updatedAt,
+        installationAccountLogin: workappsGithubAppInstallations.accountLogin,
+      })
+      .from(workappsGithubMcpToolRepositoryAccess)
+      .innerJoin(
+        workappsGithubAppRepositories,
+        eq(workappsGithubMcpToolRepositoryAccess.repositoryDbId, workappsGithubAppRepositories.id)
+      )
+      .innerJoin(
+        workappsGithubAppInstallations,
+        eq(workappsGithubAppRepositories.installationDbId, workappsGithubAppInstallations.id)
+      )
+      .where(eq(workappsGithubMcpToolRepositoryAccess.toolId, toolId));
+
+    return result as (GitHubAppRepositorySelect & { accessId: string; installationAccountLogin: string })[];
+  };
+
+/**
+ * Remove all MCP tool repository access for a specific tool
+ */
+export const clearMcpToolRepositoryAccess =
+  (db: AgentsRunDatabaseClient) =>
+  async (toolId: string): Promise<number> => {
+    const deleted = await db
+      .delete(workappsGithubMcpToolRepositoryAccess)
+      .where(eq(workappsGithubMcpToolRepositoryAccess.toolId, toolId))
+      .returning();
+
+    return deleted.length;
   };
