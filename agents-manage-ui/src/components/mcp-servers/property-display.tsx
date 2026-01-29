@@ -7,7 +7,7 @@ import { getTypeBadgeVariant } from '@/lib/utils/mcp-schema-parser';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
-export interface SchemaProperty {
+interface SchemaProperty {
   name: string;
   type: string;
   required: boolean;
