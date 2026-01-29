@@ -6,6 +6,7 @@ export type {
 } from '@inkeep/agents-ui';
 
 export type {
+  AIChatFunctions,
   ColorModeProviderProps,
   InkeepAIChatSettings,
   InkeepBaseSettings,
