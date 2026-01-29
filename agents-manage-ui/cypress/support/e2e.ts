@@ -15,6 +15,11 @@
 
 import './commands';
 
+// Login before each test to ensure authenticated state
+beforeEach(() => {
+  cy.login();
+});
+
 Cypress.on('uncaught:exception', (err) => {
   // returning false prevents Cypress from failing the test
   if (

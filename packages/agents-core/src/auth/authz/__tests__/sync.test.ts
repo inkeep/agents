@@ -20,28 +20,17 @@ vi.mock('../client', async (importOriginal) => {
   };
 });
 
-// Mock the config module
-vi.mock('../config', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../config')>();
-  return {
-    ...original,
-    isAuthzEnabled: vi.fn(),
-  };
-});
-
 import {
   deleteRelationship,
   getSpiceClient,
   readRelationships,
   writeRelationship,
 } from '../client';
-import { isAuthzEnabled } from '../config';
 
 describe('authz/sync', () => {
   const mockWriteRelationship = vi.mocked(writeRelationship);
   const mockDeleteRelationship = vi.mocked(deleteRelationship);
   const mockReadRelationships = vi.mocked(readRelationships);
-  const mockIsAuthzEnabled = vi.mocked(isAuthzEnabled);
   const mockGetSpiceClient = vi.mocked(getSpiceClient);
 
   const mockSpiceClient = {
@@ -63,22 +52,7 @@ describe('authz/sync', () => {
   });
 
   describe('syncOrgMemberToSpiceDb', () => {
-    it('should do nothing when authz is disabled', async () => {
-      mockIsAuthzEnabled.mockReturnValue(false);
-
-      await syncOrgMemberToSpiceDb({
-        tenantId: 'tenant-1',
-        userId: 'user-1',
-        role: 'member',
-        action: 'add',
-      });
-
-      expect(mockWriteRelationship).not.toHaveBeenCalled();
-    });
-
     it('should write relationship when adding org member', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await syncOrgMemberToSpiceDb({
         tenantId: 'tenant-1',
         userId: 'user-1',
@@ -96,8 +70,6 @@ describe('authz/sync', () => {
     });
 
     it('should delete relationship when removing org member', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await syncOrgMemberToSpiceDb({
         tenantId: 'tenant-1',
         userId: 'user-1',
@@ -116,21 +88,7 @@ describe('authz/sync', () => {
   });
 
   describe('syncProjectToSpiceDb', () => {
-    it('should do nothing when authz is disabled', async () => {
-      mockIsAuthzEnabled.mockReturnValue(false);
-
-      await syncProjectToSpiceDb({
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
-        creatorUserId: 'user-1',
-      });
-
-      expect(mockSpiceClient.promises.writeRelationships).not.toHaveBeenCalled();
-    });
-
     it('should link project to org and grant creator project_admin role', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await syncProjectToSpiceDb({
         tenantId: 'tenant-1',
         projectId: 'project-1',
@@ -161,22 +119,7 @@ describe('authz/sync', () => {
   });
 
   describe('grantProjectAccess', () => {
-    it('should throw when authz is disabled', async () => {
-      mockIsAuthzEnabled.mockReturnValue(false);
-
-      await expect(
-        grantProjectAccess({
-          tenantId: 'test-tenant',
-          projectId: 'project-1',
-          userId: 'user-1',
-          role: 'project_member',
-        })
-      ).rejects.toThrow('Authorization is not enabled');
-    });
-
     it('should write project access relationship', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await grantProjectAccess({
         tenantId: 'test-tenant',
         projectId: 'project-1',
@@ -195,22 +138,7 @@ describe('authz/sync', () => {
   });
 
   describe('revokeProjectAccess', () => {
-    it('should throw when authz is disabled', async () => {
-      mockIsAuthzEnabled.mockReturnValue(false);
-
-      await expect(
-        revokeProjectAccess({
-          tenantId: 'test-tenant',
-          projectId: 'project-1',
-          userId: 'user-1',
-          role: 'project_admin',
-        })
-      ).rejects.toThrow('Authorization is not enabled');
-    });
-
     it('should delete project access relationship', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await revokeProjectAccess({
         tenantId: 'test-tenant',
         projectId: 'project-1',
@@ -229,23 +157,7 @@ describe('authz/sync', () => {
   });
 
   describe('changeProjectRole', () => {
-    it('should throw when authz is disabled', async () => {
-      mockIsAuthzEnabled.mockReturnValue(false);
-
-      await expect(
-        changeProjectRole({
-          tenantId: 'test-tenant',
-          projectId: 'project-1',
-          userId: 'user-1',
-          oldRole: 'project_member',
-          newRole: 'project_admin',
-        })
-      ).rejects.toThrow('Authorization is not enabled');
-    });
-
     it('should atomically delete old role and add new role', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await changeProjectRole({
         tenantId: 'test-tenant',
         projectId: 'project-1',
@@ -277,17 +189,7 @@ describe('authz/sync', () => {
   });
 
   describe('removeProjectFromSpiceDb', () => {
-    it('should do nothing when authz is disabled', async () => {
-      mockIsAuthzEnabled.mockReturnValue(false);
-
-      await removeProjectFromSpiceDb({ tenantId: 'test-tenant', projectId: 'project-1' });
-
-      expect(mockSpiceClient.promises.deleteRelationships).not.toHaveBeenCalled();
-    });
-
     it('should delete all relationships for the project', async () => {
-      mockIsAuthzEnabled.mockReturnValue(true);
-
       await removeProjectFromSpiceDb({ tenantId: 'test-tenant', projectId: 'project-1' });
 
       expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith({

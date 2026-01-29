@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getSpiceDbConfig, isAuthzEnabled } from '../config';
+import { getSpiceDbConfig } from '../config';
 
 describe('authz/config', () => {
   const originalEnv = process.env;
@@ -11,23 +11,6 @@ describe('authz/config', () => {
 
   afterEach(() => {
     process.env = originalEnv;
-  });
-
-  describe('isAuthzEnabled', () => {
-    it('should return false when ENABLE_AUTHZ is not set', () => {
-      delete process.env.ENABLE_AUTHZ;
-      expect(isAuthzEnabled()).toBe(false);
-    });
-
-    it('should return false when ENABLE_AUTHZ is "false"', () => {
-      process.env.ENABLE_AUTHZ = 'false';
-      expect(isAuthzEnabled()).toBe(false);
-    });
-
-    it('should return false for any other ENABLE_AUTHZ value', () => {
-      process.env.ENABLE_AUTHZ = 'yes';
-      expect(isAuthzEnabled()).toBe(false);
-    });
   });
 
   describe('getSpiceDbConfig', () => {

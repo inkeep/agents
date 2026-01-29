@@ -15,6 +15,10 @@ import {
 // Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
 const manageApiUrl = 'http://127.0.0.1:3002';
 
+// Use a test bypass secret for authentication in CI
+// This bypasses the need for a real login/API key
+const TEST_BYPASS_SECRET = 'e2e-test-bypass-secret-for-ci-testing-only';
+
 describe('create-agents quickstart e2e', () => {
   let testDir: string;
   let projectDir: string;
@@ -101,7 +105,11 @@ describe('create-agents quickstart e2e', () => {
     console.log('Local monorepo packages linked and dependencies installed');
 
     console.log('Setting up project in database');
-    await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
+    // Pass bypass secret so setup-dev:cloud's internal push can authenticate
+    await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000, {
+      INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
+      INKEEP_API_KEY: TEST_BYPASS_SECRET,
+    }); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -112,6 +120,8 @@ describe('create-agents quickstart e2e', () => {
         ...process.env,
         FORCE_COLOR: '0',
         NODE_ENV: 'test',
+        // Set bypass secret for authentication in CI
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
       },
       cleanup: true,
       detached: false,
@@ -157,7 +167,9 @@ describe('create-agents quickstart e2e', () => {
           'src/inkeep.config.ts',
         ],
         projectDir,
-        30000
+        30000,
+        // Pass the bypass secret as INKEEP_API_KEY for CLI authentication in CI
+        { INKEEP_API_KEY: TEST_BYPASS_SECRET }
       );
 
       expect(
@@ -166,8 +178,12 @@ describe('create-agents quickstart e2e', () => {
       ).toBe(0);
 
       console.log('Testing API requests');
-      // Test API requests
-      const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`);
+      // Test API requests with bypass secret authentication
+      const response = await fetch(`${manageApiUrl}/manage/tenants/default/projects/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${TEST_BYPASS_SECRET}`,
+        },
+      });
 
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');

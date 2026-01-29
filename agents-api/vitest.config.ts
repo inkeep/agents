@@ -30,6 +30,7 @@ export default defineProject({
       OPENAI_API_KEY: 'test-openai-key',
       LOG_LEVEL: 'error',
       AGENTS_COMPRESSION_ENABLED: 'false',
+      INKEEP_AGENTS_RUN_API_BYPASS_SECRET: 'test-bypass-secret',
     },
   },
 });

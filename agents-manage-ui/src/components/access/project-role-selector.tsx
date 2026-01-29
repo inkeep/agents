@@ -18,6 +18,10 @@ const PROJECT_ROLES: { value: ProjectRole; label: string; description: string }[
   { value: ProjectRoles.VIEWER, label: 'Viewer', description: 'Can view the project' },
 ];
 
+export const getProjectRoleLabel = (role: ProjectRole): string => {
+  return PROJECT_ROLES.find((r) => r.value === role)?.label || role;
+};
+
 interface ProjectRoleSelectorProps {
   value: ProjectRole;
   onChange: (role: ProjectRole) => void;

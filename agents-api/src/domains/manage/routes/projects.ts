@@ -11,7 +11,6 @@ import {
   ErrorResponseSchema,
   getProject,
   getProjectMainBranchName,
-  isAuthzEnabled,
   listAccessibleProjectIds,
   listProjectsWithMetadataPaginated,
   type OrgRole,
@@ -97,7 +96,7 @@ app.openapi(
 
     // Get accessible project IDs based on authorization
     let accessibleIds: string[] | undefined;
-    if (isAuthzEnabled() && userId) {
+    if (userId) {
       const result = await listAccessibleProjectIds({
         userId,
         orgRole: tenantRole as OrgRole,
@@ -248,24 +247,22 @@ app.openapi(
       });
 
       // Sync to SpiceDB: link project to org and grant creator admin role
-      if (isAuthzEnabled()) {
-        if (!userId) {
-          throw createApiError({
-            code: 'unauthorized',
-            message: 'User not found',
-          });
-        }
+      if (!userId) {
+        throw createApiError({
+          code: 'unauthorized',
+          message: 'User not found',
+        });
+      }
 
-        try {
-          await syncProjectToSpiceDb({
-            tenantId,
-            projectId: body.id,
-            creatorUserId: userId,
-          });
-        } catch (syncError) {
-          // Log but don't fail the request
-          console.warn('Failed to sync project to SpiceDB:', syncError);
-        }
+      try {
+        await syncProjectToSpiceDb({
+          tenantId,
+          projectId: body.id,
+          creatorUserId: userId,
+        });
+      } catch (syncError) {
+        // Log but don't fail the request
+        console.warn('Failed to sync project to SpiceDB:', syncError);
       }
 
       return c.json(
@@ -415,12 +412,10 @@ app.openapi(
       }
 
       // Remove from SpiceDB
-      if (isAuthzEnabled()) {
-        try {
-          await removeProjectFromSpiceDb({ tenantId, projectId: id });
-        } catch (syncError) {
-          console.warn('Failed to remove project from SpiceDB:', syncError);
-        }
+      try {
+        await removeProjectFromSpiceDb({ tenantId, projectId: id });
+      } catch (syncError) {
+        console.warn('Failed to remove project from SpiceDB:', syncError);
       }
 
       return c.body(null, 204);

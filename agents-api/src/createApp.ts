@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OrgRoles } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -205,8 +206,8 @@ function createAgentsHono(config: AppConfig) {
 
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', async (c, next) => {
-    // Skip auth if DISABLE_AUTH is true or in test environment
-    if (env.DISABLE_AUTH || isTestEnvironment()) {
+    // Skip auth if in test environment
+    if (isTestEnvironment()) {
       await next();
       return;
     }
@@ -223,7 +224,7 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/capabilities', async (c, next) => {
     // Capabilities should be gated the same way as other manage routes, but still work
     // when auth is disabled or not configured.
-    if (!auth || env.DISABLE_AUTH || isTestEnvironment()) {
+    if (!auth || isTestEnvironment()) {
       await next();
       return;
     }
@@ -268,14 +269,15 @@ function createAgentsHono(config: AppConfig) {
     }
   );
 
-  // Tenant access check (skip in DISABLE_AUTH and test environments)
-  if (env.DISABLE_AUTH || isTestEnvironment()) {
+  // Tenant access check (skip in test environments)
+  if (isTestEnvironment()) {
     // When auth is disabled, just extract tenantId from URL param
     app.use('/manage/tenants/:tenantId/*', async (c, next) => {
       const tenantId = c.req.param('tenantId');
       if (tenantId) {
         c.set('tenantId', tenantId);
         c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+        c.set('tenantRole', OrgRoles.OWNER); // Grant owner role in test mode to bypass SpiceDB checks
       }
       await next();
     });

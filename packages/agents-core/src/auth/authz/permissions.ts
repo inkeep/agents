@@ -5,13 +5,7 @@
  */
 
 import { checkPermission, lookupResources } from './client';
-import {
-  isAuthzEnabled,
-  type OrgRole,
-  OrgRoles,
-  SpiceDbProjectPermissions,
-  SpiceDbResourceTypes,
-} from './config';
+import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes } from './config';
 
 /**
  * Check if a user can view a project.
@@ -28,7 +22,7 @@ export async function canViewProject(params: {
   const isAdmin = params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN;
 
   // Bypass SpiceDB check if authz disabled or user is admin
-  if (!isAuthzEnabled() || isAdmin) {
+  if (isAdmin) {
     return true;
   }
 
@@ -57,7 +51,7 @@ export async function canUseProject(params: {
   const isAdmin = params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN;
 
   // Bypass SpiceDB check if authz disabled or user is admin
-  if (!isAuthzEnabled() || isAdmin) {
+  if (isAdmin) {
     return true;
   }
 
@@ -90,11 +84,6 @@ export async function canEditProject(params: {
     return true;
   }
 
-  // Authz disabled = non-admins cannot edit
-  if (!isAuthzEnabled()) {
-    return false;
-  }
-
   // Check SpiceDB for non-admin users
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
@@ -118,8 +107,7 @@ export async function listAccessibleProjectIds(params: {
 }): Promise<string[] | 'all'> {
   const isAdmin = params.orgRole === OrgRoles.OWNER || params.orgRole === OrgRoles.ADMIN;
 
-  // Bypass filtering if authz disabled or user is admin
-  if (!isAuthzEnabled() || isAdmin) {
+  if (isAdmin) {
     return 'all';
   }
 

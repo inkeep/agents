@@ -30,6 +30,8 @@ services:
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
+      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
+      - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
     ports:
@@ -41,6 +43,8 @@ services:
         condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
+      inkeep-agents-spicedb:
+        condition: service_started
   inkeep-agents-run-api:
     build:
       context: .
@@ -50,6 +54,8 @@ services:
       - LOG_LEVEL
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
+      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
+      - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
       - ANTHROPIC_API_KEY
       - OPENAI_API_KEY
       - GOOGLE_GENERATIVE_AI_API_KEY
@@ -64,6 +70,8 @@ services:
         condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
+      inkeep-agents-spicedb:
+        condition: service_started
   inkeep-agents-doltgres-db:
     image: dolthub/doltgresql:latest
     restart: unless-stopped
@@ -108,6 +116,48 @@ services:
       inkeep-agents-postgres-db:
         condition: service_healthy
     restart: "no"
+
+  # SpiceDB for authorization
+  inkeep-agents-spicedb:
+    image: authzed/spicedb:latest
+    command: serve
+    restart: unless-stopped
+    environment:
+      SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres:5432/spicedb?sslmode=disable"
+      SPICEDB_HTTP_ENABLED: "true"
+    depends_on:
+      inkeep-agents-spicedb-migrate:
+        condition: service_completed_successfully
+
+  inkeep-agents-spicedb-migrate:
+    image: authzed/spicedb:latest
+    command: migrate head
+    restart: "no"
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres:5432/spicedb?sslmode=disable"
+    depends_on:
+      inkeep-agents-spicedb-postgres:
+        condition: service_healthy
+
+  inkeep-agents-spicedb-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: spicedb
+      POSTGRES_PASSWORD: spicedb
+      POSTGRES_DB: spicedb
+    volumes:
+      - inkeep-agents-spicedb-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spicedb"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
 volumes:
   inkeep-agents-doltgres-data:
   inkeep-agents-postgres-data:
+  inkeep-agents-spicedb-postgres-data:

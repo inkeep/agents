@@ -34,9 +34,7 @@ services:
       retries: 30
 
   # SpiceDB for local authorization (persistent)
-  # Only starts when using: docker compose --profile authz up -d
   spicedb:
-    profiles: ["authz"]
     image: authzed/spicedb:latest
     command: serve
     restart: unless-stopped
@@ -53,7 +51,6 @@ services:
         condition: service_completed_successfully
 
   spicedb-migrate:
-    profiles: ["authz"]
     image: authzed/spicedb:latest
     command: migrate head
     restart: "no"
@@ -65,7 +62,6 @@ services:
         condition: service_healthy
 
   spicedb-postgres:
-    profiles: ["authz"]
     image: postgres:16-alpine
     restart: unless-stopped
     environment:

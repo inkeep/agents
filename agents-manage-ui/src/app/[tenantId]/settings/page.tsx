@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/settings/members-table';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
+import { OrgRoles } from '@/constants/signoz';
 import { useAuthClient } from '@/contexts/auth-client';
 import SettingsLoadingSkeleton from './loading';
 
@@ -13,13 +14,14 @@ type FullOrganization = NonNullable<
   >['data']
 >;
 
-type Member = FullOrganization['members'][number];
-
 export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings'>) {
   const authClient = useAuthClient();
   const { tenantId } = use(params);
   const [organization, setOrganization] = useState<FullOrganization | null>();
-  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const [currentMember, setCurrentMember] = useState<typeof authClient.$Infer.Member | null>(null);
+  const [pendingInvitations, setPendingInvitations] = useState<
+    (typeof authClient.$Infer.Invitation)[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +29,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     if (!tenantId) return;
 
     try {
-      const [orgResult, memberResult] = await Promise.all([
+      const [orgResult, memberResult, invitationsResult] = await Promise.all([
         authClient.organization.getFullOrganization({
           query: {
             organizationId: tenantId,
@@ -35,6 +37,9 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
           },
         }),
         authClient.organization.getActiveMember(),
+        authClient.organization.listInvitations({
+          query: { organizationId: tenantId },
+        }),
       ]);
 
       if (orgResult.error) {
@@ -47,7 +52,12 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
       }
 
       if (memberResult.data) {
-        setCurrentMember(memberResult.data as Member);
+        setCurrentMember(memberResult.data);
+      }
+
+      if (invitationsResult.data) {
+        const pending = invitationsResult.data.filter((inv) => inv.status === 'pending');
+        setPendingInvitations(pending);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
@@ -87,9 +97,13 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
       </div>
       <MembersTable
         members={organization?.members || []}
+        pendingInvitations={pendingInvitations}
         currentMember={currentMember}
         organizationId={tenantId}
         onMemberUpdated={fetchOrganization}
+        isOrgAdmin={
+          currentMember?.role === OrgRoles.OWNER || currentMember?.role === OrgRoles.ADMIN
+        }
       />
     </div>
   );

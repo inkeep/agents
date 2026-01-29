@@ -506,6 +506,8 @@ async function createEnvironmentFiles(config: FileConfig) {
 
   const betterAuthSecret = crypto.randomBytes(32).toString('hex');
 
+  const manageUiPassword = crypto.randomBytes(6).toString('base64url');
+
   // Generate RSA key pair for temporary JWT tokens
   let tempJwtPrivateKey = '';
   let tempJwtPublicKey = '';
@@ -568,12 +570,11 @@ INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${tempJwtPublicKey}
 DEFAULT_PROJECT_ID=${config.projectId}
 
 # Auth Configuration
-# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+INKEEP_AGENTS_MANAGE_UI_PASSWORD=${manageUiPassword}
 BETTER_AUTH_SECRET=${betterAuthSecret}
-DISABLE_AUTH=true
-
-ENABLE_AUTHZ=false
+SPICEDB_ENDPOINT=localhost:50051
+SPICEDB_PRESHARED_KEY=dev-secret-key
 
 `;
 

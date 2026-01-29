@@ -42,12 +42,6 @@ const envSchema = z.object({
   OTEL_BSP_SCHEDULE_DELAY: z.coerce.number().optional().default(500),
   OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
 
-  DISABLE_AUTH: z
-    .string()
-    .optional()
-    .default('false')
-    .transform((val) => val === 'true'),
-
   TENANT_ID: z.string().optional().default('default'),
 
   SIGNOZ_URL: z.string().optional(),
