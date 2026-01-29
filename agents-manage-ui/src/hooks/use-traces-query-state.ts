@@ -1,7 +1,7 @@
 import { parseAsJson, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 
 // Define the time range options as a const assertion for type safety
-const timeRanges = ['24h', '7d', '15d', 'custom'] as const;
+const timeRanges = ['24h', '7d', '15d', '30d', 'custom'] as const;
 export type TimeRange = (typeof timeRanges)[number];
 
 // Type for span attributes
@@ -30,14 +30,14 @@ export interface SpanAttribute {
 /**
  * Hook for managing traces overview query state with nuqs
  * Provides type-safe query parameter management for:
- * - Time range selection (24h, 7d, 15d, custom)
+ * - Time range selection (24h, 7d, 15d, 30d, custom)
  * - Custom date range (start/end dates)
  * - Span filtering (name and attributes)
  */
 export function useTracesQueryState() {
   const [queryState, setQueryState] = useQueryStates({
     // Time range selection with default
-    timeRange: parseAsStringLiteral(timeRanges).withDefault('15d'),
+    timeRange: parseAsStringLiteral(timeRanges).withDefault('30d'),
 
     // Custom date range - using descriptive names
     customStartDate: parseAsString.withDefault(''),
@@ -79,7 +79,7 @@ export function useTracesQueryState() {
       setQueryState({
         spanName: '',
         spanAttributes: [],
-        timeRange: '15d',
+        timeRange: '30d',
         customStartDate: '',
         customEndDate: '',
       }),

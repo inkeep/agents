@@ -244,10 +244,13 @@ export function createAuth(config: BetterAuthConfig) {
       },
     },
     advanced: {
-      crossSubDomainCookies: {
-        enabled: true,
-        ...(cookieDomain && { domain: cookieDomain }),
-      },
+      // Only enable cross-subdomain cookies for production (when we have a real domain)
+      ...(cookieDomain && {
+        crossSubDomainCookies: {
+          enabled: true,
+          domain: cookieDomain,
+        },
+      }),
       defaultCookieAttributes: {
         sameSite: 'none',
         secure: true,
@@ -278,6 +281,7 @@ export function createAuth(config: BetterAuthConfig) {
           admin: adminRole,
           owner: ownerRole,
         },
+        creatorRole: OrgRoles.ADMIN,
         membershipLimit: 300,
         invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)

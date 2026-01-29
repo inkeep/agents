@@ -14,7 +14,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
 
   const deleteNode = useCallback(() => {
     deleteElements({ nodes: [{ id: selectedNodeId }] });
-  }, [selectedNodeId, deleteElements]);
+  }, [selectedNodeId]);
 
   const updateDefaultSubAgent = useCallback(
     (isDefault: boolean) => {
@@ -30,7 +30,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         })
       );
     },
-    [selectedNodeId, setNodes]
+    [selectedNodeId]
   );
 
   // Focus management for error fields
@@ -77,7 +77,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         markUnsaved();
       }
     },
-    [selectedNodeId, updateNodeData, markUnsaved, getNode]
+    [selectedNodeId]
   );
 
   // Handle input change events
@@ -139,7 +139,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
       const currentNode = getNode(selectedNodeId);
       updateNestedPath(path, value, currentNode?.data);
     },
-    [getNode, selectedNodeId, updateNestedPath]
+    [selectedNodeId, updateNestedPath]
   );
 
   return {

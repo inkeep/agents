@@ -1,5 +1,5 @@
 {
-  "id": "0caec7f2-4667-4b91-8886-40bedb6f06bc",
+  "id": "8614b3d1-63e0-4668-9b90-3cb60211c0bf",
   "prevId": "cb49ca44-8d63-43f6-9356-6360a7515be4",
   "version": "7",
   "dialect": "postgresql",
@@ -629,7 +629,7 @@
         },
         "dataset_id": {
           "name": "dataset_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -737,7 +737,7 @@
         },
         "dataset_id": {
           "name": "dataset_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -830,13 +830,13 @@
         },
         "dataset_run_config_id": {
           "name": "dataset_run_config_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
         "agent_id": {
           "name": "agent_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -1007,13 +1007,13 @@
         },
         "evaluation_job_config_id": {
           "name": "evaluation_job_config_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
         "evaluator_id": {
           "name": "evaluator_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -1197,13 +1197,13 @@
         },
         "evaluation_run_config_id": {
           "name": "evaluation_run_config_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
         "evaluation_suite_config_id": {
           "name": "evaluation_suite_config_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -1380,13 +1380,13 @@
         },
         "evaluation_suite_config_id": {
           "name": "evaluation_suite_config_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
         "evaluator_id": {
           "name": "evaluator_id",
-          "type": "text",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -2916,13 +2916,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "is_workapp": {
-          "name": "is_workapp",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",

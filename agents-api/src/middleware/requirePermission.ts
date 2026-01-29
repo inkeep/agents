@@ -1,7 +1,6 @@
 import { createApiError } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { env } from '../env';
 import type { ManageAppVariables } from '../types/app';
 
 type Permission = {
@@ -29,7 +28,7 @@ export const requirePermission = <
 
     const auth = c.get('auth');
 
-    if (env.DISABLE_AUTH || isTestEnvironment || !auth) {
+    if (isTestEnvironment || !auth) {
       await next();
       return;
     }

@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OrgRoles } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -36,6 +37,7 @@ import {
 import { sessionAuth, sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
+import { healthChecksHandler } from './routes/healthChecks';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -176,24 +178,8 @@ function createAgentsHono(config: AppConfig) {
   // Global session middleware - sets user and session in context for all routes
   app.use('*', sessionContext());
 
-  // Health check endpoint
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/health',
-      operationId: 'health',
-      summary: 'Health check',
-      description: 'Check if the management service is healthy',
-      responses: {
-        204: {
-          description: 'Service is healthy',
-        },
-      },
-    }),
-    (c) => {
-      return c.body(null, 204);
-    }
-  );
+  // Mount health check routes at root level
+  app.route('/', healthChecksHandler);
 
   // Workflow process endpoint - called by Vercel cron to keep worker active
   // The worker processes queued jobs while this request is active
@@ -220,8 +206,8 @@ function createAgentsHono(config: AppConfig) {
 
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', async (c, next) => {
-    // Skip auth if DISABLE_AUTH is true or in test environment
-    if (env.DISABLE_AUTH || isTestEnvironment()) {
+    // Skip auth if in test environment
+    if (isTestEnvironment()) {
       await next();
       return;
     }
@@ -238,7 +224,7 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/capabilities', async (c, next) => {
     // Capabilities should be gated the same way as other manage routes, but still work
     // when auth is disabled or not configured.
-    if (!auth || env.DISABLE_AUTH || isTestEnvironment()) {
+    if (!auth || isTestEnvironment()) {
       await next();
       return;
     }
@@ -283,14 +269,15 @@ function createAgentsHono(config: AppConfig) {
     }
   );
 
-  // Tenant access check (skip in DISABLE_AUTH and test environments)
-  if (env.DISABLE_AUTH || isTestEnvironment()) {
+  // Tenant access check (skip in test environments)
+  if (isTestEnvironment()) {
     // When auth is disabled, just extract tenantId from URL param
     app.use('/manage/tenants/:tenantId/*', async (c, next) => {
       const tenantId = c.req.param('tenantId');
       if (tenantId) {
         c.set('tenantId', tenantId);
         c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+        c.set('tenantRole', OrgRoles.OWNER); // Grant owner role in test mode to bypass SpiceDB checks
       }
       await next();
     });

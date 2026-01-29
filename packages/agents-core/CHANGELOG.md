@@ -1,5 +1,87 @@
 # @inkeep/agents-core
 
+## 0.43.0
+
+### Minor Changes
+
+- de9bed1: Replace deprecated keytar package with @napi-rs/keyring for native keychain integration
+- a5ba56c: BREAKING: Replace hardcoded webhook signature verification with flexible, provider-agnostic configuration
+
+  This major version removes the legacy `signingSecret` field from triggers and replaces it with a flexible signature verification system that supports GitHub, Slack, Stripe, Zendesk, and other webhook providers.
+
+  **Breaking Changes:**
+
+  - Removed `signingSecret` column from triggers table (database migration required)
+  - Removed `signingSecret` parameter from TriggerInsertSchema, TriggerUpdateSchema, and TriggerApiInsert
+  - Removed `verifySigningSecret()` function from trigger-auth.ts
+  - Triggers now require `signingSecretCredentialReferenceId` and `signatureVerification` configuration for signature verification
+
+  **New Features:**
+
+  - Added `SignatureVerificationConfig` type supporting:
+    - Multiple HMAC algorithms: sha256, sha512, sha384, sha1, md5
+    - Multiple encodings: hex, base64
+    - Flexible signature extraction from headers, query parameters, or body
+    - Multi-component signing with configurable separators
+    - Regex extraction for complex signature formats
+    - Advanced validation options (case sensitivity, empty body handling, Unicode normalization)
+  - Added `verifySignatureWithConfig()` function with timing-safe signature comparison
+  - Added validation utilities: `validateJMESPath()`, `validateRegex()`
+  - Added comprehensive unit tests and integration tests
+  - Added credential resolution with 5-minute caching in TriggerService
+
+  **Migration Guide:**
+
+  Before (deprecated):
+
+  ```typescript
+  const trigger = {
+    signingSecret: "my-secret",
+  };
+  ```
+
+  After:
+
+  ```typescript
+  const trigger = {
+    signingSecretCredentialReferenceId: "credential-ref-id",
+    signatureVerification: {
+      algorithm: "sha256",
+      encoding: "hex",
+      signature: {
+        source: "header",
+        key: "X-Hub-Signature-256",
+        prefix: "sha256=",
+      },
+      signedComponents: [{ source: "body", required: true }],
+      componentJoin: { strategy: "concatenate", separator: "" },
+    },
+  };
+  ```
+
+  See SDK documentation for complete examples for GitHub, Slack, Stripe, and Zendesk webhooks.
+
+### Patch Changes
+
+- 5f432f9: stats page
+- 0fff69c: Centralized jmes validation
+- eef0a3f: new OAuth callback route
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 0f83405: Fix trigger message template removal not working from UI
+- 5ffbf6b: trigger traces
+- 0aa5679: fix: preserve triggers when not included in fullAgent update
+
+  The fullAgent update endpoint now only deletes orphaned triggers when the triggers field is explicitly provided. This prevents triggers from being deleted when saving an agent from the UI (which doesn't manage triggers via this endpoint). The SDK now always includes triggers in agent serialization to ensure proper sync behavior.
+
+- 05a8a12: adding authorization checks and spicedb setup
+- caefccc: improve mcp servers page loading
+- 720d42f: trigger fix for vercel
+- 31b3310: Migrate fk to varchar in manage schema
+- 5f66967: triggers for vercel
+- 8160ded: improve loading mcps in agent page
+- cfa81bb: fix(agents-core): avoid calling 2 times `getCredentialReference` or `getUserScopedCredentialReference`
+
 ## 0.42.0
 
 ### Minor Changes

@@ -412,13 +412,15 @@ export function MCPServerNodeEditor({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex-1 min-w-0 flex items-center gap-2">
-                          <div className="flex-1">
+                          <div className="flex-1 max-w-full">
                             <div className="text-sm font-medium truncate">{toolName}</div>
-                            <div className="text-xs text-amber-600 dark:text-amber-400">
-                              Tool no longer available
+                            <div className="flex items-center gap-1">
+                              <CircleAlert className="w-3 h-3 text-amber-500 shrink-0" />
+                              <div className="text-xs text-amber-600 dark:text-amber-400">
+                                Tool no longer available
+                              </div>
                             </div>
                           </div>
-                          <CircleAlert className="w-4 h-4 text-amber-500 flex-shrink-0" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-sm">

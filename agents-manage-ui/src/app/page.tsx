@@ -4,7 +4,6 @@ import { Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { usePostHog } from '@/contexts/posthog';
-import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
@@ -16,7 +15,6 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const { user, session, isLoading } = useAuthSession();
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
   const posthog = usePostHog();
 
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || DEFAULT_TENANT_ID;
@@ -34,13 +32,6 @@ function HomeContent() {
     async function handleRedirect() {
       // Prevent multiple redirects
       if (isRedirecting) return;
-
-      // Auth disabled - go straight to default tenant
-      if (PUBLIC_DISABLE_AUTH === 'true') {
-        setIsRedirecting(true);
-        router.push(`/${tenantId}/projects`);
-        return;
-      }
 
       // Still loading session
       if (isLoading) return;
@@ -114,16 +105,7 @@ function HomeContent() {
     }
 
     handleRedirect();
-  }, [
-    user,
-    session,
-    isLoading,
-    isRedirecting,
-    tenantId,
-    searchParams,
-    router,
-    PUBLIC_DISABLE_AUTH,
-  ]);
+  }, [user, session, isLoading, isRedirecting, tenantId, searchParams, router]);
 
   return (
     <div className="flex items-center justify-center h-full min-h-screen">
