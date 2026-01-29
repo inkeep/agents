@@ -1682,6 +1682,8 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     let message = error instanceof Error ? error.message : JSON.stringify(error);
     if (message.startsWith("'return' outside of function")) {
       message = 'Global return is not allowed';
+    } else if (message.startsWith('Unexpected token, expected ')) {
+      message = 'TypeScript syntax is not allowed';
     }
     ctx.addIssue({
       code: 'custom',

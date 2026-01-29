@@ -31,13 +31,13 @@ describe('FunctionApiInsertSchema executeCode validation', () => {
     expect(result.success).toBe(true);
   });
 
-  it.skip('rejects TypeScript syntax', () => {
+  it('rejects TypeScript syntax', () => {
     expect(() =>
       FunctionApiInsertSchema.parse({
         ...basePayload,
         executeCode: '(value: number) => value',
       })
-    ).toThrowError(/Export default is not allowed/);
+    ).toThrowError(/TypeScript syntax is not allowed/);
   });
 
   // it('rejects JSX syntax', () => {
