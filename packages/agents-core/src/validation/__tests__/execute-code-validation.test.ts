@@ -11,31 +11,31 @@ describe('FunctionApiInsertSchema executeCode validation', () => {
   describe('rejects', () => {
     test('export default function', () => {
       expect(() => parse('export default function() {}')).toThrowError(
-        /Export default declarations are not supported/
+        /Export default declarations are not supported\./
       );
     });
 
     test('global return', () => {
-      expect(() => parse('return 1')).toThrowError(/Top-level return is not allowed/);
+      expect(() => parse('return 1')).toThrowError(/Top-level return is not allowed\./);
     });
 
     test('TypeScript syntax', () => {
       expect(() => parse('(value: number) => value')).toThrowError(
-        /TypeScript syntax is not supported/
+        /TypeScript syntax is not supported\./
       );
     });
 
     test('JSX syntax', () => {
-      expect(() => parse('() => <div />')).toThrowError(/JSX syntax is not supported/);
+      expect(() => parse('() => <div />')).toThrowError(/JSX syntax is not supported\./);
     });
 
     test('code without functions', () => {
-      expect(() => parse('"test"')).toThrowError(/Must contain exactly one function/);
+      expect(() => parse('"test"')).toThrowError(/Must contain exactly one function\./);
     });
 
     test('code with 2 and more functions', () => {
       expect(() => parse('function foo() {} function bar() {}')).toThrowError(
-        /Must contain exactly one function \(found 2\)/
+        /Must contain exactly one function \(found 2\)\./
       );
     });
   });
