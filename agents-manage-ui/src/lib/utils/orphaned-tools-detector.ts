@@ -58,6 +58,8 @@ function detectOrphanedToolsInAgent(
       activeTools: (toolData.config as any)?.mcp?.activeTools,
     });
 
+    console.log('toolData', toolData);
+
     const selectedTools = getCurrentSelectedToolsForNode(node, agentToolConfigLookup, []);
 
     // Find orphaned tools for this node
