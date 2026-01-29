@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import {generateId} from "../../src/lib/utils/id-utils";
+import { generateId } from '../../src/lib/utils/id-utils';
 
 describe('Agent', () => {
   describe('Unsaved changes dialog', () => {

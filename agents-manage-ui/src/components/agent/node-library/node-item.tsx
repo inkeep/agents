@@ -1,6 +1,6 @@
 import { GripVertical, type LucideIcon } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ComponentProps, FC, ReactNode } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type NodeItem = {
   type: string;
@@ -23,7 +23,7 @@ const onDragStart: ComponentProps<'button'>['onDragStart'] = (event) => {
 };
 
 export const NodeItem: FC<NodeItemProps> = ({ node }) => {
-  'use memo'
+  'use memo';
   const { type, name, Icon, disabled, disabledTooltip } = node;
   const content = (
     <button
