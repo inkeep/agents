@@ -18,7 +18,6 @@ export {
 // Configuration
 export {
   getSpiceDbConfig,
-  isAuthzEnabled,
   type OrgRole,
   OrgRoles,
   type ProjectPermissionLevel,

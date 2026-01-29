@@ -125,7 +125,8 @@
     "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
     "db:run:drop": "drizzle-kit drop --config=drizzle.run.config.ts",
     "db:run:studio": "drizzle-kit studio --config=drizzle.run.config.ts",
-    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts"
+    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts",
+    "db:auth:init": "tsx src/auth/init.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.7",

@@ -46,7 +46,6 @@ export { v1 };
 
 /**
  * Check if a subject has a permission on a resource.
- * Note: Caller must verify isAuthzEnabled() before calling.
  */
 export async function checkPermission(params: {
   resourceType: string;

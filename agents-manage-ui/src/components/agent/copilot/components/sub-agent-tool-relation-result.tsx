@@ -11,8 +11,6 @@ interface SubAgentToolRelationResultProps {
   targetProjectId?: string;
   onConnect: OAuthLoginHandler;
   refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
-  /** Whether auth is disabled - pass this for Shadow DOM compatibility */
-  isAuthDisabled?: boolean;
 }
 
 /**
@@ -25,7 +23,6 @@ export function SubAgentToolRelationResult({
   targetProjectId,
   onConnect,
   refreshAgentGraph,
-  isAuthDisabled,
 }: SubAgentToolRelationResultProps) {
   if (relations.length === 0) {
     return null;
@@ -41,7 +38,6 @@ export function SubAgentToolRelationResult({
           targetProjectId={targetProjectId}
           onConnect={onConnect}
           refreshAgentGraph={refreshAgentGraph}
-          isAuthDisabled={isAuthDisabled}
         />
       ))}
     </>
