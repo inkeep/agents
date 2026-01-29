@@ -1700,11 +1700,7 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
   .openapi('FunctionCreate')
   .extend({
-    executeCode: z
-      .string()
-      .trim()
-      .nonempty()
-      .superRefine(validateExecuteCode),
+    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
   });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
