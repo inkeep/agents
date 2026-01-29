@@ -271,6 +271,7 @@ export const workAppSlackAccountLinkCodes = pgTable(
     slackEnterpriseId: varchar('slack_enterprise_id', { length: 256 }),
     slackUsername: varchar('slack_username', { length: 256 }),
     slackEmail: varchar('slack_email', { length: 256 }),
+    originalIntent: jsonb('original_intent'),
     status: varchar('status', { length: 20 }).notNull().default('pending'),
     expiresAt: timestamp('expires_at', { mode: 'string' }).notNull(),
     usedAt: timestamp('used_at', { mode: 'string' }),
@@ -281,75 +282,6 @@ export const workAppSlackAccountLinkCodes = pgTable(
     index('work_app_slack_account_link_codes_tenant_idx').on(table.tenantId),
     index('work_app_slack_account_link_codes_hash_idx').on(table.linkCodeHash),
     index('work_app_slack_account_link_codes_status_idx').on(table.status, table.expiresAt),
-  ]
-);
-
-/**
- * @deprecated Use workAppSlackUserMappings instead. Kept for backward compatibility during migration.
- * Slack user links - maps Slack users to Inkeep users.
- * Enables Slack users to trigger agents after linking their accounts.
- * One link per Slack user per workspace (unique on slackUserId + slackTeamId).
- */
-export const slackUserLinks = pgTable(
-  'slack_user_links',
-  {
-    id: varchar('id', { length: 256 }).primaryKey(),
-
-    slackUserId: varchar('slack_user_id', { length: 256 }).notNull(),
-    slackTeamId: varchar('slack_team_id', { length: 256 }).notNull(),
-    slackEnterpriseId: varchar('slack_enterprise_id', { length: 256 }),
-
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-
-    nangoConnectionId: varchar('nango_connection_id', { length: 256 }),
-
-    slackUsername: varchar('slack_username', { length: 256 }),
-    slackEmail: varchar('slack_email', { length: 256 }),
-
-    linkedAt: timestamp('linked_at', { mode: 'string' }).notNull().defaultNow(),
-    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
-  },
-  (table) => [
-    unique('slack_user_links_unique').on(table.slackUserId, table.slackTeamId),
-    index('slack_user_links_user_idx').on(table.userId),
-    index('slack_user_links_team_idx').on(table.slackTeamId),
-    index('slack_user_links_slack_user_idx').on(table.slackUserId),
-  ]
-);
-
-/**
- * @deprecated Use workAppSlackAccountLinkCodes instead. Kept for backward compatibility during migration.
- * Slack link codes - temporary codes for device code flow linking.
- * User generates a code in Slack, enters it in the dashboard to complete linking.
- * Codes expire after 10 minutes.
- */
-export const slackLinkCodes = pgTable(
-  'slack_link_codes',
-  {
-    id: varchar('id', { length: 256 }).primaryKey(),
-
-    code: varchar('code', { length: 20 }).notNull().unique(),
-
-    slackUserId: varchar('slack_user_id', { length: 256 }).notNull(),
-    slackTeamId: varchar('slack_team_id', { length: 256 }).notNull(),
-    slackEnterpriseId: varchar('slack_enterprise_id', { length: 256 }),
-    slackUsername: varchar('slack_username', { length: 256 }),
-    slackEmail: varchar('slack_email', { length: 256 }),
-
-    nangoConnectionId: varchar('nango_connection_id', { length: 256 }),
-
-    status: varchar('status', { length: 20 }).notNull().default('pending'),
-    expiresAt: timestamp('expires_at', { mode: 'string' }).notNull(),
-    usedAt: timestamp('used_at', { mode: 'string' }),
-    usedByUserId: text('used_by_user_id'),
-
-    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
-  },
-  (table) => [
-    index('slack_link_codes_code_idx').on(table.code),
-    index('slack_link_codes_status_idx').on(table.status, table.expiresAt),
   ]
 );
 

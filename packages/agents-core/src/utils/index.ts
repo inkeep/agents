@@ -14,6 +14,7 @@ export * from './mcp-client';
 export * from './model-factory';
 export * from './schema-conversion';
 export * from './service-token-auth';
+export * from './slack-user-token';
 export * from './temp-jwt';
 export * from './template-interpolation';
 export * from './third-party-mcp-servers';

@@ -95,7 +95,7 @@ export const slackApi = {
     slackTeamId?: string;
     error?: string;
   }> {
-    const response = await fetch(`${getApiUrl()}/work-apps/slack/confirm-link`, {
+    const response = await fetch(`${getApiUrl()}/work-apps/slack/link/redeem`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),

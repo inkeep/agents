@@ -13,6 +13,7 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  cleanupAllExpiredOrUsedLinkCodes,
   consumeWorkAppSlackAccountLinkCode,
   createApiKey,
   createWorkAppSlackUserMapping,
@@ -1239,7 +1240,7 @@ app.post('/disconnect', async (c) => {
   }
 });
 
-app.post('/confirm-link', async (c) => {
+app.post('/link/redeem', async (c) => {
   const body = await c.req.json();
   const { code, userId, userEmail } = body as {
     code?: string;
@@ -1326,6 +1327,7 @@ app.post('/confirm-link', async (c) => {
       linkId: slackUserMapping.id,
       slackUsername: linkCode.slackUsername,
       slackTeamId: linkCode.slackTeamId,
+      originalIntent: linkCode.originalIntent,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1763,6 +1765,32 @@ app.get('/linked-users', async (c) => {
   } catch (error) {
     logger.error({ error, teamId, tenantId }, 'Failed to fetch linked users');
     return c.json({ error: 'Failed to fetch linked users' }, 500);
+  }
+});
+
+app.post('/link-codes/cleanup', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { retentionDays } = body as { retentionDays?: number };
+
+  try {
+    const result = await cleanupAllExpiredOrUsedLinkCodes(runDbClient)(retentionDays || 7);
+
+    logger.info(
+      { expired: result.expired, used: result.used, retentionDays: retentionDays || 7 },
+      'Cleaned up expired and used link codes'
+    );
+
+    return c.json({
+      success: true,
+      deleted: {
+        expired: result.expired,
+        used: result.used,
+        total: result.expired + result.used,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, 'Failed to cleanup link codes');
+    return c.json({ error: 'Failed to cleanup link codes' }, 500);
   }
 });
 

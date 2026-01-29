@@ -7,6 +7,8 @@ const {
   getAgentByIdMock,
   verifyServiceTokenMock,
   validateTargetAgentMock,
+  isSlackUserTokenMock,
+  verifySlackUserTokenMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   updateApiKeyLastUsedMock: vi.fn(),
@@ -19,6 +21,8 @@ const {
   ),
   verifyServiceTokenMock: vi.fn(),
   validateTargetAgentMock: vi.fn(),
+  isSlackUserTokenMock: vi.fn().mockReturnValue(false),
+  verifySlackUserTokenMock: vi.fn().mockResolvedValue({ valid: false }),
 }));
 
 // Mock the dependencies before imports
@@ -28,6 +32,8 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentById: getAgentByIdMock,
   verifyServiceToken: verifyServiceTokenMock,
   validateTargetAgent: validateTargetAgentMock,
+  isSlackUserToken: isSlackUserTokenMock,
+  verifySlackUserToken: verifySlackUserTokenMock,
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),

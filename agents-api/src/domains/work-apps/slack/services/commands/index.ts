@@ -4,6 +4,7 @@ import {
   findWorkAppSlackUserMapping,
   listAgents,
   listProjectsPaginated,
+  signSlackUserToken,
 } from '@inkeep/agents-core';
 import manageDbClient from '../../../../../data/db/manageDbClient';
 import runDbClient from '../../../../../data/db/runDbClient';
@@ -149,10 +150,52 @@ export async function handleHelpCommand(): Promise<SlackCommandResponse> {
   return { response_type: 'ephemeral', ...message };
 }
 
+export interface OriginalIntent {
+  command: string;
+  text?: string;
+  agentName?: string;
+  question?: string;
+}
+
+async function generateLinkCodeWithIntent(
+  payload: SlackCommandPayload,
+  tenantId: string,
+  _dashboardUrl: string,
+  originalIntent?: OriginalIntent
+): Promise<SlackCommandResponse> {
+  try {
+    const { plaintextCode } = await createWorkAppSlackAccountLinkCode(runDbClient)({
+      tenantId,
+      slackUserId: payload.userId,
+      slackTeamId: payload.teamId,
+      slackEnterpriseId: payload.enterpriseId,
+      slackUsername: payload.userName,
+      originalIntent: originalIntent
+        ? (originalIntent as unknown as Record<string, unknown>)
+        : undefined,
+    });
+
+    const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+    const linkUrl = `${manageUiUrl}/link?code=${plaintextCode}`;
+
+    logger.info(
+      { slackUserId: payload.userId, tenantId, hasIntent: !!originalIntent },
+      'Generated device link code with intent'
+    );
+
+    const message = createDeviceCodeMessage(plaintextCode, linkUrl, LINK_CODE_TTL_MINUTES);
+    return { response_type: 'ephemeral', ...message };
+  } catch (error) {
+    logger.error({ error, slackUserId: payload.userId, tenantId }, 'Failed to generate link code');
+    const message = createErrorMessage('Failed to generate link code. Please try again.');
+    return { response_type: 'ephemeral', ...message };
+  }
+}
+
 export async function handleQuestionCommand(
   payload: SlackCommandPayload,
-  _question: string,
-  _dashboardUrl: string,
+  question: string,
+  dashboardUrl: string,
   tenantId: string
 ): Promise<SlackCommandResponse> {
   const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
@@ -163,8 +206,10 @@ export async function handleQuestionCommand(
   );
 
   if (!existingLink) {
-    const message = createNotLinkedMessage();
-    return { response_type: 'ephemeral', ...message };
+    return generateLinkCodeWithIntent(payload, tenantId, dashboardUrl, {
+      command: 'question',
+      question,
+    });
   }
 
   const message = createErrorMessage(
@@ -175,9 +220,9 @@ export async function handleQuestionCommand(
 
 export async function handleRunCommand(
   payload: SlackCommandPayload,
-  _agentName: string,
-  _question: string,
-  _dashboardUrl: string,
+  agentIdentifier: string,
+  question: string,
+  dashboardUrl: string,
   tenantId: string
 ): Promise<SlackCommandResponse> {
   const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
@@ -188,14 +233,131 @@ export async function handleRunCommand(
   );
 
   if (!existingLink) {
-    const message = createNotLinkedMessage();
-    return { response_type: 'ephemeral', ...message };
+    return generateLinkCodeWithIntent(payload, tenantId, dashboardUrl, {
+      command: 'run',
+      agentName: agentIdentifier,
+      question,
+    });
   }
 
-  const message = createErrorMessage(
-    'Agent execution via `/inkeep run` is coming soon! For now, use `/inkeep list` to see available agents.'
-  );
-  return { response_type: 'ephemeral', ...message };
+  try {
+    const projectsResult = await listProjectsPaginated(manageDbClient)({
+      tenantId,
+      pagination: { limit: 100 },
+    });
+
+    let targetAgent: { id: string; name: string | null; projectId: string } | null = null;
+
+    for (const project of projectsResult.data) {
+      const agents = await listAgents(manageDbClient)({
+        scopes: { tenantId, projectId: project.id },
+      });
+
+      const foundAgent = agents.find(
+        (a) => a.id === agentIdentifier || a.name?.toLowerCase() === agentIdentifier.toLowerCase()
+      );
+
+      if (foundAgent) {
+        targetAgent = {
+          id: foundAgent.id,
+          name: foundAgent.name,
+          projectId: project.id,
+        };
+        break;
+      }
+    }
+
+    if (!targetAgent) {
+      const message = createErrorMessage(
+        `Agent "${agentIdentifier}" not found. Use \`/inkeep list\` to see available agents.`
+      );
+      return { response_type: 'ephemeral', ...message };
+    }
+
+    const slackUserToken = await signSlackUserToken({
+      inkeepUserId: existingLink.inkeepUserId,
+      tenantId,
+      slackTeamId: payload.teamId,
+      slackUserId: payload.userId,
+      slackEnterpriseId: payload.enterpriseId,
+    });
+
+    const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+    const response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${slackUserToken}`,
+        'x-inkeep-project-id': targetAgent.projectId,
+        'x-inkeep-agent-id': targetAgent.id,
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: question }],
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(
+        {
+          status: response.status,
+          error: errorText,
+          agentId: targetAgent.id,
+          projectId: targetAgent.projectId,
+        },
+        'Run API call failed'
+      );
+      const message = createErrorMessage(
+        `Failed to run agent: ${response.status} ${response.statusText}`
+      );
+      return { response_type: 'ephemeral', ...message };
+    }
+
+    const result = await response.json();
+
+    const assistantMessage =
+      result.choices?.[0]?.message?.content || result.message?.content || 'No response received';
+
+    logger.info(
+      {
+        slackUserId: payload.userId,
+        agentId: targetAgent.id,
+        projectId: targetAgent.projectId,
+        tenantId,
+      },
+      'Agent execution completed via Slack'
+    );
+
+    return {
+      response_type: 'ephemeral',
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Agent: ${targetAgent.name || targetAgent.id}*`,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: assistantMessage,
+          },
+        },
+      ],
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error({ error: errorMessage, tenantId }, 'Failed to run agent');
+
+    const message = createErrorMessage(
+      'Failed to run agent. Please try again or visit the dashboard.'
+    );
+    return { response_type: 'ephemeral', ...message };
+  }
 }
 
 export async function handleSettingsCommand(

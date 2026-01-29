@@ -356,3 +356,35 @@ export const cleanupExpiredWorkAppSlackAccountLinkCodes =
 
     return result.length;
   };
+
+export const cleanupAllExpiredOrUsedLinkCodes =
+  (db: AgentsRunDatabaseClient) =>
+  async (retentionDays: number = 7): Promise<{ expired: number; used: number }> => {
+    const now = new Date();
+    const retentionCutoff = new Date(now);
+    retentionCutoff.setDate(retentionCutoff.getDate() - retentionDays);
+    const cutoffStr = retentionCutoff.toISOString();
+    const nowStr = now.toISOString();
+
+    const expiredResult = await db
+      .delete(workAppSlackAccountLinkCodes)
+      .where(
+        and(
+          eq(workAppSlackAccountLinkCodes.status, 'pending'),
+          lt(workAppSlackAccountLinkCodes.expiresAt, nowStr)
+        )
+      )
+      .returning();
+
+    const usedResult = await db
+      .delete(workAppSlackAccountLinkCodes)
+      .where(
+        and(
+          eq(workAppSlackAccountLinkCodes.status, 'used'),
+          lt(workAppSlackAccountLinkCodes.updatedAt, cutoffStr)
+        )
+      )
+      .returning();
+
+    return { expired: expiredResult.length, used: usedResult.length };
+  };
