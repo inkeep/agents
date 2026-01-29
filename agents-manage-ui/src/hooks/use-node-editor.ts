@@ -77,7 +77,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         markUnsaved();
       }
     },
-    [selectedNodeId, updateNodeData, markUnsaved, getNode]
+    [selectedNodeId, updateNodeData, getNode]
   );
 
   // Handle input change events
