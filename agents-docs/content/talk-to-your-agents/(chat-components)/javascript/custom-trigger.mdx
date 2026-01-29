@@ -16,14 +16,11 @@ Custom triggers give you complete control over how users open Inkeep modals in y
 
     ```html
     <script
-        type="module"
-        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
-        defer
-
-> </script>
-
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+      defer
+    ></script>
     ```
-
   </Step>
   <Step>
     Insert the ModalChat widget by using the `Inkeep.ModalChat()` function.
@@ -56,34 +53,21 @@ Custom triggers give you complete control over how users open Inkeep modals in y
     // Access chat methods
     modalChat.clearChat();
     ```
-
   </Step>
 </Steps>
 
 ## Config
 
-<AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="InkeepModalChatProps"
-/>
+<AutoTypeTable name="default" type="export { InkeepModalChatProps as default } from '@inkeep/agents-ui'" />
 
 ### Base Settings
 
-<AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="InkeepBaseSettings"
-/>
+<AutoTypeTable name="default" type="export { InkeepBaseSettings as default } from '@inkeep/agents-ui/types'" />
 
 ### AI Chat Settings
 
-<AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="InkeepAIChatSettings"
-/>
+<AutoTypeTable name="default" type="export { InkeepAIChatSettings as default } from '@inkeep/agents-ui/types'" />
 
 ### Open Settings
 
-<AutoTypeTable
-  path="./content/talk-to-your-agents/types.ts"
-  name="OpenSettingsModal"
-/>
+<AutoTypeTable name="default" type="export { OpenSettingsModal as default } from '@inkeep/agents-ui/types'" />
