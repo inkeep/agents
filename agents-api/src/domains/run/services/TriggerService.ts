@@ -625,7 +625,7 @@ async function executeAgentAsync(params: {
     throw new Error(`Agent ${agentId} has no default sub-agent configured`);
   }
 
-  const agentName = agent.name || agentId;
+  const agentName = agent.name || '';
 
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
