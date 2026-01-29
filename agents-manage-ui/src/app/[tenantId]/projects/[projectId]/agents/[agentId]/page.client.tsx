@@ -416,7 +416,7 @@ export const Agent: FC<AgentProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [isOpen, fitView]);
+  }, [isOpen]);
 
   // Auto-center agent when playground opens/closes
   // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on showPlayground changes

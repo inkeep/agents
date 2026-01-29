@@ -77,6 +77,33 @@
           "level": "error",
           "options": {
             "hooks": [
+              {
+                "name": "useReactFlow",
+                "stableResult": [
+                  // Based on https://github.com/xyflow/xyflow/blob/3f93f828ec931b6fba639d5a38ffd69eaca29f3a/packages/react/src/hooks/useReactFlow.ts#L67
+                  "getNodes",
+                  "getNode",
+                  "getInternalNode",
+                  "getEdges",
+                  "getEdge",
+                  "setNodes",
+                  "setEdges",
+                  "addNodes",
+                  "addEdges",
+                  "toObject",
+                  "deleteElements",
+                  "getIntersectingNodes",
+                  "isNodeIntersecting",
+                  "updateNode",
+                  "updateNodeData",
+                  "updateEdge",
+                  "updateEdgeData",
+                  "getNodesBounds",
+                  "getHandleConnections",
+                  "getNodeConnections",
+                  "fitView"
+                ]
+              },
               { "name": "useAgentActions", "stableResult": true },
               { "name": "useMonacoActions", "stableResult": true },
               { "name": "useProjectActions", "stableResult": true },
