@@ -50,35 +50,19 @@ describe('FunctionApiInsertSchema executeCode validation', () => {
     });
 
     it('arrow function', () => {
-      const result = FunctionApiInsertSchema.safeParse({
-        ...basePayload,
-        executeCode: '() => 1',
-      });
-      expect(result.success).toBe(true);
+      expect(() => test('() => 1')).not.toThrowError();
     });
 
     it('async arrow function', () => {
-      const result = FunctionApiInsertSchema.safeParse({
-        ...basePayload,
-        executeCode: 'async () => 1',
-      });
-      expect(result.success).toBe(true);
+      expect(() => test('async () => 1')).not.toThrowError();
     });
 
     it('named function', () => {
-      const result = FunctionApiInsertSchema.safeParse({
-        ...basePayload,
-        executeCode: 'function foo() {}',
-      });
-      expect(result.success).toBe(true);
+      expect(() => test('function foo() {}')).not.toThrowError();
     });
 
     it('async named function', () => {
-      const result = FunctionApiInsertSchema.safeParse({
-        ...basePayload,
-        executeCode: 'async function foo() {}',
-      });
-      expect(result.success).toBe(true);
+      expect(() => test('async function foo() {}')).not.toThrowError();
     });
   });
 });
