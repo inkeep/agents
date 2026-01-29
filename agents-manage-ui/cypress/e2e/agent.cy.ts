@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { generateId } from '../../src/lib/utils/id-utils';
+import {generateId} from "../../src/lib/utils/id-utils";
 
 describe('Agent', () => {
   describe('Unsaved changes dialog', () => {
@@ -69,10 +69,39 @@ describe('Agent', () => {
     });
   });
 
-  it.only('Editing sub-agent ID removes linked tools', () => {
-    cy.visit('/default/projects/my-weather-project');
-    cy.contains('Create agent').click();
-    cy.get('[name=name]').type(generateId());
-    cy.get('button[type=submit]').click();
+  it.only('Editing sub-agent ID should not removes linked tools', () => {
+    // cy.visit('/default/projects/my-weather-project');
+    // cy.contains('Create agent').click();
+    // cy.get('[name=name]').type(generateId());
+    // cy.get('button[type=submit]').click();
+    cy.visit('/default/projects/my-weather-project/agents/9yn0yqedex2npz7wclbmc');
+    cy.get('.react-flow__node').should('exist');
+
+    function dragNode(selector: string) {
+      const dataTransfer = new DataTransfer();
+      cy.get(selector).trigger('dragstart', { dataTransfer });
+
+      cy.get('.react-flow__node-agent')
+        .trigger('dragover', { dataTransfer })
+        .trigger('drop', { dataTransfer });
+    }
+    function connectEdge(selector: string) {
+      // React flow doesn't use onDragStart
+      cy.get(selector).trigger('mousedown', { button: 0 });
+      cy.get('[data-handleid="target-agent"]')
+        .trigger('mousemove')
+        .trigger('mouseup', { force: true });
+    }
+
+    dragNode('[aria-label="Drag MCP node"]');
+    cy.contains('Geocode address').click();
+    connectEdge('[data-handleid="target-mcp"]');
+    dragNode('[aria-label="Drag Function Tool node"]');
+    connectEdge('[data-handleid="target-function-tool"]');
+    cy.typeInMonaco('code.jsx', 'function () {}');
+    cy.contains('Save changes').click();
+    cy.contains('Agent saved').should('exist');
+    cy.reload();
+    cy.get('.react-flow__node').should('have.length', 3);
   });
 });
