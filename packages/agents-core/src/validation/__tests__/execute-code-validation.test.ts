@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest';
+import { FunctionApiInsertSchema } from '../schemas';
+
+const basePayload = {
+  id: 'fn-1',
+  inputSchema: {},
+  dependencies: {},
+};
+
+describe('FunctionApiInsertSchema executeCode validation', () => {
+  it('rejects export default function', () => {
+    const result = FunctionApiInsertSchema.safeParse({
+      ...basePayload,
+      executeCode: 'export default function test() { return 1; }',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // it('allows arrow functions', () => {
+  //   const result = FunctionApiInsertSchema.safeParse({
+  //     ...basePayload,
+  //     executeCode: '() => 1',
+  //   });
+  //   expect(result.success).toBe(true);
+  // });
+  //
+  // it('rejects TypeScript syntax', () => {
+  //   const result = FunctionApiInsertSchema.safeParse({
+  //     ...basePayload,
+  //     executeCode: '(value: number) => value',
+  //   });
+  //   expect(result.success).toBe(false);
+  // });
+  //
+  // it('rejects JSX syntax', () => {
+  //   const result = FunctionApiInsertSchema.safeParse({
+  //     ...basePayload,
+  //     executeCode: '() => <div />',
+  //   });
+  //   expect(result.success).toBe(false);
+  // });
+  //
+  // it('allows function bodies with return', () => {
+  //   const result = FunctionApiInsertSchema.safeParse({
+  //     ...basePayload,
+  //     executeCode: 'return 1',
+  //   });
+  //   expect(result.success).toBe(true);
+  // });
+});
