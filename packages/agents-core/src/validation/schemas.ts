@@ -1672,20 +1672,20 @@ export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).ope
 
 const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
   try {
-    const ast = parse(val, {
-      sourceType: 'module',
-      allowReturnOutsideFunction: true,
-      plugins: [],
-    });
+    const ast = parse(val, { sourceType: 'module' });
     for (const node of ast.program.body) {
       if (node.type === 'ExportDefaultDeclaration') {
         throw SyntaxError('Export default is not allowed');
       }
     }
   } catch (error) {
+    let message = error instanceof Error ? error.message : JSON.stringify(error);
+    if (message.startsWith("'return' outside of function")) {
+      message = 'Global return is not allowed';
+    }
     ctx.addIssue({
       code: 'custom',
-      message: error instanceof Error ? error.message : JSON.stringify(error),
+      message,
       input: val,
     });
   }
