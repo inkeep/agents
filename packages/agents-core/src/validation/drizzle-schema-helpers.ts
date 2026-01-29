@@ -4,30 +4,7 @@ import {
   createInsertSchema as drizzleCreateInsertSchema,
   createSelectSchema as drizzleCreateSelectSchema,
 } from 'drizzle-zod';
-import { ResourceIdSchema, MIN_ID_LENGTH, MAX_ID_LENGTH, URL_SAFE_ID_PATTERN } from '../validation';
-
-/**
- * Creates a resource ID schema with custom description.
- * Inherits all validation from resourceIdSchema (min, max, regex pattern).
- * Use this to extend resourceIdSchema with entity-specific documentation.
- *
- * @example
- * // For Agent.defaultSubAgentId
- * createResourceIdSchema('ID of the default sub-agent. Workflow: ...', { example: 'my-subagent' })
- *
- * // For Tool.credentialReferenceId
- * createResourceIdSchema('Reference to credential for authentication', { example: 'cred-123' })
- */
-export function createResourceIdSchema(
-  description: string,
-  options?: { example?: string }
-): z.ZodString {
-  const modified = ResourceIdSchema.clone().openapi({
-    description,
-    example: options?.example ?? 'resource_789',
-  });
-  return modified;
-}
+import { MAX_ID_LENGTH, MIN_ID_LENGTH, URL_SAFE_ID_PATTERN } from '../validation';
 
 function createSelectSchemaWithModifiers<T extends AnySQLiteTable>(
   table: T,

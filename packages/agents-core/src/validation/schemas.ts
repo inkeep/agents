@@ -347,9 +347,10 @@ export const AgentInsertSchema = createInsertSchema(agents, {
   name: () =>
     z.string().trim().nonempty().describe('Agent name').openapi({ description: 'Agent name' }),
   defaultSubAgentId: () =>
-    createResourceIdSchema(DEFAULT_SUB_AGENT_ID_DESCRIPTION, { example: 'my-default-subagent' })
-      .nullable()
-      .optional(),
+    ResourceIdSchema.clone().nullable().optional().openapi({
+      description: DEFAULT_SUB_AGENT_ID_DESCRIPTION,
+      example: 'my-default-subagent',
+    }),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
