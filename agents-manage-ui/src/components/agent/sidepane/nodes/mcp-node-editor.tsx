@@ -415,7 +415,15 @@ export function MCPServerNodeEditor({
                 <TooltipContent className="max-w-xs">
                   <div className="text-sm">
                     Tools requiring approval will pause execution and wait for user confirmation
-                    before running. Use the checkbox to toggle approval for all enabled tools.
+                    before running. Use the checkbox to toggle approval for all enabled tools.{' '}
+                    <a
+                      href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:no-underline"
+                    >
+                      Learn more
+                    </a>
                   </div>
                 </TooltipContent>
               </Tooltip>
