@@ -1682,7 +1682,9 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     const { body } = ast.program;
     for (const node of body) {
       if (node.type === 'ExportDefaultDeclaration') {
-        throw SyntaxError('Export default is not allowed');
+        throw SyntaxError(
+          'Export default declarations are not supported. Provide a single function instead.'
+        );
       }
     }
     const functionsCount = body.filter((node) => {
@@ -1699,23 +1701,23 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
     }).length;
 
     if (!functionsCount) {
-      throw new SyntaxError('Must have one function');
+      throw new SyntaxError('Must contain exactly one function.');
     }
     if (functionsCount > 1) {
-      throw new SyntaxError(`Must have one function, but got ${functionsCount}`);
+      throw new SyntaxError(`Must contain exactly one function (found ${functionsCount}).`);
     }
   } catch (error) {
     let message = error instanceof Error ? error.message : JSON.stringify(error);
     if (message.startsWith("'return' outside of function. (")) {
-      message = 'Global return is not allowed';
+      message = 'Top-level return is not allowed.';
     } else if (message.startsWith('Unexpected token, expected "')) {
-      message = 'TypeScript syntax is not allowed';
+      message = 'TypeScript syntax is not supported. Use plain JavaScript.';
     } else if (
       message.startsWith(
         'This experimental syntax requires enabling one of the following parser plugin(s): "jsx", "flow", "typescript". ('
       )
     ) {
-      message = 'JSX syntax is not allowed';
+      message = 'JSX syntax is not supported. Use plain JavaScript.';
     }
     ctx.addIssue({
       code: 'custom',
