@@ -440,7 +440,7 @@ export function TimelineWrapper({
 
   return (
     <>
-      <ResizablePanel id="activity-timeline" order={2}>
+      <ResizablePanel id="activity-timeline" minSize="30%">
         <div className="bg-background h-full flex flex-col py-4">
           <div className="flex-shrink-0">
             <div className="flex items-center justify-between px-6 pb-4">
@@ -602,22 +602,24 @@ export function TimelineWrapper({
           </div>
         </div>
       </ResizablePanel>
-      <ResizableHandle />
       {/* Side Panel */}
       {selected && (
-        <ResizablePanel id="activity-details-sidepane" order={3}>
-          <ActivityDetailsSidePane
-            key={selected.item.id}
-            title={panelTitle(selected)}
-            open={panelVisible}
-            onClose={closePanel}
-          >
-            {renderPanelContent({
-              selected,
-              findSpanById,
-            })}
-          </ActivityDetailsSidePane>
-        </ResizablePanel>
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel id="activity-details-sidepane" minSize="25%">
+            <ActivityDetailsSidePane
+              key={selected.item.id}
+              title={panelTitle(selected)}
+              open={panelVisible}
+              onClose={closePanel}
+            >
+              {renderPanelContent({
+                selected,
+                findSpanById,
+              })}
+            </ActivityDetailsSidePane>
+          </ResizablePanel>
+        </>
       )}
     </>
   );
