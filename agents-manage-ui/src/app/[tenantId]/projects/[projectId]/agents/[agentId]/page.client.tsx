@@ -980,7 +980,7 @@ export const Agent: FC<AgentProps> = ({
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
-        minSize="30%"
+        minSize={showTraces ? '0%' : '30%'}
         // fixes WARNING: Panel defaultSize prop recommended to avoid layout shift after server rendering
         defaultSize={100}
         className="relative"
@@ -1097,10 +1097,10 @@ export const Agent: FC<AgentProps> = ({
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
-            minSize="25%"
+            minSize={showTraces ? '100%' : '25%'}
             defaultSize={25}
             // Panel id and order props recommended when panels are dynamically rendered
-            id="playground-pane"
+            id={showTraces ? 'debug-pane' : 'playground-pane'}
             className={showTraces ? 'w-full flex-none!' : ''}
           >
             <Playground
