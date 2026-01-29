@@ -318,6 +318,15 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         const nodesToDelete = new Set(
           state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
         );
+
+        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
+        if (unDeletableNodes.length) {
+          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
+          toast.error(
+            `Cannot delete undeletable nodes ${formatter.format(unDeletableNodes.map((n) => n.id))}`
+          );
+        }
+
         const edgesRemaining = state.edges.filter(
           (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
         );
