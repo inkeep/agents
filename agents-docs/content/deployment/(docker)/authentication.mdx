@@ -1,7 +1,7 @@
 ---
 title: Configure Authentication
 sidebarTitle: Authentication
-description: Set up Better Auth for user sign-in and team management
+description: Set up authentication and authorization for user sign-in and team management
 icon: LuLock
 ---
 
@@ -11,6 +11,19 @@ Configure user authentication, admin credentials, and optional OAuth providers.
   For a feature overview of authentication and authorization, see [Access Control](/visual-builder/access-control).
 </Note>
 
+## Architecture
+
+The framework uses two components for access control:
+
+| Component | Purpose |
+|-----------|---------|
+| [Better Auth](https://www.better-auth.com/) | User authentication, sessions, and OAuth providers |
+| [SpiceDB](https://authzed.com/spicedb) | Fine-grained authorization and permission checks |
+
+Better Auth handles user sign-in and supports many authentication plugins including GitHub, Microsoft, SAML, passkeys, and more. See the [Better Auth documentation](https://www.better-auth.com/docs/authentication/email-password) to add additional sign-in methods.
+
+SpiceDB manages organization and project-level permissions using a relationship-based access control model.
+
 ## Prerequisites
 
 - Docker Compose environment running (see [Local Development](/deployment/docker-local))
@@ -18,13 +31,20 @@ Configure user authentication, admin credentials, and optional OAuth providers.
 
 ## Environment Variables Reference
 
-### Authentication (Better Auth)
+### Authentication
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `BETTER_AUTH_SECRET` | Yes | Secret for session encryption (32+ chars) |
 | `INKEEP_AGENTS_MANAGE_UI_USERNAME` | Yes | Initial admin email address |
 | `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Yes | Initial admin password (8+ chars) |
+
+### Authorization
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SPICEDB_ENDPOINT` | Yes | SpiceDB gRPC endpoint (default: `localhost:50051`) |
+| `SPICEDB_PRESHARED_KEY` | Yes | SpiceDB preshared key for authentication |
 
 ### OAuth Providers (Optional)
 
@@ -41,7 +61,7 @@ Authentication is enabled by default. Configure the required environment variabl
   <Step>
     ### Generate a secret
 
-    Create a secure secret for Better Auth:
+    Create a secure secret for session encryption:
 
     ```bash
     openssl rand -base64 32
@@ -53,14 +73,14 @@ Authentication is enabled by default. Configure the required environment variabl
     Add these to your `.env` file:
 
     ```dotenv title=".env"
-    # Better Auth secret (paste your generated secret)
+    # Authentication secret (paste your generated secret)
     BETTER_AUTH_SECRET=<your-generated-secret>
 
     # Initial admin credentials
     INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
     INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-8-chars-min>
 
-    # SpiceDB connection, localhost
+    # Authorization (SpiceDB)
     SPICEDB_ENDPOINT=localhost:50051
     SPICEDB_PRESHARED_KEY=dev-secret-key
     ```
