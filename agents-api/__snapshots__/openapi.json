@@ -496,7 +496,20 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/FunctionCreate"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/FunctionCreate"
+                    },
+                    {
+                      "properties": {
+                        "executeCode": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
                 },
                 "type": "object"
               },
@@ -4437,7 +4450,20 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/FunctionCreate"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/FunctionCreate"
+                    },
+                    {
+                      "properties": {
+                        "executeCode": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
                 },
                 "type": "object"
               },
@@ -28410,7 +28436,20 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FunctionCreate"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/FunctionCreate"
+                  },
+                  {
+                    "properties": {
+                      "executeCode": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
               }
             }
           }
