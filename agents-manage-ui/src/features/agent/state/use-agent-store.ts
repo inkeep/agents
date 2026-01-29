@@ -22,6 +22,7 @@ import type {
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
+import { toast } from 'sonner';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
