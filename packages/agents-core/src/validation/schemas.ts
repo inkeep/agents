@@ -1673,10 +1673,23 @@ export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).ope
 const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
   try {
     const ast = parse(val, { sourceType: 'module' });
-    for (const node of ast.program.body) {
+    const { body } = ast.program;
+    for (const node of body) {
       if (node.type === 'ExportDefaultDeclaration') {
         throw SyntaxError('Export default is not allowed');
       }
+    }
+    const functionsCount = body.filter(
+      (node) =>
+        node.type === 'FunctionDeclaration' ||
+        (node.type === 'ExpressionStatement' && node.expression.type === 'ArrowFunctionExpression')
+    ).length;
+
+    if (!functionsCount) {
+      throw new SyntaxError('Must have one function');
+    }
+    if (functionsCount > 1) {
+      throw new SyntaxError(`Must have one function, but got ${functionsCount}`);
     }
   } catch (error) {
     let message = error instanceof Error ? error.message : JSON.stringify(error);
