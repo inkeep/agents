@@ -1668,8 +1668,27 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
-export const FunctionApiInsertSchema =
-  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate');
+export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
+  .openapi('FunctionCreate')
+  .extend({
+    executeCode: z
+      .string()
+      .trim()
+      .nonempty()
+      .superRefine((val, ctx) => {
+        // No global return
+        // No TypeScript syntax
+        // No global const declaration
+        // Only one function declaration
+        if (val.includes('return')) {
+          ctx.addIssue({
+            code: 'custom',
+            message: "Global return isn't allowed",
+            input: val,
+          });
+        }
+      }),
+  });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
