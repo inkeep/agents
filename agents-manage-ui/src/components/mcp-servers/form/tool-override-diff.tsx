@@ -93,10 +93,9 @@ export function ToolOverrideDiff({
     : null;
   const overrideParsedSchema = overrideSchema ? parseMCPInputSchema(overrideSchema) : null;
 
-  const hasNameChange = overrideName && overrideName !== originalName;
-  const hasDescriptionChange = overrideDescription && overrideDescription !== originalDescription;
+  const hasNameChange = !!overrideName && overrideName !== originalName;
+  const hasDescriptionChange = !!overrideDescription && overrideDescription !== originalDescription;
   const hasSchemaChange = overrideSchema != null;
-  console.log(overrideSchema);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
