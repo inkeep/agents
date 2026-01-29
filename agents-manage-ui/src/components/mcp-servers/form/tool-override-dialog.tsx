@@ -1,10 +1,12 @@
 'use client';
 
-import { AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
-import { useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
-import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { GenericInput } from '@/components/form/generic-input';
+import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,10 +16,64 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Form } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+
+const toolSchemaTemplate = `{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "The search query"
+    },
+    "limit": {
+      "type": "number",
+      "description": "Maximum number of results"
+    }
+  },
+  "required": ["query"]
+}`;
+
+const toolOverrideSchema = z.object({
+  displayName: z
+    .string()
+    .max(100, 'Display name must be less than 100 characters')
+    .refine((val) => !val.trim() || /^[a-zA-Z0-9_-]+$/.test(val.trim()), {
+      message: 'Display name can only contain letters, numbers, hyphens, and underscores',
+    })
+    .optional()
+    .or(z.literal('')),
+  description: z
+    .string()
+    .max(1000, 'Description must be less than 1000 characters')
+    .optional()
+    .or(z.literal('')),
+  schema: z
+    .string()
+    .refine(
+      (val) => {
+        if (!val.trim()) return true;
+        try {
+          const parsed = JSON.parse(val);
+          if (typeof parsed !== 'object' || parsed === null) return false;
+          if (
+            parsed.type &&
+            !['string', 'number', 'boolean', 'object', 'array'].includes(parsed.type)
+          ) {
+            return false;
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Schema must be a valid JSON object with a valid type' }
+    )
+    .optional()
+    .or(z.literal('')),
+});
+
+type ToolOverrideFormData = z.infer<typeof toolOverrideSchema>;
 
 interface ToolOverrideDialogProps {
   isOpen: boolean;
@@ -26,13 +82,13 @@ interface ToolOverrideDialogProps {
   override?: {
     displayName?: string;
     description?: string;
-    schema?: any;
+    schema?: unknown;
     transformation?: string | Record<string, string>;
   };
   onSave: (override: {
     displayName?: string;
     description?: string;
-    schema?: any;
+    schema?: unknown;
     transformation?: string | Record<string, string>;
   }) => void;
   originalTool?: {
@@ -42,137 +98,67 @@ interface ToolOverrideDialogProps {
   };
 }
 
-// Validation functions
-const validateDisplayName = (name: string): string | null => {
-  if (!name.trim()) return null;
-  if (name.length > 100) return 'Display name must be less than 100 characters';
-  if (!/^[a-zA-Z0-9_-]+$/.test(name.trim())) {
-    return 'Display name can only contain letters, numbers, hyphens, and underscores';
-  }
-  return null;
-};
-
-const validateDescription = (desc: string): string | null => {
-  if (!desc.trim()) return null;
-  if (desc.length > 1000) return 'Description must be less than 1000 characters';
-  return null;
-};
-
-const validateJsonSchema = (schema: string): string | null => {
-  if (!schema.trim()) return null;
-  try {
-    const parsed = JSON.parse(schema);
-    if (typeof parsed !== 'object' || parsed === null) {
-      return 'Schema must be a valid JSON object';
-    }
-    // Basic JSON schema structure validation
-    if (parsed.type && !['string', 'number', 'boolean', 'object', 'array'].includes(parsed.type)) {
-      return 'Invalid schema type. Must be string, number, boolean, object, or array';
-    }
-    return null;
-  } catch (error) {
-    return `Invalid JSON syntax: ${error instanceof Error ? error.message : 'Unknown error'}`;
-  }
+const formatFormData = (override?: ToolOverrideDialogProps['override']): ToolOverrideFormData => {
+  return {
+    displayName: override?.displayName || '',
+    description: override?.description || '',
+    schema: override?.schema ? JSON.stringify(override.schema, null, 2) : '',
+  };
 };
 
 export function ToolOverrideDialog({
   isOpen,
   onOpenChange,
   toolName,
-  override = {},
+  override,
   onSave,
   originalTool,
 }: ToolOverrideDialogProps) {
-  const [displayName, setDisplayName] = useState(override.displayName || '');
-  const [description, setDescription] = useState(override.description || '');
-  const [schema, setSchema] = useState(
-    override.schema ? JSON.stringify(override.schema, null, 2) : ''
-  );
-  const [useVisualBuilder, setUseVisualBuilder] = useState(true);
+  const form = useForm<ToolOverrideFormData>({
+    resolver: zodResolver(toolOverrideSchema),
+    defaultValues: formatFormData(override),
+  });
 
-  // Validation errors
-  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
-  const [descriptionError, setDescriptionError] = useState<string | null>(null);
-  const [schemaError, setSchemaError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Validate fields on change
-  const handleDisplayNameChange = (value: string) => {
-    setDisplayName(value);
-    setDisplayNameError(validateDisplayName(value));
-    setSaveError(null);
-  };
-
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-    setDescriptionError(validateDescription(value));
-    setSaveError(null);
-  };
-
-  const handleSchemaChange = (value: string) => {
-    setSchema(value);
-    setSchemaError(validateJsonSchema(value));
-    setSaveError(null);
-  };
-
-  const handleSave = () => {
-    // Validate all fields
-    const displayNameErr = validateDisplayName(displayName);
-    const descriptionErr = validateDescription(description);
-    const schemaErr = validateJsonSchema(schema);
-
-    setDisplayNameError(displayNameErr);
-    setDescriptionError(descriptionErr);
-    setSchemaError(schemaErr);
-
-    // Check for any validation errors
-    if (displayNameErr || descriptionErr || schemaErr) {
-      setSaveError('Please fix the validation errors before saving.');
-      return;
+  // Only reset when dialog opens, not when override reference changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only on open
+  useEffect(() => {
+    if (isOpen) {
+      form.reset(formatFormData(override));
     }
+  }, [isOpen]);
 
-    try {
-      const newOverride = {
-        ...(displayName.trim() && { displayName: displayName.trim() }),
-        ...(description.trim() && { description: description.trim() }),
-        ...(schema.trim() && {
-          schema: (() => {
-            try {
-              return JSON.parse(schema);
-            } catch {
-              return schema;
-            }
-          })(),
-        }),
-        ...(override.transformation && {
-          transformation: override.transformation,
-        }),
-      };
+  const { isSubmitting } = form.formState;
 
-      onSave(newOverride);
-      onOpenChange(false);
+  const onSubmit = (data: ToolOverrideFormData) => {
+    const newOverride = {
+      ...(data.displayName?.trim() && { displayName: data.displayName.trim() }),
+      ...(data.description?.trim() && { description: data.description.trim() }),
+      ...(data.schema?.trim() && {
+        schema: (() => {
+          try {
+            return JSON.parse(data.schema);
+          } catch {
+            return data.schema;
+          }
+        })(),
+      }),
+      ...(override?.transformation && {
+        transformation: override.transformation,
+      }),
+    };
 
-      // Reset errors on successful save
-      setDisplayNameError(null);
-      setDescriptionError(null);
-      setSchemaError(null);
-      setSaveError(null);
-    } catch (error) {
-      setSaveError(
-        `Failed to save override: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    onSave(newOverride);
+    onOpenChange(false);
   };
 
-  const hasChanges = displayName.trim() || description.trim() || schema.trim();
-
-  const hasErrors = Boolean(displayNameError || descriptionError || schemaError);
-
-  const isValid = hasChanges && !hasErrors;
+  const hasChanges =
+    form.watch('displayName')?.trim() ||
+    form.watch('description')?.trim() ||
+    form.watch('schema')?.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="!w-[90vw] !max-w-6xl max-h-[90vh] overflow-y-auto !h-auto">
+      <DialogContent className="w-[90vw]! max-w-6xl! max-h-[90vh] overflow-y-auto h-auto!">
         <DialogHeader>
           <DialogTitle>Override Tool: {toolName}</DialogTitle>
           <DialogDescription>
@@ -180,119 +166,56 @@ export function ToolOverrideDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Error Alert */}
-        {saveError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangleIcon className="h-4 w-4" />
-            <AlertDescription>{saveError}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-4">
-          {/* Display Name Override */}
-          <div>
-            <Label htmlFor="displayName">Display Name (optional)</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => handleDisplayNameChange(e.target.value)}
-              placeholder={originalTool?.name || toolName}
-              className={displayNameError ? 'border-red-500 focus:border-red-500' : ''}
-            />
-            {displayNameError ? (
-              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                <AlertTriangleIcon className="h-3 w-3" />
-                {displayNameError}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">
-                Override the tool name shown to the agent
-              </p>
-            )}
-          </div>
-
-          {/* Description Override */}
-          <div>
-            <Label htmlFor="description">Description (optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => handleDescriptionChange(e.target.value)}
-              placeholder={originalTool?.description || 'Enter a custom description...'}
-              rows={3}
-              className={descriptionError ? 'border-red-500 focus:border-red-500' : ''}
-            />
-            {descriptionError ? (
-              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                <AlertTriangleIcon className="h-3 w-3" />
-                {descriptionError}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">
-                Override the tool description shown to the agent
-              </p>
-            )}
-          </div>
-
-          {/* Schema Override */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Schema Override (optional)</Label>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="json-mode" className="text-xs">
-                  JSON
-                </Label>
-                <Switch
-                  id="json-mode"
-                  checked={!useVisualBuilder}
-                  onCheckedChange={(checked) => setUseVisualBuilder(!checked)}
-                />
-              </div>
-            </div>
-
-            {useVisualBuilder ? (
-              <div className={`border rounded-lg p-4 ${schemaError ? 'border-red-500' : ''}`}>
-                <JsonSchemaBuilder value={schema} onChange={handleSchemaChange} />
-              </div>
-            ) : (
-              <ExpandableJsonEditor
-                name="schema-override"
-                value={schema}
-                onChange={handleSchemaChange}
-                placeholder='{"param1": {"type": "string", "description": "Parameter 1"}}'
-                className={schemaError ? 'border-red-500' : ''}
-              />
-            )}
-
-            {schemaError ? (
-              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                <AlertTriangleIcon className="h-3 w-3" />
-                {schemaError}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">
-                {useVisualBuilder
-                  ? 'Build a simplified schema visually - toggle JSON mode for raw editing'
-                  : 'Define simplified input parameters as JSON schema'}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={!hasChanges || hasErrors}
-            className={isValid ? 'bg-green-600 hover:bg-green-700' : undefined}
+        <Form {...form}>
+          <form
+            onSubmit={(e) => {
+              e.stopPropagation();
+              form.handleSubmit(onSubmit)(e);
+            }}
+            className="space-y-8"
           >
-            {isValid && <CheckCircleIcon className="h-4 w-4 mr-1" />}
-            Save Override
-          </Button>
-        </DialogFooter>
+            <GenericInput
+              control={form.control}
+              name="displayName"
+              label="Display Name"
+              placeholder={originalTool?.name || toolName}
+              description="Override the tool name shown to the agent"
+            />
+
+            <FormFieldWrapper
+              control={form.control}
+              name="description"
+              label="Description"
+              description="Override the tool description shown to the agent"
+            >
+              {(field) => (
+                <Textarea
+                  placeholder={originalTool?.description || 'Enter a custom description...'}
+                  rows={3}
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              )}
+            </FormFieldWrapper>
+
+            <JsonSchemaInput
+              control={form.control}
+              name="schema"
+              label="Schema Override"
+              description="Define simplified input parameters for the tool"
+              customTemplate={toolSchemaTemplate}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!hasChanges || isSubmitting}>
+                Save Override
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
