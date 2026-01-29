@@ -9,9 +9,17 @@ function parse(executeCode: string) {
 
 describe('FunctionApiInsertSchema executeCode validation', () => {
   describe('rejects', () => {
-    test('export default function', () => {
-      expect(() => parse('export default function() {}')).toThrowError(
-        /Export default declarations are not supported\./
+    test('export default declaration', () => {
+      expect(() => parse('export default null')).toThrowError(
+        /Export default declarations are not supported\. Provide a single function instead\./
+      );
+    });
+    test('export declaration', () => {
+      expect(() => parse('export let foo')).toThrowError(
+        /Export declarations are not supported\. Provide a single function instead\./
+      );
+      expect(() => parse('export function foo() {}')).toThrowError(
+        /Export declarations are not supported\. Provide a single function instead\./
       );
     });
 
