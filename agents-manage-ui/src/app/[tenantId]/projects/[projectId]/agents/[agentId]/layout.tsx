@@ -28,7 +28,7 @@ const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'
     return () => {
       setSidebarOpen({ isSidebarSessionOpen: true });
     };
-  }, [setSidebarOpen]);
+  }, []);
 
   // Generate suggestions from context config
   useEffect(() => {
@@ -40,7 +40,7 @@ const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'
       contextVariables,
     });
     setVariableSuggestions(variables);
-  }, [contextConfig, setVariableSuggestions]);
+  }, [contextConfig]);
 
   return (
     <ReactFlowProvider>
