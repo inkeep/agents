@@ -40,13 +40,14 @@ describe('FunctionApiInsertSchema executeCode validation', () => {
     ).toThrowError(/TypeScript syntax is not allowed/);
   });
 
-  // it('rejects JSX syntax', () => {
-  //   const result = FunctionApiInsertSchema.safeParse({
-  //     ...basePayload,
-  //     executeCode: '() => <div />',
-  //   });
-  //   expect(result.success).toBe(false);
-  // });
+  it('rejects JSX syntax', () => {
+    expect(() =>
+      FunctionApiInsertSchema.parse({
+        ...basePayload,
+        executeCode: '() => <div />',
+      })
+    ).toThrowError(/JSX syntax is not allowed/);
+  });
 
   // it('allows function bodies with return', () => {
   //   const result = FunctionApiInsertSchema.safeParse({
