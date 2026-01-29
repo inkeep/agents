@@ -71,6 +71,7 @@ const envSchema = z.object({
     .min(32, 'GITHUB_STATE_SIGNING_SECRET must be at least 32 characters')
     .optional(),
   GITHUB_APP_NAME: z.string().optional(),
+  GITHUB_MCP_API_KEY: z.string().optional(),
 });
 
 const parseEnv = () => {

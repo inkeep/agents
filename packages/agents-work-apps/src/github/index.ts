@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { validateGitHubAppConfigOnStartup, validateGitHubWebhookConfigOnStartup } from './config';
+import mcpRoutes from './mcp/index';
 import setupRoutes from './routes/setup';
 import tokenExchangeRoutes from './routes/tokenExchange';
 import webhooksRoutes from './routes/webhooks';
@@ -13,6 +14,7 @@ export function createGithubRoutes() {
   app.route('/token-exchange', tokenExchangeRoutes);
   app.route('/setup', setupRoutes);
   app.route('/webhooks', webhooksRoutes);
+  app.route('/mcp', mcpRoutes);
 
   return app;
 }

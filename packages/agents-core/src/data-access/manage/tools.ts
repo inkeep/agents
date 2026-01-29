@@ -5,6 +5,9 @@ import type { NangoCredentialData } from '../../credential-stores/nango-store';
 import { CredentialStuffer } from '../../credential-stuffer';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
+import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { getActiveBranch } from '../../dolt/schema-sync';
+import { env } from '../../env';
 import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
@@ -30,6 +33,8 @@ import {
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
+import { cascadeDeleteByTool } from '../runtime/cascade-delete';
+import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
@@ -213,6 +218,14 @@ const discoverToolsFromServer = async (
         tool.credentialScope === 'user' ? 'user' : 'project',
         userId
       );
+    }
+
+    if (isGithubWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
     }
 
     const client = new McpClient({
@@ -546,6 +559,16 @@ export const deleteTool =
         )
       )
       .returning();
+
+    // If a github workapp tool is being deleted from the main branch, delete the runtime entities for the tool
+    // In the future, when we allow rolling back a project to a previous version, the user will need to reset the tool-repo permissions
+    const currentBranch = await getActiveBranch(db)();
+    const isWorkapp = deleted.isWorkapp;
+    const isGithub = isWorkapp && deleted.config.mcp.server.url.includes('/github/mcp');
+    if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main` && isGithub) {
+      const runDbClient = createAgentsRunDatabaseClient();
+      await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
+    }
 
     return !!deleted;
   };

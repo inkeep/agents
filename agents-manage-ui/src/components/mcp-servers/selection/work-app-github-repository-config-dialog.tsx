@@ -383,7 +383,7 @@ function ReadyState({
               url: githubMcpUrl,
             },
             transport: {
-              type: 'sse',
+              type: 'streamable_http',
             },
           },
         },

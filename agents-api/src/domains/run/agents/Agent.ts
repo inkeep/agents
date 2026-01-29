@@ -12,6 +12,7 @@ import {
   generateId,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
+  isGithubWorkAppTool,
   JsonTransformer,
   listTaskIdsByContextId,
   MCPServerType,
@@ -41,6 +42,7 @@ import {
   tool,
 } from 'ai';
 import manageDbPool from 'src/data/db/manageDbPool';
+import { env } from 'src/env';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
@@ -1172,6 +1174,15 @@ export class Agent {
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
         headers: agentToolRelationHeaders,
+      };
+    }
+
+    // Inject github workapp tool id and authorization header if the tool is a github workapp
+    if (isGithubWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
       };
     }
 

@@ -9,6 +9,8 @@ import {
   workAppGitHubRepositories,
 } from '../../db/runtime/runtime-schema';
 import type {
+  McpTool,
+  ToolSelect,
   WorkAppGitHubInstallationInsert,
   WorkAppGitHubInstallationSelect,
   WorkAppGitHubProjectRepositoryAccessSelect,
@@ -804,13 +806,18 @@ export const getMcpToolRepositoryAccessWithDetails =
   async (
     toolId: string
   ): Promise<
-    (WorkAppGitHubRepositorySelect & { accessId: string; installationAccountLogin: string })[]
+    (WorkAppGitHubRepositorySelect & {
+      accessId: string;
+      installationAccountLogin: string;
+      installationId: string;
+    })[]
   > => {
     const result = await db
       .select({
         accessId: workAppGitHubMcpToolRepositoryAccess.id,
         id: workAppGitHubRepositories.id,
         installationDbId: workAppGitHubRepositories.installationDbId,
+        installationId: workAppGitHubInstallations.installationId,
         repositoryId: workAppGitHubRepositories.repositoryId,
         repositoryName: workAppGitHubRepositories.repositoryName,
         repositoryFullName: workAppGitHubRepositories.repositoryFullName,
@@ -833,6 +840,7 @@ export const getMcpToolRepositoryAccessWithDetails =
     return result as (WorkAppGitHubRepositorySelect & {
       accessId: string;
       installationAccountLogin: string;
+      installationId: string;
     })[];
   };
 
@@ -850,6 +858,9 @@ export const clearMcpToolRepositoryAccess =
     return deleted.length;
   };
 
+export const isGithubWorkAppTool = (tool: ToolSelect | McpTool) => {
+  return tool.isWorkapp && tool.config.mcp.server.url.includes('/github/mcp');
+};
 // ============================================================================
 // Project Access Mode Functions
 // ============================================================================
