@@ -1097,6 +1097,7 @@ export const Agent: FC<AgentProps> = ({
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
+            minSize="25%"
             defaultSize={25}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
