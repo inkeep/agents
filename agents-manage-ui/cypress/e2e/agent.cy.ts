@@ -69,12 +69,11 @@ describe('Agent', () => {
     });
   });
 
-  it.only('Editing sub-agent ID should not removes linked tools', () => {
-    // cy.visit('/default/projects/my-weather-project');
-    // cy.contains('Create agent').click();
-    // cy.get('[name=name]').type(generateId());
-    // cy.get('button[type=submit]').click();
-    cy.visit('/default/projects/my-weather-project/agents/9yn0yqedex2npz7wclbmc');
+  it('Editing sub-agent ID should not removes linked tools', () => {
+    cy.visit('/default/projects/my-weather-project');
+    cy.contains('Create agent').click();
+    cy.get('[name=name]').type(generateId(), { delay: 0 });
+    cy.get('button[type=submit]').click();
     cy.get('.react-flow__node').should('exist');
 
     function dragNode(selector: string) {
@@ -99,9 +98,16 @@ describe('Agent', () => {
     dragNode('[aria-label="Drag Function Tool node"]');
     connectEdge('[data-handleid="target-function-tool"]');
     cy.typeInMonaco('code.jsx', 'function () {}');
-    cy.contains('Save changes').click();
-    cy.contains('Agent saved').should('exist');
-    cy.reload();
-    cy.get('.react-flow__node').should('have.length', 3);
+    saveAndAssert();
+    cy.get('.react-flow__node-agent').click();
+    cy.get('[name=id]').clear().type('TEST', { delay: 0 });
+    saveAndAssert();
+
+    function saveAndAssert() {
+      cy.contains('Save changes').click();
+      cy.contains('Agent saved').should('exist');
+      cy.reload();
+      cy.get('.react-flow__node').should('have.length', 3);
+    }
   });
 });
