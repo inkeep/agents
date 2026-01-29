@@ -922,7 +922,6 @@ export const Agent: FC<AgentProps> = ({
     return false;
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
     const onCompletion = () => {
       // @ts-expect-error
