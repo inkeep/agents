@@ -3,6 +3,7 @@ export * from './blocks';
 export * from './client';
 export * from './commands';
 export * from './events';
+export * from './modals';
 export * from './nango';
 export * from './security';
 export * from './types';

@@ -18,17 +18,23 @@ import {
   createApiKey,
   createWorkAppSlackUserMapping,
   createWorkAppSlackWorkspace,
+  deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
   findWorkAppSlackUserMapping,
   generateApiKey,
+  listAgents,
   listApiKeys,
+  listProjectsPaginated,
   listWorkAppSlackUserMappingsByTeam,
 } from '@inkeep/agents-core';
+import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { WorkAppsVariables } from '../types';
 import {
+  type AgentOption,
+  buildAgentSelectorModal,
   computeWorkspaceConnectionId,
   createConnectSession,
   type DefaultAgentConfig,
@@ -47,6 +53,7 @@ import {
   getWorkspaceDefaultAgentFromNango,
   handleCommand,
   listWorkspaceInstallations,
+  type ModalMetadata,
   parseSlackCommandBody,
   parseSlackEventBody,
   postMessageInThread,
@@ -86,6 +93,32 @@ export function getBotTokenForTeam(teamId: string): string | null {
   return workspace?.botToken || null;
 }
 
+async function fetchAgentsForTenant(tenantId: string): Promise<AgentOption[]> {
+  const projectsResult = await listProjectsPaginated(manageDbClient)({
+    tenantId,
+    pagination: { limit: 100 },
+  });
+
+  const allAgents: AgentOption[] = [];
+
+  for (const project of projectsResult.data) {
+    const agents = await listAgents(manageDbClient)({
+      scopes: { tenantId, projectId: project.id },
+    });
+
+    for (const agent of agents) {
+      allAgents.push({
+        id: agent.id,
+        name: agent.name,
+        projectId: project.id,
+        projectName: project.name,
+      });
+    }
+  }
+
+  return allAgents;
+}
+
 async function handleAppMention(params: {
   slackUserId: string;
   channel: string;
@@ -93,18 +126,17 @@ async function handleAppMention(params: {
   threadTs: string;
   messageTs: string;
   teamId: string;
+  triggerId?: string;
 }) {
-  const { slackUserId, channel, text, threadTs, messageTs, teamId } = params;
+  const { slackUserId, channel, text, threadTs, messageTs, teamId, triggerId } = params;
   const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 
   logger.info({ slackUserId, channel, teamId, text: text.slice(0, 50) }, 'Handling app mention');
 
-  // Get workspace connection from Nango (required for bot token and default agent)
   const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
   const tenantId = workspaceConnection?.tenantId || 'default';
   const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
-  // Get bot token from workspace connection, memory cache, or env
   let botToken: string | null = null;
 
   if (workspaceConnection?.botToken) {
@@ -133,59 +165,110 @@ async function handleAppMention(params: {
 
   const slackClient = getSlackClient(botToken);
   const replyThreadTs = threadTs || messageTs;
+  const isInThread = threadTs && threadTs !== messageTs;
 
   try {
-    let queryText = text;
+    if (!text) {
+      logger.debug(
+        { channel, triggerId, isInThread },
+        'Empty mention - opening agent selector modal'
+      );
 
-    // If empty mention in a thread, try to get thread context
-    if (!text && threadTs && threadTs !== messageTs) {
-      logger.debug({ channel, threadTs }, 'Empty mention in thread - fetching thread context');
+      const agents = await fetchAgentsForTenant(tenantId);
 
-      try {
-        const threadMessages = await slackClient.conversations.replies({
+      if (agents.length === 0) {
+        await postMessageInThread(
+          slackClient,
           channel,
-          ts: threadTs,
-          limit: 50,
-        });
-
-        if (threadMessages.messages && threadMessages.messages.length > 1) {
-          const contextMessages = threadMessages.messages
-            .filter((msg) => msg.ts !== messageTs)
-            .filter((msg) => !msg.bot_id)
-            .map((msg) => {
-              const userName = msg.user ? `<@${msg.user}>` : 'Unknown';
-              return `${userName}: ${msg.text || ''}`;
-            })
-            .join('\n');
-
-          if (contextMessages.trim()) {
-            queryText = `Based on the following conversation thread, please provide a helpful response or summary:\n\n${contextMessages}`;
-            logger.debug(
-              { threadMessageCount: threadMessages.messages.length },
-              'Using thread context as query'
-            );
-          }
-        }
-      } catch (threadError) {
-        logger.warn({ threadError }, 'Failed to fetch thread context, falling back to greeting');
+          replyThreadTs,
+          `⚙️ No agents configured for this workspace.\n\n` +
+            `👉 *<${dashboardUrl}|Set up agents in the dashboard>*`
+        );
+        return;
       }
-    }
 
-    // If still no query, send greeting
-    if (!queryText) {
-      logger.debug({ channel, replyThreadTs }, 'Sending empty mention greeting');
-      await postMessageInThread(
-        slackClient,
+      let threadMessageCount = 0;
+      if (isInThread) {
+        try {
+          const threadMessages = await slackClient.conversations.replies({
+            channel,
+            ts: threadTs,
+            limit: 50,
+          });
+          threadMessageCount = threadMessages.messages?.filter((m) => !m.bot_id).length || 0;
+        } catch {
+          logger.warn({ channel, threadTs }, 'Failed to count thread messages');
+        }
+      }
+
+      const metadata: ModalMetadata = {
         channel,
-        replyThreadTs,
-        `👋 Hi! I'm your Inkeep AI assistant. Ask me anything!\n\n` +
-          `*Examples:*\n` +
-          `• \`@Inkeep How do I reset my password?\`\n` +
-          `• \`@Inkeep Summarize our return policy\`\n\n` +
-          `Or use \`/inkeep help\` for more commands.`
+        threadTs: isInThread ? threadTs : undefined,
+        messageTs,
+        teamId,
+        slackUserId,
+        tenantId,
+        isInThread: !!isInThread,
+        threadMessageCount,
+      };
+
+      const agentButtons = agents.slice(0, 5).map((agent) => ({
+        type: 'button' as const,
+        text: {
+          type: 'plain_text' as const,
+          text: agent.name || agent.id,
+          emoji: true,
+        },
+        action_id: `select_agent_${agent.id}`,
+        value: JSON.stringify({
+          agentId: agent.id,
+          projectId: agent.projectId,
+          metadata,
+        }),
+      }));
+
+      await slackClient.chat.postEphemeral({
+        channel,
+        user: slackUserId,
+        thread_ts: isInThread ? threadTs : undefined,
+        text: isInThread
+          ? `Select an agent to analyze this thread (${threadMessageCount} messages):`
+          : 'Select an agent to start a conversation:',
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: isInThread
+                ? `📋 *Select an agent to analyze this thread* (${threadMessageCount} messages)`
+                : '👋 *Select an agent to start a conversation:*',
+            },
+          },
+          {
+            type: 'actions',
+            block_id: 'agent_selection',
+            elements: agentButtons,
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: 'Or mention me with a question: `@Inkeep How do I...`',
+              },
+            ],
+          },
+        ],
+      });
+
+      logger.info(
+        { slackUserId, channel, isInThread, agentCount: agents.length },
+        'Showed agent selection buttons'
       );
       return;
     }
+
+    const queryText = text;
 
     // Get workspace default agent configuration
     const workspaceDefault = await getWorkspaceDefaultAgent(teamId);
@@ -544,6 +627,322 @@ async function sendResponseUrlMessage(
   }
 }
 
+async function handleAgentButtonClick(params: {
+  triggerId: string;
+  actionValue: string;
+  teamId: string;
+  responseUrl: string;
+}): Promise<void> {
+  const { triggerId, actionValue, teamId, responseUrl } = params;
+
+  try {
+    const { agentId, projectId, metadata } = JSON.parse(actionValue) as {
+      agentId: string;
+      projectId: string;
+      metadata: ModalMetadata;
+    };
+
+    const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+    if (!workspaceConnection?.botToken) {
+      logger.error({ teamId }, 'No bot token for agent button click');
+      return;
+    }
+
+    const slackClient = getSlackClient(workspaceConnection.botToken);
+
+    const modalView = buildAgentSelectorModal(
+      [{ id: agentId, name: agentId, projectId, projectName: projectId }],
+      metadata
+    );
+
+    modalView.blocks = [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*Selected Agent:* ${agentId}`,
+        },
+      },
+      {
+        type: 'input',
+        block_id: 'question_block',
+        element: {
+          type: 'plain_text_input',
+          action_id: 'question_input',
+          multiline: true,
+          placeholder: {
+            type: 'plain_text',
+            text: metadata.isInThread
+              ? 'Additional instructions (optional)...'
+              : 'What would you like to ask?',
+          },
+        },
+        label: {
+          type: 'plain_text',
+          text: metadata.isInThread ? 'Additional Instructions' : 'Your Question',
+          emoji: true,
+        },
+        optional: metadata.isInThread,
+      },
+      {
+        type: 'input',
+        block_id: 'visibility_block',
+        element: {
+          type: 'checkboxes',
+          action_id: 'visibility_checkbox',
+          options: [
+            {
+              text: {
+                type: 'plain_text',
+                text: 'Private response (only visible to you)',
+                emoji: true,
+              },
+              value: 'ephemeral',
+            },
+          ],
+        },
+        label: {
+          type: 'plain_text',
+          text: 'Visibility',
+          emoji: true,
+        },
+        optional: true,
+      },
+    ];
+
+    const privateMetadata = JSON.stringify({
+      ...metadata,
+      selectedAgentId: agentId,
+      selectedProjectId: projectId,
+    });
+
+    await slackClient.views.open({
+      trigger_id: triggerId,
+      view: {
+        ...modalView,
+        private_metadata: privateMetadata,
+      },
+    });
+
+    logger.info({ agentId, teamId }, 'Opened agent question modal');
+  } catch (error) {
+    logger.error({ error, teamId }, 'Failed to handle agent button click');
+    if (responseUrl) {
+      await sendResponseUrlMessage(responseUrl, {
+        text: '❌ Failed to open agent dialog. Please try again.',
+        response_type: 'ephemeral',
+      });
+    }
+  }
+}
+
+async function handleModalSubmission(view: {
+  private_metadata?: string;
+  state?: { values?: Record<string, Record<string, unknown>> };
+}): Promise<void> {
+  try {
+    const metadata = JSON.parse(view.private_metadata || '{}') as ModalMetadata & {
+      selectedAgentId?: string;
+      selectedProjectId?: string;
+    };
+
+    const values = view.state?.values || {};
+    const questionValue = values.question_block?.question_input as { value?: string };
+    const visibilityValue = values.visibility_block?.visibility_checkbox as {
+      selected_options?: Array<{ value?: string }>;
+    };
+
+    const question = questionValue?.value || '';
+    const isEphemeral =
+      visibilityValue?.selected_options?.some((o) => o.value === 'ephemeral') || false;
+    const agentId = metadata.selectedAgentId;
+    const projectId = metadata.selectedProjectId;
+
+    if (!agentId || !projectId) {
+      logger.error({ metadata }, 'Missing agent or project ID in modal submission');
+      return;
+    }
+
+    const workspaceConnection = await findWorkspaceConnectionByTeamId(metadata.teamId);
+    if (!workspaceConnection?.botToken) {
+      logger.error({ teamId: metadata.teamId }, 'No bot token for modal submission');
+      return;
+    }
+
+    const slackClient = getSlackClient(workspaceConnection.botToken);
+    const tenantId = metadata.tenantId;
+
+    let fullQuestion = question;
+
+    if (metadata.isInThread && metadata.threadTs) {
+      try {
+        const threadMessages = await slackClient.conversations.replies({
+          channel: metadata.channel,
+          ts: metadata.threadTs,
+          limit: 50,
+        });
+
+        if (threadMessages.messages && threadMessages.messages.length > 0) {
+          const contextMessages = threadMessages.messages
+            .filter((msg) => !msg.bot_id)
+            .map((msg) => {
+              const userName = msg.user ? `<@${msg.user}>` : 'Unknown';
+              return `${userName}: ${msg.text || ''}`;
+            })
+            .join('\n');
+
+          if (contextMessages.trim()) {
+            fullQuestion = question
+              ? `Based on the following conversation:\n\n${contextMessages}\n\nUser request: ${question}`
+              : `Based on the following conversation, please provide a helpful response or summary:\n\n${contextMessages}`;
+          }
+        }
+      } catch (threadError) {
+        logger.warn({ threadError }, 'Failed to fetch thread context for modal');
+      }
+    }
+
+    if (!fullQuestion) {
+      logger.warn({ metadata }, 'No question provided in modal submission');
+      return;
+    }
+
+    const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+      tenantId,
+      metadata.slackUserId,
+      metadata.teamId,
+      'work-apps-slack'
+    );
+
+    if (!existingLink) {
+      if (isEphemeral) {
+        await slackClient.chat.postEphemeral({
+          channel: metadata.channel,
+          user: metadata.slackUserId,
+          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+        });
+      } else {
+        await slackClient.chat.postMessage({
+          channel: metadata.channel,
+          thread_ts: metadata.threadTs || metadata.messageTs,
+          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+        });
+      }
+      return;
+    }
+
+    const { signSlackUserToken } = await import('@inkeep/agents-core');
+
+    const slackUserToken = await signSlackUserToken({
+      inkeepUserId: existingLink.inkeepUserId,
+      tenantId,
+      slackTeamId: metadata.teamId,
+      slackUserId: metadata.slackUserId,
+    });
+
+    const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+    const replyThreadTs = metadata.threadTs || metadata.messageTs;
+
+    if (!isEphemeral) {
+      await slackClient.chat.postMessage({
+        channel: metadata.channel,
+        thread_ts: replyThreadTs,
+        text: `🤔 _${agentId} is thinking..._`,
+      });
+    }
+
+    const response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${slackUserToken}`,
+        'x-inkeep-project-id': projectId,
+        'x-inkeep-agent-id': agentId,
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: fullQuestion }],
+        stream: false,
+      }),
+    });
+
+    let responseText = 'No response received';
+
+    if (response.ok) {
+      const result = await response.json();
+      responseText =
+        result.choices?.[0]?.message?.content || result.message?.content || responseText;
+    } else {
+      responseText = `Failed to get response: ${response.status} ${response.statusText}`;
+    }
+
+    if (isEphemeral) {
+      try {
+        const ephemeralPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
+          channel: metadata.channel,
+          user: metadata.slackUserId,
+          text: responseText,
+          blocks: [
+            {
+              type: 'section',
+              text: { type: 'mrkdwn', text: responseText },
+            },
+            {
+              type: 'context',
+              elements: [
+                {
+                  type: 'mrkdwn',
+                  text: `Powered by *${agentId}* via Inkeep • 👁 Only visible to you`,
+                },
+              ],
+            },
+          ],
+        };
+
+        if (metadata.isInThread && metadata.threadTs) {
+          ephemeralPayload.thread_ts = metadata.threadTs;
+        }
+
+        const ephemeralResult = await slackClient.chat.postEphemeral(ephemeralPayload);
+        logger.info(
+          { ok: ephemeralResult.ok, channel: metadata.channel, slackUserId: metadata.slackUserId },
+          'Posted ephemeral response'
+        );
+      } catch (ephemeralError) {
+        logger.error({ ephemeralError, metadata }, 'Failed to post ephemeral message');
+      }
+    } else {
+      await slackClient.chat.postMessage({
+        channel: metadata.channel,
+        thread_ts: replyThreadTs,
+        text: responseText,
+        blocks: [
+          {
+            type: 'section',
+            text: { type: 'mrkdwn', text: responseText },
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Powered by *${agentId}* via Inkeep`,
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    logger.info(
+      { agentId, projectId, tenantId, slackUserId: metadata.slackUserId, isEphemeral },
+      'Modal submission agent execution completed'
+    );
+  } catch (error) {
+    logger.error({ error }, 'Failed to handle modal submission');
+  }
+}
+
 const SlackUserLinkSchema = z.object({
   slackUserId: z.string(),
   slackTeamId: z.string(),
@@ -667,9 +1066,7 @@ app.openapi(
       const client = getSlackClient(tokenData.access_token);
       const teamInfo = await getSlackTeamInfo(client);
 
-      console.log('=== SLACK TEAM INFO ===');
-      console.log(JSON.stringify(teamInfo, null, 2));
-      console.log('=======================');
+      logger.debug({ teamInfo }, 'Retrieved Slack team info');
 
       const installerUserId = tokenData.authed_user?.id;
       let installerUserName: string | undefined;
@@ -838,15 +1235,10 @@ app.post('/connect', async (c) => {
     logger.info({ userId }, 'Stored pending session token for Slack connection');
   }
 
-  console.log('=== NANGO CONNECT SESSION CREATED ===');
-  console.log({
-    userId,
-    userEmail,
-    userName,
-    integrationId: getSlackIntegrationId(),
-    hasSessionToken: !!sessionToken,
-  });
-  console.log('=====================================');
+  logger.debug(
+    { userId, userEmail, userName, hasSessionToken: !!sessionToken },
+    'Creating Nango connect session'
+  );
 
   const session = await createConnectSession({
     userId,
@@ -887,9 +1279,7 @@ app.post('/nango-webhook', async (c) => {
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  console.log('=== NANGO WEBHOOK RECEIVED ===');
-  console.log(JSON.stringify(payload, null, 2));
-  console.log('==============================');
+  logger.debug({ payload }, 'Nango webhook received');
 
   if (payload.type === 'auth' && payload.success && payload.endUser && payload.connectionId) {
     const { endUser, connectionId } = payload;
@@ -910,9 +1300,7 @@ app.post('/nango-webhook', async (c) => {
         is_enterprise_install?: boolean;
       };
 
-      console.log('=== NANGO CONNECTION INFO ===');
-      console.log(JSON.stringify(rawResponse, null, 2));
-      console.log('=============================');
+      logger.debug({ teamId: rawResponse?.team?.id }, 'Retrieved Nango connection info');
 
       if (rawResponse?.ok && rawResponse.access_token) {
         const slackUserId = rawResponse.authed_user?.id || '';
@@ -987,10 +1375,6 @@ app.post('/nango-webhook', async (c) => {
             : {}),
         });
 
-        console.log('=== USER LINK CREATED (ENRICHED) ===');
-        console.log(JSON.stringify(userLink, null, 2));
-        console.log('====================================');
-
         logger.info(
           { appUserId: endUser.endUserId, slackUserId, slackEmail },
           'User linked to Slack with enriched metadata'
@@ -1056,9 +1440,10 @@ app.get('/workspace-info', async (c) => {
       getSlackChannels(client, 20),
     ]);
 
-    console.log('=== SLACK WORKSPACE INFO ===');
-    console.log({ team: !!team, channelCount: channels.length });
-    console.log('============================');
+    logger.debug(
+      { hasTeam: !!team, channelCount: channels.length },
+      'Retrieved Slack workspace info'
+    );
 
     return c.json({ team, channels });
   } catch (error) {
@@ -1078,9 +1463,7 @@ app.post('/events', async (c) => {
     return c.json({ error: 'Invalid payload' }, 400);
   }
 
-  console.log('=== SLACK EVENT RECEIVED ===');
-  console.log(JSON.stringify(eventBody, null, 2));
-  console.log('============================');
+  logger.debug({ eventType: eventBody.type }, 'Slack event received');
 
   const eventType = eventBody.type as string | undefined;
 
@@ -1109,13 +1492,7 @@ app.post('/events', async (c) => {
       return c.json({ ok: true });
     }
 
-    console.log('=== SLACK EVENT CALLBACK ===');
-    console.log(JSON.stringify(event, null, 2));
-    console.log('============================');
-
-    if (event?.type === 'app_home_opened') {
-      logger.info({ userId: event.user }, 'App home opened');
-    }
+    logger.debug({ eventType: event?.type, teamId }, 'Slack event callback');
 
     if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
       logger.info({ userId: event.user, channel: event.channel, teamId }, 'Bot was mentioned');
@@ -1138,9 +1515,7 @@ app.post('/events', async (c) => {
   }
 
   if (eventType === 'block_actions' || eventType === 'interactive_message') {
-    console.log('=== SLACK INTERACTIVE EVENT ===');
-    console.log('Received interactive event, processing actions');
-    console.log('================================');
+    logger.debug({ eventType }, 'Slack interactive event received');
 
     const actions = eventBody.actions as
       | Array<{
@@ -1153,6 +1528,8 @@ app.post('/events', async (c) => {
     const channelId = (eventBody.channel as { id?: string })?.id;
     const userId = (eventBody.user as { id?: string })?.id;
     const responseUrl = eventBody.response_url as string | undefined;
+
+    const triggerId = eventBody.trigger_id as string | undefined;
 
     if (actions && teamId) {
       for (const action of actions) {
@@ -1171,7 +1548,40 @@ app.post('/events', async (c) => {
             );
           });
         }
+
+        if (action.action_id.startsWith('select_agent_') && action.value && triggerId) {
+          handleAgentButtonClick({
+            triggerId,
+            actionValue: action.value,
+            teamId,
+            responseUrl: responseUrl || '',
+          }).catch((err) => {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error(
+              { errorMessage, actionId: action.action_id },
+              'Failed to handle agent selection'
+            );
+          });
+        }
       }
+    }
+  }
+
+  if (eventType === 'view_submission') {
+    const callbackId = (eventBody.view as { callback_id?: string })?.callback_id;
+
+    if (callbackId === 'agent_selector_modal') {
+      const view = eventBody.view as {
+        private_metadata?: string;
+        state?: { values?: Record<string, Record<string, unknown>> };
+      };
+
+      handleModalSubmission(view).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
+      });
+
+      return new Response(null, { status: 200 });
     }
   }
 
@@ -1188,9 +1598,7 @@ app.get('/status', async (c) => {
   try {
     const status = await getConnectionStatus(appUserId);
 
-    console.log('=== SLACK CONNECTION STATUS ===');
-    console.log({ appUserId, connected: status.connected });
-    console.log('===============================');
+    logger.debug({ appUserId, connected: status.connected }, 'Retrieved connection status');
 
     return c.json(status);
   } catch (error) {
@@ -1226,10 +1634,6 @@ app.post('/disconnect', async (c) => {
     if (!success) {
       return c.json({ error: 'Failed to delete connection' }, 500);
     }
-
-    console.log('=== SLACK DISCONNECTION ===');
-    console.log({ userId, connectionId: targetConnectionId, success: true });
-    console.log('===========================');
 
     logger.info({ userId, connectionId: targetConnectionId }, 'User disconnected from Slack');
 
@@ -1310,17 +1714,6 @@ app.post('/link/redeem', async (c) => {
       },
       'Successfully linked Slack user to Inkeep account'
     );
-
-    console.log('=== SLACK USER LINKED ===');
-    console.log({
-      slackUserId: linkCode.slackUserId,
-      slackTeamId: linkCode.slackTeamId,
-      slackUsername: linkCode.slackUsername,
-      tenantId: linkCode.tenantId,
-      inkeepUserId: userId,
-      linkId: slackUserMapping.id,
-    });
-    console.log('=========================');
 
     return c.json({
       success: true,
@@ -1403,10 +1796,6 @@ app.post('/refresh-session', async (c) => {
       inkeep_session_expires_at: sessionExpiresAt || '',
     });
 
-    console.log('=== SLACK SESSION REFRESHED ===');
-    console.log({ userId, connectionId: connection.connectionId, hasNewToken: true });
-    console.log('===============================');
-
     logger.info(
       { userId, connectionId: connection.connectionId },
       'Refreshed Inkeep session token in Nango'
@@ -1444,17 +1833,6 @@ app.post('/register-workspace', async (c) => {
   logger.info({ teamId, teamName }, 'Registered workspace bot token');
 
   return c.json({ success: true, teamId });
-});
-
-app.get('/workspaces', async (c) => {
-  const workspaces = Array.from(workspaceBotTokens.entries()).map(([teamId, data]) => ({
-    teamId,
-    teamName: data.teamName,
-    installedAt: data.installedAt,
-    hasToken: !!data.botToken,
-  }));
-
-  return c.json({ workspaces });
 });
 
 const workspaceSettings = new Map<
@@ -1720,6 +2098,22 @@ app.delete('/workspaces/:connectionId', async (c) => {
         { connectionId: decodedConnectionId },
         'No workspace record found in database to delete'
       );
+    }
+
+    const teamIdMatch = decodedConnectionId.match(/T:([A-Z0-9]+)/);
+    const teamId = teamIdMatch?.[1];
+    if (teamId) {
+      const tenantId = 'default';
+      const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
+        tenantId,
+        teamId
+      );
+      if (deletedMappings > 0) {
+        logger.info(
+          { connectionId: decodedConnectionId, teamId, deletedMappings },
+          'Deleted user mappings for uninstalled workspace'
+        );
+      }
     }
 
     logger.info({ connectionId: decodedConnectionId }, 'Deleted workspace installation');

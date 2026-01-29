@@ -218,6 +218,120 @@ export async function handleQuestionCommand(
   return { response_type: 'ephemeral', ...message };
 }
 
+async function executeAgentInBackground(
+  payload: SlackCommandPayload,
+  existingLink: { inkeepUserId: string },
+  targetAgent: { id: string; name: string | null; projectId: string },
+  question: string,
+  tenantId: string
+): Promise<void> {
+  try {
+    const slackUserToken = await signSlackUserToken({
+      inkeepUserId: existingLink.inkeepUserId,
+      tenantId,
+      slackTeamId: payload.teamId,
+      slackUserId: payload.userId,
+      slackEnterpriseId: payload.enterpriseId,
+    });
+
+    const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+    const response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${slackUserToken}`,
+        'x-inkeep-project-id': targetAgent.projectId,
+        'x-inkeep-agent-id': targetAgent.id,
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: question }],
+        stream: false,
+      }),
+    });
+
+    let responsePayload: {
+      response_type: 'ephemeral' | 'in_channel';
+      text?: string;
+      blocks?: unknown[];
+    };
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(
+        {
+          status: response.status,
+          error: errorText,
+          agentId: targetAgent.id,
+          projectId: targetAgent.projectId,
+        },
+        'Run API call failed'
+      );
+      responsePayload = {
+        response_type: 'ephemeral',
+        text: `Failed to run agent: ${response.status} ${response.statusText}`,
+      };
+    } else {
+      const result = await response.json();
+      const assistantMessage =
+        result.choices?.[0]?.message?.content || result.message?.content || 'No response received';
+
+      logger.info(
+        {
+          slackUserId: payload.userId,
+          agentId: targetAgent.id,
+          projectId: targetAgent.projectId,
+          tenantId,
+        },
+        'Agent execution completed via Slack'
+      );
+
+      responsePayload = {
+        response_type: 'ephemeral',
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: assistantMessage,
+            },
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Powered by *${targetAgent.name || targetAgent.id}* via Inkeep`,
+              },
+            ],
+          },
+        ],
+      };
+    }
+
+    await fetch(payload.responseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(responsePayload),
+    });
+  } catch (error) {
+    logger.error({ error, slackUserId: payload.userId }, 'Background agent execution failed');
+
+    try {
+      await fetch(payload.responseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          response_type: 'ephemeral',
+          text: 'An error occurred while running the agent. Please try again.',
+        }),
+      });
+    } catch {
+      logger.error({ slackUserId: payload.userId }, 'Failed to send error response to Slack');
+    }
+  }
+}
+
 export async function handleRunCommand(
   payload: SlackCommandPayload,
   agentIdentifier: string,
@@ -274,60 +388,10 @@ export async function handleRunCommand(
       return { response_type: 'ephemeral', ...message };
     }
 
-    const slackUserToken = await signSlackUserToken({
-      inkeepUserId: existingLink.inkeepUserId,
-      tenantId,
-      slackTeamId: payload.teamId,
-      slackUserId: payload.userId,
-      slackEnterpriseId: payload.enterpriseId,
-    });
-
-    const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
-
-    const response = await fetch(`${apiBaseUrl}/run/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${slackUserToken}`,
-        'x-inkeep-project-id': targetAgent.projectId,
-        'x-inkeep-agent-id': targetAgent.id,
-      },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: question }],
-        stream: false,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error(
-        {
-          status: response.status,
-          error: errorText,
-          agentId: targetAgent.id,
-          projectId: targetAgent.projectId,
-        },
-        'Run API call failed'
-      );
-      const message = createErrorMessage(
-        `Failed to run agent: ${response.status} ${response.statusText}`
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-
-    const result = await response.json();
-
-    const assistantMessage =
-      result.choices?.[0]?.message?.content || result.message?.content || 'No response received';
-
-    logger.info(
-      {
-        slackUserId: payload.userId,
-        agentId: targetAgent.id,
-        projectId: targetAgent.projectId,
-        tenantId,
-      },
-      'Agent execution completed via Slack'
+    executeAgentInBackground(payload, existingLink, targetAgent, question, tenantId).catch(
+      (error) => {
+        logger.error({ error }, 'Background execution promise rejected');
+      }
     );
 
     return {
@@ -337,14 +401,7 @@ export async function handleRunCommand(
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*Agent: ${targetAgent.name || targetAgent.id}*`,
-          },
-        },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: assistantMessage,
+            text: `🤔 _${targetAgent.name || targetAgent.id} is thinking..._`,
           },
         },
       ],

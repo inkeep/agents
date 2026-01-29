@@ -78,9 +78,9 @@ export function DatabasePreviewCard() {
           <div className="flex items-center gap-2">
             <Database className="h-5 w-5" />
             <div>
-              <CardTitle>Local Database Preview</CardTitle>
+              <CardTitle>Database Preview</CardTitle>
               <CardDescription>
-                PostgreSQL-like schema stored in localStorage (v{state.version})
+                Runtime data stored in PostgreSQL, credentials in Nango (v{state.version})
               </CardDescription>
             </div>
           </div>

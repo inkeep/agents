@@ -248,6 +248,27 @@ export const deleteWorkAppSlackUserMapping =
     return result.length > 0;
   };
 
+export const deleteAllWorkAppSlackUserMappingsByTeam =
+  (db: AgentsRunDatabaseClient) =>
+  async (
+    tenantId: string,
+    slackTeamId: string,
+    clientId: string = DEFAULT_CLIENT_ID
+  ): Promise<number> => {
+    const result = await db
+      .delete(workAppSlackUserMappings)
+      .where(
+        and(
+          eq(workAppSlackUserMappings.tenantId, tenantId),
+          eq(workAppSlackUserMappings.clientId, clientId),
+          eq(workAppSlackUserMappings.slackTeamId, slackTeamId)
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
 export type CreateLinkCodeResult = {
   linkCode: WorkAppSlackAccountLinkCodeSelect;
   plaintextCode: string;

@@ -47,8 +47,8 @@ export function ConfigurationCard() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground text-sm">Storage</span>
-              <Badge variant="secondary">localStorage</Badge>
+              <span className="text-muted-foreground text-sm">Credential Storage</span>
+              <Badge variant="secondary">Nango</Badge>
             </div>
           </>
         )}
