@@ -12,14 +12,16 @@ interface WorkAppsOverviewProps {
 }
 
 export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
-  const { workspaces, currentUserLink, actions } = useSlack();
+  const { workspaces, installedWorkspaces, actions } = useSlack();
   const { handleInstallClick } = actions;
 
+  const installedCount = installedWorkspaces.data.length;
+
   const getSlackStatus = useCallback((): WorkApp['status'] => {
-    if (currentUserLink) return 'connected';
+    if (installedCount > 0) return 'installed';
     if (workspaces.length > 0) return 'installed';
     return 'available';
-  }, [currentUserLink, workspaces.length]);
+  }, [installedCount, workspaces.length]);
 
   const workApps = useMemo<WorkApp[]>(() => {
     const apps: WorkApp[] = [];
@@ -113,7 +115,7 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
             app={app}
             tenantId={tenantId}
             onInstall={() => handleInstall(app.id)}
-            workspaceCount={app.id === 'slack' ? workspaces.length : 0}
+            workspaceCount={app.id === 'slack' ? Math.max(installedCount, workspaces.length) : 0}
           />
         ))}
       </div>

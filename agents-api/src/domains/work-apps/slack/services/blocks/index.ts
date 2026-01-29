@@ -69,18 +69,15 @@ export function createStatusConnectedMessage(
 export function createStatusNotConnectedMessage(
   userName: string,
   teamDomain: string,
-  dashboardUrl: string
+  _dashboardUrl: string
 ) {
   return Message()
     .blocks(
       Blocks.Section().text(
-        Md.bold('❌ Not Connected') +
+        Md.bold('❌ Not Linked') +
           `\n\n${Md.bold('Slack User:')} @${userName}\n` +
           `${Md.bold('Team:')} ${teamDomain}\n\n` +
-          'Use `/inkeep link` to connect your Inkeep account.'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('🔗 Connect Now').url(dashboardUrl).actionId('connect_now').primary()
+          'Run `/inkeep link` to connect your Inkeep account.'
       )
     )
     .buildToObject();
@@ -309,10 +306,107 @@ export function createUpdatedHelpMessage() {
           '• `/inkeep settings set [agent]` - Set your personal default agent\n' +
           '• `/inkeep list` - List available agents\n\n' +
           `${Md.bold('Account:')}\n` +
-          '• `/inkeep connect` - Connect your Inkeep account\n' +
+          '• `/inkeep link` - Link your Inkeep account\n' +
           '• `/inkeep status` - Check connection status\n' +
-          '• `/inkeep logout` - Disconnect your account\n' +
+          '• `/inkeep unlink` - Disconnect your account\n' +
           '• `/inkeep help` - Show this help message'
+      )
+    )
+    .buildToObject();
+}
+
+export function createDeviceCodeMessage(code: string, linkUrl: string, expiresInMinutes: number) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        Md.bold('🔗 Link your Inkeep account') + '\n\nTo connect your Slack and Inkeep accounts:'
+      ),
+      Blocks.Section().text(
+        `${Md.bold('Your code:')} \`${code}\`\n\n` +
+          '1. Click the button below (or copy the code)\n' +
+          '2. Sign in to Inkeep (or create an account)\n' +
+          '3. The link will complete automatically!'
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('🔗 Link Account').url(linkUrl).actionId('link_account').primary()
+      ),
+      Blocks.Context().elements(
+        `${Md.emoji('clock')} This code expires in ${expiresInMinutes} minutes`
+      )
+    )
+    .buildToObject();
+}
+
+export function createLinkSuccessMessage(email: string, dashboardUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        Md.bold('✅ Account Linked!') +
+          '\n\nYour Slack account is now connected to Inkeep.\n\n' +
+          Md.bold('Inkeep Account:') +
+          ` ${email}\n\n` +
+          'You can now:\n' +
+          '• Ask questions with `@Inkeep [question]`\n' +
+          '• Run commands with `/inkeep [command]`\n' +
+          '• Trigger your agents directly from Slack'
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('📊 Open Dashboard').url(dashboardUrl).actionId('open_dashboard')
+      )
+    )
+    .buildToObject();
+}
+
+export function createLinkExpiredMessage(_dashboardUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        Md.bold('⏰ Code Expired') +
+          '\n\nYour link code has expired. Please run `/inkeep link` again to get a new code.'
+      ),
+      Blocks.Actions().elements(Elements.Button().text('🔗 Get New Code').actionId('get_new_code'))
+    )
+    .buildToObject();
+}
+
+export function createAlreadyLinkedMessage(email: string, linkedAt: string, dashboardUrl: string) {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        Md.bold('✅ Already Linked!') +
+          '\n\nYour Slack account is already connected to Inkeep.\n\n' +
+          Md.bold('Inkeep Account:') +
+          ` ${email}\n` +
+          Md.bold('Linked:') +
+          ` ${new Date(linkedAt).toLocaleDateString()}\n\n` +
+          'To switch accounts, first run `/inkeep unlink`'
+      ),
+      Blocks.Actions().elements(
+        Elements.Button().text('📊 Open Dashboard').url(dashboardUrl).actionId('open_dashboard')
+      )
+    )
+    .buildToObject();
+}
+
+export function createUnlinkSuccessMessage() {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        Md.bold('✅ Account Unlinked') +
+          '\n\nYour Slack account has been disconnected from Inkeep.\n\n' +
+          'To use Inkeep agents again, run `/inkeep link` to connect a new account.'
+      )
+    )
+    .buildToObject();
+}
+
+export function createNotLinkedMessage() {
+  return Message()
+    .blocks(
+      Blocks.Section().text(
+        Md.bold('❌ Not Linked') +
+          '\n\nYour Slack account is not connected to Inkeep.\n\n' +
+          'Run `/inkeep link` to connect your account.'
       )
     )
     .buildToObject();

@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import { getAllAgentsForSlack, type SlackAgentOption } from '../actions/agents';
 import { slackApi } from '../api/slack-api';
 import { useSlack } from '../context/slack-provider';
-import { localDb } from '../db';
 
 type Agent = SlackAgentOption;
 
@@ -31,7 +30,7 @@ interface DefaultAgentConfig {
 
 export function DefaultAgentCard() {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const { latestWorkspace, actions } = useSlack();
+  const { installedWorkspaces, actions } = useSlack();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,36 +38,28 @@ export function DefaultAgentCard() {
   const [selectedAgent, setSelectedAgent] = useState<DefaultAgentConfig | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  const firstWorkspace = installedWorkspaces.data[0];
+  const teamId = firstWorkspace?.teamId;
+
   useEffect(() => {
     setMounted(true);
 
     const loadSavedDefault = async () => {
       if (typeof window === 'undefined') return;
+      if (!teamId) return;
 
-      const workspaces = localDb.workspaces.findAll();
-      if (workspaces.length > 0) {
-        const workspace = workspaces[0];
-        const defaultAgent = workspace.metadata?.defaultAgent as DefaultAgentConfig | undefined;
-        if (defaultAgent) {
-          setSelectedAgent(defaultAgent);
-          return;
+      try {
+        const settings = await slackApi.getWorkspaceSettings(teamId);
+        if (settings.defaultAgent) {
+          setSelectedAgent(settings.defaultAgent);
         }
-      }
-
-      if (latestWorkspace?.teamId) {
-        try {
-          const settings = await slackApi.getWorkspaceSettings(latestWorkspace.teamId);
-          if (settings.defaultAgent) {
-            setSelectedAgent(settings.defaultAgent);
-          }
-        } catch {
-          console.log('No saved workspace settings found');
-        }
+      } catch {
+        console.log('No saved workspace settings found');
       }
     };
 
     loadSavedDefault();
-  }, [latestWorkspace?.teamId]);
+  }, [teamId]);
 
   const fetchAgents = async () => {
     setLoading(true);
@@ -109,23 +100,13 @@ export function DefaultAgentCard() {
     setSaving(true);
 
     try {
-      const workspaces = localDb.workspaces.findAll();
-      if (workspaces.length > 0) {
-        const workspace = workspaces[0];
-        localDb.workspaces.upsert({
-          ...workspace,
-          metadata: {
-            ...workspace.metadata,
-            defaultAgent: config,
-          },
-        });
-      }
-
-      if (latestWorkspace?.teamId) {
+      if (teamId) {
         await slackApi.setWorkspaceDefaultAgent({
-          teamId: latestWorkspace.teamId,
+          teamId,
           defaultAgent: config,
         });
+
+        installedWorkspaces.refetch();
       }
 
       actions.setNotification({

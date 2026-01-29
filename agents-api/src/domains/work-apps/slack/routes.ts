@@ -12,16 +12,28 @@
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import {
+  consumeWorkAppSlackAccountLinkCode,
+  createApiKey,
+  createWorkAppSlackUserMapping,
+  createWorkAppSlackWorkspace,
+  deleteWorkAppSlackWorkspaceByNangoConnectionId,
+  findWorkAppSlackUserMapping,
+  generateApiKey,
+  listApiKeys,
+  listWorkAppSlackUserMappingsByTeam,
+} from '@inkeep/agents-core';
+import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { WorkAppsVariables } from '../types';
 import {
+  computeWorkspaceConnectionId,
   createConnectSession,
-  createSlackApiClient,
   type DefaultAgentConfig,
   deleteConnection,
+  deleteWorkspaceInstallation,
   findConnectionByAppUser,
-  findConnectionBySlackUser,
   findWorkspaceConnectionByTeamId,
   getConnectionAccessToken,
   getConnectionStatus,
@@ -33,11 +45,13 @@ import {
   getSlackUserInfo,
   getWorkspaceDefaultAgentFromNango,
   handleCommand,
+  listWorkspaceInstallations,
   parseSlackCommandBody,
   parseSlackEventBody,
   postMessageInThread,
   type SlackCommandPayload,
   setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
+  storeWorkspaceInstallation,
   updateConnectionMetadata,
   verifySlackRequest,
 } from './services';
@@ -84,20 +98,19 @@ async function handleAppMention(params: {
 
   logger.info({ slackUserId, channel, teamId, text: text.slice(0, 50) }, 'Handling app mention');
 
-  // Try to get bot token from multiple sources:
-  // 1. Nango connection (persisted) - most reliable
-  // 2. In-memory cache (populated during OAuth, lost on restart)
-  // 3. Environment variable (fallback)
+  // Get workspace connection from Nango (required for bot token and default agent)
+  const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+  const tenantId = workspaceConnection?.tenantId || 'default';
+  const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
+
+  // Get bot token from workspace connection, memory cache, or env
   let botToken: string | null = null;
 
-  // First, try to get from Nango (persisted across restarts)
-  const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
   if (workspaceConnection?.botToken) {
     botToken = workspaceConnection.botToken;
     logger.debug({ teamId, source: 'nango' }, 'Got bot token from Nango connection');
   }
 
-  // Fall back to in-memory cache
   if (!botToken) {
     botToken = getBotTokenForTeam(teamId);
     if (botToken) {
@@ -105,7 +118,6 @@ async function handleAppMention(params: {
     }
   }
 
-  // Fall back to environment variable
   if (!botToken) {
     botToken = env.SLACK_BOT_TOKEN || null;
     if (botToken) {
@@ -122,14 +134,9 @@ async function handleAppMention(params: {
   const replyThreadTs = threadTs || messageTs;
 
   try {
-    const connection = await findConnectionBySlackUser(slackUserId);
-    const tenantId = connection?.tenantId || 'default';
-    const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
-
-    logger.debug({ slackUserId, hasConnection: !!connection }, 'Looked up user connection');
-
     let queryText = text;
 
+    // If empty mention in a thread, try to get thread context
     if (!text && threadTs && threadTs !== messageTs) {
       logger.debug({ channel, threadTs }, 'Empty mention in thread - fetching thread context');
 
@@ -163,6 +170,7 @@ async function handleAppMention(params: {
       }
     }
 
+    // If still no query, send greeting
     if (!queryText) {
       logger.debug({ channel, replyThreadTs }, 'Sending empty mention greeting');
       await postMessageInThread(
@@ -171,96 +179,61 @@ async function handleAppMention(params: {
         replyThreadTs,
         `👋 Hi! I'm your Inkeep AI assistant. Ask me anything!\n\n` +
           `*Examples:*\n` +
-          `• \`@Inkeep Agent How do I reset my password?\`\n` +
-          `• \`@Inkeep Agent Summarize our return policy\`\n\n` +
+          `• \`@Inkeep How do I reset my password?\`\n` +
+          `• \`@Inkeep Summarize our return policy\`\n\n` +
           `Or use \`/inkeep help\` for more commands.`
       );
       return;
     }
 
-    if (!connection) {
-      logger.debug({ channel, replyThreadTs }, 'Sending connect prompt');
-      await postMessageInThread(
-        slackClient,
-        channel,
-        replyThreadTs,
-        `👋 Hi! To use Inkeep, please connect your account first.\n\n` +
-          `👉 *<${manageUiUrl}/default/work-apps/slack|Connect your account>*`
-      );
-      return;
-    }
+    // Get workspace default agent configuration
+    const workspaceDefault = await getWorkspaceDefaultAgent(teamId);
 
-    let defaultAgent: {
-      projectId: string;
-      agentId: string;
-      subAgentId?: string;
-      name: string;
-    } | null = null;
+    logger.debug(
+      { teamId, hasDefaultAgent: !!workspaceDefault },
+      'Checked workspace default agent config'
+    );
 
-    if (connection?.defaultAgent) {
-      try {
-        defaultAgent = JSON.parse(connection.defaultAgent);
-        logger.debug({ source: 'user' }, 'Using user default agent');
-      } catch {}
-    }
-
-    if (!defaultAgent) {
-      const workspaceDefault = await getWorkspaceDefaultAgent(teamId);
-      if (workspaceDefault) {
-        defaultAgent = {
-          projectId: workspaceDefault.projectId,
-          agentId: workspaceDefault.agentId,
-          name: workspaceDefault.agentName,
-        };
-        logger.debug({ source: 'workspace' }, 'Using workspace default agent');
-      }
-    }
-
-    logger.debug({ hasDefaultAgent: !!defaultAgent }, 'Checked default agent config');
-
-    if (!defaultAgent) {
+    if (!workspaceDefault) {
       logger.debug({ channel, replyThreadTs }, 'Sending no default agent prompt');
       await postMessageInThread(
         slackClient,
         channel,
         replyThreadTs,
-        `⚙️ No default agent configured.\n\n` +
+        `⚙️ No default agent configured for this workspace.\n\n` +
           `👉 *<${dashboardUrl}|Set up your default agent>*\n\n` +
-          `Or use \`/inkeep run [agent-id] [question]\` to specify an agent.`
+          `An admin needs to configure a default agent before @mentions will work.`
       );
       return;
     }
 
-    if (!connection?.inkeepSessionToken) {
-      logger.debug({ channel, replyThreadTs }, 'User session token missing or expired');
+    // Check for API key in the default agent config
+    if (!workspaceDefault.apiKey) {
+      logger.debug({ channel, replyThreadTs }, 'No API key configured for default agent');
       await postMessageInThread(
         slackClient,
         channel,
         replyThreadTs,
-        `🔑 Your session has expired. Please re-connect your account.\n\n` +
-          `👉 *<${dashboardUrl}|Reconnect your account>*`
+        `🔑 No API key configured for the default agent.\n\n` +
+          `👉 *<${dashboardUrl}|Configure API key>*\n\n` +
+          `An admin needs to provide an API key for the agent.`
       );
       return;
     }
 
-    if (connection.inkeepSessionExpiresAt) {
-      const expiresAt = new Date(connection.inkeepSessionExpiresAt);
-      if (expiresAt < new Date()) {
-        logger.debug({ channel, replyThreadTs, expiresAt }, 'User session token expired');
-        await postMessageInThread(
-          slackClient,
-          channel,
-          replyThreadTs,
-          `🔑 Your session has expired. Please re-connect your account.\n\n` +
-            `👉 *<${dashboardUrl}|Reconnect your account>*`
-        );
-        return;
-      }
-    }
+    const defaultAgent = {
+      projectId: workspaceDefault.projectId,
+      agentId: workspaceDefault.agentId,
+      name: workspaceDefault.agentName,
+      apiKey: workspaceDefault.apiKey,
+    };
 
-    const apiClient = createSlackApiClient(connection);
+    logger.debug(
+      { agentId: defaultAgent.agentId, agentName: defaultAgent.name },
+      'Using workspace default agent'
+    );
 
-    const agentDisplayName = defaultAgent.name || defaultAgent.subAgentId || defaultAgent.agentId;
+    const agentDisplayName = defaultAgent.name || defaultAgent.agentId;
 
     logger.debug(
       { channel, replyThreadTs, agentName: agentDisplayName },
@@ -274,16 +247,7 @@ async function handleAppMention(params: {
 
     logger.info(
       { projectId: defaultAgent.projectId, agentId: defaultAgent.agentId },
-      'Getting API key for agent'
-    );
-    const apiKey = await apiClient.getOrCreateAgentApiKey(
-      defaultAgent.projectId,
-      defaultAgent.agentId
-    );
-
-    logger.info(
-      { projectId: defaultAgent.projectId, agentId: defaultAgent.agentId },
-      'Triggering agent with streaming'
+      'Triggering agent with streaming using workspace API key'
     );
 
     await streamAgentResponse({
@@ -293,7 +257,7 @@ async function handleAppMention(params: {
       thinkingMessageTs: thinkingMessage.ts || '',
       slackUserId,
       teamId,
-      apiKey,
+      apiKey: defaultAgent.apiKey,
       question: queryText,
       agentName: agentDisplayName,
     });
@@ -614,11 +578,27 @@ app.openapi(
   (c) => {
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
-    const scopes = 'commands,chat:write,users:read,team:read,users:read.email,channels:read';
+
+    const botScopes = [
+      'app_mentions:read',
+      'channels:history',
+      'channels:read',
+      'chat:write',
+      'chat:write.public',
+      'commands',
+      'groups:history',
+      'groups:read',
+      'im:history',
+      'im:read',
+      'im:write',
+      'team:read',
+      'users:read',
+      'users:read.email',
+    ].join(',');
 
     const slackAuthUrl = new URL('https://slack.com/oauth/v2/authorize');
     slackAuthUrl.searchParams.set('client_id', clientId || '');
-    slackAuthUrl.searchParams.set('scope', scopes);
+    slackAuthUrl.searchParams.set('scope', botScopes);
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
 
     logger.info({ redirectUri }, 'Redirecting to Slack OAuth');
@@ -690,28 +670,112 @@ app.openapi(
       console.log(JSON.stringify(teamInfo, null, 2));
       console.log('=======================');
 
+      const installerUserId = tokenData.authed_user?.id;
+      let installerUserName: string | undefined;
+      if (installerUserId) {
+        try {
+          const userInfo = await getSlackUserInfo(client, installerUserId);
+          installerUserName = userInfo?.realName || userInfo?.name;
+        } catch {
+          logger.warn({ installerUserId }, 'Could not fetch installer user info');
+        }
+      }
+
       const workspaceData = {
         ok: true,
         teamId: tokenData.team?.id,
         teamName: tokenData.team?.name,
         teamDomain: teamInfo?.domain,
+        workspaceUrl: teamInfo?.url,
+        workspaceIconUrl: teamInfo?.icon,
         enterpriseId: tokenData.enterprise?.id,
         enterpriseName: tokenData.enterprise?.name,
         isEnterpriseInstall: tokenData.is_enterprise_install || false,
         botUserId: tokenData.bot_user_id,
         botToken: tokenData.access_token,
         botScopes: tokenData.scope,
-        installerUserId: tokenData.authed_user?.id,
+        installerUserId,
+        installerUserName,
+        appId: tokenData.app_id,
         installedAt: new Date().toISOString(),
       };
 
+      // Store in Nango as the centralized vault
       if (workspaceData.teamId && workspaceData.botToken) {
+        const tenantId = 'default';
+
+        const nangoResult = await storeWorkspaceInstallation({
+          teamId: workspaceData.teamId,
+          teamName: workspaceData.teamName,
+          teamDomain: workspaceData.teamDomain,
+          workspaceUrl: workspaceData.workspaceUrl,
+          workspaceIconUrl: workspaceData.workspaceIconUrl,
+          enterpriseId: workspaceData.enterpriseId,
+          enterpriseName: workspaceData.enterpriseName,
+          botUserId: workspaceData.botUserId,
+          botToken: workspaceData.botToken,
+          botScopes: workspaceData.botScopes,
+          installerUserId: workspaceData.installerUserId,
+          installerUserName: workspaceData.installerUserName,
+          isEnterpriseInstall: workspaceData.isEnterpriseInstall,
+          appId: workspaceData.appId,
+          tenantId,
+          installationSource: 'dashboard',
+        });
+
+        if (nangoResult.success && nangoResult.connectionId) {
+          logger.info(
+            {
+              teamId: workspaceData.teamId,
+              connectionId: nangoResult.connectionId,
+            },
+            'Stored workspace installation in Nango'
+          );
+
+          try {
+            await createWorkAppSlackWorkspace(runDbClient)({
+              tenantId,
+              slackTeamId: workspaceData.teamId,
+              slackEnterpriseId: workspaceData.enterpriseId,
+              slackAppId: workspaceData.appId,
+              slackTeamName: workspaceData.teamName,
+              nangoConnectionId: nangoResult.connectionId,
+              status: 'active',
+            });
+            logger.info(
+              { teamId: workspaceData.teamId, tenantId },
+              'Persisted workspace installation to database'
+            );
+          } catch (dbError) {
+            const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+            if (
+              dbErrorMessage.includes('duplicate key') ||
+              dbErrorMessage.includes('unique constraint')
+            ) {
+              logger.info(
+                { teamId: workspaceData.teamId, tenantId },
+                'Workspace already exists in database'
+              );
+            } else {
+              logger.error(
+                { error: dbErrorMessage, teamId: workspaceData.teamId },
+                'Failed to persist workspace to database'
+              );
+            }
+          }
+        } else {
+          logger.warn(
+            { teamId: workspaceData.teamId },
+            'Failed to store in Nango, falling back to memory'
+          );
+        }
+
+        // Also keep in memory as a fallback/cache
         workspaceBotTokens.set(workspaceData.teamId, {
           botToken: workspaceData.botToken,
           teamName: workspaceData.teamName || '',
           installedAt: workspaceData.installedAt,
         });
-        logger.info({ teamId: workspaceData.teamId }, 'Stored bot token for workspace');
       }
 
       logger.info(
@@ -719,7 +783,28 @@ app.openapi(
         'Slack workspace installation successful'
       );
 
-      const encodedData = encodeURIComponent(JSON.stringify(workspaceData));
+      // Don't include botToken in the redirect data (security)
+      const safeWorkspaceData = {
+        ok: workspaceData.ok,
+        teamId: workspaceData.teamId,
+        teamName: workspaceData.teamName,
+        teamDomain: workspaceData.teamDomain,
+        enterpriseId: workspaceData.enterpriseId,
+        enterpriseName: workspaceData.enterpriseName,
+        isEnterpriseInstall: workspaceData.isEnterpriseInstall,
+        botUserId: workspaceData.botUserId,
+        botScopes: workspaceData.botScopes,
+        installerUserId: workspaceData.installerUserId,
+        installedAt: workspaceData.installedAt,
+        connectionId: workspaceData.teamId
+          ? computeWorkspaceConnectionId({
+              teamId: workspaceData.teamId,
+              enterpriseId: workspaceData.enterpriseId,
+            })
+          : undefined,
+      };
+
+      const encodedData = encodeURIComponent(JSON.stringify(safeWorkspaceData));
       return c.redirect(`${dashboardUrl}?success=true&workspace=${encodedData}`);
     } catch (err) {
       logger.error({ error: err }, 'Slack OAuth callback error');
@@ -939,6 +1024,7 @@ app.post('/commands', async (c) => {
     userName: params.user_name || '',
     teamId: params.team_id || '',
     teamDomain: params.team_domain || '',
+    enterpriseId: params.enterprise_id,
     channelId: params.channel_id || '',
     channelName: params.channel_name || '',
     responseUrl: params.response_url || '',
@@ -1153,6 +1239,140 @@ app.post('/disconnect', async (c) => {
   }
 });
 
+app.post('/confirm-link', async (c) => {
+  const body = await c.req.json();
+  const { code, userId, userEmail } = body as {
+    code?: string;
+    userId?: string;
+    userEmail?: string;
+  };
+
+  if (!code) {
+    return c.json({ error: 'code is required' }, 400);
+  }
+
+  if (!userId) {
+    return c.json({ error: 'userId is required' }, 400);
+  }
+
+  try {
+    const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const formattedCode = `${normalizedCode.slice(0, 4)}-${normalizedCode.slice(4, 8)}`;
+
+    const linkCode = await consumeWorkAppSlackAccountLinkCode(runDbClient)(formattedCode, userId);
+
+    if (!linkCode) {
+      logger.warn({ code: formattedCode, userId }, 'Invalid or expired link code');
+      return c.json(
+        { error: 'Invalid or expired code. Please run /inkeep link in Slack to get a new code.' },
+        400
+      );
+    }
+
+    const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+      linkCode.tenantId,
+      linkCode.slackUserId,
+      linkCode.slackTeamId,
+      linkCode.clientId
+    );
+
+    if (existingLink) {
+      logger.info(
+        {
+          slackUserId: linkCode.slackUserId,
+          existingUserId: existingLink.inkeepUserId,
+          newUserId: userId,
+          tenantId: linkCode.tenantId,
+        },
+        'Slack user already linked, updating to new user'
+      );
+    }
+
+    const slackUserMapping = await createWorkAppSlackUserMapping(runDbClient)({
+      tenantId: linkCode.tenantId,
+      clientId: linkCode.clientId,
+      slackUserId: linkCode.slackUserId,
+      slackTeamId: linkCode.slackTeamId,
+      slackEnterpriseId: linkCode.slackEnterpriseId,
+      slackUsername: linkCode.slackUsername,
+      slackEmail: userEmail,
+      inkeepUserId: userId,
+    });
+
+    logger.info(
+      {
+        slackUserId: linkCode.slackUserId,
+        slackTeamId: linkCode.slackTeamId,
+        tenantId: linkCode.tenantId,
+        inkeepUserId: userId,
+        linkId: slackUserMapping.id,
+      },
+      'Successfully linked Slack user to Inkeep account'
+    );
+
+    console.log('=== SLACK USER LINKED ===');
+    console.log({
+      slackUserId: linkCode.slackUserId,
+      slackTeamId: linkCode.slackTeamId,
+      slackUsername: linkCode.slackUsername,
+      tenantId: linkCode.tenantId,
+      inkeepUserId: userId,
+      linkId: slackUserMapping.id,
+    });
+    console.log('=========================');
+
+    return c.json({
+      success: true,
+      linkId: slackUserMapping.id,
+      slackUsername: linkCode.slackUsername,
+      slackTeamId: linkCode.slackTeamId,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
+      logger.warn({ code, userId }, 'Slack user already linked');
+      return c.json({ error: 'This Slack account is already linked to an Inkeep account.' }, 409);
+    }
+
+    logger.error({ error, code, userId }, 'Failed to confirm Slack link');
+    return c.json({ error: 'Failed to confirm link. Please try again.' }, 500);
+  }
+});
+
+app.get('/link-status', async (c) => {
+  const slackUserId = c.req.query('slackUserId');
+  const slackTeamId = c.req.query('slackTeamId');
+  const tenantId = c.req.query('tenantId') || 'default';
+
+  if (!slackUserId || !slackTeamId) {
+    return c.json({ error: 'slackUserId and slackTeamId are required' }, 400);
+  }
+
+  try {
+    const link = await findWorkAppSlackUserMapping(runDbClient)(
+      tenantId,
+      slackUserId,
+      slackTeamId,
+      'work-apps-slack'
+    );
+
+    if (link) {
+      return c.json({
+        linked: true,
+        linkId: link.id,
+        linkedAt: link.linkedAt,
+        slackUsername: link.slackUsername,
+      });
+    }
+
+    return c.json({ linked: false });
+  } catch (error) {
+    logger.error({ error, slackUserId, slackTeamId, tenantId }, 'Failed to check link status');
+    return c.json({ error: 'Failed to check link status' }, 500);
+  }
+});
+
 app.post('/refresh-session', async (c) => {
   const body = await c.req.json();
   const { userId, sessionToken, sessionExpiresAt } = body as {
@@ -1330,23 +1550,87 @@ app.post('/workspace-settings', async (c) => {
   }
 
   if (defaultAgent) {
-    const success = await setWorkspaceDefaultAgentInNango(teamId, defaultAgent);
+    const configWithApiKey = { ...defaultAgent };
+
+    if (!defaultAgent.apiKey && defaultAgent.projectId && defaultAgent.agentId) {
+      try {
+        const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+        const tenantId = workspaceConnection?.tenantId || 'default';
+
+        const existingKeys = await listApiKeys(runDbClient)({
+          scopes: { tenantId, projectId: defaultAgent.projectId },
+          agentId: defaultAgent.agentId,
+        });
+        const slackKey = existingKeys.find((k) => k.name === 'slack-workspace-integration');
+
+        if (slackKey) {
+          logger.debug(
+            { agentId: defaultAgent.agentId, keyId: slackKey.id },
+            'Found existing Slack integration API key - but we need the raw key, creating new one'
+          );
+        }
+
+        const keyData = await generateApiKey();
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+        await createApiKey(runDbClient)({
+          id: keyData.id,
+          publicId: keyData.publicId,
+          keyHash: keyData.keyHash,
+          keyPrefix: keyData.keyPrefix,
+          tenantId,
+          projectId: defaultAgent.projectId,
+          agentId: defaultAgent.agentId,
+          name: 'slack-workspace-integration',
+          expiresAt: expiresAt.toISOString(),
+        });
+
+        configWithApiKey.apiKey = keyData.key;
+
+        logger.info(
+          { agentId: defaultAgent.agentId, teamId },
+          'Created Slack workspace integration API key'
+        );
+      } catch (error) {
+        logger.error(
+          { error, teamId, agentId: defaultAgent.agentId },
+          'Failed to create API key for default agent'
+        );
+      }
+    }
+
+    const success = await setWorkspaceDefaultAgentInNango(teamId, configWithApiKey);
     if (!success) {
       logger.warn({ teamId }, 'Failed to persist to Nango, using in-memory fallback');
     }
+
+    const existing = workspaceSettings.get(teamId) || { updatedAt: '' };
+    workspaceSettings.set(teamId, {
+      ...existing,
+      defaultAgent: configWithApiKey,
+      updatedAt: new Date().toISOString(),
+    });
+
+    logger.info(
+      {
+        teamId,
+        agentId: configWithApiKey.agentId,
+        agentName: configWithApiKey.agentName,
+        hasApiKey: !!configWithApiKey.apiKey,
+      },
+      'Saved workspace default agent'
+    );
+  } else {
+    const existing = workspaceSettings.get(teamId) || { updatedAt: '' };
+    workspaceSettings.set(teamId, {
+      ...existing,
+      defaultAgent: undefined,
+      updatedAt: new Date().toISOString(),
+    });
+
+    logger.info({ teamId }, 'Cleared workspace default agent');
   }
-
-  const existing = workspaceSettings.get(teamId) || { updatedAt: '' };
-  workspaceSettings.set(teamId, {
-    ...existing,
-    defaultAgent,
-    updatedAt: new Date().toISOString(),
-  });
-
-  logger.info(
-    { teamId, agentId: defaultAgent?.agentId, agentName: defaultAgent?.agentName },
-    'Saved workspace default agent'
-  );
 
   return c.json({ success: true });
 });
@@ -1378,5 +1662,108 @@ export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultA
   const settings = workspaceSettings.get(teamId);
   return settings?.defaultAgent || null;
 }
+
+app.get('/workspaces', async (c) => {
+  try {
+    const workspaces = await listWorkspaceInstallations();
+
+    logger.info({ count: workspaces.length }, 'Listed workspace installations');
+
+    return c.json({
+      workspaces: workspaces.map((w) => ({
+        connectionId: w.connectionId,
+        teamId: w.teamId,
+        teamName: w.teamName,
+        tenantId: w.tenantId,
+        hasDefaultAgent: !!w.defaultAgent,
+        defaultAgentName: w.defaultAgent?.agentName,
+      })),
+    });
+  } catch (error) {
+    logger.error({ error }, 'Failed to list workspaces');
+    return c.json({ workspaces: [] });
+  }
+});
+
+app.delete('/workspaces/:connectionId', async (c) => {
+  const connectionId = c.req.param('connectionId');
+
+  if (!connectionId) {
+    return c.json({ error: 'connectionId is required' }, 400);
+  }
+
+  const decodedConnectionId = decodeURIComponent(connectionId);
+  logger.info({ connectionId, decodedConnectionId }, 'Received request to delete workspace');
+
+  try {
+    const nangoSuccess = await deleteWorkspaceInstallation(decodedConnectionId);
+
+    if (!nangoSuccess) {
+      logger.error(
+        { connectionId: decodedConnectionId },
+        'deleteWorkspaceInstallation returned false'
+      );
+      return c.json(
+        { error: 'Failed to delete workspace from Nango. Check server logs for details.' },
+        500
+      );
+    }
+
+    const dbDeleted =
+      await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(decodedConnectionId);
+    if (dbDeleted) {
+      logger.info({ connectionId: decodedConnectionId }, 'Deleted workspace from database');
+    } else {
+      logger.debug(
+        { connectionId: decodedConnectionId },
+        'No workspace record found in database to delete'
+      );
+    }
+
+    logger.info({ connectionId: decodedConnectionId }, 'Deleted workspace installation');
+    return c.json({ success: true });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(
+      { error: errorMessage, connectionId: decodedConnectionId },
+      'Failed to delete workspace'
+    );
+    return c.json({ error: `Failed to delete workspace: ${errorMessage}` }, 500);
+  }
+});
+
+app.get('/linked-users', async (c) => {
+  const teamId = c.req.query('teamId');
+  const tenantId = c.req.query('tenantId') || 'default';
+
+  if (!teamId) {
+    return c.json({ error: 'teamId is required' }, 400);
+  }
+
+  try {
+    const linkedUsers = await listWorkAppSlackUserMappingsByTeam(runDbClient)(tenantId, teamId);
+
+    logger.info(
+      { teamId, tenantId, count: linkedUsers.length },
+      'Fetched linked users for workspace'
+    );
+
+    return c.json({
+      linkedUsers: linkedUsers.map((link) => ({
+        id: link.id,
+        slackUserId: link.slackUserId,
+        slackTeamId: link.slackTeamId,
+        slackUsername: link.slackUsername,
+        slackEmail: link.slackEmail,
+        userId: link.inkeepUserId,
+        linkedAt: link.linkedAt,
+        lastUsedAt: link.lastUsedAt,
+      })),
+    });
+  } catch (error) {
+    logger.error({ error, teamId, tenantId }, 'Failed to fetch linked users');
+    return c.json({ error: 'Failed to fetch linked users' }, 500);
+  }
+});
 
 export default app;

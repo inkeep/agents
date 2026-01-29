@@ -11,18 +11,15 @@ import { useSlack } from '../context/slack-provider';
 import { localDb } from '../db';
 import { AccountInfoCard } from './account-info-card';
 import { ConfigurationCard } from './configuration-card';
-import { ConnectedUsersCard } from './connected-users-card';
-import { ConnectionStatusCard } from './connection-status-card';
 import { DatabasePreviewCard } from './database-preview-card';
 import { DefaultAgentCard } from './default-agent-card';
 import { InstalledWorkspacesCard } from './installed-workspaces-card';
+import { LinkedUsersCard } from './linked-users-card';
 import { NotificationBanner } from './notification-banner';
-import { SlackAccountLinkCard } from './slack-account-link-card';
-import { SlackWorkspaceInfoCard } from './slack-workspace-info-card';
 
 export function SlackDashboard() {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const { user, actions } = useSlack();
+  const { user, installedWorkspaces, actions } = useSlack();
   const { handleInstallClick, addOrUpdateWorkspace, setNotification } = actions;
 
   useEffect(() => {
@@ -64,12 +61,12 @@ export function SlackDashboard() {
           domain: workspace.teamDomain,
           isEnterpriseInstall: workspace.isEnterpriseInstall || false,
           botUserId: workspace.botUserId,
-          botToken: workspace.botToken,
           botScopes: workspace.botScopes,
           installedByUserId: user?.id || 'unknown',
           installedByUserEmail: user?.email,
           installedByExternalUserId: workspace.installerUserId,
           installedAt: workspace.installedAt || new Date().toISOString(),
+          connectionId: workspace.connectionId,
           metadata: { raw: workspace },
         });
 
@@ -83,10 +80,11 @@ export function SlackDashboard() {
           details: {
             teamName: workspace.teamName,
             enterpriseId: workspace.enterpriseId,
+            connectionId: workspace.connectionId,
           },
         });
 
-        console.log('[SlackDashboard] Workspace saved to new database');
+        console.log('[SlackDashboard] Workspace saved to database');
 
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('inkeep-db-update'));
@@ -97,6 +95,8 @@ export function SlackDashboard() {
           message: `Workspace "${workspace.teamName}" installed successfully!`,
           action: 'installed',
         });
+
+        installedWorkspaces.refetch();
       } catch (e) {
         console.error('Failed to parse workspace data:', e);
         setNotification({
@@ -108,7 +108,10 @@ export function SlackDashboard() {
 
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [addOrUpdateWorkspace, setNotification, user]);
+  }, [addOrUpdateWorkspace, setNotification, user, installedWorkspaces]);
+
+  const hasInstalledWorkspaces =
+    installedWorkspaces.data.length > 0 || !installedWorkspaces.isLoading;
 
   return (
     <>
@@ -131,7 +134,7 @@ export function SlackDashboard() {
             </Badge>
           </span>
         }
-        description="Connect your Slack workspace to Inkeep Agents. This is a preview of our Slack integration — features and UI may change."
+        description="Install Inkeep Agents to your Slack workspace. This is a preview of our Slack integration — features and UI may change."
         action={
           <Button size="lg" className="gap-2" onClick={handleInstallClick}>
             <MessageSquare className="h-4 w-4" />
@@ -142,20 +145,22 @@ export function SlackDashboard() {
 
       <NotificationBanner />
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <AccountInfoCard />
-        <SlackAccountLinkCard />
-        <ConnectionStatusCard />
         <ConfigurationCard />
       </div>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mt-4">
-        <DefaultAgentCard />
-      </div>
+      {hasInstalledWorkspaces && (
+        <>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mt-4">
+            <DefaultAgentCard />
+          </div>
 
-      <SlackWorkspaceInfoCard />
-      <InstalledWorkspacesCard />
-      <ConnectedUsersCard />
+          <InstalledWorkspacesCard />
+          <LinkedUsersCard />
+        </>
+      )}
+
       <DatabasePreviewCard />
     </>
   );

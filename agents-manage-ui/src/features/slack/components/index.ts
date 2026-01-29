@@ -1,11 +1,8 @@
 export { AccountInfoCard } from './account-info-card';
 export { ConfigurationCard } from './configuration-card';
-export { ConnectedUsersCard } from './connected-users-card';
-export { ConnectionStatusCard } from './connection-status-card';
 export { DatabasePreviewCard } from './database-preview-card';
+export { DefaultAgentCard } from './default-agent-card';
 export { InstalledWorkspacesCard } from './installed-workspaces-card';
+export { LinkedUsersCard } from './linked-users-card';
 export { NotificationBanner } from './notification-banner';
-export { RawDataPreviewCard } from './raw-data-preview-card';
-export { SlackAccountLinkCard } from './slack-account-link-card';
 export { SlackDashboard } from './slack-dashboard';
-export { SlackWorkspaceInfoCard } from './slack-workspace-info-card';

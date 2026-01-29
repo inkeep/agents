@@ -54,6 +54,7 @@ export interface WorkspaceRecord {
   installedByExternalUserId?: string;
   installedAt: string;
   updatedAt: string;
+  connectionId?: string;
   metadata: Record<string, unknown>;
 }
 

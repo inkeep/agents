@@ -3,64 +3,37 @@ import { slackApi } from './slack-api';
 
 export const slackQueryKeys = {
   all: ['slack'] as const,
-  status: (userId: string) => [...slackQueryKeys.all, 'status', userId] as const,
-  workspaceInfo: (connectionId: string) =>
-    [...slackQueryKeys.all, 'workspace-info', connectionId] as const,
+  workspaces: () => [...slackQueryKeys.all, 'workspaces'] as const,
+  workspaceSettings: (teamId: string) =>
+    [...slackQueryKeys.all, 'workspace-settings', teamId] as const,
 };
 
-export function useSlackConnectionStatusQuery(userId: string | undefined) {
+export function useSlackWorkspacesQuery() {
   return useQuery({
-    queryKey: slackQueryKeys.status(userId || ''),
-    queryFn: () => slackApi.getConnectionStatus(userId as string),
-    enabled: !!userId,
+    queryKey: slackQueryKeys.workspaces(),
+    queryFn: () => slackApi.listWorkspaceInstallations(),
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 }
 
-export function useSlackWorkspaceInfoQuery(connectionId: string | undefined) {
+export function useSlackUninstallWorkspaceMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: slackApi.uninstallWorkspace,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaces() });
+    },
+  });
+}
+
+export function useSlackWorkspaceSettingsQuery(teamId: string | undefined) {
   return useQuery({
-    queryKey: slackQueryKeys.workspaceInfo(connectionId || ''),
-    queryFn: () => slackApi.getWorkspaceInfo(connectionId as string),
-    enabled: !!connectionId,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-}
-
-export function useSlackConnectMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: slackApi.createConnectSession,
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: slackQueryKeys.status(variables.userId) });
-    },
-  });
-}
-
-export function useSlackDisconnectMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: slackApi.disconnect,
-    onSuccess: (_data, variables) => {
-      if (variables.userId) {
-        queryClient.invalidateQueries({ queryKey: slackQueryKeys.status(variables.userId) });
-      }
-      if (variables.connectionId) {
-        queryClient.removeQueries({
-          queryKey: slackQueryKeys.workspaceInfo(variables.connectionId),
-        });
-      }
-    },
-  });
-}
-
-export function useSlackRefreshSessionMutation() {
-  return useMutation({
-    mutationFn: slackApi.refreshSession,
+    queryKey: slackQueryKeys.workspaceSettings(teamId || ''),
+    queryFn: () => slackApi.getWorkspaceSettings(teamId as string),
+    enabled: !!teamId,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -68,10 +41,10 @@ export function useInvalidateSlackQueries() {
   const queryClient = useQueryClient();
 
   return {
-    invalidateStatus: (userId: string) =>
-      queryClient.invalidateQueries({ queryKey: slackQueryKeys.status(userId) }),
-    invalidateWorkspaceInfo: (connectionId: string) =>
-      queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaceInfo(connectionId) }),
+    invalidateWorkspaces: () =>
+      queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaces() }),
+    invalidateWorkspaceSettings: (teamId: string) =>
+      queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaceSettings(teamId) }),
     invalidateAll: () => queryClient.invalidateQueries({ queryKey: slackQueryKeys.all }),
   };
 }

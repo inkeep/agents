@@ -7,6 +7,7 @@ export interface SlackCommandPayload {
   userName: string;
   teamId: string;
   teamDomain: string;
+  enterpriseId?: string;
   channelId: string;
   channelName: string;
   responseUrl: string;

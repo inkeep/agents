@@ -34,8 +34,10 @@ export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';
 export * from './runtime/projects';
+export * from './runtime/slackUserLinks';
 export * from './runtime/tasks';
 export * from './runtime/triggerInvocations';
 export * from './runtime/users';
+export * from './runtime/workAppSlack';
 
 export * from './validation';

@@ -71,6 +71,20 @@
       "when": 1768646273355,
       "tag": "0009_freezing_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769657043881,
+      "tag": "0010_tidy_sage",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1769708282506,
+      "tag": "0011_noisy_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

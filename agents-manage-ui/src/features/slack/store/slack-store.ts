@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { SlackNotification, SlackUserLink, SlackWorkspace } from '../types';
+import type { SlackNotification, SlackWorkspace } from '../types';
 
 interface SlackUIState {
   isConnecting: boolean;
@@ -11,7 +11,6 @@ interface SlackUIState {
 
 interface SlackPersistedState {
   workspaces: SlackWorkspace[];
-  userLinks: SlackUserLink[];
 }
 
 interface SlackActions {
@@ -23,11 +22,6 @@ interface SlackActions {
   removeWorkspace: (teamId: string) => void;
   clearAllWorkspaces: () => void;
 
-  addOrUpdateUserLink: (link: SlackUserLink) => void;
-  removeUserLink: (appUserId: string) => void;
-  clearAllUserLinks: () => void;
-
-  getCurrentUserLink: (userId: string | undefined) => SlackUserLink | undefined;
   getLatestWorkspace: () => SlackWorkspace | null;
 }
 
@@ -39,7 +33,6 @@ export const useSlackStore = create<SlackStore>()(
       isConnecting: false,
       notification: null,
       workspaces: [],
-      userLinks: [],
 
       setIsConnecting: (isConnecting) => set({ isConnecting }),
 
@@ -65,29 +58,6 @@ export const useSlackStore = create<SlackStore>()(
 
       clearAllWorkspaces: () => set({ workspaces: [] }),
 
-      addOrUpdateUserLink: (link) =>
-        set((state) => {
-          const existingIndex = state.userLinks.findIndex((l) => l.appUserId === link.appUserId);
-          if (existingIndex >= 0) {
-            const updated = [...state.userLinks];
-            updated[existingIndex] = { ...link };
-            return { userLinks: updated };
-          }
-          return { userLinks: [...state.userLinks, { ...link }] };
-        }),
-
-      removeUserLink: (appUserId) =>
-        set((state) => ({
-          userLinks: state.userLinks.filter((l) => l.appUserId !== appUserId),
-        })),
-
-      clearAllUserLinks: () => set({ userLinks: [] }),
-
-      getCurrentUserLink: (userId) => {
-        if (!userId) return undefined;
-        return get().userLinks.find((link) => link.appUserId === userId);
-      },
-
       getLatestWorkspace: () => {
         const workspaces = get().workspaces;
         return workspaces.length > 0 ? workspaces[workspaces.length - 1] : null;
@@ -97,7 +67,6 @@ export const useSlackStore = create<SlackStore>()(
       name: 'inkeep-slack-store',
       partialize: (state) => ({
         workspaces: state.workspaces,
-        userLinks: state.userLinks,
       }),
     }
   )
@@ -110,15 +79,6 @@ export const useSlackWorkspaces = () =>
     addOrUpdateWorkspace: state.addOrUpdateWorkspace,
     removeWorkspace: state.removeWorkspace,
     clearAllWorkspaces: state.clearAllWorkspaces,
-  }));
-
-export const useSlackUserLinks = (currentUserId?: string) =>
-  useSlackStore((state) => ({
-    userLinks: state.userLinks,
-    currentUserLink: state.getCurrentUserLink(currentUserId),
-    addOrUpdateUserLink: state.addOrUpdateUserLink,
-    removeUserLink: state.removeUserLink,
-    clearAllUserLinks: state.clearAllUserLinks,
   }));
 
 export const useSlackUI = () =>

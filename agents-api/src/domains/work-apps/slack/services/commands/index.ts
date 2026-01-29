@@ -1,170 +1,147 @@
+import {
+  createWorkAppSlackAccountLinkCode,
+  deleteWorkAppSlackUserMapping,
+  findWorkAppSlackUserMapping,
+  listAgents,
+  listProjectsPaginated,
+} from '@inkeep/agents-core';
+import manageDbClient from '../../../../../data/db/manageDbClient';
+import runDbClient from '../../../../../data/db/runDbClient';
 import { env } from '../../../../../env';
 import { getLogger } from '../../../../../logger';
 import {
-  createAgentExecutionClient,
-  createSlackApiClient,
-  SlackApiError,
-  sendDeferredResponse,
-} from '../api-client';
-import {
   createAgentListMessage,
-  createAgentResponseMessage,
-  createAlreadyConnectedMessage,
+  createAlreadyLinkedMessage,
+  createDeviceCodeMessage,
   createErrorMessage,
-  createLinkMessage,
-  createLogoutSuccessMessage,
-  createNoDefaultAgentMessage,
-  createNoProjectsMessage,
-  createProjectListMessage,
-  createSettingsMessage,
-  createSettingsUpdatedMessage,
-  createStatusConnectedMessage,
-  createStatusNotConnectedMessage,
-  createThinkingMessage,
+  createNotLinkedMessage,
+  createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
-import {
-  deleteConnection,
-  findConnectionBySlackUser,
-  getUserSettings,
-  setUserDefaultAgent,
-} from '../nango';
+import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { SlackCommandPayload, SlackCommandResponse } from '../types';
+
+const DEFAULT_CLIENT_ID = 'work-apps-slack';
+const LINK_CODE_TTL_MINUTES = 60;
 
 const logger = getLogger('slack-commands');
 
 export async function handleLinkCommand(
   payload: SlackCommandPayload,
-  dashboardUrl: string
+  dashboardUrl: string,
+  tenantId: string
 ): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
-
-  if (connection) {
-    const message = createAlreadyConnectedMessage(
-      connection.appUserEmail,
-      connection.linkedAt,
-      dashboardUrl
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  const message = createLinkMessage(dashboardUrl);
-  return { response_type: 'ephemeral', ...message };
-}
-
-export async function handleStatusCommand(
-  payload: SlackCommandPayload,
-  dashboardUrl: string
-): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
-
-  if (connection) {
-    const message = createStatusConnectedMessage(
-      payload.userName,
-      connection.appUserEmail,
-      connection.linkedAt,
-      dashboardUrl
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  const message = createStatusNotConnectedMessage(
-    payload.userName,
-    payload.teamDomain,
-    dashboardUrl
-  );
-  return { response_type: 'ephemeral', ...message };
-}
-
-export async function handleLogoutCommand(
-  payload: SlackCommandPayload
-): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
-
-  if (!connection) {
-    return {
-      response_type: 'ephemeral',
-      text: '❌ No connection found. You are not currently linked to an Inkeep account.',
-    };
-  }
-
-  const success = await deleteConnection(connection.connectionId);
-
-  if (!success) {
-    const message = createErrorMessage(
-      'Failed to logout. Please try again or visit the dashboard.'
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  logger.info(
-    { slackUserId: payload.userId, connectionId: connection.connectionId },
-    'User disconnected from Slack'
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
   );
 
-  const message = createLogoutSuccessMessage();
-  return { response_type: 'ephemeral', ...message };
-}
-
-export async function handleListCommand(
-  payload: SlackCommandPayload,
-  dashboardUrl: string
-): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
-
-  if (!connection) {
-    const message = createStatusNotConnectedMessage(
-      payload.userName,
-      payload.teamDomain,
+  if (existingLink) {
+    const message = createAlreadyLinkedMessage(
+      existingLink.slackEmail || existingLink.slackUsername || 'Unknown',
+      existingLink.linkedAt,
       dashboardUrl
     );
     return { response_type: 'ephemeral', ...message };
   }
 
   try {
-    const client = createSlackApiClient(connection);
-    const tenantId = client.getTenantId();
-    const result = await client.listProjects();
-    const projects = result.data || [];
+    const { plaintextCode } = await createWorkAppSlackAccountLinkCode(runDbClient)({
+      tenantId,
+      slackUserId: payload.userId,
+      slackTeamId: payload.teamId,
+      slackEnterpriseId: payload.enterpriseId,
+      slackUsername: payload.userName,
+    });
+
+    const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+    const linkUrl = `${manageUiUrl}/link?code=${plaintextCode}`;
 
     logger.info(
-      {
-        slackUserId: payload.userId,
-        tenantId,
-        projectCount: projects.length,
-      },
-      'Listed projects for Slack user'
+      { slackUserId: payload.userId, tenantId },
+      'Generated device link code (hash stored)'
     );
 
-    if (projects.length === 0) {
-      const message = createNoProjectsMessage(connection.appUserEmail, dashboardUrl);
-      return { response_type: 'ephemeral', ...message };
-    }
-
-    const userDashboardUrl = dashboardUrl.replace('/default/', `/${tenantId}/`);
-    const message = createProjectListMessage(
-      connection.appUserEmail,
-      projects,
-      userDashboardUrl,
-      result.pagination?.total || projects.length
-    );
+    const message = createDeviceCodeMessage(plaintextCode, linkUrl, LINK_CODE_TTL_MINUTES);
     return { response_type: 'ephemeral', ...message };
   } catch (error) {
-    if (error instanceof SlackApiError && error.isUnauthorized) {
-      const message = createErrorMessage(
-        'Your session has expired. Please visit the dashboard to re-link your account.'
-      );
+    logger.error({ error, slackUserId: payload.userId, tenantId }, 'Failed to generate link code');
+    const message = createErrorMessage('Failed to generate link code. Please try again.');
+    return { response_type: 'ephemeral', ...message };
+  }
+}
+
+export async function handleUnlinkCommand(
+  payload: SlackCommandPayload,
+  tenantId: string
+): Promise<SlackCommandResponse> {
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
+  );
+
+  if (!existingLink) {
+    const message = createNotLinkedMessage();
+    return { response_type: 'ephemeral', ...message };
+  }
+
+  try {
+    const success = await deleteWorkAppSlackUserMapping(runDbClient)(
+      tenantId,
+      payload.userId,
+      payload.teamId,
+      DEFAULT_CLIENT_ID
+    );
+
+    if (success) {
+      logger.info({ slackUserId: payload.userId, tenantId }, 'User unlinked Slack account');
+      const message = createUnlinkSuccessMessage();
       return { response_type: 'ephemeral', ...message };
     }
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage }, 'Failed to fetch projects');
+    const message = createErrorMessage('Failed to unlink account. Please try again.');
+    return { response_type: 'ephemeral', ...message };
+  } catch (error) {
+    logger.error({ error, slackUserId: payload.userId, tenantId }, 'Failed to unlink account');
+    const message = createErrorMessage('Failed to unlink account. Please try again.');
+    return { response_type: 'ephemeral', ...message };
+  }
+}
 
-    const message = createErrorMessage(
-      'Failed to fetch projects. Please try again or visit the dashboard.'
+export async function handleStatusCommand(
+  payload: SlackCommandPayload,
+  dashboardUrl: string,
+  tenantId: string
+): Promise<SlackCommandResponse> {
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
+  );
+
+  if (existingLink) {
+    const message = createAlreadyLinkedMessage(
+      existingLink.slackEmail || existingLink.slackUsername || payload.userName,
+      existingLink.linkedAt,
+      dashboardUrl
     );
     return { response_type: 'ephemeral', ...message };
   }
+
+  const message = createNotLinkedMessage();
+  return { response_type: 'ephemeral', ...message };
+}
+
+export async function handleLogoutCommand(
+  payload: SlackCommandPayload,
+  tenantId: string
+): Promise<SlackCommandResponse> {
+  return handleUnlinkCommand(payload, tenantId);
 }
 
 export async function handleHelpCommand(): Promise<SlackCommandResponse> {
@@ -174,253 +151,132 @@ export async function handleHelpCommand(): Promise<SlackCommandResponse> {
 
 export async function handleQuestionCommand(
   payload: SlackCommandPayload,
-  question: string,
-  dashboardUrl: string
+  _question: string,
+  _dashboardUrl: string,
+  tenantId: string
 ): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
-
-  if (!connection) {
-    const message = createStatusNotConnectedMessage(
-      payload.userName,
-      payload.teamDomain,
-      dashboardUrl
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  const settings = await getUserSettings(connection.connectionId);
-
-  if (!settings.defaultAgentApiKey || !settings.defaultAgentId) {
-    const message = createNoDefaultAgentMessage(dashboardUrl);
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  const agentName = settings.defaultAgentName || 'Inkeep Agent';
-
-  processQuestionAsync(
-    payload.responseUrl,
-    question,
-    agentName,
-    settings.defaultAgentApiKey,
-    payload.channelId
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
   );
 
-  const message = createThinkingMessage(agentName);
-  return { response_type: 'ephemeral', ...message };
-}
-
-async function processQuestionAsync(
-  responseUrl: string,
-  question: string,
-  agentName: string,
-  apiKey: string,
-  channelId: string
-): Promise<void> {
-  try {
-    const executionClient = createAgentExecutionClient(apiKey);
-    const response = await executionClient.chat(question);
-
-    const message = createAgentResponseMessage(agentName, response, channelId);
-    await sendDeferredResponse(responseUrl, { response_type: 'ephemeral', ...message });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage }, 'Failed to execute agent (async)');
-
-    let userMessage = 'Failed to get a response from the agent. Please try again.';
-    if (error instanceof SlackApiError && error.isUnauthorized) {
-      userMessage =
-        'Your agent API key has expired. Please reconfigure your default agent with `/inkeep settings set [agent]`.';
-    }
-
-    const message = createErrorMessage(userMessage);
-    await sendDeferredResponse(responseUrl, { response_type: 'ephemeral', ...message });
+  if (!existingLink) {
+    const message = createNotLinkedMessage();
+    return { response_type: 'ephemeral', ...message };
   }
+
+  const message = createErrorMessage(
+    'Direct agent invocation is coming soon! Use `/inkeep list` to see available agents, or `/inkeep run [agent] [question]` to run a specific agent.'
+  );
+  return { response_type: 'ephemeral', ...message };
 }
 
 export async function handleRunCommand(
   payload: SlackCommandPayload,
-  agentName: string,
-  question: string,
-  dashboardUrl: string
+  _agentName: string,
+  _question: string,
+  _dashboardUrl: string,
+  tenantId: string
 ): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
+  );
 
-  if (!connection) {
-    const message = createStatusNotConnectedMessage(
-      payload.userName,
-      payload.teamDomain,
-      dashboardUrl
-    );
+  if (!existingLink) {
+    const message = createNotLinkedMessage();
     return { response_type: 'ephemeral', ...message };
   }
 
-  try {
-    const client = createSlackApiClient(connection);
-    const agent = await client.findAgentByName(agentName);
-
-    if (!agent) {
-      const message = createErrorMessage(
-        `Agent "${agentName}" not found. Use \`/inkeep list\` to see available agents.`
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-
-    const apiKey = await client.getOrCreateAgentApiKey(agent.projectId, agent.id);
-    const displayName = agent.name || agent.id;
-
-    processRunAsync(payload.responseUrl, question, displayName, apiKey, payload.channelId);
-
-    const message = createThinkingMessage(displayName);
-    return { response_type: 'ephemeral', ...message };
-  } catch (error) {
-    if (error instanceof SlackApiError && error.isUnauthorized) {
-      const message = createErrorMessage(
-        'Your session has expired. Please visit the dashboard to re-link your account.'
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage }, 'Failed to prepare agent run');
-
-    const message = createErrorMessage(
-      'Failed to run the agent. Please try again or check your permissions.'
-    );
-    return { response_type: 'ephemeral', ...message };
-  }
-}
-
-async function processRunAsync(
-  responseUrl: string,
-  question: string,
-  agentName: string,
-  apiKey: string,
-  channelId: string
-): Promise<void> {
-  try {
-    const executionClient = createAgentExecutionClient(apiKey);
-    const response = await executionClient.chat(question);
-
-    const message = createAgentResponseMessage(agentName, response, channelId);
-    await sendDeferredResponse(responseUrl, { response_type: 'ephemeral', ...message });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage }, 'Failed to run agent (async)');
-
-    let userMessage = 'Failed to run the agent. Please try again or check your permissions.';
-    if (error instanceof SlackApiError && error.isUnauthorized) {
-      userMessage = 'Your session has expired. Please visit the dashboard to re-link your account.';
-    }
-
-    const message = createErrorMessage(userMessage);
-    await sendDeferredResponse(responseUrl, { response_type: 'ephemeral', ...message });
-  }
+  const message = createErrorMessage(
+    'Agent execution via `/inkeep run` is coming soon! For now, use `/inkeep list` to see available agents.'
+  );
+  return { response_type: 'ephemeral', ...message };
 }
 
 export async function handleSettingsCommand(
   payload: SlackCommandPayload,
-  subCommand: string | undefined,
-  agentName: string | undefined,
-  dashboardUrl: string
+  _subCommand: string | undefined,
+  _agentName: string | undefined,
+  _dashboardUrl: string,
+  tenantId: string
 ): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
+  );
 
-  if (!connection) {
-    const message = createStatusNotConnectedMessage(
-      payload.userName,
-      payload.teamDomain,
-      dashboardUrl
-    );
+  if (!existingLink) {
+    const message = createNotLinkedMessage();
     return { response_type: 'ephemeral', ...message };
   }
 
-  if (subCommand === 'set' && agentName) {
-    try {
-      const client = createSlackApiClient(connection);
-      const agent = await client.findAgentByName(agentName);
-
-      if (!agent) {
-        const message = createErrorMessage(
-          `Agent "${agentName}" not found. Use \`/inkeep list\` to see available agents.`
-        );
-        return { response_type: 'ephemeral', ...message };
-      }
-
-      const apiKey = await client.getOrCreateAgentApiKey(agent.projectId, agent.id);
-
-      await setUserDefaultAgent(connection.connectionId, {
-        agentId: agent.id,
-        agentName: agent.name || agent.id,
-        projectId: agent.projectId,
-        apiKey,
-      });
-
-      logger.info(
-        {
-          slackUserId: payload.userId,
-          agentId: agent.id,
-          agentName: agent.name,
-        },
-        'User set default agent'
-      );
-
-      const message = createSettingsUpdatedMessage(agent.name || agent.id);
-      return { response_type: 'ephemeral', ...message };
-    } catch (error) {
-      if (error instanceof SlackApiError && error.isUnauthorized) {
-        const message = createErrorMessage(
-          'Your session has expired. Please visit the dashboard to re-link your account.'
-        );
-        return { response_type: 'ephemeral', ...message };
-      }
-
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error({ error: errorMessage }, 'Failed to set default agent');
-
-      const message = createErrorMessage(
-        'Failed to set default agent. Please try again or check your permissions.'
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-  }
-
-  const settings = await getUserSettings(connection.connectionId);
-  const message = createSettingsMessage(
-    connection.appUserEmail,
-    settings.defaultAgentName,
-    dashboardUrl
+  const message = createErrorMessage(
+    'Settings configuration is coming soon! For now, use `/inkeep list` to see available agents.'
   );
   return { response_type: 'ephemeral', ...message };
 }
 
 export async function handleAgentListCommand(
   payload: SlackCommandPayload,
-  dashboardUrl: string
+  dashboardUrl: string,
+  tenantId: string
 ): Promise<SlackCommandResponse> {
-  const connection = await findConnectionBySlackUser(payload.userId);
+  const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
+    tenantId,
+    payload.userId,
+    payload.teamId,
+    DEFAULT_CLIENT_ID
+  );
 
-  if (!connection) {
-    const message = createStatusNotConnectedMessage(
-      payload.userName,
-      payload.teamDomain,
-      dashboardUrl
-    );
+  if (!existingLink) {
+    const message = createNotLinkedMessage();
     return { response_type: 'ephemeral', ...message };
   }
 
   try {
-    const client = createSlackApiClient(connection);
-    const agents = await client.listAllAgents();
+    const projectsResult = await listProjectsPaginated(manageDbClient)({
+      tenantId,
+      pagination: { limit: 100 },
+    });
+
+    const allAgents: Array<{
+      id: string;
+      name: string | null;
+      projectId: string;
+      projectName: string | null;
+    }> = [];
+
+    for (const project of projectsResult.data) {
+      const agents = await listAgents(manageDbClient)({
+        scopes: { tenantId, projectId: project.id },
+      });
+      for (const agent of agents) {
+        allAgents.push({
+          id: agent.id,
+          name: agent.name,
+          projectId: project.id,
+          projectName: project.name,
+        });
+      }
+    }
 
     logger.info(
       {
         slackUserId: payload.userId,
-        agentCount: agents.length,
+        tenantId,
+        agentCount: allAgents.length,
       },
-      'Listed agents for Slack user'
+      'Listed agents for linked Slack user'
     );
 
-    if (agents.length === 0) {
+    if (allAgents.length === 0) {
       const message = createErrorMessage(
         'No agents found. Create an agent in the Inkeep dashboard first.'
       );
@@ -428,18 +284,11 @@ export async function handleAgentListCommand(
     }
 
     const userDashboardUrl = dashboardUrl.replace('/work-apps/slack', '');
-    const message = createAgentListMessage(agents, userDashboardUrl);
+    const message = createAgentListMessage(allAgents, userDashboardUrl);
     return { response_type: 'ephemeral', ...message };
   } catch (error) {
-    if (error instanceof SlackApiError && error.isUnauthorized) {
-      const message = createErrorMessage(
-        'Your session has expired. Please visit the dashboard to re-link your account.'
-      );
-      return { response_type: 'ephemeral', ...message };
-    }
-
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error({ error: errorMessage }, 'Failed to list agents');
+    logger.error({ error: errorMessage, tenantId }, 'Failed to list agents');
 
     const message = createErrorMessage(
       'Failed to list agents. Please try again or visit the dashboard.'
@@ -454,8 +303,8 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
   const subcommand = parts[0]?.toLowerCase() || '';
   const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 
-  const connection = await findConnectionBySlackUser(payload.userId);
-  const tenantId = connection?.tenantId || 'default';
+  const workspaceConnection = await findWorkspaceConnectionByTeamId(payload.teamId);
+  const tenantId = workspaceConnection?.tenantId || 'default';
   const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
   console.log('=== SLACK COMMAND RECEIVED ===');
@@ -473,17 +322,19 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
 
   switch (subcommand) {
     case 'link':
-      return handleLinkCommand(payload, dashboardUrl);
+    case 'connect':
+      return handleLinkCommand(payload, dashboardUrl, tenantId);
 
     case 'status':
-      return handleStatusCommand(payload, dashboardUrl);
+      return handleStatusCommand(payload, dashboardUrl, tenantId);
 
+    case 'unlink':
     case 'logout':
     case 'disconnect':
-      return handleLogoutCommand(payload);
+      return handleUnlinkCommand(payload, tenantId);
 
     case 'list':
-      return handleAgentListCommand(payload, dashboardUrl);
+      return handleAgentListCommand(payload, dashboardUrl, tenantId);
 
     case 'run': {
       if (parts.length < 3) {
@@ -494,13 +345,13 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
       }
       const agentName = parts[1];
       const question = parts.slice(2).join(' ');
-      return handleRunCommand(payload, agentName, question, dashboardUrl);
+      return handleRunCommand(payload, agentName, question, dashboardUrl, tenantId);
     }
 
     case 'settings': {
       const settingsSubcommand = parts[1]?.toLowerCase();
       const agentName = parts.slice(2).join(' ') || parts[2];
-      return handleSettingsCommand(payload, settingsSubcommand, agentName, dashboardUrl);
+      return handleSettingsCommand(payload, settingsSubcommand, agentName, dashboardUrl, tenantId);
     }
 
     case 'help':
@@ -508,9 +359,9 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
       if (text === '' || text === 'help') {
         return handleHelpCommand();
       }
-      return handleQuestionCommand(payload, text, dashboardUrl);
+      return handleQuestionCommand(payload, text, dashboardUrl, tenantId);
 
     default:
-      return handleQuestionCommand(payload, text, dashboardUrl);
+      return handleQuestionCommand(payload, text, dashboardUrl, tenantId);
   }
 }

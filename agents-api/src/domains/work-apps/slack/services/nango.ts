@@ -209,6 +209,7 @@ export interface DefaultAgentConfig {
   agentName: string;
   projectId: string;
   projectName: string;
+  apiKey?: string;
 }
 
 export interface SlackWorkspaceConnection {
@@ -407,5 +408,249 @@ export async function getWorkspaceDefaultAgentFromNango(
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to get workspace default agent');
     return null;
+  }
+}
+
+/**
+ * Compute a stable, deterministic connection ID for a Slack workspace.
+ * Format: "T:<team_id>" or "E:<enterprise_id>:T:<team_id>" for Enterprise Grid
+ */
+export function computeWorkspaceConnectionId(params: {
+  teamId: string;
+  enterpriseId?: string;
+}): string {
+  const { teamId, enterpriseId } = params;
+  if (enterpriseId) {
+    return `E:${enterpriseId}:T:${teamId}`;
+  }
+  return `T:${teamId}`;
+}
+
+export interface WorkspaceInstallData {
+  teamId: string;
+  teamName?: string;
+  teamDomain?: string;
+  enterpriseId?: string;
+  enterpriseName?: string;
+  botUserId?: string;
+  botToken: string;
+  botScopes?: string;
+  installerUserId?: string;
+  installerUserName?: string;
+  isEnterpriseInstall?: boolean;
+  appId?: string;
+  tenantId?: string;
+  workspaceUrl?: string;
+  workspaceIconUrl?: string;
+  installationSource?: string;
+}
+
+/**
+ * Store a workspace installation in Nango.
+ * Uses upsert semantics - will update if the connection already exists.
+ */
+export async function storeWorkspaceInstallation(
+  data: WorkspaceInstallData
+): Promise<{ connectionId: string; success: boolean }> {
+  const connectionId = computeWorkspaceConnectionId({
+    teamId: data.teamId,
+    enterpriseId: data.enterpriseId,
+  });
+
+  try {
+    const integrationId = getSlackIntegrationId();
+    const secretKey = env.NANGO_SLACK_SECRET_KEY || env.NANGO_SECRET_KEY;
+
+    if (!secretKey) {
+      logger.error({}, 'No Nango secret key available');
+      console.log('=== NANGO IMPORT FAILED: No secret key ===');
+      return { connectionId, success: false };
+    }
+
+    const nangoApiUrl = env.NANGO_SERVER_URL || 'https://api.nango.dev';
+
+    console.log('=== NANGO IMPORT CONNECTION ===');
+    console.log({
+      nangoApiUrl,
+      integrationId,
+      connectionId,
+      teamId: data.teamId,
+      teamName: data.teamName,
+      hasSecretKey: !!secretKey,
+    });
+    console.log('================================');
+
+    const displayName = data.enterpriseName
+      ? `${data.teamName || data.teamId} (${data.enterpriseName})`
+      : data.teamName || data.teamId;
+
+    const workspaceUrl =
+      data.workspaceUrl || (data.teamDomain ? `https://${data.teamDomain}.slack.com` : '');
+
+    const now = new Date().toISOString();
+
+    const requestBody = {
+      provider_config_key: integrationId,
+      connection_id: connectionId,
+      credentials: {
+        type: 'OAUTH2',
+        access_token: data.botToken,
+      },
+      metadata: {
+        display_name: displayName,
+        connection_type: 'workspace',
+
+        slack_team_id: data.teamId,
+        slack_team_name: data.teamName || '',
+        slack_team_domain: data.teamDomain || '',
+        slack_workspace_url: workspaceUrl,
+        slack_workspace_icon_url: data.workspaceIconUrl || '',
+
+        slack_enterprise_id: data.enterpriseId || '',
+        slack_enterprise_name: data.enterpriseName || '',
+        is_enterprise_install: String(data.isEnterpriseInstall || false),
+
+        slack_bot_user_id: data.botUserId || '',
+        slack_bot_scopes: data.botScopes || '',
+        slack_app_id: data.appId || '',
+
+        installed_by_slack_user_id: data.installerUserId || '',
+        installed_by_slack_user_name: data.installerUserName || '',
+        installed_at: now,
+        last_updated_at: now,
+        installation_source: data.installationSource || 'dashboard',
+
+        inkeep_tenant_id: data.tenantId || 'default',
+        status: 'active',
+      },
+      connection_config: {
+        'team.id': data.teamId,
+      },
+    };
+
+    const response = await fetch(`${nangoApiUrl}/connections`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      console.log('=== NANGO IMPORT FAILED ===');
+      console.log({ status: response.status, body: responseText });
+      console.log('===========================');
+      logger.error(
+        { status: response.status, errorBody: responseText, connectionId },
+        'Failed to import connection to Nango'
+      );
+      return { connectionId, success: false };
+    }
+
+    console.log('=== NANGO IMPORT SUCCESS ===');
+    console.log({ status: response.status, body: responseText });
+    console.log('============================');
+
+    logger.info(
+      {
+        connectionId,
+        teamId: data.teamId,
+        teamName: data.teamName,
+      },
+      'Stored workspace installation in Nango'
+    );
+
+    return { connectionId, success: true };
+  } catch (error) {
+    logger.error(
+      { error, connectionId, teamId: data.teamId },
+      'Failed to store workspace installation'
+    );
+    return { connectionId, success: false };
+  }
+}
+
+/**
+ * List all workspace installations from Nango.
+ */
+export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnection[]> {
+  try {
+    const nango = getSlackNango();
+    const integrationId = getSlackIntegrationId();
+
+    const connections = await nango.listConnections();
+    const workspaces: SlackWorkspaceConnection[] = [];
+
+    for (const conn of connections.connections) {
+      if (conn.provider_config_key === integrationId) {
+        try {
+          const fullConn = await nango.getConnection(integrationId, conn.connection_id);
+          const metadata = fullConn.metadata as Record<string, string> | undefined;
+          const credentials = fullConn as { credentials?: { access_token?: string } };
+
+          // Only include workspace connections (not user connections)
+          if (metadata?.connection_type === 'workspace' && credentials.credentials?.access_token) {
+            let defaultAgent: DefaultAgentConfig | undefined;
+            if (metadata?.default_agent) {
+              try {
+                defaultAgent = JSON.parse(metadata.default_agent);
+              } catch {
+                // Invalid JSON, ignore
+              }
+            }
+
+            workspaces.push({
+              connectionId: conn.connection_id,
+              teamId: metadata.slack_team_id || '',
+              teamName: metadata.slack_team_name,
+              botToken: credentials.credentials.access_token,
+              tenantId: metadata.tenant_id || 'default',
+              defaultAgent,
+            });
+          }
+        } catch {
+          // Continue to next connection
+        }
+      }
+    }
+
+    return workspaces;
+  } catch (error) {
+    logger.error({ error }, 'Failed to list workspace installations');
+    return [];
+  }
+}
+
+/**
+ * Delete a workspace installation from Nango.
+ */
+export async function deleteWorkspaceInstallation(connectionId: string): Promise<boolean> {
+  try {
+    const nango = getSlackNango();
+    const integrationId = getSlackIntegrationId();
+
+    logger.info({ connectionId, integrationId }, 'Attempting to delete workspace installation');
+
+    await nango.deleteConnection(integrationId, connectionId);
+    logger.info({ connectionId }, 'Deleted workspace installation from Nango');
+    return true;
+  } catch (error: unknown) {
+    const errorObj = error as { status?: number; message?: string };
+    const errorMessage = errorObj?.message || String(error);
+    const statusCode = errorObj?.status;
+
+    if (statusCode === 404 || errorMessage.includes('404') || errorMessage.includes('not found')) {
+      logger.warn({ connectionId }, 'Connection not found in Nango, treating as already deleted');
+      return true;
+    }
+
+    logger.error(
+      { error: errorMessage, statusCode, connectionId },
+      'Failed to delete workspace installation'
+    );
+    return false;
   }
 }

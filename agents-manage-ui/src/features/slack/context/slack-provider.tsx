@@ -1,30 +1,18 @@
 'use client';
 
-import Nango from '@nangohq/frontend';
 import { useQueryClient } from '@tanstack/react-query';
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthSession } from '@/hooks/use-auth';
 import {
   slackQueryKeys,
-  useSlackConnectionStatusQuery,
-  useSlackDisconnectMutation,
-  useSlackRefreshSessionMutation,
-  useSlackWorkspaceInfoQuery,
+  useSlackUninstallWorkspaceMutation,
+  useSlackWorkspacesQuery,
 } from '../api/queries';
 import { slackApi } from '../api/slack-api';
-import {
-  clearAllUserLinksFromLocalDb,
-  removeUserLinkFromLocalDb,
-  saveUserLinkToLocalDb,
-} from '../db/sync';
+import { localDb } from '../db';
 import { useSlackStore } from '../store/slack-store';
-import type {
-  SlackNotification,
-  SlackUserLink,
-  SlackWorkspace,
-  SlackWorkspaceInfo,
-} from '../types';
+import type { SlackNotification, SlackWorkspace } from '../types';
 
 interface SlackContextValue {
   user: { id: string; email?: string; name?: string } | null;
@@ -34,18 +22,16 @@ interface SlackContextValue {
 
   workspaces: SlackWorkspace[];
   latestWorkspace: SlackWorkspace | null;
-  userLinks: SlackUserLink[];
-  currentUserLink: SlackUserLink | undefined;
 
-  connectionStatus: {
-    isConnected: boolean;
-    connection: { connectionId: string; appUserEmail: string; linkedAt: string } | null;
-    isLoading: boolean;
-    error: Error | null;
-  };
-
-  workspaceInfo: {
-    data: SlackWorkspaceInfo | null;
+  installedWorkspaces: {
+    data: Array<{
+      connectionId: string;
+      teamId: string;
+      teamName?: string;
+      tenantId: string;
+      hasDefaultAgent: boolean;
+      defaultAgentName?: string;
+    }>;
     isLoading: boolean;
     error: Error | null;
     refetch: () => void;
@@ -57,15 +43,11 @@ interface SlackContextValue {
   };
 
   actions: {
-    connectSlack: () => Promise<void>;
-    disconnectSlack: () => Promise<void>;
     handleInstallClick: () => void;
+    uninstallWorkspace: (connectionId: string) => Promise<void>;
     addOrUpdateWorkspace: (workspace: SlackWorkspace) => void;
     removeWorkspace: (teamId: string) => void;
     clearAllWorkspaces: () => void;
-    addOrUpdateUserLink: (link: SlackUserLink) => void;
-    removeUserLink: (appUserId: string) => void;
-    clearAllUserLinks: () => void;
     setNotification: (notification: SlackNotification | null) => void;
     clearNotification: () => void;
   };
@@ -81,10 +63,8 @@ interface SlackProviderProps {
 export function SlackProvider({ children, tenantId }: SlackProviderProps) {
   const { user, session, isLoading: isAuthLoading } = useAuthSession();
   const queryClient = useQueryClient();
-  const hasRefreshedSession = useRef(false);
 
   const workspaces = useSlackStore((state) => state.workspaces);
-  const userLinks = useSlackStore((state) => state.userLinks);
   const isConnecting = useSlackStore((state) => state.isConnecting);
   const notification = useSlackStore((state) => state.notification);
   const storeActions = useSlackStore(
@@ -95,201 +75,58 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
       addOrUpdateWorkspace: state.addOrUpdateWorkspace,
       removeWorkspace: state.removeWorkspace,
       clearAllWorkspaces: state.clearAllWorkspaces,
-      addOrUpdateUserLink: state.addOrUpdateUserLink,
-      removeUserLink: state.removeUserLink,
-      clearAllUserLinks: state.clearAllUserLinks,
     }))
   );
 
-  const currentUserLink = user?.id
-    ? userLinks.find((link) => link.appUserId === user.id)
-    : undefined;
   const latestWorkspace = workspaces.length > 0 ? workspaces[workspaces.length - 1] : null;
 
-  const connectionStatusQuery = useSlackConnectionStatusQuery(user?.id);
-  const connectionId =
-    connectionStatusQuery.data?.connection?.connectionId || currentUserLink?.nangoConnectionId;
-  const workspaceInfoQuery = useSlackWorkspaceInfoQuery(connectionId);
-
-  const disconnectMutation = useSlackDisconnectMutation();
-  const refreshSessionMutation = useSlackRefreshSessionMutation();
+  const workspacesQuery = useSlackWorkspacesQuery();
+  const uninstallMutation = useSlackUninstallWorkspaceMutation();
 
   useEffect(() => {
-    if (
-      user?.id &&
-      session?.token &&
-      connectionStatusQuery.data?.connected &&
-      connectionStatusQuery.data?.connection &&
-      !hasRefreshedSession.current
-    ) {
-      hasRefreshedSession.current = true;
-      refreshSessionMutation.mutate({
-        userId: user.id,
-        sessionToken: session.token,
-        sessionExpiresAt:
-          session.expiresAt instanceof Date ? session.expiresAt.toISOString() : session.expiresAt,
-      });
+    if (notification?.type === 'success' && notification.action === 'installed') {
+      queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaces() });
     }
-  }, [user?.id, session, connectionStatusQuery.data, refreshSessionMutation]);
-
-  useEffect(() => {
-    if (connectionStatusQuery.data?.connected && connectionStatusQuery.data?.connection) {
-      const conn = connectionStatusQuery.data.connection;
-      if (!currentUserLink || currentUserLink.nangoConnectionId !== conn.connectionId) {
-        const syncedLink: SlackUserLink = {
-          slackUserId: currentUserLink?.slackUserId || '',
-          slackTeamId: currentUserLink?.slackTeamId || latestWorkspace?.teamId || '',
-          appUserId: conn.appUserId,
-          appUserEmail: conn.appUserEmail || currentUserLink?.appUserEmail,
-          appUserName: currentUserLink?.appUserName || user?.name || '',
-          nangoConnectionId: conn.connectionId,
-          isLinked: true,
-          linkedAt: conn.linkedAt,
-        };
-        storeActions.addOrUpdateUserLink(syncedLink);
-        saveUserLinkToLocalDb(syncedLink, tenantId, { skipAuditLog: true });
-      }
-    } else if (
-      connectionStatusQuery.data &&
-      !connectionStatusQuery.data.connected &&
-      currentUserLink &&
-      user?.id
-    ) {
-      storeActions.removeUserLink(user.id);
-      removeUserLinkFromLocalDb(user.id, tenantId, currentUserLink.nangoConnectionId);
-    }
-  }, [
-    connectionStatusQuery.data,
-    currentUserLink,
-    user?.id,
-    user?.name,
-    latestWorkspace?.teamId,
-    storeActions,
-    tenantId,
-  ]);
-
-  useEffect(() => {
-    if (notification?.type === 'success' && notification.action === 'connected') {
-      connectionStatusQuery.refetch();
-      if (connectionId) {
-        workspaceInfoQuery.refetch();
-      }
-    }
-  }, [notification, connectionId, connectionStatusQuery, workspaceInfoQuery]);
-
-  const connectSlack = useCallback(async () => {
-    if (!user) return;
-
-    storeActions.setIsConnecting(true);
-
-    try {
-      const { sessionToken } = await slackApi.createConnectSession({
-        userId: user.id,
-        userEmail: user.email || undefined,
-        userName: user.name || undefined,
-        tenantId,
-        sessionToken: session?.token,
-        sessionExpiresAt:
-          session?.expiresAt instanceof Date ? session.expiresAt.toISOString() : session?.expiresAt,
-      });
-
-      const nango = new Nango();
-
-      await new Promise<void>((resolve) => {
-        const connect = nango.openConnectUI({
-          onEvent: (event) => {
-            if (event.type === 'connect' && 'payload' in event) {
-              const payload = event.payload as { connectionId?: string };
-              const connId = payload.connectionId || user.id;
-
-              const newLink: SlackUserLink = {
-                slackUserId: '',
-                slackTeamId: latestWorkspace?.teamId || '',
-                appUserId: user.id,
-                appUserEmail: user.email || undefined,
-                appUserName: user.name || undefined,
-                nangoConnectionId: connId,
-                isLinked: true,
-                linkedAt: new Date().toISOString(),
-              };
-
-              storeActions.addOrUpdateUserLink(newLink);
-              saveUserLinkToLocalDb(newLink, tenantId);
-
-              queryClient.invalidateQueries({ queryKey: slackQueryKeys.status(user.id) });
-              if (connId) {
-                queryClient.invalidateQueries({ queryKey: slackQueryKeys.workspaceInfo(connId) });
-              }
-
-              storeActions.setNotification({
-                type: 'success',
-                message: 'Slack account connected successfully!',
-                action: 'connected',
-              });
-              resolve();
-            } else if (event.type === 'close') {
-              resolve();
-            }
-          },
-        });
-
-        connect.setSessionToken(sessionToken);
-      });
-    } catch (error) {
-      console.error('Failed to connect Slack:', error);
-      storeActions.setNotification({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Failed to connect Slack account',
-        action: 'error',
-      });
-    } finally {
-      storeActions.setIsConnecting(false);
-    }
-  }, [user, session, tenantId, latestWorkspace?.teamId, storeActions, queryClient]);
-
-  const disconnectSlack = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      await disconnectMutation.mutateAsync({
-        userId: user.id,
-        connectionId: currentUserLink?.nangoConnectionId,
-      });
-
-      storeActions.removeUserLink(user.id);
-      removeUserLinkFromLocalDb(user.id, tenantId, currentUserLink?.nangoConnectionId);
-      storeActions.setNotification({
-        type: 'success',
-        message: 'Disconnected from Slack',
-        action: 'disconnected',
-      });
-    } catch (error) {
-      console.error('Failed to disconnect:', error);
-      storeActions.setNotification({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Failed to disconnect',
-        action: 'error',
-      });
-    }
-  }, [user, currentUserLink?.nangoConnectionId, disconnectMutation, storeActions, tenantId]);
+  }, [notification, queryClient]);
 
   const handleInstallClick = useCallback(() => {
     window.location.href = slackApi.getInstallUrl();
   }, []);
 
-  const handleRemoveUserLink = useCallback(
-    (appUserId: string) => {
-      const link = userLinks.find((l) => l.appUserId === appUserId);
-      storeActions.removeUserLink(appUserId);
-      removeUserLinkFromLocalDb(appUserId, tenantId, link?.nangoConnectionId);
-    },
-    [userLinks, storeActions, tenantId]
-  );
+  const uninstallWorkspace = useCallback(
+    async (connectionId: string) => {
+      try {
+        await uninstallMutation.mutateAsync(connectionId);
 
-  const handleClearAllUserLinks = useCallback(() => {
-    storeActions.clearAllUserLinks();
-    clearAllUserLinksFromLocalDb(tenantId);
-  }, [storeActions, tenantId]);
+        const teamId = connectionId.replace('T:', '').split(':').pop() || connectionId;
+        const workspace = workspaces.find((w) => w.teamId === teamId);
+        if (workspace?.teamId) {
+          storeActions.removeWorkspace(workspace.teamId);
+          const allWorkspaces = localDb.workspaces.findAll();
+          const toDelete = allWorkspaces.find(
+            (w) => w.externalId === teamId && w.integrationType === 'slack'
+          );
+          if (toDelete?.id) {
+            localDb.workspaces.delete(toDelete.id);
+          }
+        }
+
+        storeActions.setNotification({
+          type: 'success',
+          message: 'Workspace uninstalled successfully',
+          action: 'disconnected',
+        });
+      } catch (error) {
+        console.error('Failed to uninstall workspace:', error);
+        storeActions.setNotification({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Failed to uninstall workspace',
+          action: 'error',
+        });
+      }
+    },
+    [uninstallMutation, workspaces, storeActions]
+  );
 
   const value: SlackContextValue = {
     user: user
@@ -301,21 +138,12 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
 
     workspaces,
     latestWorkspace,
-    userLinks,
-    currentUserLink,
 
-    connectionStatus: {
-      isConnected: connectionStatusQuery.data?.connected ?? false,
-      connection: connectionStatusQuery.data?.connection ?? null,
-      isLoading: connectionStatusQuery.isLoading,
-      error: connectionStatusQuery.error,
-    },
-
-    workspaceInfo: {
-      data: workspaceInfoQuery.data ?? null,
-      isLoading: workspaceInfoQuery.isLoading,
-      error: workspaceInfoQuery.error,
-      refetch: () => workspaceInfoQuery.refetch(),
+    installedWorkspaces: {
+      data: workspacesQuery.data?.workspaces ?? [],
+      isLoading: workspacesQuery.isLoading,
+      error: workspacesQuery.error,
+      refetch: () => workspacesQuery.refetch(),
     },
 
     ui: {
@@ -324,15 +152,11 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
     },
 
     actions: {
-      connectSlack,
-      disconnectSlack,
       handleInstallClick,
+      uninstallWorkspace,
       addOrUpdateWorkspace: storeActions.addOrUpdateWorkspace,
       removeWorkspace: storeActions.removeWorkspace,
       clearAllWorkspaces: storeActions.clearAllWorkspaces,
-      addOrUpdateUserLink: storeActions.addOrUpdateUserLink,
-      removeUserLink: handleRemoveUserLink,
-      clearAllUserLinks: handleClearAllUserLinks,
       setNotification: storeActions.setNotification,
       clearNotification: storeActions.clearNotification,
     },
@@ -349,14 +173,9 @@ export function useSlack() {
   return context;
 }
 
-export function useSlackConnectionStatus() {
+export function useSlackInstalledWorkspaces() {
   const ctx = useSlack();
-  return ctx.connectionStatus;
-}
-
-export function useSlackWorkspaceInfo() {
-  const ctx = useSlack();
-  return ctx.workspaceInfo;
+  return ctx.installedWorkspaces;
 }
 
 export function useSlackActions() {
