@@ -9,6 +9,11 @@
  *
  * The --cloud flag is used when you have a cloud-deployed database instance
  * and want to configure the CLI for cloud APIs instead of local development.
+ *
+ * CI Environment:
+ *   When running in CI (detected via CI, GITHUB_ACTIONS, GITLAB_CI, JENKINS_URL, or CIRCLECI
+ *   environment variables), the interactive browser login step is skipped. Use INKEEP_API_KEY
+ *   environment variable for authentication in CI pipelines.
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -55,6 +60,19 @@ console.log(`\n${colors.bright}=== Project Setup Script ===${colors.reset}\n`);
 // Parse command-line arguments
 const args = process.argv.slice(2);
 const isCloud = args.includes('--cloud');
+
+// Detect CI environment (same detection as agents-cli)
+const isCI =
+  process.env.CI === 'true' ||
+  process.env.CI === '1' ||
+  !!process.env.GITHUB_ACTIONS ||
+  process.env.GITLAB_CI === 'true' ||
+  !!process.env.JENKINS_URL ||
+  process.env.CIRCLECI === 'true';
+
+if (isCI) {
+  logInfo('CI environment detected - will skip interactive login step');
+}
 
 loadEnvironmentFiles();
 
@@ -436,23 +454,29 @@ async function setupProjectInDatabase(isCloud) {
     }
 
     // Step 8: Log in to CLI (interactive - opens browser)
-    logStep(8, 'Logging in to CLI');
-    logInfo('This will open a browser window for authentication...');
-    try {
-      await new Promise((resolve, reject) => {
-        const loginProcess = spawn('pnpm', ['inkeep', 'login'], {
-          stdio: 'inherit',
-          shell: true,
+    // Skip in CI environments since interactive browser login isn't possible
+    if (isCI) {
+      logStep(8, 'Skipping CLI login (CI environment detected)');
+      logInfo('In CI, use INKEEP_API_KEY environment variable for authentication');
+    } else {
+      logStep(8, 'Logging in to CLI');
+      logInfo('This will open a browser window for authentication...');
+      try {
+        await new Promise((resolve, reject) => {
+          const loginProcess = spawn('pnpm', ['inkeep', 'login'], {
+            stdio: 'inherit',
+            shell: true,
+          });
+          loginProcess.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`Login exited with code ${code}`));
+          });
+          loginProcess.on('error', reject);
         });
-        loginProcess.on('close', (code) => {
-          if (code === 0) resolve();
-          else reject(new Error(`Login exited with code ${code}`));
-        });
-        loginProcess.on('error', reject);
-      });
-      logSuccess('CLI login completed');
-    } catch {
-      logWarning('Could not log in to CLI - you may need to run: inkeep login');
+        logSuccess('CLI login completed');
+      } catch {
+        logWarning('Could not log in to CLI - you may need to run: inkeep login');
+      }
     }
 
     // Step 9: Run inkeep push

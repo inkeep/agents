@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { OrgRoles } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -276,6 +277,7 @@ function createAgentsHono(config: AppConfig) {
       if (tenantId) {
         c.set('tenantId', tenantId);
         c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+        c.set('tenantRole', OrgRoles.OWNER); // Grant owner role in test mode to bypass SpiceDB checks
       }
       await next();
     });
