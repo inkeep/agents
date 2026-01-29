@@ -75,7 +75,6 @@ import {
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
-  createResourceIdSchema,
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
