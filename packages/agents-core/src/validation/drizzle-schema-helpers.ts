@@ -4,27 +4,7 @@ import {
   createInsertSchema as drizzleCreateInsertSchema,
   createSelectSchema as drizzleCreateSelectSchema,
 } from 'drizzle-zod';
-
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
-
-export const resourceIdSchema = z
-  .string()
-  .min(MIN_ID_LENGTH)
-  .max(MAX_ID_LENGTH)
-  .describe('Resource identifier')
-  .regex(URL_SAFE_ID_PATTERN, {
-    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-  })
-  .openapi({
-    description: 'Resource identifier',
-    example: 'resource_789',
-  });
-
-resourceIdSchema.meta({
-  description: 'Resource identifier',
-});
+import { resourceIdSchema, MIN_ID_LENGTH, MAX_ID_LENGTH, URL_SAFE_ID_PATTERN } from '../validation';
 
 /**
  * Creates a resource ID schema with custom description.
@@ -42,20 +22,10 @@ export function createResourceIdSchema(
   description: string,
   options?: { example?: string }
 ): z.ZodString {
-  const example = options?.example ?? 'resource_789';
-  const modified = z
-    .string()
-    .min(MIN_ID_LENGTH)
-    .max(MAX_ID_LENGTH)
-    .describe(description)
-    .regex(URL_SAFE_ID_PATTERN, {
-      message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-    })
-    .openapi({
-      description,
-      example,
-    });
-  modified.meta({ description });
+  const modified = resourceIdSchema.clone().openapi({
+    description,
+    example: options?.example ?? 'resource_789',
+  });
   return modified;
 }
 

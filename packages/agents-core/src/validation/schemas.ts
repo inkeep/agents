@@ -109,9 +109,9 @@ export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
-const MIN_ID_LENGTH = 1;
+export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
-const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
 
 export const resourceIdSchema = z
   .string()
