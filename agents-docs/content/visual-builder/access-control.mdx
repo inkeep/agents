@@ -6,15 +6,15 @@ icon: LuShieldCheck
 
 The Inkeep Agent Framework provides two layers of access control:
 
-| Layer | What it does | Powered by |
-|-------|--------------|------------|
-| **Authentication** | Users sign in, belong to organizations, manage teams | [Better Auth](https://www.better-auth.com/) |
-| **Authorization** | Fine-grained project-level roles and permissions | [SpiceDB](https://authzed.com/spicedb) |
+| Layer | What it does |
+|-------|--------------|
+| **Authentication** | Users sign in, belong to organizations, manage teams |
+| **Authorization** | Fine-grained project-level roles and permissions |
 
 Authentication handles user sign-in and organization membership. Authorization adds granular control over who can do what within each project.
 
 <Note>
-  For deployment configuration including OAuth providers and SpiceDB, see [Authentication Setup](/deployment/authentication).
+  For deployment configuration including OAuth providers, see [Authentication Setup](/deployment/authentication).
 </Note>
 
 ## Sign-In Methods
@@ -25,10 +25,6 @@ Authentication handles user sign-in and organization membership. Authorization a
 | **Google** | OAuth sign-in (requires configuration) |
 
 To add Google sign-in, see [Adding OAuth Providers](/deployment/authentication#google-oauth).
-
-<Tip>
-  The framework uses [Better Auth](https://www.better-auth.com/), which supports many authentication plugins including GitHub, Microsoft, SAML, passkeys, and more. See the [Better Auth authentication documentation](https://www.better-auth.com/docs/authentication/email-password) to add additional sign-in methods.
-</Tip>
 
 ## Organizations & Team Management
 
