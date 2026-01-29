@@ -1686,6 +1686,11 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
           'Export default declarations are not supported. Provide a single function instead.'
         );
       }
+      if (node.type === 'ExportNamedDeclaration') {
+        throw SyntaxError(
+          'Export declarations are not supported. Provide a single function instead.'
+        );
+      }
     }
     const functionsCount = body.filter((node) => {
       if (node.type === 'FunctionDeclaration') {
