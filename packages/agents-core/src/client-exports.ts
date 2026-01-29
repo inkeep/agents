@@ -74,7 +74,7 @@ export {
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   TriggerWithWebhookUrlSchema,
-  resourceIdSchema,
+  ResourceIdSchema,
 } from './validation/schemas';
 
 export type { SignatureVerificationConfig, SignatureSource, SignedComponent };

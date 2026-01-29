@@ -4,7 +4,7 @@ import {
   createInsertSchema as drizzleCreateInsertSchema,
   createSelectSchema as drizzleCreateSelectSchema,
 } from 'drizzle-zod';
-import { resourceIdSchema, MIN_ID_LENGTH, MAX_ID_LENGTH, URL_SAFE_ID_PATTERN } from '../validation';
+import { ResourceIdSchema, MIN_ID_LENGTH, MAX_ID_LENGTH, URL_SAFE_ID_PATTERN } from '../validation';
 
 /**
  * Creates a resource ID schema with custom description.
@@ -22,7 +22,7 @@ export function createResourceIdSchema(
   description: string,
   options?: { example?: string }
 ): z.ZodString {
-  const modified = resourceIdSchema.clone().openapi({
+  const modified = ResourceIdSchema.clone().openapi({
     description,
     example: options?.example ?? 'resource_789',
   });

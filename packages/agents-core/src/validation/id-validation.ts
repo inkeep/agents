@@ -1,4 +1,4 @@
-import { MAX_ID_LENGTH, resourceIdSchema } from './drizzle-schema-helpers';
+import { MAX_ID_LENGTH, ResourceIdSchema } from './drizzle-schema-helpers';
 /**
  * Valid URL-safe characters for resource IDs based on RFC 3986.
  *
