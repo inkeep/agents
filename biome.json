@@ -79,7 +79,8 @@
             "hooks": [
               { "name": "useAgentActions", "stableResult": true },
               { "name": "useMonacoActions", "stableResult": true },
-              { "name": "useProjectActions", "stableResult": true }
+              { "name": "useProjectActions", "stableResult": true },
+              { "name": "useTheme", "stableResult": ["setTheme"] }
             ]
           }
         },

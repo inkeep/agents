@@ -75,13 +75,10 @@ function MetadataEditor() {
 
   const { markUnsaved, setMetadata } = useAgentActions();
 
-  const updateMetadata: typeof setMetadata = useCallback(
-    (...attrs) => {
-      setMetadata(...attrs);
-      markUnsaved();
-    },
-    [setMetadata, markUnsaved]
-  );
+  const updateMetadata: typeof setMetadata = useCallback((...attrs) => {
+    setMetadata(...attrs);
+    markUnsaved();
+  }, []);
 
   // Helper to get the latest models from the store to avoid stale closure race conditions
   const getCurrentModels = useCallback(() => {
