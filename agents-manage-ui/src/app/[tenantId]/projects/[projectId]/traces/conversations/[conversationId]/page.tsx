@@ -120,7 +120,7 @@ export default function ConversationDetail({
   const { defaultLayout, onLayoutChange } = useDefaultLayout({
     groupId: 'conversation-resizable-layout-state',
     storage:
-    // fix localStorage is not defined error during SSR
+      // fix localStorage is not defined error during SSR
       typeof window === 'undefined'
         ? {
             getItem: () => null,
