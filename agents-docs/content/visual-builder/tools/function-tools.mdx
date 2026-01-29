@@ -62,8 +62,6 @@ function calculateBMI({ weight, height }) {
 
   return { bmi: Math.round(bmi * 10) / 10, category };
 }
-
-return calculateBMI(args);
 ```
 
 <Note>Code can be synchronous aor asynchronous, we accept any flavor.</Note>
@@ -132,8 +130,6 @@ async function getWeather({ city }) {
     description: response.data.weather,
   };
 }
-
-return getWeather(args);
 ```
 
 **Input Schema**:
