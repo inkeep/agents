@@ -312,7 +312,8 @@ export const resourceIdSchema = z
   .max(MAX_ID_LENGTH)
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-  });
+  })
+  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
 
 export function generateIdFromName(name: string): string {
   return name
