@@ -1,71 +1,82 @@
 import { FunctionApiInsertSchema } from '../schemas';
 
-const basePayload = {
-  id: 'fn-1',
-};
+function test(executeCode: string) {
+  return FunctionApiInsertSchema.parse({
+    id: 'fn-1',
+    executeCode,
+  });
+}
 
 describe('FunctionApiInsertSchema executeCode validation', () => {
   describe('rejects', () => {
     it('export default function', () => {
-      expect(() =>
-        FunctionApiInsertSchema.parse({
-          ...basePayload,
-          executeCode: 'export default function() {}',
-        })
-      ).toThrowError(/Export default is not allowed/);
+      expect(() => test('export default function() {}')).toThrowError(
+        /Export default is not allowed/
+      );
     });
 
     it('global return', () => {
-      expect(() =>
-        FunctionApiInsertSchema.parse({
-          ...basePayload,
-          executeCode: 'return 1',
-        })
-      ).toThrowError(/Global return is not allowed/);
+      expect(() => test('return 1')).toThrowError(/Global return is not allowed/);
     });
 
     it('TypeScript syntax', () => {
-      expect(() =>
-        FunctionApiInsertSchema.parse({
-          ...basePayload,
-          executeCode: '(value: number) => value',
-        })
-      ).toThrowError(/TypeScript syntax is not allowed/);
+      expect(() => test('(value: number) => value')).toThrowError(
+        /TypeScript syntax is not allowed/
+      );
     });
 
     it('JSX syntax', () => {
-      expect(() =>
-        FunctionApiInsertSchema.parse({
-          ...basePayload,
-          executeCode: '() => <div />',
-        })
-      ).toThrowError(/JSX syntax is not allowed/);
+      expect(() => test('() => <div />')).toThrowError(/JSX syntax is not allowed/);
     });
 
     it('code without functions', () => {
-      expect(() =>
-        FunctionApiInsertSchema.parse({
-          ...basePayload,
-          executeCode: '"test"',
-        })
-      ).toThrowError(/Must have one function/);
+      expect(() => test('"test"')).toThrowError(/Must have one function/);
     });
 
     it('code with 2 and more functions', () => {
-      expect(() =>
-        FunctionApiInsertSchema.parse({
-          ...basePayload,
-          executeCode: 'function foo() {} function bar() {}',
-        })
-      ).toThrowError(/Must have one function, but got 2/);
+      expect(() => test('function foo() {} function bar() {}')).toThrowError(
+        /Must have one function, but got 2/
+      );
     });
   });
 
   describe('allows', () => {
-    it('arrow functions', () => {
+    it.skip('anonymous function', () => {
+      expect(() => test('function() {}')).not.toThrowError();
+    });
+
+    it.skip('async anonymous function', () => {
+      expect(() => test('async function() {}')).not.toThrowError();
+    });
+
+    it('arrow function', () => {
       const result = FunctionApiInsertSchema.safeParse({
         ...basePayload,
         executeCode: '() => 1',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('async arrow function', () => {
+      const result = FunctionApiInsertSchema.safeParse({
+        ...basePayload,
+        executeCode: 'async () => 1',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('named function', () => {
+      const result = FunctionApiInsertSchema.safeParse({
+        ...basePayload,
+        executeCode: 'function foo() {}',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('async named function', () => {
+      const result = FunctionApiInsertSchema.safeParse({
+        ...basePayload,
+        executeCode: 'async function foo() {}',
       });
       expect(result.success).toBe(true);
     });
