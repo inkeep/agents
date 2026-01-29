@@ -17,7 +17,7 @@ import { ToolOverrideDiff } from './tool-override-diff';
 
 interface ToolSelectorItemProps {
   toolName: string;
-  override: ToolSimplifyConfig;
+  override?: ToolSimplifyConfig;
   originalTool: McpToolDefinition;
   displayName: string;
   description?: string;
@@ -113,7 +113,7 @@ export function ToolSelectorItem({
           </Tooltip>
         </div>
       </div>
-      {isCompareOpen && (
+      {isCompareOpen && override && (
         <ToolOverrideDiff
           override={override}
           originalTool={originalTool}

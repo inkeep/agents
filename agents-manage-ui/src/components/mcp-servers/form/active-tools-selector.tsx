@@ -94,24 +94,27 @@ export function ActiveToolsSelector<
     setToolsConfig({ type: 'selective', tools: [] });
   };
 
-  const handleToolToggle = (toolName: string, checked: boolean) => {
-    if (safeToolsConfig.type === 'all') {
-      // When in "all" mode, unchecking creates selective list without that tool
-      const allToolsExceptThis = availableTools
-        .map((t) => t.name)
-        .filter((name) => name !== toolName);
-      setToolsConfig({
-        type: 'selective',
-        tools: checked ? [...allToolsExceptThis, toolName] : allToolsExceptThis,
-      });
-    } else {
-      // Standard selective mode logic
-      const newTools = checked
-        ? [...safeToolsConfig.tools.filter((name) => name !== toolName), toolName]
-        : safeToolsConfig.tools.filter((name) => name !== toolName);
-      setToolsConfig({ type: 'selective', tools: newTools });
-    }
-  };
+  const handleToolToggle = useCallback(
+    (toolName: string, checked: boolean) => {
+      if (safeToolsConfig.type === 'all') {
+        // When in "all" mode, unchecking creates selective list without that tool
+        const allToolsExceptThis = availableTools
+          .map((t) => t.name)
+          .filter((name) => name !== toolName);
+        setToolsConfig({
+          type: 'selective',
+          tools: checked ? [...allToolsExceptThis, toolName] : allToolsExceptThis,
+        });
+      } else {
+        // Standard selective mode logic
+        const newTools = checked
+          ? [...safeToolsConfig.tools.filter((name) => name !== toolName), toolName]
+          : safeToolsConfig.tools.filter((name) => name !== toolName);
+        setToolsConfig({ type: 'selective', tools: newTools });
+      }
+    },
+    [availableTools, safeToolsConfig, setToolsConfig]
+  );
 
   const handleRemoveOverride = useCallback(
     (toolName: string) => {
