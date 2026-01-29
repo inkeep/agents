@@ -160,7 +160,6 @@ export function MembersTable({
     role === OrgRoles.ADMIN || role === OrgRoles.OWNER;
 
   const canEditMember = (member: Member): boolean => {
-    if (organizationId !== 'default') return false;
     if (!isOrgAdmin || !currentMember) return false;
     if (member.id === currentMember.id) return false;
     if (currentMember.role === OrgRoles.ADMIN && member.role === OrgRoles.OWNER) return false;
