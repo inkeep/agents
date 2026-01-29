@@ -1672,6 +1672,12 @@ export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).ope
 
 const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
   try {
+    // Workaround for anonymous function because it’s not valid JavaScript grammar.
+    // Babel (and every JS parser) rejects it.
+    const isAnonymousFunction = /^(async\s+)?function(\s+)?\(/.test(val);
+    if (isAnonymousFunction) {
+      val = `(${val})`;
+    }
     const ast = parse(val, { sourceType: 'module' });
     const { body } = ast.program;
     for (const node of body) {
@@ -1679,11 +1685,18 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
         throw SyntaxError('Export default is not allowed');
       }
     }
-    const functionsCount = body.filter(
-      (node) =>
-        node.type === 'FunctionDeclaration' ||
-        (node.type === 'ExpressionStatement' && node.expression.type === 'ArrowFunctionExpression')
-    ).length;
+    const functionsCount = body.filter((node) => {
+      if (node.type === 'FunctionDeclaration') {
+        return true;
+      }
+      if (node.type === 'ExpressionStatement') {
+        return (
+          node.expression.type ===
+          (isAnonymousFunction ? 'FunctionExpression' : 'ArrowFunctionExpression')
+        );
+      }
+      return false;
+    }).length;
 
     if (!functionsCount) {
       throw new SyntaxError('Must have one function');

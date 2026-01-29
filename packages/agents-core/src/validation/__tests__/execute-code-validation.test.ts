@@ -41,11 +41,11 @@ describe('FunctionApiInsertSchema executeCode validation', () => {
   });
 
   describe('allows', () => {
-    it.skip('anonymous function', () => {
+    it('anonymous function', () => {
       expect(() => test('function() {}')).not.toThrowError();
     });
 
-    it.skip('async anonymous function', () => {
+    it('async anonymous function', () => {
       expect(() => test('async function() {}')).not.toThrowError();
     });
 
