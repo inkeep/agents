@@ -35,7 +35,12 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+  useDefaultLayout,
+} from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
@@ -89,9 +94,7 @@ const Playground = dynamic(
 
 const CopilotChat = dynamic(
   () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 function getEdgeId(a: string, b: string) {
@@ -957,12 +960,14 @@ export const Agent: FC<AgentProps> = ({
   const showEmptyState =
     nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
+  const { defaultLayout, onLayoutChange } = useDefaultLayout({
+    groupId: 'agent-resizable-layout-state',
+  });
+
   return (
     <ResizablePanelGroup
-      // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
-      id="agent-panel-group"
-      direction="horizontal"
-      autoSaveId="agent-resizable-layout-state"
+      defaultLayout={defaultLayout}
+      onLayoutChange={onLayoutChange}
       className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
     >
       <CopilotChat
@@ -975,8 +980,7 @@ export const Agent: FC<AgentProps> = ({
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
-        order={1}
-        minSize={30}
+        minSize="30%"
         // fixes WARNING: Panel defaultSize prop recommended to avoid layout shift after server rendering
         defaultSize={100}
         className="relative"
@@ -1067,10 +1071,10 @@ export const Agent: FC<AgentProps> = ({
           <>
             <ResizableHandle withHandle />
             <ResizablePanel
-              minSize={30}
+              minSize="30%"
+              defaultSize={30}
               // Panel id and order props recommended when panels are dynamically rendered
               id="side-pane"
-              order={2}
             >
               <SidePane
                 selectedNodeId={nodeId}
@@ -1093,10 +1097,9 @@ export const Agent: FC<AgentProps> = ({
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
-            minSize={25}
+            defaultSize={25}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
-            order={3}
             className={showTraces ? 'w-full flex-none!' : ''}
           >
             <Playground
