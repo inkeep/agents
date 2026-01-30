@@ -107,7 +107,7 @@ function LoginForm() {
       }
 
       // Redirect to the intended destination
-      router.push(getRedirectUrl());
+      router.replace(getRedirectUrl());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);
