@@ -7,25 +7,11 @@
  * 3. Creates an invocation record (idempotent)
  * 4. Executes the agent with retries
  * 5. For cron triggers, loops back to step 1
+ *
+ * IMPORTANT: The main workflow function cannot use any Node.js modules.
+ * All Node.js-dependent code must be in step functions.
  */
 import { sleep } from 'workflow';
-import {
-  createScheduledTriggerInvocation,
-  generateId,
-  getScheduledTriggerById,
-  getScheduledTriggerInvocationByIdempotencyKey,
-  markScheduledTriggerInvocationCompleted,
-  markScheduledTriggerInvocationFailed,
-  markScheduledTriggerInvocationRunning,
-  updateScheduledTriggerInvocationStatus,
-} from '@inkeep/agents-core';
-import { manageDbClient } from 'src/data/db';
-import runDbClient from '../../../../data/db/runDbClient';
-import { getLogger } from '../../../../logger';
-import { executeScheduledTrigger } from '../steps/executeScheduledTrigger';
-import cronParser from 'cron-parser';
-
-const logger = getLogger('workflow-scheduled-trigger-runner');
 
 export type ScheduledTriggerRunnerPayload = {
   tenantId: string;
@@ -36,7 +22,7 @@ export type ScheduledTriggerRunnerPayload = {
 
 /**
  * Generate a deterministic runner ID from trigger identifiers.
- * This ensures the same trigger always produces the same runner ID.
+ * This is pure JS, no Node.js modules.
  */
 function generateDeterministicRunnerId(
   tenantId: string,
@@ -48,263 +34,34 @@ function generateDeterministicRunnerId(
 }
 
 /**
- * Step: Calculate the next execution time relative to a base time.
- * For cron, uses lastScheduledFor as base to prevent drift.
+ * Generate idempotency key for a scheduled execution.
+ * This is pure JS, no Node.js modules.
  */
-async function calculateNextExecutionStep(params: {
-  cronExpression?: string | null;
-  runAt?: string | null;
-  lastScheduledFor?: string | null;
-}): Promise<{ nextExecutionTime: string; isOneTime: boolean }> {
-  'use step';
-
-  const { cronExpression, runAt, lastScheduledFor } = params;
-
-  if (runAt) {
-    // One-time trigger - use the runAt time
-    return { nextExecutionTime: runAt, isOneTime: true };
-  }
-
-  if (cronExpression) {
-    // Cron trigger - calculate next occurrence relative to last execution
-    // This prevents drift when workflow wakes late or runs long
-    const baseDate = lastScheduledFor ? new Date(lastScheduledFor) : new Date();
-    const interval = cronParser.parse(cronExpression, { currentDate: baseDate });
-    const nextDate = interval.next();
-    const nextIso = nextDate.toISOString();
-    if (!nextIso) {
-      throw new Error('Failed to calculate next execution time from cron expression');
-    }
-    return { nextExecutionTime: nextIso, isOneTime: false };
-  }
-
-  throw new Error('Trigger must have either cronExpression or runAt');
-}
-
-/**
- * Step: Compute sleep duration right before sleeping (minimizes drift).
- * Returns milliseconds to sleep.
- */
-async function computeSleepDurationStep(targetTime: string): Promise<number> {
-  'use step';
-
-  const target = new Date(targetTime);
-  const now = new Date();
-  const diffMs = target.getTime() - now.getTime();
-
-  // If target is in the past or very soon, use minimum delay
-  return Math.max(diffMs, 1000);
-}
-
-/**
- * Step: Check if trigger is still enabled and this runner is authoritative.
- */
-async function checkTriggerEnabledStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  runnerId: string;
-}) {
-  'use step';
-
-  const trigger = await getScheduledTriggerById(manageDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-  });
-
-  // If trigger was deleted or disabled, stop the workflow
-  if (!trigger || !trigger.enabled) {
-    return { shouldContinue: false, reason: !trigger ? 'deleted' : 'disabled', trigger: null };
-  }
-
-  // If workflowRunId changed, this workflow was superseded by a new runner
-  if (trigger.workflowRunId && trigger.workflowRunId !== params.runnerId) {
-    return { shouldContinue: false, reason: 'superseded', trigger: null };
-  }
-
-  return { shouldContinue: true, trigger };
-}
-
-/**
- * Step: Try to create invocation idempotently.
- * Returns existing invocation if already created.
- */
-async function createInvocationIdempotentStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  scheduledFor: string;
-  payload: Record<string, unknown> | null;
-  idempotencyKey: string;
-}) {
-  'use step';
-
-  // Check if invocation already exists
-  const existing = await getScheduledTriggerInvocationByIdempotencyKey(runDbClient)({
-    idempotencyKey: params.idempotencyKey,
-  });
-
-  if (existing) {
-    logger.info(
-      { scheduledTriggerId: params.scheduledTriggerId, idempotencyKey: params.idempotencyKey },
-      'Invocation already exists, skipping creation'
-    );
-    return { invocation: existing, alreadyExists: true };
-  }
-
-  const invocationId = generateId();
-
-  const invocation = await createScheduledTriggerInvocation(runDbClient)({
-    id: invocationId,
-    tenantId: params.tenantId,
-    projectId: params.projectId,
-    agentId: params.agentId,
-    scheduledTriggerId: params.scheduledTriggerId,
-    status: 'pending',
-    scheduledFor: params.scheduledFor,
-    resolvedPayload: params.payload,
-    idempotencyKey: params.idempotencyKey,
-    attemptNumber: 1,
-  });
-
-  logger.info(
-    {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      scheduledTriggerId: params.scheduledTriggerId,
-      invocationId,
-      scheduledFor: params.scheduledFor,
-    },
-    'Created scheduled trigger invocation'
-  );
-
-  return { invocation, alreadyExists: false };
-}
-
-/**
- * Step: Mark invocation as running
- */
-async function markRunningStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  invocationId: string;
-}) {
-  'use step';
-
-  return markScheduledTriggerInvocationRunning(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-    invocationId: params.invocationId,
-  });
-}
-
-/**
- * Step: Mark invocation as completed
- */
-async function markCompletedStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  invocationId: string;
-  conversationId?: string;
-}) {
-  'use step';
-
-  return markScheduledTriggerInvocationCompleted(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-    invocationId: params.invocationId,
-    conversationId: params.conversationId,
-  });
-}
-
-/**
- * Step: Mark invocation as failed
- */
-async function markFailedStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  invocationId: string;
-  errorMessage: string;
-  errorCode?: string;
-}) {
-  'use step';
-
-  return markScheduledTriggerInvocationFailed(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-    invocationId: params.invocationId,
-    errorMessage: params.errorMessage,
-    errorCode: params.errorCode,
-  });
-}
-
-/**
- * Step: Increment attempt number for retry
- */
-async function incrementAttemptStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  invocationId: string;
-  currentAttempt: number;
-}) {
-  'use step';
-
-  await updateScheduledTriggerInvocationStatus(runDbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    scheduledTriggerId: params.scheduledTriggerId,
-    invocationId: params.invocationId,
-    data: {
-      attemptNumber: params.currentAttempt + 1,
-      status: 'pending',
-    },
-  });
-}
-
-/**
- * Generate idempotency key for a scheduled execution
- */
-function generateIdempotencyKey(
-  scheduledTriggerId: string,
-  scheduledFor: string
-): string {
-  // Use trigger ID + scheduled time to ensure exactly-once execution
+function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
   return `sched_${scheduledTriggerId}_${scheduledFor}`;
 }
+
+// Import step functions - these are in a separate file to isolate Node.js dependencies
+import {
+  calculateNextExecutionStep,
+  checkTriggerEnabledStep,
+  computeSleepDurationStep,
+  createInvocationIdempotentStep,
+  executeScheduledTriggerStep,
+  incrementAttemptStep,
+  logStep,
+  markCompletedStep,
+  markFailedStep,
+  markRunningStep,
+} from '../steps/scheduledTriggerSteps';
 
 /**
  * Main workflow function - runs a scheduled trigger.
  * For cron triggers, this loops indefinitely until disabled/deleted.
  * For one-time triggers, it executes once and completes.
+ *
+ * IMPORTANT: This function MUST NOT use any Node.js modules directly.
+ * Only pure JS and calls to step functions are allowed.
  */
 async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPayload) {
   'use workflow';
@@ -314,10 +71,13 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
   // Generate deterministic runner ID from trigger identifiers
   const runnerId = generateDeterministicRunnerId(tenantId, projectId, agentId, scheduledTriggerId);
 
-  logger.info(
-    { tenantId, projectId, agentId, scheduledTriggerId, runnerId },
-    'Starting scheduled trigger runner workflow'
-  );
+  await logStep('Starting scheduled trigger runner workflow', {
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    runnerId,
+  });
 
   // Track last scheduled time for cron calculation (prevents drift)
   let lastScheduledFor: string | null = null;
@@ -333,15 +93,15 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       runnerId,
     });
 
-    if (!enabledCheck.shouldContinue) {
-      logger.info(
-        { scheduledTriggerId, reason: enabledCheck.reason },
-        'Scheduled trigger workflow stopping'
-      );
+    if (!enabledCheck.shouldContinue || !enabledCheck.trigger) {
+      await logStep('Scheduled trigger workflow stopping', {
+        scheduledTriggerId,
+        reason: enabledCheck.reason,
+      });
       return { status: 'stopped', reason: enabledCheck.reason };
     }
 
-    const trigger = enabledCheck.trigger!;
+    const trigger = enabledCheck.trigger;
 
     // 2. Calculate next execution time (relative to lastScheduledFor for cron)
     const { nextExecutionTime, isOneTime } = await calculateNextExecutionStep({
@@ -353,10 +113,11 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     // 3. Compute sleep duration right before sleeping (minimizes drift)
     const sleepMs = await computeSleepDurationStep(nextExecutionTime);
 
-    logger.info(
-      { scheduledTriggerId, nextExecutionTime, sleepMs },
-      'Sleeping until next execution'
-    );
+    await logStep('Sleeping until next execution', {
+      scheduledTriggerId,
+      nextExecutionTime,
+      sleepMs,
+    });
 
     // 4. Sleep until execution time
     await sleep(sleepMs);
@@ -370,16 +131,16 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       runnerId,
     });
 
-    if (!postSleepCheck.shouldContinue) {
-      logger.info(
-        { scheduledTriggerId, reason: postSleepCheck.reason },
-        'Trigger disabled/deleted during sleep, stopping'
-      );
+    if (!postSleepCheck.shouldContinue || !postSleepCheck.trigger) {
+      await logStep('Trigger disabled/deleted during sleep, stopping', {
+        scheduledTriggerId,
+        reason: postSleepCheck.reason,
+      });
       return { status: 'stopped', reason: postSleepCheck.reason };
     }
 
     // Refresh trigger config (may have changed during sleep)
-    const currentTrigger = postSleepCheck.trigger!;
+    const currentTrigger = postSleepCheck.trigger;
 
     // 6. Generate idempotency key and create invocation (idempotent)
     const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, nextExecutionTime);
@@ -399,10 +160,11 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
 
     // If invocation was already processed, skip to next iteration
     if (alreadyExists && invocation.status !== 'pending') {
-      logger.info(
-        { scheduledTriggerId, invocationId: invocation.id, status: invocation.status },
-        'Invocation already processed, continuing to next'
-      );
+      await logStep('Invocation already processed, continuing to next', {
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        status: invocation.status,
+      });
 
       if (isOneTime) {
         return { status: 'already_executed', invocationId: invocation.id };
@@ -415,6 +177,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     const retryDelaySeconds = currentTrigger.retryDelaySeconds;
     let attemptNumber = invocation.attemptNumber;
     let lastError: string | null = null;
+    let conversationId: string | null = null;
 
     while (attemptNumber <= maxRetries + 1) {
       // Mark as running
@@ -426,19 +189,20 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         invocationId: invocation.id,
       });
 
-      try {
-        const result = await executeScheduledTrigger({
-          tenantId,
-          projectId,
-          agentId,
-          scheduledTriggerId,
-          invocationId: invocation.id,
-          messageTemplate: currentTrigger.messageTemplate,
-          payload: currentTrigger.payload ?? null,
-          timeoutSeconds: currentTrigger.timeoutSeconds,
-        });
+      const result = await executeScheduledTriggerStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        messageTemplate: currentTrigger.messageTemplate,
+        payload: currentTrigger.payload ?? null,
+        timeoutSeconds: currentTrigger.timeoutSeconds,
+      });
 
+      if (result.success) {
         // Success - mark completed
+        conversationId = result.conversationId;
         await markCompletedStep({
           tenantId,
           projectId,
@@ -448,21 +212,23 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
           conversationId: result.conversationId,
         });
 
-        logger.info(
-          { scheduledTriggerId, invocationId: invocation.id, conversationId: result.conversationId },
-          'Scheduled trigger execution completed'
-        );
+        await logStep('Scheduled trigger execution completed', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          conversationId: result.conversationId,
+        });
 
         lastError = null;
         break; // Success, exit retry loop
+      } else {
+        lastError = result.error || 'Unknown error';
 
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : String(error);
-
-        logger.error(
-          { scheduledTriggerId, invocationId: invocation.id, attemptNumber, error: lastError },
-          'Scheduled trigger execution failed'
-        );
+        await logStep('Scheduled trigger execution failed', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          attemptNumber,
+          error: lastError,
+        });
 
         // Check if we have retries left
         if (attemptNumber < maxRetries + 1) {

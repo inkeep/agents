@@ -3,7 +3,7 @@
  *
  * This step has full Node.js access and handles the actual agent execution.
  */
-import type { FullExecutionContext, Part, ResolvedRef } from '@inkeep/agents-core';
+import type { FullExecutionContext, Part } from '@inkeep/agents-core';
 import {
   createMessage,
   createOrGetConversation,
@@ -47,7 +47,7 @@ type ExecuteScheduledTriggerResult = {
 export async function executeScheduledTrigger(
   params: ExecuteScheduledTriggerParams
 ): Promise<ExecuteScheduledTriggerResult> {
-  'use step';
+  // This is called from a step function, so no 'use step' directive needed here
 
   const {
     tenantId,
@@ -57,7 +57,7 @@ export async function executeScheduledTrigger(
     invocationId,
     messageTemplate,
     payload,
-    timeoutSeconds,
+    // timeoutSeconds is available but not yet used (for future timeout implementation)
   } = params;
 
   logger.info(

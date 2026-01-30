@@ -918,7 +918,7 @@ export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema
 export const CronExpressionSchema = z
   .string()
   .regex(
-    /^(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/A-Z]+)$/i,
+    /^(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-A-Za-z]+(?:\/\d+)?)$/,
     'Invalid cron expression. Expected 5 fields: minute hour day month weekday'
   )
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')

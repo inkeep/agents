@@ -198,21 +198,25 @@ app.openapi(
       'Creating scheduled trigger'
     );
 
+    const now = new Date().toISOString();
     const trigger = await createScheduledTrigger(db)({
       id,
       tenantId,
       projectId,
       agentId,
       name: body.name,
-      description: body.description,
+      description: body.description ?? null,
       enabled: body.enabled !== undefined ? body.enabled : true,
-      cronExpression: body.cronExpression,
-      runAt: body.runAt,
-      payload: body.payload,
-      messageTemplate: body.messageTemplate,
-      maxRetries: body.maxRetries,
-      retryDelaySeconds: body.retryDelaySeconds,
-      timeoutSeconds: body.timeoutSeconds,
+      cronExpression: body.cronExpression ?? null,
+      runAt: body.runAt ?? null,
+      payload: body.payload ?? null,
+      messageTemplate: body.messageTemplate ?? null,
+      maxRetries: body.maxRetries ?? 3,
+      retryDelaySeconds: body.retryDelaySeconds ?? 60,
+      timeoutSeconds: body.timeoutSeconds ?? 300,
+      workflowRunId: null,
+      createdAt: now,
+      updatedAt: now,
     });
 
     // Start workflow for enabled triggers
