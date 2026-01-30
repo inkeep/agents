@@ -1394,7 +1394,6 @@ export async function GET(
       compressionSafetyBuffer?: number;
       compressionError?: string;
       compressionSummary?: string;
-      // max steps reached specifics
       maxStepsReached?: boolean;
       stepsCompleted?: number;
       maxSteps?: number;
@@ -1864,8 +1863,8 @@ export async function GET(
       const maxStepsSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       const stepsCompleted = getNumber(span, SPAN_KEYS.AGENT_STEPS_COMPLETED, 0);
       const maxSteps = getNumber(span, SPAN_KEYS.AGENT_MAX_STEPS, 0);
-      const subAgentId = getString(span, SPAN_KEYS.AGENT_ID, '') || getString(span, SPAN_KEYS.SUB_AGENT_ID, '');
-      const subAgentName = getString(span, SPAN_KEYS.AGENT_NAME, '') || getString(span, SPAN_KEYS.SUB_AGENT_NAME, '');
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, '');
+      const subAgentName = getString(span, SPAN_KEYS.SUB_AGENT_NAME, '');
 
       activities.push({
         id: maxStepsSpanId,
