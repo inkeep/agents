@@ -136,6 +136,7 @@
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/openai-compatible": "2.0.4",
     "@authzed/authzed-node": "^1.6.1",
+    "@babel/parser": "^7.28.6",
     "@better-auth/sso": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",

@@ -1,3 +1,4 @@
+import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
@@ -1679,8 +1680,74 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
-export const FunctionApiInsertSchema =
-  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate');
+
+const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
+  try {
+    // Workaround for anonymous function because it’s not valid JavaScript grammar.
+    // Babel (and every JS parser) rejects it.
+    const isAnonymousFunction = /^(async\s+)?function(\s+)?\(/.test(val);
+    if (isAnonymousFunction) {
+      val = `(${val})`;
+    }
+    const ast = parse(val, { sourceType: 'module' });
+    const { body } = ast.program;
+    for (const node of body) {
+      if (node.type === 'ExportDefaultDeclaration') {
+        throw SyntaxError(
+          'Export default declarations are not supported. Provide a single function instead.'
+        );
+      }
+      if (node.type === 'ExportNamedDeclaration') {
+        throw SyntaxError(
+          'Export declarations are not supported. Provide a single function instead.'
+        );
+      }
+    }
+    const functionsCount = body.filter((node) => {
+      if (node.type === 'FunctionDeclaration') {
+        return true;
+      }
+      if (node.type === 'ExpressionStatement') {
+        return (
+          node.expression.type ===
+          (isAnonymousFunction ? 'FunctionExpression' : 'ArrowFunctionExpression')
+        );
+      }
+      return false;
+    }).length;
+
+    if (!functionsCount) {
+      throw new SyntaxError('Must contain exactly one function.');
+    }
+    if (functionsCount > 1) {
+      throw new SyntaxError(`Must contain exactly one function (found ${functionsCount}).`);
+    }
+  } catch (error) {
+    let message = error instanceof Error ? error.message : JSON.stringify(error);
+    if (message.startsWith("'return' outside of function. (")) {
+      message = 'Top-level return is not allowed.';
+    } else if (message.startsWith('Unexpected token, expected "')) {
+      message = 'TypeScript syntax is not supported. Use plain JavaScript.';
+    } else if (
+      message.startsWith(
+        'This experimental syntax requires enabling one of the following parser plugin(s): "jsx", "flow", "typescript". ('
+      )
+    ) {
+      message = 'JSX syntax is not supported. Use plain JavaScript.';
+    }
+    ctx.addIssue({
+      code: 'custom',
+      message,
+      input: val,
+    });
+  }
+};
+
+export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
+  .openapi('FunctionCreate')
+  .extend({
+    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
+  });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
