@@ -324,7 +324,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         if (unDeletableNodes.length) {
           const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
           toast.error(
-            `Cannot delete undeletable nodes ${formatter.format(unDeletableNodes.map((n) => n.id))}`
+            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
           );
         }
 
