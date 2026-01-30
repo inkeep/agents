@@ -2,6 +2,7 @@
 
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
+import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
@@ -318,6 +319,15 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         const nodesToDelete = new Set(
           state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
         );
+
+        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
+        if (unDeletableNodes.length) {
+          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
+          toast.error(
+            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
+          );
+        }
+
         const edgesRemaining = state.edges.filter(
           (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
         );
