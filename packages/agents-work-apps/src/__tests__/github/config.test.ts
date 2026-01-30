@@ -162,7 +162,7 @@ describe('GitHub Config', () => {
 
       expect(mockLogger.warn).not.toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith(
-        {},
+        { appId: '123456' },
         'GitHub App credentials loaded successfully'
       );
     });

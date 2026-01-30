@@ -20,6 +20,7 @@ import {
   getRepositoryById,
   getRepositoryCount,
   removeRepositories,
+  setMcpToolAccessMode,
   setMcpToolRepositoryAccess,
   setProjectAccessMode,
   setProjectRepositoryAccess,
@@ -1085,6 +1086,177 @@ describe('GitHub Installations Data Access', () => {
 
         const access = await getProjectRepositoryAccess(dbClient)(projectId);
         expect(access).toHaveLength(0);
+      });
+
+      it('should cascade changes to MCP tools with selected mode', async () => {
+        const toolId = 'cascade-test-tool';
+
+        // Set up: project has access to both repos
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        // MCP tool has mode='selected' with repo1 selected
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          mode: 'selected',
+        });
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        // Verify tool has access to repo1
+        let toolAccess = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(toolAccess).toHaveLength(1);
+        expect(toolAccess[0].repositoryDbId).toBe(repoId1);
+
+        // Update project to only have access to repo2 (removing repo1)
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId2],
+        });
+
+        // Tool should no longer have access to repo1 (it was cascaded)
+        toolAccess = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(toolAccess).toHaveLength(0);
+      });
+
+      it('should not affect MCP tools with mode=all', async () => {
+        const toolId = 'cascade-test-tool-all';
+
+        // Set up: project has access to both repos
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        // MCP tool has mode='all' (no explicit repo selection needed)
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          mode: 'all',
+        });
+
+        // Update project access
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId2],
+        });
+
+        // Tool with mode='all' should still have mode='all' (unchanged)
+        // It inherits from project, so no explicit repo access rows to cascade
+        const toolAccess = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(toolAccess).toHaveLength(0); // mode='all' means no explicit rows
+      });
+
+      it('should cascade to multiple MCP tools', async () => {
+        const toolId1 = 'cascade-tool-1';
+        const toolId2 = 'cascade-tool-2';
+
+        // Set up: project has access to both repos
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        // Tool 1 has mode='selected' with both repos
+        await setMcpToolAccessMode(dbClient)({
+          toolId: toolId1,
+          tenantId,
+          projectId,
+          mode: 'selected',
+        });
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId: toolId1,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        // Tool 2 has mode='selected' with repo1 only
+        await setMcpToolAccessMode(dbClient)({
+          toolId: toolId2,
+          tenantId,
+          projectId,
+          mode: 'selected',
+        });
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId: toolId2,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        // Update project to only have access to repo2
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId2],
+        });
+
+        // Tool 1 should now only have repo2
+        const tool1Access = await getMcpToolRepositoryAccess(dbClient)(toolId1);
+        expect(tool1Access).toHaveLength(1);
+        expect(tool1Access[0].repositoryDbId).toBe(repoId2);
+
+        // Tool 2 should have no repos (repo1 was removed from project)
+        const tool2Access = await getMcpToolRepositoryAccess(dbClient)(toolId2);
+        expect(tool2Access).toHaveLength(0);
+      });
+
+      it('should not affect tools in other projects', async () => {
+        const toolId = 'other-project-tool';
+        const otherProjectId = 'other-project';
+
+        // Set up: both projects have access to repo1
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId: otherProjectId,
+          repositoryIds: [repoId1],
+        });
+
+        // Tool in other project has mode='selected' with repo1
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId: otherProjectId,
+          mode: 'selected',
+        });
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId: otherProjectId,
+          repositoryIds: [repoId1],
+        });
+
+        // Update first project to remove repo1
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [],
+        });
+
+        // Tool in other project should still have repo1
+        const toolAccess = await getMcpToolRepositoryAccess(dbClient)(toolId);
+        expect(toolAccess).toHaveLength(1);
+        expect(toolAccess[0].repositoryDbId).toBe(repoId1);
       });
     });
 

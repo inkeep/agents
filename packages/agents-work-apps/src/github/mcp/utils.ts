@@ -1,18 +1,11 @@
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/rest';
+import { minimatch } from 'minimatch';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
+import type { ChangedFile, GitHubUser, PullRequest } from './schemas';
 
 const logger = getLogger('github-mcp-utils');
-
-// Define interfaces for GitHub data structures
-export interface GithubFileDiffs {
-  commit_messages: string[];
-  diff: string;
-  filename: string;
-  additions: number;
-  deletions: number;
-}
 
 export interface CommitData {
   commit_sha: string;
@@ -27,14 +20,6 @@ export interface CommitData {
     blob_url: string;
     patch?: string;
   };
-}
-
-export interface PullRequestFile {
-  filename: string;
-  patch?: string;
-  additions?: number;
-  deletions?: number;
-  status: string;
 }
 
 export interface PullCommit {
@@ -80,306 +65,304 @@ export function getGitHubClientFromInstallationId(installationId: string): Octok
   });
 }
 
+function mapUser(user: {
+  login: string;
+  id: number;
+  avatar_url: string;
+  html_url: string;
+}): GitHubUser {
+  return {
+    login: user.login,
+    id: user.id,
+    avatarUrl: user.avatar_url,
+    url: user.html_url,
+  };
+}
+
 /**
- * GitHub helper functions using Octokit
+ * Fetch pull request details
  */
-export class GitHubHelpers {
-  private octokit: Octokit;
+export async function fetchPrInfo(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<PullRequest> {
+  logger.info({ owner, repo, prNumber }, `Fetching PR #${prNumber} details`);
 
-  constructor(octokit: Octokit) {
-    this.octokit = octokit;
-  }
+  const { data: pr } = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: prNumber,
+  });
 
-  /**
-   * Fetch detailed information about a pull request.
-   */
-  async getPrInfo(owner: string, repo: string, prNumber: number) {
-    try {
-      const response = await this.octokit.rest.pulls.get({
+  return {
+    number: pr.number,
+    title: pr.title,
+    body: pr.body,
+    author: mapUser(pr.user),
+    url: pr.html_url,
+    state: pr.state,
+    base: {
+      ref: pr.base.ref,
+      sha: pr.base.sha,
+    },
+    head: {
+      ref: pr.head.ref,
+      sha: pr.head.sha,
+    },
+    createdAt: pr.created_at,
+    updatedAt: pr.updated_at,
+  };
+}
+
+/**
+ * Fetch all commits in a pull request.
+ */
+export async function fetchPrCommits(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<PullCommit[]> {
+  try {
+    const commits: PullCommit[] = [];
+    let page = 1;
+    const perPage = 100;
+
+    while (true) {
+      const response = await octokit.rest.pulls.listCommits({
         owner,
         repo,
         pull_number: prNumber,
-      });
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to get PR info: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-
-  /**
-   * Fetch all commits in a pull request.
-   */
-  async getPrCommits(owner: string, repo: string, prNumber: number) {
-    try {
-      const commits: PullCommit[] = [];
-      let page = 1;
-      const perPage = 100;
-
-      while (true) {
-        const response = await this.octokit.rest.pulls.listCommits({
-          owner,
-          repo,
-          pull_number: prNumber,
-          per_page: perPage,
-          page,
-        });
-
-        commits.push(...response.data);
-
-        if (response.data.length < perPage) {
-          break;
-        }
-        page++;
-      }
-
-      return commits;
-    } catch (error) {
-      throw new Error(
-        `Failed to get PR commits: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-
-  /**
-   * Fetch detailed information about a specific commit including its diff.
-   */
-  async getCommitDetails(owner: string, repo: string, commitSha: string) {
-    try {
-      const response = await this.octokit.rest.repos.getCommit({
-        owner,
-        repo,
-        ref: commitSha,
-      });
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to get commit details: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-
-  /**
-   * Fetch the diff for a specific commit.
-   */
-  async getCommitDiff(
-    owner: string,
-    repo: string,
-    commitSha: string,
-    format: 'diff' | 'patch' = 'diff'
-  ): Promise<string> {
-    try {
-      const mediaType =
-        format === 'patch' ? 'application/vnd.github.v3.patch' : 'application/vnd.github.v3.diff';
-
-      const response = await this.octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
-        owner,
-        repo,
-        ref: commitSha,
-        headers: {
-          accept: mediaType,
-        },
+        per_page: perPage,
+        page,
       });
 
-      return response.data as unknown as string;
-    } catch (error) {
-      throw new Error(
-        `Failed to get commit diff: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
+      commits.push(...response.data);
 
-  /**
-   * Get files changed in a pull request.
-   */
-  async getPrFiles(owner: string, repo: string, prNumber: number): Promise<PullRequestFile[]> {
-    try {
-      const files: PullRequestFile[] = [];
-      let page = 1;
-      const perPage = 100;
-
-      while (true) {
-        const response = await this.octokit.rest.pulls.listFiles({
-          owner,
-          repo,
-          pull_number: prNumber,
-          per_page: perPage,
-          page,
-        });
-
-        files.push(
-          ...response.data.map((file) => ({
-            filename: file.filename,
-            patch: file.patch,
-            additions: file.additions,
-            deletions: file.deletions,
-            status: file.status,
-          }))
-        );
-
-        if (response.data.length < perPage) {
-          break;
-        }
-        page++;
+      if (response.data.length < perPage) {
+        break;
       }
-
-      return files;
-    } catch (error) {
-      throw new Error(
-        `Failed to get PR files: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      page++;
     }
-  }
 
-  /**
-   * Get file-based diffs with all commit messages that impacted each file.
-   */
-  async getPrFileDiffs(owner: string, repo: string, prNumber: number): Promise<GithubFileDiffs[]> {
-    try {
-      // Get all commits in the PR
-      const commits = await this.getPrCommits(owner, repo, prNumber);
-
-      // Get the final PR files to know what files to include
-      const prFiles = await this.getPrFiles(owner, repo, prNumber);
-
-      // Group commits by file
-      const fileToCommits: Record<string, CommitData[]> = {};
-
-      for (const commit of commits) {
-        const commitSha = commit.sha;
-        const commitDetails = await this.getCommitDetails(owner, repo, commitSha);
-        const commitMessage = commit.commit.message;
-
-        // For each file modified in this commit
-        for (const fileInfo of commitDetails.files || []) {
-          const filename = fileInfo.filename;
-
-          if (!fileToCommits[filename]) {
-            fileToCommits[filename] = [];
-          }
-
-          fileToCommits[filename].push({
-            commit_sha: commitSha,
-            commit_message: commitMessage,
-            file_info: fileInfo,
-          });
-        }
-      }
-
-      // Build GithubFileDiffs objects
-      const fileDiffs: GithubFileDiffs[] = [];
-
-      for (const prFile of prFiles) {
-        const filename = prFile.filename;
-
-        if (filename in fileToCommits) {
-          // Get all commit messages for this file
-          const commitMessages = fileToCommits[filename].map(
-            (commitData) => commitData.commit_message
-          );
-
-          // Get the current diff for this file from the PR
-          if (prFile.patch) {
-            const diff = prFile.patch;
-
-            // Use the final PR file stats for additions/deletions
-            const additions = prFile.additions || 0;
-            const deletions = prFile.deletions || 0;
-
-            const githubFileDiff: GithubFileDiffs = {
-              commit_messages: commitMessages,
-              diff,
-              filename,
-              additions,
-              deletions,
-            };
-
-            fileDiffs.push(githubFileDiff);
-          }
-        }
-      }
-
-      return fileDiffs;
-    } catch (error) {
-      throw new Error(
-        `Failed to get PR file diffs: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return commits;
+  } catch (error) {
+    throw new Error(
+      `Failed to get PR commits: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
-// Standalone helper functions that can be used without the class
-export const createGitHubHelpers = (octokit: Octokit) => new GitHubHelpers(octokit);
+/**
+ * Fetch detailed information about a specific commit including its diff.
+ */
+export async function fetchCommitDetails(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commitSha: string
+) {
+  try {
+    const response = await octokit.rest.repos.getCommit({
+      owner,
+      repo,
+      ref: commitSha,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      `Failed to get commit details: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
 
-// Individual function exports for convenience
-export const getPrInfo = async (
+/**
+ * Fetch changed files with optional path filtering and content fetching
+ */
+export async function fetchPrFiles(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  prNumber: number,
+  pathFilters: string[] = [],
+  includeContents: boolean = false,
+  includePatch: boolean = false
+): Promise<ChangedFile[]> {
+  logger.info(
+    { owner, repo, prNumber, pathFilters, includeContents, includePatch },
+    `Fetching PR #${prNumber} changed files`
+  );
+
+  const files: ChangedFile[] = [];
+
+  const pullRequest = await fetchPrInfo(octokit, owner, repo, prNumber);
+  const headSha = pullRequest.head.sha;
+
+  // Paginate through all changed files
+  for await (const response of octokit.paginate.iterator(octokit.rest.pulls.listFiles, {
+    owner,
+    repo,
+    pull_number: prNumber,
+    per_page: 100,
+  })) {
+    for (const file of response.data) {
+      // Apply path filter if specified
+      if (
+        pathFilters.length > 0 &&
+        !pathFilters.some((filter) => minimatch(file.filename, filter))
+      ) {
+        continue;
+      }
+
+      const changedFile: ChangedFile = {
+        commit_messages: [],
+        path: file.filename,
+        status: file.status as ChangedFile['status'],
+        additions: file.additions,
+        deletions: file.deletions,
+        patch: includePatch ? file.patch : undefined,
+        previousPath: file.previous_filename,
+      };
+
+      // Fetch file contents if requested and file wasn't deleted
+      if (includeContents && file.status !== 'removed') {
+        try {
+          const { data: content } = await octokit.rest.repos.getContent({
+            owner,
+            repo,
+            path: file.filename,
+            ref: headSha,
+          });
+
+          if ('content' in content && content.encoding === 'base64') {
+            changedFile.contents = Buffer.from(content.content, 'base64').toString('utf-8');
+          }
+        } catch (error) {
+          logger.warn(
+            { owner, repo, prNumber, headSha, file },
+            `Failed to fetch contents for ${file.filename}: ${error}`
+          );
+        }
+      }
+
+      files.push(changedFile);
+    }
+  }
+
+  logger.info(
+    { owner, repo, prNumber, headSha, pathFilters, includeContents, files },
+    `Found ${files.length} changed files${pathFilters.length > 0 ? ` matching "${pathFilters.join(', ')}"` : ''}`
+  );
+
+  return files;
+}
+
+/**
+ * Get file-based diffs with all commit messages that impacted each file.
+ */
+export async function fetchPrFileDiffs(
   octokit: Octokit,
   owner: string,
   repo: string,
   prNumber: number
-) => {
-  const helpers = new GitHubHelpers(octokit);
-  return helpers.getPrInfo(owner, repo, prNumber);
-};
+): Promise<ChangedFile[]> {
+  try {
+    // Get all commits in the PR
+    const commits = await fetchPrCommits(octokit, owner, repo, prNumber);
 
-export const getPrCommits = async (
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  prNumber: number
-) => {
-  const helpers = new GitHubHelpers(octokit);
-  return helpers.getPrCommits(owner, repo, prNumber);
-};
+    // Get the final PR files to know what files to include
+    const prFiles = await fetchPrFiles(octokit, owner, repo, prNumber);
 
-export const getPrFiles = async (
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  prNumber: number
-) => {
-  const helpers = new GitHubHelpers(octokit);
-  return helpers.getPrFiles(owner, repo, prNumber);
-};
+    // Group commits by file
+    const fileToCommits: Record<string, CommitData[]> = {};
 
-export const getPrFileDiffs = async (
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  prNumber: number
-) => {
-  const helpers = new GitHubHelpers(octokit);
-  return helpers.getPrFileDiffs(owner, repo, prNumber);
-};
+    for (const commit of commits) {
+      const commitSha = commit.sha;
+      const commitDetails = await fetchCommitDetails(octokit, owner, repo, commitSha);
+      const commitMessage = commit.commit.message;
+
+      // For each file modified in this commit
+      for (const fileInfo of commitDetails.files || []) {
+        const filename = fileInfo.filename;
+
+        if (!fileToCommits[filename]) {
+          fileToCommits[filename] = [];
+        }
+
+        fileToCommits[filename].push({
+          commit_sha: commitSha,
+          commit_message: commitMessage,
+          file_info: fileInfo,
+        });
+      }
+    }
+
+    // Build GithubFileDiffs objects
+    const fileDiffs: ChangedFile[] = [];
+
+    for (const prFile of prFiles) {
+      const filename = prFile.path;
+
+      if (filename in fileToCommits) {
+        // Get all commit messages for this file
+        const commitMessages = fileToCommits[filename].map(
+          (commitData) => commitData.commit_message
+        );
+
+        const diff = prFile.patch;
+
+        // Use the final PR file stats for additions/deletions
+        const additions = prFile.additions || 0;
+        const deletions = prFile.deletions || 0;
+
+        const githubFileDiff: ChangedFile = {
+          commit_messages: commitMessages,
+          path: filename,
+          status: prFile.status,
+          additions,
+          deletions,
+          patch: diff,
+        };
+
+        fileDiffs.push(githubFileDiff);
+      }
+    }
+
+    return fileDiffs;
+  } catch (error) {
+    throw new Error(
+      `Failed to get PR file diffs: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
 
 /**
  * Generate a markdown representation of a pull request with file diffs
  */
-export const generatePrMarkdown = (
-  prInfo: Awaited<ReturnType<Octokit['rest']['pulls']['get']>>['data'],
-  fileDiffs: GithubFileDiffs[],
+export function generatePrMarkdown(
+  pr: PullRequest,
+  fileDiffs: ChangedFile[],
   owner: string,
   repo: string
-): string => {
-  const pr = prInfo;
-
+): string {
   let markdown = `# Pull Request #${pr.number}: ${pr.title}\n\n`;
 
   // Basic PR info
   markdown += `**Repository:** ${owner}/${repo}\n`;
   markdown += `**State:** ${pr.state}\n`;
-  markdown += `**Author:** ${pr.user?.login || 'Unknown'}\n`;
-  markdown += `**Created:** ${new Date(pr.created_at).toLocaleDateString()}\n`;
-  markdown += `**Updated:** ${new Date(pr.updated_at).toLocaleDateString()}\n\n`;
+  markdown += `**Author:** ${pr.author.login}\n`;
+  markdown += `**Created:** ${new Date(pr.createdAt).toLocaleDateString()}\n`;
+  markdown += `**Updated:** ${new Date(pr.updatedAt).toLocaleDateString()}\n\n`;
 
   // Branches
   markdown += '## Branches\n';
-  markdown += `- **From:** \`${pr.head.ref}\` (${pr.head.repo?.full_name || 'fork'})\n`;
-  markdown += `- **To:** \`${pr.base.ref}\` (${pr.base.repo?.full_name || `${owner}/${repo}`})\n\n`;
+  markdown += `- **From:** \`${pr.head.ref}\`\n`;
+  markdown += `- **To:** \`${pr.base.ref}\` (${owner}/${repo})\n\n`;
 
   // URL
-  markdown += `**URL:** ${pr.html_url}\n\n`;
+  markdown += `**URL:** ${pr.url}\n\n`;
 
   // Description
   if (pr.body) {
@@ -390,18 +373,10 @@ export const generatePrMarkdown = (
 
   // File changes summary
   if (fileDiffs.length > 0) {
-    const totalAdditions = fileDiffs.reduce((sum, file) => sum + file.additions, 0);
-    const totalDeletions = fileDiffs.reduce((sum, file) => sum + file.deletions, 0);
-
-    markdown += '## Changes Summary\n';
-    markdown += `- **Files changed:** ${fileDiffs.length}\n`;
-    markdown += `- **Additions:** +${totalAdditions}\n`;
-    markdown += `- **Deletions:** -${totalDeletions}\n\n`;
-
     // Files changed
     markdown += '## Files Changed\n';
     for (const fileDiff of fileDiffs) {
-      markdown += `### ${fileDiff.filename}\n`;
+      markdown += `### ${fileDiff.path}\n`;
       markdown += `- **Additions:** +${fileDiff.additions}\n`;
       markdown += `- **Deletions:** -${fileDiff.deletions}\n`;
 
@@ -414,18 +389,12 @@ export const generatePrMarkdown = (
         }
       }
 
-      // Diff
-      if (fileDiff.diff) {
-        markdown += '\n**Diff:**\n';
-        markdown += `\`\`\`diff\n${fileDiff.diff}\n\`\`\`\n`;
-      }
-
       markdown += '\n';
     }
   }
 
   return markdown;
-};
+}
 
 // File update operations interfaces and functions
 export interface LLMUpdateOperation {
@@ -723,4 +692,35 @@ export async function commitFileChanges({
       `Error committing file changes: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+export async function formatFileDiff(
+  pullRequestNumber: number,
+  files: ChangedFile[],
+  includeContents: boolean = false
+): Promise<string> {
+  let output = `## File Patches for PR #${pullRequestNumber}\n\n`;
+  output += `Found ${files.length} file(s) matching the requested paths.\n\n`;
+
+  for (const file of files) {
+    output += `### ${file.path}\n`;
+    output += `**Status:** ${file.status} | **+${file.additions}** / **-${file.deletions}**\n\n`;
+
+    if (file.patch) {
+      output += '```diff\n';
+      output += file.patch;
+      output += '\n```\n\n';
+    } else {
+      output += '_No patch available (file may be binary or too large)_\n\n';
+    }
+
+    if (includeContents && file.contents) {
+      output += '<details>\n<summary>Full file contents</summary>\n\n';
+      output += '```\n';
+      output += file.contents;
+      output += '\n```\n\n</details>\n\n';
+    }
+  }
+
+  return output;
 }

@@ -12,10 +12,12 @@ import runDbClient from '../../db/runDbClient';
 import { githubMcpAuth } from './auth';
 import {
   commitFileChanges,
+  fetchPrFileDiffs,
+  fetchPrFiles,
+  fetchPrInfo,
+  formatFileDiff,
   generatePrMarkdown,
   getGitHubClientFromRepo,
-  getPrFileDiffs,
-  getPrInfo,
   type LLMUpdateOperation,
   visualizeUpdateOperations,
 } from './utils';
@@ -235,8 +237,8 @@ const getServer = async (toolId: string) => {
     }
   );
   server.tool(
-    'get-pull-request',
-    `Get a pull request from a repository. ${getAvailableRepositoryString(repositoryAccess)}`,
+    'get-pull-request-details',
+    `Get the details of a pull request from a repository including the pull request details, the commits, and the files that were changed. ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
@@ -258,8 +260,8 @@ const getServer = async (toolId: string) => {
             isError: true,
           };
         }
-        const pr = await getPrInfo(githubClient, owner, repo, pull_request_number);
-        const fileDiffs = await getPrFileDiffs(githubClient, owner, repo, pull_request_number);
+        const pr = await fetchPrInfo(githubClient, owner, repo, pull_request_number);
+        const fileDiffs = await fetchPrFileDiffs(githubClient, owner, repo, pull_request_number);
 
         const markdown = generatePrMarkdown(pr, fileDiffs, owner, repo);
 
@@ -304,6 +306,99 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error getting pull request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'get-file-patches',
+    `Get the patch/diff text for specific files in a pull request. Use this to fetch detailed changes for one or more files without retrieving the entire PR. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      pull_request_number: z.number().describe('Pull request number'),
+      file_paths: z
+        .array(z.string())
+        .min(1)
+        .describe('List of file paths to get patches for (exact paths or glob patterns)'),
+      include_contents: z
+        .boolean()
+        .optional()
+        .describe('Whether to include full file contents in addition to patches (default: false)'),
+    },
+    async ({ owner, repo, pull_request_number, file_paths, include_contents = false }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const results = await fetchPrFiles(
+          githubClient,
+          owner,
+          repo,
+          pull_request_number,
+          file_paths,
+          include_contents,
+          true
+        );
+
+        if (results.length === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No files found matching the specified paths in PR #${pull_request_number}.\n\nRequested paths: ${file_paths.join(', ')}`,
+              },
+            ],
+          };
+        }
+
+        const output = await formatFileDiff(pull_request_number, results, include_contents);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: output,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Pull request #${pull_request_number} not found in ${owner}/${repo}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error getting file patches: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,

@@ -475,6 +475,10 @@ export const getRepositoriesByTenantId =
  * Set project repository access (full replacement)
  * Used when mode='selected' to specify which repositories the project can access.
  * Pass empty array to clear all access entries.
+ *
+ * Also cascades changes to MCP tools: any MCP tool in this project with mode='selected'
+ * will have its selected repositories filtered to only include repos that remain
+ * in the project's access list.
  */
 export const setProjectRepositoryAccess =
   (db: AgentsRunDatabaseClient) =>
@@ -484,6 +488,7 @@ export const setProjectRepositoryAccess =
     repositoryIds: string[];
   }): Promise<void> => {
     const now = new Date().toISOString();
+    const newRepoIdSet = new Set(params.repositoryIds);
 
     // Remove all existing access for this project
     await db
@@ -502,6 +507,44 @@ export const setProjectRepositoryAccess =
           updatedAt: now,
         }))
       );
+    }
+
+    // Cascade changes to MCP tools in this project
+    // Find all MCP tools with mode='selected' in this project
+    const toolsWithSelectedMode = await db
+      .select({ toolId: workAppGitHubMcpToolAccessMode.toolId })
+      .from(workAppGitHubMcpToolAccessMode)
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, params.tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, params.projectId),
+          eq(workAppGitHubMcpToolAccessMode.mode, 'selected')
+        )
+      );
+
+    // For each tool, filter its selected repositories to only include those still in project access
+    for (const { toolId } of toolsWithSelectedMode) {
+      // Get the tool's current selected repositories
+      const toolRepoAccess = await db
+        .select({
+          id: workAppGitHubMcpToolRepositoryAccess.id,
+          repositoryDbId: workAppGitHubMcpToolRepositoryAccess.repositoryDbId,
+        })
+        .from(workAppGitHubMcpToolRepositoryAccess)
+        .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId));
+
+      // Find repos that need to be removed (not in project's new access list)
+      const reposToRemove = toolRepoAccess.filter((r) => !newRepoIdSet.has(r.repositoryDbId));
+
+      // Remove the repos that are no longer accessible
+      if (reposToRemove.length > 0) {
+        await db.delete(workAppGitHubMcpToolRepositoryAccess).where(
+          inArray(
+            workAppGitHubMcpToolRepositoryAccess.id,
+            reposToRemove.map((r) => r.id)
+          )
+        );
+      }
     }
   };
 
