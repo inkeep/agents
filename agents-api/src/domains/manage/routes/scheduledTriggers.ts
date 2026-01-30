@@ -27,6 +27,11 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
+import {
+  onTriggerCreated,
+  onTriggerDeleted,
+  onTriggerUpdated,
+} from '../../run/services/ScheduledTriggerService';
 
 const logger = getLogger('scheduled-triggers');
 
@@ -210,6 +215,17 @@ app.openapi(
       timeoutSeconds: body.timeoutSeconds,
     });
 
+    // Start workflow for enabled triggers
+    try {
+      await onTriggerCreated(trigger);
+    } catch (err) {
+      logger.error(
+        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
+        'Failed to start workflow for new scheduled trigger'
+      );
+      // Don't fail the request - trigger is created, workflow can be started later
+    }
+
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
 
     return c.json(
@@ -296,6 +312,13 @@ app.openapi(
       });
     }
 
+    // Determine if schedule changed (affects workflow timing)
+    const scheduleChanged =
+      body.cronExpression !== undefined ||
+      body.runAt !== undefined;
+
+    const previousEnabled = existing.enabled;
+
     const updatedTrigger = await updateScheduledTrigger(db)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
@@ -312,6 +335,21 @@ app.openapi(
         timeoutSeconds: body.timeoutSeconds,
       },
     });
+
+    // Handle workflow lifecycle changes
+    try {
+      await onTriggerUpdated({
+        trigger: updatedTrigger,
+        previousEnabled,
+        scheduleChanged,
+      });
+    } catch (err) {
+      logger.error(
+        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
+        'Failed to update workflow for scheduled trigger'
+      );
+      // Don't fail the request - trigger is updated, workflow state can be fixed
+    }
 
     const {
       tenantId: _tid,
@@ -381,8 +419,16 @@ app.openapi(
       );
     }
 
-    // TODO: Cancel active workflow if workflowRunId is set
-    // This will be implemented when the workflow runner is added
+    // Cancel active workflow
+    try {
+      await onTriggerDeleted(existing);
+    } catch (err) {
+      logger.error(
+        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
+        'Failed to cancel workflow for deleted scheduled trigger'
+      );
+      // Continue with deletion - workflow will stop on its own eventually
+    }
 
     await deleteScheduledTrigger(db)({
       scopes: { tenantId, projectId, agentId },
