@@ -1,4 +1,4 @@
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Copy, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -20,6 +20,7 @@ interface AgentItemMenuProps extends Pick<Agent, 'id' | 'name' | 'description'> 
 export function AgentItemMenu({ id, name, description, projectId, tenantId }: AgentItemMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
 
   return (
     <>
@@ -40,6 +41,10 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsEditOpen(true)}>
             <Pencil className="size-4" />
             Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsDuplicateOpen(true)}>
+            <Copy className="size-4" />
+            Duplicate agent
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
@@ -64,6 +69,7 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           setIsOpen={setIsEditOpen}
         />
       )}
+      {isDuplicateOpen && <div>Duplicate Modal Placeholder</div>}
     </>
   );
 }
