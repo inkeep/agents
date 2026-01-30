@@ -68,6 +68,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Approved tool details';
     case 'tool_approval_denied':
       return 'Denied tool details';
+    case 'max_steps_reached':
+      return 'Max steps reached';
     default:
       return 'Details';
   }
