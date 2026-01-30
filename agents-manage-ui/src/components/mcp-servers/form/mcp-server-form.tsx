@@ -15,9 +15,14 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
+import {
+  createToolAction,
+  deleteToolAction,
+  detectOAuthServerAction,
+  updateToolAction,
+} from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
-import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
+import { useMcpToolInvalidation } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { cn } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
@@ -79,6 +84,8 @@ export function MCPServerForm({
     projectId,
   });
 
+  const invalidateMcpToolCache = useMcpToolInvalidation(tenantId, projectId);
+
   const { isSubmitting } = form.formState;
 
   // Helper function to filter active tools against available tools
@@ -117,11 +124,16 @@ export function MCPServerForm({
           imageUrl: data.imageUrl,
         };
 
-        const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
+        const result = await createToolAction(tenantId, projectId, mcpToolData);
+        if (!result.success || !result.data) {
+          toast.error(result.error || 'Failed to create MCP server.');
+          return;
+        }
+        await invalidateMcpToolCache();
         toast.success(
           'MCP server created. Users can connect their own accounts from the detail page.'
         );
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${result.data.id}`);
         return;
       }
 
@@ -161,10 +173,16 @@ export function MCPServerForm({
           imageUrl: data.imageUrl,
         };
 
-        const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
+        const createResult = await createToolAction(tenantId, projectId, mcpToolData);
+        if (!createResult.success || !createResult.data) {
+          toast.error(createResult.error || 'Failed to create MCP server.');
+          return;
+        }
+
+        await invalidateMcpToolCache();
 
         handleOAuthLogin({
-          toolId: newTool.id,
+          toolId: createResult.data.id,
           mcpServerUrl: data.config.mcp.server.url,
           toolName: mcpServerName,
           credentialScope: data.credentialScope,
@@ -190,16 +208,26 @@ export function MCPServerForm({
       };
 
       if (tool) {
-        await updateMCPTool(tenantId, projectId, tool.id, transformedData);
+        const updateResult = await updateToolAction(tenantId, projectId, tool.id, transformedData);
+        if (!updateResult.success) {
+          toast.error(updateResult.error || 'Failed to update MCP server.');
+          return;
+        }
+        await invalidateMcpToolCache(tool.id);
         toast.success('MCP server updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`);
       } else {
-        const newTool = await createMCPTool(tenantId, projectId, {
+        const createResult = await createToolAction(tenantId, projectId, {
           ...transformedData,
           id: generateId(),
         });
+        if (!createResult.success || !createResult.data) {
+          toast.error(createResult.error || 'Failed to create MCP server.');
+          return;
+        }
+        await invalidateMcpToolCache();
         toast.success('MCP server created successfully');
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${createResult.data.id}`);
       }
     } catch (error) {
       console.error(`Failed to ${mode} MCP tool:`, error);

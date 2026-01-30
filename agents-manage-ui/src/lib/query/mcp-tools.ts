@@ -1,10 +1,18 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
+import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+
+const mcpToolQueryKeys = {
+  all: ['mcp-tools'] as const,
+  list: (tenantId: string, projectId: string) => ['mcp-tools', tenantId, projectId] as const,
+  status: (tenantId: string, projectId: string, toolId: string) =>
+    ['mcp-tool-status', tenantId, projectId, toolId] as const,
+};
 
 export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {}) {
   'use memo';
@@ -15,7 +23,7 @@ export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {})
   }
 
   return useQuery<MCPTool[]>({
-    queryKey: ['mcp-tools', tenantId, projectId],
+    queryKey: mcpToolQueryKeys.list(tenantId, projectId),
     queryFn: () => fetchMCPTools(tenantId, projectId),
     enabled,
     staleTime: 30_000,
@@ -26,6 +34,31 @@ export function useMcpToolsQuery({ enabled = true }: { enabled?: boolean } = {})
       defaultError: 'Failed to load MCP tools',
     },
   });
+}
+
+/**
+ * Hook to invalidate MCP tool queries after mutations
+ */
+export function useMcpToolInvalidation(tenantId: string, projectId: string) {
+  'use memo';
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (toolId?: string) => {
+      // Invalidate the list query
+      await queryClient.invalidateQueries({
+        queryKey: mcpToolQueryKeys.list(tenantId, projectId),
+      });
+
+      // If a specific tool ID is provided, invalidate its status query too
+      if (toolId) {
+        await queryClient.invalidateQueries({
+          queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
+        });
+      }
+    },
+    [queryClient, tenantId, projectId]
+  );
 }
 
 /**
@@ -47,7 +80,7 @@ export function useMcpToolStatusQuery({
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
 
   return useQuery<MCPTool>({
-    queryKey: ['mcp-tool-status', tenantId, projectId, toolId],
+    queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
     queryFn: async () => {
       const url = `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`;
 
