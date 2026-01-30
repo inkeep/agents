@@ -42,6 +42,10 @@ import {
   type TriggerApiSelectSchema,
   type TriggerApiUpdateSchema,
   type TriggerInvocationApiSelectSchema,
+  type ScheduledTriggerApiInsertSchema,
+  type ScheduledTriggerApiSelectSchema,
+  type ScheduledTriggerApiUpdateSchema,
+  type ScheduledTriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
@@ -75,6 +79,16 @@ export {
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   TriggerWithWebhookUrlSchema,
+  CronExpressionSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInvocationApiSelectSchema,
+  ScheduledTriggerInvocationListResponse,
+  ScheduledTriggerInvocationResponse,
+  ScheduledTriggerInvocationStatusEnum,
+  ScheduledTriggerListResponse,
+  ScheduledTriggerResponse,
 } from './validation/schemas';
 
 export type { SignatureVerificationConfig, SignatureSource, SignedComponent };
@@ -289,6 +303,12 @@ export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
 export type TriggerApiUpdate = z.infer<typeof TriggerApiUpdateSchema>;
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+export type ScheduledTriggerInvocationApiSelect = z.infer<
+  typeof ScheduledTriggerInvocationApiSelectSchema
+>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;
