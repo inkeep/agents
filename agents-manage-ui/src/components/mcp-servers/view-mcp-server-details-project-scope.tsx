@@ -21,6 +21,7 @@ import {
   ItemValue,
   isExpired,
 } from './view-mcp-server-details-shared';
+import { isGitHubWorkapp, WorkAppGitHubAccessSection } from './work-app-github-access-section';
 
 export function ViewMCPServerDetailsProjectScope({
   tool,
@@ -157,23 +158,25 @@ export function ViewMCPServerDetailsProjectScope({
         )}
 
         {/* Credential Scope and Created By */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <ItemLabel>Credential Scope</ItemLabel>
-            <ItemValue className="items-center">
-              <Badge variant="outline" className="flex items-center gap-1.5">
-                <Users className="w-3 h-3" />
-                Project (shared credential)
-              </Badge>
-            </ItemValue>
-          </div>
-          {tool.createdBy && (
+        {!isGitHubWorkapp(tool) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <ItemLabel>Created By</ItemLabel>
-              <ItemValue>{tool.createdBy}</ItemValue>
+              <ItemLabel>Credential Scope</ItemLabel>
+              <ItemValue className="items-center">
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <Users className="w-3 h-3" />
+                  Project (shared credential)
+                </Badge>
+              </ItemValue>
             </div>
-          )}
-        </div>
+            {tool.createdBy && (
+              <div className="space-y-2">
+                <ItemLabel>Created By</ItemLabel>
+                <ItemValue>{tool.createdBy}</ItemValue>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Project Credential */}
         {tool.credentialReferenceId && (
@@ -205,6 +208,16 @@ export function ViewMCPServerDetailsProjectScope({
               </div>
             )}
           </div>
+        )}
+
+        {/* GitHub Access Section (for GitHub Work Apps only) */}
+        {isGitHubWorkapp(tool) && (
+          <WorkAppGitHubAccessSection
+            tool={tool}
+            tenantId={tenantId}
+            projectId={projectId}
+            canEdit={canEdit}
+          />
         )}
 
         {/* Active Tools */}

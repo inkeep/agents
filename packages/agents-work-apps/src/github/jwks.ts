@@ -1,5 +1,5 @@
 import { type CryptoKey, createRemoteJWKSet, type JWSHeaderParameters } from 'jose';
-import { getLogger } from '../../logger';
+import { getLogger } from '../logger';
 
 const logger = getLogger('github-jwks');
 

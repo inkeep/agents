@@ -43,6 +43,13 @@
       "when": 1769554137371,
       "tag": "0005_silent_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769721902297,
+      "tag": "0006_misty_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

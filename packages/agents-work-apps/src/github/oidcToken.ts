@@ -1,5 +1,5 @@
 import { decodeProtectedHeader, errors, jwtVerify, type ProtectedHeaderParameters } from 'jose';
-import { getLogger } from '../../logger';
+import { getLogger } from '../logger';
 import { getJwkForToken } from './jwks';
 
 const logger = getLogger('github-oidc-token');

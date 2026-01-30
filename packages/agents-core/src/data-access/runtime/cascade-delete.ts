@@ -1,6 +1,15 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { apiKeys, contextCache, conversations, tasks } from '../../db/runtime/runtime-schema';
+import {
+  apiKeys,
+  contextCache,
+  conversations,
+  tasks,
+  workAppGitHubMcpToolAccessMode,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectAccessMode,
+  workAppGitHubProjectRepositoryAccess,
+} from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
 
 /**
@@ -130,6 +139,12 @@ export const cascadeDeleteByProject =
       .delete(apiKeys)
       .where(and(eq(apiKeys.tenantId, scopes.tenantId), eq(apiKeys.projectId, scopes.projectId)))
       .returning();
+
+    // Delete all MCP tool access mode entries for tools in this project
+    await cascadeDeleteGitHubAccessByProject(db)({
+      tenantId: scopes.tenantId,
+      projectId: scopes.projectId,
+    });
 
     return {
       conversationsDeleted: conversationsResult.length,
@@ -353,5 +368,137 @@ export const cascadeDeleteByContextConfig =
 
     return {
       contextCacheDeleted: result.length,
+    };
+  };
+
+// ============================================================================
+// Cross-Database Cascade Delete Functions
+// ============================================================================
+// These functions are used to clean up runtime database entries when entities
+// are deleted from the manage database. Since there are no FK constraints
+// across databases, these must be called explicitly during manage-side deletes.
+
+/**
+ * Result of a tool cascade delete operation
+ */
+export type ToolCascadeDeleteResult = {
+  mcpToolRepositoryAccessDeleted: number;
+  mcpToolAccessModeDeleted: boolean;
+};
+
+/**
+ * Delete all runtime entities for a specific MCP tool.
+ * Called when an MCP tool is deleted from the manage database.
+ *
+ * Cleans up:
+ * - workAppGitHubMcpToolRepositoryAccess entries
+ * - workAppGitHubMcpToolAccessMode entry
+ *
+ * @param db - Runtime database client
+ * @returns Function that performs the cascade delete
+ */
+export const cascadeDeleteByTool =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { toolId: string }): Promise<ToolCascadeDeleteResult> => {
+    const { toolId } = params;
+
+    // Delete MCP tool repository access entries
+    const repositoryAccessResult = await db
+      .delete(workAppGitHubMcpToolRepositoryAccess)
+      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId))
+      .returning();
+
+    // Delete MCP tool access mode entry
+    const accessModeResult = await db
+      .delete(workAppGitHubMcpToolAccessMode)
+      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .returning();
+
+    return {
+      mcpToolRepositoryAccessDeleted: repositoryAccessResult.length,
+      mcpToolAccessModeDeleted: accessModeResult.length > 0,
+    };
+  };
+
+/**
+ * Result of a project cascade delete operation (GitHub access only)
+ */
+export type ProjectGitHubAccessCascadeDeleteResult = {
+  projectRepositoryAccessDeleted: number;
+  projectAccessModeDeleted: boolean;
+  mcpToolRepositoryAccessDeleted: number;
+  mcpToolAccessModesDeleted: number;
+};
+
+/**
+ * Delete all GitHub access runtime entities for a specific project.
+ * Called when a project is deleted from the manage database.
+ *
+ * Cleans up:
+ * - workAppGitHubProjectRepositoryAccess entries
+ * - workAppGitHubProjectAccessMode entry
+ * - workAppGitHubMcpToolRepositoryAccess entries (for tools in this project)
+ * - workAppGitHubMcpToolAccessMode entries (for tools in this project)
+ *
+ * @param db - Runtime database client
+ * @returns Function that performs the cascade delete
+ */
+export const cascadeDeleteGitHubAccessByProject =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    tenantId: string;
+    projectId: string;
+  }): Promise<ProjectGitHubAccessCascadeDeleteResult> => {
+    const { tenantId, projectId } = params;
+
+    // Delete project repository access entries
+    const projectRepoAccessResult = await db
+      .delete(workAppGitHubProjectRepositoryAccess)
+      .where(
+        and(
+          eq(workAppGitHubProjectRepositoryAccess.tenantId, tenantId),
+          eq(workAppGitHubProjectRepositoryAccess.projectId, projectId)
+        )
+      )
+      .returning();
+
+    // Delete project access mode entry
+    const projectAccessModeResult = await db
+      .delete(workAppGitHubProjectAccessMode)
+      .where(
+        and(
+          eq(workAppGitHubProjectAccessMode.tenantId, tenantId),
+          eq(workAppGitHubProjectAccessMode.projectId, projectId)
+        )
+      )
+      .returning();
+
+    // Delete MCP tool repository access entries for tools in this project
+    const mcpToolRepoAccessResult = await db
+      .delete(workAppGitHubMcpToolRepositoryAccess)
+      .where(
+        and(
+          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
+          eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId)
+        )
+      )
+      .returning();
+
+    // Delete MCP tool access mode entries for tools in this project
+    const mcpToolAccessModeResult = await db
+      .delete(workAppGitHubMcpToolAccessMode)
+      .where(
+        and(
+          eq(workAppGitHubMcpToolAccessMode.tenantId, tenantId),
+          eq(workAppGitHubMcpToolAccessMode.projectId, projectId)
+        )
+      )
+      .returning();
+
+    return {
+      projectRepositoryAccessDeleted: projectRepoAccessResult.length,
+      projectAccessModeDeleted: projectAccessModeResult.length > 0,
+      mcpToolRepositoryAccessDeleted: mcpToolRepoAccessResult.length,
+      mcpToolAccessModesDeleted: mcpToolAccessModeResult.length,
     };
   };

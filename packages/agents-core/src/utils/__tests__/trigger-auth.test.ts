@@ -444,7 +444,8 @@ describe('verifySignatureWithConfig', () => {
       };
 
       // Compute signature dynamically for '' + body (missing optional header becomes empty string)
-      const signedData = '' + body;
+      // Empty string + body with no separator = just the body
+      const signedData = body;
       const validSignature = computeHmacSignature(signedData, secret, 'sha256', 'hex');
 
       const context = createMockContext({

@@ -172,7 +172,7 @@ describe('jmespath-utils', () => {
       });
 
       it('should accept expressions at exactly the max length', () => {
-        const exactLengthExpression = 'body.' + 'x'.repeat(MAX_EXPRESSION_LENGTH - 5);
+        const exactLengthExpression = `body.${'x'.repeat(MAX_EXPRESSION_LENGTH - 5)}`;
         const result = validateJMESPathSecure(exactLengthExpression);
         expect(result.valid).toBe(true);
       });
@@ -252,7 +252,7 @@ describe('jmespath-utils', () => {
 
     describe('validation order', () => {
       it('should check length before patterns', () => {
-        const longEvalExpression = 'eval(' + 'a'.repeat(MAX_EXPRESSION_LENGTH) + ')';
+        const longEvalExpression = `eval('${'a'.repeat(MAX_EXPRESSION_LENGTH)}')`;
         const result = validateJMESPathSecure(longEvalExpression);
         expect(result.valid).toBe(false);
         expect(result.error).toContain('exceeds maximum length');

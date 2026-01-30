@@ -1,4 +1,5 @@
 import type { BaseExecutionContext, FullExecutionContext } from '@inkeep/agents-core';
+import { env } from '../../../env.js';
 
 /**
  * Extract userId from execution context metadata (when available)
@@ -30,7 +31,7 @@ export function createBaseExecutionContext(params: {
     tenantId: params.tenantId,
     projectId: params.projectId,
     agentId: params.agentId,
-    baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
+    baseUrl: params.baseUrl || env.INKEEP_AGENTS_API_URL,
     apiKeyId: params.apiKeyId,
     subAgentId: params.subAgentId,
     ref: params.ref,

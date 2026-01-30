@@ -65,6 +65,10 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -2608,4 +2612,68 @@ export const PaginationWithRefQueryParamsSchema =
 export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
 export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
   createdAt: true,
+});
+
+export const WorkAppGitHubInstallationSelectSchema = createSelectSchema(workAppGitHubInstallations);
+export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppGitHubInstallations)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+  })
+  .extend({
+    accountType: z.enum(['Organization', 'User']),
+    status: z.enum(['pending', 'active', 'suspended', 'disconnected']).optional().default('active'),
+  });
+
+export const WorkAppGithubInstallationApiSelectSchema = WorkAppGitHubInstallationSelectSchema.omit({
+  tenantId: true,
+});
+export const WorkAppGitHubInstallationApiInsertSchema = WorkAppGitHubInstallationInsertSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const WorkAppGitHubRepositorySelectSchema = createSelectSchema(workAppGitHubRepositories);
+export const WorkAppGitHubRepositoryInsertSchema = createInsertSchema(
+  workAppGitHubRepositories
+).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const WorkAppGitHubRepositoryApiInsertSchema = WorkAppGitHubRepositoryInsertSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const WorkAppGitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubProjectRepositoryAccess
+);
+
+export const WorkAppGitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubMcpToolRepositoryAccess
+);
+
+// Shared GitHub Access API Schemas
+export const WorkAppGitHubAccessModeSchema = z.enum(['all', 'selected']);
+
+export const WorkAppGitHubAccessSetRequestSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryIds: z
+    .array(z.string())
+    .optional()
+    .describe('Internal repository IDs (required when mode="selected")'),
+});
+
+export const WorkAppGitHubAccessSetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryCount: z.number(),
+});
+
+export const WorkAppGitHubAccessGetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });

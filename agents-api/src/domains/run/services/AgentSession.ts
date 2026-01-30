@@ -1921,7 +1921,10 @@ export class AgentSessionManager {
   ): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      logger.warn({ sessionId }, 'Attempted to record event in non-existent session');
+      logger.warn(
+        { sessionId, eventType, subAgentId },
+        'Attempted to record event in non-existent session (likely session already ended)'
+      );
       return;
     }
 
