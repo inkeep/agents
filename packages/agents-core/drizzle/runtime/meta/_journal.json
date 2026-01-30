@@ -75,15 +75,8 @@
     {
       "idx": 10,
       "version": "7",
-      "when": 1769703627877,
-      "tag": "0010_previous_black_knight",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1770348304770,
-      "tag": "0011_colorful_vivisector",
+      "when": 1769788066893,
+      "tag": "0010_vengeful_legion",
       "breakpoints": true
     },
     {

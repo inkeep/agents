@@ -24,6 +24,7 @@ import {
   functionTools,
   projects,
   skills,
+  scheduledTriggers,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
@@ -48,6 +49,7 @@ import {
   ledgerArtifacts,
   messages,
   projectMetadata,
+  scheduledTriggerInvocations,
   taskRelations,
   tasks,
   triggerInvocations,
@@ -910,6 +912,148 @@ export const TriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema
 export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(
   TriggerInvocationUpdateSchema
 ).openapi('TriggerInvocationUpdate');
+
+// Scheduled Trigger Schemas
+
+export const CronExpressionSchema = z
+  .string()
+  .regex(
+    /^(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/]+)\s+(\*|[0-9,\-\/A-Z]+)$/i,
+    'Invalid cron expression. Expected 5 fields: minute hour day month weekday'
+  )
+  .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
+  .openapi('CronExpression');
+
+export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
+  payload: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+
+const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
+  id: () => ResourceIdSchema,
+  name: () => z.string().trim().min(1).describe('Scheduled trigger name'),
+  description: () => z.string().optional().describe('Scheduled trigger description'),
+  enabled: () => z.boolean().default(true).describe('Whether the trigger is enabled'),
+  cronExpression: () => CronExpressionSchema.nullable().optional(),
+  runAt: () => z.string().datetime().nullable().optional().describe('One-time execution timestamp'),
+  payload: () =>
+    z.record(z.string(), z.unknown()).nullable().optional().describe('Static payload for agent execution'),
+  messageTemplate: () =>
+    z
+      .string()
+      .trim()
+      .min(1)
+      .describe('Message template with {{placeholder}} syntax')
+      .optional(),
+  maxRetries: () => z.number().int().min(0).max(10).default(3),
+  retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
+  timeoutSeconds: () => z.number().int().min(30).max(1800).default(300),
+  workflowRunId: () => z.string().optional().describe('Active workflow run ID for lifecycle management'),
+});
+
+export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
+  (data) => data.cronExpression || data.runAt,
+  { message: 'Either cronExpression or runAt must be provided' }
+).refine(
+  (data) => !(data.cronExpression && data.runAt),
+  { message: 'Cannot specify both cronExpression and runAt' }
+);
+
+export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.extend({
+  enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+}).partial();
+
+export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
+  ScheduledTriggerSelectSchema
+).openapi('ScheduledTrigger');
+
+export const ScheduledTriggerApiInsertSchema = createAgentScopedApiInsertSchema(
+  ScheduledTriggerInsertSchemaBase
+)
+  .extend({ id: ResourceIdSchema.optional() })
+  .refine(
+    (data) => data.cronExpression || data.runAt,
+    { message: 'Either cronExpression or runAt must be provided' }
+  )
+  .refine(
+    (data) => !(data.cronExpression && data.runAt),
+    { message: 'Cannot specify both cronExpression and runAt' }
+  )
+  .openapi('ScheduledTriggerCreate');
+
+export const ScheduledTriggerApiUpdateSchema = ScheduledTriggerUpdateSchema.openapi(
+  'ScheduledTriggerUpdate'
+);
+
+export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
+export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
+export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
+
+// ============================================================================
+// Scheduled Trigger Invocation Schemas
+// ============================================================================
+//from vercel workflow
+export const ScheduledTriggerInvocationStatusEnum = z.enum([
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+
+export const ScheduledTriggerInvocationSelectSchema = createSelectSchema(
+  scheduledTriggerInvocations
+).extend({
+  resolvedPayload: z.record(z.string(), z.unknown()).nullable().optional(),
+  status: ScheduledTriggerInvocationStatusEnum,
+});
+
+export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
+  scheduledTriggerInvocations,
+  {
+    id: () => ResourceIdSchema,
+    scheduledTriggerId: () => ResourceIdSchema,
+    status: () => ScheduledTriggerInvocationStatusEnum,
+    scheduledFor: () => z.string().datetime().describe('Scheduled execution time'),
+    startedAt: () => z.string().datetime().optional().describe('Actual start time'),
+    completedAt: () => z.string().datetime().optional().describe('Completion time'),
+    resolvedPayload: () =>
+      z.record(z.string(), z.unknown()).nullable().optional().describe('Resolved payload with variables'),
+    conversationId: () => ResourceIdSchema.optional().describe('Created conversation ID'),
+    traceId: () => z.string().optional().describe('OpenTelemetry trace ID'),
+    errorMessage: () => z.string().optional().describe('Error message if failed'),
+    errorCode: () => z.string().optional().describe('Error code if failed'),
+    attemptNumber: () => z.number().int().min(1).default(1),
+    idempotencyKey: () => z.string().describe('Idempotency key for deduplication'),
+  }
+);
+
+export const ScheduledTriggerInvocationUpdateSchema =
+  ScheduledTriggerInvocationInsertSchema.partial();
+
+export const ScheduledTriggerInvocationApiSelectSchema = createAgentScopedApiSchema(
+  ScheduledTriggerInvocationSelectSchema
+).openapi('ScheduledTriggerInvocation');
+
+export const ScheduledTriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(
+  ScheduledTriggerInvocationInsertSchema
+)
+  .extend({ id: ResourceIdSchema })
+  .openapi('ScheduledTriggerInvocationCreate');
+
+export const ScheduledTriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  ScheduledTriggerInvocationUpdateSchema
+).openapi('ScheduledTriggerInvocationUpdate');
+
+export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
+export type ScheduledTriggerInvocationInsert = z.infer<
+  typeof ScheduledTriggerInvocationInsertSchema
+>;
+export type ScheduledTriggerInvocationUpdate = z.infer<
+  typeof ScheduledTriggerInvocationUpdateSchema
+>;
+export type ScheduledTriggerInvocationStatus = z.infer<
+  typeof ScheduledTriggerInvocationStatusEnum
+>;
 
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
@@ -2527,6 +2671,25 @@ export const TriggerWithWebhookUrlListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerWithWebhookUrlListResponse');
+export const ScheduledTriggerResponse = z
+  .object({ data: ScheduledTriggerApiSelectSchema })
+  .openapi('ScheduledTriggerResponse');
+export const ScheduledTriggerListResponse = z
+  .object({
+    data: z.array(ScheduledTriggerApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledTriggerListResponse');
+export const ScheduledTriggerInvocationResponse = z
+  .object({ data: ScheduledTriggerInvocationApiSelectSchema })
+  .openapi('ScheduledTriggerInvocationResponse');
+export const ScheduledTriggerInvocationListResponse = z
+  .object({
+    data: z.array(ScheduledTriggerInvocationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledTriggerInvocationListResponse');
+
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');

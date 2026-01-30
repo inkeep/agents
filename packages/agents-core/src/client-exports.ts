@@ -26,6 +26,10 @@ import type {
   CredentialReferenceApiInsertSchema,
   ExternalAgentApiInsertSchema,
   FunctionApiInsertSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInvocationApiSelectSchema,
   ToolApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerInvocationApiSelectSchema,
@@ -116,6 +120,12 @@ export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+export type ScheduledTriggerInvocationApiSelect = z.infer<
+  typeof ScheduledTriggerInvocationApiSelectSchema
+>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;

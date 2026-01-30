@@ -4,6 +4,7 @@ import {
   doublePrecision,
   foreignKey,
   index,
+  integer,
   jsonb,
   numeric,
   pgTable,
@@ -158,6 +159,32 @@ export const triggers = pgTable(
       foreignColumns: [credentialReferences.id],
       name: 'triggers_credential_reference_fk',
     }).onDelete('set null'),
+  ]
+);
+
+export const scheduledTriggers = pgTable(
+  'scheduled_triggers',
+  {
+    ...agentScoped,
+    ...uiProperties,
+    enabled: boolean('enabled').notNull().default(true),
+    cronExpression: varchar('cron_expression', { length: 256 }),
+    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
+    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
+    messageTemplate: text('message_template'),
+    maxRetries: integer('max_retries').notNull().default(3),
+    retryDelaySeconds: integer('retry_delay_seconds').notNull().default(60),
+    timeoutSeconds: integer('timeout_seconds').notNull().default(300),
+    workflowRunId: varchar('workflow_run_id', { length: 256 }),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'scheduled_triggers_agent_fk',
+    }).onDelete('cascade'),
   ]
 );
 

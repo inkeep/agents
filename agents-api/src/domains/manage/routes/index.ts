@@ -33,6 +33,7 @@ import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
 import triggersRoutes from './triggers';
+import scheduledTriggersRoutes from './scheduledTriggers';
 import userProjectMembershipsRoutes from './userProjectMemberships';
 
 const app = new OpenAPIHono();
@@ -102,6 +103,7 @@ app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
 app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
+app.route('/projects/:projectId/agents/:agentId/scheduled-triggers', scheduledTriggersRoutes);
 
 // Evaluation routes (datasets, evaluators, etc.)
 app.route('/projects/:projectId/evals', evalsRoutes);
