@@ -2,12 +2,14 @@ import { relations } from 'drizzle-orm';
 import {
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
   unique,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { organization } from '../../auth/auth-schema';
@@ -176,6 +178,38 @@ export const triggerInvocations = pgTable(
     index('trigger_invocations_status_idx').on(table.triggerId, table.status),
     // Optional FK to conversations - only if conversationId is set
     // Note: Using a separate constraint to allow NULL conversationId
+  ]
+);
+
+/**
+ * Scheduled trigger invocations - records each execution of a scheduled trigger.
+ * NOTE: No FK to scheduled_triggers table since it's in a different database (DoltGres).
+ */
+export const scheduledTriggerInvocations = pgTable(
+  'scheduled_trigger_invocations',
+  {
+    ...tenantScoped,
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 50 })
+      .notNull()
+      .$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true, mode: 'string' }).notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }),
+    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
+    resolvedPayload: jsonb('resolved_payload').$type<Record<string, unknown> | null>(),
+    conversationId: varchar('conversation_id', { length: 256 }),
+    traceId: varchar('trace_id', { length: 256 }),
+    errorMessage: text('error_message'),
+    errorCode: varchar('error_code', { length: 100 }),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    idempotencyKey: varchar('idempotency_key', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    uniqueIndex('sched_invocations_idempotency_idx').on(table.idempotencyKey),
   ]
 );
 
