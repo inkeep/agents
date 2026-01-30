@@ -66,6 +66,7 @@ app.openapi(
     path: '/install-url',
     summary: 'Get GitHub App installation URL',
     operationId: 'get-github-install-url',
+    tags: ['GitHub'],
     description:
       'Generates a URL to install the GitHub App on an organization or user account. ' +
       'The URL includes a signed state parameter that encodes the tenant ID and expires after 10 minutes. ' +
@@ -142,6 +143,7 @@ app.openapi(
     path: '/installations',
     summary: 'List GitHub App installations',
     operationId: 'list-github-installations',
+    tags: ['GitHub'],
     description:
       'Returns a list of GitHub App installations connected to this tenant. ' +
       'By default, deleted installations are filtered out. ' +
@@ -213,6 +215,7 @@ app.openapi(
     path: '/installations/:installationId',
     summary: 'Get GitHub App installation details',
     operationId: 'get-github-installation-details',
+    tags: ['GitHub'],
     description:
       'Returns detailed information about a specific GitHub App installation, ' +
       'including the full list of repositories.',
@@ -285,6 +288,7 @@ app.openapi(
     path: '/installations/:installationId/disconnect',
     summary: 'Disconnect a GitHub App installation',
     operationId: 'disconnect-github-installation',
+    tags: ['GitHub'],
     description:
       'Disconnects a GitHub App installation from the tenant. ' +
       'This soft deletes the installation (sets status to "disconnected") and removes all project repository access entries. ' +
@@ -409,6 +413,7 @@ app.openapi(
     path: '/installations/:installationId/reconnect',
     summary: 'Reconnect a disconnected GitHub App installation',
     operationId: 'reconnect-github-installation',
+    tags: ['GitHub'],
     description:
       'Reconnects a previously disconnected GitHub App installation by setting its status back to "active" ' +
       'and syncing the available repositories from GitHub. ' +
@@ -535,6 +540,7 @@ app.openapi(
     path: '/installations/:installationId',
     summary: 'Delete a GitHub App installation permanently',
     operationId: 'delete-github-installation',
+    tags: ['GitHub'],
     description:
       'Permanently deletes a GitHub App installation from the tenant. ' +
       'This hard deletes the installation record, all associated repositories, and project repository access entries. ' +
@@ -611,6 +617,7 @@ app.openapi(
     path: '/installations/:installationId/sync',
     summary: 'Sync repositories for a GitHub App installation',
     operationId: 'sync-github-installation-repositories',
+    tags: ['GitHub'],
     description:
       'Manually refreshes the repository list for a GitHub App installation by fetching the current list from GitHub API. ' +
       'This is useful if webhooks were missed or to ensure the local data is in sync with GitHub.',
