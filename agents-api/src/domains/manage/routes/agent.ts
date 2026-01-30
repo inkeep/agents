@@ -9,7 +9,10 @@ import {
   commonGetErrorResponses,
   createAgent,
   createApiError,
+  DuplicateAgentRequestSchema,
+  DuplicateAgentResponseSchema,
   deleteAgent,
+  duplicateAgent,
   ErrorResponseSchema,
   generateId,
   getAgentById,
@@ -41,6 +44,13 @@ app.use('/', async (c, next) => {
 
 app.use('/:id', async (c, next) => {
   if (['PUT', 'PATCH', 'DELETE'].includes(c.req.method)) {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:agentId/duplicate', async (c, next) => {
+  if (c.req.method === 'POST') {
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -207,6 +217,105 @@ app.openapi(
     }
 
     return c.json({ data: fullAgent });
+  }
+);
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{agentId}/duplicate',
+    summary: 'Duplicate Agent',
+    operationId: 'duplicate-agent',
+    tags: ['Agents'],
+    request: {
+      params: TenantProjectAgentParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: DuplicateAgentRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Agent duplicated successfully',
+        content: {
+          'application/json': {
+            schema: DuplicateAgentResponseSchema,
+          },
+        },
+      },
+      400: {
+        description: 'Invalid request body',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      403: {
+        description: 'Insufficient permissions',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      404: {
+        description: 'Agent not found',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      409: {
+        description: 'Agent with new ID already exists',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const validatedBody = c.req.valid('json');
+
+    const originalAgent = await getAgentById(db)({
+      scopes: { tenantId, projectId, agentId },
+    });
+
+    if (!originalAgent) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
+      });
+    }
+
+    const newAgentName = validatedBody.newAgentName || `${originalAgent.name} (Copy)`;
+
+    try {
+      const duplicatedAgent = await duplicateAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+        newAgentId: validatedBody.newAgentId,
+        newAgentName,
+      });
+
+      return c.json({ data: duplicatedAgent }, 201);
+    } catch (error: any) {
+      if (error?.cause?.code === '23505') {
+        throw createApiError({
+          code: 'conflict',
+          message: `An agent with ID '${validatedBody.newAgentId}' already exists`,
+        });
+      }
+
+      throw error;
+    }
   }
 );
 

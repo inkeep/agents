@@ -2206,12 +2206,14 @@ export const DuplicateAgentRequestSchema = z
       .min(1)
       .max(255)
       .optional()
-      .describe("Optional name for the duplicated agent. Defaults to '{originalName} (Copy)'"),
+      .describe(
+        'Name for the duplicated agent. Defaults to "{originalName} (Copy)" if not provided.'
+      ),
   })
   .openapi('DuplicateAgentRequest');
 
 export const DuplicateAgentResponseSchema = z
-  .object({ data: AgentWithinContextOfProjectSelectSchema })
+  .object({ data: AgentApiSelectSchema })
   .openapi('DuplicateAgentResponse');
 
 export const FullProjectSelectSchema = ProjectApiSelectSchema.extend({
