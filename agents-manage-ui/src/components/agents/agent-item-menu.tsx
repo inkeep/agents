@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Agent } from '@/lib/types/agent-full';
 import { DeleteAgentConfirmation } from './delete-agent-confirmation';
+import { DuplicateAgentModal } from './duplicate-agent-modal';
 import { EditAgentDialog } from './edit-agent-dialog';
 
 interface AgentItemMenuProps extends Pick<Agent, 'id' | 'name' | 'description'> {
@@ -69,7 +70,16 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           setIsOpen={setIsEditOpen}
         />
       )}
-      {isDuplicateOpen && <div>Duplicate Modal Placeholder</div>}
+      {isDuplicateOpen && (
+        <DuplicateAgentModal
+          tenantId={tenantId}
+          projectId={projectId}
+          agentId={id}
+          agentName={name}
+          isOpen={isDuplicateOpen}
+          setIsOpen={setIsDuplicateOpen}
+        />
+      )}
     </>
   );
 }

@@ -145,5 +145,26 @@ export async function deleteFullAgent(
   });
 }
 
+/**
+ * Duplicate an existing agent with a new ID and optional new name
+ */
+export async function duplicateAgent(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  data: { newAgentId: string; newAgentName?: string }
+): Promise<CreateAgentResponse> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  return makeManagementApiRequest<CreateAgentResponse>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/duplicate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
 // Export the error class for use in server actions
 export { ApiError };
