@@ -45,10 +45,10 @@ export const useChatActivitiesPolling = ({
       setError(null);
 
       abortControllerRef.current = new AbortController();
-      const requestConversationId = conversationId; // Capture ID at request start
+      const currentConversationId = conversationId; // Capture ID at request start
 
       const response = await fetch(
-        `/api/signoz/conversations/${requestConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
+        `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
         {
           signal: abortControllerRef.current.signal,
         }
@@ -78,7 +78,7 @@ export const useChatActivitiesPolling = ({
 
       if (
         isComponentMountedRef.current &&
-        requestConversationId === currentConversationIdRef.current
+        currentConversationId === currentConversationIdRef.current
       ) {
         // Only update state if data actually changed (by checking activity count)
         const newCount = data.activities?.length || 0;
