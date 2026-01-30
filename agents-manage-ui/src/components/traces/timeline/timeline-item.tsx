@@ -515,7 +515,8 @@ export function TimelineItem({
             activity.maxSteps !== undefined && (
               <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 rounded-lg max-w-4xl">
                 <div className="text-sm text-yellow-900 dark:text-yellow-300">
-                  <span className="font-medium">Steps:</span> {activity.stepsCompleted} / {activity.maxSteps}
+                  <span className="font-medium">Steps:</span> {activity.stepsCompleted} /{' '}
+                  {activity.maxSteps}
                 </div>
               </div>
             )}
