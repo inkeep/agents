@@ -7,7 +7,7 @@
 import { StandaloneBuilder } from '@workflow/builders';
 
 const config = {
-  dirs: ['./src/domains/evals/workflow'],
+  dirs: ['./src/domains/evals/workflow', './src/domains/run/workflow'],
   workingDir: process.cwd(),
   buildTarget: 'standalone' as const,
   stepsBundlePath: './.well-known/workflow/v1/step.cjs',
