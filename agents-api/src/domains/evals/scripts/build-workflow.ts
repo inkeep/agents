@@ -7,14 +7,14 @@
 import { StandaloneBuilder } from '@workflow/builders';
 
 const config = {
-  dirs: ['./src/domains/evals/workflow'],
+  dirs: ['./src/domains/evals/workflow', './src/domains/run/workflow'],
   workingDir: process.cwd(),
   buildTarget: 'standalone' as const,
   stepsBundlePath: './.well-known/workflow/v1/step.cjs',
   workflowsBundlePath: './.well-known/workflow/v1/flow.cjs',
   webhookBundlePath: './.well-known/workflow/v1/webhook.mjs',
   // Externalize native modules that can't be bundled
-  externalPackages: ['@napi-rs/keyring'],
+  externalPackages: ['@napi-rs/keyring', 'cron-parser'],
 };
 
 async function build() {
