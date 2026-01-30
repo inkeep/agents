@@ -10,6 +10,7 @@ import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import { cn } from '@/lib/utils';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
+  findOrphanedTools,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
@@ -94,6 +95,9 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup, edges);
   const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup, edges);
 
+  const orphanedTools = findOrphanedTools(selectedTools, activeTools);
+  const hasOrphanedTools = orphanedTools.length > 0;
+
   // Format the tool display
   const getToolDisplay = () => {
     if (selectedTools === null) {
@@ -160,7 +164,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         isConnecting && 'animate-pulse opacity-80',
         hasErrors && 'ring-2 ring-red-300 border-red-300',
-        needsAuth && 'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
+        (needsAuth || hasOrphanedTools) &&
+          'ring-2 ring-amber-400 border-amber-400 bg-amber-50 dark:bg-amber-950/30',
         isExecuting && 'node-executing',
         isInvertedDelegating && 'node-delegating-inverted'
       )}

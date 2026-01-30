@@ -2,7 +2,8 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -22,6 +23,7 @@ import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
+  findOrphanedTools,
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
@@ -92,6 +94,37 @@ export function MCPServerNodeEditor({
         : undefined,
   });
 
+  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
+
+  const currentToolPolicies = getCurrentToolPoliciesForNode(
+    selectedNode,
+    agentToolConfigLookup,
+    edges
+  );
+
+  const orphanedTools = findOrphanedTools(selectedTools, activeTools);
+
+  // Track if we've already shown the warning for this node to avoid repeated toasts
+  const hasShownOrphanedWarningRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      liveToolData &&
+      orphanedTools.length > 0 &&
+      hasShownOrphanedWarningRef.current !== selectedNode.id
+    ) {
+      hasShownOrphanedWarningRef.current = selectedNode.id;
+      const toolText = orphanedTools.length > 1 ? 'tools are' : 'tool is';
+      toast.warning(
+        `${orphanedTools.length} selected ${toolText} no longer available: ${orphanedTools.join(', ')}. Uncheck to remove.`,
+        {
+          closeButton: true,
+          duration: 6000,
+        }
+      );
+    }
+  }, [liveToolData, orphanedTools, selectedNode.id]);
+
   // Handle missing tool data
   if (!toolData) {
     return (
@@ -102,18 +135,6 @@ export function MCPServerNodeEditor({
       </div>
     );
   }
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(
-    selectedNode,
-    agentToolConfigLookup,
-    edges
-  );
-
-  // Find orphaned tools - tools that are selected but no longer available in activeTools
-  const orphanedTools =
-    selectedTools && Array.isArray(selectedTools)
-      ? selectedTools.filter((toolName) => !activeTools?.some((tool) => tool.name === toolName))
-      : [];
 
   const toggleToolSelection = (toolName: string) => {
     // Handle null case (all tools selected) - convert to array of all tool names
