@@ -612,7 +612,7 @@ export async function dispatchExecution(params: {
  * Execute the agent asynchronously.
  * This runs after the webhook response is sent.
  */
-async function executeAgentAsync(params: {
+export async function executeAgentAsync(params: {
   tenantId: string;
   projectId: string;
   agentId: string;

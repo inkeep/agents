@@ -21,7 +21,6 @@ import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { executeScheduledTrigger as executeScheduledTriggerImpl } from './executeScheduledTrigger';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
 
@@ -139,7 +138,41 @@ export async function checkTriggerEnabledStep(params: {
     return { shouldContinue: false, reason: 'superseded', trigger: null };
   }
 
-  return { shouldContinue: true, trigger };
+  // Apply defaults for fields that DoltgreS doesn't honor defaults for
+  // Use explicit validation to handle null, undefined, AND NaN values
+  // (NaN can occur due to workflow serialization issues)
+  const safeMaxRetries = typeof trigger.maxRetries === 'number' && !Number.isNaN(trigger.maxRetries) 
+    ? trigger.maxRetries 
+    : 3;
+  const safeRetryDelaySeconds = typeof trigger.retryDelaySeconds === 'number' && !Number.isNaN(trigger.retryDelaySeconds) 
+    ? trigger.retryDelaySeconds 
+    : 60;
+  const safeTimeoutSeconds = typeof trigger.timeoutSeconds === 'number' && !Number.isNaN(trigger.timeoutSeconds) 
+    ? trigger.timeoutSeconds 
+    : 300;
+
+  logger.debug(
+    {
+      scheduledTriggerId: params.scheduledTriggerId,
+      'trigger.maxRetries': trigger.maxRetries,
+      'typeof trigger.maxRetries': typeof trigger.maxRetries,
+      'isNaN trigger.maxRetries': Number.isNaN(trigger.maxRetries),
+      safeMaxRetries,
+      safeRetryDelaySeconds,
+      safeTimeoutSeconds,
+    },
+    'Applying defaults in checkTriggerEnabledStep'
+  );
+
+  return {
+    shouldContinue: true,
+    trigger: {
+      ...trigger,
+      maxRetries: safeMaxRetries,
+      retryDelaySeconds: safeRetryDelaySeconds,
+      timeoutSeconds: safeTimeoutSeconds,
+    },
+  };
 }
 
 /**
@@ -210,6 +243,11 @@ export async function markRunningStep(params: {
   invocationId: string;
 }) {
   'use step';
+
+  logger.info(
+    { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+    'Marking invocation as running'
+  );
 
   return markScheduledTriggerInvocationRunning(runDbClient)({
     scopes: {
@@ -303,7 +341,13 @@ export async function incrementAttemptStep(params: {
 }
 
 /**
- * Step: Execute the scheduled trigger (wraps the execution step)
+ * Step: Execute the scheduled trigger via HTTP call to main server.
+ *
+ * This step makes an HTTP call to the internal execution endpoint instead of
+ * executing directly. This is necessary because workflow steps run in a bundled
+ * context with their own module instances (including agentSessionManager).
+ * By calling the main server via HTTP, execution happens in the correct context
+ * where all singletons are shared and event recording works properly.
  */
 export async function executeScheduledTriggerStep(params: {
   tenantId: string;
@@ -317,17 +361,49 @@ export async function executeScheduledTriggerStep(params: {
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
+  logger.info(
+    { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+    'Executing scheduled trigger via HTTP'
+  );
+
   try {
-    const result = await executeScheduledTriggerImpl({
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-      scheduledTriggerId: params.scheduledTriggerId,
-      invocationId: params.invocationId,
-      messageTemplate: params.messageTemplate,
-      payload: params.payload,
-      timeoutSeconds: params.timeoutSeconds,
+    // Call the internal execution endpoint on the main server
+    // This runs execution in the proper server context where agentSessionManager works
+    const baseUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+    const apiKey = process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '';
+
+    // URL includes tenant/project/agent in path for middleware compatibility
+    // Full path: /run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/internal/execute
+    const url = `${baseUrl}/run/tenants/${params.tenantId}/projects/${params.projectId}/agents/${params.agentId}/scheduled-triggers/internal/execute`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'x-inkeep-tenant-id': params.tenantId,
+        'x-inkeep-project-id': params.projectId,
+        'x-inkeep-agent-id': params.agentId,
+      },
+      body: JSON.stringify({
+        scheduledTriggerId: params.scheduledTriggerId,
+        invocationId: params.invocationId,
+        messageTemplate: params.messageTemplate,
+        payload: params.payload,
+        timeoutSeconds: params.timeoutSeconds,
+      }),
     });
+
+    const result = await response.json() as { success: boolean; conversationId?: string; error?: string };
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || `HTTP ${response.status}: Execution failed`);
+    }
+
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId, conversationId: result.conversationId },
+      'Scheduled trigger execution completed via HTTP'
+    );
 
     return {
       success: true,
