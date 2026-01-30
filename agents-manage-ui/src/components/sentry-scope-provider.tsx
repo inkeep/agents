@@ -16,6 +16,10 @@ export const SentryScopeProvider: FC<SentryScopeProviderProps> = ({ children }) 
     if (tenantId) {
       sentry.setTag('tenantId', tenantId);
     }
+
+    return () => {
+      sentry.setTag('tenantId', undefined);
+    };
   }, [tenantId]);
 
   return <>{children}</>;

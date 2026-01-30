@@ -393,7 +393,7 @@ export function MCPServerNodeEditor({
               <div>Tool</div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5 cursor-help mcp-needs-approval">
+                  <div className="flex items-center gap-1.5 cursor-help">
                     <Shield className="w-3 h-3" />
                     Needs Approval?
                     {(() => {
@@ -482,8 +482,7 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="items-center mcp-needs-approval">
+                  <div className="items-center">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
@@ -529,7 +528,7 @@ export function MCPServerNodeEditor({
                     </Tooltip>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="items-center mcp-needs-approval">
+                  <div className="items-center">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
