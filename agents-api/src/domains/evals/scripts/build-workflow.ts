@@ -14,7 +14,7 @@ const config = {
   workflowsBundlePath: './.well-known/workflow/v1/flow.cjs',
   webhookBundlePath: './.well-known/workflow/v1/webhook.mjs',
   // Externalize native modules that can't be bundled
-  externalPackages: ['@napi-rs/keyring'],
+  externalPackages: ['@napi-rs/keyring', 'cron-parser'],
 };
 
 async function build() {
