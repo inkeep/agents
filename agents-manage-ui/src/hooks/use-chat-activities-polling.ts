@@ -76,8 +76,6 @@ export const useChatActivitiesPolling = ({
 
       const data: ConversationDetail = await response.json();
 
-      // Compare against the ref (latest value) instead of closure value to prevent race conditions
-      // where an old request completes after conversationId has changed
       if (
         isComponentMountedRef.current &&
         requestConversationId === currentConversationIdRef.current
