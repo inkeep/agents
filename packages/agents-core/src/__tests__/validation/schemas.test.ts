@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ConversationInsertSchema,
+  DuplicateAgentRequestSchema,
   MessageInsertSchema,
   PaginationQueryParamsSchema,
   PaginationSchema,
@@ -564,6 +565,139 @@ describe('Validation Schemas', () => {
       };
 
       expect(() => TriggerInsertSchema.parse(validTrigger)).not.toThrow();
+    });
+  });
+
+  describe('DuplicateAgentRequestSchema', () => {
+    it('should accept valid duplication request with both fields', () => {
+      const validRequest = {
+        newAgentId: 'my-new-agent',
+        newAgentName: 'My New Agent Name',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
+    });
+
+    it('should accept valid duplication request with only newAgentId', () => {
+      const validRequest = {
+        newAgentId: 'my-new-agent',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
+    });
+
+    it('should accept newAgentId at minimum length (2 chars)', () => {
+      const validRequest = {
+        newAgentId: 'ab',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
+    });
+
+    it('should accept newAgentId at maximum length (255 chars)', () => {
+      const validRequest = {
+        newAgentId: 'a'.repeat(255),
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
+    });
+
+    it('should accept URL-safe characters in newAgentId', () => {
+      const validIds = [
+        'agent-with-hyphens',
+        'agent_with_underscores',
+        'agent.with.dots',
+        'AgentWithCaps123',
+        'agent123',
+      ];
+
+      for (const id of validIds) {
+        const request = { newAgentId: id };
+        expect(() => DuplicateAgentRequestSchema.parse(request)).not.toThrow();
+      }
+    });
+
+    it('should reject newAgentId that is too short (1 char)', () => {
+      const invalidRequest = {
+        newAgentId: 'a',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should reject newAgentId that is too long (256+ chars)', () => {
+      const invalidRequest = {
+        newAgentId: 'a'.repeat(256),
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should reject newAgentId with invalid characters', () => {
+      const invalidIds = [
+        'agent@invalid',
+        'agent with spaces',
+        'agent/slash',
+        'agent\\backslash',
+        'agent#hash',
+        'agent$dollar',
+      ];
+
+      for (const id of invalidIds) {
+        const request = { newAgentId: id };
+        expect(() => DuplicateAgentRequestSchema.parse(request)).toThrow();
+      }
+    });
+
+    it('should reject newAgentId with reserved name "new"', () => {
+      const invalidRequest = {
+        newAgentId: 'new',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should reject empty newAgentId', () => {
+      const invalidRequest = {
+        newAgentId: '',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should reject missing newAgentId', () => {
+      const invalidRequest = {
+        newAgentName: 'Some Name',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should reject newAgentName that is empty string', () => {
+      const invalidRequest = {
+        newAgentId: 'valid-agent-id',
+        newAgentName: '',
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should reject newAgentName that exceeds 255 chars', () => {
+      const invalidRequest = {
+        newAgentId: 'valid-agent-id',
+        newAgentName: 'a'.repeat(256),
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+    });
+
+    it('should accept newAgentName at maximum length (255 chars)', () => {
+      const validRequest = {
+        newAgentId: 'valid-agent-id',
+        newAgentName: 'a'.repeat(255),
+      };
+
+      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
     });
   });
 });
