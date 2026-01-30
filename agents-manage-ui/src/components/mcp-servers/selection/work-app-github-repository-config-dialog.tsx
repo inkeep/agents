@@ -369,7 +369,7 @@ function ReadyState({
     setIsSubmitting(true);
     try {
       // Build the GitHub MCP server URL - must contain '/github' for validation
-      const githubMcpUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/api/github/mcp`;
+      const githubMcpUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/work-apps/github/mcp`;
 
       // Create the MCP tool with isWorkapp=true
       const toolId = generateId();

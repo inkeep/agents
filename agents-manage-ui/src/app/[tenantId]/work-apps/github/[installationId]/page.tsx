@@ -23,6 +23,7 @@ import {
   fetchWorkAppGitHubInstallationDetail,
   syncWorkAppGitHubRepositories,
 } from '@/lib/api/github';
+import { formatDate, formatDateTimeTable } from '@/lib/utils/format-date';
 import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import GitHubInstallationDetailLoading from './loading';
 
@@ -58,24 +59,6 @@ function getStatusLabel(status: string) {
     default:
       return status;
   }
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatShortDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 const ItemLabel = ({ children }: { children: React.ReactNode }) => {
@@ -242,12 +225,12 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
 
           <div className="space-y-2">
             <ItemLabel>Connected</ItemLabel>
-            <ItemValue>{formatDate(installation.createdAt)}</ItemValue>
+            <ItemValue>{formatDateTimeTable(installation.createdAt)}</ItemValue>
           </div>
 
           <div className="space-y-2">
             <ItemLabel>Last Updated</ItemLabel>
-            <ItemValue>{formatDate(installation.updatedAt)}</ItemValue>
+            <ItemValue>{formatDateTimeTable(installation.updatedAt)}</ItemValue>
           </div>
 
           <div className="space-y-2">
@@ -313,7 +296,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatShortDate(repo.createdAt)}
+                    {formatDate(repo.createdAt)}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon-sm" asChild>

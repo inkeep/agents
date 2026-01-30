@@ -66,7 +66,7 @@ describe('GitHub Token Exchange Route', () => {
     vi.resetAllMocks();
   });
 
-  describe('POST /api/github/token-exchange', () => {
+  describe('POST /work-apps/github/token-exchange', () => {
     describe('Success case (200)', () => {
       it('should return installation token for valid OIDC token with tenant_id', async () => {
         const validToken = await createTestOidcToken();
