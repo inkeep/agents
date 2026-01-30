@@ -158,6 +158,14 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     // Update lastScheduledFor for next cron calculation
     lastScheduledFor = nextExecutionTime;
 
+    await logStep('Invocation created/found', {
+      scheduledTriggerId,
+      invocationId: invocation.id,
+      alreadyExists,
+      invocationStatus: invocation.status,
+      attemptNumber: invocation.attemptNumber,
+    });
+
     // If invocation was already processed, skip to next iteration
     if (alreadyExists && invocation.status !== 'pending') {
       await logStep('Invocation already processed, continuing to next', {
@@ -172,14 +180,39 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       continue;
     }
 
+    // Defaults are applied in checkTriggerEnabledStep, but we use explicit checks
+    // here because the '??' operator may not work reliably in workflow context.
+    // Also check for NaN which can occur due to workflow serialization issues
+    // (NaN comparisons always return false, breaking the retry loop).
+    const isValidNumber = (val: unknown): val is number => 
+      typeof val === 'number' && val === val; // NaN !== NaN, so this catches NaN
+    
+    const maxRetries = isValidNumber(currentTrigger.maxRetries) ? currentTrigger.maxRetries : 3;
+    const retryDelaySeconds = isValidNumber(currentTrigger.retryDelaySeconds) ? currentTrigger.retryDelaySeconds : 60;
+    const timeoutSeconds = isValidNumber(currentTrigger.timeoutSeconds) ? currentTrigger.timeoutSeconds : 300;
+
+    await logStep('DEBUG: Computed retry values', {
+      scheduledTriggerId,
+      invocationId: invocation.id,
+      'currentTrigger.maxRetries': currentTrigger.maxRetries,
+      'typeof currentTrigger.maxRetries': typeof currentTrigger.maxRetries,
+      'isValidNumber(currentTrigger.maxRetries)': isValidNumber(currentTrigger.maxRetries),
+      'computed maxRetries': maxRetries,
+      'computed retryDelaySeconds': retryDelaySeconds,
+      'computed timeoutSeconds': timeoutSeconds,
+      attemptNumber: invocation.attemptNumber,
+      maxAttempts: maxRetries + 1,
+      'loop condition (attemptNumber <= maxAttempts)': invocation.attemptNumber <= maxRetries + 1,
+    });
+
     // 7. Execute with retries
-    const maxRetries = currentTrigger.maxRetries;
-    const retryDelaySeconds = currentTrigger.retryDelaySeconds;
     let attemptNumber = invocation.attemptNumber;
     let lastError: string | null = null;
     let conversationId: string | null = null;
 
-    while (attemptNumber <= maxRetries + 1) {
+    // Use explicit comparison to avoid issues with null/undefined in workflow context
+    const maxAttempts = maxRetries + 1;
+    while (attemptNumber <= maxAttempts) {
       // Mark as running
       await markRunningStep({
         tenantId,
@@ -197,12 +230,12 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         invocationId: invocation.id,
         messageTemplate: currentTrigger.messageTemplate,
         payload: currentTrigger.payload ?? null,
-        timeoutSeconds: currentTrigger.timeoutSeconds,
+        timeoutSeconds,
       });
 
       if (result.success) {
         // Success - mark completed
-        conversationId = result.conversationId;
+        conversationId = result.conversationId ?? null;
         await markCompletedStep({
           tenantId,
           projectId,
