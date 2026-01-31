@@ -4,32 +4,12 @@ import { z } from 'zod';
 const jsonSchemaValidation = () =>
   z
     .union([z.string(), z.null(), z.undefined()])
-    .transform((value, ctx) => {
-      if (!value) {
+    .transform((str, _ctx) => {
+      if (!str) {
         return;
       }
-
-      try {
-        const parsed = JSON.parse(value);
-
-        const validationResult = validateJsonSchemaForLlm(value);
-        if (!validationResult.isValid) {
-          const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: errorMessage,
-          });
-          return z.NEVER;
-        }
-        parsed.required ??= [];
-        return parsed;
-      } catch (error) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: getJsonParseError(error),
-        });
-        return z.NEVER;
-      }
+      // SAME AS DataComponentApiInsertSchema.props
+      return null as any;
     })
     .optional();
 
