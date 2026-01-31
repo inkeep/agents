@@ -1,18 +1,11 @@
-import { DataComponentInsertSchema } from '@inkeep/agents-core/client-exports';
-import { z } from 'zod';
+import { DataComponentApiInsertSchema } from '@inkeep/agents-core/client-exports';
+import type { z } from 'zod';
 
-export const dataComponentSchema = z.object({
-  // id: ResourceIdSchema,
-  name: z.string().min(1, 'Name is required.'),
-  description: z.string().optional(),
-  props: z.string().min(1, 'Props schema is required.').transform().optional(),
-  render: z
-    .object({
-      component: z.string(),
-      mockData: z.record(z.string(), z.unknown()),
-    })
-    .nullable()
-    .optional(),
+export const DataComponentSchema = DataComponentApiInsertSchema.pick({
+  id: true,
+  name: true,
+  description: true,
+  props: true,
+  render: true,
 });
-
-export type DataComponentFormData = z.infer<typeof dataComponentSchema>;
+export type DataComponentFormData = z.infer<typeof DataComponentSchema>;

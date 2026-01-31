@@ -1346,10 +1346,6 @@ export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: ResourceIdSchema,
 });
-export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
-  createdAt: true,
-  updatedAt: true,
-});
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
