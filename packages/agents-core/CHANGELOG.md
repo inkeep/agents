@@ -1,5 +1,16 @@
 # @inkeep/agents-core
 
+## 0.44.0
+
+### Minor Changes
+
+- ba853ef: disallow resource id schema for value `new`
+
+### Patch Changes
+
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 8a283ea: Fix tool relations when renaming sub-agent IDs
+
 ## 0.43.0
 
 ### Minor Changes
