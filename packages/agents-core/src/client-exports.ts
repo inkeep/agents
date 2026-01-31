@@ -271,7 +271,6 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
     .optional(),
 });
 
-export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
