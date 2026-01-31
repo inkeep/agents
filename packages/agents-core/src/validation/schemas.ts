@@ -83,14 +83,14 @@ import {
 export const StopWhenSchema = z
   .object({
     transferCountIs: z
-      .number()
-      .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+      .int()
+      .positive()
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
     stepCountIs: z
-      .number()
-      .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
+      .int()
+      .positive()
       .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
       .optional()
       .describe('The maximum number of steps to trigger the stop condition.'),
@@ -137,11 +137,12 @@ const limitNumber = z.coerce
 
 export const ModelSettingsSchema = z
   .object({
-    model: z.string().optional().describe('The model to use for the project.'),
-    providerOptions: z
-      .record(z.string(), z.any())
-      .optional()
-      .describe('The provider options to use for the project.'),
+    model: z.string().trim().optional().openapi({
+      description: 'The model to use for the project.',
+    }),
+    providerOptions: z.record(z.string(), z.any()).optional().openapi({
+      description: 'The provider options to use for the project.',
+    }),
   })
   .openapi('ModelSettings');
 
