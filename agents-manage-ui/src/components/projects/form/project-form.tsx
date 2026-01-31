@@ -27,13 +27,13 @@ interface ProjectFormProps {
   className?: string;
 }
 
-const cleanProviderOptions = (options: any) => {
+const cleanProviderOptions = (options: ProjectFormData['models']['base']['providerOptions']) => {
   if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
     return undefined;
   }
   return options;
 };
-const cleanStopWhen = (stopWhen: any) => {
+const cleanStopWhen = (stopWhen: ProjectFormData['stopWhen']) => {
   // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
   if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
     return {};

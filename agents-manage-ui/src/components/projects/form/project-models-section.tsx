@@ -32,6 +32,7 @@ function BaseModelSection({
   control: Control<ProjectFormData>;
   disabled?: boolean;
 }) {
+  'use memo';
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.base.providerOptions',
@@ -85,6 +86,7 @@ function StructuredOutputModelSection({
   control: Control<ProjectFormData>;
   disabled?: boolean;
 }) {
+  'use memo';
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.structuredOutput.providerOptions',
@@ -152,6 +154,7 @@ function SummarizerModelSection({
   control: Control<ProjectFormData>;
   disabled?: boolean;
 }) {
+  'use memo';
   const { field: providerOptionsField } = useController({
     control,
     name: 'models.summarizer.providerOptions',
@@ -175,7 +178,7 @@ function SummarizerModelSection({
             value={field.value || ''}
             onValueChange={field.onChange}
             inheritedValue={baseModel}
-            canClear={true}
+            canClear
             disabled={disabled}
           />
         )}
@@ -213,6 +216,7 @@ function SummarizerModelSection({
 }
 
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
+  'use memo';
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
 

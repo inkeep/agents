@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
+import type { FieldPath } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 export function isMacOs() {
   return navigator?.userAgent.includes('Mac');
@@ -71,6 +72,13 @@ export function createLookup<T extends { id: string }>(
   }, {});
 }
 
-export function isRequired<T extends z.ZodObject>(schema: T, key: keyof T['shape']) {
-  return !schema.shape[key as string].isOptional();
+export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.infer<T>>) {
+  const [firstKey, ...rest] = key.split('.');
+
+  const nestedSchema = schema instanceof z.ZodObject ? schema.shape[firstKey] : schema;
+
+  if (rest.length) {
+    return isRequired(nestedSchema, rest.join('.'));
+  }
+  return !nestedSchema.isOptional();
 }
