@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FormFieldWrapper } from './form-field-wrapper';
+import { FormControl } from '@/components/ui/form';
 
 export interface SelectOption {
   value: string;
@@ -49,9 +50,11 @@ export function GenericSelect<T extends FieldValues>({
     >
       {(field) => (
         <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disabled}>
-          <SelectTrigger disabled={disabled} className={selectTriggerClassName}>
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
+          <FormControl>
+            <SelectTrigger disabled={disabled} className={selectTriggerClassName}>
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+          </FormControl>
           <SelectContent>
             {options.map((option) => (
               <SelectItem key={option.value} value={option.value} disabled={option.disabled}>

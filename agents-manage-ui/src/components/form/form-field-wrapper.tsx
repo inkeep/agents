@@ -39,7 +39,7 @@ export function FormFieldWrapper<T extends FieldValues>({
       render={({ field }) => (
         <FormItem className="relative">
           <FormLabel isRequired={isRequired}>{label}</FormLabel>
-          <FormControl>{children(field)}</FormControl>
+          {children(field)}
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
         </FormItem>
