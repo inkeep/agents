@@ -91,8 +91,8 @@ export async function updateAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: AgentApiInsert
-): Promise<ActionResult<AgentApiInsert>> {
+  agentData: AgentFormData
+): Promise<ActionResult<AgentFormData>> {
   try {
     const response = await apiUpdateAgent(tenantId, projectId, agentId, agentData);
     // Revalidate relevant pages

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
 import { isRequired } from '@/lib/utils';
-import type { AgentFormData } from '@/lib/validation';
+import { type AgentFormData, AgentSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
 import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';

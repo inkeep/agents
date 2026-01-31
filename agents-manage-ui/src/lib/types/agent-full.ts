@@ -7,13 +7,13 @@
 
 // Import core types and schemas
 import type {
-  AgentApiInsert,
   FullAgentDefinition as CoreFullAgentDefinition,
   ExternalAgentApiInsert,
   FunctionApiInsert,
   InternalAgentDefinition,
   ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
+import type { AgentFormData } from '@/lib/validation';
 import type { SingleResponse } from './response';
 import type { TeamAgent } from './team-agents';
 
@@ -39,10 +39,10 @@ export interface Agent {
 
 // API Response Types
 export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
-export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
+export type CreateAgentResponse = SingleResponse<AgentFormData>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentDefinition>;
-export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;
+export type UpdateAgentResponse = SingleResponse<AgentFormData>;
 
 export type SubAgentTeamAgentConfig = {
   agentId: string;

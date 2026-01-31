@@ -13,7 +13,7 @@ export const idSchema = z
     'Id must contain only alphanumeric characters, underscores, and dashes. No spaces allowed.'
   );
 
-const AgentSchema = AgentApiInsertSchema.pick({
+export const AgentSchema = AgentApiInsertSchema.pick({
   name: true,
   id: true,
   description: true,
