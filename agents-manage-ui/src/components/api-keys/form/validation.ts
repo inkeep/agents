@@ -12,9 +12,7 @@ export const EXPIRATION_DATE_OPTIONS: { value: (typeof DATE_ENUM)[number]; label
   { value: 'never', label: 'No expiration' },
 ];
 
-function convertDurationToDate(
-  duration: (typeof DATE_ENUM)[number] | string
-): string | undefined {
+function convertDurationToDate(duration: (typeof DATE_ENUM)[number] | string): string | undefined {
   if (duration === 'never') {
     return;
   }

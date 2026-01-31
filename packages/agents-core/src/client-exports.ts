@@ -24,7 +24,6 @@ import { CredentialStoreType, MCPTransportType } from './types';
 import {
   type AgentStopWhen,
   AgentStopWhenSchema,
-  ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
   MAX_ID_LENGTH,
@@ -48,6 +47,7 @@ export { validatePropsAsJsonSchema } from './validation/props-validation';
 export {
   AgentApiInsertSchema,
   ApiKeyApiInsertSchema,
+  ArtifactComponentApiInsertSchema,
   DataComponentApiInsertSchema,
   ExternalAgentApiInsertSchema,
   FunctionApiInsertSchema,
@@ -132,8 +132,6 @@ export const CredentialReferenceApiInsertSchema = z.object({
   toolId: z.string().nullish(),
   createdBy: z.string().nullish(),
 });
-
-export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
 
 export const ContextConfigApiInsertSchema = z.object({
   id: z.string().optional(),
