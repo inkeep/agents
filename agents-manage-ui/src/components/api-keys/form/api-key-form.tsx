@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { createApiKeyAction } from '@/lib/actions/api-keys';
 import type { ApiKeyCreateResponse } from '@/lib/api/api-keys';
+import { isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
-import { type ApiKeyFormData, apiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
+import { type ApiKeyFormData, ApiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
 interface ApiKeyFormProps {
   tenantId: string;
@@ -30,7 +31,7 @@ export function ApiKeyForm({
   onApiKeyCreated,
 }: ApiKeyFormProps) {
   const form = useForm<ApiKeyFormData>({
-    resolver: zodResolver(apiKeySchema),
+    resolver: zodResolver(ApiKeySchema),
     defaultValues: initialData,
   });
 
