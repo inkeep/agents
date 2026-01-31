@@ -48,6 +48,7 @@ export { validatePropsAsJsonSchema } from './validation/props-validation';
 export {
   AgentApiInsertSchema,
   ApiKeyApiInsertSchema,
+  DataComponentInsertSchema,
   ExternalAgentApiInsertSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
@@ -67,7 +68,6 @@ export {
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   TriggerWithWebhookUrlSchema,
-  DataComponentInsertSchema,
 } from './validation/schemas';
 
 export type { SignatureVerificationConfig, SignatureSource, SignedComponent };
