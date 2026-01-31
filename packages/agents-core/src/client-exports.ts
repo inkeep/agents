@@ -62,6 +62,7 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  ProjectApiInsertSchema,
   ResourceIdSchema,
   SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,

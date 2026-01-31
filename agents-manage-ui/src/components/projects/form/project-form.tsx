@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
-import { type ProjectFormData, projectSchema } from './validation';
+import { type ProjectFormData, ProjectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;
@@ -101,7 +101,7 @@ export function ProjectForm({
   className,
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
+    resolver: zodResolver(ProjectSchema),
     defaultValues: initialData ? createDefaultValues(initialData) : { ...defaultValues },
   });
 
@@ -116,7 +116,7 @@ export function ProjectForm({
     isEditing: !!projectId,
   });
 
-  const onSubmit = async (data: ProjectFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const serializedData = serializeData(data);
 
     try {
@@ -150,11 +150,11 @@ export function ProjectForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
+      <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"

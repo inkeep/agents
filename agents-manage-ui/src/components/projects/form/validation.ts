@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProjectApiInsertSchema } from '@inkeep/agents-core/client-exports';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
@@ -25,13 +26,12 @@ const projectStopWhenSchema = z
   .optional();
 
 export const projectSchema = z.object({
-  id: z
-    .string()
-    .min(1, 'Project ID is required')
-    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, {
-      message:
-        'ID must start and end with lowercase alphanumeric characters, and may contain hyphens',
-    }),
+  id: z.string(),
+  // .min(1, 'Project ID is required')
+  // .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, {
+  //   message:
+  //     'ID must start and end with lowercase alphanumeric characters, and may contain hyphens',
+  // }),
   name: z
     .string()
     .min(1, 'Project name is required')
@@ -41,4 +41,6 @@ export const projectSchema = z.object({
   stopWhen: projectStopWhenSchema,
 });
 
-export type ProjectFormData = z.infer<typeof projectSchema>;
+export const ProjectSchema = ProjectApiInsertSchema;
+
+export type ProjectFormData = z.infer<typeof ProjectSchema>;

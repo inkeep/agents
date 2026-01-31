@@ -2098,6 +2098,7 @@ export const ProjectSelectSchema = registerFieldSchemas(
 );
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
+    id: ResourceIdSchema,
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
