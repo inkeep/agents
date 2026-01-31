@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import { TypeCompiler } from '@sinclair/typebox/compiler';
-import { basicSchemaTemplate } from './templates';
+import { basicSchemaTemplate } from '../../../../agents-manage-ui/src/lib/templates';
 
 // TypeBox schema for valid JSON Schema Draft 7
 const JsonSchemaPropertySchema = Type.Object({
