@@ -36,16 +36,24 @@ export function DataComponentForm({
   tenantId,
   projectId,
   id,
-  initialData = defaultValues,
+  initialData,
   readOnly = false,
   className,
 }: DataComponentFormProps) {
+  const [defaultValues] = useState(
+    (): DataComponentFormData =>
+      initialData
+        ? {
+            ...initialData,
+            props: JSON.stringify(initialData.props, null, 2),
+          }
+        : defaultValues
+  );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({
     resolver: zodResolver(DataComponentSchema),
-    defaultValues: initialData,
+    defaultValues,
   });
-
   const { isSubmitting } = form.formState;
   const router = useRouter();
 

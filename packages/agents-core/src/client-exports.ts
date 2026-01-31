@@ -54,7 +54,6 @@ export {
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
   ProjectApiInsertSchema,
-  ResourceIdSchema,
   SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
@@ -215,7 +214,6 @@ export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSele
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;
-export type ArtifactComponentApiInsert = z.infer<typeof ArtifactComponentApiInsertSchema>;
 export type FullAgentDefinition = z.infer<typeof FullAgentDefinitionSchema>;
 export type InternalAgentDefinition = z.infer<typeof FullAgentAgentInsertSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
