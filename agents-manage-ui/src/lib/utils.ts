@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { z } from 'zod';
 
 export function isMacOs() {
   return navigator?.userAgent.includes('Mac');
@@ -71,4 +72,8 @@ export function createLookup<T extends { id: string }>(
     },
     {} as Record<string, T>
   );
+}
+
+export function isRequired(schema: z.ZodObject, key: string) {
+  return !schema.shape[key].isOptional();
 }

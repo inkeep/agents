@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { z } from 'zod';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
+import { isRequired } from '@/lib/utils';
 import { GenericInput } from '../form/generic-input';
 import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';
@@ -101,7 +102,7 @@ export const AgentForm = ({
           name="name"
           label="Name"
           placeholder="My agent"
-          isRequired
+          isRequired={isRequired(AgentSchema, 'name')}
         />
         <GenericInput
           control={form.control}
@@ -109,7 +110,7 @@ export const AgentForm = ({
           label="Id"
           placeholder="my-agent"
           disabled={!!agentId}
-          isRequired
+          isRequired={isRequired(AgentSchema, 'id')}
         />
         <GenericTextarea
           control={form.control}
@@ -117,6 +118,7 @@ export const AgentForm = ({
           label="Description"
           placeholder="This agent is used to..."
           className="min-h-[100px]"
+          isRequired={isRequired(AgentSchema, 'description')}
         />
         <div className="flex justify-end">
           <Button disabled={isSubmitting} type="submit">
