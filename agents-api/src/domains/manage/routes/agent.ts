@@ -307,7 +307,23 @@ app.openapi(
 
       return c.json({ data: duplicatedAgent }, 201);
     } catch (error: any) {
-      if (error?.cause?.code === '23505') {
+      // Check for duplicate key errors from both PostgreSQL and Doltgres (MySQL-compatible)
+      const errorCode = error?.code || error?.cause?.code;
+      const topLevelMessage = error?.message || '';
+      const causeMessage = error?.cause?.message || '';
+
+      // PostgreSQL: code 23505
+      // Doltgres/MySQL: errno 1062 or message contains "duplicate primary key"
+      const isDuplicateKey =
+        errorCode === '23505' ||
+        topLevelMessage.includes('duplicate primary key') ||
+        topLevelMessage.includes('duplicate key') ||
+        topLevelMessage.includes('errno 1062') ||
+        causeMessage.includes('duplicate primary key') ||
+        causeMessage.includes('duplicate key') ||
+        causeMessage.includes('errno 1062');
+
+      if (isDuplicateKey) {
         throw createApiError({
           code: 'conflict',
           message: `An agent with ID '${validatedBody.newAgentId}' already exists`,
