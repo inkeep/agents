@@ -1,5 +1,29 @@
 # @inkeep/agents-manage-ui
 
+## 0.44.0
+
+### Minor Changes
+
+- 0ff87cf: feat(dashboard): sort available tools first by active status, after by name
+
+### Patch Changes
+
+- f23d445: invalidate cache when updating mcp servers
+- 4f2b927: If the sidebar is expanded via hover and the user clicks the toggle, keep the sidebar open (persist the expanded state).
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 9ea2de8: fix(dashboard): ignore hydration errors from radix DialogTrigger
+- 7a57040: Refactor ux for tool overrides
+- 046f799: chore(dashboard): mark `useAgentActions`, `useMonacoActions`, `useProjectActions`, `useTheme#setTheme` as stable references to avoid warning from `useExhaustiveDependencies` biome rule
+- da3f64f: fix(dashboard): add toast with error when user want to remove undeletable nodes
+- 0d18b7e: remove feature flag
+- 5704c38: fix login redirect
+- 5e7cede: fix orphaned tools case
+- afd01d5: specify stable functions from `useReactFlow` hook for `useExhaustiveDependencies` biome rule
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+
 ## 0.43.0
 
 ### Minor Changes
