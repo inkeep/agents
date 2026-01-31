@@ -21,7 +21,7 @@ import type {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
-import { ResizablePanelGroup } from '@/components/ui/resizable';
+import { ResizablePanelGroup, useDefaultLayout } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
@@ -116,6 +116,18 @@ export default function ConversationDetail({
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();
   }, [conversationId, tenantId, projectId]);
+
+  const { defaultLayout, onLayoutChange } = useDefaultLayout({
+    groupId: 'conversation-resizable-layout-state',
+    storage:
+      // fix localStorage is not defined error during SSR
+      typeof window === 'undefined'
+        ? {
+            getItem: () => null,
+            setItem() {},
+          }
+        : localStorage,
+  });
 
   if (loading) {
     return (
@@ -358,7 +370,8 @@ export default function ConversationDetail({
       {/* Timeline Panel - Takes remaining height */}
       <div className="flex-1 min-h-0">
         <ResizablePanelGroup
-          direction="horizontal"
+          defaultLayout={defaultLayout}
+          onLayoutChange={onLayoutChange}
           className="h-full border rounded-xl bg-background"
         >
           <TimelineWrapper

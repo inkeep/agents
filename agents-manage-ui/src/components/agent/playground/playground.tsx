@@ -3,7 +3,12 @@ import { type Dispatch, useState } from 'react';
 import { toast } from 'sonner';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+  useDefaultLayout,
+} from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -103,6 +108,9 @@ export const Playground = ({
       setIsCopying(false);
     }
   };
+  const { defaultLayout, onLayoutChange } = useDefaultLayout({
+    groupId: 'playground-resizable-layout-state',
+  });
 
   return (
     <div className="bg-background flex flex-col h-full">
@@ -137,8 +145,8 @@ export const Playground = ({
         </div>
       </div>
       <div className="flex-1 min-h-0 w-full">
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel order={1}>
+        <ResizablePanelGroup defaultLayout={defaultLayout} onLayoutChange={onLayoutChange}>
+          <ResizablePanel minSize="20%">
             <ChatWidget
               conversationId={conversationId}
               setConversationId={setConversationId}
@@ -156,15 +164,15 @@ export const Playground = ({
 
           {showTraces && (
             <>
-              <ResizableHandle />
+              <ResizableHandle withHandle />
               <TimelineWrapper
                 isPolling={isPolling}
                 conversation={chatActivities}
-                enableAutoScroll={true}
+                enableAutoScroll
                 error={error}
                 retryConnection={retryConnection}
                 refreshOnce={refreshOnce}
-                showConversationTracesLink={true}
+                showConversationTracesLink
                 conversationId={conversationId}
                 tenantId={tenantId}
                 projectId={projectId}
