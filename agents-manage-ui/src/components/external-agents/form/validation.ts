@@ -1,5 +1,5 @@
 import { ExternalAgentApiInsertSchema } from '@inkeep/agents-core/client-exports';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 export const ExternalAgentFormSchema = ExternalAgentApiInsertSchema.pick({
   name: true,
@@ -7,10 +7,9 @@ export const ExternalAgentFormSchema = ExternalAgentApiInsertSchema.pick({
   baseUrl: true,
   credentialReferenceId: true,
 }).extend({
-  credentialReferenceId: z
-    .string()
-    .nullish()
-    .transform((value) => (value === 'none' ? null : value)),
+  credentialReferenceId: ExternalAgentApiInsertSchema.shape.credentialReferenceId.transform(
+    (value) => (value === 'none' ? null : value)
+  ),
 });
 
 export type ExternalAgentFormData = z.infer<typeof ExternalAgentFormSchema>;

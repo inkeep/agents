@@ -1428,6 +1428,7 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
   name: z.string().trim().nonempty(),
   baseUrl: z.url(),
   description: z.string().trim().optional(),
+  credentialReferenceId: z.string().trim().nonempty().nullish(),
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
