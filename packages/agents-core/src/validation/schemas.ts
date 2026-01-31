@@ -1343,6 +1343,9 @@ export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchem
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: ResourceIdSchema,
+  name: z.string().trim().nonempty(),
+  description: z.string().trim().optional(),
+  props: z.string().trim().nonempty(),
 });
 export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
   createdAt: true,

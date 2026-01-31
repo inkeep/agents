@@ -67,6 +67,7 @@ export {
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   TriggerWithWebhookUrlSchema,
+  DataComponentInsertSchema,
 } from './validation/schemas';
 
 export type { SignatureVerificationConfig, SignatureSource, SignedComponent };
