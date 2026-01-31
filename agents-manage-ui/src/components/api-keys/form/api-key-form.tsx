@@ -10,7 +10,7 @@ import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { createApiKeyAction } from '@/lib/actions/api-keys';
-import type { ApiKey, ApiKeyCreateResponse } from '@/lib/api/api-keys';
+import type { ApiKeyCreateResponse } from '@/lib/api/api-keys';
 import { defaultValues } from './form-configuration';
 import { type ApiKeyFormData, apiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
@@ -22,62 +22,23 @@ interface ApiKeyFormProps {
   onApiKeyCreated?: (apiKeyData: ApiKeyCreateResponse) => void;
 }
 
-const convertDurationToDate = (duration: string): string | undefined => {
-  if (duration === 'never') {
-    return undefined;
-  }
-
-  const now = new Date();
-
-  switch (duration) {
-    case '1d':
-      now.setDate(now.getDate() + 1);
-      break;
-    case '1w':
-      now.setDate(now.getDate() + 7);
-      break;
-    case '1m':
-      now.setMonth(now.getMonth() + 1);
-      break;
-    case '3m':
-      now.setMonth(now.getMonth() + 3);
-      break;
-    case '1y':
-      now.setFullYear(now.getFullYear() + 1);
-      break;
-    default:
-      return undefined;
-  }
-
-  return now.toISOString();
-};
-
 export function ApiKeyForm({
   tenantId,
   projectId,
-  initialData,
+  initialData = defaultValues,
   agentsOptions,
   onApiKeyCreated,
 }: ApiKeyFormProps) {
   const form = useForm<ApiKeyFormData>({
     resolver: zodResolver(apiKeySchema),
-    defaultValues: initialData || defaultValues,
+    defaultValues: initialData,
   });
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ApiKeyFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const expiresAt = data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined;
-      const name = data.name;
-
-      const payload: Partial<ApiKey> = {
-        agentId: data.agentId,
-        expiresAt,
-        name,
-      };
-
-      const res = await createApiKeyAction(tenantId, projectId, payload);
+      const res = await createApiKeyAction(tenantId, projectId, data);
       if (!res.success) {
         toast.error(res.error || 'Failed to create api key');
         return;
@@ -91,11 +52,11 @@ export function ApiKeyForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"
