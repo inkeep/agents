@@ -63,6 +63,8 @@ export function DuplicateAgentModal({
   });
 
   const onSubmit = async (data: DuplicateAgentFormData) => {
+    const loadingToast = toast.loading('Duplicating agent...');
+
     try {
       const result = await duplicateAgentAction(tenantId, projectId, agentId, {
         newAgentId: data.newAgentId,
@@ -71,19 +73,19 @@ export function DuplicateAgentModal({
 
       if (!result.success) {
         if (result.code === 'conflict') {
-          toast.error('An agent with this ID already exists');
+          toast.error('An agent with this ID already exists', { id: loadingToast });
         } else {
-          toast.error(result.error || 'Failed to duplicate agent');
+          toast.error(result.error || 'Failed to duplicate agent', { id: loadingToast });
         }
         return;
       }
 
-      toast.success('Agent duplicated successfully');
+      toast.success('Agent duplicated successfully', { id: loadingToast });
       setIsOpen(false);
       router.push(`/${tenantId}/projects/${projectId}/agents/${result.data.id}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      toast.error(errorMessage);
+      toast.error(errorMessage, { id: loadingToast });
     }
   };
 

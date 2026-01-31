@@ -129,6 +129,7 @@ export const Agent: FC<AgentProps> = ({
   sandboxEnabled,
 }) => {
   'use memo';
+  console.log('Agent component rendered', agent);
   const [showPlayground, setShowPlayground] = useState(false);
   const {
     isOpen: isCopilotChatOpen,
