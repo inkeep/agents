@@ -1,6 +1,5 @@
 import type { FC, Ref } from 'react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { FieldLabel } from './label';
 import type { BaseFieldProps } from './types';
 

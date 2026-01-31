@@ -3,7 +3,7 @@ import {
   ExternalAgentApiInsertSchema,
   ProjectApiInsertSchema,
 } from '@inkeep/agents-core/client-exports';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 export const AgentSchema = AgentApiInsertSchema.pick({
   name: true,
