@@ -17,8 +17,7 @@ import {
   createDataComponentAction,
   updateDataComponentAction,
 } from '@/lib/actions/data-components';
-import type { DataComponent } from '@/lib/api/data-components';
-import { cn, formatJsonField, isRequired } from '@/lib/utils';
+import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
@@ -33,28 +32,18 @@ interface DataComponentFormProps {
   className?: string;
 }
 
-const formatFormData = (data?: DataComponentFormData): DataComponentFormData => {
-  if (!data) return defaultValues;
-
-  const formatted = { ...data };
-  if (formatted.props) {
-    formatted.props = formatJsonField(formatted.props);
-  }
-  return formatted;
-};
-
 export function DataComponentForm({
   tenantId,
   projectId,
   id,
-  initialData,
+  initialData = defaultValues,
   readOnly = false,
   className,
 }: DataComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({
     resolver: zodResolver(DataComponentSchema),
-    defaultValues: formatFormData(initialData),
+    defaultValues: initialData,
   });
 
   const { isSubmitting } = form.formState;
