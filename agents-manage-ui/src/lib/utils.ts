@@ -71,6 +71,6 @@ export function createLookup<T extends { id: string }>(
   }, {});
 }
 
-export function isRequired(schema: z.ZodObject, key: string) {
-  return !schema.shape[key].isOptional();
+export function isRequired<T extends z.ZodObject>(schema: T, key: keyof T['shape']) {
+  return !schema.shape[key as string].isOptional();
 }

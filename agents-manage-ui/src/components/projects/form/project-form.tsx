@@ -11,7 +11,7 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
-import { cn } from '@/lib/utils';
+import { cn, isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
@@ -161,7 +161,7 @@ export function ProjectForm({
           label="Name"
           placeholder="My Project"
           description="A friendly name for your project"
-          isRequired
+          isRequired={isRequired(ProjectSchema, 'name')}
           disabled={readOnly}
         />
         <GenericInput
@@ -171,7 +171,7 @@ export function ProjectForm({
           placeholder="my-project"
           description="Choose a unique identifier for this project. This cannot be changed later."
           disabled={!!projectId || readOnly}
-          isRequired
+          isRequired={isRequired(ProjectSchema, 'id')}
         />
         <GenericTextarea
           control={form.control}
@@ -180,6 +180,7 @@ export function ProjectForm({
           placeholder="Describe what this project is for..."
           className="min-h-[100px]"
           disabled={readOnly}
+          isRequired={isRequired(ProjectSchema, 'description')}
         />
 
         <Separator />
