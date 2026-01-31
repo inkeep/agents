@@ -65,13 +65,10 @@ export function createLookup<T extends { id: string }>(
 ): Record<string, T> {
   if (!components) return {};
 
-  return components.reduce(
-    (map, component) => {
-      map[component.id] = component;
-      return map;
-    },
-    {} as Record<string, T>
-  );
+  return components.reduce<Record<string, T>>((map, component) => {
+    map[component.id] = component;
+    return map;
+  }, {});
 }
 
 export function isRequired(schema: z.ZodObject, key: string) {
