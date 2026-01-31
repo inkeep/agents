@@ -1345,35 +1345,6 @@ export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchem
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: ResourceIdSchema,
-  name: z.string().trim().nonempty(),
-  description: z.string().trim().optional(),
-  props: z
-    .string()
-    .trim()
-    .nonempty()
-    .transform((str, ctx) => {
-      try {
-        const parsed = JSON.parse(str);
-
-        const validationResult = validateJsonSchemaForLlm(str);
-        if (!validationResult.isValid) {
-          const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: errorMessage,
-          });
-          return z.NEVER;
-        }
-        parsed.required ??= [];
-        return parsed;
-      } catch (error) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: getJsonParseError(error),
-        });
-        return z.NEVER;
-      }
-    }),
 });
 export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
   createdAt: true,
@@ -1384,8 +1355,39 @@ export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
 export const DataComponentApiSelectSchema =
   createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
-export const DataComponentApiInsertSchema =
-  createApiInsertSchema(DataComponentInsertSchema).openapi('DataComponentCreate');
+export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
+  .extend({
+    name: z.string().trim().nonempty(),
+    description: z.string().trim().optional(),
+    props: z
+      .string()
+      .trim()
+      .nonempty()
+      .transform((str, ctx) => {
+        try {
+          const parsed = JSON.parse(str);
+
+          const validationResult = validateJsonSchemaForLlm(str);
+          if (!validationResult.isValid) {
+            const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: errorMessage,
+            });
+            return z.NEVER;
+          }
+          parsed.required ??= [];
+          return parsed;
+        } catch (error) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: getJsonParseError(error),
+          });
+          return z.NEVER;
+        }
+      }),
+  })
+  .openapi('DataComponentCreate');
 export const DataComponentApiUpdateSchema =
   createApiUpdateSchema(DataComponentUpdateSchema).openapi('DataComponentUpdate');
 

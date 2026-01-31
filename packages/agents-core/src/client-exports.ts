@@ -48,7 +48,7 @@ export { validatePropsAsJsonSchema } from './validation/props-validation';
 export {
   AgentApiInsertSchema,
   ApiKeyApiInsertSchema,
-  DataComponentInsertSchema,
+  DataComponentApiInsertSchema,
   ExternalAgentApiInsertSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
