@@ -1,38 +1,11 @@
-import { ResourceIdSchema } from '@inkeep/agents-core/client-exports';
+import { DataComponentInsertSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
 
 export const dataComponentSchema = z.object({
-  id: ResourceIdSchema,
+  // id: ResourceIdSchema,
   name: z.string().min(1, 'Name is required.'),
   description: z.string().optional(),
-  props: z
-    .string()
-    .min(1, 'Props schema is required.')
-    .transform((str, ctx) => {
-      try {
-        const parsed = JSON.parse(str);
-
-        const validationResult = validateJsonSchemaForLlm(str);
-        if (!validationResult.isValid) {
-          const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: errorMessage,
-          });
-          return z.NEVER;
-        }
-        parsed.required ??= [];
-        return parsed;
-      } catch (error) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: getJsonParseError(error),
-        });
-        return z.NEVER;
-      }
-    })
-    .optional(),
+  props: z.string().min(1, 'Props schema is required.').transform().optional(),
   render: z
     .object({
       component: z.string(),
