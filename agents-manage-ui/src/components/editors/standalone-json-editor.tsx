@@ -3,7 +3,7 @@
 import { type ComponentProps, type FC, type ReactNode, useCallback } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
-import { createSchemaTemplate } from '@/lib/json-schema-validation';
+import { basicSchemaTemplate } from '@/lib/templates';
 import { formatJson } from '@/lib/utils';
 
 type JsonEditorProps = ComponentProps<typeof JsonEditor>;
@@ -38,7 +38,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   }, [onChange, value]);
 
   const handleInsertTemplate = useCallback(() => {
-    const template = customTemplate ?? createSchemaTemplate();
+    const template = customTemplate ?? basicSchemaTemplate;
     onChange(template);
   }, [onChange, customTemplate]);
 

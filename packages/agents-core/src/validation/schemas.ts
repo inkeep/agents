@@ -1,19 +1,10 @@
 import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
+import {
+  getJsonParseError,
+  validateJsonSchemaForLlm,
+} from '@inkeep/agents-core/validation/json-schema-validation';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
-import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-
-// Destructure defaults for use in schemas
-const {
-  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
-  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
-  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
-  STATUS_UPDATE_MAX_NUM_EVENTS,
-  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
-  VALIDATION_AGENT_PROMPT_MAX_CHARS,
-  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} = schemaValidationDefaults;
-
 // Config DB imports (Doltgres - versioned)
 import {
   agents,
@@ -47,7 +38,6 @@ import {
   tools,
   triggers,
 } from '../db/manage/manage-schema';
-
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
@@ -71,12 +61,24 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
 
 export const StopWhenSchema = z
   .object({
@@ -1345,7 +1347,33 @@ export const DataComponentInsertSchema = createInsertSchema(dataComponents).exte
   id: ResourceIdSchema,
   name: z.string().trim().nonempty(),
   description: z.string().trim().optional(),
-  props: z.string().trim().nonempty(),
+  props: z
+    .string()
+    .trim()
+    .nonempty()
+    .transform((str, ctx) => {
+      try {
+        const parsed = JSON.parse(str);
+
+        const validationResult = validateJsonSchemaForLlm(str);
+        if (!validationResult.isValid) {
+          const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: errorMessage,
+          });
+          return z.NEVER;
+        }
+        parsed.required ??= [];
+        return parsed;
+      } catch (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: getJsonParseError(error),
+        });
+        return z.NEVER;
+      }
+    }),
 });
 export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
   createdAt: true,

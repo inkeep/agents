@@ -1,6 +1,5 @@
 import { ResourceIdSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
 
 const jsonSchemaValidation = () =>
   z
