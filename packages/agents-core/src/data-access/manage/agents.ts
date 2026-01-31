@@ -975,28 +975,23 @@ export const duplicateAgent =
         ),
       });
 
-      const subAgentIdMapping: Record<string, string> = {};
-
-      // Batch insert all sub-agents in a single query
+      // Batch insert all sub-agents in a single query (IDs are preserved, no remapping needed)
       if (sourceSubAgents.length > 0) {
         await tx.insert(subAgents).values(
-          sourceSubAgents.map((sourceSubAgent) => {
-            subAgentIdMapping[sourceSubAgent.id] = sourceSubAgent.id;
-            return {
-              id: sourceSubAgent.id,
-              tenantId,
-              projectId,
-              agentId: newAgentId,
-              name: sourceSubAgent.name,
-              description: sourceSubAgent.description,
-              prompt: sourceSubAgent.prompt,
-              conversationHistoryConfig: sourceSubAgent.conversationHistoryConfig,
-              models: sourceSubAgent.models,
-              stopWhen: sourceSubAgent.stopWhen,
-              createdAt: now,
-              updatedAt: now,
-            };
-          })
+          sourceSubAgents.map((sourceSubAgent) => ({
+            id: sourceSubAgent.id,
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            name: sourceSubAgent.name,
+            description: sourceSubAgent.description,
+            prompt: sourceSubAgent.prompt,
+            conversationHistoryConfig: sourceSubAgent.conversationHistoryConfig,
+            models: sourceSubAgent.models,
+            stopWhen: sourceSubAgent.stopWhen,
+            createdAt: now,
+            updatedAt: now,
+          }))
         );
       }
 
