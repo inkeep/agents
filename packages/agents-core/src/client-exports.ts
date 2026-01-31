@@ -58,6 +58,7 @@ export {
 };
 
 export {
+  ExternalAgentApiInsertSchema,
   AgentApiInsertSchema,
   ApiKeyApiInsertSchema,
   FunctionApiInsertSchema,
@@ -192,16 +193,6 @@ export const ContextConfigApiInsertSchema = z.object({
   description: z.string().optional(),
   type: z.string().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
-});
-
-export const ExternalAgentApiInsertSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  description: z.string().optional(),
-  baseUrl: z.string(),
-  headers: z.record(z.string(), z.string()).nullable().optional(),
-  credentialReferenceId: z.string().nullable().optional(),
-  type: z.literal('external').optional(),
 });
 
 export const AgentAgentApiInsertSchema = z.object({
