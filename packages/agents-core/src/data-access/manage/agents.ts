@@ -472,6 +472,8 @@ const getFullAgentDefinitionInternal =
         const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
           where: and(
             eq(subAgentDataComponents.tenantId, tenantId),
+            eq(subAgentDataComponents.projectId, projectId),
+            eq(subAgentDataComponents.agentId, agentId),
             eq(subAgentDataComponents.subAgentId, agent.id)
           ),
         });
@@ -480,6 +482,8 @@ const getFullAgentDefinitionInternal =
         const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
           where: and(
             eq(subAgentArtifactComponents.tenantId, tenantId),
+            eq(subAgentArtifactComponents.projectId, projectId),
+            eq(subAgentArtifactComponents.agentId, agentId),
             eq(subAgentArtifactComponents.subAgentId, agent.id)
           ),
         });

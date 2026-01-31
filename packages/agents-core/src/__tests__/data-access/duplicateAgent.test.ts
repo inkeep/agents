@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { duplicateAgent, getAgentById } from '../../data-access/manage/agents';
+import {
+  createAgent,
+  duplicateAgent,
+  getAgentById,
+  getFullAgentDefinition,
+} from '../../data-access/manage/agents';
 import { listFunctionTools } from '../../data-access/manage/functionTools';
 import { listSubAgents } from '../../data-access/manage/subAgents';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
@@ -22,6 +27,7 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
+import { generateId } from '../../utils/conversations';
 import { testManageDbClient } from '../setup';
 
 describe('duplicateAgent', () => {
@@ -684,6 +690,137 @@ describe('duplicateAgent', () => {
         }
       );
       expect(duplicatedFunctionToolRelations).toHaveLength(1);
+    });
+
+    it('should not cause cross-contamination of data/artifact components between original and duplicated agents', async () => {
+      // Create data component
+      await db.insert(dataComponents).values({
+        id: 'test-data-component',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Data Component',
+        description: 'Test',
+        props: {},
+        render: { component: 'test', mockData: {} },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Create artifact component
+      await db.insert(artifactComponents).values({
+        id: 'test-artifact-component',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Artifact Component',
+        description: 'Test',
+        props: {},
+        render: { component: 'test', mockData: {} },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Create agent with sub-agent
+      const sourceAgentId = 'test-agent-components';
+      await createAgent(db)({
+        id: sourceAgentId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Test Agent',
+        description: 'Test agent',
+        defaultSubAgentId: 'sub-agent-1',
+      });
+
+      await db.insert(subAgents).values({
+        id: 'sub-agent-1',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: sourceAgentId,
+        name: 'Sub Agent 1',
+        description: 'Test sub agent',
+        prompt: 'Test',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Associate data component with sub-agent
+      await db.insert(subAgentDataComponents).values({
+        id: generateId(),
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: sourceAgentId,
+        subAgentId: 'sub-agent-1',
+        dataComponentId: 'test-data-component',
+        createdAt: new Date().toISOString(),
+      });
+
+      // Associate artifact component with sub-agent
+      await db.insert(subAgentArtifactComponents).values({
+        id: generateId(),
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: sourceAgentId,
+        subAgentId: 'sub-agent-1',
+        artifactComponentId: 'test-artifact-component',
+        createdAt: new Date().toISOString(),
+      });
+
+      // Duplicate the agent
+      const newAgentId = 'test-agent-components-copy';
+      await duplicateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: sourceAgentId },
+        newAgentId,
+        newAgentName: 'Test Agent (Copy)',
+      });
+
+      // Get full definitions for both agents
+      const originalAgentFull = await getFullAgentDefinition(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: sourceAgentId },
+      });
+
+      const duplicatedAgentFull = await getFullAgentDefinition(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: newAgentId },
+      });
+
+      // Verify original agent has exactly 1 of each component (not duplicated)
+      expect(originalAgentFull?.subAgents['sub-agent-1'].dataComponents).toHaveLength(1);
+      expect(originalAgentFull?.subAgents['sub-agent-1'].artifactComponents).toHaveLength(1);
+      expect(originalAgentFull?.subAgents['sub-agent-1'].dataComponents).toEqual([
+        'test-data-component',
+      ]);
+      expect(originalAgentFull?.subAgents['sub-agent-1'].artifactComponents).toEqual([
+        'test-artifact-component',
+      ]);
+
+      // Verify duplicated agent has exactly 1 of each component (not duplicated)
+      expect(duplicatedAgentFull?.subAgents['sub-agent-1'].dataComponents).toHaveLength(1);
+      expect(duplicatedAgentFull?.subAgents['sub-agent-1'].artifactComponents).toHaveLength(1);
+      expect(duplicatedAgentFull?.subAgents['sub-agent-1'].dataComponents).toEqual([
+        'test-data-component',
+      ]);
+      expect(duplicatedAgentFull?.subAgents['sub-agent-1'].artifactComponents).toEqual([
+        'test-artifact-component',
+      ]);
+
+      // Verify database has exactly 2 relations total (1 for each agent)
+      const allDataComponentRelations = await db.query.subAgentDataComponents.findMany({
+        where: (subAgentDataComponents, { eq, and }) =>
+          and(
+            eq(subAgentDataComponents.tenantId, testTenantId),
+            eq(subAgentDataComponents.projectId, testProjectId),
+            eq(subAgentDataComponents.subAgentId, 'sub-agent-1')
+          ),
+      });
+      expect(allDataComponentRelations).toHaveLength(2); // One for each agent
+
+      const allArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
+        where: (subAgentArtifactComponents, { eq, and }) =>
+          and(
+            eq(subAgentArtifactComponents.tenantId, testTenantId),
+            eq(subAgentArtifactComponents.projectId, testProjectId),
+            eq(subAgentArtifactComponents.subAgentId, 'sub-agent-1')
+          ),
+      });
+      expect(allArtifactComponentRelations).toHaveLength(2); // One for each agent
     });
   });
 });
