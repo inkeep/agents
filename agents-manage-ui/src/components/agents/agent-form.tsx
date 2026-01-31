@@ -66,7 +66,7 @@ export const AgentForm = ({
     isEditing: !!agentId,
   });
 
-  const onSubmit = async (data: AgentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       if (agentId) {
         const res = await updateAgentAction(tenantId, projectId, agentId, data);
@@ -92,11 +92,11 @@ export const AgentForm = ({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-8" onSubmit={onSubmit}>
         <GenericInput
           control={form.control}
           name="name"
