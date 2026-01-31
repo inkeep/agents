@@ -59,6 +59,7 @@ export {
 
 export {
   AgentApiInsertSchema,
+  ApiKeyApiInsertSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,

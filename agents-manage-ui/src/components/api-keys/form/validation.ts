@@ -1,6 +1,9 @@
 import { z } from 'zod';
+import { ApiKeyApiInsertSchema } from '@inkeep/agents-core/client-exports';
 
-export const EXPIRATION_DATE_OPTIONS = [
+const DATE_ENUM = ['1d', '1w', '1m', '3m', '1y', 'never'] as const;
+
+export const EXPIRATION_DATE_OPTIONS: { value: (typeof DATE_ENUM)[number]; label: string }[] = [
   { value: '1d', label: '1 day' },
   { value: '1w', label: '1 week' },
   { value: '1m', label: '1 month' },
@@ -9,15 +12,45 @@ export const EXPIRATION_DATE_OPTIONS = [
   { value: 'never', label: 'No expiration' },
 ];
 
+export function convertDurationToDate(duration: (typeof DATE_ENUM)[number]): string | undefined {
+  if (duration === 'never') {
+    return;
+  }
+
+  const now = new Date();
+
+  switch (duration) {
+    case '1d':
+      now.setDate(now.getDate() + 1);
+      break;
+    case '1w':
+      now.setDate(now.getDate() + 7);
+      break;
+    case '1m':
+      now.setMonth(now.getMonth() + 1);
+      break;
+    case '3m':
+      now.setMonth(now.getMonth() + 3);
+      break;
+    case '1y':
+      now.setFullYear(now.getFullYear() + 1);
+      break;
+    default:
+      return;
+  }
+
+  return now.toISOString();
+}
+
 export const apiKeySchema = z.object({
   name: z.string().min(1, 'Please enter a name.'),
   agentId: z.string().min(1, 'Please select an agent.'),
-  expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never'] as const),
+  expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never']),
 });
 
 export const apiKeyUpdateSchema = z.object({
   name: z.string().min(1, 'Please enter a name.'),
-  expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never'] as const),
+  expiresAt: z.enum(['1d', '1w', '1m', '3m', '1y', 'never']),
 });
 
 export type ApiKeyFormData = z.infer<typeof apiKeySchema>;
