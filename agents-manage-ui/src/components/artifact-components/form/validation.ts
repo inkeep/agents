@@ -1,6 +1,6 @@
+import { ResourceIdSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
-import { idSchema } from '@/lib/validation';
 
 const jsonSchemaValidation = () =>
   z
@@ -35,7 +35,7 @@ const jsonSchemaValidation = () =>
     .optional();
 
 export const artifactComponentSchema = z.object({
-  id: idSchema,
+  id: ResourceIdSchema,
   name: z.string().min(1, 'Name is required.'),
   description: z.string().optional(),
   props: jsonSchemaValidation(),

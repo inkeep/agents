@@ -1,7 +1,7 @@
 import {
   AgentApiInsertSchema,
-  ProjectApiInsertSchema,
   ExternalAgentApiInsertSchema,
+  ProjectApiInsertSchema,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
