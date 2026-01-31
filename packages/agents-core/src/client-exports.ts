@@ -58,6 +58,7 @@ export {
 };
 
 export {
+  AgentApiInsertSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
@@ -120,20 +121,6 @@ export const ErrorResponseSchema = z.object({
 });
 
 export { ModelSettingsSchema, type ModelSettings };
-
-export const AgentApiInsertSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  description: z.string().optional(),
-  prompt: z.string().optional(),
-  model: ModelSettingsSchema.optional(),
-  tools: z.array(z.string()).optional(),
-  dataComponents: z.array(z.string()).optional(),
-  artifactComponents: z.array(z.string()).optional(),
-  canTransferTo: z.array(z.string()).optional(),
-  canDelegateTo: z.array(z.string()).optional(),
-  type: z.enum(['internal', 'external']).optional(),
-});
 
 export const ToolApiInsertSchema = z.object({
   id: z.string().optional(),

@@ -115,7 +115,8 @@ export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
 
 export const ResourceIdSchema = z
   .string()
-  .min(MIN_ID_LENGTH)
+  .nonempty()
+  .trim()
   .max(MAX_ID_LENGTH)
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
@@ -344,8 +345,8 @@ const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
 
 export const AgentInsertSchema = createInsertSchema(agents, {
   id: () => ResourceIdSchema,
-  name: () =>
-    z.string().trim().nonempty().describe('Agent name').openapi({ description: 'Agent name' }),
+  name: () => z.string().nonempty().trim().openapi({ description: 'Agent name' }),
+  description: () => z.string().trim().openapi({ description: 'Agent description' }),
   defaultSubAgentId: () =>
     ResourceIdSchema.clone().nullable().optional().openapi({
       description: DEFAULT_SUB_AGENT_ID_DESCRIPTION,

@@ -1,25 +1,25 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AgentApiInsertSchema } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
-import { idSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
 import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';
 import { Form } from '../ui/form';
 
-const agentSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  id: idSchema,
-  description: z.string().optional(),
+const AgentSchema = AgentApiInsertSchema.pick({
+  name: true,
+  id: true,
+  description: true,
 });
 
-export type AgentFormData = z.infer<typeof agentSchema>;
+export type AgentFormData = z.infer<typeof AgentSchema>;
 
 const defaultValues: AgentFormData = {
   name: '',
@@ -40,12 +40,12 @@ export const AgentForm = ({
   projectId,
   agentId,
   onSuccess,
-  initialData,
+  initialData = defaultValues,
 }: AgentFormProps) => {
   const router = useRouter();
   const form = useForm<AgentFormData>({
-    resolver: zodResolver(agentSchema),
-    defaultValues: initialData ?? defaultValues,
+    resolver: zodResolver(AgentSchema),
+    defaultValues: initialData,
   });
 
   const { isSubmitting } = form.formState;
