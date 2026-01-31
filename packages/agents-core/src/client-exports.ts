@@ -24,7 +24,6 @@ import { CredentialStoreType, MCPTransportType } from './types';
 import {
   type AgentStopWhen,
   AgentStopWhenSchema,
-  type ApiKeyApiUpdateSchema,
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
@@ -38,24 +37,13 @@ import {
   StopWhenSchema,
   type SubAgentStopWhen,
   SubAgentStopWhenSchema,
-  type TriggerApiInsertSchema,
   type TriggerApiSelectSchema,
-  type TriggerApiUpdateSchema,
   type TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
 export { validatePropsAsJsonSchema } from './validation/props-validation';
-
-export {
-  StopWhenSchema,
-  AgentStopWhenSchema,
-  SubAgentStopWhenSchema,
-  type StopWhen,
-  type AgentStopWhen,
-  type SubAgentStopWhen,
-};
 
 export {
   AgentApiInsertSchema,
@@ -83,39 +71,12 @@ export {
 
 export type { SignatureVerificationConfig, SignatureSource, SignedComponent };
 
-export const TenantParamsSchema = z.object({
-  tenantId: z.string(),
-});
-
-export const TenantProjectParamsSchema = TenantParamsSchema.extend({
-  projectId: z.string(),
-});
-
-export const TenantProjectIdParamsSchema = TenantProjectParamsSchema.extend({
-  id: z.string(),
-});
-
-export const IdParamsSchema = z.object({
-  id: z.string(),
-});
-
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   total: z.number(),
   pages: z.number(),
 });
-
-export const ListResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
-  z.object({
-    data: z.array(itemSchema),
-    pagination: PaginationSchema,
-  });
-
-export const SingleResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
-  z.object({
-    data: itemSchema,
-  });
 
 export const ErrorResponseSchema = z.object({
   error: z.string(),
@@ -169,20 +130,6 @@ export const CredentialReferenceApiInsertSchema = z.object({
   userId: z.string().nullish(),
   toolId: z.string().nullish(),
   createdBy: z.string().nullish(),
-});
-
-export const DataComponentApiInsertSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  props: z.record(z.string(), z.unknown()),
-  render: z
-    .object({
-      component: z.string(),
-      mockData: z.record(z.string(), z.unknown()),
-    })
-    .nullable()
-    .optional(),
 });
 
 export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
@@ -264,23 +211,14 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
 
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
-export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
-export type TriggerApiUpdate = z.infer<typeof TriggerApiUpdateSchema>;
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
-export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;
-export type DataComponentApiInsert = z.infer<typeof DataComponentApiInsertSchema>;
 export type ArtifactComponentApiInsert = z.infer<typeof ArtifactComponentApiInsertSchema>;
-export type ContextConfigApiInsert = z.infer<typeof ContextConfigApiInsertSchema>;
-export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
-export type AgentAgentApiInsert = z.infer<typeof AgentAgentApiInsertSchema>;
 export type FullAgentDefinition = z.infer<typeof FullAgentDefinitionSchema>;
 export type InternalAgentDefinition = z.infer<typeof FullAgentAgentInsertSchema>;
-export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchema>;
-export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
 export function generateIdFromName(name: string): string {
@@ -292,10 +230,16 @@ export function generateIdFromName(name: string): string {
     .slice(0, MAX_ID_LENGTH);
 }
 
-export type ToolInsert = ToolApiInsert;
-export type AgentAgentInsert = AgentAgentApiInsert;
-
-export { CredentialStoreType, MCPTransportType };
+export {
+  CredentialStoreType,
+  MCPTransportType,
+  StopWhenSchema,
+  AgentStopWhenSchema,
+  SubAgentStopWhenSchema,
+  type StopWhen,
+  type AgentStopWhen,
+  type SubAgentStopWhen,
+};
 
 export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/config';
 export * from './constants/context-breakdown';

@@ -1,6 +1,6 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
-import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
+import type { ExternalAgentFormData } from '@/lib/validation';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';

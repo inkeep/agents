@@ -15,7 +15,7 @@ import type { Credential } from '@/lib/api/credentials';
 import { createExternalAgent, updateExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn, isRequired } from '@/lib/utils';
-import { type ExternalAgentFormData, ExternalAgentFormSchema } from './validation';
+import { type ExternalAgentFormData, ExternalAgentFormSchema } from '@/lib/validation';
 
 interface ExternalAgentFormProps {
   initialData?: ExternalAgentFormData;
