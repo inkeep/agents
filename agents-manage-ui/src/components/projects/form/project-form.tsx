@@ -12,10 +12,10 @@ import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { cn, isRequired } from '@/lib/utils';
+import { type ProjectFormData, ProjectSchema } from '@/lib/validation';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
-import { type ProjectFormData, ProjectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;

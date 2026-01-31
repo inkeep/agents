@@ -17,8 +17,8 @@ import {
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
+import { type ProjectFormData, ProjectSchema } from '@/lib/validation';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import { type ProjectFormData, ProjectSchema } from './validation';
 
 interface ProjectModelsSectionProps {
   control: Control<ProjectFormData>;

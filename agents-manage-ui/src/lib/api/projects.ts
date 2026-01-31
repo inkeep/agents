@@ -2,7 +2,7 @@
 
 import type { ProjectPermissions } from '@inkeep/agents-core';
 import { cache } from 'react';
-import type { ProjectFormData } from '@/components/projects/form/validation';
+import type { ProjectFormData } from '@/lib/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';

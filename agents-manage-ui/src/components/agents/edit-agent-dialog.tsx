@@ -7,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AgentForm, type AgentFormData } from './agent-form';
+import type { AgentFormData } from '@/lib/validation';
+import { AgentForm } from './agent-form';
 
 interface EditAgentDialogProps {
   tenantId: string;

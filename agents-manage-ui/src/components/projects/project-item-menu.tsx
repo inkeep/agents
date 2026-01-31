@@ -7,9 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { ProjectFormData } from '@/lib/validation';
 import { DeleteProjectConfirmation } from './delete-project-confirmation';
 import { EditProjectDialog } from './edit-project-dialog';
-import type { ProjectFormData } from './form/validation';
 
 interface ProjectItemMenuProps {
   projectName?: string;
