@@ -3,6 +3,7 @@
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
+import { FormControl } from '@/components/ui/form';
 
 interface GenericTextareaProps<T extends FieldValues> {
   control: Control<T>;
@@ -30,15 +31,17 @@ export function GenericTextarea<T extends FieldValues>({
   return (
     <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
-        <Textarea
-          placeholder={placeholder}
-          className={className}
-          rows={rows}
-          {...field}
-          value={field.value ?? ''}
-          readOnly={readOnly}
-          disabled={disabled}
-        />
+        <FormControl>
+          <Textarea
+            placeholder={placeholder}
+            className={className}
+            rows={rows}
+            {...field}
+            value={field.value ?? ''}
+            readOnly={readOnly}
+            disabled={disabled}
+          />
+        </FormControl>
       )}
     </FormFieldWrapper>
   );
