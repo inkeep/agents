@@ -16,8 +16,9 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import type { ProjectFormData } from './validation';
+import { type ProjectFormData, ProjectSchema } from './validation';
 
 interface ProjectModelsSectionProps {
   control: Control<ProjectFormData>;
@@ -41,9 +42,9 @@ function BaseModelSection({
       <FormFieldWrapper
         control={control}
         name="models.base.model"
+        isRequired={isRequired(ProjectSchema, 'models.base.model')}
         label="Base model"
         description="Primary model for general agent responses"
-        isRequired
       >
         {(field) => (
           <ModelConfiguration
@@ -96,6 +97,7 @@ function StructuredOutputModelSection({
       <FormFieldWrapper
         control={control}
         name="models.structuredOutput.model"
+        isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
         label="Structured output model"
         description="Model for structured outputs and components (defaults to base model)"
       >
@@ -112,7 +114,11 @@ function StructuredOutputModelSection({
         )}
       </FormFieldWrapper>
       <div className="space-y-2">
-        <FieldLabel id="models.structuredOutput.providerOptions" label="Provider options" />
+        <FieldLabel
+          id="models.structuredOutput.providerOptions"
+          isRequired={isRequired(ProjectSchema, 'models.structuredOutput.providerOptions')}
+          label="Provider options"
+        />
         <StandaloneJsonEditor
           name="models.structuredOutput.providerOptions"
           value={
@@ -158,6 +164,7 @@ function SummarizerModelSection({
       <FormFieldWrapper
         control={control}
         name="models.summarizer.model"
+        isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
         label="Summarizer model"
         description="Model for summarization tasks (defaults to base model)"
       >
@@ -174,7 +181,11 @@ function SummarizerModelSection({
         )}
       </FormFieldWrapper>
       <div className="space-y-2">
-        <FieldLabel id="models.summarizer.providerOptions" label="Provider options" />
+        <FieldLabel
+          id="models.summarizer.providerOptions"
+          isRequired={isRequired(ProjectSchema, 'models.summarizer.providerOptions')}
+          label="Provider options"
+        />
         <StandaloneJsonEditor
           name="models.summarizer.providerOptions"
           value={

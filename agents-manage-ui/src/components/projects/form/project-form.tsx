@@ -27,36 +27,35 @@ interface ProjectFormProps {
   className?: string;
 }
 
+const cleanProviderOptions = (options: any) => {
+  if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
+    return undefined;
+  }
+  return options;
+};
+const cleanStopWhen = (stopWhen: any) => {
+  // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
+  if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
+    return {};
+  }
+
+  // Clean the individual properties - remove null/undefined values
+  const cleaned: any = {};
+  if (stopWhen.transferCountIs !== null && stopWhen.transferCountIs !== undefined) {
+    cleaned.transferCountIs = stopWhen.transferCountIs;
+  }
+  if (stopWhen.stepCountIs !== null && stopWhen.stepCountIs !== undefined) {
+    cleaned.stepCountIs = stopWhen.stepCountIs;
+  }
+
+  if (Object.keys(cleaned).length === 0) {
+    return {};
+  }
+
+  return cleaned;
+};
+
 const serializeData = (data: ProjectFormData) => {
-  const cleanProviderOptions = (options: any) => {
-    if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
-      return undefined;
-    }
-    return options;
-  };
-
-  const cleanStopWhen = (stopWhen: any) => {
-    // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
-    if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
-      return {};
-    }
-
-    // Clean the individual properties - remove null/undefined values
-    const cleaned: any = {};
-    if (stopWhen.transferCountIs !== null && stopWhen.transferCountIs !== undefined) {
-      cleaned.transferCountIs = stopWhen.transferCountIs;
-    }
-    if (stopWhen.stepCountIs !== null && stopWhen.stepCountIs !== undefined) {
-      cleaned.stepCountIs = stopWhen.stepCountIs;
-    }
-
-    if (Object.keys(cleaned).length === 0) {
-      return {};
-    }
-
-    return cleaned;
-  };
-
   return {
     ...data,
     models: {
@@ -87,7 +86,7 @@ const createDefaultValues = (initialData?: ProjectFormData) => {
     ...initialData,
     // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object
     stopWhen: initialData?.stopWhen || {},
-    models: initialData?.models || { base: { model: '', providerOptions: null } },
+    models: initialData?.models || { base: { model: '' } },
   };
 };
 
