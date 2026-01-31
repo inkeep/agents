@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { updateApiKeyAction } from '@/lib/actions/api-keys';
 import type { ApiKey } from '@/lib/api/api-keys';
-import { type ApiKeyUpdateData, apiKeyUpdateSchema, EXPIRATION_DATE_OPTIONS } from './validation';
+import { isRequired } from '@/lib/utils';
+import { type ApiKeyUpdateData, ApiKeyUpdateSchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
 interface ApiKeyUpdateFormProps {
   tenantId: string;
@@ -17,36 +18,6 @@ interface ApiKeyUpdateFormProps {
   apiKey: ApiKey;
   onApiKeyUpdated?: (apiKeyData: ApiKey) => void;
 }
-
-const convertDurationToDate = (duration: string): string | undefined => {
-  if (duration === 'never') {
-    return undefined;
-  }
-
-  const now = new Date();
-
-  switch (duration) {
-    case '1d':
-      now.setDate(now.getDate() + 1);
-      break;
-    case '1w':
-      now.setDate(now.getDate() + 7);
-      break;
-    case '1m':
-      now.setMonth(now.getMonth() + 1);
-      break;
-    case '3m':
-      now.setMonth(now.getMonth() + 3);
-      break;
-    case '1y':
-      now.setFullYear(now.getFullYear() + 1);
-      break;
-    default:
-      return undefined;
-  }
-
-  return now.toISOString();
-};
 
 const convertDateToDuration = (isoDate?: string): 'never' | '1d' | '1w' | '1m' | '3m' | '1y' => {
   if (!isoDate) {
@@ -84,27 +55,18 @@ export function ApiKeyUpdateForm({
   onApiKeyUpdated,
 }: ApiKeyUpdateFormProps) {
   const form = useForm<ApiKeyUpdateData>({
-    resolver: zodResolver(apiKeyUpdateSchema),
+    resolver: zodResolver(ApiKeyUpdateSchema),
     defaultValues: {
-      name: apiKey.name || 'No Name',
+      name: apiKey.name,
       expiresAt: convertDateToDuration(apiKey.expiresAt),
     },
   });
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ApiKeyUpdateData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const expiresAt = data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined;
-      const name = data.name;
-
-      const payload: Partial<ApiKey> = {
-        id: apiKey.id,
-        expiresAt,
-        name,
-      };
-
-      const res = await updateApiKeyAction(tenantId, projectId, payload);
+      const res = await updateApiKeyAction(tenantId, projectId, data);
       if (!res.success) {
         toast.error(res.error || 'Failed to update api key');
         return;
@@ -118,17 +80,17 @@ export function ApiKeyUpdateForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"
           label="Name"
           placeholder="Enter a name"
-          isRequired
+          isRequired={isRequired(ApiKeyUpdateSchema, 'name')}
         />
         <GenericSelect
           control={form.control}
@@ -137,7 +99,7 @@ export function ApiKeyUpdateForm({
           placeholder="Select expiration date"
           options={EXPIRATION_DATE_OPTIONS}
           selectTriggerClassName="w-full"
-          isRequired
+          isRequired={isRequired(ApiKeyUpdateSchema, 'expiresAt')}
         />
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
