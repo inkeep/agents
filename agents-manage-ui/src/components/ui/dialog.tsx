@@ -11,7 +11,17 @@ function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {
 }
 
 function DialogTrigger(props: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
+  return (
+    <DialogPrimitive.Trigger
+      data-slot="dialog-trigger"
+      /**
+       * TODO remove until upstream issue will be fixed
+       * @see https://github.com/radix-ui/primitives/issues/3700#issuecomment-3761074491
+       */
+      suppressHydrationWarning
+      {...props}
+    />
+  );
 }
 
 function DialogPortal(props: React.ComponentProps<typeof DialogPrimitive.Portal>) {

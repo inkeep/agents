@@ -28,6 +28,7 @@ import {
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
+  MAX_ID_LENGTH,
   type ModelSettings,
   ModelSettingsSchema,
   type SignatureSource,
@@ -60,6 +61,7 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  ResourceIdSchema,
   SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
@@ -301,18 +303,6 @@ export type InternalAgentDefinition = z.infer<typeof FullAgentAgentInsertSchema>
 export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
-
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
-
-export const resourceIdSchema = z
-  .string()
-  .min(MIN_ID_LENGTH)
-  .max(MAX_ID_LENGTH)
-  .regex(URL_SAFE_ID_PATTERN, {
-    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-  });
 
 export function generateIdFromName(name: string): string {
   return name

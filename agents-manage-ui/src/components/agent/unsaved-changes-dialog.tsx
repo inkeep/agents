@@ -66,8 +66,10 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       if (!dirty || isNavigatingRef.current) {
         return;
       }
-      const el = (event.target as HTMLElement | null)?.closest('a[href]');
-      const href = (el as HTMLAnchorElement | null)?.href;
+      const el = (event.target as HTMLElement | null)?.closest(
+        'a[href]'
+      ) as HTMLAnchorElement | null;
+      const href = el?.href;
       if (
         !href ||
         href.startsWith('#') ||
@@ -75,6 +77,10 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
         href.startsWith('mailto:') ||
         href.startsWith('tel:')
       ) {
+        return;
+      }
+      // Don't intercept links that open in a new tab - they don't navigate away from the page, we need this for docs links.
+      if (el?.target === '_blank') {
         return;
       }
       const url = new URL(href, location.href);

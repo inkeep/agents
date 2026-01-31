@@ -75,7 +75,6 @@ import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
-import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
@@ -416,7 +415,7 @@ export const Agent: FC<AgentProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [isOpen, fitView]);
+  }, [isOpen]);
 
   // Auto-center agent when playground opens/closes
   // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on showPlayground changes
@@ -753,20 +752,6 @@ export const Agent: FC<AgentProps> = ({
   };
 
   const onSubmit = async (): Promise<boolean> => {
-    // Check for orphaned tools before saving
-    const warningMessage = detectOrphanedToolsAndGetWarning(
-      nodes,
-      agentToolConfigLookup,
-      toolLookup
-    );
-
-    if (warningMessage) {
-      toast.warning(warningMessage, {
-        closeButton: true,
-        duration: 6000,
-      });
-    }
-
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
       serializedData = serializeAgentData(
@@ -919,7 +904,6 @@ export const Agent: FC<AgentProps> = ({
     return false;
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
     const onCompletion = () => {
       // @ts-expect-error

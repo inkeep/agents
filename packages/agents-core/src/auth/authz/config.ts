@@ -1,14 +1,4 @@
 /**
- * SpiceDB Authorization Configuration
- *
- * Feature flag and configuration for the SpiceDB authorization system.
- */
-
-export function isAuthzEnabled(): boolean {
-  return process.env.ENABLE_AUTHZ === 'true';
-}
-
-/**
  * Get SpiceDB connection configuration from environment variables.
  * TLS is auto-detected: disabled for localhost, enabled for remote endpoints.
  */

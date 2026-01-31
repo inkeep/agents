@@ -105,14 +105,14 @@ export default function AllProjectsToolCallsBreakdown({
           endTime: clampedEndMs,
         };
       }
-      const hoursBack = TIME_RANGES['15d'].hours;
+      const hoursBack = TIME_RANGES['30d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
       };
     }
 
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 15;
+    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
     return {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
@@ -242,7 +242,7 @@ export default function AllProjectsToolCallsBreakdown({
               </Label>
               <DatePickerWithPresets
                 label="Time range"
-                onRemove={() => setTimeRange('15d')}
+                onRemove={() => setTimeRange('30d')}
                 value={
                   timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
                 }

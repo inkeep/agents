@@ -1,5 +1,54 @@
 # @inkeep/agents-cli
 
+## 0.43.0
+
+### Minor Changes
+
+- de9bed1: Replace deprecated keytar package with @napi-rs/keyring for native keychain integration
+
+### Patch Changes
+
+- 5f432f9: stats page
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 5ffbf6b: trigger traces
+- 05a8a12: adding authorization checks and spicedb setup
+- 720d42f: trigger fix for vercel
+- 5f66967: triggers for vercel
+- Updated dependencies [de9bed1]
+- Updated dependencies [0497b9a]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [0f86f53]
+- Updated dependencies [05a8a12]
+- Updated dependencies [f1920e3]
+- Updated dependencies [e8da68a]
+- Updated dependencies [0fff69c]
+- Updated dependencies [503ce52]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [c47f630]
+- Updated dependencies [31b3310]
+- Updated dependencies [27a6e3f]
+- Updated dependencies [5f66967]
+- Updated dependencies [b215936]
+- Updated dependencies [82b959b]
+- Updated dependencies [8160ded]
+- Updated dependencies [0b75a6d]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+  - @inkeep/agents-sdk@0.43.0
+  - @inkeep/agents-manage-ui@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

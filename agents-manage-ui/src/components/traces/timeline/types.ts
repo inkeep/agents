@@ -8,7 +8,8 @@ export type PanelType =
   | 'tool_approval_requested'
   | 'tool_approval_approved'
   | 'tool_approval_denied'
-  | 'trigger_invocation';
+  | 'trigger_invocation'
+  | 'max_steps_reached';
 
 type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
@@ -30,6 +31,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
   COMPRESSION: 'compression',
+  MAX_STEPS_REACHED: 'max_steps_reached',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -137,6 +139,9 @@ export interface ActivityItem {
   invocationType?: string;
   triggerId?: string;
   triggerInvocationId?: string;
+  maxStepsReached?: boolean;
+  stepsCompleted?: number;
+  maxSteps?: number;
 }
 
 interface ToolCall {

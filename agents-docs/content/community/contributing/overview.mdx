@@ -40,8 +40,7 @@ This will:
 - Create `~/.inkeep/config` for user-global settings if missing
 - Add `.env` to `.gitignore` if needed
 - Install dependencies
-- Start Doltgres (manage) + Postgres (runtime) via `docker-compose.dbs.yml` and run migrations
-- Optionally set up SpiceDB if `ENABLE_AUTHZ=true`
+- Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml` and run migrations
 
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
