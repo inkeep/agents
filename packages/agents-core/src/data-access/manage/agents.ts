@@ -4,13 +4,17 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   agents,
   artifactComponents,
+  contextConfigs,
   dataComponents,
   functionTools,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
+  subAgentExternalAgentRelations,
   subAgentFunctionToolRelations,
+  subAgentRelations,
   subAgents,
+  subAgentTeamAgentRelations,
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
@@ -468,6 +472,8 @@ const getFullAgentDefinitionInternal =
         const agentDataComponentRelations = await db.query.subAgentDataComponents.findMany({
           where: and(
             eq(subAgentDataComponents.tenantId, tenantId),
+            eq(subAgentDataComponents.projectId, projectId),
+            eq(subAgentDataComponents.agentId, agentId),
             eq(subAgentDataComponents.subAgentId, agent.id)
           ),
         });
@@ -476,6 +482,8 @@ const getFullAgentDefinitionInternal =
         const agentArtifactComponentRelations = await db.query.subAgentArtifactComponents.findMany({
           where: and(
             eq(subAgentArtifactComponents.tenantId, tenantId),
+            eq(subAgentArtifactComponents.projectId, projectId),
+            eq(subAgentArtifactComponents.agentId, agentId),
             eq(subAgentArtifactComponents.subAgentId, agent.id)
           ),
         });
@@ -920,5 +928,325 @@ export const upsertAgent =
     return await createAgent(db)({
       ...params.data,
       id: agentId,
+    });
+  };
+
+export const duplicateAgent =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    newAgentId: string;
+    newAgentName?: string;
+  }): Promise<AgentSelect> => {
+    const { tenantId, projectId, agentId: sourceAgentId } = params.scopes;
+    const { newAgentId, newAgentName } = params;
+
+    const sourceAgent = await getAgentById(db)({
+      scopes: { tenantId, projectId, agentId: sourceAgentId },
+    });
+
+    if (!sourceAgent) {
+      throw new Error(`Source agent ${sourceAgentId} not found`);
+    }
+
+    // Wrap entire duplication in a transaction to ensure atomicity
+    return await db.transaction(async (tx) => {
+      const now = new Date().toISOString();
+
+      const newAgent = await createAgent(tx)({
+        id: newAgentId,
+        tenantId,
+        projectId,
+        name: newAgentName || `${sourceAgent.name} (Copy)`,
+        description: sourceAgent.description,
+        defaultSubAgentId: sourceAgent.defaultSubAgentId,
+        contextConfigId: sourceAgent.contextConfigId,
+        models: sourceAgent.models,
+        statusUpdates: sourceAgent.statusUpdates,
+        prompt: sourceAgent.prompt,
+        stopWhen: sourceAgent.stopWhen,
+      });
+
+      const sourceSubAgents = await tx.query.subAgents.findMany({
+        where: and(
+          eq(subAgents.tenantId, tenantId),
+          eq(subAgents.projectId, projectId),
+          eq(subAgents.agentId, sourceAgentId)
+        ),
+      });
+
+      // Batch insert all sub-agents in a single query (IDs are preserved, no remapping needed)
+      if (sourceSubAgents.length > 0) {
+        await tx.insert(subAgents).values(
+          sourceSubAgents.map((sourceSubAgent) => ({
+            id: sourceSubAgent.id,
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            name: sourceSubAgent.name,
+            description: sourceSubAgent.description,
+            prompt: sourceSubAgent.prompt,
+            conversationHistoryConfig: sourceSubAgent.conversationHistoryConfig,
+            models: sourceSubAgent.models,
+            stopWhen: sourceSubAgent.stopWhen,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        );
+      }
+
+      const sourceFunctionTools = await tx
+        .select()
+        .from(functionTools)
+        .where(
+          and(
+            eq(functionTools.tenantId, tenantId),
+            eq(functionTools.projectId, projectId),
+            eq(functionTools.agentId, sourceAgentId)
+          )
+        );
+
+      const functionToolIdMapping: Record<string, string> = {};
+
+      // Batch insert all function tools in a single query
+      if (sourceFunctionTools.length > 0) {
+        await tx.insert(functionTools).values(
+          sourceFunctionTools.map((sourceFunctionTool) => {
+            const newFunctionToolId = generateId();
+            functionToolIdMapping[sourceFunctionTool.id] = newFunctionToolId;
+            return {
+              id: newFunctionToolId,
+              tenantId,
+              projectId,
+              agentId: newAgentId,
+              name: sourceFunctionTool.name,
+              description: sourceFunctionTool.description,
+              functionId: sourceFunctionTool.functionId,
+              createdAt: now,
+              updatedAt: now,
+            };
+          })
+        );
+      }
+
+      const sourceContextConfigs = await tx.query.contextConfigs.findMany({
+        where: and(
+          eq(contextConfigs.tenantId, tenantId),
+          eq(contextConfigs.projectId, projectId),
+          eq(contextConfigs.agentId, sourceAgentId)
+        ),
+      });
+
+      // Batch insert all context configs in a single query
+      if (sourceContextConfigs.length > 0) {
+        await tx.insert(contextConfigs).values(
+          sourceContextConfigs.map((sourceContextConfig) => ({
+            id: sourceContextConfig.id,
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            headersSchema: sourceContextConfig.headersSchema,
+            contextVariables: sourceContextConfig.contextVariables,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        );
+      }
+
+      const sourceSubAgentRelations = await tx
+        .select()
+        .from(subAgentRelations)
+        .where(
+          and(
+            eq(subAgentRelations.tenantId, tenantId),
+            eq(subAgentRelations.projectId, projectId),
+            eq(subAgentRelations.agentId, sourceAgentId)
+          )
+        );
+
+      // Batch insert all sub-agent relations in a single query
+      if (sourceSubAgentRelations.length > 0) {
+        await tx.insert(subAgentRelations).values(
+          sourceSubAgentRelations.map((sourceRelation) => ({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            sourceSubAgentId: sourceRelation.sourceSubAgentId,
+            targetSubAgentId: sourceRelation.targetSubAgentId,
+            relationType: sourceRelation.relationType,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        );
+      }
+
+      const sourceSubAgentToolRelations = await tx
+        .select()
+        .from(subAgentToolRelations)
+        .where(
+          and(
+            eq(subAgentToolRelations.tenantId, tenantId),
+            eq(subAgentToolRelations.projectId, projectId),
+            eq(subAgentToolRelations.agentId, sourceAgentId)
+          )
+        );
+
+      // Batch insert all sub-agent tool relations in a single query
+      if (sourceSubAgentToolRelations.length > 0) {
+        await tx.insert(subAgentToolRelations).values(
+          sourceSubAgentToolRelations.map((sourceRelation) => ({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            subAgentId: sourceRelation.subAgentId,
+            toolId: sourceRelation.toolId,
+            selectedTools: sourceRelation.selectedTools,
+            headers: sourceRelation.headers,
+            toolPolicies: sourceRelation.toolPolicies,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        );
+      }
+
+      const sourceSubAgentFunctionToolRelations = await tx
+        .select()
+        .from(subAgentFunctionToolRelations)
+        .where(
+          and(
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, sourceAgentId)
+          )
+        );
+
+      // Batch insert all sub-agent function tool relations in a single query
+      const functionToolRelationsToInsert = sourceSubAgentFunctionToolRelations
+        .map((sourceRelation) => {
+          const newFunctionToolId = functionToolIdMapping[sourceRelation.functionToolId];
+          if (!newFunctionToolId) return null;
+          return {
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            subAgentId: sourceRelation.subAgentId,
+            functionToolId: newFunctionToolId,
+            toolPolicies: sourceRelation.toolPolicies,
+            createdAt: now,
+            updatedAt: now,
+          };
+        })
+        .filter((rel): rel is NonNullable<typeof rel> => rel !== null);
+
+      if (functionToolRelationsToInsert.length > 0) {
+        await tx.insert(subAgentFunctionToolRelations).values(functionToolRelationsToInsert);
+      }
+
+      const sourceSubAgentExternalAgentRelations = await tx
+        .select()
+        .from(subAgentExternalAgentRelations)
+        .where(
+          and(
+            eq(subAgentExternalAgentRelations.tenantId, tenantId),
+            eq(subAgentExternalAgentRelations.projectId, projectId),
+            eq(subAgentExternalAgentRelations.agentId, sourceAgentId)
+          )
+        );
+
+      // Batch insert all sub-agent external agent relations in a single query
+      if (sourceSubAgentExternalAgentRelations.length > 0) {
+        await tx.insert(subAgentExternalAgentRelations).values(
+          sourceSubAgentExternalAgentRelations.map((sourceRelation) => ({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            subAgentId: sourceRelation.subAgentId,
+            externalAgentId: sourceRelation.externalAgentId,
+            headers: sourceRelation.headers,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        );
+      }
+
+      const sourceSubAgentTeamAgentRelations = await tx
+        .select()
+        .from(subAgentTeamAgentRelations)
+        .where(
+          and(
+            eq(subAgentTeamAgentRelations.tenantId, tenantId),
+            eq(subAgentTeamAgentRelations.projectId, projectId),
+            eq(subAgentTeamAgentRelations.agentId, sourceAgentId)
+          )
+        );
+
+      // Batch insert all sub-agent team agent relations in a single query
+      if (sourceSubAgentTeamAgentRelations.length > 0) {
+        await tx.insert(subAgentTeamAgentRelations).values(
+          sourceSubAgentTeamAgentRelations.map((sourceRelation) => ({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            subAgentId: sourceRelation.subAgentId,
+            targetAgentId: sourceRelation.targetAgentId,
+            headers: sourceRelation.headers,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        );
+      }
+
+      const sourceSubAgentDataComponents = await tx.query.subAgentDataComponents.findMany({
+        where: and(
+          eq(subAgentDataComponents.tenantId, tenantId),
+          eq(subAgentDataComponents.projectId, projectId),
+          eq(subAgentDataComponents.agentId, sourceAgentId)
+        ),
+      });
+
+      // Batch insert all sub-agent data components in a single query
+      if (sourceSubAgentDataComponents.length > 0) {
+        await tx.insert(subAgentDataComponents).values(
+          sourceSubAgentDataComponents.map((sourceRelation) => ({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            subAgentId: sourceRelation.subAgentId,
+            dataComponentId: sourceRelation.dataComponentId,
+            createdAt: now,
+          }))
+        );
+      }
+
+      const sourceSubAgentArtifactComponents = await tx.query.subAgentArtifactComponents.findMany({
+        where: and(
+          eq(subAgentArtifactComponents.tenantId, tenantId),
+          eq(subAgentArtifactComponents.projectId, projectId),
+          eq(subAgentArtifactComponents.agentId, sourceAgentId)
+        ),
+      });
+
+      // Batch insert all sub-agent artifact components in a single query
+      if (sourceSubAgentArtifactComponents.length > 0) {
+        await tx.insert(subAgentArtifactComponents).values(
+          sourceSubAgentArtifactComponents.map((sourceRelation) => ({
+            id: generateId(),
+            tenantId,
+            projectId,
+            agentId: newAgentId,
+            subAgentId: sourceRelation.subAgentId,
+            artifactComponentId: sourceRelation.artifactComponentId,
+            createdAt: now,
+          }))
+        );
+      }
+
+      return newAgent;
     });
   };
