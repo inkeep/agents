@@ -1,9 +1,9 @@
 'use client';
 
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FormFieldWrapper } from './form-field-wrapper';
-import { FormControl } from '@/components/ui/form';
 
 interface GenericInputProps<T extends FieldValues> {
   control: Control<T>;

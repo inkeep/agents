@@ -1,6 +1,7 @@
 'use client';
 
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { FormControl } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -9,7 +10,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FormFieldWrapper } from './form-field-wrapper';
-import { FormControl } from '@/components/ui/form';
 
 export interface SelectOption {
   value: string;

@@ -12,11 +12,11 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { FormControl } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { FormFieldWrapper } from './form-field-wrapper';
 import type { SelectOption } from './generic-select';
-import { FormControl } from '@/components/ui/form';
 
 interface GenericComboBoxProps<T extends FieldValues> {
   control: Control<T>;
