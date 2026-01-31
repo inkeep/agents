@@ -1,6 +1,0 @@
-{
-  "workflowFiles": [
-    "/Users/sarah/Desktop/inkeep/agents-1/agents-eval-api/src/workflow/functions/evaluateConversation.ts",
-    "/Users/sarah/Desktop/inkeep/agents-1/agents-eval-api/src/workflow/functions/runDatasetItem.ts"
-  ]
-}
