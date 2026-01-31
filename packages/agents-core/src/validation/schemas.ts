@@ -1354,7 +1354,7 @@ export const DataComponentApiSelectSchema =
 export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
   .extend({
     name: z.string().trim().nonempty(),
-    description: z.string().trim().optional(),
+    description: z.string().trim().nullable(),
     props: z
       .string()
       .trim()

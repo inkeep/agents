@@ -59,7 +59,6 @@ export function DataComponentForm({
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const payload = { ...data } as DataComponent;
       if (id) {
         const res = await updateDataComponentAction(tenantId, projectId, data);
         if (!res.success) {
@@ -81,7 +80,7 @@ export function DataComponentForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
