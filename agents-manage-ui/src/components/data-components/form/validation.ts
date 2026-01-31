@@ -1,45 +1,11 @@
-import { z } from 'zod';
-import { getJsonParseError, validateJsonSchemaForLlm } from '@/lib/json-schema-validation';
-import { idSchema } from '@/lib/validation';
+import { DataComponentApiInsertSchema } from '@inkeep/agents-core/client-exports';
+import type { z } from 'zod';
 
-export const dataComponentSchema = z.object({
-  id: idSchema,
-  name: z.string().min(1, 'Name is required.'),
-  description: z.string().optional(),
-  props: z
-    .string()
-    .min(1, 'Props schema is required.')
-    .transform((str, ctx) => {
-      try {
-        const parsed = JSON.parse(str);
-
-        const validationResult = validateJsonSchemaForLlm(str);
-        if (!validationResult.isValid) {
-          const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: errorMessage,
-          });
-          return z.NEVER;
-        }
-        parsed.required ??= [];
-        return parsed;
-      } catch (error) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: getJsonParseError(error),
-        });
-        return z.NEVER;
-      }
-    })
-    .optional(),
-  render: z
-    .object({
-      component: z.string(),
-      mockData: z.record(z.string(), z.unknown()),
-    })
-    .nullable()
-    .optional(),
+export const DataComponentSchema = DataComponentApiInsertSchema.pick({
+  id: true,
+  name: true,
+  description: true,
+  props: true,
+  render: true,
 });
-
-export type DataComponentFormData = z.infer<typeof dataComponentSchema>;
+export type DataComponentFormData = z.infer<typeof DataComponentSchema>;

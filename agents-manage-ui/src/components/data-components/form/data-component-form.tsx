@@ -17,12 +17,11 @@ import {
   createDataComponentAction,
   updateDataComponentAction,
 } from '@/lib/actions/data-components';
-import type { DataComponent } from '@/lib/api/data-components';
-import { cn, formatJsonField } from '@/lib/utils';
+import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
-import { type DataComponentFormData, dataComponentSchema } from './validation';
+import { type DataComponentFormData, DataComponentSchema } from './validation';
 
 interface DataComponentFormProps {
   tenantId: string;
@@ -33,28 +32,18 @@ interface DataComponentFormProps {
   className?: string;
 }
 
-const formatFormData = (data?: DataComponentFormData): DataComponentFormData => {
-  if (!data) return defaultValues;
-
-  const formatted = { ...data };
-  if (formatted.props) {
-    formatted.props = formatJsonField(formatted.props);
-  }
-  return formatted;
-};
-
 export function DataComponentForm({
   tenantId,
   projectId,
   id,
-  initialData,
+  initialData = defaultValues,
   readOnly = false,
   className,
 }: DataComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({
-    resolver: zodResolver(dataComponentSchema),
-    defaultValues: formatFormData(initialData),
+    resolver: zodResolver(DataComponentSchema),
+    defaultValues: initialData,
   });
 
   const { isSubmitting } = form.formState;
@@ -68,18 +57,17 @@ export function DataComponentForm({
     isEditing: !!id,
   });
 
-  const onSubmit = async (data: DataComponentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const payload = { ...data } as DataComponent;
       if (id) {
-        const res = await updateDataComponentAction(tenantId, projectId, payload);
+        const res = await updateDataComponentAction(tenantId, projectId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to update component');
           return;
         }
         toast.success('Component updated');
       } else {
-        const res = await createDataComponentAction(tenantId, projectId, payload);
+        const res = await createDataComponentAction(tenantId, projectId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to create component');
           return;
@@ -92,12 +80,12 @@ export function DataComponentForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
+        <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
           <GenericInput
             control={form.control}
             name="name"
@@ -114,7 +102,7 @@ export function DataComponentForm({
                 </ExternalLink>
               </>
             }
-            isRequired
+            isRequired={isRequired(DataComponentSchema, 'name')}
             disabled={readOnly}
           />
           <GenericInput
@@ -128,7 +116,7 @@ export function DataComponentForm({
                 ? ''
                 : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
             }
-            isRequired
+            isRequired={isRequired(DataComponentSchema, 'id')}
           />
           <GenericTextarea
             control={form.control}
@@ -136,6 +124,7 @@ export function DataComponentForm({
             label="Description"
             placeholder="Display a list of user orders with interactive options"
             className="min-h-[80px]"
+            isRequired={isRequired(DataComponentSchema, 'description')}
             disabled={readOnly}
           />
           <JsonSchemaInput
@@ -144,7 +133,7 @@ export function DataComponentForm({
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
             uri="json-schema-data-component.json"
-            isRequired
+            isRequired={isRequired(DataComponentSchema, 'props')}
             readOnly={readOnly}
           />
 
@@ -181,7 +170,7 @@ export function DataComponentForm({
           dataComponentId={id}
           dataComponentName={form.getValues('name')}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>

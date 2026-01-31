@@ -796,7 +796,7 @@ describe('Agent', () => {
         name: 'Test Project',
         description: 'Test project',
         models: {
-          base: { model: undefined },
+          base: { model: 'test model' },
           structuredOutput: undefined,
           summarizer: undefined,
         },

@@ -1,8 +1,8 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectForm } from '@/components/projects/form/project-form';
-import type { ProjectFormData } from '@/components/projects/form/validation';
 import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import type { ProjectFormData } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 

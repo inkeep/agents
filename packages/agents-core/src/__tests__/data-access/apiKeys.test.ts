@@ -45,6 +45,7 @@ describe('API Keys Data Access', () => {
         publicId: 'pub-1',
         keyPrefix: 'ik_test',
         keyHash: 'hash123',
+        name: 'test name',
       } satisfies ApiKeyInsert;
 
       const mockQuery = {
@@ -335,6 +336,7 @@ describe('API Keys Data Access', () => {
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
         expiresAt: new Date().toISOString(),
+        name: 'test name',
       } satisfies ApiKeyInsert;
 
       const expectedApiKey = {
@@ -371,6 +373,7 @@ describe('API Keys Data Access', () => {
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
+        name: 'test name',
       } satisfies ApiKeyInsert;
 
       const expectedApiKey = {

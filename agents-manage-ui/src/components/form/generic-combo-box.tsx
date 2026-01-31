@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { FormControl } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { FormFieldWrapper } from './form-field-wrapper';
@@ -44,22 +45,24 @@ export function GenericComboBox<T extends FieldValues>({
     <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className="w-full justify-between text-gray-700 "
-              disabled={disabled}
-            >
-              {field.value ? (
-                options.find((option) => option.value === field.value)?.label
-              ) : (
-                <div className="text-muted-foreground">{placeholder}</div>
-              )}
-              <ChevronsUpDown className="opacity-50" />
-            </Button>
-          </PopoverTrigger>
+          <FormControl>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between text-gray-700 "
+                disabled={disabled}
+              >
+                {field.value ? (
+                  options.find((option) => option.value === field.value)?.label
+                ) : (
+                  <div className="text-muted-foreground">{placeholder}</div>
+                )}
+                <ChevronsUpDown className="opacity-50" />
+              </Button>
+            </PopoverTrigger>
+          </FormControl>
           <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)] ">
             <Command>
               <CommandInput placeholder={searchPlaceholder} className="h-9" />
