@@ -58,15 +58,6 @@ interface ValidationResult {
 function validateJsonSchema(schema: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  if (!schema || typeof schema !== 'object') {
-    errors.push({
-      path: 'root',
-      message: 'Schema must be an object',
-      type: 'schema',
-    });
-    return errors;
-  }
-
   if (!objectValidator.Check(schema)) {
     // Check individual properties for better error messages
     if (!schema.type || schema.type !== 'object') {

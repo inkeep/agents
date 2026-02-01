@@ -4,47 +4,6 @@ import type { dataComponents } from '../db/manage/manage-schema';
 
 type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
-/**
- * Schema for individual property definitions
- * (what lives under `properties.{propertyName}`)
- */
-const PropertySchema = z
-  .object({
-    type: z.string({
-      required_error: 'Each property must have a valid "type"',
-    }),
-    description: z
-      .string({
-        required_error: 'Each property must have a "description" for LLM compatibility',
-      })
-      .min(1, 'Each property must have a "description" for LLM compatibility'),
-  })
-  .loose(); // allow additional JSON Schema keywords
-
-/**
- * LLM-compatible JSON Schema validator
- */
-export const LlmJsonSchema = z
-  .object({
-    type: z.literal('object', {
-      errorMap: () => ({
-        message: 'Schema must have type: "object" for LLM compatibility',
-      }),
-    }),
-
-    properties: z.record(PropertySchema, {
-      required_error: 'Schema must have a "properties" object',
-    }),
-
-    required: z
-      .array(z.string())
-      .optional()
-      .refine((v) => v === undefined || Array.isArray(v), {
-        message: 'Schema must have a "required" array (can be empty)',
-      }),
-  })
-  .loose();
-
 export const DataComponentExtendSchema = {
   name: z.string().trim().nonempty(),
   description: z.string().trim().optional(),
