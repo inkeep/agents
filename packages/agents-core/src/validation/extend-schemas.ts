@@ -6,22 +6,20 @@ type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
 const NameSchema = z.string().trim().nonempty();
 const DescriptionSchema = z.string().trim().optional();
-const PropsSchema = z.record(z.string(), z.unknown(), 'Schema must be an object');
+const PropsSchema = z
+  .record(z.string(), z.unknown(), 'Schema must be an object')
+  .transform(transformProps);
 
 export const DataComponentExtendSchema = {
   name: NameSchema,
   description: DescriptionSchema,
-  props: PropsSchema.transform(transformProps),
+  props: PropsSchema,
 } satisfies ExtendSchema<typeof dataComponents>;
 
 export const ArtifactComponentExtendSchema = {
   name: NameSchema,
   description: DescriptionSchema,
-  // props: z
-  //   .string()
-  //   .trim()
-  //   // .transform((str, ctx) => (str ? transformProps(str, ctx) : null))
-  //   .nullable(),
+  props: PropsSchema.nullish(),
 } satisfies ExtendSchema<typeof artifactComponents>;
 
 function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
