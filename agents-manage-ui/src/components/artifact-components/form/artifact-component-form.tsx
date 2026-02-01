@@ -16,12 +16,13 @@ import {
   createArtifactComponentAction,
   updateArtifactComponentAction,
 } from '@/lib/actions/artifact-components';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import { formatJsonField } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
 import { type ArtifactComponentFormData, artifactComponentSchema } from './validation';
+import { type ArtifactComponentFormData, ArtifactComponentSchema as schema } from './validation';
+
+const resolver = zodResolver(schema);
 
 interface ArtifactComponentFormProps {
   tenantId: string;
@@ -101,7 +102,7 @@ export function ArtifactComponentForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl mx-auto space-y-8">
+        <form onSubmit={onSubmit} className="max-w-3xl mx-auto space-y-8">
           <GenericInput
             control={form.control}
             name="name"
