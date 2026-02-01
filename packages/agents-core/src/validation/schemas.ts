@@ -68,6 +68,7 @@ import {
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
+import { DataComponentExtendSchema } from './extend-schemas';
 
 // Destructure defaults for use in schemas
 const {
@@ -1337,36 +1338,6 @@ export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
 export const DataComponentApiSelectSchema =
   createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
-
-function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
-  console.log('transformProps', [parsed]);
-  try {
-    const validationResult = validateJsonSchemaForLlm(parsed);
-    if (!validationResult.isValid) {
-      const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: errorMessage,
-      });
-      return z.NEVER;
-    }
-    // @ts-expect-error
-    parsed.required ??= [];
-    return parsed;
-  } catch (error) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: getJsonParseError(error),
-    });
-    return z.NEVER;
-  }
-}
-
-const DataComponentExtendSchema = {
-  name: z.string().trim().nonempty(),
-  description: z.string().trim().nullable(),
-  props: z.record(z.string(), z.unknown()).transform(transformProps),
-};
 
 export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
   .extend(DataComponentExtendSchema)
