@@ -1337,37 +1337,37 @@ export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
 export const DataComponentApiSelectSchema =
   createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
+
+function transformProps(str: string, ctx: z.RefinementCtx<string>) {
+  console.log('transformProps', [str]);
+  try {
+    const parsed = JSON.parse(str);
+
+    const validationResult = validateJsonSchemaForLlm(str);
+    if (!validationResult.isValid) {
+      const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: errorMessage,
+      });
+      return z.NEVER;
+    }
+    parsed.required ??= [];
+    return parsed;
+  } catch (error) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: getJsonParseError(error),
+    });
+    return z.NEVER;
+  }
+}
+
 export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
   .extend({
     name: z.string().trim().nonempty(),
     description: z.string().trim().nullable(),
-    props: z
-      .string()
-      .trim()
-      .nonempty()
-      .transform((str, ctx) => {
-        try {
-          const parsed = JSON.parse(str);
-
-          const validationResult = validateJsonSchemaForLlm(str);
-          if (!validationResult.isValid) {
-            const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: errorMessage,
-            });
-            return z.NEVER;
-          }
-          parsed.required ??= [];
-          return parsed;
-        } catch (error) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: getJsonParseError(error),
-          });
-          return z.NEVER;
-        }
-      }),
+    props: z.string().trim().nonempty().transform(transformProps),
   })
   .openapi('DataComponentCreate');
 export const DataComponentApiUpdateSchema =
