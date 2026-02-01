@@ -1,9 +1,5 @@
 import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
-import {
-  getJsonParseError,
-  validateJsonSchemaForLlm,
-} from '@inkeep/agents-core/validation/json-schema-validation';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 // Config DB imports (Doltgres - versioned)
 import {

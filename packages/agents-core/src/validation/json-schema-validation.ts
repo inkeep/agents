@@ -53,33 +53,6 @@ interface ValidationResult {
 }
 
 /**
- * Validates JSON string for syntax errors
- */
-function validateJsonSyntax(jsonString: string): {
-  parsed: any;
-  errors: ValidationError[];
-} {
-  const errors: ValidationError[] = [];
-  let parsed: any = null;
-
-  if (!jsonString?.trim()) {
-    return { parsed: null, errors };
-  }
-
-  try {
-    parsed = JSON.parse(jsonString);
-  } catch (error) {
-    errors.push({
-      path: 'root',
-      message: error instanceof Error ? error.message : 'Invalid JSON syntax',
-      type: 'syntax',
-    });
-  }
-
-  return { parsed, errors };
-}
-
-/**
  * Validates that the JSON represents a valid JSON Schema for LLM usage
  */
 function validateJsonSchema(schema: Record<string, unknown>): ValidationError[] {
