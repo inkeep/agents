@@ -13,3 +13,4 @@ export const DataComponentSchema = DataComponentApiInsertSchema.pick({
 });
 
 export type DataComponentFormData = z.input<typeof DataComponentSchema>;
+export type DataComponentOutput = z.output<typeof DataComponentSchema>;

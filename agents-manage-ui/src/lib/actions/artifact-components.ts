@@ -14,6 +14,7 @@ import {
 } from '../api/artifact-components';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
+import type { ArtifactComponentOutput } from '@/components/artifact-components/form/validation';
 
 /**
  * Fetch all artifacts
@@ -51,7 +52,7 @@ export async function fetchArtifactComponentsAction(
 export async function createArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  data: ArtifactComponent
+  data: ArtifactComponentOutput
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
     const result = await createArtifactComponent(tenantId, projectId, data);
@@ -83,7 +84,7 @@ export async function createArtifactComponentAction(
 export async function updateArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  data: ArtifactComponent
+  data: ArtifactComponentOutput
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
     const result = await updateArtifactComponent(tenantId, projectId, data);

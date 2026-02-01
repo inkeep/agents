@@ -5,7 +5,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { DataComponentFormData } from '@/components/data-components/form/validation';
+import type { DataComponentOutput } from '@/components/data-components/form/validation';
 import type { DataComponent } from '../api/data-components';
 import {
   createDataComponent,
@@ -52,7 +52,7 @@ export async function fetchDataComponentsAction(
 export async function createDataComponentAction(
   tenantId: string,
   projectId: string,
-  data: DataComponentFormData
+  data: DataComponentOutput
 ): Promise<ActionResult<DataComponent>> {
   try {
     const result = await createDataComponent(tenantId, projectId, data);
@@ -84,7 +84,7 @@ export async function createDataComponentAction(
 export async function updateDataComponentAction(
   tenantId: string,
   projectId: string,
-  data: DataComponentFormData
+  data: DataComponentOutput
 ): Promise<ActionResult<DataComponent>> {
   try {
     const result = await updateDataComponent(tenantId, projectId, data);
