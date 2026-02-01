@@ -7,13 +7,13 @@ import { toast } from 'sonner';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
 import { isRequired } from '@/lib/utils';
-import { type AgentFormData, AgentSchema } from '@/lib/validation';
+import { type AgentInput, AgentSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
 import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';
 import { Form } from '../ui/form';
 
-const defaultValues: AgentFormData = {
+const defaultValues: AgentInput = {
   name: '',
   id: '',
   description: '',
@@ -23,7 +23,7 @@ interface AgentFormProps {
   tenantId: string;
   projectId: string;
   onSuccess?: () => void;
-  initialData?: AgentFormData;
+  initialData?: AgentInput;
   agentId?: string;
 }
 
@@ -35,7 +35,7 @@ export const AgentForm = ({
   initialData = defaultValues,
 }: AgentFormProps) => {
   const router = useRouter();
-  const form = useForm<AgentFormData>({
+  const form = useForm({
     resolver: zodResolver(AgentSchema),
     defaultValues: initialData,
   });

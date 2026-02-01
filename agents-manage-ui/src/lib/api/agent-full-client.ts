@@ -5,7 +5,7 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
-import type { AgentFormData } from '@/lib/validation';
+import type { AgentInput } from '@/lib/validation';
 import type {
   Agent,
   CreateAgentResponse,
@@ -35,7 +35,7 @@ export async function fetchAgents(
 export async function createAgent(
   tenantId: string,
   projectId: string,
-  agentData: AgentFormData
+  agentData: AgentInput
 ): Promise<CreateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -56,7 +56,7 @@ export async function updateAgent(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: AgentFormData
+  agentData: AgentInput
 ): Promise<UpdateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);

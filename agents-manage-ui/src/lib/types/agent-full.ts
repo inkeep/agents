@@ -13,7 +13,7 @@ import type {
   ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
-import type { AgentFormData } from '@/lib/validation';
+import type { AgentInput } from '@/lib/validation';
 import type { SingleResponse } from './response';
 import type { TeamAgent } from './team-agents';
 
@@ -39,10 +39,10 @@ export interface Agent {
 
 // API Response Types
 export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
-export type CreateAgentResponse = SingleResponse<AgentFormData>;
+export type CreateAgentResponse = SingleResponse<AgentInput>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentDefinition>;
-export type UpdateAgentResponse = SingleResponse<AgentFormData>;
+export type UpdateAgentResponse = SingleResponse<AgentInput>;
 
 export type SubAgentTeamAgentConfig = {
   agentId: string;

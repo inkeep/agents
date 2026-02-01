@@ -1,8 +1,4 @@
-import {
-  AgentApiInsertSchema,
-  ExternalAgentApiInsertSchema,
-  ProjectApiInsertSchema,
-} from '@inkeep/agents-core/client-exports';
+import { AgentApiInsertSchema } from '@inkeep/agents-core/client-exports';
 import type { z } from 'zod';
 
 export const AgentSchema = AgentApiInsertSchema.pick({
@@ -11,4 +7,4 @@ export const AgentSchema = AgentApiInsertSchema.pick({
   description: true,
 });
 
-export type AgentFormData = z.infer<typeof AgentSchema>;
+export type AgentInput = z.input<typeof AgentSchema>;

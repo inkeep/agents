@@ -9,7 +9,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
-import type { AgentFormData } from '@/lib/validation';
+import type { AgentInput } from '@/lib/validation';
 import {
   ApiError,
   createAgent as apiCreateAgent,
@@ -58,8 +58,8 @@ export async function getAllAgentsAction(
 export async function createAgentAction(
   tenantId: string,
   projectId: string,
-  agentData: AgentFormData
-): Promise<ActionResult<AgentFormData>> {
+  agentData: AgentInput
+): Promise<ActionResult<AgentInput>> {
   try {
     const response = await apiCreateAgent(tenantId, projectId, agentData);
     // Revalidate relevant pages
@@ -91,8 +91,8 @@ export async function updateAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: AgentFormData
-): Promise<ActionResult<AgentFormData>> {
+  agentData: AgentInput
+): Promise<ActionResult<AgentInput>> {
   try {
     const response = await apiUpdateAgent(tenantId, projectId, agentId, agentData);
     // Revalidate relevant pages
@@ -243,7 +243,7 @@ export async function deleteFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
-): Promise<ActionResult<void>> {
+): Promise<ActionResult> {
   try {
     await apiDeleteFullAgent(tenantId, projectId, agentId);
 
