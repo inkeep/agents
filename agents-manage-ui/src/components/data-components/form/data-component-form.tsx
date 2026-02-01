@@ -20,7 +20,9 @@ import {
 import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { type DataComponentFormData, DataComponentSchema } from './validation';
+import { type DataComponentFormData, DataComponentSchema as schema } from './validation';
+
+const resolver = zodResolver(schema);
 
 interface DataComponentFormProps {
   tenantId: string;
@@ -55,7 +57,7 @@ export function DataComponentForm({
   );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({
-    resolver: zodResolver(DataComponentSchema),
+    resolver,
     defaultValues,
   });
   const { isSubmitting } = form.formState;
@@ -114,7 +116,7 @@ export function DataComponentForm({
                 </ExternalLink>
               </>
             }
-            isRequired={isRequired(DataComponentSchema, 'name')}
+            isRequired={isRequired(schema, 'name')}
             disabled={readOnly}
           />
           <GenericInput
@@ -128,7 +130,7 @@ export function DataComponentForm({
                 ? ''
                 : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
             }
-            isRequired={isRequired(DataComponentSchema, 'id')}
+            isRequired={isRequired(schema, 'id')}
           />
           <GenericTextarea
             control={form.control}
@@ -136,7 +138,7 @@ export function DataComponentForm({
             label="Description"
             placeholder="Display a list of user orders with interactive options"
             className="min-h-[80px]"
-            isRequired={isRequired(DataComponentSchema, 'description')}
+            isRequired={isRequired(schema, 'description')}
             disabled={readOnly}
           />
           <JsonSchemaInput
@@ -145,7 +147,7 @@ export function DataComponentForm({
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
             uri="json-schema-data-component.json"
-            isRequired={isRequired(DataComponentSchema, 'props')}
+            isRequired={isRequired(schema, 'props')}
             readOnly={readOnly}
           />
 
