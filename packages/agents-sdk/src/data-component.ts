@@ -39,11 +39,11 @@ export class DataComponent implements DataComponentInterface {
     this.id = config.id || generateIdFromName(config.name);
 
     // Convert Zod schema to JSON Schema if needed
-    let processedProps: Record<string, unknown> | null | undefined;
+    let processedProps: Record<string, unknown>;
     if (config.props && isZodSchema(config.props)) {
       processedProps = convertZodToJsonSchema(config.props) as Record<string, unknown>;
     } else {
-      processedProps = config.props as Record<string, unknown> | null | undefined;
+      processedProps = config.props as Record<string, unknown>;
     }
 
     this.config = {

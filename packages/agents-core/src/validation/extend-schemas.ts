@@ -5,7 +5,8 @@ import { validateJsonSchemaForLlm } from './json-schema-validation';
 type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
 const NameSchema = z.string().trim().nonempty('Name is required');
-const DescriptionSchema = z.string().trim().optional();
+// todo check if we need null here
+const DescriptionSchema = z.string().trim().nullish();
 const PropsSchema = z
   .record(z.string(), z.unknown(), 'Schema must be an object')
   .transform(transformProps);
@@ -23,7 +24,6 @@ export const ArtifactComponentExtendSchema = {
 } satisfies ExtendSchema<typeof artifactComponents>;
 
 function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
-  console.log('transformProps', [parsed]);
   const validationResult = validateJsonSchemaForLlm(parsed);
   if (!validationResult.isValid) {
     const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
