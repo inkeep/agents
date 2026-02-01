@@ -12,7 +12,8 @@ import type {
   InternalAgentDefinition,
   ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
-import type { AgentFormData, ExternalAgentFormData } from '@/lib/validation';
+import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
+import type { AgentFormData } from '@/lib/validation';
 import type { SingleResponse } from './response';
 import type { TeamAgent } from './team-agents';
 

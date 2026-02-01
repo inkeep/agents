@@ -5,11 +5,11 @@ import { useEffect, useState } from 'react';
 import type { Control } from 'react-hook-form';
 import { useFormState, useWatch } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
-import type { ProjectFormData } from '@/lib/validation';
 
 interface ProjectStopWhenSectionProps {
   control: Control<ProjectFormData>;

@@ -129,6 +129,7 @@ function validateLlmRequirements(schema: Record<string, unknown>): ValidationErr
   // Ensure all properties in required array exist in properties
   if (schema.required && Array.isArray(schema.required) && schema.properties) {
     schema.required.forEach((requiredProp: string) => {
+      // @ts-expect-error -- fixme
       if (!schema.properties[requiredProp]) {
         errors.push({
           path: `required`,

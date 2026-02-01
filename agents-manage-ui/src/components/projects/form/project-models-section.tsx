@@ -7,6 +7,7 @@ import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { type ProjectFormData, ProjectSchema } from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -17,7 +18,6 @@ import {
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
-import { type ProjectFormData, ProjectSchema } from '@/lib/validation';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 
 interface ProjectModelsSectionProps {

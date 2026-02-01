@@ -1,5 +1,6 @@
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -7,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { ProjectFormData } from '@/lib/validation';
 import { DeleteProjectConfirmation } from './delete-project-confirmation';
 import { EditProjectDialog } from './edit-project-dialog';
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { ProjectFormData } from '@/lib/validation';
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import {
   createProject,
   deleteProject,

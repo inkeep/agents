@@ -5,6 +5,10 @@ import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import {
+  type ExternalAgentFormData,
+  ExternalAgentFormSchema,
+} from '@/components/external-agents/form/validation';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -15,7 +19,6 @@ import type { Credential } from '@/lib/api/credentials';
 import { createExternalAgent, updateExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn, isRequired } from '@/lib/utils';
-import { type ExternalAgentFormData, ExternalAgentFormSchema } from '@/lib/validation';
 
 interface ExternalAgentFormProps {
   initialData?: ExternalAgentFormData;
