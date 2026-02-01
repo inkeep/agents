@@ -1,0 +1,52 @@
+meta {
+  name: 1. Connection Status
+  type: http
+  seq: 1
+  tags: [users, status]
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/users/status
+  body: none
+  auth: bearer
+}
+
+params:query {
+  userId: {{userId}}
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should have connected field", function() {
+    expect(res.body).to.have.property('connected');
+  });
+}
+
+docs {
+  # Slack Connection Status
+  
+  Check if an Inkeep user has connected their Slack account.
+  
+  **Auth:** Session token (from "1. Sign In" in manage/)
+  
+  **Endpoint:** `GET /work-apps/slack/users/status`
+  
+  **Required Query Params:**
+  - `userId` - Inkeep user ID to check
+  
+  **Returns:**
+  - `connected: true/false`
+  - `connection` - Object with connection details if connected:
+    - `connectionId` - Link record ID
+    - `slackUserId` - Slack user ID
+    - `slackTeamId` - Slack team ID
+    - `slackDisplayName` - Slack username
+    - `linkedAt` - Link timestamp
+}

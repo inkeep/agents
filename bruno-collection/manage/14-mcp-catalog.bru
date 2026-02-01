@@ -1,0 +1,23 @@
+meta {
+  name: 14. MCP Catalog
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/mcp-catalog
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # MCP Catalog
+  
+  Returns available MCP (Model Context Protocol) servers and tools.
+  
+  Use this to discover what MCP tools can be added to your agents.
+}

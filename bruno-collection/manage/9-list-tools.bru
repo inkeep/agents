@@ -1,0 +1,26 @@
+meta {
+  name: 9. List Tools
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/tools
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # List Tools
+  
+  Returns all tools configured for a project.
+  
+  Tools can be:
+  - MCP tools (from MCP servers)
+  - Function tools (custom functions)
+  - Third-party integrations
+}

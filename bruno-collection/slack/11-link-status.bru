@@ -1,0 +1,55 @@
+meta {
+  name: 11. Link Status
+  type: http
+  seq: 11
+  tags: [users, linking]
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/users/link-status
+  body: none
+  auth: bearer
+}
+
+params:query {
+  slackUserId: {{slackUserId}}
+  slackTeamId: {{slackTeamId}}
+  tenantId: {{tenantId}}
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should have linked field", function() {
+    expect(res.body).to.have.property('linked');
+  });
+}
+
+docs {
+  # Link Status
+  
+  Check if a Slack user is linked to an Inkeep account.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `GET /work-apps/slack/users/link-status`
+  
+  **Required Query Params:**
+  - `slackUserId` - Slack user ID (e.g., `U0A9WJVPN1H`)
+  - `slackTeamId` - Slack team/workspace ID (e.g., `T0AA0UWRXJS`)
+  
+  **Optional Query Params:**
+  - `tenantId` - Tenant ID (defaults to "default")
+  
+  **Returns:**
+  - `linked: true/false`
+  - `linkId` - Link record ID (if linked)
+  - `linkedAt` - Link timestamp (if linked)
+  - `slackUsername` - Slack username (if linked)
+}

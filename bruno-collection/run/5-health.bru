@@ -1,0 +1,26 @@
+meta {
+  name: 5. Health Check
+  type: http
+  seq: 5
+  tags: [health, smoke]
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("should return 204 No Content", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+docs {
+  # Health Check
+  
+  Simple health check endpoint - no auth required.
+  
+  Returns 204 No Content on success.
+}

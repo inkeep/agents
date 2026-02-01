@@ -1,0 +1,43 @@
+meta {
+  name: 4. Get User Settings
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/users/me/settings?slackUserId={{slackUserId}}&slackTeamId={{slackTeamId}}&tenantId={{tenantId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+docs {
+  # Get User Personal Settings
+  
+  Get a user's personal Slack settings, including their default agent.
+  
+  Users can set their own default agent that overrides the workspace default.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `GET /work-apps/slack/users/me/settings`
+  
+  **Required Query Params:**
+  - `slackUserId` - Slack user ID (e.g., `U0A9WJVPN1H`)
+  - `slackTeamId` - Slack team/workspace ID (e.g., `T0AA0UWRXJS`)
+  
+  **Optional Query Params:**
+  - `tenantId` - Tenant ID (defaults to "default")
+  
+  **Returns:**
+  - `defaultProjectId` - User's default project (optional)
+  - `defaultAgentId` - User's default agent (optional)
+  - `defaultAgentName` - Agent display name (optional)
+}

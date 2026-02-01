@@ -1,0 +1,53 @@
+meta {
+  name: 12. Delete Workspace
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{baseUrl}}/work-apps/slack/workspaces/{{slackConnectionId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+docs {
+  # Delete Workspace Installation
+  
+  Removes a Slack workspace installation from Nango and the database.
+  Also deletes all user mappings and channel configs for the workspace.
+  
+  **WARNING:** This disconnects the bot from the workspace!
+  
+  **Auth:** Session token (requires org admin/owner role)
+  
+  **Endpoint:** `DELETE /work-apps/slack/workspaces/:workspaceId`
+  
+  **Path Param:**
+  - `workspaceId` - Either:
+    - Nango connection ID: `E:E0AA0UUL7ML:T:T0AA0UWRXJS` or `T:T0AA0UWRXJS`
+    - Slack team ID: `T0AA0UWRXJS`
+  
+  **Example URLs:**
+  ```
+  DELETE /work-apps/slack/workspaces/E:E0AA0UUL7ML:T:T0AA0UWRXJS
+  DELETE /work-apps/slack/workspaces/T0AA0UWRXJS
+  ```
+  
+  **Returns:**
+  - `success: true` on successful deletion
+  - Error 404 if workspace not found
+  
+  **Cascade Deletion:**
+  - Removes workspace from Nango
+  - Removes workspace record from database
+  - Deletes all linked user mappings
+  - Deletes all channel agent configurations
+}

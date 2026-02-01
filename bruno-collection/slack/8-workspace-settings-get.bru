@@ -1,0 +1,38 @@
+meta {
+  name: 8. Get Workspace Settings
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/workspaces/{{slackTeamId}}/settings
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+docs {
+  # Get Workspace Settings
+  
+  Returns settings for a Slack workspace including default agent configuration.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `GET /work-apps/slack/workspaces/:teamId/settings`
+  
+  **Path Param:**
+  - `teamId` - Slack team/workspace ID (e.g., `T0AA0UWRXJS`)
+  
+  **Returns:**
+  - `defaultAgent` - Agent configuration object (or undefined if not set):
+    - `agentId` - Agent ID
+    - `agentName` - Agent display name (optional)
+    - `projectId` - Project ID
+}

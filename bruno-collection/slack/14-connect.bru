@@ -1,0 +1,55 @@
+meta {
+  name: 14. Connect (Create Nango Session)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/users/connect
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "userId": "{{userId}}",
+    "userEmail": "admin@example.com",
+    "userName": "Admin User",
+    "tenantId": "{{tenantId}}",
+    "sessionToken": "{{sessionToken}}",
+    "sessionExpiresAt": ""
+  }
+}
+
+docs {
+  # Connect (Create Nango Session)
+  
+  Creates a Nango connect session for user-level Slack OAuth.
+  
+  This is used when a user wants to connect their Slack account
+  to their Inkeep account via Nango's OAuth flow.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `POST /work-apps/slack/users/connect`
+  
+  **Body:**
+  - `userId` - Inkeep user ID (required)
+  - `userEmail` - User's email (optional)
+  - `userName` - User's display name (optional)
+  - `tenantId` - Tenant ID (optional, defaults to "default")
+  - `sessionToken` - Current session token to store for later use
+  - `sessionExpiresAt` - Session expiration timestamp
+  
+  **Returns:**
+  - `sessionToken` - Nango session token to use with Nango Connect UI
+  - `connectUrl` - URL to redirect user to for OAuth flow
+}

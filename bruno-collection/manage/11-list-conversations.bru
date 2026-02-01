@@ -1,0 +1,27 @@
+meta {
+  name: 11. Get Conversation
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/conversations/{{conversationId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # Get Conversation
+  
+  Returns a specific conversation with formatted messages.
+  
+  Set `conversationId` in environment first (from a chat session).
+  
+  Query params (optional):
+  - `limit` - Max messages (default 20)
+  - `includeInternal` - Include internal messages (default false)
+}

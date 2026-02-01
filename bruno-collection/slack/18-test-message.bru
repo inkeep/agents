@@ -1,0 +1,53 @@
+meta {
+  name: 18. Send Test Message
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/workspaces/{{slackTeamId}}/test-message
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "channelId": "C0123456789",
+    "message": "Hello from the Inkeep API test!"
+  }
+}
+
+docs {
+  # Send Test Message
+  
+  Sends a test message to a Slack channel to verify the bot is working.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `POST /work-apps/slack/workspaces/:teamId/test-message`
+  
+  **Path Param:**
+  - `teamId` - Slack team/workspace ID
+  
+  **Body:**
+  - `channelId` - Slack channel ID to send to (required)
+  - `message` - Custom message text (optional, defaults to standard test message)
+  
+  **How to get a Channel ID:**
+  1. Run `3-workspace-health.bru` to verify bot is healthy
+  2. The channel ID is visible in Slack URL or via `GET /workspaces/:teamId/channels`
+  
+  **Returns:**
+  - `success: true` with `messageTs` (message timestamp)
+  - Error if bot can't post to channel (not invited, permissions, etc.)
+  
+  **Note:** The bot must be invited to the channel to post messages.
+}

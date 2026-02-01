@@ -1,0 +1,59 @@
+meta {
+  name: 1. Chat (API Key Auth)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/run/v1/chat/completions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+headers {
+  X-Inkeep-Tenant-Id: {{tenantId}}
+  X-Inkeep-Project-Id: {{projectId}}
+  X-Inkeep-Agent-Id: {{agentId}}
+}
+
+body:json {
+  {
+    "model": "default",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello! What can you help me with?"
+      }
+    ],
+    "stream": false
+  }
+}
+
+docs {
+  # Chat Completions (API Key)
+  
+  Send a message to an agent using a persistent API key.
+  
+  **Auth:** API Key (`sk_...`) + headers for tenant/project/agent
+  
+  **To get an API key:**
+  1. Sign in first (run "1. Sign In" in manage/)
+  2. Run "7. Create API Key" in manage/
+  3. Key is auto-saved to `apiKey` variable
+  
+  **Required Headers:**
+  - `X-Inkeep-Tenant-Id` - Your tenant ID
+  - `X-Inkeep-Project-Id` - Your project ID  
+  - `X-Inkeep-Agent-Id` - Your agent ID
+  
+  **stream options:**
+  - `false` - Returns complete response as JSON
+  - `true` - Returns Server-Sent Events (SSE) stream
+  
+  **Note:** JWT tokens (from playground) have tenant/project/agent baked in.
+  API keys are more flexible but require explicit headers.
+}

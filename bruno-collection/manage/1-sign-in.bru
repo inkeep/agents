@@ -1,0 +1,76 @@
+meta {
+  name: 1. Sign In (Get Session)
+  type: http
+  seq: 1
+  tags: [auth, smoke]
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-in/email
+  body: json
+  auth: none
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "email": "admin@example.com",
+    "password": "adminADMIN!@12"
+  }
+}
+
+
+script:post-response {
+  // The session token is returned in the response body
+  if (res.body && res.body.token) {
+    bru.setEnvVar("sessionToken", res.body.token);
+    console.log("✅ Session token saved to sessionToken variable");
+  }
+  
+  // Also capture the cookie value from set-cookie header
+  const cookies = res.headers['set-cookie'];
+  if (cookies) {
+    console.log("🍪 Cookie header:", cookies);
+    
+    // Extract the session token from the cookie
+    // Cookie format: better-auth.session_token=VALUE; Path=/; ...
+    const cookieArray = Array.isArray(cookies) ? cookies : [cookies];
+    for (const cookie of cookieArray) {
+      if (cookie.includes('better-auth.session_token=')) {
+        const match = cookie.match(/better-auth\.session_token=([^;]+)/);
+        if (match) {
+          bru.setEnvVar("cookieToken", match[1]);
+          console.log("✅ Cookie token saved to cookieToken variable");
+        }
+      }
+    }
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should return token", function() {
+    expect(res.body.token).to.be.a('string');
+  });
+  
+  test("should return user object", function() {
+    expect(res.body.user).to.be.an('object');
+    expect(res.body.user.id).to.be.a('string');
+  });
+}
+
+docs {
+  # Sign In
+  
+  Authenticates with email/password and returns a session.
+  
+  The session token can be used as a Bearer token for manage API calls.
+  
+  **Note:** In dev, use `admin@example.com` with any password.
+}

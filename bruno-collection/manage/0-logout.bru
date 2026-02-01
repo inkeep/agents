@@ -1,0 +1,37 @@
+meta {
+  name: 0. Logout
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-out
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: http://localhost:3000
+  Cookie: better-auth.session_token={{cookieToken}}
+}
+
+script:post-response {
+  // Clear saved tokens
+  bru.setEnvVar("sessionToken", "");
+  bru.setEnvVar("cookieToken", "");
+  bru.setEnvVar("jwtToken", "");
+  console.log("✅ Logged out - cleared all tokens");
+}
+
+docs {
+  # Logout
+  
+  Signs out the current session and clears stored tokens.
+  
+  Run this if:
+  - You want to test sign-in flow fresh
+  - You're getting "already logged in" errors
+  - You want to switch users
+  
+  After logout, run "1. Sign In" to get new tokens.
+}

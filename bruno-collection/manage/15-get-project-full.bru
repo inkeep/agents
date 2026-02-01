@@ -1,0 +1,27 @@
+meta {
+  name: 15. Get Project (Full)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/agent/{{agentId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # Get Full Agent Definition
+  
+  Returns the complete agent definition including:
+  - Agent metadata
+  - All sub-agents
+  - Tool configurations
+  - Prompts and settings
+  
+  This is the "export" format of an agent.
+}

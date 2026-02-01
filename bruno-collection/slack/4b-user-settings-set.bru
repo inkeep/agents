@@ -1,0 +1,60 @@
+meta {
+  name: 4b. Set User Settings
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/work-apps/slack/users/me/settings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "slackUserId": "{{slackUserId}}",
+    "slackTeamId": "{{slackTeamId}}",
+    "tenantId": "{{tenantId}}",
+    "settings": {
+      "defaultProjectId": "{{projectId}}",
+      "defaultAgentId": "{{agentId}}",
+      "defaultAgentName": "My Agent"
+    }
+  }
+}
+
+docs {
+  # Set User Personal Settings
+  
+  Update a user's personal default agent for Slack.
+  
+  This allows users to set their own agent preference that
+  overrides the workspace-level default.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `PUT /work-apps/slack/users/me/settings`
+  
+  **Body:**
+  - `slackUserId` - Slack user ID (required)
+  - `slackTeamId` - Slack team ID (required)
+  - `tenantId` - Tenant ID (optional, defaults to "default")
+  - `settings` - Settings object:
+    - `defaultProjectId` - Project ID for default agent
+    - `defaultAgentId` - Agent ID to use as default
+    - `defaultAgentName` - Agent display name
+  
+  **Note:** To clear personal settings and use workspace default,
+  send empty settings: `{ "settings": {} }`
+  
+  **Returns:**
+  - `success: true` on successful update
+}

@@ -1,0 +1,64 @@
+meta {
+  name: 2. Chat (JWT Token Auth)
+  type: http
+  seq: 2
+  tags: [chat, smoke]
+}
+
+post {
+  url: {{baseUrl}}/run/v1/chat/completions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+body:json {
+  {
+    "model": "default",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello from the playground!"
+      }
+    ],
+    "stream": false
+  }
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should have choices array", function() {
+    expect(res.body.choices).to.be.an('array');
+  });
+  
+  test("should have assistant message", function() {
+    expect(res.body.choices[0].message.role).to.equal('assistant');
+  });
+}
+
+docs {
+  # Chat Completions (JWT Token)
+  
+  Send a message to an agent using a temporary JWT token.
+  
+  **Auth:** JWT Token (from playground endpoint)
+  
+  **To get a JWT token:**
+  1. Sign in first (run "1. Sign In" in manage/)
+  2. Run "8. Get Playground JWT Token" in manage/
+  3. Token is auto-saved to `jwtToken` variable
+  
+  **Token characteristics:**
+  - Expires in 1 hour
+  - Scoped to specific project/agent
+  - Contains user identity from session
+  - No additional headers needed (tenant/project/agent baked in)
+  
+  This is the pattern used by the dashboard playground.
+}

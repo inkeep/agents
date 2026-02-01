@@ -1,0 +1,25 @@
+meta {
+  name: 6. List API Keys
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/api-keys
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # List API Keys
+  
+  Returns all API keys for a project.
+  
+  **Note:** The full key value is only returned when created.
+  
+  **Auth:** Session token
+}

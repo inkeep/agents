@@ -1,0 +1,86 @@
+meta {
+  name: 13b. Verify Link Token (JWT)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/users/link/verify-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "userId": "{{userId}}",
+    "userEmail": "admin@example.com"
+  }
+}
+
+docs {
+  # Verify Link Token (JWT) - Primary Linking Method
+  
+  Verifies a JWT link token and creates the user mapping.
+  
+  **This is the PRIMARY linking method used by `/inkeep link`.**
+  
+  ## Flow
+  
+  ```
+  1. User runs `/inkeep link` in Slack
+  2. Server generates JWT link token (signSlackLinkToken)
+  3. User gets URL: {dashboard}/link?token=eyJ...
+  4. User clicks link, signs into dashboard
+  5. Dashboard calls this endpoint to verify and create mapping
+  ```
+  
+  ## Why JWT instead of Link Codes?
+  
+  - **More secure**: Cryptographically signed vs 8-char codes
+  - **Single click**: No code entry needed
+  - **No cleanup**: JWTs expire automatically
+  - **Stateless**: No DB storage for pending codes
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `POST /work-apps/slack/users/link/verify-token`
+  
+  **Body:**
+  - `token` - JWT link token from URL (required)
+  - `userId` - Inkeep user ID to link to (required)
+  - `userEmail` - User's email (optional)
+  
+  **Token Payload (decoded):**
+  ```json
+  {
+    "iss": "inkeep-auth",
+    "aud": "inkeep-api",
+    "tokenUse": "slackLink",
+    "tenantId": "default",
+    "slack": {
+      "teamId": "T0AA0UWRXJS",
+      "userId": "U0A9WJVPN1H",
+      "username": "john.doe"
+    },
+    "exp": 1706123456
+  }
+  ```
+  
+  **Returns:**
+  - `success: true` with `linkId`, `slackUsername`, `slackTeamId`, `tenantId`
+  - Error 400 if token expired or invalid
+  - Error 409 if Slack account already linked
+  
+  **Compared to Link Code (13-link-redeem.bru):**
+  This is the preferred method. Use 13-link-redeem.bru only for 
+  legacy code-based linking.
+}

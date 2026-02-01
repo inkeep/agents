@@ -1,0 +1,43 @@
+meta {
+  name: 7. Create API Key
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/api-keys
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {
+    "name": "bruno-testing",
+    "agentId": "{{agentId}}"
+  }
+}
+
+script:post-response {
+  // Save the API key for use in run API calls
+  if (res.body && res.body.key) {
+    bru.setEnvVar("apiKey", res.body.key);
+    console.log("API Key created and saved:", res.body.key.substring(0, 10) + "...");
+  }
+}
+
+docs {
+  # Create API Key
+  
+  Creates a new API key for the project.
+  
+  **IMPORTANT:** The full key is only returned once at creation time!
+  Save it immediately - you won't be able to retrieve it later.
+  
+  The key is automatically saved to the `apiKey` environment variable.
+  
+  **Auth:** Session token
+}

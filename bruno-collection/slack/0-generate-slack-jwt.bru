@@ -1,0 +1,83 @@
+meta {
+  name: 0. Generate Slack JWT (Debug)
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/debug/generate-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "userId": "{{userId}}",
+    "tenantId": "{{tenantId}}",
+    "slackUserId": "{{slackUserId}}",
+    "slackTeamId": "{{slackTeamId}}",
+    "slackEnterpriseId": "{{slackEnterpriseId}}"
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setEnvVar("slackUserToken", res.body.token);
+    console.log("✅ Slack user token saved to slackUserToken variable");
+    console.log("Token expires in:", res.body.expiresIn);
+    console.log("Payload:", JSON.stringify(res.body.payload, null, 2));
+  }
+}
+
+docs {
+  # Generate Slack User JWT (Debug Only)
+  
+  **⚠️ Development/Test Only - Not available in production!**
+  
+  Generates a Slack user JWT token for testing the Slack→API integration.
+  
+  ## Purpose
+  
+  This endpoint allows you to:
+  1. Generate a real Slack user JWT
+  2. Save it to the `slackUserToken` variable
+  3. Use it in `run/6-chat-with-slack-jwt.bru` to test the full flow
+  
+  ## Workflow
+  
+  ```
+  1. Run manage/1-sign-in.bru → get sessionToken
+  2. Run this request → generates slackUserToken
+  3. Run run/6-chat-with-slack-jwt.bru → uses the token to chat
+  ```
+  
+  ## Token Details
+  
+  The generated JWT contains:
+  - `iss`: "inkeep-auth"
+  - `aud`: "inkeep-api"
+  - `sub`: Your Inkeep user ID
+  - `tokenUse`: "slackUser"
+  - `tenantId`: Your tenant ID
+  - `slack.teamId`: Slack workspace ID
+  - `slack.userId`: Slack user ID
+  - `slack.enterpriseId`: Enterprise Grid ID (optional)
+  
+  Expires in **5 minutes**.
+  
+  ## Required Body Params
+  
+  - `userId` - Inkeep user ID (required)
+  - `slackUserId` - Slack user ID (required)
+  - `slackTeamId` - Slack team ID (required)
+  - `tenantId` - Tenant ID (optional, defaults to "default")
+  - `slackEnterpriseId` - Enterprise ID (optional)
+}

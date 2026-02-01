@@ -1,0 +1,40 @@
+meta {
+  name: 2. Workspace Info
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/workspace-info?connectionId={{slackConnectionId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+docs {
+  # Slack Workspace Info
+  
+  Get information about the connected Slack workspace directly from Slack API.
+  
+  Returns team name, domain, bot user ID, scopes, and channel list.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `GET /work-apps/slack/workspace-info`
+  
+  **Required Query Params:**
+  - `connectionId` - Nango connection ID (e.g., `E:E0AA0UUL7ML:T:T0AA0UWRXJS`)
+  
+  **Returns:**
+  - `team` - Slack team info object
+  - `channels` - Array of accessible channels
+  
+  **Note:** This endpoint uses the internal route and makes live Slack API calls.
+}

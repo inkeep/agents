@@ -1,0 +1,23 @@
+meta {
+  name: 4. List Agents
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/agents
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # List Agents
+  
+  Returns all agents for a project.
+  
+  **Auth:** Session token
+}

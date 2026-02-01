@@ -1,0 +1,48 @@
+meta {
+  name: 3. Chat (Streaming)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/run/v1/chat/completions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+body:json {
+  {
+    "model": "default",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Tell me a short joke"
+      }
+    ],
+    "stream": true
+  }
+}
+
+docs {
+  # Chat Completions (Streaming)
+  
+  Send a message and receive a streaming SSE response.
+  
+  **Auth:** Uses JWT token (has project/agent built-in)
+  
+  **Response format:** Server-Sent Events (SSE)
+  
+  ```
+  data: {"type":"text-delta","delta":"Hello"}
+  data: {"type":"text-delta","delta":" there"}
+  data: {"type":"text-delta","delta":"!"}
+  data: [DONE]
+  ```
+  
+  **Note:** Bruno will show the raw SSE stream. 
+  Use the Vercel AI SDK data stream format (v2).
+}

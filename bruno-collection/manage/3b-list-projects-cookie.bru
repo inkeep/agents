@@ -1,0 +1,29 @@
+meta {
+  name: 3b. List Projects (Cookie Auth)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: better-auth.session_token={{cookieToken}}
+}
+
+docs {
+  # List Projects (Cookie Auth)
+  
+  Same as "3. List Projects" but uses cookie auth instead of Bearer token.
+  
+  **Auth:** Cookie (from sign-in set-cookie header)
+  
+  This demonstrates that the API accepts both:
+  - `Authorization: Bearer <token>` (header)
+  - `Cookie: better-auth.session_token=<value>` (cookie)
+  
+  Run "1. Sign In" first to populate the `cookieToken` variable.
+}

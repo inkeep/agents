@@ -1,0 +1,19 @@
+meta {
+  name: 2. Get Session Token
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/auth/get-session
+  body: none
+  auth: none
+}
+
+docs {
+  # Get Session
+  
+  Returns the current session info including the session token.
+  
+  Use the returned token as Bearer auth for subsequent manage API calls.
+}

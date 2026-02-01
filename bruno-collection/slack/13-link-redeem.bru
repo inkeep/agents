@@ -1,0 +1,52 @@
+meta {
+  name: 13. Redeem Link Code
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/users/link/redeem
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "code": "{{slackLinkCode}}",
+    "userId": "{{userId}}",
+    "userEmail": "admin@example.com"
+  }
+}
+
+docs {
+  # Redeem Link Code
+  
+  Completes the Slack account linking process by redeeming a device code.
+  
+  **Flow:**
+  1. User runs `/inkeep link` in Slack → gets code like `ABCD-1234`
+  2. User opens the link URL or enters code in dashboard
+  3. Dashboard calls this endpoint to complete linking
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `POST /work-apps/slack/users/link/redeem`
+  
+  **Body:**
+  - `code` - The link code from Slack (e.g., `ABCD-1234`)
+  - `userId` - Inkeep user ID to link to
+  - `userEmail` - (optional) User's email
+  
+  **Returns:**
+  - `success: true` with `linkId`, `slackUsername`, `slackTeamId`
+  - Error 400 if code expired or invalid
+  - Error 409 if Slack account already linked
+}

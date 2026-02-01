@@ -1,0 +1,37 @@
+meta {
+  name: 4. Get Agent Card (A2A)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/run/agents/.well-known/agent.json
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwtToken}}
+}
+
+headers {
+  X-Inkeep-Tenant-Id: {{tenantId}}
+  X-Inkeep-Project-Id: {{projectId}}
+  X-Inkeep-Agent-Id: {{agentId}}
+}
+
+docs {
+  # Agent Card (A2A Discovery)
+  
+  Returns the agent's A2A (Agent-to-Agent) card.
+  
+  This is used for agent discovery in multi-agent systems.
+  
+  **Auth:** JWT token or API key with headers
+  
+  **Response includes:**
+  - Agent name and description
+  - Capabilities (streaming, push notifications, etc.)
+  - Supported input/output modes
+  - Skills list
+}

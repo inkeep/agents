@@ -1,0 +1,28 @@
+meta {
+  name: 13. Delete API Key
+  type: http
+  seq: 13
+}
+
+delete {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/api-keys/{{apiKeyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # Delete API Key
+  
+  Deletes an API key by ID.
+  
+  **WARNING:** This is irreversible!
+  
+  To get the API key ID:
+  1. Run "6. List API Keys"
+  2. Copy the `id` field (not the key itself)
+  3. Set it in the environment or URL
+}

@@ -1,0 +1,63 @@
+meta {
+  name: 3. Workspace Health
+  type: http
+  seq: 3
+  tags: [workspaces, health]
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/workspaces/{{slackTeamId}}/health
+  body: none
+  auth: bearer
+}
+
+params:path {
+  slackTeamId: {{slackTeamId}}
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should have healthy field", function() {
+    expect(res.body).to.have.property('healthy');
+  });
+  
+  test("should have permissions object", function() {
+    expect(res.body.permissions).to.be.an('object');
+  });
+}
+
+docs {
+  # Workspace Health Check
+  
+  Verifies the bot token is valid and checks Slack API permissions.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `GET /work-apps/slack/workspaces/:teamId/health`
+  
+  **Path Param:**
+  - `teamId` - Slack team/workspace ID (e.g., `T0AA0UWRXJS`)
+  
+  **Returns:**
+  - `healthy: true/false`
+  - `botId` - Slack bot user ID
+  - `botName` - Slack bot name
+  - `teamId` - Slack team ID
+  - `teamName` - Workspace name
+  - `permissions` - Object with permission status:
+    - `canPostMessages` - Can send messages
+    - `canReadChannels` - Can list channels
+    - `canReadHistory` - Can read message history
+  - `error` - Error message (if unhealthy)
+  
+  **Use Case:**
+  Run this to verify a workspace installation is working before
+  configuring agents or troubleshooting issues.
+}

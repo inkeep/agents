@@ -1,0 +1,44 @@
+meta {
+  name: 10. Linked Users
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/workspaces/{{slackTeamId}}/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+docs {
+  # List Linked Users
+  
+  Returns all Inkeep users who have connected their Slack accounts 
+  for a given workspace.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `GET /work-apps/slack/workspaces/:teamId/users`
+  
+  **Path Param:**
+  - `teamId` - Slack team/workspace ID (e.g., `T0AA0UWRXJS`)
+  
+  **Returns:**
+  - `linkedUsers[]` - Array of linked user objects:
+    - `id` - Link record ID
+    - `slackUserId` - Slack user ID
+    - `slackTeamId` - Slack team ID
+    - `slackUsername` - Slack username
+    - `slackEmail` - Slack email
+    - `userId` - Inkeep user ID
+    - `linkedAt` - Link timestamp
+    - `lastUsedAt` - Last activity timestamp
+}

@@ -1,0 +1,55 @@
+meta {
+  name: 9. Set Workspace Settings
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/work-apps/slack/workspaces/{{slackTeamId}}/settings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "defaultAgent": {
+      "agentId": "{{agentId}}",
+      "agentName": "Test Agent",
+      "projectId": "{{projectId}}"
+    }
+  }
+}
+
+docs {
+  # Set Workspace Settings
+  
+  Configure default agent for a Slack workspace.
+  
+  This sets the global default agent that responds to @mentions.
+  
+  **Auth:** Session token (requires org admin/owner role)
+  
+  **Endpoint:** `PUT /work-apps/slack/workspaces/:teamId/settings`
+  
+  **Path Param:**
+  - `teamId` - Slack team/workspace ID
+  
+  **Body:**
+  - `defaultAgent` - Agent configuration object:
+    - `agentId` - Agent ID (required)
+    - `agentName` - Agent display name (optional)
+    - `projectId` - Project ID (required)
+  
+  **Note:** To clear the default agent, send `{ "defaultAgent": null }`
+  
+  **JWT Auth:** When this agent is invoked from Slack, a SlackUserToken JWT
+  is generated server-side for the linked user to authenticate with the Run API.
+}

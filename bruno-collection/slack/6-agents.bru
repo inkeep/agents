@@ -1,0 +1,30 @@
+meta {
+  name: 6. List Agents (for Slack)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/agents?tenantId={{tenantId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+docs {
+  # List Agents for Slack
+  
+  Returns agents available for use in Slack commands.
+  
+  **Auth:** Session token or internal bypass secret
+  
+  **Query Params:**
+  - `tenantId` - Tenant ID (optional, defaults to "default")
+}

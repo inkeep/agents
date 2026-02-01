@@ -1,0 +1,46 @@
+meta {
+  name: 5. Disconnect User
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/users/disconnect
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "slackUserId": "{{slackUserId}}",
+    "slackTeamId": "{{slackTeamId}}",
+    "tenantId": "{{tenantId}}"
+  }
+}
+
+docs {
+  # Disconnect/Unlink Slack User
+  
+  Unlinks a Slack user from their Inkeep account.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `POST /work-apps/slack/users/disconnect`
+  
+  **Body (provide one of these combinations):**
+  - `slackUserId` + `slackTeamId` - Direct unlink by Slack user (preferred)
+  - `userId` - Inkeep user ID (will look up connection)
+  - `connectionId` - Direct connection ID delete
+  
+  **Returns:**
+  - `success: true` on successful unlink
+  - Error 404 if no connection found
+}

@@ -1,0 +1,49 @@
+meta {
+  name: 15. Refresh Session Token
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/users/refresh-session
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "userId": "{{userId}}",
+    "sessionToken": "{{sessionToken}}",
+    "sessionExpiresAt": ""
+  }
+}
+
+docs {
+  # Refresh Session Token
+  
+  Updates the Inkeep session token stored in Nango for a user's connection.
+  
+  Used when the session token expires and needs to be refreshed
+  without requiring the user to re-link their account.
+  
+  **Auth:** Session token
+  
+  **Endpoint:** `POST /work-apps/slack/users/refresh-session`
+  
+  **Body:**
+  - `userId` - Inkeep user ID (required)
+  - `sessionToken` - New session token (required)
+  - `sessionExpiresAt` - New expiration timestamp (optional)
+  
+  **Returns:**
+  - `success: true` with `connectionId`
+  - Error 404 with `needsRelink: true` if no connection found
+}

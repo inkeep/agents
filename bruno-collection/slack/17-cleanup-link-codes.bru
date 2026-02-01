@@ -1,0 +1,45 @@
+meta {
+  name: 17. Cleanup Link Codes
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/link-codes/cleanup
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "retentionDays": 7
+  }
+}
+
+docs {
+  # Cleanup Link Codes
+  
+  Cleans up expired and already-used Slack link codes.
+  
+  This is a maintenance endpoint for cleaning up old link codes
+  from the database.
+  
+  **Auth:** Session token
+  
+  **Body:**
+  - `retentionDays` - Keep used codes for this many days (default: 7)
+  
+  **Returns:**
+  - `success: true` with `deleted` object:
+    - `expired` - Count of expired codes deleted
+    - `used` - Count of used codes deleted
+    - `total` - Total codes deleted
+}

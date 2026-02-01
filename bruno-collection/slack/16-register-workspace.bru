@@ -1,0 +1,46 @@
+meta {
+  name: 16. Register Workspace (Manual)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/work-apps/slack/register-workspace
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+headers {
+  Origin: http://localhost:3000
+}
+
+body:json {
+  {
+    "teamId": "{{slackTeamId}}",
+    "teamName": "Test Workspace",
+    "botToken": "xoxb-YOUR-BOT-TOKEN"
+  }
+}
+
+docs {
+  # Register Workspace (Manual)
+  
+  Manually register a Slack workspace's bot token.
+  
+  This is primarily for development/testing purposes.
+  In production, workspaces are registered via OAuth flow.
+  
+  **Auth:** Session token
+  
+  **Body:**
+  - `teamId` - Slack team ID (required)
+  - `botToken` - Slack bot token (required)
+  - `teamName` - Workspace name (optional)
+  
+  **Returns:**
+  - `success: true` with `teamId`
+}

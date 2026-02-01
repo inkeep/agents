@@ -1,0 +1,46 @@
+meta {
+  name: 8. Get Playground JWT Token
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/playground/token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {
+    "projectId": "{{projectId}}",
+    "agentId": "{{agentId}}"
+  }
+}
+
+script:post-response {
+  // Save the JWT token for use in run API calls
+  // Note: Response field is "apiKey" not "token"
+  if (res.body && res.body.apiKey) {
+    bru.setEnvVar("jwtToken", res.body.apiKey);
+    console.log("JWT Token created and saved, expires:", res.body.expiresAt);
+  }
+}
+
+docs {
+  # Get Playground JWT Token
+  
+  Creates a temporary JWT token for testing agents in the playground.
+  
+  **Token Details:**
+  - Expires in 1 hour
+  - Scoped to specific project/agent
+  - Used for the run API (chat completions)
+  
+  This is the JWT flow you set up with RSA keys!
+  
+  **Auth:** Session token
+}

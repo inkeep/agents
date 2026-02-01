@@ -1,0 +1,23 @@
+meta {
+  name: 3. List Projects
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # List Projects
+  
+  Returns all projects for the tenant.
+  
+  **Auth:** Session token (from sign-in or get-session)
+}

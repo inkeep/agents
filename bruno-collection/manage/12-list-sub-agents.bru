@@ -1,0 +1,24 @@
+meta {
+  name: 12. List Sub-Agents
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/agents/{{agentId}}/sub-agents
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # List Sub-Agents
+  
+  Returns all sub-agents for a parent agent.
+  
+  Sub-agents are the actual "workers" that handle tasks.
+  An agent can have multiple sub-agents with different capabilities.
+}

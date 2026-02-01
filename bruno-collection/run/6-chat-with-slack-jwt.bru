@@ -1,0 +1,79 @@
+meta {
+  name: 6. Chat (Slack User JWT)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/run/api/chat
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{slackUserToken}}
+}
+
+headers {
+  X-Inkeep-Project-Id: {{projectId}}
+  X-Inkeep-Agent-Id: {{agentId}}
+}
+
+body:json {
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello from Slack!"
+      }
+    ],
+    "stream": false
+  }
+}
+
+docs {
+  # Chat (Slack User JWT)
+  
+  Send a message to an agent using a Slack user JWT token.
+  
+  This tests the same auth flow used by `/inkeep run` Slack commands.
+  
+  ## How to Test
+  
+  ```
+  1. Run manage/1-sign-in.bru → get sessionToken
+  2. Run slack/0-generate-slack-jwt.bru → generates slackUserToken
+  3. Run this request → chat using the Slack JWT
+  ```
+  
+  ## Token Payload
+  
+  The `slackUserToken` JWT contains:
+  
+  ```json
+  {
+    "iss": "inkeep-auth",
+    "aud": "inkeep-api",
+    "sub": "<inkeep-user-id>",
+    "tokenUse": "slackUser",
+    "act": { "sub": "inkeep-work-app-slack" },
+    "tenantId": "default",
+    "slack": {
+      "teamId": "T0AA0UWRXJS",
+      "userId": "U0A9WJVPN1H",
+      "enterpriseId": "E0AA0UUL7ML"
+    },
+    "exp": <5-minutes-from-now>
+  }
+  ```
+  
+  ## Required Headers
+  
+  - `X-Inkeep-Project-Id` - Project ID
+  - `X-Inkeep-Agent-Id` - Agent ID
+  
+  ## Note
+  
+  In production, this token is generated server-side by the Slack
+  command handler. The debug endpoint allows testing this flow.
+}

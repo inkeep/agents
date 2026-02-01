@@ -1,0 +1,23 @@
+meta {
+  name: 5. Get Agent Details
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/manage/tenants/{{tenantId}}/projects/{{projectId}}/agent/{{agentId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  # Get Agent
+  
+  Returns full agent definition including sub-agents, tools, etc.
+  
+  **Auth:** Session token
+}

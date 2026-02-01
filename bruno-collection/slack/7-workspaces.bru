@@ -1,0 +1,45 @@
+meta {
+  name: 7. List Workspaces
+  type: http
+  seq: 7
+  tags: [workspaces, smoke]
+}
+
+get {
+  url: {{baseUrl}}/work-apps/slack/workspaces
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+tests {
+  test("should return 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("should have workspaces array", function() {
+    expect(res.body.workspaces).to.be.an('array');
+  });
+}
+
+docs {
+  # List Slack Workspaces
+  
+  Returns all Slack workspaces installed with the Inkeep bot.
+  
+  **Auth:** Session token
+  
+  **No query params required.**
+  
+  **Returns:**
+  - `workspaces[]` - Array of workspace objects:
+    - `connectionId` - Nango connection ID
+    - `teamId` - Slack team ID
+    - `teamName` - Workspace name
+    - `tenantId` - Associated tenant
+    - `hasDefaultAgent` - Whether default agent is configured
+    - `defaultAgentName` - Name of default agent (if set)
+}
