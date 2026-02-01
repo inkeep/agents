@@ -5,17 +5,17 @@ import type React from 'react';
 import type { Control, FieldPath, FieldValues, RegisterOptions } from 'react-hook-form';
 import { FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-interface FormFieldWrapperProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface FormFieldWrapperProps<FV extends FieldValues, C = any, TV = FieldValues> {
+  control: Control<FV, C, TV>;
+  name: FieldPath<FV>;
   label: string;
-  children: (field: FieldValues) => React.ReactNode;
+  children: (field: FV) => React.ReactNode;
   description?: string | React.ReactNode;
-  rules?: RegisterOptions<T, FieldPath<T>>;
+  rules?: RegisterOptions<FV, FieldPath<FV>>;
   isRequired?: boolean;
 }
 
-export function FormFieldWrapper<T extends FieldValues>({
+export function FormFieldWrapper<FV extends FieldValues, TV extends FieldValues>({
   control,
   name,
   label,
@@ -23,7 +23,7 @@ export function FormFieldWrapper<T extends FieldValues>({
   description,
   rules,
   isRequired,
-}: FormFieldWrapperProps<T>) {
+}: FormFieldWrapperProps<FV, TV>) {
   return (
     <FormField
       control={control}
