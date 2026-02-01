@@ -10,17 +10,25 @@ import type {
 } from 'react-hook-form';
 import { FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-interface FormFieldWrapperProps<FV extends FieldValues, TV extends FieldValues = FV> {
+interface FormFieldWrapperProps<
+  FV extends FieldValues,
+  TV extends FieldValues,
+  TName extends FieldPath<FV>,
+> {
   control: Control<FV, any, TV>;
-  name: FieldPath<FV>;
+  name: TName;
   label: string;
-  children: (field: ControllerRenderProps<FV, FieldPath<FV>>) => React.ReactNode;
+  children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
   description?: React.ReactNode;
-  rules?: RegisterOptions<FV, FieldPath<FV>>;
+  rules?: RegisterOptions<FV, TName>;
   isRequired?: boolean;
 }
 
-export function FormFieldWrapper<FV extends FieldValues, TV extends FieldValues = FV>({
+export function FormFieldWrapper<
+  FV extends FieldValues,
+  TV extends FieldValues,
+  TName extends FieldPath<FV>,
+>({
   control,
   name,
   label,
@@ -28,7 +36,7 @@ export function FormFieldWrapper<FV extends FieldValues, TV extends FieldValues 
   description,
   rules,
   isRequired,
-}: FormFieldWrapperProps<FV, TV>) {
+}: FormFieldWrapperProps<FV, TV, TName>) {
   return (
     <FormField
       control={control}
