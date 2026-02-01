@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +17,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 
 const toolSchemaTemplate = `{
   "type": "object",
