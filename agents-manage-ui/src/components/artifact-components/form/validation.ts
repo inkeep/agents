@@ -1,30 +1,17 @@
-import { ResourceIdSchema } from '@inkeep/agents-core/client-exports';
+import { ArtifactComponentApiInsertSchema, toJson } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
-const jsonSchemaValidation = () =>
-  z
-    .union([z.string(), z.null(), z.undefined()])
-    .transform((str, _ctx) => {
-      if (!str) {
-        return;
-      }
-      // SAME AS DataComponentApiInsertSchema.props
-      return null as any;
-    })
-    .optional();
+const PropsSchema = ArtifactComponentApiInsertSchema.shape.props;
 
-export const artifactComponentSchema = z.object({
-  id: ResourceIdSchema,
-  name: z.string().min(1, 'Name is required.'),
-  description: z.string().optional(),
-  props: jsonSchemaValidation(),
-  render: z
-    .object({
-      component: z.string(),
-      mockData: z.record(z.string(), z.unknown()),
-    })
-    .nullable()
+export const ArtifactComponentSchema = ArtifactComponentApiInsertSchema.extend({
+  props: z
+    .string()
+    .trim()
+    .transform((value, ctx) => (value ? toJson(value, ctx) : null))
+    .pipe(PropsSchema)
     .optional(),
 });
 
-export type ArtifactComponentFormData = z.infer<typeof artifactComponentSchema>;
+export type ArtifactComponentFormData = z.input<typeof ArtifactComponentSchema>;
+// export type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
+// export type ArtifactComponentOutput = z.output<typeof ArtifactComponentSchema>;
