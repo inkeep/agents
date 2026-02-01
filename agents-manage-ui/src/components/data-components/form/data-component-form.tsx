@@ -20,7 +20,8 @@ import {
 import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { type DataComponentFormData, DataComponentSchema as schema } from './validation';
+import { defaultValues } from './form-configuration';
+import { type DataComponentInput, DataComponentSchema as schema } from './validation';
 
 const resolver = zodResolver(schema);
 
@@ -28,7 +29,7 @@ interface DataComponentFormProps {
   tenantId: string;
   projectId: string;
   id?: string;
-  initialData?: DataComponentFormData;
+  initialData?: DataComponentInput;
   readOnly?: boolean;
   className?: string;
 }
@@ -37,28 +38,12 @@ export function DataComponentForm({
   tenantId,
   projectId,
   id,
-  initialData,
+  initialData = defaultValues,
   readOnly = false,
   className,
 }: DataComponentFormProps) {
-  const [defaultValues] = useState<DataComponentFormData>(() =>
-    initialData
-      ? {
-          ...initialData,
-          props: JSON.stringify(initialData.props, null, 2),
-        }
-      : {
-          id: '',
-          name: '',
-          description: '',
-          props: '',
-        }
-  );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const form = useForm({
-    resolver,
-    defaultValues,
-  });
+  const form = useForm({ resolver, defaultValues });
   const { isSubmitting } = form.formState;
   const router = useRouter();
 

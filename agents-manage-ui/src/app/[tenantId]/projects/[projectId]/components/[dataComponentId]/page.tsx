@@ -30,7 +30,7 @@ export default async function DataComponentPage({
           id: dataComponentId,
           name,
           description: description ?? '',
-          props,
+          props: props ? JSON.stringify(props, null, 2) : '',
           render,
         }}
       />

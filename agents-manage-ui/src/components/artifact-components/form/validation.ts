@@ -12,6 +12,5 @@ export const ArtifactComponentSchema = ArtifactComponentApiInsertSchema.extend({
     .optional(),
 });
 
-export type ArtifactComponentFormData = z.input<typeof ArtifactComponentSchema>;
-// export type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
+export type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;
 export type ArtifactComponentOutput = z.output<typeof ArtifactComponentSchema>;

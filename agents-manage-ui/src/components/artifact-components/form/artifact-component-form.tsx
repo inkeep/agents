@@ -19,7 +19,8 @@ import {
 import { isRequired } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { type ArtifactComponentFormData, ArtifactComponentSchema as schema } from './validation';
+import { defaultValues } from './form-configuration';
+import { type ArtifactComponentInput, ArtifactComponentSchema as schema } from './validation';
 
 const resolver = zodResolver(schema);
 
@@ -27,7 +28,7 @@ interface ArtifactComponentFormProps {
   tenantId: string;
   projectId: string;
   id?: string;
-  initialData?: ArtifactComponentFormData;
+  initialData?: ArtifactComponentInput;
   readOnly?: boolean;
 }
 
@@ -35,27 +36,11 @@ export function ArtifactComponentForm({
   id,
   tenantId,
   projectId,
-  initialData,
+  initialData = defaultValues,
   readOnly = false,
 }: ArtifactComponentFormProps) {
-  const [defaultValues] = useState<ArtifactComponentFormData>(() =>
-    initialData
-      ? {
-          ...initialData,
-          props: initialData.props ? JSON.stringify(initialData.props, null, 2) : '',
-        }
-      : {
-          id: '',
-          name: '',
-          description: '',
-          props: '',
-        }
-  );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const form = useForm({
-    resolver,
-    defaultValues,
-  });
+  const form = useForm({ resolver, defaultValues });
 
   const { isSubmitting } = form.formState;
   const router = useRouter();

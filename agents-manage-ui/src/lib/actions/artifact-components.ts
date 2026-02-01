@@ -5,6 +5,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { ArtifactComponentOutput } from '@/components/artifact-components/form/validation';
 import type { ArtifactComponent } from '../api/artifact-components';
 import {
   createArtifactComponent,
@@ -14,7 +15,6 @@ import {
 } from '../api/artifact-components';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
-import type { ArtifactComponentOutput } from '@/components/artifact-components/form/validation';
 
 /**
  * Fetch all artifacts
