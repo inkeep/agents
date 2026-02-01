@@ -16,10 +16,9 @@ import {
   createArtifactComponentAction,
   updateArtifactComponentAction,
 } from '@/lib/actions/artifact-components';
+import { isRequired } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { defaultValues } from './form-configuration';
-import { type ArtifactComponentFormData, artifactComponentSchema } from './validation';
 import { type ArtifactComponentFormData, ArtifactComponentSchema as schema } from './validation';
 
 const resolver = zodResolver(schema);
@@ -31,17 +30,6 @@ interface ArtifactComponentFormProps {
   initialData?: ArtifactComponentFormData;
   readOnly?: boolean;
 }
-
-const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentFormData => {
-  if (!data) return defaultValues;
-
-  const formatted = { ...data };
-  // Handle both null and undefined props, as well as empty strings
-  if (formatted.props) {
-    formatted.props = formatJsonField(formatted.props);
-  }
-  return formatted;
-};
 
 export function ArtifactComponentForm({
   id,
