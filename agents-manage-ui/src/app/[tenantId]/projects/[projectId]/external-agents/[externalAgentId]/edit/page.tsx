@@ -1,11 +1,11 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
+import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import type { ExternalAgentFormData } from '@/lib/validation';
 
 async function EditExternalAgentPage({
   params,

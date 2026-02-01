@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { fetchProjectPermissions } from '@/lib/api/projects';
-import type { ProjectFormData } from '@/lib/validation';
 import { ProjectForm } from './form/project-form';
 
 interface EditProjectDialogProps {
