@@ -28,7 +28,7 @@ function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.Ref
   if (!validationResult.isValid) {
     const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message: errorMessage,
     });
     return z.NEVER;
