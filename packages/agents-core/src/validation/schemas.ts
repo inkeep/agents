@@ -64,7 +64,7 @@ import {
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
-import { DataComponentExtendSchema } from './extend-schemas';
+import { ArtifactComponentExtendSchema, DataComponentExtendSchema } from './extend-schemas';
 
 // Destructure defaults for use in schemas
 const {

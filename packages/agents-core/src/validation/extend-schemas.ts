@@ -1,14 +1,28 @@
 import { z } from '@hono/zod-openapi';
-import type { dataComponents } from '../db/manage/manage-schema';
+import type { artifactComponents, dataComponents } from '../db/manage/manage-schema';
 import { validateJsonSchemaForLlm } from './json-schema-validation';
 
 type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
+const NameSchema = z.string().trim().nonempty();
+const DescriptionSchema = z.string().trim().optional();
+const PropsSchema = z.record(z.string(), z.unknown(), 'Schema must be an object');
+
 export const DataComponentExtendSchema = {
-  name: z.string().trim().nonempty(),
-  description: z.string().trim().optional(),
-  props: z.record(z.string(), z.unknown(), 'Schema must be an object').transform(transformProps),
+  name: NameSchema,
+  description: DescriptionSchema,
+  props: PropsSchema.transform(transformProps),
 } satisfies ExtendSchema<typeof dataComponents>;
+
+export const ArtifactComponentExtendSchema = {
+  name: NameSchema,
+  description: DescriptionSchema,
+  // props: z
+  //   .string()
+  //   .trim()
+  //   // .transform((str, ctx) => (str ? transformProps(str, ctx) : null))
+  //   .nullable(),
+} satisfies ExtendSchema<typeof artifactComponents>;
 
 function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
   console.log('transformProps', [parsed]);
