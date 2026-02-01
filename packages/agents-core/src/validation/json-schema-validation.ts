@@ -179,25 +179,14 @@ export function validateJsonSchemaForLlm(parsed: Record<string, unknown>): Valid
   };
 }
 
-export function getJsonParseError(error: unknown): string {
-  if (error instanceof SyntaxError) {
-    const message = error.message.toLowerCase();
-    if (message.includes('unexpected end of json input')) {
-      return 'Incomplete JSON - missing closing brackets or quotes';
-    }
-    if (message.includes('unexpected token')) {
-      return 'Invalid character in JSON - check for missing commas, quotes, or brackets';
-    }
-    if (
-      message.includes('expected property name') ||
-      message.includes("expected ':' after property name")
-    ) {
-      return 'Property names must be in double quotes';
-    }
-    if (message.includes('duplicate keys')) {
-      return 'Duplicate property names are not allowed';
-    }
-    return 'Invalid JSON syntax - check structure and formatting';
+export function toJson<T extends string>(value: T, ctx: z.RefinementCtx<T>) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Invalid JSON syntax',
+    });
+    return z.NEVER;
   }
-  return 'Unable to parse JSON';
 }
