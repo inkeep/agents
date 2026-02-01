@@ -5,8 +5,8 @@ import { FormControl } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
 
-interface GenericTextareaProps<FV extends FieldValues, C = any, TV = FieldValues> {
-  control: Control<FV, C, TV>;
+interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, any, TV>;
   name: FieldPath<FV>;
   label: string;
   placeholder?: string;

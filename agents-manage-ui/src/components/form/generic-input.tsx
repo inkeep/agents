@@ -5,9 +5,9 @@ import { FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FormFieldWrapper } from './form-field-wrapper';
 
-interface GenericInputProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, any, TV>;
+  name: FieldPath<FV>;
   label: string;
   placeholder?: string;
   type?: string;
@@ -18,7 +18,10 @@ interface GenericInputProps<T extends FieldValues> {
   isRequired?: boolean;
 }
 
-export function GenericInput<T extends FieldValues>({
+export function GenericInput<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues = TFieldValues,
+>({
   control,
   name,
   label,
@@ -29,7 +32,7 @@ export function GenericInput<T extends FieldValues>({
   disabled,
   description,
   isRequired = false,
-}: GenericInputProps<T>) {
+}: GenericInputProps<TFieldValues, TTransformedValues>) {
   return (
     <FormFieldWrapper
       control={control}

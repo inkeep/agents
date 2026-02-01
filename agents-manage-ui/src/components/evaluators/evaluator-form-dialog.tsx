@@ -78,7 +78,7 @@ export function EvaluatorFormDialog({
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
-  const form = useForm<EvaluatorFormData>({
+  const form = useForm({
     resolver: zodResolver(evaluatorSchema),
     defaultValues: formatFormData(initialData),
   });

@@ -101,8 +101,6 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
             <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
                 <StandaloneJsonEditor
-                  value={field.value}
-                  onChange={field.onChange}
                   placeholder={`{
   "tz": "US/Pacific"
 }`}
