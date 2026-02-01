@@ -164,24 +164,6 @@ function validateLlmRequirements(schema: Record<string, unknown>): ValidationErr
 export function validateJsonSchemaForLlm(parsed: Record<string, unknown>): ValidationResult {
   const warnings: string[] = [];
 
-  const { parsed, errors: syntaxErrors } = validateJsonSyntax(jsonString);
-
-  if (syntaxErrors.length > 0) {
-    return {
-      isValid: false,
-      errors: syntaxErrors,
-      warnings,
-    };
-  }
-
-  if (!parsed) {
-    return {
-      isValid: true,
-      errors: [],
-      warnings: ['Empty schema provided'],
-    };
-  }
-
   const schemaErrors = validateJsonSchema(parsed);
 
   const llmErrors = validateLlmRequirements(parsed);
