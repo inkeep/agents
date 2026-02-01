@@ -19,7 +19,7 @@ export const DataComponentExtendSchema = {
 export const ArtifactComponentExtendSchema = {
   name: NameSchema,
   description: DescriptionSchema,
-  props: PropsSchema.nullish(),
+  props: PropsSchema.nullable(),
 } satisfies ExtendSchema<typeof artifactComponents>;
 
 function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {

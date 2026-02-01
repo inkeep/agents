@@ -1378,8 +1378,6 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 ).openapi('ArtifactComponentUpdate');
-type Test = z.infer<typeof ArtifactComponentApiInsertSchema>;
-type Test2 = z.infer<typeof DataComponentApiInsertSchema>;
 export const SubAgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
 export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
