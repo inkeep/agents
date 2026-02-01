@@ -9,8 +9,8 @@ interface FormFieldWrapperProps<FV extends FieldValues, C = any, TV = FieldValue
   control: Control<FV, C, TV>;
   name: FieldPath<FV>;
   label: string;
-  children: (field: FV) => React.ReactNode;
-  description?: string | React.ReactNode;
+  children: (field: TV) => React.ReactNode;
+  description?: React.ReactNode;
   rules?: RegisterOptions<FV, FieldPath<FV>>;
   isRequired?: boolean;
 }
