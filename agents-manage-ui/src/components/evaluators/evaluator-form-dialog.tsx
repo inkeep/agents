@@ -20,7 +20,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/evaluators';
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
@@ -208,23 +207,14 @@ export function EvaluatorFormDialog({
               label="Description"
               placeholder="Describe what this evaluator measures..."
             />
-
-            <FormFieldWrapper
+            <GenericTextarea
               control={form.control}
               name="prompt"
               label="Prompt"
               description="Instructions for the evaluator LLM on how to evaluate conversations"
               isRequired
-            >
-              {(field) => (
-                <Textarea
-                  placeholder="You are an evaluator. Analyze the conversation and provide feedback..."
-                  className="min-h-[150px] font-mono text-sm"
-                  {...field}
-                  value={field.value ?? ''}
-                />
-              )}
-            </FormFieldWrapper>
+              placeholder="You are an evaluator. Analyze the conversation and provide feedback..."
+            />
 
             <JsonSchemaInput
               control={form.control}

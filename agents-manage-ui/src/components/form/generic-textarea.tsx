@@ -15,6 +15,7 @@ interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
   readOnly?: boolean;
   isRequired?: boolean;
   rows?: number;
+  description?: React.ReactNode;
 }
 
 export function GenericTextarea<FV extends FieldValues, TV extends FieldValues>({
@@ -27,9 +28,16 @@ export function GenericTextarea<FV extends FieldValues, TV extends FieldValues>(
   readOnly,
   isRequired = false,
   rows,
+  description,
 }: GenericTextareaProps<FV, TV>) {
   return (
-    <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
+    <FormFieldWrapper
+      control={control}
+      name={name}
+      label={label}
+      isRequired={isRequired}
+      description={description}
+    >
       {(field) => (
         <FormControl>
           <Textarea
