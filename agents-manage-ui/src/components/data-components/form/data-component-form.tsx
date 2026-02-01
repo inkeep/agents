@@ -41,22 +41,21 @@ export function DataComponentForm({
   readOnly = false,
   className,
 }: DataComponentFormProps) {
-  const [defaultValues] = useState(
-    (): DataComponentFormData =>
-      initialData
-        ? {
-            ...initialData,
-            props: JSON.stringify(initialData.props, null, 2),
-          }
-        : {
-            id: '',
-            name: '',
-            description: '',
-            props: '',
-          }
+  const [defaultValues] = useState<DataComponentFormData>(() =>
+    initialData
+      ? {
+          ...initialData,
+          props: JSON.stringify(initialData.props, null, 2),
+        }
+      : {
+          id: '',
+          name: '',
+          description: '',
+          props: '',
+        }
   );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const form = useForm<DataComponentFormData>({
+  const form = useForm({
     resolver,
     defaultValues,
   });

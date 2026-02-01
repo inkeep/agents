@@ -38,10 +38,23 @@ export function ArtifactComponentForm({
   initialData,
   readOnly = false,
 }: ArtifactComponentFormProps) {
+  const [defaultValues] = useState<ArtifactComponentFormData>(() =>
+    initialData
+      ? {
+          ...initialData,
+          props: initialData.props ? JSON.stringify(initialData.props, null, 2) : '',
+        }
+      : {
+          id: '',
+          name: '',
+          description: '',
+          props: '',
+        }
+  );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const form = useForm<ArtifactComponentFormData>({
-    resolver: zodResolver(artifactComponentSchema),
-    defaultValues: formatFormData(initialData),
+  const form = useForm({
+    resolver,
+    defaultValues,
   });
 
   const { isSubmitting } = form.formState;
@@ -55,15 +68,8 @@ export function ArtifactComponentForm({
     isEditing: !!id,
   });
 
-  const onSubmit = async (data: ArtifactComponentFormData) => {
+  const onSubmit = form.handleSubmit(async (payload) => {
     try {
-      const payload = { ...data } as ArtifactComponent;
-
-      // Explicitly set props to null if it's undefined to ensure it gets cleared
-      if (payload.props === undefined) {
-        payload.props = null;
-      }
-
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
@@ -85,7 +91,7 @@ export function ArtifactComponentForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

@@ -12,4 +12,4 @@ export const DataComponentSchema = DataComponentApiInsertSchema.pick({
   props: z.string().trim().nonempty('Props schema is required').transform(toJson).pipe(PropsSchema),
 });
 
-export type DataComponentFormData = z.infer<typeof DataComponentSchema>;
+export type DataComponentFormData = z.input<typeof DataComponentSchema>;
