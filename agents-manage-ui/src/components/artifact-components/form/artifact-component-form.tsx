@@ -96,7 +96,7 @@ export function ArtifactComponentForm({
             name="name"
             label="Name"
             placeholder="Document Artifact"
-            isRequired
+            isRequired={isRequired(schema, 'name')}
             disabled={readOnly}
           />
           <GenericInput
@@ -105,7 +105,7 @@ export function ArtifactComponentForm({
             label="Id"
             placeholder="my-artifact"
             disabled={!!id || readOnly}
-            isRequired
+            isRequired={isRequired(schema, 'id')}
             description={
               !id &&
               'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
@@ -118,6 +118,7 @@ export function ArtifactComponentForm({
             placeholder="Structured factual information extracted from search results"
             className="min-h-[80px]"
             disabled={readOnly}
+            isRequired={isRequired(schema, 'description')}
           />
           <JsonSchemaInput
             control={form.control}
@@ -128,6 +129,7 @@ export function ArtifactComponentForm({
             uri="custom-json-schema-artifact-component.json"
             hasInPreview
             readOnly={readOnly}
+            isRequired={isRequired(schema, 'props')}
           />
 
           {id && !readOnly && (
@@ -163,7 +165,7 @@ export function ArtifactComponentForm({
           artifactComponentId={id}
           artifactComponentName={form.getValues('name')}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>
