@@ -4,7 +4,7 @@ import { validateJsonSchemaForLlm } from './json-schema-validation';
 
 type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
-const NameSchema = z.string().trim().nonempty();
+const NameSchema = z.string().trim().nonempty('Name is required');
 const DescriptionSchema = z.string().trim().optional();
 const PropsSchema = z
   .record(z.string(), z.unknown(), 'Schema must be an object')

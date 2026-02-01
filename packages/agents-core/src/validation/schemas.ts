@@ -113,7 +113,7 @@ export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
 export const ResourceIdSchema = z
   .string()
   .trim()
-  .nonempty()
+  .nonempty('Id is required')
   .max(MAX_ID_LENGTH)
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
