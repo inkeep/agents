@@ -20,7 +20,6 @@ import {
 import { cn, isRequired } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
-import { defaultValues } from './form-configuration';
 import { type DataComponentFormData, DataComponentSchema } from './validation';
 
 interface DataComponentFormProps {
@@ -47,7 +46,12 @@ export function DataComponentForm({
             ...initialData,
             props: JSON.stringify(initialData.props, null, 2),
           }
-        : defaultValues
+        : {
+            id: '',
+            name: '',
+            description: '',
+            props: '',
+          }
   );
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({

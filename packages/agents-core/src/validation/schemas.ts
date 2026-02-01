@@ -1338,12 +1338,10 @@ export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 export const DataComponentApiSelectSchema =
   createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
 
-function transformProps(str: string, ctx: z.RefinementCtx<string>) {
-  console.log('transformProps', [str]);
+function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
+  console.log('transformProps', [parsed]);
   try {
-    const parsed = JSON.parse(str);
-
-    const validationResult = validateJsonSchemaForLlm(str);
+    const validationResult = validateJsonSchemaForLlm(parsed);
     if (!validationResult.isValid) {
       const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
       ctx.addIssue({
@@ -1352,6 +1350,7 @@ function transformProps(str: string, ctx: z.RefinementCtx<string>) {
       });
       return z.NEVER;
     }
+    // @ts-expect-error
     parsed.required ??= [];
     return parsed;
   } catch (error) {
@@ -1363,16 +1362,18 @@ function transformProps(str: string, ctx: z.RefinementCtx<string>) {
   }
 }
 
-export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
-  .extend({
-    name: z.string().trim().nonempty(),
-    description: z.string().trim().nullable(),
-    props: z.string().trim().nonempty().transform(transformProps),
-  })
-  .openapi('DataComponentCreate');
-export const DataComponentApiUpdateSchema =
-  createApiUpdateSchema(DataComponentUpdateSchema).openapi('DataComponentUpdate');
+const DataComponentExtendSchema = {
+  name: z.string().trim().nonempty(),
+  description: z.string().trim().nullable(),
+  props: z.record(z.string(), z.unknown()).transform(transformProps),
+};
 
+export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
+  .extend(DataComponentExtendSchema)
+  .openapi('DataComponentCreate');
+export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentUpdateSchema)
+  .extend(DataComponentExtendSchema)
+  .openapi('DataComponentUpdate');
 export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
 export const SubAgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
 export const SubAgentDataComponentUpdateSchema = SubAgentDataComponentInsertSchema.partial();
