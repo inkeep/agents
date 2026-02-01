@@ -82,7 +82,7 @@ function validateJsonSyntax(jsonString: string): {
 /**
  * Validates that the JSON represents a valid JSON Schema for LLM usage
  */
-function validateJsonSchema(schema: any): ValidationError[] {
+function validateJsonSchema(schema: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (!schema || typeof schema !== 'object') {
@@ -154,7 +154,7 @@ function validateJsonSchema(schema: any): ValidationError[] {
 /**
  * Validates additional LLM-specific requirements
  */
-function validateLlmRequirements(schema: any): ValidationError[] {
+function validateLlmRequirements(schema: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (!schema || typeof schema !== 'object') {
@@ -197,7 +197,7 @@ function validateLlmRequirements(schema: any): ValidationError[] {
 /**
  * Comprehensive JSON Schema validation for LLM usage
  */
-export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
+export function validateJsonSchemaForLlm(parsed: Record<string, unknown>): ValidationResult {
   const warnings: string[] = [];
 
   const { parsed, errors: syntaxErrors } = validateJsonSyntax(jsonString);
