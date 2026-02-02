@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core/auth/permissions';
 import { deviceAuthorizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { createContext, type ReactNode, use, useMemo } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 // Create a factory function to get the proper inferred type
@@ -51,7 +51,7 @@ export function AuthClientProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuthClient() {
-  const client = useContext(AuthClientContext);
+  const client = use(AuthClientContext);
   if (!client) {
     throw new Error('useAuthClient must be used within a <AuthClientProvider />');
   }
