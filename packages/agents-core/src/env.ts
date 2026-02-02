@@ -42,20 +42,59 @@ export const loadEnvironmentFiles = () => {
 loadEnvironmentFiles();
 
 const envSchema = z.object({
-  ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
-  INKEEP_AGENTS_MANAGE_DATABASE_URL: z.string().optional(),
-  INKEEP_AGENTS_RUN_DATABASE_URL: z.string().optional(),
-  POSTGRES_POOL_SIZE: z.string().optional(),
+  // Core Environment
+  ENVIRONMENT: z
+    .enum(['development', 'production', 'pentest', 'test'])
+    .optional()
+    .describe('Application environment mode'),
+
+  // Database
+  INKEEP_AGENTS_MANAGE_DATABASE_URL: z
+    .string()
+    .optional()
+    .describe(
+      'PostgreSQL connection URL for the management database (Doltgres with Git version control)'
+    ),
+  INKEEP_AGENTS_RUN_DATABASE_URL: z
+    .string()
+    .optional()
+    .describe(
+      'PostgreSQL connection URL for the runtime database (Doltgres with Git version control)'
+    ),
+  POSTGRES_POOL_SIZE: z
+    .string()
+    .optional()
+    .describe('Maximum number of connections in the PostgreSQL connection pool'),
+
+  // Authentication & Security
   INKEEP_AGENTS_JWT_SIGNING_SECRET: z
     .string()
     .min(32, 'INKEEP_AGENTS_JWT_SIGNING_SECRET must be at least 32 characters')
-    .optional(),
-  INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
-  INKEEP_AGENTS_API_URL: z.string().optional(),
-  BETTER_AUTH_SECRET: z.string().optional(),
-  TRUSTED_ORIGIN: z.string().optional(), // for local/preview env
-  OAUTH_PROXY_PRODUCTION_URL: z.string().optional(), // for local/preview env
-  GITHUB_MCP_API_KEY: z.string().optional(),
+    .optional()
+    .describe('Secret key for signing JWT tokens (minimum 32 characters)'),
+  BETTER_AUTH_SECRET: z
+    .string()
+    .optional()
+    .describe('Secret key for Better Auth session encryption (change in production)'),
+  TRUSTED_ORIGIN: z
+    .string()
+    .optional()
+    .describe('Trusted origin URL for CORS in local/preview environments'),
+  OAUTH_PROXY_PRODUCTION_URL: z
+    .string()
+    .optional()
+    .describe('OAuth proxy URL for production environment (used in local/preview environments)'),
+
+  // API Endpoints
+  INKEEP_AGENTS_MANAGE_UI_URL: z
+    .string()
+    .optional()
+    .describe('URL where the management UI is hosted'),
+  INKEEP_AGENTS_API_URL: z
+    .string()
+    .optional()
+    .describe('URL where the agents management API is running'),
+  GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 });
 
 const parseEnv = () => {
