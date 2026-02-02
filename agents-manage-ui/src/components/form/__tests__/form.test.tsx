@@ -7,7 +7,7 @@ import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
-import '@/app/globals.css';
+import './styles.css';
 
 function TestForm() {
   const error = 'This field is required';
