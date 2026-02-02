@@ -94,6 +94,14 @@ jobs:
           CI: true
           HUSKY: 0
 
+      - name: Upload Vitest Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-screenshots
+          path: agents-manage-ui/.vitest-attachments
+          retention-days: 3
+
       - name: Biome Format
         run: pnpm format:check
 
