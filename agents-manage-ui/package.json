@@ -115,11 +115,12 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@vitest/browser-playwright": "^4.0.18",
     "babel-plugin-react-compiler": "^1.0.0",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/dagre": "^0.7.53",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^20",
