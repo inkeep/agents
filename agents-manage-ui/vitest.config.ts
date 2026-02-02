@@ -31,7 +31,7 @@ export default defineConfig({
             expect: {
               toMatchScreenshot: {
                 // Increase timeout because the default `5s` is insufficient on CI
-                timeout: 10_000,
+                timeout: 15_000,
                 resolveScreenshotPath: ({ root, screenshotDirectory, arg, browserName, ext }) =>
                   [
                     root,
