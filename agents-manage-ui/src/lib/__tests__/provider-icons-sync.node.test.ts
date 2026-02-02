@@ -8,7 +8,6 @@ describe('provider-icons-sync', () => {
         cwd: 'public/assets/provider-icons',
       })
       .map((file) => file.replace(/\.svg$/, ''));
-
-    expect(commonIcons).toBe(actualIcons);
+    expect(actualIcons.sort()).toStrictEqual(commonIcons);
   });
 });
