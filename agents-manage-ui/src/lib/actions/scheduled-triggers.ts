@@ -6,6 +6,7 @@ import {
   deleteScheduledTrigger,
   fetchScheduledTriggers,
   fetchScheduledTriggerInvocations,
+  cancelScheduledTriggerInvocation,
   type CreateScheduledTriggerInput,
   type ScheduledTrigger,
   type ScheduledTriggerInvocation,
@@ -179,6 +180,45 @@ export async function deleteScheduledTriggerAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete scheduled trigger',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function cancelScheduledTriggerInvocationAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  invocationId: string
+): Promise<ActionResult<void>> {
+  try {
+    const result = await cancelScheduledTriggerInvocation(
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      invocationId
+    );
+    revalidatePath(
+      `/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations`
+    );
+    return {
+      success: result.success,
+      error: result.success ? undefined : result.message,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to cancel invocation',
       code: 'unknown_error',
     };
   }

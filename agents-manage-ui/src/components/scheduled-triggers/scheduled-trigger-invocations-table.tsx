@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cancelScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocation } from '@/lib/api/scheduled-triggers';
 
 interface ScheduledTriggerInvocationsTableProps {
@@ -116,18 +117,19 @@ export function ScheduledTriggerInvocationsTable({
     setLoadingInvocations((prev) => new Set(prev).add(invocationId));
 
     try {
-      // Call the run API to cancel the invocation
-      const response = await fetch(
-        `/api/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations/${invocationId}/cancel`,
-        { method: 'POST' }
+      const result = await cancelScheduledTriggerInvocationAction(
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId
       );
 
-      if (response.ok) {
+      if (result.success) {
         toast.success('Invocation cancelled successfully');
         router.refresh();
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Failed to cancel invocation');
+        toast.error(result.error || 'Failed to cancel invocation');
       }
     } catch (error) {
       console.error('Failed to cancel invocation:', error);

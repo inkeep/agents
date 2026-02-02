@@ -346,22 +346,6 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       agent.setDelegationId(delegationId);
 
-      // Ensure agentSessionManager has a session for this streamRequestId.
-      // This is necessary because the session may have been created in a different
-      // bundle context (e.g., Vercel Workflow step bundle) that has its own
-      // agentSessionManager singleton. We create/get the session here to ensure
-      // event recording works correctly in the A2A handler context.
-      if (streamRequestId && tenantId && projectId) {
-        const existingSession = agentSessionManager.getSession(streamRequestId);
-        if (!existingSession) {
-          logger.debug(
-            { streamRequestId, tenantId, projectId, contextId },
-            'Creating agentSessionManager session in A2A handler (cross-bundle session sync)'
-          );
-          agentSessionManager.createSession(streamRequestId, config.executionContext, contextId);
-        }
-      }
-
       if (isDelegation) {
         logger.info(
           { subAgentId: config.subAgentId, taskId: task.id, delegationId },

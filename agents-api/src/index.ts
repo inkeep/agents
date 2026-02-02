@@ -8,6 +8,7 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import { world, recoverOrphanedWorkflows } from './domains/evals/workflow/world';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
@@ -101,5 +102,34 @@ const app = createAgentsHono({
   auth,
   sandboxConfig,
 });
+
+// Start the workflow world worker and recover orphaned workflows.
+// Both postgres and local worlds need this:
+// - Postgres world: pg-boss polls for jobs
+// - Local world: in-memory setTimeouts for job processing
+// In both cases, jobs are lost on restart but run state persists.
+const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
+if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
+  const STARTUP_DELAY_MS = 3000; // Wait for Vite/server to start
+  console.log(`Scheduling workflow world worker start in ${STARTUP_DELAY_MS}ms (${workflowWorld} mode)...`);
+
+  setTimeout(async () => {
+    try {
+      if (workflowWorld === '@workflow/world-postgres') {
+        console.log('Starting workflow world worker...');
+        await world.start();
+        console.log('Workflow world worker started successfully');
+      } else {
+        console.log(`Workflow world (${workflowWorld}) does not require explicit start`);
+      }
+      const recoveredCount = await recoverOrphanedWorkflows();
+      if (recoveredCount > 0) {
+        console.log(`Recovered ${recoveredCount} orphaned workflow(s)`);
+      }
+    } catch (err) {
+      console.error('Failed to start workflow world:', err);
+    }
+  }, STARTUP_DELAY_MS);
+}
 
 export default app;

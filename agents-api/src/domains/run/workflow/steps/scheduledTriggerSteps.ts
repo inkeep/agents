@@ -9,7 +9,9 @@ import {
   generateId,
   getProjectScopedRef,
   getScheduledTriggerById,
+  getScheduledTriggerInvocationById,
   getScheduledTriggerInvocationByIdempotencyKey,
+  getScheduledWorkflowByTriggerId,
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
@@ -96,6 +98,12 @@ export async function checkTriggerEnabledStep(params: {
 }) {
   'use step';
 
+  const scopes = {
+    tenantId: params.tenantId,
+    projectId: params.projectId,
+    agentId: params.agentId,
+  };
+
   // Resolve the branch ref for this project (DoltgreS uses branch-per-project)
   const ref = getProjectScopedRef(params.tenantId, params.projectId, 'main');
   const resolvedRef = await resolveRef(manageDbClient)(ref);
@@ -108,16 +116,18 @@ export async function checkTriggerEnabledStep(params: {
     return { shouldContinue: false, reason: 'deleted', trigger: null };
   }
 
-  // Query the correct branch for the trigger
-  const trigger = await withRef(manageDbPool, resolvedRef, async (db) => {
-    return getScheduledTriggerById(db)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-      scheduledTriggerId: params.scheduledTriggerId,
-    });
+  // Query the correct branch for the trigger and workflow
+  const [trigger, workflow] = await withRef(manageDbPool, resolvedRef, async (db) => {
+    return Promise.all([
+      getScheduledTriggerById(db)({
+        scopes,
+        scheduledTriggerId: params.scheduledTriggerId,
+      }),
+      getScheduledWorkflowByTriggerId(db)({
+        scopes,
+        scheduledTriggerId: params.scheduledTriggerId,
+      }),
+    ]);
   });
 
   // If trigger was deleted or disabled, stop the workflow
@@ -129,8 +139,8 @@ export async function checkTriggerEnabledStep(params: {
     return { shouldContinue: false, reason: !trigger ? 'deleted' : 'disabled', trigger: null };
   }
 
-  // If workflowRunId changed, this workflow was superseded by a new runner
-  if (trigger.workflowRunId && trigger.workflowRunId !== params.runnerId) {
+  // If workflowRunId changed in the workflow record, this runner was superseded
+  if (workflow?.workflowRunId && workflow.workflowRunId !== params.runnerId) {
     logger.info(
       { scheduledTriggerId: params.scheduledTriggerId, reason: 'superseded' },
       'Scheduled trigger workflow stopping'
@@ -230,6 +240,48 @@ export async function createInvocationIdempotentStep(params: {
   );
 
   return { invocation, alreadyExists: false };
+}
+
+/**
+ * Step: Check if invocation was cancelled before execution
+ * Returns true if cancelled (should skip execution), false otherwise
+ */
+export async function checkInvocationCancelledStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocationId: string;
+}): Promise<{ cancelled: boolean }> {
+  'use step';
+
+  const invocation = await getScheduledTriggerInvocationById(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    invocationId: params.invocationId,
+  });
+
+  if (!invocation) {
+    logger.warn(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Invocation not found when checking cancellation status'
+    );
+    return { cancelled: true }; // Treat missing as cancelled
+  }
+
+  if (invocation.status === 'cancelled') {
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
+      'Invocation was cancelled, skipping execution'
+    );
+    return { cancelled: true };
+  }
+
+  return { cancelled: false };
 }
 
 /**

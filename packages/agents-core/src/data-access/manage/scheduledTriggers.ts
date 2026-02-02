@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledTriggers } from '../../db/manage/manage-schema';
 import type {
@@ -116,22 +116,6 @@ export const listEnabledOneTimeTriggers =
   };
 
 /**
- * List triggers without active workflows (orphaned triggers)
- * Useful for watchdog to detect triggers needing restart
- */
-export const listTriggersWithoutWorkflow =
-  (db: AgentsManageDatabaseClient) =>
-  async (): Promise<ScheduledTrigger[]> => {
-    const result = await db.query.scheduledTriggers.findMany({
-      where: and(
-        eq(scheduledTriggers.enabled, true),
-        isNull(scheduledTriggers.workflowRunId)
-      ),
-    });
-    return result as ScheduledTrigger[];
-  };
-
-/**
  * Create a new scheduled trigger (agent-scoped)
  */
 export const createScheduledTrigger =
@@ -162,36 +146,6 @@ export const updateScheduledTrigger =
     const result = await db
       .update(scheduledTriggers)
       .set(updateData as any)
-      .where(
-        and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId),
-          eq(scheduledTriggers.id, params.scheduledTriggerId)
-        )
-      )
-      .returning();
-
-    return result[0] as ScheduledTrigger;
-  };
-
-/**
- * Update workflow run ID for a scheduled trigger
- * Used when a workflow is started/restarted for a trigger
- */
-export const updateScheduledTriggerWorkflowId =
-  (db: AgentsManageDatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    scheduledTriggerId: string;
-    workflowRunId: string | null;
-  }): Promise<ScheduledTrigger> => {
-    const result = await db
-      .update(scheduledTriggers)
-      .set({
-        workflowRunId: params.workflowRunId,
-        updatedAt: new Date().toISOString(),
-      })
       .where(
         and(
           eq(scheduledTriggers.tenantId, params.scopes.tenantId),

@@ -25,6 +25,7 @@ import {
   projects,
   skills,
   scheduledTriggers,
+  scheduledWorkflows,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
@@ -947,7 +948,6 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   maxRetries: () => z.number().int().min(0).max(10).default(3),
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
   timeoutSeconds: () => z.number().int().min(30).max(1800).default(300),
-  workflowRunId: () => z.string().optional().describe('Active workflow run ID for lifecycle management'),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
@@ -987,6 +987,44 @@ export const ScheduledTriggerApiUpdateSchema = ScheduledTriggerUpdateSchema.open
 export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
 export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
 export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+
+//scheduled workflows
+export const ScheduledWorkflowSelectSchema = createSelectSchema(scheduledWorkflows);
+
+const ScheduledWorkflowInsertSchemaBase = createInsertSchema(scheduledWorkflows, {
+  id: () => ResourceIdSchema,
+  name: () => z.string().trim().min(1).describe('Scheduled workflow name'),
+  description: () => z.string().optional().describe('Scheduled workflow description'),
+  workflowRunId: () => z.string().nullable().optional().describe('Active workflow run ID for lifecycle management'),
+  scheduledTriggerId: () => z.string().describe('The scheduled trigger this workflow belongs to'),
+});
+
+export const ScheduledWorkflowInsertSchema = ScheduledWorkflowInsertSchemaBase;
+
+export const ScheduledWorkflowUpdateSchema = ScheduledWorkflowInsertSchemaBase.extend({
+  scheduledTriggerId: z.string().optional(),
+}).partial();
+
+export const ScheduledWorkflowApiSelectSchema = createAgentScopedApiSchema(
+  ScheduledWorkflowSelectSchema
+).openapi('ScheduledWorkflow');
+
+export const ScheduledWorkflowApiInsertSchema = createAgentScopedApiInsertSchema(
+  ScheduledWorkflowInsertSchemaBase
+)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('ScheduledWorkflowCreate');
+
+export const ScheduledWorkflowApiUpdateSchema = ScheduledWorkflowUpdateSchema.openapi(
+  'ScheduledWorkflowUpdate'
+);
+
+export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
+export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;
+export type ScheduledWorkflowUpdate = z.infer<typeof ScheduledWorkflowUpdateSchema>;
 
 // ============================================================================
 // Scheduled Trigger Invocation Schemas
@@ -2689,6 +2727,15 @@ export const ScheduledTriggerInvocationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ScheduledTriggerInvocationListResponse');
+export const ScheduledWorkflowResponse = z
+  .object({ data: ScheduledWorkflowApiSelectSchema })
+  .openapi('ScheduledWorkflowResponse');
+export const ScheduledWorkflowListResponse = z
+  .object({
+    data: z.array(ScheduledWorkflowApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledWorkflowListResponse');
 
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })

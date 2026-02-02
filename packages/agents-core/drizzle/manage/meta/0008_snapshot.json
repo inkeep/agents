@@ -1,6 +1,6 @@
 {
-  "id": "1c5e1f3f-b160-430a-be33-e4083f07ea1f",
-  "prevId": "4ba003ce-a8fe-418e-b012-2991d7be3032",
+  "id": "7b752a41-18da-4108-8d5a-daf741c2308e",
+  "prevId": "785e572a-8546-4153-8ce5-df57313c1065",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -473,7 +473,7 @@
           "name": "props",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "render": {
           "name": "render",
@@ -1943,8 +1943,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.skills": {
-      "name": "skills",
+    "public.scheduled_triggers": {
+      "name": "scheduled_triggers",
       "schema": "",
       "columns": {
         "tenant_id": {
@@ -1955,7 +1955,7 @@
         },
         "id": {
           "name": "id",
-          "type": "varchar(64)",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -1965,9 +1965,15 @@
           "primaryKey": false,
           "notNull": true
         },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
-          "type": "varchar(64)",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -1975,19 +1981,59 @@
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "content": {
-          "name": "content",
-          "type": "text",
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": true
         },
-        "metadata": {
-          "name": "metadata",
+        "cron_expression": {
+          "name": "cron_expression",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "run_at": {
+          "name": "run_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload": {
+          "name": "payload",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "message_template": {
+          "name": "message_template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_retries": {
+          "name": "max_retries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "retry_delay_seconds": {
+          "name": "retry_delay_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 60
+        },
+        "timeout_seconds": {
+          "name": "timeout_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 300
         },
         "created_at": {
           "name": "created_at",
@@ -2006,16 +2052,18 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "skills_project_fk": {
-          "name": "skills_project_fk",
-          "tableFrom": "skills",
-          "tableTo": "projects",
+        "scheduled_triggers_agent_fk": {
+          "name": "scheduled_triggers_agent_fk",
+          "tableFrom": "scheduled_triggers",
+          "tableTo": "agent",
           "columnsFrom": [
             "tenant_id",
-            "project_id"
+            "project_id",
+            "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
+            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -2023,11 +2071,141 @@
         }
       },
       "compositePrimaryKeys": {
-        "skills_tenant_id_project_id_id_pk": {
-          "name": "skills_tenant_id_project_id_id_pk",
+        "scheduled_triggers_tenant_id_project_id_agent_id_id_pk": {
+          "name": "scheduled_triggers_tenant_id_project_id_agent_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scheduled_workflows": {
+      "name": "scheduled_workflows",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "workflow_run_id": {
+          "name": "workflow_run_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'running'"
+        },
+        "scheduled_trigger_id": {
+          "name": "scheduled_trigger_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scheduled_workflows_agent_fk": {
+          "name": "scheduled_workflows_agent_fk",
+          "tableFrom": "scheduled_workflows",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "scheduled_workflows_trigger_fk": {
+          "name": "scheduled_workflows_trigger_fk",
+          "tableFrom": "scheduled_workflows",
+          "tableTo": "scheduled_triggers",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "scheduled_trigger_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "scheduled_workflows_tenant_id_project_id_agent_id_id_pk": {
+          "name": "scheduled_workflows_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
             "id"
           ]
         }
@@ -2574,155 +2752,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sub_agent_skills": {
-      "name": "sub_agent_skills",
-      "schema": "",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sub_agent_id": {
-          "name": "sub_agent_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "index": {
-          "name": "index",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "always_loaded": {
-          "name": "always_loaded",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "sub_agent_skills_skill_idx": {
-          "name": "sub_agent_skills_skill_idx",
-          "columns": [
-            {
-              "expression": "skill_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "sub_agent_skills_sub_agent_fk": {
-          "name": "sub_agent_skills_sub_agent_fk",
-          "tableFrom": "sub_agent_skills",
-          "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "sub_agent_skills_skill_fk": {
-          "name": "sub_agent_skills_skill_fk",
-          "tableFrom": "sub_agent_skills",
-          "tableTo": "skills",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "sub_agent_skills_tenant_id_project_id_agent_id_id_pk": {
-          "name": "sub_agent_skills_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "sub_agent_skills_sub_agent_skill_unique": {
-          "name": "sub_agent_skills_sub_agent_skill_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "sub_agent_id",
-            "skill_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.sub_agent_team_agent_relations": {
       "name": "sub_agent_team_agent_relations",
       "schema": "",
@@ -3159,13 +3188,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "is_work_app": {
-          "name": "is_work_app",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",

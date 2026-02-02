@@ -175,7 +175,6 @@ export const scheduledTriggers = pgTable(
     maxRetries: integer('max_retries').notNull().default(3),
     retryDelaySeconds: integer('retry_delay_seconds').notNull().default(60),
     timeoutSeconds: integer('timeout_seconds').notNull().default(300),
-    workflowRunId: varchar('workflow_run_id', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -184,6 +183,36 @@ export const scheduledTriggers = pgTable(
       columns: [table.tenantId, table.projectId, table.agentId],
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'scheduled_triggers_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const scheduledWorkflows = pgTable(
+  'scheduled_workflows',
+  {
+    ...agentScoped,
+    ...uiProperties,
+    workflowRunId: varchar('workflow_run_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('pending'),
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'scheduled_workflows_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.scheduledTriggerId],
+      foreignColumns: [
+        scheduledTriggers.tenantId,
+        scheduledTriggers.projectId,
+        scheduledTriggers.agentId,
+        scheduledTriggers.id,
+      ],
+      name: 'scheduled_workflows_trigger_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -1019,6 +1048,37 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
+  scheduledWorkflows: many(scheduledWorkflows),
+  scheduledTriggers: many(scheduledTriggers),
+}));
+
+export const scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
+  agent: one(agents, {
+    fields: [scheduledTriggers.tenantId, scheduledTriggers.projectId, scheduledTriggers.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  scheduledWorkflow: one(scheduledWorkflows),
+}));
+
+export const scheduledWorkflowsRelations = relations(scheduledWorkflows, ({ one }) => ({
+  agent: one(agents, {
+    fields: [scheduledWorkflows.tenantId, scheduledWorkflows.projectId, scheduledWorkflows.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  scheduledTrigger: one(scheduledTriggers, {
+    fields: [
+      scheduledWorkflows.tenantId,
+      scheduledWorkflows.projectId,
+      scheduledWorkflows.agentId,
+      scheduledWorkflows.scheduledTriggerId,
+    ],
+    references: [
+      scheduledTriggers.tenantId,
+      scheduledTriggers.projectId,
+      scheduledTriggers.agentId,
+      scheduledTriggers.id,
+    ],
+  }),
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
