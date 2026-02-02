@@ -182,6 +182,34 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 // We use type assertions with explicit return types to maintain type safety at call sites.
 type OmitProjectScope<T> = Omit<T, 'tenantId' | 'projectId'>;
 type OmitAgentScope<T> = Omit<T, 'tenantId' | 'projectId' | 'agentId'>;
+type OmitTenantScope<T> = Omit<T, 'tenantId'>;
+type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt'>;
+type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Generic helper for tenant-scoped entities (omits only tenantId, not projectId)
+const omitTenantScope = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTenantScope<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<OmitTenantScope<T>>;
+
+// Generic helper for omitting timestamp fields
+const omitTimestamps = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTimestamps<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitTimestamps<T>>;
+
+// Generic helper for omitting auto-generated fields (common for API insert schemas)
+const omitGeneratedFields = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitGeneratedFields<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitGeneratedFields<T>>;
 
 const createApiSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
@@ -2556,28 +2584,21 @@ export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppG
     status: WorkAppGitHubInstallationStatusSchema.optional().default('active'),
   });
 
-export const WorkAppGithubInstallationApiSelectSchema = WorkAppGitHubInstallationSelectSchema.omit({
-  tenantId: true,
-});
-export const WorkAppGitHubInstallationApiInsertSchema = WorkAppGitHubInstallationInsertSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const WorkAppGithubInstallationApiSelectSchema = omitTenantScope(
+  WorkAppGitHubInstallationSelectSchema
+);
+export const WorkAppGitHubInstallationApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubInstallationInsertSchema
+);
 
 export const WorkAppGitHubRepositorySelectSchema = createSelectSchema(workAppGitHubRepositories);
-export const WorkAppGitHubRepositoryInsertSchema = createInsertSchema(
-  workAppGitHubRepositories
-).omit({
-  createdAt: true,
-  updatedAt: true,
-});
+export const WorkAppGitHubRepositoryInsertSchema = omitTimestamps(
+  createInsertSchema(workAppGitHubRepositories)
+);
 
-export const WorkAppGitHubRepositoryApiInsertSchema = WorkAppGitHubRepositoryInsertSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const WorkAppGitHubRepositoryApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubRepositoryInsertSchema
+);
 
 export const WorkAppGitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
   workAppGitHubProjectRepositoryAccess
