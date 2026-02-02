@@ -19,6 +19,7 @@ import {
   getRepositoryByFullName,
   getRepositoryById,
   getRepositoryCount,
+  getRepositoryCountsByTenantId,
   removeRepositories,
   setMcpToolAccessMode,
   setMcpToolRepositoryAccess,
@@ -995,6 +996,200 @@ describe('GitHub Installations Data Access', () => {
         expect(count).toBe(0);
       });
     });
+
+    describe('getRepositoryCountsByTenantId', () => {
+      it('should return repository counts for all tenant installations', async () => {
+        const install2 = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId,
+          installationId: '22222222',
+          accountLogin: 'other-org',
+          accountId: '222',
+          accountType: 'Organization',
+          status: 'active',
+        });
+
+        await addRepositories(dbClient)({
+          installationId,
+          repositories: [
+            {
+              repositoryId: '111',
+              repositoryName: 'repo-1',
+              repositoryFullName: 'test-org/repo-1',
+              private: false,
+            },
+            {
+              repositoryId: '112',
+              repositoryName: 'repo-2',
+              repositoryFullName: 'test-org/repo-2',
+              private: false,
+            },
+          ],
+        });
+
+        await addRepositories(dbClient)({
+          installationId: install2.id,
+          repositories: [
+            {
+              repositoryId: '222',
+              repositoryName: 'other-repo',
+              repositoryFullName: 'other-org/other-repo',
+              private: false,
+            },
+          ],
+        });
+
+        const counts = await getRepositoryCountsByTenantId(dbClient)({ tenantId });
+
+        expect(counts.size).toBe(2);
+        expect(counts.get(installationId)).toBe(2);
+        expect(counts.get(install2.id)).toBe(1);
+      });
+
+      it('should return 0 for installations with no repositories', async () => {
+        const counts = await getRepositoryCountsByTenantId(dbClient)({ tenantId });
+
+        expect(counts.size).toBe(1);
+        expect(counts.get(installationId)).toBe(0);
+      });
+
+      it('should exclude disconnected installations by default', async () => {
+        const disconnectedInstall = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId,
+          installationId: '33333333',
+          accountLogin: 'disconnected-org',
+          accountId: '333',
+          accountType: 'Organization',
+          status: 'disconnected',
+        });
+
+        await addRepositories(dbClient)({
+          installationId,
+          repositories: [
+            {
+              repositoryId: '111',
+              repositoryName: 'repo-1',
+              repositoryFullName: 'test-org/repo-1',
+              private: false,
+            },
+          ],
+        });
+
+        await addRepositories(dbClient)({
+          installationId: disconnectedInstall.id,
+          repositories: [
+            {
+              repositoryId: '333',
+              repositoryName: 'disconnected-repo',
+              repositoryFullName: 'disconnected-org/disconnected-repo',
+              private: false,
+            },
+          ],
+        });
+
+        const counts = await getRepositoryCountsByTenantId(dbClient)({ tenantId });
+
+        expect(counts.size).toBe(1);
+        expect(counts.get(installationId)).toBe(1);
+        expect(counts.has(disconnectedInstall.id)).toBe(false);
+      });
+
+      it('should include disconnected installations when includeDisconnected is true', async () => {
+        const disconnectedInstall = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId,
+          installationId: '33333333',
+          accountLogin: 'disconnected-org',
+          accountId: '333',
+          accountType: 'Organization',
+          status: 'disconnected',
+        });
+
+        await addRepositories(dbClient)({
+          installationId,
+          repositories: [
+            {
+              repositoryId: '111',
+              repositoryName: 'repo-1',
+              repositoryFullName: 'test-org/repo-1',
+              private: false,
+            },
+          ],
+        });
+
+        await addRepositories(dbClient)({
+          installationId: disconnectedInstall.id,
+          repositories: [
+            {
+              repositoryId: '333',
+              repositoryName: 'disconnected-repo',
+              repositoryFullName: 'disconnected-org/disconnected-repo',
+              private: false,
+            },
+          ],
+        });
+
+        const counts = await getRepositoryCountsByTenantId(dbClient)({
+          tenantId,
+          includeDisconnected: true,
+        });
+
+        expect(counts.size).toBe(2);
+        expect(counts.get(installationId)).toBe(1);
+        expect(counts.get(disconnectedInstall.id)).toBe(1);
+      });
+
+      it('should return empty map for tenant with no installations', async () => {
+        const counts = await getRepositoryCountsByTenantId(dbClient)({
+          tenantId: 'non-existent-tenant',
+        });
+
+        expect(counts.size).toBe(0);
+      });
+
+      it('should not include installations from other tenants', async () => {
+        const otherTenantInstall = await createInstallation(dbClient)({
+          id: generateId(),
+          tenantId: tenantId2,
+          installationId: '44444444',
+          accountLogin: 'other-tenant-org',
+          accountId: '444',
+          accountType: 'Organization',
+          status: 'active',
+        });
+
+        await addRepositories(dbClient)({
+          installationId,
+          repositories: [
+            {
+              repositoryId: '111',
+              repositoryName: 'repo-1',
+              repositoryFullName: 'test-org/repo-1',
+              private: false,
+            },
+          ],
+        });
+
+        await addRepositories(dbClient)({
+          installationId: otherTenantInstall.id,
+          repositories: [
+            {
+              repositoryId: '444',
+              repositoryName: 'other-tenant-repo',
+              repositoryFullName: 'other-tenant-org/other-tenant-repo',
+              private: false,
+            },
+          ],
+        });
+
+        const counts = await getRepositoryCountsByTenantId(dbClient)({ tenantId });
+
+        expect(counts.size).toBe(1);
+        expect(counts.get(installationId)).toBe(1);
+        expect(counts.has(otherTenantInstall.id)).toBe(false);
+      });
+    });
   });
 
   describe('Project Repository Access', () => {
@@ -1268,19 +1463,45 @@ describe('GitHub Installations Data Access', () => {
     });
 
     describe('getProjectRepositoryAccessWithDetails', () => {
-      it('should return access entries with full repository details', async () => {
+      it('should return access entries with full repository details when mode is selected', async () => {
         await setProjectRepositoryAccess(dbClient)({
           tenantId,
           projectId,
           repositoryIds: [repoId1],
         });
 
-        const access = await getProjectRepositoryAccessWithDetails(dbClient)(projectId);
+        const access = await getProjectRepositoryAccessWithDetails(dbClient)({
+          tenantId,
+          projectId,
+        });
 
         expect(access).toHaveLength(1);
         expect(access[0].repositoryName).toBe('repo-1');
         expect(access[0].repositoryFullName).toBe('test-org/repo-1');
         expect(access[0].accessId).toBeDefined();
+        expect(access[0].installationAccountLogin).toBe('test-org');
+        expect(access[0].installationId).toBe('12345678');
+      });
+
+      it('should return all tenant repositories when mode is all', async () => {
+        await setProjectAccessMode(dbClient)({
+          tenantId,
+          projectId,
+          mode: 'all',
+        });
+
+        const access = await getProjectRepositoryAccessWithDetails(dbClient)({
+          tenantId,
+          projectId,
+        });
+
+        expect(access).toHaveLength(2);
+        const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
+        const repo2Access = access.find((a) => a.repositoryName === 'repo-2');
+        expect(repo1Access).toBeDefined();
+        expect(repo2Access).toBeDefined();
+        expect(repo1Access?.installationAccountLogin).toBe('test-org');
+        expect(repo2Access?.installationAccountLogin).toBe('test-org');
       });
     });
 
@@ -1663,6 +1884,100 @@ describe('GitHub Installations Data Access', () => {
         expect(repo2Access).toBeDefined();
         expect(repo1Access?.private).toBe(false);
         expect(repo2Access?.private).toBe(true);
+      });
+
+      it('should return all project repositories when mode is all', async () => {
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          mode: 'all',
+        });
+
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+
+        expect(access).toHaveLength(2);
+        const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
+        const repo2Access = access.find((a) => a.repositoryName === 'repo-2');
+        expect(repo1Access).toBeDefined();
+        expect(repo2Access).toBeDefined();
+        expect(repo1Access?.installationAccountLogin).toBe('test-org');
+        expect(repo2Access?.installationAccountLogin).toBe('test-org');
+      });
+
+      it('should return only explicit access when mode is selected', async () => {
+        await setProjectRepositoryAccess(dbClient)({
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1, repoId2],
+        });
+
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          mode: 'selected',
+        });
+
+        await setMcpToolRepositoryAccess(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          repositoryIds: [repoId1],
+        });
+
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+
+        expect(access).toHaveLength(1);
+        expect(access[0].repositoryName).toBe('repo-1');
+      });
+
+      it('should return all tenant repositories when both tool and project modes are all', async () => {
+        await setProjectAccessMode(dbClient)({
+          tenantId,
+          projectId,
+          mode: 'all',
+        });
+
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          mode: 'all',
+        });
+
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+
+        expect(access).toHaveLength(2);
+        const repo1Access = access.find((a) => a.repositoryName === 'repo-1');
+        const repo2Access = access.find((a) => a.repositoryName === 'repo-2');
+        expect(repo1Access).toBeDefined();
+        expect(repo2Access).toBeDefined();
+      });
+
+      it('should return empty when mode is all and project mode is selected with no repos', async () => {
+        await setProjectAccessMode(dbClient)({
+          tenantId,
+          projectId,
+          mode: 'selected',
+        });
+
+        await setMcpToolAccessMode(dbClient)({
+          toolId,
+          tenantId,
+          projectId,
+          mode: 'all',
+        });
+
+        const access = await getMcpToolRepositoryAccessWithDetails(dbClient)(toolId);
+
+        expect(access).toHaveLength(0);
       });
     });
 

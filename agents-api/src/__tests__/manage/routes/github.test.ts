@@ -16,7 +16,7 @@ const {
 
 const {
   getInstallationsByTenantIdMock,
-  getRepositoryCountsByInstallationIdsMock,
+  getRepositoryCountsByTenantIdMock,
   getInstallationByIdMock,
   getRepositoriesByInstallationIdMock,
   deleteInstallationMock,
@@ -25,7 +25,7 @@ const {
   syncRepositoriesMock,
 } = vi.hoisted(() => ({
   getInstallationsByTenantIdMock: vi.fn(),
-  getRepositoryCountsByInstallationIdsMock: vi.fn(),
+  getRepositoryCountsByTenantIdMock: vi.fn(),
   getInstallationByIdMock: vi.fn(),
   getRepositoriesByInstallationIdMock: vi.fn(),
   deleteInstallationMock: vi.fn(),
@@ -51,7 +51,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     getInstallationsByTenantId: () => getInstallationsByTenantIdMock,
-    getRepositoryCountsByInstallationIds: () => getRepositoryCountsByInstallationIdsMock,
+    getRepositoryCountsByTenantId: () => getRepositoryCountsByTenantIdMock,
     getInstallationById: () => getInstallationByIdMock,
     getRepositoriesByInstallationId: () => getRepositoriesByInstallationIdMock,
     deleteInstallation: () => deleteInstallationMock,
@@ -263,7 +263,7 @@ describe('GitHub Manage Routes', () => {
 
     beforeEach(() => {
       getInstallationsByTenantIdMock.mockResolvedValue(mockInstallations);
-      getRepositoryCountsByInstallationIdsMock.mockResolvedValue(
+      getRepositoryCountsByTenantIdMock.mockResolvedValue(
         new Map([
           ['inst-1', 5],
           ['inst-2', 5],
@@ -338,7 +338,7 @@ describe('GitHub Manage Routes', () => {
     });
 
     it('should fetch repository count for each installation', async () => {
-      getRepositoryCountsByInstallationIdsMock.mockResolvedValue(
+      getRepositoryCountsByTenantIdMock.mockResolvedValue(
         new Map([
           ['inst-1', 10],
           ['inst-2', 3],

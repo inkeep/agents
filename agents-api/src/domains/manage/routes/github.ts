@@ -9,7 +9,7 @@ import {
   getInstallationById,
   getInstallationsByTenantId,
   getRepositoriesByInstallationId,
-  getRepositoryCountsByInstallationIds,
+  getRepositoryCountsByTenantId,
   syncRepositories,
   TenantParamsSchema,
   updateInstallationStatus,
@@ -170,14 +170,16 @@ app.openapi(
 
     logger.info({ tenantId, includeDisconnected }, 'Listing GitHub App installations');
 
-    const installations = await getInstallationsByTenantId(runDbClient)({
-      tenantId,
-      includeDisconnected,
-    });
-
-    const installationIds = installations.map((i) => i.id);
-    const repositoryCounts =
-      await getRepositoryCountsByInstallationIds(runDbClient)(installationIds);
+    const [installations, repositoryCounts] = await Promise.all([
+      getInstallationsByTenantId(runDbClient)({
+        tenantId,
+        includeDisconnected,
+      }),
+      getRepositoryCountsByTenantId(runDbClient)({
+        tenantId,
+        includeDisconnected,
+      }),
+    ]);
 
     const installationsWithCounts = installations.map((installation) => ({
       id: installation.id,
@@ -239,10 +241,13 @@ app.openapi(
 
     logger.info({ tenantId, installationId }, 'Getting GitHub App installation details');
 
-    const installation = await getInstallationById(runDbClient)({
-      tenantId,
-      id: installationId,
-    });
+    const [installation, repositories] = await Promise.all([
+      getInstallationById(runDbClient)({
+        tenantId,
+        id: installationId,
+      }),
+      getRepositoriesByInstallationId(runDbClient)(installationId),
+    ]);
 
     if (!installation) {
       logger.warn({ tenantId, installationId }, 'Installation not found');
@@ -251,8 +256,6 @@ app.openapi(
         message: 'Installation not found',
       });
     }
-
-    const repositories = await getRepositoriesByInstallationId(runDbClient)(installation.id);
 
     logger.info(
       { tenantId, installationId, repositoryCount: repositories.length },
@@ -567,19 +570,6 @@ app.openapi(
     const { tenantId, installationId } = c.req.valid('param');
 
     logger.info({ tenantId, installationId }, 'Deleting GitHub App installation permanently');
-
-    const installation = await getInstallationById(runDbClient)({
-      tenantId,
-      id: installationId,
-    });
-
-    if (!installation) {
-      logger.warn({ tenantId, installationId }, 'Installation not found');
-      throw createApiError({
-        code: 'not_found',
-        message: 'Installation not found',
-      });
-    }
 
     const deleted = await deleteInstallation(runDbClient)({
       tenantId,

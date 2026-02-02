@@ -507,8 +507,7 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
 export const workAppGitHubInstallations = pgTable(
   'work_app_github_installations',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
-    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    ...tenantScoped,
     installationId: text('installation_id').notNull().unique(),
     accountLogin: varchar('account_login', { length: 256 }).notNull(),
     accountId: text('account_id').notNull(),
@@ -574,9 +573,7 @@ export const workAppGitHubRepositories = pgTable(
 export const workAppGitHubProjectRepositoryAccess = pgTable(
   'work_app_github_project_repository_access',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
-    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
-    projectId: varchar('project_id', { length: 256 }).notNull(),
+    ...projectScoped,
     repositoryDbId: varchar('repository_db_id', { length: 256 }).notNull(),
     ...timestamps,
   },
@@ -611,10 +608,8 @@ export const workAppGitHubProjectRepositoryAccess = pgTable(
 export const workAppGitHubMcpToolRepositoryAccess = pgTable(
   'work_app_github_mcp_tool_repository_access',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
+    ...projectScoped,
     toolId: varchar('tool_id', { length: 256 }).notNull(),
-    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
-    projectId: varchar('project_id', { length: 256 }).notNull(),
     repositoryDbId: varchar('repository_db_id', { length: 256 }).notNull(),
     ...timestamps,
   },

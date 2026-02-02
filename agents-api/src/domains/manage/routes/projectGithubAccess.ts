@@ -88,8 +88,10 @@ app.openapi(
     }
 
     // mode === 'selected': get the specific repositories
-    const repositoriesWithDetails =
-      await getProjectRepositoryAccessWithDetails(runDbClient)(projectId);
+    const repositoriesWithDetails = await getProjectRepositoryAccessWithDetails(runDbClient)({
+      tenantId,
+      projectId,
+    });
 
     logger.info(
       { tenantId, projectId, repositoryCount: repositoriesWithDetails.length },

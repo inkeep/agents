@@ -438,11 +438,17 @@ export const getRepositoriesByTenantId =
   (db: AgentsRunDatabaseClient) =>
   async (
     tenantId: string
-  ): Promise<(WorkAppGitHubRepositorySelect & { installationAccountLogin: string })[]> => {
+  ): Promise<
+    (WorkAppGitHubRepositorySelect & {
+      installationAccountLogin: string;
+      installationId: string;
+    })[]
+  > => {
     const result = await db
       .select({
         id: workAppGitHubRepositories.id,
         installationDbId: workAppGitHubRepositories.installationDbId,
+        installationId: workAppGitHubInstallations.installationId,
         repositoryId: workAppGitHubRepositories.repositoryId,
         repositoryName: workAppGitHubRepositories.repositoryName,
         repositoryFullName: workAppGitHubRepositories.repositoryFullName,
@@ -464,7 +470,10 @@ export const getRepositoriesByTenantId =
       )
       .orderBy(workAppGitHubRepositories.repositoryFullName);
 
-    return result as (WorkAppGitHubRepositorySelect & { installationAccountLogin: string })[];
+    return result as (WorkAppGitHubRepositorySelect & {
+      installationAccountLogin: string;
+      installationId: string;
+    })[];
   };
 
 // ============================================================================
@@ -564,31 +573,65 @@ export const getProjectRepositoryAccess =
   };
 
 /**
- * Get project repository access with full repository details
+ * Get project repository access with full repository details.
+ * If project access mode is 'all', returns all tenant repositories.
+ * If mode is 'selected' (or not set), returns only explicitly granted repositories.
  */
 export const getProjectRepositoryAccessWithDetails =
   (db: AgentsRunDatabaseClient) =>
-  async (projectId: string): Promise<(WorkAppGitHubRepositorySelect & { accessId: string })[]> => {
+  async (params: {
+    tenantId: string;
+    projectId: string;
+  }): Promise<
+    (WorkAppGitHubRepositorySelect & {
+      accessId: string;
+      installationAccountLogin: string;
+      installationId: string;
+    })[]
+  > => {
+    const projectMode = await getProjectAccessMode(db)({
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+    });
+
+    if (projectMode === 'all') {
+      const repoAccess = await getRepositoriesByTenantId(db)(params.tenantId);
+      return repoAccess.map((repo) => ({
+        accessId: repo.id,
+        ...repo,
+      }));
+    }
+
     const result = await db
       .select({
         accessId: workAppGitHubProjectRepositoryAccess.id,
         id: workAppGitHubRepositories.id,
         installationDbId: workAppGitHubRepositories.installationDbId,
+        installationId: workAppGitHubInstallations.installationId,
         repositoryId: workAppGitHubRepositories.repositoryId,
         repositoryName: workAppGitHubRepositories.repositoryName,
         repositoryFullName: workAppGitHubRepositories.repositoryFullName,
         private: workAppGitHubRepositories.private,
         createdAt: workAppGitHubRepositories.createdAt,
         updatedAt: workAppGitHubRepositories.updatedAt,
+        installationAccountLogin: workAppGitHubInstallations.accountLogin,
       })
       .from(workAppGitHubProjectRepositoryAccess)
       .innerJoin(
         workAppGitHubRepositories,
         eq(workAppGitHubProjectRepositoryAccess.repositoryDbId, workAppGitHubRepositories.id)
       )
-      .where(eq(workAppGitHubProjectRepositoryAccess.projectId, projectId));
+      .innerJoin(
+        workAppGitHubInstallations,
+        eq(workAppGitHubRepositories.installationDbId, workAppGitHubInstallations.id)
+      )
+      .where(eq(workAppGitHubProjectRepositoryAccess.projectId, params.projectId));
 
-    return result as (WorkAppGitHubRepositorySelect & { accessId: string })[];
+    return result as (WorkAppGitHubRepositorySelect & {
+      accessId: string;
+      installationAccountLogin: string;
+      installationId: string;
+    })[];
   };
 
 /**
@@ -746,23 +789,32 @@ export const getRepositoryCount =
   };
 
 /**
- * Get repository counts for multiple installations in a single query
+ * Get repository counts for all installations belonging to a tenant
  */
-export const getRepositoryCountsByInstallationIds =
+export const getRepositoryCountsByTenantId =
   (db: AgentsRunDatabaseClient) =>
-  async (installationIds: string[]): Promise<Map<string, number>> => {
-    if (installationIds.length === 0) {
-      return new Map();
+  async (params: {
+    tenantId: string;
+    includeDisconnected?: boolean;
+  }): Promise<Map<string, number>> => {
+    const conditions = [eq(workAppGitHubInstallations.tenantId, params.tenantId)];
+
+    if (!params.includeDisconnected) {
+      conditions.push(ne(workAppGitHubInstallations.status, 'disconnected'));
     }
 
     const results = await db
       .select({
-        installationId: workAppGitHubRepositories.installationDbId,
-        count: count(),
+        installationId: workAppGitHubInstallations.id,
+        count: count(workAppGitHubRepositories.id),
       })
-      .from(workAppGitHubRepositories)
-      .where(inArray(workAppGitHubRepositories.installationDbId, installationIds))
-      .groupBy(workAppGitHubRepositories.installationDbId);
+      .from(workAppGitHubInstallations)
+      .leftJoin(
+        workAppGitHubRepositories,
+        eq(workAppGitHubRepositories.installationDbId, workAppGitHubInstallations.id)
+      )
+      .where(and(...conditions))
+      .groupBy(workAppGitHubInstallations.id);
 
     const countsMap = new Map<string, number>();
     for (const row of results) {
@@ -842,7 +894,9 @@ export const getMcpToolRepositoryAccess =
   };
 
 /**
- * Get MCP tool repository access with full repository details
+ * Get MCP tool repository access with full repository details.
+ * If the tool's access mode is 'all', returns all repositories the project has access to.
+ * If mode is 'selected' (or not set), returns only explicitly granted repositories.
  */
 export const getMcpToolRepositoryAccessWithDetails =
   (db: AgentsRunDatabaseClient) =>
@@ -855,6 +909,25 @@ export const getMcpToolRepositoryAccessWithDetails =
       installationId: string;
     })[]
   > => {
+    const modeResult = await db
+      .select({
+        mode: workAppGitHubMcpToolAccessMode.mode,
+        projectId: workAppGitHubMcpToolAccessMode.projectId,
+        tenantId: workAppGitHubMcpToolAccessMode.tenantId,
+      })
+      .from(workAppGitHubMcpToolAccessMode)
+      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .limit(1);
+
+    const accessMode = modeResult[0];
+
+    if (accessMode?.mode === 'all') {
+      return getProjectRepositoryAccessWithDetails(db)({
+        tenantId: accessMode.tenantId,
+        projectId: accessMode.projectId,
+      });
+    }
+
     const result = await db
       .select({
         accessId: workAppGitHubMcpToolRepositoryAccess.id,
