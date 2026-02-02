@@ -9,6 +9,18 @@ Comprehensive guidance for adding new environment variables to the Inkeep Agent 
 
 ---
 
+## CI Enforcement
+
+**Environment variable descriptions are enforced by CI.** The `check:env-descriptions` script runs in CI and will fail if any variables in `env.ts` files are missing `.describe()` calls.
+
+Run locally to check:
+
+```bash
+pnpm check:env-descriptions
+```
+
+---
+
 ## Environment Architecture
 
 The framework uses environment variables defined in multiple `env.ts` files:
@@ -249,12 +261,13 @@ Before completing any environment variable addition, verify:
 - [ ] `default()` added if there's a sensible default
 - [ ] Validation added if needed (min, max, refine, etc.)
 - [ ] Variable grouped with related variables (using comments)
+- [ ] `pnpm check:env-descriptions` passes locally
 
 ---
 
 ## Common Mistakes to Avoid
 
-1. **Missing `.describe()` call** - Every variable needs a description
+1. **Missing `.describe()` call** - Every variable needs a description (CI will fail!)
 2. **Inconsistent descriptions** - Keep `.env.example` and `.describe()` in sync
 3. **Wrong file** - Add to the package that actually uses the variable
 4. **Missing validation** - Add constraints for sensitive values (min length for secrets, email validation, etc.)
