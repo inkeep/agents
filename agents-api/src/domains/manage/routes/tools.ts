@@ -243,7 +243,7 @@ app.openapi(
       credentialScope: body.credentialScope,
       imageUrl: body.imageUrl,
       headers: body.headers,
-      isWorkapp: body.isWorkapp,
+      isWorkApp: body.isWorkApp,
     });
 
     return c.json(
@@ -308,7 +308,7 @@ app.openapi(
         credentialScope: body.credentialScope,
         imageUrl: body.imageUrl,
         headers: body.headers,
-        isWorkapp: body.isWorkapp,
+        isWorkApp: body.isWorkApp,
       },
     });
 

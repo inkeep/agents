@@ -1,5 +1,5 @@
 {
-  "id": "ead04c56-64df-4897-8c73-04c8c27b254a",
+  "id": "0ebbc28c-f5ec-4fe1-a61e-3e63beee6235",
   "prevId": "8614b3d1-63e0-4668-9b90-3cb60211c0bf",
   "version": "7",
   "dialect": "postgresql",
@@ -2917,8 +2917,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "is_workapp": {
-          "name": "is_workapp",
+        "is_work_app": {
+          "name": "is_work_app",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

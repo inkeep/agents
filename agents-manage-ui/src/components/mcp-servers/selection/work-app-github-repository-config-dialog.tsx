@@ -371,7 +371,7 @@ function ReadyState({
       // Build the GitHub MCP server URL - must contain '/github' for validation
       const githubMcpUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/work-apps/github/mcp`;
 
-      // Create the MCP tool with isWorkapp=true
+      // Create the MCP tool with isWorkApp=true
       const toolId = generateId();
       const newTool = await createMCPTool(tenantId, projectId, {
         id: toolId,
@@ -389,7 +389,7 @@ function ReadyState({
         },
         credentialReferenceId: null,
         credentialScope: 'project',
-        isWorkapp: true,
+        isWorkApp: true,
       });
 
       // Set the GitHub access configuration

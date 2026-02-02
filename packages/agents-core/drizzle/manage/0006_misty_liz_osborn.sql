@@ -1,1 +1,0 @@
-ALTER TABLE "tools" ADD COLUMN "is_workapp" boolean DEFAULT false NOT NULL;

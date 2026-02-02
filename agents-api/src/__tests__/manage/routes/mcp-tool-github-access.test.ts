@@ -58,7 +58,7 @@ const VALID_GITHUB_WORKAPP_TOOL = {
   tenantId: TEST_TENANT_ID,
   projectId: TEST_PROJECT_ID,
   name: 'GitHub MCP',
-  isWorkapp: true,
+  isWorkApp: true,
   config: {
     type: 'mcp' as const,
     mcp: {
@@ -71,7 +71,7 @@ const VALID_GITHUB_WORKAPP_TOOL = {
 
 const NON_WORKAPP_TOOL = {
   ...VALID_GITHUB_WORKAPP_TOOL,
-  isWorkapp: false,
+  isWorkApp: false,
 };
 
 const NON_GITHUB_WORKAPP_TOOL = {

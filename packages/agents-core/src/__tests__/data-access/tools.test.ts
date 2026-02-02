@@ -267,7 +267,7 @@ describe('Tools Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Deleted Tool',
-        isWorkapp: false,
+        isWorkApp: false,
         config: {
           type: 'mcp',
           mcp: {
@@ -312,7 +312,7 @@ describe('Tools Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'GitHub Tool',
-        isWorkapp: true,
+        isWorkApp: true,
         config: {
           type: 'mcp',
           mcp: {
@@ -358,7 +358,7 @@ describe('Tools Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Regular Tool',
-        isWorkapp: false,
+        isWorkApp: false,
         config: {
           type: 'mcp',
           mcp: {
@@ -401,7 +401,7 @@ describe('Tools Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'GitHub Tool',
-        isWorkapp: true,
+        isWorkApp: true,
         config: {
           type: 'mcp',
           mcp: {

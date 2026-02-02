@@ -78,7 +78,7 @@ async function validateGitHubWorkappTool(
     });
   }
 
-  if (!tool.isWorkapp) {
+  if (!tool.isWorkApp) {
     throw createApiError({
       code: 'bad_request',
       message: 'GitHub access can only be configured for workapp MCP tools',
@@ -189,7 +189,7 @@ app.openapi(
       'When mode is "all", the tool has access to all repositories the project can access. ' +
       'When mode is "selected", the tool is scoped to specific repositories (repositoryIds required). ' +
       'This replaces any existing access configuration. ' +
-      'This endpoint only works for GitHub workapp MCP tools (isWorkapp=true and URL contains /github).',
+      'This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).',
     request: {
       params: TenantProjectToolParamsSchema,
       body: {

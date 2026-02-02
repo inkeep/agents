@@ -192,7 +192,7 @@ export function WorkAppGitHubAccessSection({
  */
 export function isGitHubWorkapp(tool: MCPTool): boolean {
   return (
-    Boolean((tool as any).isWorkapp) &&
+    Boolean((tool as any).isWorkApp) &&
     tool.config.type === 'mcp' &&
     tool.config.mcp.server.url.includes('/github')
   );

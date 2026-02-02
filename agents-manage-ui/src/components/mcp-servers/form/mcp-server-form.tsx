@@ -243,7 +243,7 @@ export function MCPServerForm({
             label="URL"
             placeholder="https://api.example.com/mcp"
             isRequired
-            disabled={tool?.isWorkapp}
+            disabled={tool?.isWorkApp}
           />
           <GenericSelect
             control={form.control}
@@ -273,7 +273,7 @@ export function MCPServerForm({
           />
 
           {/* Hide credential options for workapp tools (they manage auth differently) */}
-          {!tool?.isWorkapp && (
+          {!tool?.isWorkApp && (
             <>
               <div className="space-y-3">
                 <GenericSelect

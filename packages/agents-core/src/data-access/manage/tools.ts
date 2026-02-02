@@ -563,8 +563,8 @@ export const deleteTool =
     // If a github workapp tool is being deleted from the main branch, delete the runtime entities for the tool
     // In the future, when we allow rolling back a project to a previous version, the user will need to reset the tool-repo permissions
     const currentBranch = await getActiveBranch(db)();
-    const isWorkapp = deleted.isWorkapp;
-    const isGithub = isWorkapp && deleted.config.mcp.server.url.includes('/github/mcp');
+    const isWorkApp = deleted.isWorkApp;
+    const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
     if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main` && isGithub) {
       const runDbClient = createAgentsRunDatabaseClient();
       await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
