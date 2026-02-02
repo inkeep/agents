@@ -105,6 +105,7 @@ ${prettyError}`);
         .replace('A2 A', 'A2A')
         .replace('A P I', 'API')
         .replace('C L I', 'CLI')
+        .replace('Git Hub', 'GitHub')
         .replace('O Auth', 'OAuth')
         .replace('Sub Agents', 'SubAgents')
         .replace('Third Party', 'Third-Party')
