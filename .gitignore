@@ -100,5 +100,3 @@ progress.txt
 
 # Vitest image snapshots test folder
 .vitest-attachments/
-# Vitest image snapshots error test files
-*-matches-snapshot-when-error-occurs-*.png
