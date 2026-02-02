@@ -3,20 +3,20 @@ import type { LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Cloud } from 'lucide-react';
 import { Inter } from 'next/font/google';
+import { Suspense, ViewTransition } from 'react';
 import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import type { Organization, WebSite, WithContext } from 'schema-dts';
+import PostHogPageview from '@/app/posthog-pageview';
 import { GithubStars } from '@/components/github-stars';
 import { Logo } from '@/components/logo';
 import { SearchDialog } from '@/components/search-dialog';
 import { JsonLd } from '@/components/seo/json-ld';
 import { Button } from '@/components/ui/button';
+import { PostHogProvider } from '@/lib/analytics/posthog-provider';
 import { SLACK_URL } from '@/lib/constants';
 import { createMetadata } from '@/lib/metadata';
 import { source } from '@/lib/source';
 import { cn } from '@/lib/utils';
-import { Suspense, ViewTransition } from 'react';
-import PostHogPageview from '@/app/posthog-pageview';
-import { PostHogProvider } from '@/lib/analytics/posthog-provider';
 import '@/app/global.css';
 
 const inter = Inter({
