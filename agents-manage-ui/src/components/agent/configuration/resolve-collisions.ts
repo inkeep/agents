@@ -23,21 +23,19 @@ interface Box {
 }
 
 function getBoxesFromNodes(nodes: Node[], margin = 0): Box[] {
-  const boxes: Box[] = new Array(nodes.length);
+  return nodes.map((node) => {
+    const width = node.width ?? node.measured?.width ?? 0;
+    const height = node.height ?? node.measured?.height ?? 0;
 
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    boxes[i] = {
+    return {
       x: node.position.x - margin,
       y: node.position.y - margin,
-      width: (node.width ?? node.measured?.width ?? 0) + margin * 2,
-      height: (node.height ?? node.measured?.height ?? 0) + margin * 2,
+      width: width + margin * 2,
+      height: height + margin * 2,
       node,
       moved: false,
     };
-  }
-
-  return boxes;
+  });
 }
 
 export const resolveCollisions: CollisionAlgorithm = (
@@ -45,8 +43,6 @@ export const resolveCollisions: CollisionAlgorithm = (
   { maxIterations = 50, overlapThreshold = 0.5, margin = 10 } = {}
 ) => {
   const boxes = getBoxesFromNodes(nodes, margin);
-
-  let numIterations = 0;
 
   for (let iter = 0; iter <= maxIterations; iter++) {
     let moved = false;
@@ -90,12 +86,6 @@ export const resolveCollisions: CollisionAlgorithm = (
         }
       }
     }
-    numIterations++;
-    // Early exit if we've reached the iteration limit
-    if (numIterations >= maxIterations) {
-      break;
-    }
-
     // Early exit if no overlaps were found
     if (!moved) {
       break;
