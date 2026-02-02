@@ -2,7 +2,7 @@
 
 import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
-import { createContext, type ComponentProps, use, useId } from 'react';
+import { type ComponentProps, createContext, use, useId } from 'react';
 import {
   Controller,
   type ControllerProps,
