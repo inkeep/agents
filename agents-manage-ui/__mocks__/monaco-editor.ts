@@ -1,4 +1,3 @@
-import { defineWebWorkers } from '@vitest/web-worker/pure';
 /**
  * Fixes TypeError: Cannot read properties of null (reading 'webkitBackingStorePixelRatio')
  */
@@ -23,7 +22,5 @@ if (!window.matchMedia) {
     })),
   });
 }
-
-defineWebWorkers();
 
 export * from 'monaco-editor';
