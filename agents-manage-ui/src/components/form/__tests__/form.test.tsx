@@ -1,13 +1,13 @@
 import { render } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
-import { Form } from '@/components/ui/form';
-import { GenericComboBox } from '../generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericSelect } from '@/components/form/generic-select';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
+import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
+import { GenericComboBox } from '../generic-combo-box';
 import '@/app/globals.css';
 
 function TestForm() {
@@ -49,9 +49,10 @@ function TestForm() {
 }
 
 describe('Form', () => {
-  it('should properly highlight error state', async () => {
+  it('should properly highlight error state', () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
-    await expect.element(container).toMatchScreenshot('form-error-state');
-  }, 1000);
+
+    expect(container).toMatchScreenshot('form-error-state');
+  }, 100);
 });
