@@ -6,6 +6,7 @@ import { GenericComboBox } from '../generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericSelect } from '@/components/form/generic-select';
+import '@/app/globals.css';
 
 function TestForm() {
   const form = useForm({
