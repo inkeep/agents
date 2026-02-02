@@ -7,6 +7,8 @@ const NODE_TESTS_PATTERN = '**/*.node.test.ts';
 
 export default defineConfig({
   test: {
+    environment: 'jsdom',
+    globals: true,
     projects: [
       {
         extends: true,
@@ -20,17 +22,12 @@ export default defineConfig({
         extends: true,
         test: {
           name: `${pkgJson.name}/browser`,
-          exclude: [...defaultExclude, NODE_TESTS_PATTERN],
+          exclude: [NODE_TESTS_PATTERN, ...defaultExclude],
           browser: {
             instances: [{ browser: 'chromium' }],
             provider: playwright(),
             enabled: true,
             headless: true,
-            expect: {
-              toMatchScreenshot: {
-                comparatorName: 'pixelmatch',
-              },
-            },
           },
         },
         define: {
@@ -39,8 +36,6 @@ export default defineConfig({
         },
       },
     ],
-    environment: 'jsdom',
-    globals: true,
   },
   resolve: {
     alias: {
