@@ -1,9 +1,9 @@
 import { fileURLToPath } from 'node:url';
-import { defineConfig, defaultExclude } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
+import { defaultExclude, defineConfig } from 'vitest/config';
 import pkgJson from './package.json' with { type: 'json' };
 
-const NODE_TESTS_PATTERN = '**/*.node.test.ts'
+const NODE_TESTS_PATTERN = '**/*.node.test.ts';
 
 export default defineConfig({
   test: {
@@ -14,7 +14,7 @@ export default defineConfig({
           name: `${pkgJson.name}/node`,
           setupFiles: './setup-files',
           include: [NODE_TESTS_PATTERN],
-        }
+        },
       },
       {
         extends: true,
@@ -32,7 +32,7 @@ export default defineConfig({
               },
             },
           },
-        }
+        },
       },
     ],
     environment: 'jsdom',
