@@ -9,34 +9,35 @@ import { GenericSelect } from '@/components/form/generic-select';
 import '@/app/globals.css';
 
 function TestForm() {
+  const error = 'This field is required';
+
   const form = useForm({
     errors: {
-      input: { type: 'string', message: 'YOUR_ERROR' },
-      textarea: { type: 'string', message: 'YOUR_ERROR' },
-      select: { type: 'string', message: 'YOUR_ERROR' },
-      combobox: { type: 'string', message: 'YOUR_ERROR' },
+      input: { type: 'string', message: error },
+      textarea: { type: 'string', message: error },
+      select: { type: 'string', message: error },
+      combobox: { type: 'string', message: error },
     },
   });
 
+  const commonProps = {
+    control: form.control,
+    placeholder: 'Component placeholder',
+    label: 'Component label',
+  };
+  const divider = <hr style={{ borderColor: 'green' }} />;
   return (
     <Form {...form}>
       <form>
-        <GenericInput control={form.control} name="input" label="GenericInput" />
-        <GenericTextarea control={form.control} name="textarea" label="GenericTextarea" />
-        <GenericSelect
-          control={form.control}
-          name="select"
-          label="GenericSelect"
-          options={[]}
-          placeholder="Placeholder"
-        />
-        <GenericComboBox
-          control={form.control}
-          name="combobox"
-          label="GenericComboBox"
-          options={[]}
-          placeholder="Placeholder"
-        />
+        {divider}
+        <GenericInput {...commonProps} name="input" />
+        {divider}
+        <GenericTextarea {...commonProps} name="textarea" />
+        {divider}
+        <GenericSelect {...commonProps} name="select" options={[]} />
+        {divider}
+        <GenericComboBox {...commonProps} name="combobox" options={[]} />
+        {divider}
       </form>
     </Form>
   );
