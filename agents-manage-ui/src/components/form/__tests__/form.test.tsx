@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
 import { GenericInput } from '@/components/form/generic-input';
@@ -49,10 +49,12 @@ function TestForm() {
 }
 
 describe('Form', () => {
-  it('should properly highlight error state', () => {
+  it('should properly highlight error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
 
-    expect(container).toMatchScreenshot('form-error-state');
-  }, 500);
+    await act(async () => {
+      await expect(container).toMatchScreenshot('form-error-state');
+    });
+  });
 });
