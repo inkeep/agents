@@ -30,6 +30,7 @@ export default defineConfig({
             headless: true,
             expect: {
               toMatchScreenshot: {
+                timeout: 10_000,
                 resolveScreenshotPath({
                   root,
                   testFileDirectory,

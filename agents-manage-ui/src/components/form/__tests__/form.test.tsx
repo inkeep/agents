@@ -54,14 +54,12 @@ function TestForm() {
 }
 
 describe('Form', () => {
-  it('should properly highlight error state', async () => {
+  test('should properly highlight error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
 
     await act(async () => {
-      await expect(container).toMatchScreenshot('form-error-state', {
-        timeout: 10_000,
-      });
+      await expect(container).toMatchScreenshot();
     });
   }, 10_000);
 });
