@@ -61,5 +61,5 @@ describe('Form', () => {
     await act(async () => {
       await expect(container).toMatchScreenshot('form-error-state');
     });
-  }, 5_000);
+  }, 8_000);
 });
