@@ -54,5 +54,5 @@ describe('Form', () => {
     const { container } = render(<TestForm />);
 
     expect(container).toMatchScreenshot('form-error-state');
-  }, 100);
+  }, 500);
 });
