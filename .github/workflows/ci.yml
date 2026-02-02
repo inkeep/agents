@@ -101,6 +101,7 @@ jobs:
           name: vitest-screenshots
           path: agents-manage-ui/.vitest-attachments
           retention-days: 3
+          include-hidden-files: true
 
       - name: Biome Format
         run: pnpm format:check
