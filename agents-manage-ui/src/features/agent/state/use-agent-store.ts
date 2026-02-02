@@ -23,6 +23,7 @@ import type {
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
+import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -234,7 +235,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
 
       set((state) => ({
         history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-        nodes: applyNodeChanges(changes, state.nodes),
+        nodes: resolveCollisions(applyNodeChanges(changes, state.nodes)),
         dirty: hasModifyingChange || state.dirty,
       }));
     },

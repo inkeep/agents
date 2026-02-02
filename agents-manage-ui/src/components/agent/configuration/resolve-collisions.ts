@@ -5,7 +5,7 @@ interface CollisionAlgorithmOptions {
   maxIterations?: number;
   /** @default 0.5 */
   overlapThreshold?: number;
-  /** @default 0 */
+  /** @default 10 */
   margin?: number;
 }
 
@@ -42,7 +42,7 @@ function getBoxesFromNodes(nodes: Node[], margin = 0): Box[] {
 
 export const resolveCollisions: CollisionAlgorithm = (
   nodes,
-  { maxIterations = 50, overlapThreshold = 0.5, margin = 0 }
+  { maxIterations = 50, overlapThreshold = 0.5, margin = 10 } = {}
 ) => {
   const boxes = getBoxesFromNodes(nodes, margin);
 
