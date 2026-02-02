@@ -30,16 +30,17 @@ export default defineConfig({
             headless: true,
             expect: {
               toMatchScreenshot: {
+                // Increase timeout because the default `5s` is insufficient on CI
                 timeout: 10_000,
-                resolveScreenshotPath({ root, screenshotDirectory, arg, browserName, ext }) {
-                  return [
-                    //
+                resolveScreenshotPath: ({ root, screenshotDirectory, arg, browserName, ext }) =>
+                  [
                     root,
                     'src',
                     screenshotDirectory,
+                    // Omit the platform suffix before extension
+                    // `linux` on CI and `darwin` for example in macOS
                     `${arg}-${browserName}${ext}`,
-                  ].join('/');
-                },
+                  ].join('/'),
               },
             },
           },

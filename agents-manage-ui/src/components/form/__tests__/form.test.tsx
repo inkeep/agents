@@ -60,5 +60,5 @@ describe('Form', () => {
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });
-  }, 10_000);
+  }, 15_000);
 });
