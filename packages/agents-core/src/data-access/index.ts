@@ -24,6 +24,7 @@ export * from './manage/subAgentTeamAgentRelations';
 export * from './manage/tools';
 export * from './manage/triggers';
 export * from './manage/scheduledTriggers';
+export * from './manage/scheduledWorkflows';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';

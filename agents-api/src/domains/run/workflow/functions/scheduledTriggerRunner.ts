@@ -11,7 +11,7 @@
  * IMPORTANT: The main workflow function cannot use any Node.js modules.
  * All Node.js-dependent code must be in step functions.
  */
-import { sleep } from 'workflow';
+import { sleep, getWorkflowMetadata } from 'workflow';
 
 export type ScheduledTriggerRunnerPayload = {
   tenantId: string;
@@ -19,19 +19,6 @@ export type ScheduledTriggerRunnerPayload = {
   agentId: string;
   scheduledTriggerId: string;
 };
-
-/**
- * Generate a deterministic runner ID from trigger identifiers.
- * This is pure JS, no Node.js modules.
- */
-function generateDeterministicRunnerId(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  scheduledTriggerId: string
-): string {
-  return `runner_${tenantId}_${projectId}_${agentId}_${scheduledTriggerId}`;
-}
 
 /**
  * Generate idempotency key for a scheduled execution.
@@ -44,6 +31,7 @@ function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string
 // Import step functions - these are in a separate file to isolate Node.js dependencies
 import {
   calculateNextExecutionStep,
+  checkInvocationCancelledStep,
   checkTriggerEnabledStep,
   computeSleepDurationStep,
   createInvocationIdempotentStep,
@@ -68,8 +56,10 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
 
   const { tenantId, projectId, agentId, scheduledTriggerId } = payload;
 
-  // Generate deterministic runner ID from trigger identifiers
-  const runnerId = generateDeterministicRunnerId(tenantId, projectId, agentId, scheduledTriggerId);
+  // Get the actual workflow run ID from metadata (e.g., wrun_XXXXX)
+  // This is stored in the DB and used to detect supersession
+  const metadata = getWorkflowMetadata();
+  const runnerId = metadata.workflowRunId;
 
   await logStep('Starting scheduled trigger runner workflow', {
     tenantId,
@@ -213,6 +203,23 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     // Use explicit comparison to avoid issues with null/undefined in workflow context
     const maxAttempts = maxRetries + 1;
     while (attemptNumber <= maxAttempts) {
+      // Check if invocation was cancelled before executing
+      const cancelCheck = await checkInvocationCancelledStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId: invocation.id,
+      });
+
+      if (cancelCheck.cancelled) {
+        await logStep('Invocation was cancelled, skipping execution', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+        });
+        break; // Exit retry loop, move to next scheduled time
+      }
+
       // Mark as running
       await markRunningStep({
         tenantId,

@@ -13,6 +13,7 @@ import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchProject } from '@/lib/api/projects';
 import { fetchMCPTool } from '@/lib/api/tools';
+import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { getTrigger } from '@/lib/api/triggers';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
@@ -103,6 +104,10 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
     },
     async triggers(id) {
       const trigger = await getTrigger(tenantId, projectId, slug[3], id);
+      return trigger.name;
+    },
+    async 'scheduled-triggers'(id) {
+      const trigger = await getScheduledTrigger(tenantId, projectId, slug[3], id);
       return trigger.name;
     },
   };

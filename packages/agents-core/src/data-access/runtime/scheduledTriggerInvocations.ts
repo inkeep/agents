@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, lte, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte, inArray, ne } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { scheduledTriggerInvocations } from '../../db/runtime/runtime-schema';
 import type {
@@ -209,6 +209,7 @@ export const markScheduledTriggerInvocationRunning =
 
 /**
  * Mark invocation as completed
+ * Note: Will not update if status is already 'cancelled' to respect user cancellation
  */
 export const markScheduledTriggerInvocationCompleted =
   (db: AgentsRunDatabaseClient) =>
@@ -217,7 +218,7 @@ export const markScheduledTriggerInvocationCompleted =
     scheduledTriggerId: string;
     invocationId: string;
     conversationId?: string;
-  }): Promise<ScheduledTriggerInvocation> => {
+  }): Promise<ScheduledTriggerInvocation | undefined> => {
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
@@ -231,16 +232,19 @@ export const markScheduledTriggerInvocationCompleted =
           eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
           eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
-          eq(scheduledTriggerInvocations.id, params.invocationId)
+          eq(scheduledTriggerInvocations.id, params.invocationId),
+          // Don't overwrite if already cancelled
+          ne(scheduledTriggerInvocations.status, 'cancelled')
         )
       )
       .returning();
 
-    return result[0] as ScheduledTriggerInvocation;
+    return result[0] as ScheduledTriggerInvocation | undefined;
   };
 
 /**
  * Mark invocation as failed
+ * Note: Will not update if status is already 'cancelled' to respect user cancellation
  */
 export const markScheduledTriggerInvocationFailed =
   (db: AgentsRunDatabaseClient) =>
@@ -250,7 +254,7 @@ export const markScheduledTriggerInvocationFailed =
     invocationId: string;
     errorMessage: string;
     errorCode?: string;
-  }): Promise<ScheduledTriggerInvocation> => {
+  }): Promise<ScheduledTriggerInvocation | undefined> => {
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
@@ -265,12 +269,14 @@ export const markScheduledTriggerInvocationFailed =
           eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
           eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
-          eq(scheduledTriggerInvocations.id, params.invocationId)
+          eq(scheduledTriggerInvocations.id, params.invocationId),
+          // Don't overwrite if already cancelled
+          ne(scheduledTriggerInvocations.status, 'cancelled')
         )
       )
       .returning();
 
-    return result[0] as ScheduledTriggerInvocation;
+    return result[0] as ScheduledTriggerInvocation | undefined;
   };
 
 /**

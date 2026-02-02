@@ -144,6 +144,30 @@ export async function deleteScheduledTrigger(
 }
 
 /**
+ * Cancel a scheduled trigger invocation
+ */
+export async function cancelScheduledTriggerInvocation(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  invocationId: string
+): Promise<{ success: boolean; message?: string }> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const { makeManagementApiRequest } = await import('./api-config');
+  const response = await makeManagementApiRequest<{ success: boolean; message?: string }>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations/${invocationId}/cancel`,
+    {
+      method: 'POST',
+    }
+  );
+
+  return response;
+}
+
+/**
  * Fetch invocations for a scheduled trigger
  */
 export async function fetchScheduledTriggerInvocations(

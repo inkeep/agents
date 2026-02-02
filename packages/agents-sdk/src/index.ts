@@ -15,6 +15,7 @@ export {
   mcpServer,
   mcpTool,
   project,
+  scheduledTrigger,
   statusComponent,
   subAgent,
   trigger,
@@ -86,4 +87,11 @@ export {
 } from './telemetry-provider';
 export { Tool } from './tool';
 export { Trigger, type TriggerConfig, type TriggerInterface } from './trigger';
+export {
+  ScheduledTrigger,
+  type ScheduledTriggerConfig,
+  type ScheduledTriggerInterface,
+  oneTimeTrigger,
+  cronTrigger,
+} from './scheduled-trigger';
 export type * from './types';

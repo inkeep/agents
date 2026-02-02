@@ -50,6 +50,20 @@
       "when": 1769788066303,
       "tag": "0006_tan_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770046836403,
+      "tag": "0007_shallow_goliath",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770065208733,
+      "tag": "0008_noisy_vindicator",
+      "breakpoints": true
     }
   ]
 }

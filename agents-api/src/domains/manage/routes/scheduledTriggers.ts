@@ -21,6 +21,7 @@ import {
   getScheduledTriggerInvocationById,
   listScheduledTriggerInvocationsPaginated,
   cancelPendingInvocationsForTrigger,
+  markScheduledTriggerInvocationCancelled,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -214,14 +215,13 @@ app.openapi(
       maxRetries: body.maxRetries ?? 3,
       retryDelaySeconds: body.retryDelaySeconds ?? 60,
       timeoutSeconds: body.timeoutSeconds ?? 300,
-      workflowRunId: null,
       createdAt: now,
       updatedAt: now,
     });
 
     // Start workflow for enabled triggers
     try {
-      await onTriggerCreated(trigger);
+      await onTriggerCreated(trigger, db);
     } catch (err) {
       logger.error(
         { err, tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -346,7 +346,7 @@ app.openapi(
         trigger: updatedTrigger,
         previousEnabled,
         scheduleChanged,
-      });
+      }, db);
     } catch (err) {
       logger.error(
         { err, tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -425,7 +425,7 @@ app.openapi(
 
     // Cancel active workflow
     try {
-      await onTriggerDeleted(existing);
+      await onTriggerDeleted(existing, db);
     } catch (err) {
       logger.error(
         { err, tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -587,6 +587,103 @@ app.openapi(
 
     return c.json({
       data: invocationWithoutScopes,
+    });
+  }
+);
+
+/**
+ * Cancel Scheduled Trigger Invocation
+ */
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/invocations/{invocationId}/cancel',
+    summary: 'Cancel Scheduled Trigger Invocation',
+    operationId: 'cancel-scheduled-trigger-invocation',
+    tags: ['Scheduled Triggers'],
+    request: {
+      params: TenantProjectAgentIdParamsSchema.extend({
+        invocationId: z.string().describe('Scheduled Trigger Invocation ID'),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Scheduled trigger invocation cancelled successfully',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              invocationId: z.string(),
+              previousStatus: z.string().optional(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const {
+      tenantId,
+      projectId,
+      agentId,
+      id: scheduledTriggerId,
+      invocationId,
+    } = c.req.valid('param');
+
+    logger.debug(
+      { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
+      'Cancelling scheduled trigger invocation'
+    );
+
+    // Get the invocation
+    const invocation = await getScheduledTriggerInvocationById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId,
+      invocationId,
+    });
+
+    if (!invocation) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Invocation not found',
+      });
+    }
+
+    // Check if invocation can be cancelled
+    if (invocation.status === 'completed' || invocation.status === 'failed') {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Cannot cancel invocation with status: ${invocation.status}`,
+      });
+    }
+
+    if (invocation.status === 'cancelled') {
+      return c.json({
+        success: true,
+        invocationId,
+        previousStatus: 'cancelled',
+      });
+    }
+
+    const previousStatus = invocation.status;
+
+    // Mark as cancelled
+    await markScheduledTriggerInvocationCancelled(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId,
+      invocationId,
+    });
+
+    logger.info(
+      { tenantId, projectId, agentId, scheduledTriggerId, invocationId, previousStatus },
+      'Scheduled trigger invocation cancelled'
+    );
+
+    return c.json({
+      success: true,
+      invocationId,
+      previousStatus,
     });
   }
 );

@@ -28,6 +28,8 @@ import {
   updateScheduledTriggerAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTrigger } from '@/lib/api/scheduled-triggers';
+import { DateTimePicker } from './date-time-picker';
+import { FriendlyScheduleBuilder } from './friendly-schedule-builder';
 
 const scheduleTypeOptions: SelectOption[] = [
   { value: 'cron', label: 'Recurring (Cron)' },
@@ -253,16 +255,9 @@ export function ScheduledTriggerForm({
                 name="cronExpression"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cron Expression</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., 0 9 * * * (every day at 9 AM)" />
+                      <FriendlyScheduleBuilder value={field.value} onChange={field.onChange} />
                     </FormControl>
-                    <FormDescription>
-                      Standard 5-field cron expression: minute hour day month weekday
-                      <br />
-                      Examples: <code>0 9 * * *</code> (daily at 9 AM),{' '}
-                      <code>*/15 * * * *</code> (every 15 minutes)
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -275,13 +270,13 @@ export function ScheduledTriggerForm({
                 name="runAt"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Run At</FormLabel>
                     <FormControl>
-                      <Input {...field} type="datetime-local" />
+                      <DateTimePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        minDate={new Date()}
+                      />
                     </FormControl>
-                    <FormDescription>
-                      The specific date and time when this trigger should run once.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
