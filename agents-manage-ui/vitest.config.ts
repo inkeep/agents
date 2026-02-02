@@ -28,6 +28,25 @@ export default defineConfig({
             provider: playwright(),
             enabled: true,
             headless: true,
+            expect: {
+              toMatchScreenshot: {
+                resolveScreenshotPath({
+                  root,
+                  testFileDirectory,
+                  screenshotDirectory,
+                  arg,
+                  browserName,
+                  ext,
+                }) {
+                  return [
+                    root,
+                    testFileDirectory,
+                    screenshotDirectory,
+                    `${arg}-${browserName}${ext}`,
+                  ].join('/');
+                },
+              },
+            },
           },
         },
         define: {
