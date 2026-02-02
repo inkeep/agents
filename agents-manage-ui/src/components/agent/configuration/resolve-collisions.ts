@@ -1,12 +1,14 @@
 import type { Node } from '@xyflow/react';
 
-export interface CollisionAlgorithmOptions {
+interface CollisionAlgorithmOptions {
   maxIterations: number;
   overlapThreshold: number;
   margin: number;
-};
+}
 
-export type CollisionAlgorithm = (nodes: Node[], options: CollisionAlgorithmOptions) => Node[];
+interface CollisionAlgorithm {
+  (nodes: Node[], options: CollisionAlgorithmOptions): Node[];
+}
 
 interface Box {
   x: number;
@@ -15,7 +17,7 @@ interface Box {
   height: number;
   moved: boolean;
   node: Node;
-};
+}
 
 function getBoxesFromNodes(nodes: Node[], margin: number = 0): Box[] {
   const boxes: Box[] = new Array(nodes.length);
