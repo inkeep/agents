@@ -1,13 +1,16 @@
 import type { Node } from '@xyflow/react';
 
 interface CollisionAlgorithmOptions {
-  maxIterations: number;
-  overlapThreshold: number;
-  margin: number;
+  /** @default 50 */
+  maxIterations?: number;
+  /** @default 0.5 */
+  overlapThreshold?: number;
+  /** @default 0 */
+  margin?: number;
 }
 
 interface CollisionAlgorithm {
-  (nodes: Node[], options: CollisionAlgorithmOptions): Node[];
+  (nodes: Node[], options?: CollisionAlgorithmOptions): Node[];
 }
 
 interface Box {
@@ -19,7 +22,7 @@ interface Box {
   node: Node;
 }
 
-function getBoxesFromNodes(nodes: Node[], margin: number = 0): Box[] {
+function getBoxesFromNodes(nodes: Node[], margin = 0): Box[] {
   const boxes: Box[] = new Array(nodes.length);
 
   for (let i = 0; i < nodes.length; i++) {
@@ -88,6 +91,10 @@ export const resolveCollisions: CollisionAlgorithm = (
       }
     }
     numIterations++;
+    // Early exit if we've reached the iteration limit
+    if (numIterations >= maxIterations) {
+      break;
+    }
 
     // Early exit if no overlaps were found
     if (!moved) {
