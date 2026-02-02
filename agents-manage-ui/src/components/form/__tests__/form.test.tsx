@@ -29,9 +29,9 @@ function TestForm() {
   );
 }
 
-describe('GenericComboBox', () => {
-  it('matches snapshot when error occurs', async () => {
+describe('Form', () => {
+  it('should properly highlight error state', async () => {
     const { container } = render(<TestForm />);
-    await expect.element(container).toMatchScreenshot('generic-combo-box');
+    await expect.element(container).toMatchScreenshot('form-error-state');
   }, 1000);
 });
