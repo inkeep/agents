@@ -38,6 +38,11 @@ function getBoxesFromNodes(nodes: Node[], margin = 0): Box[] {
   });
 }
 
+/**
+ * Based on Node Collisions Reactflow example
+ *
+ * @see https://reactflow.dev/examples/layout/node-collisions
+ */
 export const resolveCollisions: CollisionAlgorithm = (
   nodes,
   { maxIterations = 50, overlapThreshold = 0.5, margin = 10 } = {}
