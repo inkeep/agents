@@ -21,10 +21,22 @@ function TestForm() {
   return (
     <Form {...form}>
       <form>
-        <GenericInput control={form.control} name="input" label="Input" />
-        <GenericTextarea control={form.control} name="textarea" label="Textarea" />
-        <GenericSelect control={form.control} name="select" label="Select" options={[]} />
-        <GenericComboBox control={form.control} name="combobox" label="Combobox" options={[]} />
+        <GenericInput control={form.control} name="input" label="GenericInput" />
+        <GenericTextarea control={form.control} name="textarea" label="GenericTextarea" />
+        <GenericSelect
+          control={form.control}
+          name="select"
+          label="GenericSelect"
+          options={[]}
+          placeholder="Placeholder"
+        />
+        <GenericComboBox
+          control={form.control}
+          name="combobox"
+          label="GenericComboBox"
+          options={[]}
+          placeholder="Placeholder"
+        />
       </form>
     </Form>
   );
