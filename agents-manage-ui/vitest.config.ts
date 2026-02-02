@@ -1,12 +1,41 @@
 import { fileURLToPath } from 'node:url';
-import { defineProject } from 'vitest/config';
+import { defineConfig, defaultExclude } from 'vitest/config';
+import { playwright } from '@vitest/browser-playwright';
 import pkgJson from './package.json' with { type: 'json' };
 
-export default defineProject({
+const NODE_TESTS_PATTERN = '**/*.node.test.ts'
+
+export default defineConfig({
   test: {
-    name: pkgJson.name,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: `${pkgJson.name}/node`,
+          setupFiles: './setup-files',
+          include: [NODE_TESTS_PATTERN],
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: `${pkgJson.name}/browser`,
+          exclude: [...defaultExclude, NODE_TESTS_PATTERN],
+          browser: {
+            instances: [{ browser: 'chromium' }],
+            provider: playwright(),
+            enabled: true,
+            headless: true,
+            expect: {
+              toMatchScreenshot: {
+                comparatorName: 'pixelmatch',
+              },
+            },
+          },
+        }
+      },
+    ],
     environment: 'jsdom',
-    setupFiles: './setup-files',
     globals: true,
   },
   resolve: {
