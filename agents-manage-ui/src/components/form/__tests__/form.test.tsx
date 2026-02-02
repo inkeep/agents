@@ -31,7 +31,7 @@ function TestForm() {
       placeholder: `${capitalizedName} placeholder`,
       label: `${capitalizedName} label`,
       isRequired: true,
-    }
+    };
   }
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
