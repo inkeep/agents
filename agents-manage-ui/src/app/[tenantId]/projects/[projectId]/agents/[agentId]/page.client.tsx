@@ -27,6 +27,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
+import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
@@ -954,6 +955,9 @@ export const Agent: FC<AgentProps> = ({
           nodesConnectable={canEdit}
           nodesDraggable={canEdit}
           onNodeClick={onNodeClick}
+          onNodeDragStop={() => {
+            setNodes(resolveCollisions);
+          }}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
