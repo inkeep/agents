@@ -33,6 +33,10 @@ export default defineConfig({
             },
           },
         },
+        define: {
+          // Fix error from next/image - ReferenceError: process is not defined
+          'process.env.NODE_ENV': '"test"',
+        },
       },
     ],
     environment: 'jsdom',

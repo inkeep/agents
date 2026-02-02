@@ -6,6 +6,7 @@ import { GenericComboBox } from '../generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericSelect } from '@/components/form/generic-select';
+import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import '@/app/globals.css';
 
 function TestForm() {
@@ -17,6 +18,7 @@ function TestForm() {
       textarea: { type: 'string', message: error },
       select: { type: 'string', message: error },
       combobox: { type: 'string', message: error },
+      jsonSchemaEditor: { type: 'string', message: error },
     },
   });
 
@@ -37,6 +39,8 @@ function TestForm() {
         <GenericSelect {...commonProps} name="select" options={[]} />
         {divider}
         <GenericComboBox {...commonProps} name="combobox" options={[]} />
+        {divider}
+        <JsonSchemaInput {...commonProps} name="jsonSchemaEditor" />
         {divider}
       </form>
     </Form>
