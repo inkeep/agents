@@ -586,14 +586,6 @@ describe('Validation Schemas', () => {
       expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
     });
 
-    it('should accept newAgentId at minimum length (2 chars)', () => {
-      const validRequest = {
-        newAgentId: 'ab',
-      };
-
-      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
-    });
-
     it('should accept newAgentId at maximum length (255 chars)', () => {
       const validRequest = {
         newAgentId: 'a'.repeat(255),
@@ -617,12 +609,12 @@ describe('Validation Schemas', () => {
       }
     });
 
-    it('should reject newAgentId that is too short (1 char)', () => {
-      const invalidRequest = {
+    it('should accept newAgentId at minimum length (1 char)', () => {
+      const validRequest = {
         newAgentId: 'a',
       };
 
-      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
+      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
     });
 
     it('should reject newAgentId that is too long (256+ chars)', () => {
@@ -680,24 +672,6 @@ describe('Validation Schemas', () => {
       };
 
       expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
-    });
-
-    it('should reject newAgentName that exceeds 255 chars', () => {
-      const invalidRequest = {
-        newAgentId: 'valid-agent-id',
-        newAgentName: 'a'.repeat(256),
-      };
-
-      expect(() => DuplicateAgentRequestSchema.parse(invalidRequest)).toThrow();
-    });
-
-    it('should accept newAgentName at maximum length (255 chars)', () => {
-      const validRequest = {
-        newAgentId: 'valid-agent-id',
-        newAgentName: 'a'.repeat(255),
-      };
-
-      expect(() => DuplicateAgentRequestSchema.parse(validRequest)).not.toThrow();
     });
   });
 });

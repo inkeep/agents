@@ -2192,19 +2192,10 @@ export const AgentWithinContextOfProjectSelectSchemaWithRelationIds =
 // Agent duplication schemas
 export const DuplicateAgentRequestSchema = z
   .object({
-    newAgentId: z
-      .string()
-      .min(2)
-      .max(MAX_ID_LENGTH)
-      .regex(URL_SAFE_ID_PATTERN, {
-        message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-      })
-      .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
-      .describe('Unique identifier for the new duplicated agent (2-256 chars, URL-safe)'),
-    newAgentName: z
-      .string()
-      .min(1)
-      .max(255)
+    newAgentId: AgentInsertSchema.shape.id.describe(
+      'Unique identifier for the new duplicated agent'
+    ),
+    newAgentName: AgentInsertSchema.shape.name
       .optional()
       .describe(
         'Name for the duplicated agent. Defaults to "{originalName} (Copy)" if not provided.'

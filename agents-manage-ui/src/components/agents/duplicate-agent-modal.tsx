@@ -1,13 +1,13 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { DuplicateAgentRequestSchema } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { duplicateAgentAction } from '@/lib/actions/agent-full';
-import { idSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
 import { Button } from '../ui/button';
 import {
@@ -20,12 +20,11 @@ import {
 } from '../ui/dialog';
 import { Form } from '../ui/form';
 
-const duplicateAgentSchema = z.object({
-  newAgentName: z.string().min(1, 'Name is required'),
-  newAgentId: idSchema,
+const duplicateAgentFormSchema = DuplicateAgentRequestSchema.required({
+  newAgentName: true,
 });
 
-type DuplicateAgentFormData = z.infer<typeof duplicateAgentSchema>;
+type DuplicateAgentFormData = z.infer<typeof duplicateAgentFormSchema>;
 
 interface DuplicateAgentModalProps {
   tenantId: string;
@@ -46,7 +45,7 @@ export function DuplicateAgentModal({
 }: DuplicateAgentModalProps) {
   const router = useRouter();
   const form = useForm<DuplicateAgentFormData>({
-    resolver: zodResolver(duplicateAgentSchema),
+    resolver: zodResolver(duplicateAgentFormSchema),
     defaultValues: {
       newAgentName: `${agentName} (Copy)`,
       newAgentId: '',
@@ -94,7 +93,9 @@ export function DuplicateAgentModal({
       <DialogContent className="!max-w-2xl">
         <DialogHeader>
           <DialogTitle>Duplicate agent</DialogTitle>
-          <DialogDescription>Create a copy of {agentName} with a new name and ID</DialogDescription>
+          <DialogDescription>
+            This will create a copy of "{agentName}" in the same project.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
