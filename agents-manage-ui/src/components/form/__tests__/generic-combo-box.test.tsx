@@ -3,16 +3,22 @@ import { useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
 import { Form } from '@/components/ui/form';
 import { GenericComboBox } from '../generic-combo-box';
+import { GenericInput } from '@/components/form/generic-input';
 
 function TestForm() {
   const form = useForm({
     defaultValues: {
-      owner: '',
+      input: '',
+      combobox: '',
     },
     errors: {
-      owner: {
+      input: {
         type: 'string',
-        message: 'Owner is required.',
+        message: 'YOUR_ERROR',
+      },
+      combobox: {
+        type: 'string',
+        message: 'YOUR_ERROR',
       },
     },
   });
@@ -20,16 +26,8 @@ function TestForm() {
   return (
     <Form {...form}>
       <form>
-        <GenericComboBox
-          control={form.control}
-          name="owner"
-          label="Owner"
-          placeholder="Select owner"
-          options={[
-            { value: 'alice', label: 'Alice' },
-            { value: 'bob', label: 'Bob' },
-          ]}
-        />
+        <GenericInput control={form.control} name="input" label="Input" />
+        <GenericComboBox control={form.control} name="combobox" label="Combobox" options={[]} />
       </form>
     </Form>
   );
