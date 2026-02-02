@@ -64,6 +64,9 @@ jobs:
         env:
           HUSKY: 0
 
+      - name: Install Playwright Browsers
+        run: pnpx playwright install --with-deps
+
       # Clean database files before running tests
       - name: Clean database files
         run: |
@@ -218,9 +221,9 @@ jobs:
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
-        
+
       - name: Run agents-api integration tests
-        run: pnpm --filter @inkeep/agents-api test:integration 
+        run: pnpm --filter @inkeep/agents-api test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
