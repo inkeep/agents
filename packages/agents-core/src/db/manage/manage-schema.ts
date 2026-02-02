@@ -7,10 +7,18 @@ import {
   pgTable,
   primaryKey,
   text,
-  timestamp,
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import {
+  agentScoped,
+  inkeepId,
+  projectScoped,
+  subAgentScoped,
+  tenantScoped,
+  timestamps,
+  uiProperties as baseUiProperties,
+} from '../common/field-definitions';
 import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
@@ -35,34 +43,10 @@ import type {
   SubAgentStopWhen,
 } from '../../validation/schemas';
 
-const tenantScoped = {
-  tenantId: varchar('tenant_id', { length: 256 }).notNull(),
-  id: varchar('id', { length: 256 }).notNull(),
-};
-
-const projectScoped = {
-  ...tenantScoped,
-  projectId: varchar('project_id', { length: 256 }).notNull(),
-};
-
-const agentScoped = {
-  ...projectScoped,
-  agentId: varchar('agent_id', { length: 256 }).notNull(),
-};
-
-const subAgentScoped = {
-  ...agentScoped,
-  subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
-};
-
+// Override uiProperties to use text for description (longer than varchar)
 const uiProperties = {
   name: varchar('name', { length: 256 }).notNull(),
   description: text('description'),
-};
-
-const timestamps = {
-  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 };
 
 // ============================================================================
@@ -530,8 +514,8 @@ export const credentialReferences = pgTable(
 
     // For user-scoped credentials
     toolId: varchar('tool_id', { length: 256 }), // Links to the tool this credential is for
-    userId: varchar('user_id', { length: 256 }), // User who owns this credential (null = project-scoped)
-    createdBy: varchar('created_by', { length: 256 }), // User who created this credential
+    userId: inkeepId('user_id'), // User who owns this credential (null = project-scoped)
+    createdBy: inkeepId('created_by'), // User who created this credential
 
     ...timestamps,
   },
