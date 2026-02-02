@@ -27,6 +27,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
+import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
@@ -41,7 +42,6 @@ import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
-  applyDagreLayout,
   deserializeAgentData,
   type ExtendedFullAgentDefinition,
   extractAgentMetadata,
@@ -107,7 +107,7 @@ interface AgentProps {
   sandboxEnabled: boolean;
 }
 
-type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
+type ReactFlowProps = ComponentProps<typeof ReactFlow>;
 
 const SHOW_CHAT_TO_CREATE = false;
 
@@ -283,8 +283,7 @@ export const Agent: FC<AgentProps> = ({
     return lookup;
   })();
 
-  const { screenToFlowPosition, updateNodeData, fitView, getEdges, getIntersectingNodes } =
-    useReactFlow();
+  const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
   const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
@@ -293,7 +292,7 @@ export const Agent: FC<AgentProps> = ({
   const {
     setNodes,
     setEdges,
-    onNodesChange: storeOnNodesChange,
+    onNodesChange,
     onEdgesChange,
     setMetadata,
     setInitial,
@@ -308,38 +307,6 @@ export const Agent: FC<AgentProps> = ({
   // Always use enriched nodes for ReactFlow
   const nodes = enrichNodes(storeNodes);
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
-
-  /**
-   * Custom `onNodesChange` handler that relayouts the agent using Dagre
-   * when a `replace` change causes node intersections.
-   **/
-  const onNodesChange: typeof storeOnNodesChange = (changes) => {
-    storeOnNodesChange(changes);
-
-    const replaceChanges = changes.filter((change) => change.type === 'replace');
-    if (!replaceChanges.length) {
-      return;
-    }
-    // Using `setTimeout` instead of `requestAnimationFrame` ensures updated node positions are available,
-    // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
-    setTimeout(() => {
-      setNodes((prev) => {
-        for (const change of replaceChanges) {
-          const node = prev.find((n) => n.id === change.id);
-          if (!node) {
-            continue;
-          }
-          // Use React Flow's intersection detection
-          const intersectingNodes = getIntersectingNodes(node);
-          if (intersectingNodes.length > 0) {
-            // Apply Dagre layout to resolve intersections
-            return applyDagreLayout(prev, getEdges());
-          }
-        }
-        return prev;
-      });
-    }, 0);
-  };
 
   const onAddInitialNode = () => {
     const newNode = {
@@ -611,22 +578,6 @@ export const Agent: FC<AgentProps> = ({
         new AddPreparedEdgeCommand(newEdge, { deselectOtherEdgesIfA2A: true })
       );
     });
-  };
-
-  const isValidConnection: ReactFlowProps['isValidConnection'] = ({
-    sourceHandle,
-    targetHandle,
-  }) => {
-    // we don't want to allow connections between MCP nodes
-    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-      return false;
-    }
-    return true;
-  };
-
-  const onDragOver: ReactFlowProps['onDragOver'] = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
   };
 
   const onDrop: ReactFlowProps['onDrop'] = (event) => {
@@ -982,7 +933,10 @@ export const Agent: FC<AgentProps> = ({
           onEdgesChange={onEdgesChange}
           onConnect={onConnectWrapped}
           onDrop={onDrop}
-          onDragOver={onDragOver}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+          }}
           fitView
           snapToGrid
           snapGrid={[20, 20]}
@@ -991,10 +945,19 @@ export const Agent: FC<AgentProps> = ({
           }}
           minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
-          isValidConnection={isValidConnection}
+          isValidConnection={({ sourceHandle, targetHandle }) => {
+            // we don't want to allow connections between MCP nodes
+            if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+              return false;
+            }
+            return true;
+          }}
           nodesConnectable={canEdit}
           nodesDraggable={canEdit}
           onNodeClick={onNodeClick}
+          onNodeDragStop={() => {
+            setNodes(resolveCollisions);
+          }}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />

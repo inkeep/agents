@@ -92,12 +92,12 @@ describe('Agent', () => {
         .trigger('mouseup', { force: true });
     }
 
-    dragNode('[aria-label="Drag MCP node"]');
-    cy.contains('Geocode address').click();
-    connectEdge('[data-handleid="target-mcp"]');
     dragNode('[aria-label="Drag Function Tool node"]');
     connectEdge('[data-handleid="target-function-tool"]');
     cy.typeInMonaco('code.jsx', 'function () {}');
+    dragNode('[aria-label="Drag MCP node"]');
+    cy.contains('Geocode address').click();
+    connectEdge('[data-handleid="target-mcp"]');
     saveAndAssert();
     cy.get('.react-flow__node-agent').click();
     cy.get('[name=id]').clear().type('TEST', { delay: 0 });
