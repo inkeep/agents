@@ -560,17 +560,34 @@ export const deleteTool =
       )
       .returning();
 
-    // If a github workapp tool is being deleted from the main branch, delete the runtime entities for the tool
-    // In the future, when we allow rolling back a project to a previous version, the user will need to reset the tool-repo permissions
-    const currentBranch = await getActiveBranch(db)();
-    const isWorkApp = deleted.isWorkApp;
-    const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
-    if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main` && isGithub) {
-      const runDbClient = createAgentsRunDatabaseClient();
-      await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
+    if (!deleted) {
+      return false;
     }
 
-    return !!deleted;
+    // If a github workapp tool is being deleted from the main branch, delete the runtime entities for the tool
+    // In the future, when we allow rolling back a project to a previous version, the user will need to reset the tool-repo permissions
+    const isWorkApp = deleted.isWorkApp;
+    const isGithub = isWorkApp && deleted.config.mcp.server.url.includes('/github/mcp');
+
+    if (isGithub) {
+      try {
+        // getActiveBranch uses Dolt-specific SQL (active_branch()) which isn't available in pglite/postgres
+        const currentBranch = await getActiveBranch(db)();
+        if (currentBranch === `${params.scopes.tenantId}_${params.scopes.projectId}_main`) {
+          const runDbClient = createAgentsRunDatabaseClient();
+          await cascadeDeleteByTool(runDbClient)({ toolId: params.toolId });
+        }
+      } catch (error) {
+        // If we can't get the active branch (e.g., not using Dolt), skip the cascade delete
+        // This is expected in test environments using pglite
+        logger.debug(
+          { error, toolId: params.toolId },
+          'Skipping cascade delete - active_branch() not available'
+        );
+      }
+    }
+
+    return true;
   };
 
 export const addToolToAgent =

@@ -190,7 +190,9 @@ type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 const omitTenantScope = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitTenantScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<OmitTenantScope<T>>;
+  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<
+    OmitTenantScope<T>
+  >;
 
 // Generic helper for omitting timestamp fields
 const omitTimestamps = <T extends z.ZodRawShape>(

@@ -1931,6 +1931,9 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "isWorkApp": {
+                  "type": "boolean"
+                },
                 "lastError": {
                   "nullable": true,
                   "type": "string"
@@ -1964,6 +1967,7 @@
                 "imageUrl",
                 "capabilities",
                 "lastError",
+                "isWorkApp",
                 "createdAt",
                 "updatedAt"
               ],
@@ -5375,6 +5379,9 @@
           "imageUrl": {
             "type": "string"
           },
+          "isWorkApp": {
+            "type": "boolean"
+          },
           "lastError": {
             "nullable": true,
             "type": "string"
@@ -7697,6 +7704,9 @@
             "nullable": true,
             "type": "string"
           },
+          "isWorkApp": {
+            "type": "boolean"
+          },
           "lastError": {
             "nullable": true,
             "type": "string"
@@ -7720,6 +7730,7 @@
           "imageUrl",
           "capabilities",
           "lastError",
+          "isWorkApp",
           "createdAt",
           "updatedAt"
         ],
@@ -7923,6 +7934,9 @@
           },
           "imageUrl": {
             "type": "string"
+          },
+          "isWorkApp": {
+            "type": "boolean"
           },
           "lastError": {
             "nullable": true,
@@ -8141,6 +8155,9 @@
           },
           "imageUrl": {
             "type": "string"
+          },
+          "isWorkApp": {
+            "type": "boolean"
           },
           "lastError": {
             "nullable": true,
@@ -10345,7 +10362,7 @@
                             "maxLength": 256,
                             "type": "string"
                           },
-                          "installationId": {
+                          "installationDbId": {
                             "maxLength": 256,
                             "type": "string"
                           },
@@ -10369,7 +10386,7 @@
                         },
                         "required": [
                           "id",
-                          "installationId",
+                          "installationDbId",
                           "repositoryId",
                           "repositoryName",
                           "repositoryFullName",
@@ -10790,7 +10807,7 @@
                             "maxLength": 256,
                             "type": "string"
                           },
-                          "installationId": {
+                          "installationDbId": {
                             "maxLength": 256,
                             "type": "string"
                           },
@@ -10814,7 +10831,7 @@
                         },
                         "required": [
                           "id",
-                          "installationId",
+                          "installationDbId",
                           "repositoryId",
                           "repositoryName",
                           "repositoryFullName",
@@ -29964,6 +29981,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "description": "GitHub access configuration for a project",
                   "properties": {
                     "mode": {
                       "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
@@ -29974,7 +29992,6 @@
                       "type": "string"
                     },
                     "repositories": {
-                      "description": "List of repositories the project has access to (only populated when mode=\"selected\")",
                       "items": {
                         "properties": {
                           "createdAt": {
@@ -29984,7 +30001,7 @@
                             "maxLength": 256,
                             "type": "string"
                           },
-                          "installationId": {
+                          "installationDbId": {
                             "maxLength": 256,
                             "type": "string"
                           },
@@ -30008,7 +30025,7 @@
                         },
                         "required": [
                           "id",
-                          "installationId",
+                          "installationDbId",
                           "repositoryId",
                           "repositoryName",
                           "repositoryFullName",
@@ -30094,7 +30111,6 @@
         },
         "summary": "Get project GitHub repository access",
         "tags": [
-          "GitHub",
           "Projects"
         ]
       },
@@ -30242,7 +30258,6 @@
         },
         "summary": "Set project GitHub repository access",
         "tags": [
-          "GitHub",
           "Projects"
         ]
       }
@@ -32142,6 +32157,343 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/tools/{toolId}/github-access": {
+      "get": {
+        "description": "Returns the current GitHub repository access configuration for an MCP tool. If mode is \"all\", the tool has access to all repositories the project can access. If mode is \"selected\", the tool is scoped to specific repositories. ",
+        "operationId": "get-mcp-tool-github-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositories": {
+                      "description": "List of repositories the MCP tool has access to (only populated when mode=\"selected\")",
+                      "items": {
+                        "properties": {
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "installationAccountLogin": {
+                            "description": "The GitHub account login for the installation",
+                            "type": "string"
+                          },
+                          "installationDbId": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "private": {
+                            "type": "boolean"
+                          },
+                          "repositoryFullName": {
+                            "maxLength": 512,
+                            "type": "string"
+                          },
+                          "repositoryId": {
+                            "type": "string"
+                          },
+                          "repositoryName": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "installationDbId",
+                          "repositoryId",
+                          "repositoryName",
+                          "repositoryFullName",
+                          "private",
+                          "createdAt",
+                          "updatedAt",
+                          "installationAccountLogin"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositories"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get MCP tool GitHub repository access",
+        "tags": [
+          "Tools"
+        ]
+      },
+      "put": {
+        "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
+        "operationId": "set-mcp-tool-github-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the MCP tool now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool GitHub repository access",
+        "tags": [
+          "Tools"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/users/{userId}/project-memberships": {
       "get": {
         "description": "List all projects a user has explicit access to and their role in each. Requires authz to be enabled.",
@@ -33400,6 +33752,10 @@
     {
       "description": "Operations for managing functions",
       "name": "Functions"
+    },
+    {
+      "description": "GitHub App integration endpoints",
+      "name": "GitHub"
     },
     {
       "description": "Operations for managing invitations",
