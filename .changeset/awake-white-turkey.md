@@ -1,5 +1,8 @@
 ---
+"@inkeep/agents-core": patch
 "@inkeep/agents-api": patch
+"@inkeep/agents-manage-ui": patch
+"@inkeep/agents-work-apps": patch
 ---
 
-agents-core
+Add GitHub app management functionality

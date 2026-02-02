@@ -12,6 +12,7 @@ import runDbClient from '../../db/runDbClient';
 import { githubMcpAuth } from './auth';
 import {
   commitFileChanges,
+  commitNewFile,
   fetchPrFileDiffs,
   fetchPrFiles,
   fetchPrInfo,
@@ -618,6 +619,92 @@ const getServer = async (toolId: string) => {
     }
   );
 
+  server.tool(
+    'commit-new-file',
+    `Create and commit a new file in a repository. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      branch_name: z.string().describe('Branch to commit to'),
+      file_path: z.string().describe('Path for the new file (relative to repository root)'),
+      content: z.string().describe('Content for the new file'),
+      commit_message: z.string().describe('Commit message'),
+    },
+    async ({ owner, repo, branch_name, file_path, content, commit_message }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const commitSha = await commitNewFile({
+          githubClient,
+          owner,
+          repo,
+          filePath: file_path,
+          branchName: branch_name,
+          content,
+          commitMessage: commit_message,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully created and committed new file "${file_path}" to ${owner}/${repo} on branch "${branch_name}"\n\nCommit SHA: ${commitSha}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Repository ${owner}/${repo} or branch "${branch_name}" not found`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 422) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `File "${file_path}" may already exist or the path is invalid.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error creating file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
   // Register GitHub create pull request tool
   server.tool(
     'create-pull-request',
@@ -717,6 +804,98 @@ const getServer = async (toolId: string) => {
             {
               type: 'text',
               text: `Error creating pull request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'leave-comment-on-pull-request',
+    `Leave a comment on a pull request. This creates a general comment on the PR, not a line-specific review comment. ${getAvailableRepositoryString(repositoryAccess)}`,
+    {
+      owner: z.string().describe('Repository owner name'),
+      repo: z.string().describe('Repository name'),
+      pull_request_number: z.number().describe('Pull request number'),
+      body: z.string().describe('The comment body text (supports GitHub markdown)'),
+    },
+    async ({ owner, repo, pull_request_number, body }) => {
+      try {
+        let githubClient: Octokit;
+        try {
+          githubClient = getGitHubClientFromRepo(owner, repo, installationIdMap);
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error accessing GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        const commentResponse = await githubClient.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number: pull_request_number,
+          body,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully posted comment on PR #${pull_request_number} in ${owner}/${repo}\n\nComment details:\n• ID: ${commentResponse.data.id}\n• URL: ${commentResponse.data.html_url}\n• Created at: ${commentResponse.data.created_at}`,
+            },
+          ],
+        };
+      } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & { status: number };
+          if (apiError.status === 404) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Pull request #${pull_request_number} not found in ${owner}/${repo}. Please check the repository exists and the pull request number is correct.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 403) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Access denied to PR #${pull_request_number} in ${owner}/${repo}. Your GitHub App may not have sufficient permissions to comment on pull requests.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (apiError.status === 422) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'Invalid comment data. Please check the comment body is not empty and is valid.',
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error posting comment: ${error instanceof Error ? error.message : 'Unknown error'}`,
             },
           ],
           isError: true,

@@ -605,6 +605,78 @@ export function visualizeUpdateOperations(
   }
 }
 
+async function commitContent({
+  githubClient,
+  owner,
+  repo,
+  filePath,
+  branchName,
+  content,
+  commitMessage,
+}: {
+  githubClient: Octokit;
+  owner: string;
+  repo: string;
+  filePath: string;
+  branchName: string;
+  content: string;
+  commitMessage: string;
+}): Promise<string> {
+  const branchRef = await githubClient.rest.git.getRef({
+    owner,
+    repo,
+    ref: `heads/${branchName}`,
+  });
+
+  const currentSha = branchRef.data.object.sha;
+
+  const currentCommit = await githubClient.rest.git.getCommit({
+    owner,
+    repo,
+    commit_sha: currentSha,
+  });
+
+  const currentTreeSha = currentCommit.data.tree.sha;
+
+  const blob = await githubClient.rest.git.createBlob({
+    owner,
+    repo,
+    content: Buffer.from(content).toString('base64'),
+    encoding: 'base64',
+  });
+
+  const newTree = await githubClient.rest.git.createTree({
+    owner,
+    repo,
+    base_tree: currentTreeSha,
+    tree: [
+      {
+        path: filePath,
+        mode: '100644' as const,
+        type: 'blob' as const,
+        sha: blob.data.sha,
+      },
+    ],
+  });
+
+  const newCommit = await githubClient.rest.git.createCommit({
+    owner,
+    repo,
+    message: commitMessage,
+    tree: newTree.data.sha,
+    parents: [currentSha],
+  });
+
+  await githubClient.rest.git.updateRef({
+    owner,
+    repo,
+    ref: `heads/${branchName}`,
+    sha: newCommit.data.sha,
+  });
+
+  return newCommit.data.sha;
+}
+
 export async function commitFileChanges({
   githubClient,
   owner,
@@ -625,71 +697,53 @@ export async function commitFileChanges({
   commitMessage: string;
 }): Promise<string> {
   try {
-    // Get the current branch reference
-    const branchRef = await githubClient.rest.git.getRef({
-      owner,
-      repo,
-      ref: `heads/${branchName}`,
-    });
-
-    const currentSha = branchRef.data.object.sha;
-
-    // Get the current commit to get the tree SHA
-    const currentCommit = await githubClient.rest.git.getCommit({
-      owner,
-      repo,
-      commit_sha: currentSha,
-    });
-
-    const currentTreeSha = currentCommit.data.tree.sha;
     const updatedContent = applyOperations(fileContent, operations);
-
-    // Create blob for the updated file
-    const blob = await githubClient.rest.git.createBlob({
+    return await commitContent({
+      githubClient,
       owner,
       repo,
-      content: Buffer.from(updatedContent).toString('base64'),
-      encoding: 'base64',
+      filePath,
+      branchName,
+      content: updatedContent,
+      commitMessage,
     });
-
-    const fileBlobs = [
-      {
-        path: filePath,
-        mode: '100644' as const,
-        type: 'blob' as const,
-        sha: blob.data.sha,
-      },
-    ];
-
-    // Create a new tree
-    const newTree = await githubClient.rest.git.createTree({
-      owner,
-      repo,
-      base_tree: currentTreeSha,
-      tree: fileBlobs,
-    });
-
-    // Create the commit
-    const newCommit = await githubClient.rest.git.createCommit({
-      owner,
-      repo,
-      message: commitMessage,
-      tree: newTree.data.sha,
-      parents: [currentSha],
-    });
-
-    // Update the branch reference
-    await githubClient.rest.git.updateRef({
-      owner,
-      repo,
-      ref: `heads/${branchName}`,
-      sha: newCommit.data.sha,
-    });
-
-    return newCommit.data.sha;
   } catch (error) {
     throw new Error(
       `Error committing file changes: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+export async function commitNewFile({
+  githubClient,
+  owner,
+  repo,
+  filePath,
+  branchName,
+  content,
+  commitMessage,
+}: {
+  githubClient: Octokit;
+  owner: string;
+  repo: string;
+  filePath: string;
+  branchName: string;
+  content: string;
+  commitMessage: string;
+}): Promise<string> {
+  try {
+    return await commitContent({
+      githubClient,
+      owner,
+      repo,
+      filePath,
+      branchName,
+      content,
+      commitMessage,
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to commit new file: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
