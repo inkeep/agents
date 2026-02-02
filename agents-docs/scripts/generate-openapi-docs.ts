@@ -6,7 +6,7 @@ import { TagToDescription } from '../../agents-api/src/openapi.ts';
 // @ts-expect-error -- must specify ts extension
 import { openapi } from '../src/lib/openapi.ts';
 
-const OUTPUT_DIR = './content/api-reference';
+const OUTPUT_DIR = 'content/api-reference/(openapi)';
 
 const TagSchema = z.array(z.enum(Object.keys(TagToDescription)));
 
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
   console.time('Done in');
 
-  for await (const file of glob('content/api-reference/**/*.mdx')) {
+  for await (const file of glob(`${OUTPUT_DIR}/**/*.mdx`)) {
     await rm(file);
   }
 

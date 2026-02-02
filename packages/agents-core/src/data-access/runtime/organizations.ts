@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, or } from 'drizzle-orm';
 import { invitation, member, organization } from '../../auth/auth-schema';
 import type { UserOrganization } from '../../auth/auth-validation-schemas';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
@@ -118,7 +118,7 @@ export const upsertOrganization =
     const existingOrg = await db
       .select()
       .from(organization)
-      .where(eq(organization.id, data.organizationId))
+      .where(or(eq(organization.id, data.organizationId), eq(organization.slug, data.slug)))
       .limit(1);
 
     if (existingOrg.length > 0) {

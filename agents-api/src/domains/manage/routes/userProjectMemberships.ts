@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
-  isAuthzEnabled,
   listUserProjectMembershipsInSpiceDb,
   ProjectRoles,
 } from '@inkeep/agents-core';
@@ -50,10 +49,6 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, userId } = c.req.valid('param');
-
-    if (!isAuthzEnabled()) {
-      return c.json({ data: [] });
-    }
 
     const memberships = await listUserProjectMembershipsInSpiceDb({ tenantId, userId });
 

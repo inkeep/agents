@@ -129,7 +129,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
 
   const deleteEdge = useCallback(() => {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
-  }, [selectedEdge.id, deleteElements]);
+  }, [selectedEdge.id]);
 
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);

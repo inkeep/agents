@@ -98,15 +98,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
-        ...(tenantId === 'default'
-          ? [
-              {
-                title: 'Members',
-                url: `/${tenantId}/projects/${projectId}/members`,
-                icon: Users,
-              },
-            ]
-          : []),
+        {
+          title: 'Members',
+          url: `/${tenantId}/projects/${projectId}/members`,
+          icon: Users,
+        },
       ]
     : [];
 

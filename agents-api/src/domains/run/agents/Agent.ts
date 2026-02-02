@@ -3434,7 +3434,42 @@ ${output}`;
       }
     }
 
-    return steps.length >= this.getMaxGenerationSteps();
+    const maxSteps = this.getMaxGenerationSteps();
+    if (steps.length >= maxSteps) {
+      logger.warn(
+        {
+          subAgentId: this.config.id,
+          agentId: this.config.agentId,
+          stepsCompleted: steps.length,
+          maxSteps,
+          conversationId: this.conversationId,
+        },
+        'Sub-agent reached maximum generation steps limit'
+      );
+
+      tracer.startActiveSpan(
+        'agent.max_steps_reached',
+        {
+          attributes: {
+            'agent.max_steps_reached': true,
+            'agent.steps_completed': steps.length,
+            'agent.max_steps': maxSteps,
+            'agent.id': this.config.agentId,
+            'subAgent.id': this.config.id,
+          },
+        },
+        (span) => {
+          span.addEvent('max_generation_steps_reached', {
+            message: `Sub-agent "${this.config.id}" reached maximum generation steps (${steps.length}/${maxSteps})`,
+          });
+          span.end();
+        }
+      );
+
+      return true;
+    }
+
+    return false;
   }
 
   private setupStreamParser(sessionId: string, contextId: string) {

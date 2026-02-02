@@ -90,7 +90,7 @@ async function EditMCPPage({
 
   return (
     <MCPServerForm
-      className="max-w-2xl mx-auto"
+      className="max-w-3xl mx-auto"
       initialData={initialFormData}
       tool={mcpTool}
       credentials={credentials}

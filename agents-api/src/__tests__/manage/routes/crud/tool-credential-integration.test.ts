@@ -2,8 +2,8 @@ import { CredentialStoreType, generateId, MCPTransportType } from '@inkeep/agent
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
-import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantWithOrg } from '../../utils/testTenant';
+import { makeRequest } from '../../../utils/testRequest';
+import { createTestTenantWithOrg } from '../../../utils/testTenant';
 
 describe('Tool-Credential Integration Tests', () => {
   const projectId = 'default';

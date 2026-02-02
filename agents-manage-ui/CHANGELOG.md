@@ -1,5 +1,85 @@
 # @inkeep/agents-manage-ui
 
+## 0.43.0
+
+### Minor Changes
+
+- a5ba56c: Add UI for configurable webhook signature verification
+
+  Added comprehensive UI for configuring webhook signature verification with support for GitHub, Slack, Stripe, Zendesk, and custom webhook providers.
+
+  **New Features:**
+
+  - Replaced plaintext signing secret input with credential reference selector
+  - Added algorithm selector (sha256, sha512, sha384, sha1, md5) with deprecation warnings
+  - Added encoding selector (hex, base64)
+  - Added signature location configuration (header, query, body with JMESPath)
+  - Added signed components builder with reordering, add/remove functionality
+  - Added component join configuration (strategy and separator)
+  - Added quick setup presets for GitHub, Slack, Zendesk, and Stripe
+  - Added advanced validation options (case sensitivity, empty body, Unicode normalization)
+  - Added client-side JMESPath and regex validation with error messages
+  - All new fields integrate with existing trigger form validation and submission
+
+  **UI Improvements:**
+
+  - Collapsible "Advanced Validation Options" section reduces visual clutter
+  - Provider preset buttons enable one-click configuration for common webhooks
+  - Dynamic field labels and placeholders based on selected options
+  - Helpful tooltips and FormDescription text throughout
+  - Reorder buttons (up/down arrows) for signed components
+  - Success toast confirmation when applying presets
+
+- b215936: add metadata title and descriptions for pages
+- 0b75a6d: add `METADATA_BASE_URL`, `METADATA_TWITTER_SITE` and `METADATA_TWITTER_CREATOR` env variable for setup metadata tags
+
+### Patch Changes
+
+- 0497b9a: bump agents-ui package
+- 5f432f9: stats page
+- eef0a3f: new OAuth callback route
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 0f83405: Fix trigger message template removal not working from UI
+- 5ffbf6b: trigger traces
+- 0f86f53: use tanstack query for:
+  - `fetchThirdPartyMCPServer`
+  - `fetchEvaluators`
+  - `fetchEvaluationSuiteConfigEvaluators`
+  - `fetchEvaluationSuiteConfig`
+  - `fetchUserScopedCredential`
+  - `getAllAgentsAction`
+- 05a8a12: adding authorization checks and spicedb setup
+- f1920e3: address unused exports
+- e8da68a: fix(dashboard): use latest `react@19.3.0-canary` to fix hydration errors mismatches due radix componenents and react `useId` hook
+- 0fff69c: Use centralized jmes validation
+- 503ce52: feat(manage-ui): upload source maps if sentry is enabled
+- caefccc: improve mcp servers page loading
+- 720d42f: trigger fix for vercel
+- c47f630: fix(dashboard): variables in prompt editor weren't properly highlighted inside HTML tags, or were incorrectly highlighted inside `[]` brackets
+- 27a6e3f: Clear context configs when empty in agent serialization
+- 5f66967: triggers for vercel
+- 82b959b: fix hydration errors on triggerId/invocations page
+- 8160ded: improve loading mcps in agent page
+- Updated dependencies [de9bed1]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [05a8a12]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [31b3310]
+- Updated dependencies [5f66967]
+- Updated dependencies [8160ded]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

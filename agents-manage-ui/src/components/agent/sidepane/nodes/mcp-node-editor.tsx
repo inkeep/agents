@@ -2,7 +2,8 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { AlertTriangle, Check, CircleAlert, Loader2, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -22,6 +23,7 @@ import { headersTemplate } from '@/lib/templates';
 import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import {
+  findOrphanedTools,
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
@@ -92,6 +94,37 @@ export function MCPServerNodeEditor({
         : undefined,
   });
 
+  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
+
+  const currentToolPolicies = getCurrentToolPoliciesForNode(
+    selectedNode,
+    agentToolConfigLookup,
+    edges
+  );
+
+  const orphanedTools = findOrphanedTools(selectedTools, activeTools);
+
+  // Track if we've already shown the warning for this node to avoid repeated toasts
+  const hasShownOrphanedWarningRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      liveToolData &&
+      orphanedTools.length > 0 &&
+      hasShownOrphanedWarningRef.current !== selectedNode.id
+    ) {
+      hasShownOrphanedWarningRef.current = selectedNode.id;
+      const toolText = orphanedTools.length > 1 ? 'tools are' : 'tool is';
+      toast.warning(
+        `${orphanedTools.length} selected ${toolText} no longer available: ${orphanedTools.join(', ')}. Uncheck to remove.`,
+        {
+          closeButton: true,
+          duration: 6000,
+        }
+      );
+    }
+  }, [liveToolData, orphanedTools, selectedNode.id]);
+
   // Handle missing tool data
   if (!toolData) {
     return (
@@ -102,18 +135,6 @@ export function MCPServerNodeEditor({
       </div>
     );
   }
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
-  const currentToolPolicies = getCurrentToolPoliciesForNode(
-    selectedNode,
-    agentToolConfigLookup,
-    edges
-  );
-
-  // Find orphaned tools - tools that are selected but no longer available in activeTools
-  const orphanedTools =
-    selectedTools && Array.isArray(selectedTools)
-      ? selectedTools.filter((toolName) => !activeTools?.some((tool) => tool.name === toolName))
-      : [];
 
   const toggleToolSelection = (toolName: string) => {
     // Handle null case (all tools selected) - convert to array of all tool names
@@ -159,6 +180,41 @@ export function MCPServerNodeEditor({
     } else {
       // Add approval requirement
       updatedPolicies[toolName] = { needsApproval: true };
+    }
+
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      tempToolPolicies: updatedPolicies,
+    });
+    markUnsaved();
+  };
+
+  const toggleAllApprovalsForEnabledTools = () => {
+    // Get enabled tool names
+    const enabledToolNames =
+      selectedTools === null
+        ? activeTools?.map((tool) => tool.name) || []
+        : selectedTools.filter((toolName) => activeTools?.some((tool) => tool.name === toolName));
+
+    if (enabledToolNames.length === 0) return;
+
+    // Check if all enabled tools currently need approval
+    const allEnabledNeedApproval = enabledToolNames.every(
+      (toolName) => currentToolPolicies[toolName]?.needsApproval
+    );
+
+    const updatedPolicies = { ...currentToolPolicies };
+
+    if (allEnabledNeedApproval) {
+      // Remove approval from all enabled tools
+      for (const toolName of enabledToolNames) {
+        delete updatedPolicies[toolName];
+      }
+    } else {
+      // Add approval to all enabled tools
+      for (const toolName of enabledToolNames) {
+        updatedPolicies[toolName] = { needsApproval: true };
+      }
     }
 
     updateNodeData(selectedNode.id, {
@@ -337,15 +393,58 @@ export function MCPServerNodeEditor({
               <div>Tool</div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1 cursor-help mcp-needs-approval">
+                  <div className="flex items-center gap-1.5 cursor-help">
                     <Shield className="w-3 h-3" />
                     Needs Approval?
+                    {(() => {
+                      const enabledToolNames =
+                        selectedTools === null
+                          ? activeTools?.map((tool) => tool.name) || []
+                          : selectedTools.filter((toolName) =>
+                              activeTools?.some((tool) => tool.name === toolName)
+                            );
+                      const hasEnabledTools = enabledToolNames.length > 0;
+                      const allEnabledNeedApproval =
+                        hasEnabledTools &&
+                        enabledToolNames.every(
+                          (toolName) => currentToolPolicies[toolName]?.needsApproval
+                        );
+                      const someEnabledNeedApproval =
+                        hasEnabledTools &&
+                        enabledToolNames.some(
+                          (toolName) => currentToolPolicies[toolName]?.needsApproval
+                        );
+
+                      return (
+                        <Checkbox
+                          checked={
+                            allEnabledNeedApproval
+                              ? true
+                              : someEnabledNeedApproval
+                                ? 'indeterminate'
+                                : false
+                          }
+                          disabled={!hasEnabledTools}
+                          onCheckedChange={() => toggleAllApprovalsForEnabledTools()}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Toggle approval for all enabled tools"
+                        />
+                      );
+                    })()}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <div className="text-sm">
                     Tools requiring approval will pause execution and wait for user confirmation
-                    before running.
+                    before running. Use the checkbox to toggle approval for all enabled tools.{' '}
+                    <a
+                      href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:no-underline"
+                    >
+                      Learn more
+                    </a>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -383,8 +482,7 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="items-center mcp-needs-approval">
+                  <div className="items-center">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
@@ -430,7 +528,7 @@ export function MCPServerNodeEditor({
                     </Tooltip>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="items-center mcp-needs-approval">
+                  <div className="items-center">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
