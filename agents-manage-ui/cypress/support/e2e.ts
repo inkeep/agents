@@ -15,8 +15,8 @@
 
 import './commands';
 
-// Login before all tests
-before(() => {
+// Login before each test to ensure authenticated state
+beforeEach(() => {
   cy.login();
 });
 
