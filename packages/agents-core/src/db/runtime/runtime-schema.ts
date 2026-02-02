@@ -7,20 +7,11 @@ import {
   pgTable,
   primaryKey,
   text,
+  timestamp,
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { organization } from '../../auth/auth-schema';
-import {
-  agentScoped,
-  inkeepId,
-  projectScoped,
-  subAgentScoped,
-  tenantId,
-  tenantScoped,
-  timestamps,
-  userId,
-} from '../common/field-definitions';
 import type { Part } from '../../types/a2a';
 import type {
   ConversationMetadata,
@@ -31,6 +22,44 @@ import type {
   WorkAppGitHubInstallationStatus,
 } from '../../types/utility';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
+
+// Re-export Better Auth generated tables (runtime entities)
+export {
+  account,
+  deviceCode,
+  invitation,
+  member,
+  organization,
+  session,
+  ssoProvider,
+  user,
+  verification,
+} from '../../auth/auth-schema';
+
+const tenantScoped = {
+  tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+  id: varchar('id', { length: 256 }).notNull(),
+};
+
+const projectScoped = {
+  ...tenantScoped,
+  projectId: varchar('project_id', { length: 256 }).notNull(),
+};
+
+const agentScoped = {
+  ...projectScoped,
+  agentId: varchar('agent_id', { length: 256 }).notNull(),
+};
+
+const subAgentScoped = {
+  ...agentScoped,
+  subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
+};
+
+const timestamps = {
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
+};
 
 // ============================================================================
 // RUNTIME TABLES (Postgres - Not Versioned)
@@ -53,10 +82,10 @@ import type { ResolvedRef } from '../../validation/dolt-schemas';
 export const projectMetadata = pgTable(
   'project_metadata',
   {
-    id: inkeepId(),
-    tenantId: tenantId(),
+    id: varchar('id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
     createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
-    createdBy: userId('created_by'),
+    createdBy: varchar('created_by', { length: 256 }),
     mainBranchName: varchar('main_branch_name', { length: 512 }).notNull(),
   },
   (table) => [
@@ -75,7 +104,7 @@ export const conversations = pgTable(
   'conversations',
   {
     ...projectScoped,
-    userId: userId(),
+    userId: varchar('user_id', { length: 256 }),
     agentId: varchar('agent_id', { length: 256 }),
     activeSubAgentId: varchar('active_sub_agent_id', { length: 256 }).notNull(),
     ref: jsonb('ref').$type<ResolvedRef>(),
@@ -478,8 +507,8 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
 export const workAppGitHubInstallations = pgTable(
   'work_app_github_installations',
   {
-    id: inkeepId().primaryKey(),
-    tenantId: tenantId(),
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
     installationId: text('installation_id').notNull().unique(),
     accountLogin: varchar('account_login', { length: 256 }).notNull(),
     accountId: text('account_id').notNull(),
@@ -511,7 +540,7 @@ export const workAppGitHubInstallations = pgTable(
 export const workAppGitHubRepositories = pgTable(
   'work_app_github_repositories',
   {
-    id: inkeepId().primaryKey(),
+    id: varchar('id', { length: 256 }).primaryKey(),
     installationDbId: varchar('installation_db_id', { length: 256 }).notNull(),
     repositoryId: text('repository_id').notNull(),
     repositoryName: varchar('repository_name', { length: 256 }).notNull(),
@@ -545,9 +574,9 @@ export const workAppGitHubRepositories = pgTable(
 export const workAppGitHubProjectRepositoryAccess = pgTable(
   'work_app_github_project_repository_access',
   {
-    id: inkeepId().primaryKey(),
-    tenantId: tenantId(),
-    projectId: inkeepId('project_id'),
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
     repositoryDbId: varchar('repository_db_id', { length: 256 }).notNull(),
     ...timestamps,
   },
@@ -582,10 +611,10 @@ export const workAppGitHubProjectRepositoryAccess = pgTable(
 export const workAppGitHubMcpToolRepositoryAccess = pgTable(
   'work_app_github_mcp_tool_repository_access',
   {
-    id: inkeepId().primaryKey(),
-    toolId: inkeepId('tool_id'),
-    tenantId: tenantId(),
-    projectId: inkeepId('project_id'),
+    id: varchar('id', { length: 256 }).primaryKey(),
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
     repositoryDbId: varchar('repository_db_id', { length: 256 }).notNull(),
     ...timestamps,
   },
