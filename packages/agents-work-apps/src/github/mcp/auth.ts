@@ -1,5 +1,5 @@
+import { createApiError } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
-import { HTTPException } from 'hono/http-exception';
 import { env } from '../../env';
 
 export const githubMcpAuth = () =>
@@ -10,22 +10,52 @@ export const githubMcpAuth = () =>
   }>(async (c, next) => {
     const toolId = c.req.header('x-inkeep-tool-id');
     if (!toolId) {
-      throw new HTTPException(401, { message: 'x-inkeep-tool-id header is required' });
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing required header: x-inkeep-tool-id',
+        extensions: {
+          parameter: {
+            in: 'header',
+            name: 'x-inkeep-tool-id',
+          },
+        },
+      });
     }
 
     const authHeader = c.req.header('Authorization');
     if (!authHeader) {
-      throw new HTTPException(401, { message: 'Authorization header is required' });
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing required header: Authorization',
+        extensions: {
+          parameter: {
+            in: 'header',
+            name: 'Authorization',
+          },
+        },
+      });
     }
 
     const apiKey = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
 
     if (!apiKey) {
-      throw new HTTPException(401, { message: 'Invalid API key' });
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Invalid Authorization header format. Expected: Bearer <token>',
+        extensions: {
+          parameter: {
+            in: 'header',
+            name: 'Authorization',
+          },
+        },
+      });
     }
 
     if (apiKey !== env.GITHUB_MCP_API_KEY) {
-      throw new HTTPException(401, { message: 'Invalid API key' });
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Invalid API key',
+      });
     }
 
     c.set('toolId', toolId);

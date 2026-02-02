@@ -7,6 +7,8 @@ import type {
   ProjectModelSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WorkAppGitHubAccountTypeSchema,
+  WorkAppGitHubInstallationStatusSchema,
 } from '../validation/schemas';
 
 // Utility types
@@ -397,11 +399,11 @@ export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageCo
  * - 'suspended': Installation suspended by GitHub or org admin
  * - 'disconnected': Installation has been disconnected by the user (soft delete)
  */
-export type WorkAppGitHubInstallationStatus = 'pending' | 'active' | 'suspended' | 'disconnected';
+export type WorkAppGitHubInstallationStatus = z.infer<typeof WorkAppGitHubInstallationStatusSchema>;
 
 /**
  * GitHub account type for the installation target.
  * - 'Organization': Installed on a GitHub organization
  * - 'User': Installed on a personal GitHub account
  */
-export type WorkAppGitHubAccountType = 'Organization' | 'User';
+export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSchema>;

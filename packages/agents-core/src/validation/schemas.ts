@@ -2536,6 +2536,14 @@ export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).o
   createdAt: true,
 });
 
+export const WorkAppGitHubInstallationStatusSchema = z.enum([
+  'pending',
+  'active',
+  'suspended',
+  'disconnected',
+]);
+export const WorkAppGitHubAccountTypeSchema = z.enum(['Organization', 'User']);
+
 export const WorkAppGitHubInstallationSelectSchema = createSelectSchema(workAppGitHubInstallations);
 export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppGitHubInstallations)
   .omit({
@@ -2544,8 +2552,8 @@ export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppG
     status: true,
   })
   .extend({
-    accountType: z.enum(['Organization', 'User']),
-    status: z.enum(['pending', 'active', 'suspended', 'disconnected']).optional().default('active'),
+    accountType: WorkAppGitHubAccountTypeSchema,
+    status: WorkAppGitHubInstallationStatusSchema.optional().default('active'),
   });
 
 export const WorkAppGithubInstallationApiSelectSchema = WorkAppGitHubInstallationSelectSchema.omit({

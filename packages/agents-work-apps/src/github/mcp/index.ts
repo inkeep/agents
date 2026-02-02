@@ -41,6 +41,8 @@ const updateOperationSchema = z
   })
   .describe('Update operation to apply to a file');
 
+type UpdateOperation = z.infer<typeof updateOperationSchema>;
+
 const updateOperationsSchema = z
   .array(updateOperationSchema)
   .describe('List of update operations to apply to a file');
@@ -91,9 +93,9 @@ const getServer = async (toolId: string) => {
         .string()
         .optional()
         .describe('The path to the files to search in relative to the root of the repository'),
-      limit: z.number().optional().describe('The maximum number of files to return (default: 30)'),
+      limit: z.number().default(30).describe('The maximum number of files to return'),
     },
-    async ({ owner, repo, query, path, limit = 30 }) => {
+    async ({ owner, repo, query, path, limit }) => {
       try {
         const repoFullName = `${owner}/${repo}`;
         let githubClient: Octokit;
@@ -328,10 +330,10 @@ const getServer = async (toolId: string) => {
         .describe('List of file paths to get patches for (exact paths or glob patterns)'),
       include_contents: z
         .boolean()
-        .optional()
-        .describe('Whether to include full file contents in addition to patches (default: false)'),
+        .default(false)
+        .describe('Whether to include full file contents in addition to patches'),
     },
-    async ({ owner, repo, pull_request_number, file_paths, include_contents = false }) => {
+    async ({ owner, repo, pull_request_number, file_paths, include_contents }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -546,7 +548,7 @@ const getServer = async (toolId: string) => {
 
         // Convert operations to the correct format
         const updateOperations: LLMUpdateOperation[] = update_operations.map(
-          (op: z.infer<typeof updateOperationSchema>) => ({
+          (op: UpdateOperation) => ({
             operation: op.operation as
               | 'replace_lines'
               | 'insert_after'
@@ -944,15 +946,13 @@ const getServer = async (toolId: string) => {
           const fileContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
 
           // Convert operations to the correct format
-          const updateOperations: LLMUpdateOperation[] = operations.map(
-            (op: z.infer<typeof updateOperationSchema>) => ({
-              operation: op.operation,
-              lineStart: op.lineStart,
-              lineEnd: op.lineEnd,
-              content: op.content,
-              reason: op.reason,
-            })
-          );
+          const updateOperations: LLMUpdateOperation[] = operations.map((op: UpdateOperation) => ({
+            operation: op.operation,
+            lineStart: op.lineStart,
+            lineEnd: op.lineEnd,
+            content: op.content,
+            reason: op.reason,
+          }));
 
           // Apply operations and get visualization
           const result = visualizeUpdateOperations(fileContent, updateOperations);
