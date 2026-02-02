@@ -31,17 +31,11 @@ export default defineConfig({
             expect: {
               toMatchScreenshot: {
                 timeout: 10_000,
-                resolveScreenshotPath({
-                  root,
-                  testFileDirectory,
-                  screenshotDirectory,
-                  arg,
-                  browserName,
-                  ext,
-                }) {
+                resolveScreenshotPath({ root, screenshotDirectory, arg, browserName, ext }) {
                   return [
+                    //
                     root,
-                    testFileDirectory,
+                    'src',
                     screenshotDirectory,
                     `${arg}-${browserName}${ext}`,
                   ].join('/');
