@@ -7,6 +7,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { GenericSelect } from '@/components/form/generic-select';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
+import { agentStore } from '@/features/agent/state/use-agent-store';
 import '@/app/globals.css';
 
 function TestForm() {
@@ -49,6 +50,7 @@ function TestForm() {
 
 describe('Form', () => {
   it('should properly highlight error state', async () => {
+    agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
     await expect.element(container).toMatchScreenshot('form-error-state');
   }, 1000);
