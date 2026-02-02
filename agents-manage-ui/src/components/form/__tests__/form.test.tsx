@@ -23,25 +23,30 @@ function TestForm() {
     },
   });
 
-  const commonProps = {
-    control: form.control,
-    placeholder: 'Component placeholder',
-    label: 'Component label',
-  };
+  function getCommonProps(name: string) {
+    const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+    return {
+      name,
+      control: form.control,
+      placeholder: `${capitalizedName} placeholder`,
+      label: `${capitalizedName} label`,
+      isRequired: true,
+    }
+  }
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
     <Form {...form}>
       <form>
         {divider}
-        <GenericInput {...commonProps} name="input" />
+        <GenericInput {...getCommonProps('input')} />
         {divider}
-        <GenericTextarea {...commonProps} name="textarea" />
+        <GenericTextarea {...getCommonProps('textarea')} />
         {divider}
-        <GenericSelect {...commonProps} name="select" options={[]} />
+        <GenericSelect {...getCommonProps('select')} options={[]} />
         {divider}
-        <GenericComboBox {...commonProps} name="combobox" options={[]} />
+        <GenericComboBox {...getCommonProps('combobox')} options={[]} />
         {divider}
-        <JsonSchemaInput {...commonProps} name="jsonSchemaEditor" />
+        <JsonSchemaInput {...getCommonProps('jsonSchemaEditor')} />
         {divider}
       </form>
     </Form>
@@ -56,5 +61,5 @@ describe('Form', () => {
     await act(async () => {
       await expect(container).toMatchScreenshot('form-error-state');
     });
-  });
+  }, 5_000);
 });
