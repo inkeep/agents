@@ -16,8 +16,6 @@ import {
   WorkAppGitHubRepositorySelectSchema,
   WorkAppGithubInstallationApiSelectSchema,
 } from '@inkeep/agents-core';
-import { HTTPException } from 'hono/http-exception';
-import { SignJWT } from 'jose';
 import {
   createAppJwt,
   fetchInstallationRepositories,
@@ -25,7 +23,9 @@ import {
   getStateSigningSecret,
   isGitHubAppNameConfigured,
   isStateSigningConfigured,
-} from '../../../../../packages/agents-work-apps/dist/github';
+} from '@inkeep/agents-work-apps/github';
+import { HTTPException } from 'hono/http-exception';
+import { SignJWT } from 'jose';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';

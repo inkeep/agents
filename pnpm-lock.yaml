@@ -92,6 +92,9 @@ importers:
       '@inkeep/agents-mcp':
         specifier: workspace:^
         version: link:../packages/agents-mcp
+      '@inkeep/agents-work-apps':
+        specifier: workspace:^
+        version: link:../packages/agents-work-apps
       '@modelcontextprotocol/sdk':
         specifier: ^1.25.2
         version: 1.25.3(hono@4.11.1)(zod@4.2.1)

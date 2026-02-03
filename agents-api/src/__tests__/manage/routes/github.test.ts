@@ -54,7 +54,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../../../packages/agents-work-apps/dist/github', () => ({
+vi.mock('@inkeep/agents-work-apps/github', () => ({
   isStateSigningConfigured: isStateSigningConfiguredMock,
   isGitHubAppNameConfigured: isGitHubAppNameConfiguredMock,
   getStateSigningSecret: getStateSigningSecretMock,
