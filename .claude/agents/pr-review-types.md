@@ -86,8 +86,9 @@ Return findings as a JSON array per pr-review-output-contract:
 - **severity**: CRITICAL (illegal states possible), MAJOR (missing validation, encapsulation leak), MINOR (could be clearer), INFO (suggestion)
 - **category**: `types`
 - **reviewer**: `pr-review-types`
-- **message**: What's wrong and why it matters for type safety
-- **suggestion**: Concrete improvement (consider complexity cost)
+- **issue**: What's the type design problem
+- **implications**: Why it matters for type safety (invalid states, missing invariants, leaky abstraction)
+- **alternatives**: Concrete improvement (consider complexity cost)
 - **confidence**: HIGH, MEDIUM, LOW
 
 **When Suggesting Improvements:**

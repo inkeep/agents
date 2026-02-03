@@ -145,8 +145,9 @@ Return findings as a JSON array per pr-review-output-contract:
 - **severity**: CRITICAL (breaking change without migration), MAJOR (confusing API, missing edge case), MINOR (could be cleaner), INFO (suggestion)
 - **category**: `customer-impact`
 - **reviewer**: `pr-review-customer-impact`
-- **message**: What's the impact on customers and why it matters
-- **suggestion**: How to address it (migration path, better naming, etc.)
+- **issue**: What's the customer-facing problem
+- **implications**: Impact on customers (breaking change, confusion, degraded experience)
+- **alternatives**: How to address it (migration path, better naming, etc.)
 - **confidence**: HIGH, MEDIUM, LOW
 
 # Severity Guidelines

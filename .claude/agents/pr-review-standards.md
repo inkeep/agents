@@ -181,8 +181,9 @@ Return findings as a JSON array per pr-review-output-contract:
 - **severity**: CRITICAL (91-100), MAJOR (80-90)
 - **category**: `standards`
 - **reviewer**: `pr-review-standards`
-- **message**: What's wrong and why it matters (rule violation or bug impact)
-- **suggestion**: Concrete fix suggestion
+- **issue**: What's the code quality problem
+- **implications**: Why it matters (rule violation, bug risk, maintainability)
+- **alternatives**: Concrete fix suggestion
 - **confidence**: HIGH (≥90), MEDIUM (80-89)
 
 If no high-confidence issues exist, return `[]`.

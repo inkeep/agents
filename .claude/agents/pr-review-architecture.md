@@ -172,8 +172,9 @@ Return findings as a JSON array per pr-review-output-contract:
 - **severity**: CRITICAL (architectural violation, data consistency risk), MAJOR (pattern inconsistency, poor abstraction), MINOR (could be cleaner), INFO (suggestion)
 - **category**: `architecture`
 - **reviewer**: `pr-review-architecture`
-- **message**: What's the concern and why it matters for the system
-- **suggestion**: Concrete improvement with rationale
+- **issue**: What's the architectural concern
+- **implications**: Why it matters for the system (maintainability, scalability, consistency)
+- **alternatives**: Concrete improvement with rationale
 - **confidence**: HIGH, MEDIUM, LOW
 
 # Assumptions & Edge Cases

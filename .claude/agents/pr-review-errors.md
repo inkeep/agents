@@ -105,8 +105,9 @@ Return findings as a JSON array per pr-review-output-contract. For each issue:
 - **severity**: CRITICAL (silent failure, broad catch), MAJOR (poor error message, unjustified fallback), MINOR (missing context)
 - **category**: `error-handling`
 - **reviewer**: `pr-review-errors`
-- **message**: What's wrong and why it's problematic
-- **suggestion**: Specific code changes needed to fix the issue
+- **issue**: What's the error handling problem
+- **implications**: Why it's problematic (silent failure, poor UX, debugging nightmare)
+- **alternatives**: Specific code changes needed to fix the issue
 - **confidence**: HIGH, MEDIUM, LOW
 
 ## Your Tone

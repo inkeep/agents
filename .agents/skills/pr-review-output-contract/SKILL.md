@@ -14,7 +14,7 @@ This skill defines **how PR review subagents must format their output** when ret
 Goals:
 - **machine-parseable** — orchestrator can parse without heuristics
 - **consistent across reviewers** — easy to aggregate + dedupe
-- **actionable** — clear message + fix suggestion
+- **actionable** — structured issue + implications + alternatives
 
 Preload this skill via `skills: [pr-review-output-contract]` into any `pr-review-*` subagent.
 
@@ -67,23 +67,25 @@ A `Finding` is a single actionable issue (or informational note) tied to a file 
   "line": 42,
   "severity": "MAJOR",
   "category": "security",
-  "message": "What's wrong, stated concretely.",
-  "suggestion": "How to fix it, actionable.",
+  "issue": "SQL query uses string concatenation with user input",
+  "implications": "Attacker can inject arbitrary SQL to read/modify/delete database contents",
+  "alternatives": "Use parameterized queries: db.query('SELECT * FROM users WHERE id = ?', [userId])",
   "confidence": "HIGH"
 }
 ```
 
 ### Field definitions
 
-| Field        | Type             | Required | Notes                                                                                     |
-| ------------ | ---------------: | :------: | ----------------------------------------------------------------------------------------- |
-| `file`       | string           |    ✅    | Repo-relative path. No absolute paths.                                                    |
-| `line`       | number \| string |    ✅    | Line number (number), range (`"10-15"`), or `"n/a"` if unknown.                           |
-| `severity`   | enum             |    ✅    | `CRITICAL` \| `MAJOR` \| `MINOR` \| `INFO`                                                |
-| `category`   | string           |    ✅    | Freeform string matching reviewer domain (e.g., "docs", "security", "api").               |
-| `message`    | string           |    ✅    | State the issue. Specific enough to locate/understand with `file` + `line`.               |
-| `suggestion` | string           |    ✅    | The fix, imperative form ("Change X to Y", "Add Z").                                      |
-| `confidence` | enum             |    ✅    | `HIGH` \| `MEDIUM` \| `LOW`                                                               |
+| Field          | Type             | Required | Notes                                                                                     |
+| -------------- | ---------------: | :------: | ----------------------------------------------------------------------------------------- |
+| `file`         | string           |    ✅    | Repo-relative path. No absolute paths.                                                    |
+| `line`         | number \| string |    ✅    | Line number (number), range (`"10-15"`), or `"n/a"` if unknown.                           |
+| `severity`     | enum             |    ✅    | `CRITICAL` \| `MAJOR` \| `MINOR` \| `INFO`                                                |
+| `category`     | string           |    ✅    | Freeform string matching reviewer domain (e.g., "docs", "security", "api").               |
+| `issue`        | string           |    ✅    | What's wrong — the specific violation or problem.                                         |
+| `implications` | string           |    ✅    | Why it matters — consequence, risk, or user impact.                                       |
+| `alternatives` | string           |    ✅    | How to address it. Default to one; list multiple only if truly plausible.                 |
+| `confidence`   | enum             |    ✅    | `HIGH` \| `MEDIUM` \| `LOW`                                                               |
 
 ### Optional fields
 
@@ -178,8 +180,9 @@ Why: The orchestrator cannot reliably dedupe semantically-similar findings. Pre-
     "line": 73,
     "severity": "MAJOR",
     "category": "docs",
-    "message": "Code block is missing a language tag, reducing syntax highlighting.",
-    "suggestion": "Add a language identifier: ```typescript",
+    "issue": "Code block is missing a language tag",
+    "implications": "Reduces syntax highlighting and copy-paste usability for developers",
+    "alternatives": "Add a language identifier: ```typescript",
     "confidence": "HIGH"
   }
 ]
@@ -201,8 +204,9 @@ Problems:
 - Wrong key (`filepath` vs `file`)
 - Absolute path
 - Invalid severity enum
-- Missing: `line`, `category`, `suggestion`, `confidence`
-- Vague message
+- Uses old `message` field instead of `issue` + `implications`
+- Missing: `line`, `category`, `alternatives`, `confidence`
+- Vague — no specific issue, no implications
 
 ---
 
@@ -215,5 +219,5 @@ Before returning, verify:
 - [ ] Every finding has all required fields
 - [ ] `severity` and `confidence` use allowed enum values; `category` is a non-empty string
 - [ ] `file` is repo-relative (no absolute paths)
-- [ ] `message` describes the problem; `suggestion` describes the fix
+- [ ] `issue` states the specific problem; `implications` explains why it matters; `alternatives` provides fix(es)
 - [ ] No duplicate findings for the same issue

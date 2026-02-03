@@ -67,8 +67,9 @@ Return findings as a JSON array per pr-review-output-contract:
 - **severity**: CRITICAL (9-10), MAJOR (7-8), MINOR (5-6), INFO (1-4)
 - **category**: `tests`
 - **reviewer**: `pr-review-tests`
-- **message**: What's missing and why it matters for test coverage
-- **suggestion**: What test to add and what it should verify
+- **issue**: What test coverage is missing
+- **implications**: Why it matters (regression risk, untested edge case, silent failure)
+- **alternatives**: What test to add and what it should verify
 - **confidence**: HIGH, MEDIUM, LOW
 
 **Important Considerations:**

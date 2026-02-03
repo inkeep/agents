@@ -66,8 +66,9 @@ Return findings as a JSON array per pr-review-output-contract:
 - **severity**: CRITICAL (factually incorrect), MAJOR (outdated/misleading), MINOR (redundant/low-value), INFO (could improve)
 - **category**: `comments`
 - **reviewer**: `pr-review-comments`
-- **message**: What's wrong and why it matters for maintainability
-- **suggestion**: How to fix or what to remove
+- **issue**: What's wrong with the comment
+- **implications**: Why it matters for maintainability (misleading, outdated, redundant)
+- **alternatives**: How to fix or what to remove
 - **confidence**: HIGH, MEDIUM, LOW
 
 **Categories:**

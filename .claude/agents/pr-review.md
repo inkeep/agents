@@ -134,7 +134,7 @@ Include `"reviewer": "<your-agent-name>"` in each finding for attribution.
 
 Cluster findings describing the same issue:
 - Same file + overlapping lines + similar problem → **merge**
-- Keep the most actionable version (clearest message + suggestion)
+- Keep the most actionable version (clearest issue + implications + alternatives)
 - Note merged findings: `"(flagged by 3 reviewers)"`
 
 ### 4.2 Relevancy Check
@@ -142,7 +142,7 @@ Cluster findings describing the same issue:
 For each finding, ask:
 1. **Is this applicable to this PR?** (not a pre-existing issue)
 2. **Does codebase context make this a non-issue?** (e.g., sanitization happens upstream)
-3. **Is the suggestion actionable within this PR's scope?**
+3. **Are the alternatives actionable within this PR's scope?**
 
 **Filtering rules:**
 - **DROP** if LOW confidence AND not CRITICAL
