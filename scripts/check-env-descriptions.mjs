@@ -182,7 +182,8 @@ function main() {
   console.log('Checking environment variable descriptions...\n');
 
   let hasErrors = false;
-  const allMissingDescriptions = [];
+  let hasParseErrors = false;
+  const parseErrors = [];
 
   // Parse .env.example for reference (if it exists)
   const envExamplePath = path.join(ROOT_DIR, '.env.example');
@@ -191,11 +192,18 @@ function main() {
     envExampleVars = parseEnvExample(envExamplePath);
   }
 
+  if (ENV_FILES.length === 0) {
+    console.error('❌ No env.ts files found to check!');
+    process.exit(1);
+  }
+
   for (const envFile of ENV_FILES) {
     const filePath = path.join(ROOT_DIR, envFile);
 
     if (!fs.existsSync(filePath)) {
-      console.error(`⚠️  File not found: ${envFile}`);
+      console.error(`❌ File not found: ${envFile}`);
+      hasParseErrors = true;
+      parseErrors.push({ file: envFile, error: 'File not found' });
       continue;
     }
 
@@ -204,17 +212,23 @@ function main() {
     const { error, results: variables } = parseEnvFile(filePath);
 
     if (error) {
-      console.error(`  ⚠️  ${error}`);
+      console.error(`  ❌ Parse error: ${error}`);
+      hasParseErrors = true;
+      parseErrors.push({ file: envFile, error });
       continue;
     }
 
     if (variables.length === 0) {
-      console.error(`  ⚠️  No variables found in schema`);
+      console.error(`  ❌ No variables found in schema (file may have unexpected structure)`);
+      hasParseErrors = true;
+      parseErrors.push({ file: envFile, error: 'No variables found in schema' });
       continue;
     }
 
     const missingDescriptions = variables.filter((v) => !v.hasDescribe);
-    const emptyDescriptions = variables.filter((v) => v.hasDescribe && (!v.description || v.description.trim() === ''));
+    const emptyDescriptions = variables.filter(
+      (v) => v.hasDescribe && (!v.description || v.description.trim() === '')
+    );
 
     if (missingDescriptions.length === 0 && emptyDescriptions.length === 0) {
       console.log(`  ✅ All ${variables.length} variables have descriptions`);
@@ -225,7 +239,6 @@ function main() {
         console.log(`  ❌ ${missingDescriptions.length} variables missing .describe():`);
         for (const v of missingDescriptions) {
           console.log(`     - ${v.name}`);
-          allMissingDescriptions.push({ file: envFile, name: v.name });
 
           // Suggest description from .env.example if available
           const envExampleVar = envExampleVars.get(v.name);
@@ -248,6 +261,20 @@ function main() {
 
   // Summary
   console.log('─'.repeat(60));
+
+  if (hasParseErrors) {
+    console.log('\n❌ Check failed: Could not parse some env.ts files.');
+    console.log('\nParse errors:');
+    for (const { file, error } of parseErrors) {
+      console.log(`  - ${file}: ${error}`);
+    }
+    console.log('\nThis may indicate:');
+    console.log('- The file has an unexpected structure');
+    console.log('- The z.object() schema is missing or malformed');
+    console.log('- The file was moved or deleted');
+    process.exit(1);
+  }
+
   if (hasErrors) {
     console.log('\n❌ Check failed: Some environment variables are missing descriptions.');
     console.log('\nTo fix this:');
@@ -257,10 +284,10 @@ function main() {
     console.log("  ANTHROPIC_API_KEY: z.string().describe('Anthropic API key for Claude models'),");
     console.log('\nSee .agents/skills/adding-env-variables/SKILL.md for guidelines.');
     process.exit(1);
-  } else {
-    console.log('\n✅ All environment variables have descriptions.');
-    process.exit(0);
   }
+
+  console.log('\n✅ All environment variables have descriptions.');
+  process.exit(0);
 }
 
 main();
