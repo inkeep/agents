@@ -31765,10 +31765,6 @@
       "name": "Functions"
     },
     {
-      "description": "Operations for managing invitations",
-      "name": "Invitations"
-    },
-    {
       "description": "MCP (Model Context Protocol) endpoints",
       "name": "MCP"
     },
@@ -31811,10 +31807,6 @@
     {
       "description": "Operations for managing triggers",
       "name": "Triggers"
-    },
-    {
-      "description": "Operations for managing user organizations",
-      "name": "User Organizations"
     },
     {
       "description": "Operations for managing user project memberships",
