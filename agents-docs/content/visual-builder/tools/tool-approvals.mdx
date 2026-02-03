@@ -1,0 +1,127 @@
+---
+title: Tool approvals in Visual Builder
+sidebarTitle: Tool Approvals
+description: Require explicit user approval before running selected tools.
+icon: LuShield
+keywords: tool approvals, user confirmation, tool safety, execution control, MCP tools, function tools, visual builder
+---
+
+Tool approvals let you mark specific tools as requiring user approval before execution. When an agent tries to run a tool that needs approval, execution pauses until your client approves or denies the request.
+
+This is useful for tools that can make destructive changes, access sensitive data, or perform actions that should be reviewed by a human before proceeding.
+
+## MCP tools
+
+For MCP servers, you can configure approval on individual tools or bulk toggle approval for all enabled tools.
+
+<Steps>
+  <Step>
+    ### Open the MCP server node
+
+    In the Agent Builder canvas, click on an MCP server node that is connected to a Sub Agent. This opens the node editor in the right panel.
+  </Step>
+  <Step>
+    ### Locate the Tool Configuration section
+
+    Find the **Tool Configuration** section. This displays all available tools from the MCP server with checkboxes to enable/disable each tool.
+  </Step>
+  <Step>
+    ### Enable approval for individual tools
+
+    Each enabled tool has a **Needs Approval?** checkbox on the right side. Check this box for any tool that should require user approval before execution.
+
+    <Image
+      src="/images/tool-approvals-individual-tool.png"
+      alt="Individual tool with Needs Approval checkbox checked"
+      width="60%"
+      style={{
+        border: "1px solid #e1e5e9",
+        display: "block",
+        margin: "0 auto",
+      }}
+    />
+  </Step>
+  <Step>
+    ### Bulk toggle approvals
+
+    Use the checkbox in the **Needs Approval?** header to toggle approval for all enabled tools at once:
+
+    - **Unchecked**: No enabled tools require approval
+    - **Indeterminate (dash)**: Some enabled tools require approval
+    - **Checked**: All enabled tools require approval
+
+    Clicking the header checkbox toggles between requiring approval for all enabled tools or none.
+  </Step>
+  <Step>
+    ### Save your changes
+
+    Click **Save** to apply your tool approval configuration.
+  </Step>
+</Steps>
+
+<Note>
+  Only enabled tools (checked in the tool list) can have approval configured. Disabled tools are not available to the agent and don't have approval settings.
+</Note>
+
+## Function tools
+
+For function tools, approval applies to the entire tool since each function tool node represents a single tool.
+
+<Steps>
+  <Step>
+    ### Open the function tool node
+
+    In the Agent Builder canvas, click on a function tool node that is connected to a Sub Agent. This opens the node editor in the right panel.
+  </Step>
+  <Step>
+    ### Enable the Require approval setting
+
+    Scroll to find the **Require approval** checkbox. Check it to require user approval before this function tool executes.
+
+    <Image
+      src="/images/tool-approvals-function-tool-checkbox.png"
+      alt="Function tool settings with Require approval checkbox"
+      width="60%"
+      style={{
+        border: "1px solid #e1e5e9",
+        display: "block",
+        margin: "0 auto",
+      }}
+    />
+  </Step>
+  <Step>
+    ### Save your changes
+
+    Click **Save** to apply your changes.
+  </Step>
+</Steps>
+
+## Runtime behavior
+
+When a tool with approval enabled is invoked:
+
+1. The agent pauses execution and emits a `tool-approval-request` event in the response stream
+2. Your client UI displays the approval request to the user (tool name, inputs, etc.)
+3. The user approves or denies the request
+4. If approved, the tool executes and the agent continues
+5. If denied, the agent receives the denial and can respond accordingly
+
+## Best practices
+
+- **Enable approval for destructive operations**: Tools that delete data, modify configurations, or make irreversible changes should require approval
+- **Consider data sensitivity**: Tools that access or expose sensitive information may benefit from approval gates
+- **Balance UX and safety**: Too many approval prompts can degrade user experience; reserve approval for truly impactful actions
+- **Test the approval flow**: Verify your client properly handles approval requests before deploying to production
+
+## Handling approvals in your client
+
+For details on implementing the approval flow in your client application:
+
+- [Tool Approvals (TypeScript SDK)](/typescript-sdk/tools/tool-approvals) — Configure approvals in code and handle approval responses
+- [Chat API](/talk-to-your-agents/chat-api#tool-approval) — API payloads for approval requests and responses
+
+## Related
+
+- [MCP Servers](/visual-builder/tools/mcp-servers) — Register and configure MCP servers
+- [Sub Agents](/visual-builder/sub-agents) — Connect tools to your agents
+- [Function Tools](/visual-builder/tools/function-tools) — Create custom function tools

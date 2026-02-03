@@ -21,6 +21,7 @@ const VALID_PACKAGES = {
   'agents-sdk': '@inkeep/agents-sdk',
   'create-agents': '@inkeep/create-agents',
   'ai-sdk-provider': '@inkeep/ai-sdk-provider',
+  'agents-work-apps': '@inkeep/agents-work-apps',
 };
 
 function generateRandomFilename() {

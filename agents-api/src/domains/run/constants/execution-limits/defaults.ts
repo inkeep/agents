@@ -28,7 +28,7 @@ export const executionLimitsDefaults = {
   // AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS: Maximum errors tolerated during a single Sub Agent's turn before stopping execution
   // AGENT_EXECUTION_MAX_GENERATION_STEPS: Maximum LLM inference calls allowed within a single Sub Agent turn
   AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS: 3,
-  AGENT_EXECUTION_MAX_GENERATION_STEPS: 5,
+  AGENT_EXECUTION_MAX_GENERATION_STEPS: 50,
 
   // Sub Agent Decision-Making Timeouts
   // These control how long to wait for the LLM to make decisions during a Sub Agent's turn.

@@ -1122,6 +1122,67 @@ function buildConversationListPayload(
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
+
+        maxStepsReached: listQuery(
+          QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.AGENT_MAX_STEPS_REACHED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_MAX_STEPS_REACHED,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_STEPS_COMPLETED,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AGENT_MAX_STEPS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+          ],
+          QUERY_DEFAULTS.LIMIT_UNLIMITED
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -1176,6 +1237,7 @@ export async function GET(
     const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
+    const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -1248,7 +1310,8 @@ export async function GET(
         | 'tool_approval_requested'
         | 'tool_approval_approved'
         | 'tool_approval_denied'
-        | 'compression';
+        | 'compression'
+        | 'max_steps_reached';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1331,6 +1394,9 @@ export async function GET(
       compressionSafetyBuffer?: number;
       compressionError?: string;
       compressionSummary?: string;
+      maxStepsReached?: boolean;
+      stepsCompleted?: number;
+      maxSteps?: number;
     };
 
     const activities: Activity[] = [];
@@ -1789,6 +1855,30 @@ export async function GET(
         compressionSafetyBuffer: safetyBuffer,
         compressionError: compressionError || undefined,
         compressionSummary: compressionSummary || undefined,
+      });
+    }
+
+    // max steps reached spans
+    for (const span of maxStepsReachedSpans) {
+      const maxStepsSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const stepsCompleted = getNumber(span, SPAN_KEYS.AGENT_STEPS_COMPLETED, 0);
+      const maxSteps = getNumber(span, SPAN_KEYS.AGENT_MAX_STEPS, 0);
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, '');
+      const subAgentName = getString(span, SPAN_KEYS.SUB_AGENT_NAME, '');
+
+      activities.push({
+        id: maxStepsSpanId,
+        type: ACTIVITY_TYPES.MAX_STEPS_REACHED,
+        description: `Max generation steps reached (${stepsCompleted}/${maxSteps})`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(maxStepsSpanId) || undefined,
+        status: ACTIVITY_STATUS.WARNING,
+        subAgentId: subAgentId || ACTIVITY_NAMES.UNKNOWN_AGENT,
+        subAgentName: subAgentName || ACTIVITY_NAMES.UNKNOWN_AGENT,
+        result: `Sub-agent stopped after ${stepsCompleted} generation steps (limit: ${maxSteps})`,
+        maxStepsReached: true,
+        stepsCompleted,
+        maxSteps,
       });
     }
 

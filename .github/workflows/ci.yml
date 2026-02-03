@@ -57,10 +57,7 @@ jobs:
           restore-keys: ${{ runner.os }}-turbo-
 
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          # Ensure agents-manage-ui dependencies are properly installed
-          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
@@ -93,6 +90,9 @@ jobs:
 
       - name: Biome Format
         run: pnpm format:check
+
+      - name: Check env.ts descriptions
+        run: pnpm check:env-descriptions
 
       - name: Check for unused dependencies, exports, and types
         run: pnpm knip
