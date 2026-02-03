@@ -6,6 +6,7 @@ export default {
     '@svgr/webpack', // Set as turbopack loader in `next.config.ts`
     'postcss', // Bundled in Next.js
     'pino-pretty', // Set the transport target in `agents-manage-ui/src/lib/logger.ts`
+    'jsdom', // We use `@testing-library/jest-dom`
   ],
   ignoreIssues: {
     'agents-manage-ui/src/components/ui/*': ['exports'],

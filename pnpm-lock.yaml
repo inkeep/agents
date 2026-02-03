@@ -685,9 +685,6 @@ importers:
         specifier: ^5.0.7
         version: 5.0.9(@types/react@19.2.7)(react@19.3.0-canary-87ae75b3-20260128)(use-sync-external-store@1.6.0(react@19.3.0-canary-87ae75b3-20260128))
     devDependencies:
-      '@fontsource/inter':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@svgr/webpack':
         specifier: ^8.1.0
         version: 8.1.0(typescript@5.9.3)
@@ -2595,9 +2592,6 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
-
-  '@fontsource/inter@5.2.8':
-    resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
 
   '@formatjs/intl-localematcher@0.6.2':
     resolution: {integrity: sha512-XOMO2Hupl0wdd172Y06h6kLpBz6Dv+J4okPLl4LPtzbr8f66WbIoy4ev98EBuZ6ZK4h5ydTN6XneT4QVpD7cdA==}
@@ -15737,8 +15731,6 @@ snapshots:
       react-dom: 19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128)
 
   '@floating-ui/utils@0.2.10': {}
-
-  '@fontsource/inter@5.2.8': {}
 
   '@formatjs/intl-localematcher@0.6.2':
     dependencies:
