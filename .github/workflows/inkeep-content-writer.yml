@@ -1,0 +1,23 @@
+name: Inkeep Agent
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+
+jobs:
+  trigger-agent:
+    # Agent will trigger if a PR is created or a comment including `@inkeep` is left on a PR. 
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '@inkeep') 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Inkeep Agent
+        uses: inkeep/inkeep-agents-action@v0
+        with:
+          trigger-url: 'https://api.pilot.inkeep.com/run/tenants/default/projects/content-team-project/agents/docs-writer-agent/triggers/6qjqo4mr2kmvlqu4g6sjh'
+          
+    
