@@ -65,6 +65,10 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -189,6 +193,36 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 // We use type assertions with explicit return types to maintain type safety at call sites.
 type OmitProjectScope<T> = Omit<T, 'tenantId' | 'projectId'>;
 type OmitAgentScope<T> = Omit<T, 'tenantId' | 'projectId' | 'agentId'>;
+type OmitTenantScope<T> = Omit<T, 'tenantId'>;
+type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt'>;
+type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Generic helper for tenant-scoped entities (omits only tenantId, not projectId)
+const omitTenantScope = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTenantScope<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<
+    OmitTenantScope<T>
+  >;
+
+// Generic helper for omitting timestamp fields
+const omitTimestamps = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTimestamps<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitTimestamps<T>>;
+
+// Generic helper for omitting auto-generated fields (common for API insert schemas)
+const omitGeneratedFields = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitGeneratedFields<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitGeneratedFields<T>>;
 
 const createApiSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
@@ -2608,4 +2642,69 @@ export const PaginationWithRefQueryParamsSchema =
 export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
 export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
   createdAt: true,
+});
+
+export const WorkAppGitHubInstallationStatusSchema = z.enum([
+  'pending',
+  'active',
+  'suspended',
+  'disconnected',
+]);
+export const WorkAppGitHubAccountTypeSchema = z.enum(['Organization', 'User']);
+
+export const WorkAppGitHubInstallationSelectSchema = createSelectSchema(workAppGitHubInstallations);
+export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppGitHubInstallations)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+  })
+  .extend({
+    accountType: WorkAppGitHubAccountTypeSchema,
+    status: WorkAppGitHubInstallationStatusSchema.optional().default('active'),
+  });
+
+export const WorkAppGithubInstallationApiSelectSchema = omitTenantScope(
+  WorkAppGitHubInstallationSelectSchema
+);
+export const WorkAppGitHubInstallationApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubInstallationInsertSchema
+);
+
+export const WorkAppGitHubRepositorySelectSchema = createSelectSchema(workAppGitHubRepositories);
+export const WorkAppGitHubRepositoryInsertSchema = omitTimestamps(
+  createInsertSchema(workAppGitHubRepositories)
+);
+
+export const WorkAppGitHubRepositoryApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubRepositoryInsertSchema
+);
+
+export const WorkAppGitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubProjectRepositoryAccess
+);
+
+export const WorkAppGitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubMcpToolRepositoryAccess
+);
+
+// Shared GitHub Access API Schemas
+export const WorkAppGitHubAccessModeSchema = z.enum(['all', 'selected']);
+
+export const WorkAppGitHubAccessSetRequestSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryIds: z
+    .array(z.string())
+    .optional()
+    .describe('Internal repository IDs (required when mode="selected")'),
+});
+
+export const WorkAppGitHubAccessSetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryCount: z.number(),
+});
+
+export const WorkAppGitHubAccessGetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });

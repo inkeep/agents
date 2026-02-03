@@ -31,6 +31,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'External Agents': 'LuGlobe',
   'Function Tools': 'LuCode',
   Functions: 'LuCode2',
+  GitHub: 'LuGithub',
   Invitations: 'LuUserPlus',
   MCP: 'LuServer',
   'MCP Catalog': 'LuLibrary',
@@ -104,6 +105,7 @@ ${prettyError}`);
         .replace('A2 A', 'A2A')
         .replace('A P I', 'API')
         .replace('C L I', 'CLI')
+        .replace('Git Hub', 'GitHub')
         .replace('O Auth', 'OAuth')
         .replace('Sub Agents', 'SubAgents')
         .replace('Third Party', 'Third-Party')

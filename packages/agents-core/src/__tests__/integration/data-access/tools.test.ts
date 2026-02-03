@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createTool,
   deleteTool,
@@ -11,6 +11,20 @@ import { createTestProject } from '../../../db/manage/test-manage-client';
 import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
 import { testManageDbClient } from '../../setup';
+
+// Mock the runtime database client and cascade delete to avoid runtime DB dependency in integration tests
+vi.mock('../../../db/runtime/runtime-client', () => ({
+  createAgentsRunDatabaseClient: vi.fn(() => ({})),
+}));
+
+vi.mock('../../../data-access/runtime/cascade-delete', () => ({
+  cascadeDeleteByTool: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
+}));
+
+// Mock getActiveBranch to return a non-main branch to skip cascade delete logic
+vi.mock('../../../dolt/schema-sync', () => ({
+  getActiveBranch: vi.fn(() => vi.fn().mockResolvedValue('some_other_branch')),
+}));
 
 // Helper function to create test project data with unique IDs
 const createProjectData = ({ suffix = '' }: { suffix?: string } = {}) => {

@@ -6,6 +6,8 @@ import {
   cascadeDeleteByContextConfig,
   cascadeDeleteByProject,
   cascadeDeleteBySubAgent,
+  cascadeDeleteByTool,
+  cascadeDeleteGitHubAccessByProject,
 } from '../../data-access/runtime/cascade-delete';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
@@ -15,6 +17,12 @@ import {
   messages,
   organization,
   tasks,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolAccessMode,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectAccessMode,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
@@ -554,6 +562,260 @@ describe('Cascade Delete Utilities', () => {
         .where(eq(contextCache.projectId, projectId));
       expect(remainingCache).toHaveLength(1);
       expect(remainingCache[0].id).toBe(branch2CacheId);
+    });
+  });
+
+  describe('cascadeDeleteByTool', () => {
+    const installationId = 'test-installation';
+    const repositoryId = 'test-repository';
+    const toolId = 'test-tool';
+
+    beforeEach(async () => {
+      // Clean up GitHub-related tables
+      await db.delete(workAppGitHubMcpToolRepositoryAccess);
+      await db.delete(workAppGitHubMcpToolAccessMode);
+      await db.delete(workAppGitHubProjectRepositoryAccess);
+      await db.delete(workAppGitHubProjectAccessMode);
+      await db.delete(workAppGitHubRepositories);
+      await db.delete(workAppGitHubInstallations);
+
+      // Create test installation
+      await db.insert(workAppGitHubInstallations).values({
+        id: installationId,
+        tenantId,
+        installationId: '12345',
+        accountLogin: 'test-org',
+        accountId: '67890',
+        accountType: 'Organization',
+        status: 'active',
+      });
+
+      // Create test repository
+      await db.insert(workAppGitHubRepositories).values({
+        id: repositoryId,
+        installationDbId: installationId,
+        repositoryId: '111',
+        repositoryName: 'test-repo',
+        repositoryFullName: 'test-org/test-repo',
+        private: false,
+      });
+    });
+
+    it('should delete all MCP tool GitHub access entries for a tool', async () => {
+      // Create MCP tool access mode
+      await db.insert(workAppGitHubMcpToolAccessMode).values({
+        toolId,
+        tenantId,
+        projectId,
+        mode: 'selected',
+      });
+
+      // Create MCP tool repository access entries
+      await db.insert(workAppGitHubMcpToolRepositoryAccess).values({
+        id: generateId(),
+        toolId,
+        tenantId,
+        projectId,
+        repositoryDbId: repositoryId,
+      });
+
+      // Delete tool
+      const result = await cascadeDeleteByTool(db)({ toolId });
+
+      expect(result.mcpToolRepositoryAccessDeleted).toBe(1);
+      expect(result.mcpToolAccessModeDeleted).toBe(true);
+
+      // Verify entries are deleted
+      const remainingAccess = await db
+        .select()
+        .from(workAppGitHubMcpToolRepositoryAccess)
+        .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId));
+      expect(remainingAccess).toHaveLength(0);
+
+      const remainingMode = await db
+        .select()
+        .from(workAppGitHubMcpToolAccessMode)
+        .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId));
+      expect(remainingMode).toHaveLength(0);
+    });
+
+    it('should not delete entries for other tools', async () => {
+      const tool1 = 'tool-1';
+      const tool2 = 'tool-2';
+
+      // Create entries for both tools
+      await db.insert(workAppGitHubMcpToolAccessMode).values([
+        { toolId: tool1, tenantId, projectId, mode: 'all' },
+        { toolId: tool2, tenantId, projectId, mode: 'selected' },
+      ]);
+
+      await db.insert(workAppGitHubMcpToolRepositoryAccess).values([
+        { id: generateId(), toolId: tool1, tenantId, projectId, repositoryDbId: repositoryId },
+        { id: generateId(), toolId: tool2, tenantId, projectId, repositoryDbId: repositoryId },
+      ]);
+
+      // Delete tool1
+      await cascadeDeleteByTool(db)({ toolId: tool1 });
+
+      // Verify tool2 entries still exist
+      const remainingAccess = await db.select().from(workAppGitHubMcpToolRepositoryAccess);
+      expect(remainingAccess).toHaveLength(1);
+      expect(remainingAccess[0].toolId).toBe(tool2);
+
+      const remainingMode = await db.select().from(workAppGitHubMcpToolAccessMode);
+      expect(remainingMode).toHaveLength(1);
+      expect(remainingMode[0].toolId).toBe(tool2);
+    });
+
+    it('should handle tool with no GitHub access entries', async () => {
+      const result = await cascadeDeleteByTool(db)({ toolId: 'non-existent-tool' });
+
+      expect(result.mcpToolRepositoryAccessDeleted).toBe(0);
+      expect(result.mcpToolAccessModeDeleted).toBe(false);
+    });
+  });
+
+  describe('cascadeDeleteGitHubAccessByProject', () => {
+    const installationId = 'test-installation';
+    const repositoryId = 'test-repository';
+    const toolId = 'test-tool';
+
+    beforeEach(async () => {
+      // Clean up GitHub-related tables
+      await db.delete(workAppGitHubMcpToolRepositoryAccess);
+      await db.delete(workAppGitHubMcpToolAccessMode);
+      await db.delete(workAppGitHubProjectRepositoryAccess);
+      await db.delete(workAppGitHubProjectAccessMode);
+      await db.delete(workAppGitHubRepositories);
+      await db.delete(workAppGitHubInstallations);
+
+      // Create test installation
+      await db.insert(workAppGitHubInstallations).values({
+        id: installationId,
+        tenantId,
+        installationId: '12345',
+        accountLogin: 'test-org',
+        accountId: '67890',
+        accountType: 'Organization',
+        status: 'active',
+      });
+
+      // Create test repository
+      await db.insert(workAppGitHubRepositories).values({
+        id: repositoryId,
+        installationDbId: installationId,
+        repositoryId: '111',
+        repositoryName: 'test-repo',
+        repositoryFullName: 'test-org/test-repo',
+        private: false,
+      });
+    });
+
+    it('should delete all GitHub access entries for a project', async () => {
+      // Create project access mode
+      await db.insert(workAppGitHubProjectAccessMode).values({
+        tenantId,
+        projectId,
+        mode: 'selected',
+      });
+
+      // Create project repository access
+      await db.insert(workAppGitHubProjectRepositoryAccess).values({
+        id: generateId(),
+        tenantId,
+        projectId,
+        repositoryDbId: repositoryId,
+      });
+
+      // Create MCP tool access mode for a tool in this project
+      await db.insert(workAppGitHubMcpToolAccessMode).values({
+        toolId,
+        tenantId,
+        projectId,
+        mode: 'selected',
+      });
+
+      // Create MCP tool repository access
+      await db.insert(workAppGitHubMcpToolRepositoryAccess).values({
+        id: generateId(),
+        toolId,
+        tenantId,
+        projectId,
+        repositoryDbId: repositoryId,
+      });
+
+      // Delete project GitHub access
+      const result = await cascadeDeleteGitHubAccessByProject(db)({ tenantId, projectId });
+
+      expect(result.projectRepositoryAccessDeleted).toBe(1);
+      expect(result.projectAccessModeDeleted).toBe(true);
+      expect(result.mcpToolRepositoryAccessDeleted).toBe(1);
+      expect(result.mcpToolAccessModesDeleted).toBe(1);
+
+      // Verify all entries are deleted
+      const remainingProjectAccess = await db
+        .select()
+        .from(workAppGitHubProjectRepositoryAccess)
+        .where(eq(workAppGitHubProjectRepositoryAccess.projectId, projectId));
+      expect(remainingProjectAccess).toHaveLength(0);
+
+      const remainingProjectMode = await db
+        .select()
+        .from(workAppGitHubProjectAccessMode)
+        .where(eq(workAppGitHubProjectAccessMode.projectId, projectId));
+      expect(remainingProjectMode).toHaveLength(0);
+
+      const remainingToolAccess = await db
+        .select()
+        .from(workAppGitHubMcpToolRepositoryAccess)
+        .where(eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId));
+      expect(remainingToolAccess).toHaveLength(0);
+
+      const remainingToolMode = await db
+        .select()
+        .from(workAppGitHubMcpToolAccessMode)
+        .where(eq(workAppGitHubMcpToolAccessMode.projectId, projectId));
+      expect(remainingToolMode).toHaveLength(0);
+    });
+
+    it('should not delete entries for other projects', async () => {
+      const project1 = 'project-1';
+      const project2 = 'project-2';
+
+      // Create entries for both projects
+      await db.insert(workAppGitHubProjectAccessMode).values([
+        { tenantId, projectId: project1, mode: 'all' },
+        { tenantId, projectId: project2, mode: 'selected' },
+      ]);
+
+      await db.insert(workAppGitHubProjectRepositoryAccess).values([
+        { id: generateId(), tenantId, projectId: project1, repositoryDbId: repositoryId },
+        { id: generateId(), tenantId, projectId: project2, repositoryDbId: repositoryId },
+      ]);
+
+      // Delete project1 GitHub access
+      await cascadeDeleteGitHubAccessByProject(db)({ tenantId, projectId: project1 });
+
+      // Verify project2 entries still exist
+      const remainingProjectAccess = await db.select().from(workAppGitHubProjectRepositoryAccess);
+      expect(remainingProjectAccess).toHaveLength(1);
+      expect(remainingProjectAccess[0].projectId).toBe(project2);
+
+      const remainingProjectMode = await db.select().from(workAppGitHubProjectAccessMode);
+      expect(remainingProjectMode).toHaveLength(1);
+      expect(remainingProjectMode[0].projectId).toBe(project2);
+    });
+
+    it('should handle project with no GitHub access entries', async () => {
+      const result = await cascadeDeleteGitHubAccessByProject(db)({
+        tenantId,
+        projectId: 'non-existent-project',
+      });
+
+      expect(result.projectRepositoryAccessDeleted).toBe(0);
+      expect(result.projectAccessModeDeleted).toBe(false);
+      expect(result.mcpToolRepositoryAccessDeleted).toBe(0);
+      expect(result.mcpToolAccessModesDeleted).toBe(0);
     });
   });
 });

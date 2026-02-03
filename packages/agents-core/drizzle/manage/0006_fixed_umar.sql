@@ -1,0 +1,1 @@
+ALTER TABLE "tools" ADD COLUMN "is_work_app" boolean DEFAULT false NOT NULL;
