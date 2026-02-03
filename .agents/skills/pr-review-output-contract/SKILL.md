@@ -82,10 +82,19 @@ A `Finding` is a single actionable issue (or informational note) tied to a file 
 | `line`         | number \| string |    ✅    | Line number (number), range (`"10-15"`), or `"n/a"` if unknown.                           |
 | `severity`     | enum             |    ✅    | `CRITICAL` \| `MAJOR` \| `MINOR` \| `INFO`                                                |
 | `category`     | string           |    ✅    | Freeform string matching reviewer domain (e.g., "docs", "security", "api").               |
-| `issue`        | string           |    ✅    | What's wrong — thorough description of the violation or problem. Be specific and detailed; the orchestrator will paraphrase for headlines. |
-| `implications` | string           |    ✅    | Why it matters — consequence, risk, or user impact.                                       |
-| `alternatives` | string           |    ✅    | How to address it. Default to one; list multiple only if truly plausible.                 |
+| `issue`        | string           |    ✅    | What's wrong — thorough description. You're the deep analyst; lean detailed. Orchestrator will paraphrase for headlines. |
+| `implications` | string           |    ✅    | Why it matters — consequence, risk, user impact. Explain the "so what" thoroughly; orchestrator condenses for presentation. |
+| `alternatives` | string           |    ✅    | How to address it. Include code examples for non-trivial fixes. List multiple options if truly plausible. |
 | `confidence`   | enum             |    ✅    | `HIGH` \| `MEDIUM` \| `LOW`                                                               |
+
+**Proportional detail:** Scale depth with severity × confidence. You're doing the in-depth analysis — lean a notch more detailed than the final report needs, since the orchestrator will condense.
+
+| Severity × Confidence | Issue | Implications | Alternatives |
+|-----------------------|-------|--------------|--------------|
+| CRITICAL + HIGH | Full context: what, where, how it happens | Detailed consequences, attack scenarios, blast radius | Concrete fix with code example, before/after |
+| MAJOR + HIGH | Specific description with relevant context | Clear consequences, who/what is affected | Concrete fix, code if non-obvious |
+| MAJOR + MEDIUM | Clear description of the problem | 1-2 sentences on impact | Actionable suggestion |
+| MINOR | Brief description | Brief impact | Brief fix |
 
 ### Optional fields
 
