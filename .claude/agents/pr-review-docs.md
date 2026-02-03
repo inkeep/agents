@@ -40,7 +40,7 @@ disallowedTools: Write, Edit, Task
 skills:
   - write-docs
   - pr-review-output-contract
-model: opus
+model: sonnet
 permissionMode: default
 ---
 

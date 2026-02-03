@@ -45,7 +45,7 @@ skills:
   - data-model-changes
   - adding-env-variables
   - pr-review-output-contract
-model: opus
+model: sonnet
 permissionMode: default
 ---
 

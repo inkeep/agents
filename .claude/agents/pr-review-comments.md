@@ -13,7 +13,7 @@ tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
   - pr-review-output-contract
-model: opus
+model: sonnet
 color: green
 ---
 

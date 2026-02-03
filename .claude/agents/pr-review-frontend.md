@@ -45,7 +45,7 @@ skills:
   - vercel-composition-patterns
   - next-best-practices
   - pr-review-output-contract
-model: opus
+model: sonnet
 permissionMode: default
 ---
 
