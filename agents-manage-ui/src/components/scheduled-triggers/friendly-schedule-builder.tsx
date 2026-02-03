@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -9,8 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -30,7 +30,6 @@ const DAYS_OF_WEEK = [
   { value: '5', label: 'Friday', short: 'Fri' },
   { value: '6', label: 'Saturday', short: 'Sat' },
 ];
-
 
 // Helper to convert hour/minute to time string (HH:MM)
 function toTimeString(hour: string, minute: string): string {
@@ -102,7 +101,11 @@ function parseCronExpression(cron: string): {
 
   // Check for monthly: N N N * *
   if (dayOfMonth !== '*' && dayOfWeek === '*' && !minute.includes('/') && !hour.includes('/')) {
-    if (/^\d+$/.test(dayOfMonth) && Number.parseInt(dayOfMonth) >= 1 && Number.parseInt(dayOfMonth) <= 31) {
+    if (
+      /^\d+$/.test(dayOfMonth) &&
+      Number.parseInt(dayOfMonth) >= 1 &&
+      Number.parseInt(dayOfMonth) <= 31
+    ) {
       return { frequency: 'monthly', minute, hour, dayOfMonth };
     }
   }
@@ -428,9 +431,7 @@ export function FriendlyScheduleBuilder({
           <span className="text-sm text-foreground">{getScheduleDescription(value)}</span>
         </div>
         {value && frequency !== 'custom' && (
-          <p className="mt-1 text-xs text-muted-foreground font-mono">
-            Cron: {value}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground font-mono">Cron: {value}</p>
         )}
       </div>
     </div>

@@ -19,6 +19,7 @@ import projectMembersRoutes from './projectMembers';
 import projectPermissionsRoutes from './projectPermissions';
 import projectsRoutes from './projects';
 import refRoutes from './ref';
+import scheduledTriggersRoutes from './scheduledTriggers';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
@@ -31,7 +32,6 @@ import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
 import triggersRoutes from './triggers';
-import scheduledTriggersRoutes from './scheduledTriggers';
 import userProjectMembershipsRoutes from './userProjectMemberships';
 
 const app = new OpenAPIHono();

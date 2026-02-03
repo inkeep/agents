@@ -1,12 +1,16 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  cancelPendingInvocationsForTrigger,
   commonGetErrorResponses,
   createApiError,
   createScheduledTrigger,
   deleteScheduledTrigger,
   generateId,
   getScheduledTriggerById,
+  getScheduledTriggerInvocationById,
+  listScheduledTriggerInvocationsPaginated,
   listScheduledTriggersPaginated,
+  markScheduledTriggerInvocationCancelled,
   PaginationQueryParamsSchema,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
@@ -18,10 +22,6 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateScheduledTrigger,
-  getScheduledTriggerInvocationById,
-  listScheduledTriggerInvocationsPaginated,
-  cancelPendingInvocationsForTrigger,
-  markScheduledTriggerInvocationCancelled,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -200,6 +200,24 @@ app.openapi(
     );
 
     const now = new Date().toISOString();
+
+    // Ensure retry settings have valid values (handle null, undefined, and NaN)
+    const maxRetries =
+      typeof body.maxRetries === 'number' && !Number.isNaN(body.maxRetries) ? body.maxRetries : 3;
+    const retryDelaySeconds =
+      typeof body.retryDelaySeconds === 'number' && !Number.isNaN(body.retryDelaySeconds)
+        ? body.retryDelaySeconds
+        : 60;
+    const timeoutSeconds =
+      typeof body.timeoutSeconds === 'number' && !Number.isNaN(body.timeoutSeconds)
+        ? body.timeoutSeconds
+        : 300;
+
+    logger.debug(
+      { maxRetries, retryDelaySeconds, timeoutSeconds, bodyMaxRetries: body.maxRetries },
+      'Creating trigger with retry settings'
+    );
+
     const trigger = await createScheduledTrigger(db)({
       id,
       tenantId,
@@ -212,9 +230,9 @@ app.openapi(
       runAt: body.runAt ?? null,
       payload: body.payload ?? null,
       messageTemplate: body.messageTemplate ?? null,
-      maxRetries: body.maxRetries ?? 3,
-      retryDelaySeconds: body.retryDelaySeconds ?? 60,
-      timeoutSeconds: body.timeoutSeconds ?? 300,
+      maxRetries,
+      retryDelaySeconds,
+      timeoutSeconds,
       createdAt: now,
       updatedAt: now,
     });
@@ -317,11 +335,26 @@ app.openapi(
     }
 
     // Determine if schedule changed (affects workflow timing)
-    const scheduleChanged =
-      body.cronExpression !== undefined ||
-      body.runAt !== undefined;
+    const scheduleChanged = body.cronExpression !== undefined || body.runAt !== undefined;
 
     const previousEnabled = existing.enabled;
+
+    // For retry settings: if provided, validate; if null/undefined, keep existing or use default
+    const resolveRetryValue = (
+      bodyValue: number | null | undefined,
+      existingValue: number | null,
+      defaultValue: number
+    ): number => {
+      if (typeof bodyValue === 'number' && !Number.isNaN(bodyValue)) {
+        return bodyValue;
+      }
+      if (bodyValue === undefined) {
+        // Not provided in update - keep existing or use default
+        return existingValue ?? defaultValue;
+      }
+      // Explicitly null - use default
+      return defaultValue;
+    };
 
     const updatedTrigger = await updateScheduledTrigger(db)({
       scopes: { tenantId, projectId, agentId },
@@ -334,19 +367,22 @@ app.openapi(
         runAt: body.runAt,
         payload: body.payload,
         messageTemplate: body.messageTemplate,
-        maxRetries: body.maxRetries,
-        retryDelaySeconds: body.retryDelaySeconds,
-        timeoutSeconds: body.timeoutSeconds,
+        maxRetries: resolveRetryValue(body.maxRetries, existing.maxRetries, 3),
+        retryDelaySeconds: resolveRetryValue(body.retryDelaySeconds, existing.retryDelaySeconds, 60),
+        timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
       },
     });
 
     // Handle workflow lifecycle changes
     try {
-      await onTriggerUpdated({
-        trigger: updatedTrigger,
-        previousEnabled,
-        scheduleChanged,
-      }, db);
+      await onTriggerUpdated(
+        {
+          trigger: updatedTrigger,
+          previousEnabled,
+          scheduleChanged,
+        },
+        db
+      );
     } catch (err) {
       logger.error(
         { err, tenantId, projectId, agentId, scheduledTriggerId: id },
@@ -684,6 +720,318 @@ app.openapi(
       success: true,
       invocationId,
       previousStatus,
+    });
+  }
+);
+
+/**
+ * Rerun Scheduled Trigger Invocation
+ * Creates a new invocation and executes it immediately (manual rerun of a past run)
+ */
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/invocations/{invocationId}/rerun',
+    summary: 'Rerun Scheduled Trigger Invocation',
+    operationId: 'rerun-scheduled-trigger-invocation',
+    tags: ['Scheduled Triggers'],
+    request: {
+      params: TenantProjectAgentIdParamsSchema.extend({
+        invocationId: z.string().describe('Scheduled Trigger Invocation ID to rerun'),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Scheduled trigger invocation rerun initiated successfully',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              newInvocationId: z.string(),
+              originalInvocationId: z.string(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const {
+      tenantId,
+      projectId,
+      agentId,
+      id: scheduledTriggerId,
+      invocationId,
+    } = c.req.valid('param');
+
+    logger.debug(
+      { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
+      'Rerunning scheduled trigger invocation'
+    );
+
+    // Get the original invocation to verify it exists
+    const originalInvocation = await getScheduledTriggerInvocationById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId,
+      invocationId,
+    });
+
+    if (!originalInvocation) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Invocation not found',
+      });
+    }
+
+    // Only allow rerun of completed, failed, or cancelled invocations
+    if (originalInvocation.status === 'pending' || originalInvocation.status === 'running') {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Cannot rerun invocation with status: ${originalInvocation.status}. Wait for it to complete or cancel it first.`,
+      });
+    }
+
+    // Get the trigger configuration for execution parameters
+    const trigger = await getScheduledTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Scheduled trigger not found',
+      });
+    }
+
+    // Apply defaults for retry configuration (handles null values from older triggers)
+    console.log('TRIGGER before maxRetries', trigger.maxRetries);
+    console.log('TRIGGER before retryDelaySeconds', trigger.retryDelaySeconds);
+    console.log('TRIGGER before timeoutSeconds', trigger.timeoutSeconds);
+    console.log('TRIGGER', trigger);
+    const maxRetries = trigger.maxRetries ?? 3;
+    const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
+    const timeoutSeconds = trigger.timeoutSeconds ?? 300;
+
+    // Create a new invocation for the rerun
+    const {
+      createScheduledTriggerInvocation,
+      markScheduledTriggerInvocationRunning,
+      markScheduledTriggerInvocationCompleted,
+      markScheduledTriggerInvocationFailed,
+      updateScheduledTriggerInvocationStatus,
+    } = await import('@inkeep/agents-core');
+
+    const newInvocationId = generateId();
+    const now = new Date().toISOString();
+
+    await createScheduledTriggerInvocation(runDbClient)({
+      id: newInvocationId,
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      status: 'pending',
+      scheduledFor: now,
+      idempotencyKey: `manual-rerun-${invocationId}-${Date.now()}`,
+      attemptNumber: 1,
+      createdAt: now,
+    });
+
+    logger.info(
+      {
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        originalInvocationId: invocationId,
+        newInvocationId,
+        maxRetries,
+        retryDelaySeconds,
+      },
+      'Created new invocation for manual rerun with retry support'
+    );
+
+    // Execute the trigger asynchronously with retry logic
+    // This is fire-and-forget - the client doesn't wait for execution to complete
+    const baseUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+    const apiKey = process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '';
+    const executeUrl = `${baseUrl}/run/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/internal/execute`;
+
+    const scopes = { tenantId, projectId, agentId };
+
+    // Helper to sleep for retries
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Helper to execute a single attempt
+    const executeAttempt = async (): Promise<{
+      success: boolean;
+      conversationId?: string;
+      error?: string;
+    }> => {
+      const response = await fetch(executeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'x-inkeep-tenant-id': tenantId,
+          'x-inkeep-project-id': projectId,
+          'x-inkeep-agent-id': agentId,
+        },
+        body: JSON.stringify({
+          scheduledTriggerId,
+          invocationId: newInvocationId,
+          messageTemplate: trigger.messageTemplate,
+          payload: trigger.payload,
+          timeoutSeconds,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success: boolean;
+        conversationId?: string;
+        error?: string;
+      };
+
+      if (response.ok && result.success) {
+        return { success: true, conversationId: result.conversationId };
+      }
+      return {
+        success: false,
+        error: result.error || `HTTP ${response.status}: Execution failed`,
+      };
+    };
+
+    // Execute with retries in background (fire-and-forget)
+    (async () => {
+      const maxAttempts = maxRetries + 1;
+      let attemptNumber = 1;
+      let lastError: string | null = null;
+
+      while (attemptNumber <= maxAttempts) {
+        await markScheduledTriggerInvocationRunning(runDbClient)({
+          scopes,
+          scheduledTriggerId,
+          invocationId: newInvocationId,
+        }).catch((err) => {
+          logger.error(
+            { err, invocationId: newInvocationId, attemptNumber },
+            'Failed to mark invocation as running'
+          );
+        });
+
+        try {
+          const result = await executeAttempt();
+
+          if (result.success) {
+            // Success - mark completed and exit
+            await markScheduledTriggerInvocationCompleted(runDbClient)({
+              scopes,
+              scheduledTriggerId,
+              invocationId: newInvocationId,
+              conversationId: result.conversationId,
+            });
+            logger.info(
+              {
+                invocationId: newInvocationId,
+                conversationId: result.conversationId,
+                attemptNumber,
+              },
+              'Manual rerun completed successfully'
+            );
+            return; // Exit the retry loop
+          }
+
+          // Failure
+          lastError = result.error || 'Unknown error';
+          logger.warn(
+            { invocationId: newInvocationId, attemptNumber, error: lastError, maxAttempts },
+            'Manual rerun attempt failed'
+          );
+
+          // Check if we have retries left
+          if (attemptNumber < maxAttempts) {
+            // Increment attempt number in DB
+            await updateScheduledTriggerInvocationStatus(runDbClient)({
+              scopes,
+              scheduledTriggerId,
+              invocationId: newInvocationId,
+              data: {
+                attemptNumber: attemptNumber + 1,
+                status: 'pending',
+              },
+            });
+
+            attemptNumber++;
+
+            logger.info(
+              { invocationId: newInvocationId, attemptNumber, retryDelaySeconds },
+              'Waiting before retry'
+            );
+
+            // Wait before retry
+            await sleep(retryDelaySeconds * 1000);
+          } else {
+            // No more retries
+            break;
+          }
+        } catch (err) {
+          lastError = err instanceof Error ? err.message : String(err);
+          logger.error(
+            { err: lastError, invocationId: newInvocationId, attemptNumber },
+            'Manual rerun attempt threw exception'
+          );
+
+          if (attemptNumber < maxAttempts) {
+            await updateScheduledTriggerInvocationStatus(runDbClient)({
+              scopes,
+              scheduledTriggerId,
+              invocationId: newInvocationId,
+              data: {
+                attemptNumber: attemptNumber + 1,
+                status: 'pending',
+              },
+            }).catch(() => {});
+
+            attemptNumber++;
+            await sleep(retryDelaySeconds * 1000);
+          } else {
+            break;
+          }
+        }
+      }
+
+      // All retries exhausted - mark as failed
+      await markScheduledTriggerInvocationFailed(runDbClient)({
+        scopes,
+        scheduledTriggerId,
+        invocationId: newInvocationId,
+        errorMessage: lastError || 'All retry attempts failed',
+        errorCode: 'EXECUTION_ERROR',
+      }).catch((updateErr) => {
+        logger.error(
+          { updateErr, invocationId: newInvocationId },
+          'Failed to mark invocation as failed'
+        );
+      });
+
+      logger.error(
+        {
+          invocationId: newInvocationId,
+          totalAttempts: attemptNumber,
+          maxAttempts,
+          lastError,
+        },
+        'Manual rerun failed after all retry attempts'
+      );
+    })();
+
+    return c.json({
+      success: true,
+      newInvocationId,
+      originalInvocationId: invocationId,
     });
   }
 );

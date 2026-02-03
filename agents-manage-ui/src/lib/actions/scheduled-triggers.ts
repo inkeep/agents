@@ -2,12 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import {
+  type CreateScheduledTriggerInput,
+  cancelScheduledTriggerInvocation,
   createScheduledTrigger,
   deleteScheduledTrigger,
-  fetchScheduledTriggers,
   fetchScheduledTriggerInvocations,
-  cancelScheduledTriggerInvocation,
-  type CreateScheduledTriggerInput,
+  fetchScheduledTriggers,
+  rerunScheduledTriggerInvocation,
   type ScheduledTrigger,
   type ScheduledTriggerInvocation,
   type UpdateScheduledTriggerInput,
@@ -219,6 +220,45 @@ export async function cancelScheduledTriggerInvocationAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to cancel invocation',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function rerunScheduledTriggerInvocationAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  invocationId: string
+): Promise<ActionResult<{ newInvocationId: string }>> {
+  try {
+    const result = await rerunScheduledTriggerInvocation(
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      invocationId
+    );
+    revalidatePath(
+      `/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations`
+    );
+    return {
+      success: result.success,
+      data: { newInvocationId: result.newInvocationId },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to rerun invocation',
       code: 'unknown_error',
     };
   }

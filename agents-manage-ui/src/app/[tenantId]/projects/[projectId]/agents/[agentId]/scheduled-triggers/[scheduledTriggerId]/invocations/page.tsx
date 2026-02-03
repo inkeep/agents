@@ -17,7 +17,12 @@ export const metadata = {
 export default async function ScheduledTriggerInvocationsPage({
   params,
 }: {
-  params: Promise<{ tenantId: string; projectId: string; agentId: string; scheduledTriggerId: string }>;
+  params: Promise<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    scheduledTriggerId: string;
+  }>;
 }) {
   const { tenantId, projectId, agentId, scheduledTriggerId } = await params;
 
@@ -54,9 +59,7 @@ export default async function ScheduledTriggerInvocationsPage({
         description={metadata.description}
         action={
           <Button variant="outline" asChild>
-            <Link
-              href={`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`}
-            >
+            <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Scheduled Triggers
             </Link>

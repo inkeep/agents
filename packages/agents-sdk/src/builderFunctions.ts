@@ -22,11 +22,11 @@ import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
+import { ScheduledTrigger, type ScheduledTriggerConfig } from './scheduled-trigger';
 import { StatusComponent } from './status-component';
 import { SubAgent } from './subAgent';
 import { Tool } from './tool';
 import { Trigger, type TriggerConfig } from './trigger';
-import { ScheduledTrigger, type ScheduledTriggerConfig } from './scheduled-trigger';
 import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 

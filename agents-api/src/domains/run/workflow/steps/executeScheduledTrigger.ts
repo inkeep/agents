@@ -15,13 +15,13 @@ import {
   setActiveAgentForConversation,
   withRef,
 } from '@inkeep/agents-core';
+import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { ExecutionHandler } from '../../handlers/executionHandler';
 import { createSSEStreamHelper } from '../../utils/stream-helpers';
-import { manageDbClient } from 'src/data/db';
 
 const logger = getLogger('workflow-execute-scheduled-trigger');
 

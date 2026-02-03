@@ -7,10 +7,11 @@ import {
   Clock,
   Loader2,
   MoreHorizontal,
+  RotateCcw,
   XCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,8 +29,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cancelScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
+import {
+  cancelScheduledTriggerInvocationAction,
+  getScheduledTriggerInvocationsAction,
+  rerunScheduledTriggerInvocationAction,
+} from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocation } from '@/lib/api/scheduled-triggers';
+
+const POLLING_INTERVAL_MS = 5000; // Poll every 5 seconds
 
 interface ScheduledTriggerInvocationsTableProps {
   invocations: ScheduledTriggerInvocation[];
@@ -100,14 +107,48 @@ function formatDuration(startedAt: string | null, completedAt: string | null): s
 }
 
 export function ScheduledTriggerInvocationsTable({
-  invocations,
+  invocations: initialInvocations,
   tenantId,
   projectId,
   agentId,
   scheduledTriggerId,
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
+  const [invocations, setInvocations] = useState(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
+
+  // Check if any invocations are in a transient state (pending or running)
+  const hasTransientInvocations = invocations.some(
+    (inv) => inv.status === 'pending' || inv.status === 'running'
+  );
+
+  // Poll for updates when there are pending/running invocations
+  useEffect(() => {
+    if (!hasTransientInvocations) return;
+
+    const pollInvocations = async () => {
+      try {
+        const updated = await getScheduledTriggerInvocationsAction(
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId,
+          { limit: 50 }
+        );
+        setInvocations(updated);
+      } catch (error) {
+        console.error('Failed to poll invocations:', error);
+      }
+    };
+
+    const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
+
+  // Update invocations when initial props change
+  useEffect(() => {
+    setInvocations(initialInvocations);
+  }, [initialInvocations]);
 
   const cancelInvocation = async (invocationId: string) => {
     if (!confirm('Are you sure you want to cancel this invocation?')) {
@@ -143,6 +184,40 @@ export function ScheduledTriggerInvocationsTable({
     }
   };
 
+  const rerunInvocation = async (invocationId: string) => {
+    if (!confirm('Are you sure you want to rerun this invocation?')) {
+      return;
+    }
+
+    setLoadingInvocations((prev) => new Set(prev).add(invocationId));
+
+    try {
+      const result = await rerunScheduledTriggerInvocationAction(
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId
+      );
+
+      if (result.success) {
+        toast.success('Invocation rerun started successfully');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to rerun invocation');
+      }
+    } catch (error) {
+      console.error('Failed to rerun invocation:', error);
+      toast.error('Failed to rerun invocation');
+    } finally {
+      setLoadingInvocations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(invocationId);
+        return newSet;
+      });
+    }
+  };
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -167,8 +242,12 @@ export function ScheduledTriggerInvocationsTable({
           ) : (
             invocations.map((invocation) => {
               const isLoading = loadingInvocations.has(invocation.id);
-              const canCancel =
-                invocation.status === 'pending' || invocation.status === 'running';
+              const canCancel = invocation.status === 'pending' || invocation.status === 'running';
+              const canRerun =
+                invocation.status === 'completed' ||
+                invocation.status === 'failed' ||
+                invocation.status === 'cancelled';
+              const hasActions = canCancel || canRerun;
 
               return (
                 <TableRow key={invocation.id} noHover>
@@ -204,7 +283,7 @@ export function ScheduledTriggerInvocationsTable({
                     )}
                   </TableCell>
                   <TableCell>
-                    {canCancel && (
+                    {hasActions && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon-sm" disabled={isLoading}>
@@ -212,13 +291,27 @@ export function ScheduledTriggerInvocationsTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => cancelInvocation(invocation.id)}
-                          >
-                            <Ban className="w-4 h-4 mr-2" />
-                            Cancel
-                          </DropdownMenuItem>
+                          {canRerun && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                rerunInvocation(invocation.id);
+                              }}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Rerun
+                            </DropdownMenuItem>
+                          )}
+                          {canCancel && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                cancelInvocation(invocation.id);
+                              }}
+                            >
+                              <Ban className="w-4 h-4 mr-2" />
+                              Cancel
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}

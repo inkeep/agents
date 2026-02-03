@@ -2,16 +2,18 @@
  * Workflow for running scheduled triggers.
  *
  * This workflow:
- * 1. Calculates the next execution time (from cron expression or runAt)
- * 2. Sleeps until that time using Vercel Workflow's durable sleep
- * 3. Creates an invocation record (idempotent)
- * 4. Executes the agent with retries
- * 5. For cron triggers, loops back to step 1
+ * 1. Pre-creates N pending invocations for upcoming scheduled times
+ * 2. Gets the next pending invocation to execute
+ * 3. Sleeps until its scheduled time
+ * 4. Checks if cancelled (user can cancel during sleep)
+ * 5. Executes the agent with retries
+ * 6. Replenishes pending invocations to maintain N pending
+ * 7. For cron triggers, loops back to step 2
  *
  * IMPORTANT: The main workflow function cannot use any Node.js modules.
  * All Node.js-dependent code must be in step functions.
  */
-import { sleep, getWorkflowMetadata } from 'workflow';
+import { getWorkflowMetadata, sleep } from 'workflow';
 
 export type ScheduledTriggerRunnerPayload = {
   tenantId: string;
@@ -19,6 +21,9 @@ export type ScheduledTriggerRunnerPayload = {
   agentId: string;
   scheduledTriggerId: string;
 };
+
+// Number of pending invocations to maintain
+const PENDING_INVOCATIONS_COUNT = 5;
 
 /**
  * Generate idempotency key for a scheduled execution.
@@ -36,17 +41,21 @@ import {
   computeSleepDurationStep,
   createInvocationIdempotentStep,
   executeScheduledTriggerStep,
+  getNextPendingInvocationStep,
   incrementAttemptStep,
   logStep,
   markCompletedStep,
   markFailedStep,
   markRunningStep,
+  preCreatePendingInvocationsStep,
 } from '../steps/scheduledTriggerSteps';
 
 /**
  * Main workflow function - runs a scheduled trigger.
  * For cron triggers, this loops indefinitely until disabled/deleted.
  * For one-time triggers, it executes once and completes.
+ *
+ * Pre-creates pending invocations so users can cancel specific future runs.
  *
  * IMPORTANT: This function MUST NOT use any Node.js modules directly.
  * Only pure JS and calls to step functions are allowed.
@@ -69,9 +78,6 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     runnerId,
   });
 
-  // Track last scheduled time for cron calculation (prevents drift)
-  let lastScheduledFor: string | null = null;
-
   // Main execution loop
   while (true) {
     // 1. Check if trigger is still enabled and we're the authoritative runner
@@ -92,24 +98,79 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     }
 
     const trigger = enabledCheck.trigger;
+    const isOneTime = !!trigger.runAt;
 
-    // 2. Calculate next execution time (relative to lastScheduledFor for cron)
-    const { nextExecutionTime, isOneTime } = await calculateNextExecutionStep({
-      cronExpression: trigger.cronExpression,
-      runAt: trigger.runAt,
-      lastScheduledFor,
+    // 2. For cron triggers, pre-create pending invocations
+    if (!isOneTime && trigger.cronExpression) {
+      await preCreatePendingInvocationsStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        cronExpression: trigger.cronExpression,
+        payload: trigger.payload ?? null,
+        targetCount: PENDING_INVOCATIONS_COUNT,
+      });
+    }
+
+    // 3. Get the next pending invocation to execute
+    let invocation = await getNextPendingInvocationStep({
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
     });
 
-    // 3. Compute sleep duration right before sleeping (minimizes drift)
-    const sleepMs = await computeSleepDurationStep(nextExecutionTime);
+    // For one-time triggers, create the invocation if it doesn't exist
+    if (!invocation && isOneTime && trigger.runAt) {
+      const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, trigger.runAt);
+      const result = await createInvocationIdempotentStep({
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        scheduledFor: trigger.runAt,
+        payload: trigger.payload ?? null,
+        idempotencyKey,
+      });
+      invocation = result.invocation;
 
-    await logStep('Sleeping until next execution', {
+      // If already processed, we're done
+      if (result.alreadyExists && invocation.status !== 'pending') {
+        await logStep('One-time trigger already executed', {
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          status: invocation.status,
+        });
+        return { status: 'already_executed', invocationId: invocation.id };
+      }
+    }
+
+    // If no pending invocations (all were cancelled), wait a bit and retry
+    if (!invocation) {
+      await logStep('No pending invocations found, waiting before retry', {
+        scheduledTriggerId,
+      });
+      await sleep(60000); // Wait 1 minute before checking again
+      continue;
+    }
+
+    await logStep('Got next pending invocation', {
       scheduledTriggerId,
-      nextExecutionTime,
+      invocationId: invocation.id,
+      scheduledFor: invocation.scheduledFor,
+    });
+
+    // 4. Sleep until the invocation's scheduled time
+    const sleepMs = await computeSleepDurationStep(invocation.scheduledFor);
+
+    await logStep('Sleeping until scheduled time', {
+      scheduledTriggerId,
+      invocationId: invocation.id,
+      scheduledFor: invocation.scheduledFor,
       sleepMs,
     });
 
-    // 4. Sleep until execution time
     await sleep(sleepMs);
 
     // 5. Re-check if trigger is still enabled after sleep
@@ -132,79 +193,42 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     // Refresh trigger config (may have changed during sleep)
     const currentTrigger = postSleepCheck.trigger;
 
-    // 6. Generate idempotency key and create invocation (idempotent)
-    const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, nextExecutionTime);
-
-    const { invocation, alreadyExists } = await createInvocationIdempotentStep({
+    // 6. Check if invocation was cancelled during sleep
+    const cancelCheck = await checkInvocationCancelledStep({
       tenantId,
       projectId,
       agentId,
       scheduledTriggerId,
-      scheduledFor: nextExecutionTime,
-      payload: currentTrigger.payload ?? null,
-      idempotencyKey,
-    });
-
-    // Update lastScheduledFor for next cron calculation
-    lastScheduledFor = nextExecutionTime;
-
-    await logStep('Invocation created/found', {
-      scheduledTriggerId,
       invocationId: invocation.id,
-      alreadyExists,
-      invocationStatus: invocation.status,
-      attemptNumber: invocation.attemptNumber,
     });
 
-    // If invocation was already processed, skip to next iteration
-    if (alreadyExists && invocation.status !== 'pending') {
-      await logStep('Invocation already processed, continuing to next', {
+    if (cancelCheck.cancelled) {
+      await logStep('Invocation was cancelled, skipping to next', {
         scheduledTriggerId,
         invocationId: invocation.id,
-        status: invocation.status,
       });
-
-      if (isOneTime) {
-        return { status: 'already_executed', invocationId: invocation.id };
-      }
+      // Continue to next iteration to get the next pending invocation
       continue;
     }
 
-    // Defaults are applied in checkTriggerEnabledStep, but we use explicit checks
-    // here because the '??' operator may not work reliably in workflow context.
-    // Also check for NaN which can occur due to workflow serialization issues
-    // (NaN comparisons always return false, breaking the retry loop).
-    const isValidNumber = (val: unknown): val is number => 
-      typeof val === 'number' && val === val; // NaN !== NaN, so this catches NaN
-    
+    // Defaults for retry settings
+    const isValidNumber = (val: unknown): val is number => typeof val === 'number' && val === val;
     const maxRetries = isValidNumber(currentTrigger.maxRetries) ? currentTrigger.maxRetries : 3;
-    const retryDelaySeconds = isValidNumber(currentTrigger.retryDelaySeconds) ? currentTrigger.retryDelaySeconds : 60;
-    const timeoutSeconds = isValidNumber(currentTrigger.timeoutSeconds) ? currentTrigger.timeoutSeconds : 300;
-
-    await logStep('DEBUG: Computed retry values', {
-      scheduledTriggerId,
-      invocationId: invocation.id,
-      'currentTrigger.maxRetries': currentTrigger.maxRetries,
-      'typeof currentTrigger.maxRetries': typeof currentTrigger.maxRetries,
-      'isValidNumber(currentTrigger.maxRetries)': isValidNumber(currentTrigger.maxRetries),
-      'computed maxRetries': maxRetries,
-      'computed retryDelaySeconds': retryDelaySeconds,
-      'computed timeoutSeconds': timeoutSeconds,
-      attemptNumber: invocation.attemptNumber,
-      maxAttempts: maxRetries + 1,
-      'loop condition (attemptNumber <= maxAttempts)': invocation.attemptNumber <= maxRetries + 1,
-    });
+    const retryDelaySeconds = isValidNumber(currentTrigger.retryDelaySeconds)
+      ? currentTrigger.retryDelaySeconds
+      : 60;
+    const timeoutSeconds = isValidNumber(currentTrigger.timeoutSeconds)
+      ? currentTrigger.timeoutSeconds
+      : 300;
 
     // 7. Execute with retries
     let attemptNumber = invocation.attemptNumber;
     let lastError: string | null = null;
-    let conversationId: string | null = null;
 
-    // Use explicit comparison to avoid issues with null/undefined in workflow context
     const maxAttempts = maxRetries + 1;
     while (attemptNumber <= maxAttempts) {
-      // Check if invocation was cancelled before executing
-      const cancelCheck = await checkInvocationCancelledStep({
+      // Re-check cancellation before each attempt
+      const retryCancel = await checkInvocationCancelledStep({
         tenantId,
         projectId,
         agentId,
@@ -212,12 +236,12 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         invocationId: invocation.id,
       });
 
-      if (cancelCheck.cancelled) {
-        await logStep('Invocation was cancelled, skipping execution', {
+      if (retryCancel.cancelled) {
+        await logStep('Invocation cancelled during retry loop', {
           scheduledTriggerId,
           invocationId: invocation.id,
         });
-        break; // Exit retry loop, move to next scheduled time
+        break;
       }
 
       // Mark as running
@@ -241,8 +265,6 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       });
 
       if (result.success) {
-        // Success - mark completed
-        conversationId = result.conversationId ?? null;
         await markCompletedStep({
           tenantId,
           projectId,
@@ -259,7 +281,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         });
 
         lastError = null;
-        break; // Success, exit retry loop
+        break;
       } else {
         lastError = result.error || 'Unknown error';
 
@@ -270,9 +292,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
           error: lastError,
         });
 
-        // Check if we have retries left
-        if (attemptNumber < maxRetries + 1) {
-          // Increment attempt and wait before retry
+        if (attemptNumber < maxAttempts) {
           await incrementAttemptStep({
             tenantId,
             projectId,
@@ -283,17 +303,14 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
           });
 
           attemptNumber++;
-
-          // Wait before retrying
           await sleep(retryDelaySeconds * 1000);
         } else {
-          // No more retries
           break;
         }
       }
     }
 
-    // If we exited with an error, mark as failed
+    // Mark as failed if all retries exhausted
     if (lastError) {
       await markFailedStep({
         tenantId,
@@ -311,7 +328,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       return { status: lastError ? 'failed' : 'completed', invocationId: invocation.id };
     }
 
-    // For cron triggers, loop continues to calculate next execution
+    // For cron triggers, loop continues to get next pending invocation
   }
 }
 

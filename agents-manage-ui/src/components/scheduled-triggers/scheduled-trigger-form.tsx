@@ -111,9 +111,9 @@ export function ScheduledTriggerForm({
       runAt: trigger.runAt ? new Date(trigger.runAt).toISOString().slice(0, 16) : '',
       payloadJson: trigger.payload ? JSON.stringify(trigger.payload, null, 2) : '',
       messageTemplate: trigger.messageTemplate || '',
-      maxRetries: trigger.maxRetries,
-      retryDelaySeconds: trigger.retryDelaySeconds,
-      timeoutSeconds: trigger.timeoutSeconds,
+      maxRetries: trigger.maxRetries ?? 3,
+      retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
+      timeoutSeconds: trigger.timeoutSeconds ?? 300,
     };
   };
 

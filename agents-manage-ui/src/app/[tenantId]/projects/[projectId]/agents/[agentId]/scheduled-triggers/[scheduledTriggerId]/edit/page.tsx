@@ -13,7 +13,12 @@ export const metadata = {
 export default async function EditScheduledTriggerPage({
   params,
 }: {
-  params: Promise<{ tenantId: string; projectId: string; agentId: string; scheduledTriggerId: string }>;
+  params: Promise<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    scheduledTriggerId: string;
+  }>;
 }) {
   const { tenantId, projectId, agentId, scheduledTriggerId } = await params;
 
