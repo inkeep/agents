@@ -58,11 +58,13 @@ function TestForm() {
 describe('Form', () => {
   test('should properly highlight error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
-    await document.fonts.ready;
     const { container } = render(<TestForm />);
 
     await act(async () => {
-      await expect(container).toMatchScreenshot();
+      // Wait until fonts used by the rendered content are ready
+      await document.fonts.ready;
     });
+
+    expect(container).toMatchScreenshot();
   }, 20_000);
 });
