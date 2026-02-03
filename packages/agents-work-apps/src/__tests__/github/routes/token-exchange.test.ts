@@ -12,31 +12,46 @@ const {
   validateOidcTokenMock,
   lookupInstallationForRepoMock,
   generateInstallationAccessTokenMock,
+  getInstallationByGitHubIdMock,
+  checkProjectRepositoryAccessMock,
 } = vi.hoisted(() => ({
   isGitHubAppConfiguredMock: vi.fn(),
   validateOidcTokenMock: vi.fn(),
   lookupInstallationForRepoMock: vi.fn(),
   generateInstallationAccessTokenMock: vi.fn(),
+  getInstallationByGitHubIdMock: vi.fn(),
+  checkProjectRepositoryAccessMock: vi.fn(),
 }));
 
 // Mock the config module
-vi.mock('../../../domains/github/config', () => ({
+vi.mock('../../../github/config', () => ({
   isGitHubAppConfigured: isGitHubAppConfiguredMock,
 }));
 
 // Mock the oidcToken module
-vi.mock('../../../domains/github/oidcToken', () => ({
+vi.mock('../../../github/oidcToken', () => ({
   validateOidcToken: validateOidcTokenMock,
 }));
 
 // Mock the installation module
-vi.mock('../../../domains/github/installation', () => ({
+vi.mock('../../../github/installation', () => ({
   lookupInstallationForRepo: lookupInstallationForRepoMock,
   generateInstallationAccessToken: generateInstallationAccessTokenMock,
 }));
 
+// Mock the data access layer
+vi.mock('@inkeep/agents-core', () => ({
+  getInstallationByGitHubId: () => getInstallationByGitHubIdMock,
+  checkProjectRepositoryAccess: () => checkProjectRepositoryAccessMock,
+}));
+
+// Mock the database client
+vi.mock('../../../db/runDbClient', () => ({
+  default: {},
+}));
+
 // Import the app after mocks are set up
-import app from '../../../domains/github/routes/tokenExchange';
+import app from '../../../github/routes/tokenExchange';
 
 describe('GitHub Token Exchange Route', () => {
   beforeEach(async () => {
@@ -51,9 +66,9 @@ describe('GitHub Token Exchange Route', () => {
     vi.resetAllMocks();
   });
 
-  describe('POST /api/github/token-exchange', () => {
+  describe('POST /work-apps/github/token-exchange', () => {
     describe('Success case (200)', () => {
-      it('should return installation token for valid OIDC token', async () => {
+      it('should return installation token for valid OIDC token with tenant_id', async () => {
         const validToken = await createTestOidcToken();
 
         validateOidcTokenMock.mockResolvedValue({
@@ -74,6 +89,18 @@ describe('GitHub Token Exchange Route', () => {
             installationId: 12345678,
             appId: 98765,
           },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
         });
 
         generateInstallationAccessTokenMock.mockResolvedValue({
@@ -97,11 +124,84 @@ describe('GitHub Token Exchange Route', () => {
           expires_at: '2026-01-23T17:00:00Z',
           repository: 'test-org/test-repo',
           installation_id: 12345678,
+          tenant_id: 'tenant_abc123',
         });
 
         expect(validateOidcTokenMock).toHaveBeenCalledWith(validToken);
         expect(lookupInstallationForRepoMock).toHaveBeenCalledWith('test-org', 'test-repo');
+        expect(getInstallationByGitHubIdMock).toHaveBeenCalledWith('12345678');
         expect(generateInstallationAccessTokenMock).toHaveBeenCalledWith(12345678);
+      });
+
+      it('should return installation token with project_id when project has access', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: '123456789',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        });
+
+        checkProjectRepositoryAccessMock.mockResolvedValue({
+          hasAccess: true,
+          reason: 'Project has access to all repositories',
+        });
+
+        generateInstallationAccessTokenMock.mockResolvedValue({
+          success: true,
+          accessToken: {
+            token: 'ghs_test_installation_token_abc123',
+            expiresAt: '2026-01-23T17:00:00Z',
+          },
+        });
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken, project_id: 'proj_test123' }),
+        });
+
+        expect(response.status).toBe(200);
+        const body = await response.json();
+        expect(body).toEqual({
+          token: 'ghs_test_installation_token_abc123',
+          expires_at: '2026-01-23T17:00:00Z',
+          repository: 'test-org/test-repo',
+          installation_id: 12345678,
+          tenant_id: 'tenant_abc123',
+        });
+
+        expect(checkProjectRepositoryAccessMock).toHaveBeenCalledWith({
+          projectId: 'proj_test123',
+          repositoryFullName: 'test-org/test-repo',
+          tenantId: 'tenant_abc123',
+        });
       });
     });
 
@@ -269,7 +369,7 @@ describe('GitHub Token Exchange Route', () => {
       });
     });
 
-    describe('403 Forbidden case', () => {
+    describe('403 Forbidden cases', () => {
       it('should return 403 when GitHub App is not installed on repository', async () => {
         const validToken = await createTestOidcToken();
 
@@ -303,6 +403,243 @@ describe('GitHub Token Exchange Route', () => {
         expect(body.status).toBe(403);
         expect(body.title).toBe('GitHub App Not Installed');
         expect(body.error).toContain('not installed');
+      });
+
+      it('should return 403 when installation is not registered in database', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: '123456789',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue(null);
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken }),
+        });
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body.status).toBe(403);
+        expect(body.title).toBe('Installation Not Registered');
+        expect(body.error).toContain('not registered');
+        expect(body.error).toContain('Inkeep dashboard');
+      });
+
+      it('should return 403 when installation status is pending', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: '123456789',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'pending',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        });
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken }),
+        });
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body.status).toBe(403);
+        expect(body.title).toBe('Installation Pending');
+        expect(body.error).toContain('pending organization admin approval');
+      });
+
+      it('should return 403 when installation status is suspended', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: '123456789',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'suspended',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        });
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken }),
+        });
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body.status).toBe(403);
+        expect(body.title).toBe('Installation Suspended');
+        expect(body.error).toContain('suspended');
+      });
+
+      it('should return 403 when installation status is deleted', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: '123456789',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'deleted',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        });
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken }),
+        });
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body.status).toBe(403);
+        expect(body.title).toBe('Installation Disconnected');
+        expect(body.error).toContain('disconnected');
+      });
+
+      it('should return 403 when project does not have access to repository', async () => {
+        const validToken = await createTestOidcToken();
+
+        validateOidcTokenMock.mockResolvedValue({
+          success: true,
+          claims: {
+            repository: 'test-org/test-repo',
+            repository_owner: 'test-org',
+            repository_id: '123456789',
+            workflow: 'CI',
+            actor: 'test-user',
+            ref: 'refs/heads/main',
+          },
+        });
+
+        lookupInstallationForRepoMock.mockResolvedValue({
+          success: true,
+          installation: {
+            installationId: 12345678,
+            appId: 98765,
+          },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        });
+
+        checkProjectRepositoryAccessMock.mockResolvedValue({
+          hasAccess: false,
+          reason: 'Repository not in project access list',
+        });
+
+        const response = await app.request('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oidc_token: validToken, project_id: 'proj_restricted' }),
+        });
+
+        expect(response.status).toBe(403);
+        const body = await response.json();
+        expect(body.status).toBe(403);
+        expect(body.title).toBe('Repository Access Denied');
+        expect(body.error).toContain('does not have access to repository');
+        expect(body.error).toContain('test-org/test-repo');
       });
     });
 
@@ -380,6 +717,18 @@ describe('GitHub Token Exchange Route', () => {
             installationId: 12345678,
             appId: 98765,
           },
+        });
+
+        getInstallationByGitHubIdMock.mockResolvedValue({
+          id: 'inst_123',
+          tenantId: 'tenant_abc123',
+          installationId: '12345678',
+          accountLogin: 'test-org',
+          accountId: '99999',
+          accountType: 'Organization',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
         });
 
         generateInstallationAccessTokenMock.mockResolvedValue({

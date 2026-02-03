@@ -271,6 +271,7 @@ export function MCPServerForm({
             label="URL"
             placeholder="https://api.example.com/mcp"
             isRequired
+            disabled={tool?.isWorkApp}
           />
           <GenericSelect
             control={form.control}
@@ -299,68 +300,80 @@ export function MCPServerForm({
             placeholder="Instructions for how agents should use these tools..."
           />
 
-          <div className="space-y-3">
-            <GenericSelect
-              control={form.control}
-              selectTriggerClassName="w-full"
-              name="credentialScope"
-              label="Credential Scope"
-              placeholder="Select credential scope"
-              disabled={!!tool}
-              options={[
-                { value: CredentialScopeEnum.project, label: 'Project (shared team credential)' },
-                { value: CredentialScopeEnum.user, label: 'User (each user connects their own)' },
-              ]}
-            />
-            <InfoCard title="Credential Scope">
-              <div className="space-y-2">
-                <p>
-                  <strong>Project:</strong> One shared credential for the entire team. You'll
-                  connect an OAuth account now that everyone will use.
-                </p>
-                <p>
-                  <strong>User:</strong> Each team member connects their own account. No OAuth
-                  required during setup — users connect later from the detail page.
-                </p>
+          {/* Hide credential options for workapp tools (they manage auth differently) */}
+          {!tool?.isWorkApp && (
+            <>
+              <div className="space-y-3">
+                <GenericSelect
+                  control={form.control}
+                  selectTriggerClassName="w-full"
+                  name="credentialScope"
+                  label="Credential Scope"
+                  placeholder="Select credential scope"
+                  disabled={!!tool}
+                  options={[
+                    {
+                      value: CredentialScopeEnum.project,
+                      label: 'Project (shared team credential)',
+                    },
+                    {
+                      value: CredentialScopeEnum.user,
+                      label: 'User (each user connects their own)',
+                    },
+                  ]}
+                />
+                <InfoCard title="Credential Scope">
+                  <div className="space-y-2">
+                    <p>
+                      <strong>Project:</strong> One shared credential for the entire team. You'll
+                      connect an OAuth account now that everyone will use.
+                    </p>
+                    <p>
+                      <strong>User:</strong> Each team member connects their own account. No OAuth
+                      required during setup — users connect later from the detail page.
+                    </p>
+                  </div>
+                </InfoCard>
               </div>
-            </InfoCard>
-          </div>
 
-          {form.watch('credentialScope') === CredentialScopeEnum.project && (
-            <div className="space-y-3">
-              <GenericSelect
-                control={form.control}
-                selectTriggerClassName="w-full"
-                name="credentialReferenceId"
-                label="Credential"
-                placeholder="Select a credential"
-                options={[
-                  { value: 'oauth', label: 'OAuth' },
-                  { value: 'none', label: 'No Authentication' },
-                  ...credentials.map((credential) => ({
-                    value: credential.id,
-                    label: credential.name,
-                  })),
-                ]}
-              />
-              <InfoCard title="How this works">
-                <div className="space-y-2">
-                  <p>
-                    Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code>{' '}
-                    to authenticate with the MCP server's OAuth flow, which will start after you
-                    click "Create".
-                  </p>
-                  <p>
-                    Select{' '}
-                    <code className="bg-background px-1.5 py-0.5 rounded border">
-                      No Authentication
-                    </code>{' '}
-                    to skip authentication (i.e. none required or add a credential later).
-                  </p>
-                  <p>Or select from the existing credentials you have already created.</p>
+              {form.watch('credentialScope') === CredentialScopeEnum.project && (
+                <div className="space-y-3">
+                  <GenericSelect
+                    control={form.control}
+                    selectTriggerClassName="w-full"
+                    name="credentialReferenceId"
+                    label="Credential"
+                    placeholder="Select a credential"
+                    options={[
+                      { value: 'oauth', label: 'OAuth' },
+                      { value: 'none', label: 'No Authentication' },
+                      ...credentials.map((credential) => ({
+                        value: credential.id,
+                        label: credential.name,
+                      })),
+                    ]}
+                  />
+                  <InfoCard title="How this works">
+                    <div className="space-y-2">
+                      <p>
+                        Select{' '}
+                        <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code> to
+                        authenticate with the MCP server's OAuth flow, which will start after you
+                        click "Create".
+                      </p>
+                      <p>
+                        Select{' '}
+                        <code className="bg-background px-1.5 py-0.5 rounded border">
+                          No Authentication
+                        </code>{' '}
+                        to skip authentication (i.e. none required or add a credential later).
+                      </p>
+                      <p>Or select from the existing credentials you have already created.</p>
+                    </div>
+                  </InfoCard>
                 </div>
-              </InfoCard>
-            </div>
+              )}
+            </>
           )}
 
           {tool && (

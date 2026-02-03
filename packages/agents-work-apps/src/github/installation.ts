@@ -1,6 +1,6 @@
 import { createPrivateKey } from 'node:crypto';
 import { SignJWT } from 'jose';
-import { getLogger } from '../../logger';
+import { getLogger } from '../logger';
 import { getGitHubAppConfig } from './config';
 
 const logger = getLogger('github-installation');
@@ -42,10 +42,35 @@ export interface GenerateTokenError {
   message: string;
 }
 
+type SetupAction = 'install' | 'update' | 'request';
+
+interface GitHubInstallationResponse {
+  id: number;
+  account: {
+    login: string;
+    id: number;
+    type: 'Organization' | 'User';
+  };
+}
+
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+}
+
+interface GitHubRepositoriesResponse {
+  total_count: number;
+  repositories: GitHubRepository[];
+}
+
 export type GenerateInstallationAccessTokenResult = GenerateTokenResult | GenerateTokenError;
 
-async function createAppJwt(): Promise<string> {
+export async function createAppJwt(): Promise<string> {
   const config = getGitHubAppConfig();
+
+  logger.debug({ appId: config.appId }, 'Creating GitHub App JWT');
 
   // Use Node's crypto to handle both PKCS#1 (RSA PRIVATE KEY) and PKCS#8 (PRIVATE KEY) formats
   const privateKey = createPrivateKey({
@@ -232,5 +257,130 @@ export async function generateInstallationAccessToken(
       errorType: 'api_error',
       message: `Failed to connect to GitHub API: ${message}`,
     };
+  }
+}
+
+export async function fetchInstallationDetails(
+  installationId: string,
+  appJwt: string
+): Promise<
+  | { success: true; installation: GitHubInstallationResponse }
+  | { success: false; error: string; status: number }
+> {
+  const url = `${GITHUB_API_BASE}/app/installations/${installationId}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${appJwt}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'inkeep-agents-api',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(
+        { status: response.status, error: errorText, installationId },
+        'Failed to fetch installation details'
+      );
+      return {
+        success: false,
+        error: `GitHub API error: ${response.status}`,
+        status: response.status,
+      };
+    }
+
+    const data = (await response.json()) as GitHubInstallationResponse;
+    return { success: true, installation: data };
+  } catch (error) {
+    logger.error({ error, installationId }, 'Error fetching installation details');
+    return { success: false, error: 'Failed to connect to GitHub API', status: 500 };
+  }
+}
+
+export async function fetchInstallationRepositories(
+  installationId: string,
+  appJwt: string
+): Promise<
+  { success: true; repositories: GitHubRepository[] } | { success: false; error: string }
+> {
+  const tokenUrl = `${GITHUB_API_BASE}/app/installations/${installationId}/access_tokens`;
+
+  try {
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${appJwt}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'inkeep-agents-api',
+      },
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      logger.error(
+        { status: tokenResponse.status, error: errorText, installationId },
+        'Failed to get installation access token'
+      );
+      return { success: false, error: 'Failed to get installation access token' };
+    }
+
+    const tokenData = (await tokenResponse.json()) as { token: string };
+    const installationToken = tokenData.token;
+
+    const allRepositories: GitHubRepository[] = [];
+    let page = 1;
+    const perPage = 100;
+
+    while (true) {
+      const reposUrl = `${GITHUB_API_BASE}/installation/repositories?per_page=${perPage}&page=${page}`;
+      const reposResponse = await fetch(reposUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${installationToken}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'inkeep-agents-api',
+        },
+      });
+
+      if (!reposResponse.ok) {
+        const errorText = await reposResponse.text();
+        logger.error(
+          { status: reposResponse.status, error: errorText, installationId },
+          'Failed to fetch repositories'
+        );
+        return { success: false, error: 'Failed to fetch repositories' };
+      }
+
+      const reposData = (await reposResponse.json()) as GitHubRepositoriesResponse;
+      allRepositories.push(...reposData.repositories);
+
+      if (reposData.repositories.length < perPage) {
+        break;
+      }
+      page++;
+    }
+
+    return { success: true, repositories: allRepositories };
+  } catch (error) {
+    logger.error({ error, installationId }, 'Error fetching installation repositories');
+    return { success: false, error: 'Failed to connect to GitHub API' };
+  }
+}
+
+export function determineStatus(setupAction: SetupAction): 'active' | 'pending' {
+  switch (setupAction) {
+    case 'install':
+    case 'update':
+      return 'active';
+    case 'request':
+      return 'pending';
+    default:
+      return 'active';
   }
 }
