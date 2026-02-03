@@ -35,7 +35,13 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
-            provider: playwright(),
+            provider: playwright({
+              launchOptions: {
+                // Applying the `antialiased` class to <body> and enabling this option
+                // significantly reduces pixel mismatches (<1%) between macOS and Linux.
+                args: ['--font-render-hinting=none'],
+              },
+            }),
             instances: [{ browser: 'chromium' }],
             expect: {
               toMatchScreenshot: {
@@ -43,6 +49,10 @@ export default defineConfig({
                 timeout: 15_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
+                comparatorOptions: {
+                  // 1% of the pixels are allowed to mismatch between macOS and Linux
+                  allowedMismatchedPixelRatio: 0.01,
+                },
               },
             },
           },

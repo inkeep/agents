@@ -7,10 +7,7 @@ import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
-import '@/app/globals.css';
+import './styles.css';
 
 function TestForm() {
   const error = 'This field is required';
@@ -38,7 +35,7 @@ function TestForm() {
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
     <Form {...form}>
-      <form style={{ fontFamily: 'Inter' }}>
+      <form>
         {divider}
         <GenericInput {...getCommonProps('input')} />
         {divider}
@@ -59,12 +56,8 @@ describe('Form', () => {
   test('should properly highlight error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
-
     await act(async () => {
-      // Wait until fonts used by the rendered content are ready
-      await document.fonts.ready;
+      await expect(container).toMatchScreenshot();
     });
-
-    await expect(container).toMatchScreenshot();
   }, 20_000);
 });
