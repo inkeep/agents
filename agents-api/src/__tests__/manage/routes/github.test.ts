@@ -39,13 +39,6 @@ const { createAppJwtMock, fetchInstallationRepositoriesMock } = vi.hoisted(() =>
   fetchInstallationRepositoriesMock: vi.fn(),
 }));
 
-vi.mock('../../../domains/github/config', () => ({
-  isStateSigningConfigured: isStateSigningConfiguredMock,
-  isGitHubAppNameConfigured: isGitHubAppNameConfiguredMock,
-  getStateSigningSecret: getStateSigningSecretMock,
-  getGitHubAppName: getGitHubAppNameMock,
-}));
-
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
@@ -61,7 +54,11 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../domains/github/installation', () => ({
+vi.mock('../../../../../packages/agents-work-apps/dist/github', () => ({
+  isStateSigningConfigured: isStateSigningConfiguredMock,
+  isGitHubAppNameConfigured: isGitHubAppNameConfiguredMock,
+  getStateSigningSecret: getStateSigningSecretMock,
+  getGitHubAppName: getGitHubAppNameMock,
   createAppJwt: createAppJwtMock,
   fetchInstallationRepositories: fetchInstallationRepositoriesMock,
 }));
@@ -872,11 +869,14 @@ describe('GitHub Manage Routes', () => {
     };
 
     beforeEach(() => {
-      getInstallationByIdMock.mockResolvedValue(mockInstallation);
-      deleteInstallationMock.mockResolvedValue(true);
+      // deleteInstallation now returns the deleted record or null
+      deleteInstallationMock.mockResolvedValue(mockInstallation);
     });
 
     it('should delete installation permanently', async () => {
+      // deleteInstallation now returns the deleted record
+      deleteInstallationMock.mockResolvedValue(mockInstallation);
+
       const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
         method: 'DELETE',
       });
@@ -885,10 +885,6 @@ describe('GitHub Manage Routes', () => {
       const body = await response.json();
 
       expect(body.success).toBe(true);
-      expect(getInstallationByIdMock).toHaveBeenCalledWith({
-        tenantId: TEST_TENANT_ID,
-        id: 'inst-1',
-      });
       expect(deleteInstallationMock).toHaveBeenCalledWith({
         tenantId: TEST_TENANT_ID,
         id: 'inst-1',
@@ -896,7 +892,8 @@ describe('GitHub Manage Routes', () => {
     });
 
     it('should return 404 when installation not found', async () => {
-      getInstallationByIdMock.mockResolvedValue(null);
+      // deleteInstallation returns null when not found
+      deleteInstallationMock.mockResolvedValue(null);
 
       const response = await app.request(`/${TEST_TENANT_ID}/installations/nonexistent`, {
         method: 'DELETE',
@@ -908,27 +905,11 @@ describe('GitHub Manage Routes', () => {
       expect(body.status).toBe(404);
       expect(body.error.code).toBe('not_found');
       expect(body.error.message).toBe('Installation not found');
-      expect(deleteInstallationMock).not.toHaveBeenCalled();
-    });
-
-    it('should return 500 when delete operation fails', async () => {
-      deleteInstallationMock.mockResolvedValue(false);
-
-      const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
-        method: 'DELETE',
-      });
-
-      expect(response.status).toBe(500);
-      const body = await response.json();
-
-      expect(body.status).toBe(500);
-      expect(body.error.code).toBe('internal_server_error');
-      expect(body.error.message).toBe('Failed to delete installation');
     });
 
     it('should delete disconnected installation', async () => {
       const disconnectedInstallation = { ...mockInstallation, status: 'disconnected' };
-      getInstallationByIdMock.mockResolvedValue(disconnectedInstallation);
+      deleteInstallationMock.mockResolvedValue(disconnectedInstallation);
 
       const response = await app.request(`/${TEST_TENANT_ID}/installations/inst-1`, {
         method: 'DELETE',

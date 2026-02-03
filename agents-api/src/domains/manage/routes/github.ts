@@ -577,10 +577,9 @@ app.openapi(
     });
 
     if (!deleted) {
-      logger.error({ tenantId, installationId }, 'Failed to delete installation');
       throw createApiError({
-        code: 'internal_server_error',
-        message: 'Failed to delete installation',
+        code: 'not_found',
+        message: 'Installation not found',
       });
     }
 

@@ -196,16 +196,25 @@ export const disconnectInstallation =
 
 /**
  * Delete an installation (hard delete)
+ * Returns the deleted installation if found, null otherwise
  */
 export const deleteInstallation =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { tenantId: string; id: string }): Promise<boolean> => {
-    const result = await db
+  async (params: {
+    tenantId: string;
+    id: string;
+  }): Promise<WorkAppGitHubInstallationSelect | null> => {
+    const [deleted] = await db
       .delete(workAppGitHubInstallations)
-      .where(eq(workAppGitHubInstallations.id, params.id))
+      .where(
+        and(
+          eq(workAppGitHubInstallations.tenantId, params.tenantId),
+          eq(workAppGitHubInstallations.id, params.id)
+        )
+      )
       .returning();
 
-    return result.length > 0;
+    return deleted ?? null;
   };
 
 // ============================================================================

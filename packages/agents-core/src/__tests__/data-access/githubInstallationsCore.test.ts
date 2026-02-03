@@ -361,7 +361,9 @@ describe('GitHub Installations - Core', () => {
         id: created.id,
       });
 
-      expect(result).toBe(true);
+      // deleteInstallation now returns the deleted record
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe(created.id);
 
       const after = await getInstallationById(ctx.dbClient)({
         tenantId: ctx.tenantId,
@@ -454,13 +456,13 @@ describe('GitHub Installations - Core', () => {
       expect(accessAfter).toHaveLength(0);
     });
 
-    it('should return false when installation does not exist', async () => {
+    it('should return null when installation does not exist', async () => {
       const result = await deleteInstallation(ctx.dbClient)({
         tenantId: ctx.tenantId,
         id: 'non-existent-id',
       });
 
-      expect(result).toBe(false);
+      expect(result).toBeNull();
     });
   });
 });
