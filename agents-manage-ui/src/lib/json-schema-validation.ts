@@ -1,5 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import { TypeCompiler } from '@sinclair/typebox/compiler';
+import { basicSchemaTemplate } from './templates';
 
 // TypeBox schema for valid JSON Schema Draft 7
 const JsonSchemaPropertySchema = Type.Object({
@@ -231,6 +232,13 @@ export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
     errors: allErrors,
     warnings,
   };
+}
+
+/**
+ * Helper function to create a basic schema template
+ */
+export function createSchemaTemplate(): string {
+  return basicSchemaTemplate;
 }
 
 export function getJsonParseError(error: unknown): string {

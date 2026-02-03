@@ -4,6 +4,9 @@
   "tasks": {
     "test": {
       "outputs": []
+    },
+    "typecheck": {
+      "cache": false
     }
   }
 }

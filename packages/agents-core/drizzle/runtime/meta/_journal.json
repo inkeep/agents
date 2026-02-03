@@ -78,6 +78,13 @@
       "when": 1769703627877,
       "tag": "0010_previous_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770129891538,
+      "tag": "0011_grey_energizer",
+      "breakpoints": true
     }
   ]
 }
