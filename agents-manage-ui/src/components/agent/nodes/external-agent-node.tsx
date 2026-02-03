@@ -11,8 +11,11 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeData }) {
-  const { data, selected, id } = props;
+export function ExternalAgentNode({
+  data,
+  selected,
+  id,
+}: NodeProps & { data: ExternalAgentNodeData }) {
   const { name, description } = data;
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 

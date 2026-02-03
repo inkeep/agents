@@ -9,9 +9,11 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
-export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData }) {
-  const { data, selected, id } = props;
-
+export function FunctionToolNode({
+  data,
+  selected,
+  id,
+}: NodeProps & { data: FunctionToolNodeData }) {
   const name = String(data.name || 'Function Tool');
   const description = String(data.description || '');
 
