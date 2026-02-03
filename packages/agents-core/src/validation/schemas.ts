@@ -937,14 +937,13 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   cronExpression: () => CronExpressionSchema.nullable().optional(),
   runAt: () => z.string().datetime().nullable().optional().describe('One-time execution timestamp'),
   payload: () =>
-    z.record(z.string(), z.unknown()).nullable().optional().describe('Static payload for agent execution'),
-  messageTemplate: () =>
     z
-      .string()
-      .trim()
-      .min(1)
-      .describe('Message template with {{placeholder}} syntax')
-      .optional(),
+      .record(z.string(), z.unknown())
+      .nullable()
+      .optional()
+      .describe('Static payload for agent execution'),
+  messageTemplate: () =>
+    z.string().trim().min(1).describe('Message template with {{placeholder}} syntax').optional(),
   maxRetries: () => z.number().int().min(0).max(10).default(3),
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
   timeoutSeconds: () => z.number().int().min(30).max(1800).default(300),
@@ -953,10 +952,9 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(
   (data) => data.cronExpression || data.runAt,
   { message: 'Either cronExpression or runAt must be provided' }
-).refine(
-  (data) => !(data.cronExpression && data.runAt),
-  { message: 'Cannot specify both cronExpression and runAt' }
-);
+).refine((data) => !(data.cronExpression && data.runAt), {
+  message: 'Cannot specify both cronExpression and runAt',
+});
 
 export const ScheduledTriggerUpdateSchema = ScheduledTriggerInsertSchemaBase.extend({
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
@@ -970,19 +968,16 @@ export const ScheduledTriggerApiInsertSchema = createAgentScopedApiInsertSchema(
   ScheduledTriggerInsertSchemaBase
 )
   .extend({ id: ResourceIdSchema.optional() })
-  .refine(
-    (data) => data.cronExpression || data.runAt,
-    { message: 'Either cronExpression or runAt must be provided' }
-  )
-  .refine(
-    (data) => !(data.cronExpression && data.runAt),
-    { message: 'Cannot specify both cronExpression and runAt' }
-  )
+  .refine((data) => data.cronExpression || data.runAt, {
+    message: 'Either cronExpression or runAt must be provided',
+  })
+  .refine((data) => !(data.cronExpression && data.runAt), {
+    message: 'Cannot specify both cronExpression and runAt',
+  })
   .openapi('ScheduledTriggerCreate');
 
-export const ScheduledTriggerApiUpdateSchema = ScheduledTriggerUpdateSchema.openapi(
-  'ScheduledTriggerUpdate'
-);
+export const ScheduledTriggerApiUpdateSchema =
+  ScheduledTriggerUpdateSchema.openapi('ScheduledTriggerUpdate');
 
 export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
 export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
@@ -998,7 +993,8 @@ const ScheduledWorkflowInsertSchemaBase = createInsertSchema(scheduledWorkflows,
   id: () => ResourceIdSchema,
   name: () => z.string().trim().min(1).describe('Scheduled workflow name'),
   description: () => z.string().optional().describe('Scheduled workflow description'),
-  workflowRunId: () => z.string().nullable().optional().describe('Active workflow run ID for lifecycle management'),
+  workflowRunId: () =>
+    z.string().nullable().optional().describe('Active workflow run ID for lifecycle management'),
   scheduledTriggerId: () => z.string().describe('The scheduled trigger this workflow belongs to'),
 });
 
@@ -1018,9 +1014,8 @@ export const ScheduledWorkflowApiInsertSchema = createAgentScopedApiInsertSchema
   .extend({ id: ResourceIdSchema.optional() })
   .openapi('ScheduledWorkflowCreate');
 
-export const ScheduledWorkflowApiUpdateSchema = ScheduledWorkflowUpdateSchema.openapi(
-  'ScheduledWorkflowUpdate'
-);
+export const ScheduledWorkflowApiUpdateSchema =
+  ScheduledWorkflowUpdateSchema.openapi('ScheduledWorkflowUpdate');
 
 export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
 export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;
@@ -1055,7 +1050,11 @@ export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
     startedAt: () => z.string().datetime().optional().describe('Actual start time'),
     completedAt: () => z.string().datetime().optional().describe('Completion time'),
     resolvedPayload: () =>
-      z.record(z.string(), z.unknown()).nullable().optional().describe('Resolved payload with variables'),
+      z
+        .record(z.string(), z.unknown())
+        .nullable()
+        .optional()
+        .describe('Resolved payload with variables'),
     conversationId: () => ResourceIdSchema.optional().describe('Created conversation ID'),
     traceId: () => z.string().optional().describe('OpenTelemetry trace ID'),
     errorMessage: () => z.string().optional().describe('Error message if failed'),
@@ -1089,9 +1088,7 @@ export type ScheduledTriggerInvocationInsert = z.infer<
 export type ScheduledTriggerInvocationUpdate = z.infer<
   typeof ScheduledTriggerInvocationUpdateSchema
 >;
-export type ScheduledTriggerInvocationStatus = z.infer<
-  typeof ScheduledTriggerInvocationStatusEnum
->;
+export type ScheduledTriggerInvocationStatus = z.infer<typeof ScheduledTriggerInvocationStatusEnum>;
 
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({

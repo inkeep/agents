@@ -38,6 +38,7 @@ export const STATIC_LABELS = Object.freeze({
   datasets: 'Test Suites',
   runs: 'Runs',
   triggers: 'Triggers',
+  'scheduled-triggers': 'Scheduled Triggers',
   invocations: 'Invocations',
   'work-apps': 'Work Apps',
   slack: 'Slack',

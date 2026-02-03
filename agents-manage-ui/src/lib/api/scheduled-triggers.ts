@@ -168,6 +168,34 @@ export async function cancelScheduledTriggerInvocation(
 }
 
 /**
+ * Rerun a scheduled trigger invocation (manual rerun of a past run)
+ */
+export async function rerunScheduledTriggerInvocation(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  invocationId: string
+): Promise<{ success: boolean; newInvocationId: string; originalInvocationId: string }> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const { makeManagementApiRequest } = await import('./api-config');
+  const response = await makeManagementApiRequest<{
+    success: boolean;
+    newInvocationId: string;
+    originalInvocationId: string;
+  }>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations/${invocationId}/rerun`,
+    {
+      method: 'POST',
+    }
+  );
+
+  return response;
+}
+
+/**
  * Fetch invocations for a scheduled trigger
  */
 export async function fetchScheduledTriggerInvocations(

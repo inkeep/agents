@@ -812,7 +812,7 @@ export async function executeAgentAsync(params: {
 
         // Execute the agent
         const executionHandler = new ExecutionHandler();
-        await executionHandler.execute({
+        const result = await executionHandler.execute({
           executionContext,
           conversationId,
           userMessage,
@@ -822,6 +822,11 @@ export async function executeAgentAsync(params: {
           sseHelper: noOpStreamHelper,
           emitOperations: false,
         });
+
+        // Check if execution failed (e.g., LLM errors like invalid model)
+        if (!result.success) {
+          throw new Error(result.error || 'Agent execution failed');
+        }
 
         // Update status to success
         await updateTriggerInvocationStatus(runDbClient)({

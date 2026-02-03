@@ -1,13 +1,13 @@
-import { and, count, desc, eq, gte, lte, inArray, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lte, ne, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { scheduledTriggerInvocations } from '../../db/runtime/runtime-schema';
+import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import type {
   ScheduledTriggerInvocation,
   ScheduledTriggerInvocationInsert,
-  ScheduledTriggerInvocationUpdate,
   ScheduledTriggerInvocationStatus,
+  ScheduledTriggerInvocationUpdate,
 } from '../../validation/schemas';
-import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 
 /**
  * Get a scheduled trigger invocation by ID (agent-scoped)
@@ -133,13 +133,91 @@ export const listLatestScheduledTriggerInvocations =
   };
 
 /**
+ * List pending invocations for a trigger, ordered by scheduledFor (earliest first)
+ * Used by workflow to get the next invocation to execute
+ */
+export const listPendingScheduledTriggerInvocations =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    scheduledTriggerId: string;
+    limit?: number;
+  }): Promise<ScheduledTriggerInvocation[]> => {
+    const maxLimit = Math.min(params.limit || 10, 100);
+
+    const result = await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.status, 'pending')
+        )
+      )
+      .orderBy(asc(scheduledTriggerInvocations.scheduledFor))
+      .limit(maxLimit);
+
+    return result as ScheduledTriggerInvocation[];
+  };
+
+/**
+ * Count pending invocations for a trigger
+ * Used to determine how many more to pre-create
+ */
+export const countPendingScheduledTriggerInvocations =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    scheduledTriggerId: string;
+  }): Promise<number> => {
+    const result = await db
+      .select({ count: count() })
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.status, 'pending')
+        )
+      );
+
+    return result[0]?.count || 0;
+  };
+
+/**
+ * Delete all pending invocations for a trigger
+ * Used when cron expression changes or trigger is disabled
+ */
+export const deletePendingInvocationsForTrigger =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
+    const result = await db
+      .delete(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.status, 'pending')
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+/**
  * Create a new scheduled trigger invocation (agent-scoped)
  */
 export const createScheduledTriggerInvocation =
   (db: AgentsRunDatabaseClient) =>
-  async (
-    params: ScheduledTriggerInvocationInsert
-  ): Promise<ScheduledTriggerInvocation> => {
+  async (params: ScheduledTriggerInvocationInsert): Promise<ScheduledTriggerInvocation> => {
     const result = await db
       .insert(scheduledTriggerInvocations)
       .values(params as any)
@@ -186,11 +264,12 @@ export const markScheduledTriggerInvocationRunning =
     invocationId: string;
     traceId?: string;
   }): Promise<ScheduledTriggerInvocation> => {
+    const now = new Date().toISOString();
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
         status: 'running',
-        startedAt: new Date().toISOString(),
+        startedAt: sql`COALESCE(${scheduledTriggerInvocations.startedAt}, ${now})`,
         traceId: params.traceId,
       })
       .where(
@@ -311,14 +390,11 @@ export const markScheduledTriggerInvocationCancelled =
 
 /**
  * Cancel all pending invocations for a trigger
- * Used when a trigger is deleted or disabled
+ * Used when a trigger is deleted
  */
 export const cancelPendingInvocationsForTrigger =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    scheduledTriggerId: string;
-  }): Promise<number> => {
+  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
@@ -340,15 +416,41 @@ export const cancelPendingInvocationsForTrigger =
   };
 
 /**
+ * Cancel only PAST pending invocations for a trigger (scheduledFor <= now)
+ * Used when a trigger is disabled - keeps future invocations pending
+ */
+export const cancelPastPendingInvocationsForTrigger =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
+    const now = new Date().toISOString();
+    const result = await db
+      .update(scheduledTriggerInvocations)
+      .set({
+        status: 'cancelled',
+        completedAt: now,
+      })
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          inArray(scheduledTriggerInvocations.status, ['pending', 'running']),
+          lte(scheduledTriggerInvocations.scheduledFor, now) // Only cancel past invocations
+        )
+      )
+      .returning();
+
+    return result.length;
+  };
+
+/**
  * Delete all invocations for a scheduled trigger
  * Used for cleanup when a trigger is deleted
  */
 export const deleteScheduledTriggerInvocations =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    scheduledTriggerId: string;
-  }): Promise<void> => {
+  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<void> => {
     await db
       .delete(scheduledTriggerInvocations)
       .where(

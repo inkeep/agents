@@ -75,10 +75,7 @@ export async function reenqueueRun(runId: string): Promise<void> {
     const { workflowName, deploymentId } = run;
     const queueName = `__wkf_workflow_${workflowName}`;
 
-    logger.info(
-      { runId, workflowName, queueName, deploymentId },
-      'Re-enqueueing workflow run'
-    );
+    logger.info({ runId, workflowName, queueName, deploymentId }, 'Re-enqueueing workflow run');
 
     // Queue the workflow again
     await world.queue(queueName, { runId }, { deploymentId });
@@ -97,13 +94,14 @@ export async function reenqueueRun(runId: string): Promise<void> {
  * Re-enqueue a workflow run directly using run data (without re-fetching).
  * This is more efficient when we already have the run data from a list operation.
  */
-async function reenqueueRunDirect(runId: string, workflowName: string, deploymentId?: string): Promise<void> {
+async function reenqueueRunDirect(
+  runId: string,
+  workflowName: string,
+  deploymentId?: string
+): Promise<void> {
   const queueName = `__wkf_workflow_${workflowName}`;
 
-  logger.info(
-    { runId, workflowName, queueName, deploymentId },
-    'Re-enqueueing workflow run'
-  );
+  logger.info({ runId, workflowName, queueName, deploymentId }, 'Re-enqueueing workflow run');
 
   // Queue the workflow again
   await world.queue(queueName, { runId }, { deploymentId });

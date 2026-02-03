@@ -1,12 +1,12 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledTriggers } from '../../db/manage/manage-schema';
+import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import type {
   ScheduledTrigger,
   ScheduledTriggerInsert,
   ScheduledTriggerUpdate,
 } from '../../validation/schemas';
-import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 
 /**
  * Get a scheduled trigger by ID (agent-scoped)
@@ -88,13 +88,9 @@ export const listScheduledTriggersPaginated =
  * Returns triggers with enabled=true and a cronExpression
  */
 export const listEnabledCronTriggers =
-  (db: AgentsManageDatabaseClient) =>
-  async (): Promise<ScheduledTrigger[]> => {
+  (db: AgentsManageDatabaseClient) => async (): Promise<ScheduledTrigger[]> => {
     const result = await db.query.scheduledTriggers.findMany({
-      where: and(
-        eq(scheduledTriggers.enabled, true),
-        isNotNull(scheduledTriggers.cronExpression)
-      ),
+      where: and(eq(scheduledTriggers.enabled, true), isNotNull(scheduledTriggers.cronExpression)),
     });
     return result as ScheduledTrigger[];
   };
@@ -104,13 +100,9 @@ export const listEnabledCronTriggers =
  * Returns triggers with enabled=true and a runAt timestamp
  */
 export const listEnabledOneTimeTriggers =
-  (db: AgentsManageDatabaseClient) =>
-  async (): Promise<ScheduledTrigger[]> => {
+  (db: AgentsManageDatabaseClient) => async (): Promise<ScheduledTrigger[]> => {
     const result = await db.query.scheduledTriggers.findMany({
-      where: and(
-        eq(scheduledTriggers.enabled, true),
-        isNotNull(scheduledTriggers.runAt)
-      ),
+      where: and(eq(scheduledTriggers.enabled, true), isNotNull(scheduledTriggers.runAt)),
     });
     return result as ScheduledTrigger[];
   };

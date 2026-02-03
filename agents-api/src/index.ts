@@ -8,10 +8,10 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
-import { world, recoverOrphanedWorkflows } from './domains/evals/workflow/world';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
+import { recoverOrphanedWorkflows, world } from './domains/evals/workflow/world';
 import { createAgentsAuth } from './factory';
 import { createAuth0Provider } from './ssoHelpers';
 import type { SandboxConfig } from './types';
@@ -111,7 +111,9 @@ const app = createAgentsHono({
 const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
 if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
   const STARTUP_DELAY_MS = 3000; // Wait for Vite/server to start
-  console.log(`Scheduling workflow world worker start in ${STARTUP_DELAY_MS}ms (${workflowWorld} mode)...`);
+  console.log(
+    `Scheduling workflow world worker start in ${STARTUP_DELAY_MS}ms (${workflowWorld} mode)...`
+  );
 
   setTimeout(async () => {
     try {

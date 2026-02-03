@@ -318,7 +318,9 @@ export const scheduledTriggerInvocations = pgTable(
     errorCode: varchar('error_code', { length: 100 }),
     attemptNumber: integer('attempt_number').notNull().default(1),
     idempotencyKey: varchar('idempotency_key', { length: 256 }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.id] }),

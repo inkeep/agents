@@ -1,12 +1,12 @@
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledWorkflows } from '../../db/manage/manage-schema';
+import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import type {
   ScheduledWorkflow,
   ScheduledWorkflowInsert,
   ScheduledWorkflowUpdate,
 } from '../../validation/schemas';
-import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 
 /**
  * Get a scheduled workflow by ID (agent-scoped)
@@ -111,8 +111,7 @@ export const listScheduledWorkflowsPaginated =
  * Useful for watchdog to detect workflows needing restart
  */
 export const listWorkflowsWithoutRunId =
-  (db: AgentsManageDatabaseClient) =>
-  async (): Promise<ScheduledWorkflow[]> => {
+  (db: AgentsManageDatabaseClient) => async (): Promise<ScheduledWorkflow[]> => {
     const result = await db.query.scheduledWorkflows.findMany({
       where: isNull(scheduledWorkflows.workflowRunId),
     });

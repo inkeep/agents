@@ -5,17 +5,21 @@
  * operations and external service calls.
  */
 import {
+  countPendingScheduledTriggerInvocations,
   createScheduledTriggerInvocation,
+  deletePendingInvocationsForTrigger,
   generateId,
   getProjectScopedRef,
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerInvocationByIdempotencyKey,
   getScheduledWorkflowByTriggerId,
+  listPendingScheduledTriggerInvocations,
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
   resolveRef,
+  type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
   withRef,
 } from '@inkeep/agents-core';
@@ -86,6 +90,189 @@ export async function computeSleepDurationStep(targetTime: string): Promise<numb
 }
 
 /**
+ * Step: Calculate the next N execution times from a cron expression.
+ * Used to pre-create pending invocations.
+ */
+export async function calculateNextNCronTimesStep(params: {
+  cronExpression: string;
+  count: number;
+  startFrom?: string | null;
+}): Promise<string[]> {
+  'use step';
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { CronExpressionParser } = require('cron-parser');
+  const baseDate = params.startFrom ? new Date(params.startFrom) : new Date();
+  const interval = CronExpressionParser.parse(params.cronExpression, { currentDate: baseDate });
+
+  const times: string[] = [];
+  for (let i = 0; i < params.count; i++) {
+    const nextDate = interval.next();
+    times.push(nextDate.toISOString());
+  }
+
+  return times;
+}
+
+/**
+ * Step: Pre-create pending invocations up to the target count.
+ * Returns the number of invocations created.
+ */
+export async function preCreatePendingInvocationsStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  cronExpression: string;
+  payload: Record<string, unknown> | null;
+  targetCount: number;
+}): Promise<{ created: number; total: number }> {
+  'use step';
+
+  const scopes = {
+    tenantId: params.tenantId,
+    projectId: params.projectId,
+    agentId: params.agentId,
+  };
+
+  // Count existing pending invocations
+  const existingCount = await countPendingScheduledTriggerInvocations(runDbClient)({
+    scopes,
+    scheduledTriggerId: params.scheduledTriggerId,
+  });
+
+  const toCreate = params.targetCount - existingCount;
+  if (toCreate <= 0) {
+    logger.info(
+      { scheduledTriggerId: params.scheduledTriggerId, existingCount, targetCount: params.targetCount },
+      'Already have enough pending invocations'
+    );
+    return { created: 0, total: existingCount };
+  }
+
+  // Get the latest pending invocation to start from
+  const pendingInvocations = await listPendingScheduledTriggerInvocations(runDbClient)({
+    scopes,
+    scheduledTriggerId: params.scheduledTriggerId,
+    limit: 1,
+  });
+
+  // Find the latest scheduledFor time (either from pending or we start from now)
+  let startFrom: string | null = null;
+  if (pendingInvocations.length > 0) {
+    // Get the last pending invocation's scheduledFor time
+    const allPending = await listPendingScheduledTriggerInvocations(runDbClient)({
+      scopes,
+      scheduledTriggerId: params.scheduledTriggerId,
+      limit: 100,
+    });
+    // Find the max scheduledFor
+    startFrom = allPending.reduce((max, inv) => {
+      return inv.scheduledFor > max ? inv.scheduledFor : max;
+    }, allPending[0].scheduledFor);
+  }
+
+  // Calculate the next N times
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { CronExpressionParser } = require('cron-parser');
+  const baseDate = startFrom ? new Date(startFrom) : new Date();
+  const interval = CronExpressionParser.parse(params.cronExpression, { currentDate: baseDate });
+
+  let createdCount = 0;
+  for (let i = 0; i < toCreate; i++) {
+    const nextDate = interval.next();
+    const scheduledFor = nextDate.toISOString();
+    const idempotencyKey = `sched_${params.scheduledTriggerId}_${scheduledFor}`;
+
+    // Check if already exists (idempotency)
+    const existing = await getScheduledTriggerInvocationByIdempotencyKey(runDbClient)({
+      idempotencyKey,
+    });
+
+    if (!existing) {
+      await createScheduledTriggerInvocation(runDbClient)({
+        id: generateId(),
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+        scheduledTriggerId: params.scheduledTriggerId,
+        status: 'pending',
+        scheduledFor,
+        resolvedPayload: params.payload,
+        idempotencyKey,
+        attemptNumber: 1,
+      });
+      createdCount++;
+    }
+  }
+
+  logger.info(
+    {
+      scheduledTriggerId: params.scheduledTriggerId,
+      created: createdCount,
+      total: existingCount + createdCount,
+    },
+    'Pre-created pending invocations'
+  );
+
+  return { created: createdCount, total: existingCount + createdCount };
+}
+
+/**
+ * Step: Get the next pending invocation to execute (earliest scheduledFor).
+ * Returns null if no pending invocations exist.
+ */
+export async function getNextPendingInvocationStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+}): Promise<ScheduledTriggerInvocation | null> {
+  'use step';
+
+  const invocations = await listPendingScheduledTriggerInvocations(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    limit: 1,
+  });
+
+  return invocations[0] || null;
+}
+
+/**
+ * Step: Delete all pending invocations for a trigger.
+ * Used when cron expression changes or trigger is disabled.
+ */
+export async function deletePendingInvocationsStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+}): Promise<number> {
+  'use step';
+
+  const deletedCount = await deletePendingInvocationsForTrigger(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+  });
+
+  logger.info(
+    { scheduledTriggerId: params.scheduledTriggerId, deletedCount },
+    'Deleted pending invocations'
+  );
+
+  return deletedCount;
+}
+
+/**
  * Step: Check if trigger is still enabled and this runner is authoritative.
  * Uses branch-scoped database queries for DoltgreS compatibility.
  */
@@ -151,15 +338,18 @@ export async function checkTriggerEnabledStep(params: {
   // Apply defaults for fields that DoltgreS doesn't honor defaults for
   // Use explicit validation to handle null, undefined, AND NaN values
   // (NaN can occur due to workflow serialization issues)
-  const safeMaxRetries = typeof trigger.maxRetries === 'number' && !Number.isNaN(trigger.maxRetries) 
-    ? trigger.maxRetries 
-    : 3;
-  const safeRetryDelaySeconds = typeof trigger.retryDelaySeconds === 'number' && !Number.isNaN(trigger.retryDelaySeconds) 
-    ? trigger.retryDelaySeconds 
-    : 60;
-  const safeTimeoutSeconds = typeof trigger.timeoutSeconds === 'number' && !Number.isNaN(trigger.timeoutSeconds) 
-    ? trigger.timeoutSeconds 
-    : 300;
+  const safeMaxRetries =
+    typeof trigger.maxRetries === 'number' && !Number.isNaN(trigger.maxRetries)
+      ? trigger.maxRetries
+      : 3;
+  const safeRetryDelaySeconds =
+    typeof trigger.retryDelaySeconds === 'number' && !Number.isNaN(trigger.retryDelaySeconds)
+      ? trigger.retryDelaySeconds
+      : 60;
+  const safeTimeoutSeconds =
+    typeof trigger.timeoutSeconds === 'number' && !Number.isNaN(trigger.timeoutSeconds)
+      ? trigger.timeoutSeconds
+      : 300;
 
   logger.debug(
     {
@@ -419,20 +609,15 @@ export async function executeScheduledTriggerStep(params: {
   );
 
   try {
-    // Call the internal execution endpoint on the main server
-    // This runs execution in the proper server context where agentSessionManager works
     const baseUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
     const apiKey = process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '';
-
-    // URL includes tenant/project/agent in path for middleware compatibility
-    // Full path: /run/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/internal/execute
     const url = `${baseUrl}/run/tenants/${params.tenantId}/projects/${params.projectId}/agents/${params.agentId}/scheduled-triggers/internal/execute`;
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'x-inkeep-tenant-id': params.tenantId,
         'x-inkeep-project-id': params.projectId,
         'x-inkeep-agent-id': params.agentId,
@@ -446,14 +631,22 @@ export async function executeScheduledTriggerStep(params: {
       }),
     });
 
-    const result = await response.json() as { success: boolean; conversationId?: string; error?: string };
+    const result = (await response.json()) as {
+      success: boolean;
+      conversationId?: string;
+      error?: string;
+    };
 
     if (!response.ok || !result.success) {
       throw new Error(result.error || `HTTP ${response.status}: Execution failed`);
     }
 
     logger.info(
-      { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId, conversationId: result.conversationId },
+      {
+        scheduledTriggerId: params.scheduledTriggerId,
+        invocationId: params.invocationId,
+        conversationId: result.conversationId,
+      },
       'Scheduled trigger execution completed via HTTP'
     );
 
@@ -463,10 +656,7 @@ export async function executeScheduledTriggerStep(params: {
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(
-      { ...params, error: errorMessage },
-      'Execute scheduled trigger step failed'
-    );
+    logger.error({ ...params, error: errorMessage }, 'Execute scheduled trigger step failed');
     return {
       success: false,
       error: errorMessage,

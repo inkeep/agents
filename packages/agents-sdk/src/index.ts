@@ -64,6 +64,11 @@ export {
 } from './projectFullClient';
 export { Runner, raceAgents, run, stream } from './runner';
 export { loadSkills } from './skill-loader';
+export {
+  ScheduledTrigger,
+  type ScheduledTriggerConfig,
+  type ScheduledTriggerInterface,
+} from './scheduled-trigger';
 export { StatusComponent, type StatusComponentInterface } from './status-component';
 export { SubAgent } from './subAgent';
 export {
@@ -88,11 +93,4 @@ export {
 } from './telemetry-provider';
 export { Tool } from './tool';
 export { Trigger, type TriggerConfig, type TriggerInterface } from './trigger';
-export {
-  ScheduledTrigger,
-  type ScheduledTriggerConfig,
-  type ScheduledTriggerInterface,
-  oneTimeTrigger,
-  cronTrigger,
-} from './scheduled-trigger';
 export type * from './types';

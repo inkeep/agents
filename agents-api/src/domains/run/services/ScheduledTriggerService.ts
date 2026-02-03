@@ -4,21 +4,24 @@
  * Handles starting, stopping, and restarting workflow runners
  * when scheduled triggers are created, updated, or deleted.
  */
-import { start } from 'workflow/api';
+
 import {
-  getScheduledWorkflowByTriggerId,
+  type AgentsManageDatabaseClient,
+  cancelPastPendingInvocationsForTrigger,
   createScheduledWorkflow,
-  updateScheduledWorkflowRunId,
   generateId,
+  getScheduledWorkflowByTriggerId,
   type ScheduledTrigger,
   type ScheduledWorkflow,
-  type AgentsManageDatabaseClient,
+  updateScheduledWorkflowRunId,
 } from '@inkeep/agents-core';
 import { manageDbClient } from 'src/data/db';
+import runDbClient from 'src/data/db/runDbClient';
+import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
 import {
-  scheduledTriggerRunnerWorkflow,
   type ScheduledTriggerRunnerPayload,
+  scheduledTriggerRunnerWorkflow,
 } from '../workflow/functions/scheduledTriggerRunner';
 
 const logger = getLogger('ScheduledTriggerService');
@@ -97,13 +100,16 @@ export async function startScheduledTriggerWorkflow(
   );
 
   // Get or create the scheduled workflow for this trigger
-  const workflow = await getOrCreateScheduledWorkflow({
-    tenantId,
-    projectId,
-    agentId,
-    scheduledTriggerId,
-    triggerName,
-  }, dbClient);
+  const workflow = await getOrCreateScheduledWorkflow(
+    {
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      triggerName,
+    },
+    dbClient
+  );
 
   // Start the workflow and capture the actual run ID
   // The start() function returns a Run object with a runId property (e.g., wrun_XXXXX)
@@ -119,7 +125,14 @@ export async function startScheduledTriggerWorkflow(
   });
 
   logger.info(
-    { tenantId, projectId, agentId, scheduledTriggerId, workflowRunId, scheduledWorkflowId: workflow.id },
+    {
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      workflowRunId,
+      scheduledWorkflowId: workflow.id,
+    },
     'Scheduled trigger workflow started'
   );
 
@@ -195,13 +208,16 @@ export async function restartScheduledTriggerWorkflow(
 
   // Starting a new workflow automatically supersedes the old one
   // because the workflowRunId will change
-  return startScheduledTriggerWorkflow({
-    tenantId,
-    projectId,
-    agentId,
-    scheduledTriggerId,
-    triggerName,
-  }, db);
+  return startScheduledTriggerWorkflow(
+    {
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      triggerName,
+    },
+    db
+  );
 }
 
 /**
@@ -220,13 +236,16 @@ export async function onTriggerCreated(
     return;
   }
 
-  await startScheduledTriggerWorkflow({
-    tenantId: trigger.tenantId,
-    projectId: trigger.projectId,
-    agentId: trigger.agentId,
-    scheduledTriggerId: trigger.id,
-    triggerName: trigger.name,
-  }, db);
+  await startScheduledTriggerWorkflow(
+    {
+      tenantId: trigger.tenantId,
+      projectId: trigger.projectId,
+      agentId: trigger.agentId,
+      scheduledTriggerId: trigger.id,
+      triggerName: trigger.name,
+    },
+    db
+  );
 }
 
 /**
@@ -249,37 +268,64 @@ export async function onTriggerUpdated(
   }
 
   // Case 2: Enabled -> disabled = signal workflow to stop
+  // (past invocations will be cleaned up when re-enabled)
   if (previousEnabled && !trigger.enabled) {
-    await signalStopScheduledTriggerWorkflow({
-      tenantId: trigger.tenantId,
-      projectId: trigger.projectId,
-      agentId: trigger.agentId,
-      scheduledTriggerId: trigger.id,
-    }, db);
+    await signalStopScheduledTriggerWorkflow(
+      {
+        tenantId: trigger.tenantId,
+        projectId: trigger.projectId,
+        agentId: trigger.agentId,
+        scheduledTriggerId: trigger.id,
+      },
+      db
+    );
     return;
   }
 
-  // Case 3: Disabled -> enabled = start workflow
+  // Case 3: Disabled -> enabled = cancel past pending invocations and start workflow
   if (!previousEnabled && trigger.enabled) {
-    await startScheduledTriggerWorkflow({
-      tenantId: trigger.tenantId,
-      projectId: trigger.projectId,
-      agentId: trigger.agentId,
+    // Cancel any pending invocations that are now in the past
+    const cancelledCount = await cancelPastPendingInvocationsForTrigger(runDbClient)({
+      scopes: {
+        tenantId: trigger.tenantId,
+        projectId: trigger.projectId,
+        agentId: trigger.agentId,
+      },
       scheduledTriggerId: trigger.id,
-      triggerName: trigger.name,
-    }, db);
+    });
+
+    if (cancelledCount > 0) {
+      logger.info(
+        { scheduledTriggerId: trigger.id, cancelledCount },
+        'Cancelled past pending invocations on trigger re-enable'
+      );
+    }
+
+    await startScheduledTriggerWorkflow(
+      {
+        tenantId: trigger.tenantId,
+        projectId: trigger.projectId,
+        agentId: trigger.agentId,
+        scheduledTriggerId: trigger.id,
+        triggerName: trigger.name,
+      },
+      db
+    );
     return;
   }
 
   // Case 4: Still enabled but schedule changed = restart workflow
   if (scheduleChanged) {
-    await restartScheduledTriggerWorkflow({
-      tenantId: trigger.tenantId,
-      projectId: trigger.projectId,
-      agentId: trigger.agentId,
-      scheduledTriggerId: trigger.id,
-      triggerName: trigger.name,
-    }, db);
+    await restartScheduledTriggerWorkflow(
+      {
+        tenantId: trigger.tenantId,
+        projectId: trigger.projectId,
+        agentId: trigger.agentId,
+        scheduledTriggerId: trigger.id,
+        triggerName: trigger.name,
+      },
+      db
+    );
   }
 }
 
@@ -293,10 +339,13 @@ export async function onTriggerDeleted(
   db?: AgentsManageDatabaseClient
 ): Promise<void> {
   // Signal the workflow to stop - it will be cascade deleted with the trigger
-  await signalStopScheduledTriggerWorkflow({
-    tenantId: trigger.tenantId,
-    projectId: trigger.projectId,
-    agentId: trigger.agentId,
-    scheduledTriggerId: trigger.id,
-  }, db);
+  await signalStopScheduledTriggerWorkflow(
+    {
+      tenantId: trigger.tenantId,
+      projectId: trigger.projectId,
+      agentId: trigger.agentId,
+      scheduledTriggerId: trigger.id,
+    },
+    db
+  );
 }
