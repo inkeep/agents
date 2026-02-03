@@ -29,23 +29,21 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
   const uri = props.uri ?? (name ? (`${name}.json` as const) : undefined);
 
-  const actions = !readOnly && (
-    <Button
-      type="button"
-      onClick={() => {
-        onChange(customTemplate);
-      }}
-      variant="outline"
-      size="sm"
-      className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-    >
-      Template
-    </Button>
-  );
-
   return (
     <JsonEditor value={value} onChange={onChange} readOnly={readOnly} uri={uri} {...props}>
-      {actions}
+      {!readOnly && (
+        <Button
+          type="button"
+          onClick={() => {
+            onChange(customTemplate);
+          }}
+          variant="outline"
+          size="sm"
+          className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+        >
+          Template
+        </Button>
+      )}
     </JsonEditor>
   );
 };
