@@ -139,10 +139,7 @@ const envSchema = z.object({
     .describe('Google Generative AI API key for Gemini models'),
 
   // GitHub App Configuration
-  GITHUB_APP_ID: z
-    .string()
-    .optional()
-    .describe('GitHub App ID for GitHub integration'),
+  GITHUB_APP_ID: z.string().optional().describe('GitHub App ID for GitHub integration'),
   GITHUB_APP_PRIVATE_KEY: z
     .string()
     .optional()
@@ -156,14 +153,8 @@ const envSchema = z.object({
     .min(32, 'GITHUB_STATE_SIGNING_SECRET must be at least 32 characters')
     .optional()
     .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
-  GITHUB_APP_NAME: z
-    .string()
-    .optional()
-    .describe('Name of the GitHub App'),
-  GITHUB_MCP_API_KEY: z
-    .string()
-    .optional()
-    .describe('API key for the GitHub MCP'),
+  GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
+  GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 
   // Workflow Configuration
   WORKFLOW_TARGET_WORLD: z.string().optional().describe('Target world for workflow execution'),
