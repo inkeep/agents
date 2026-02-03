@@ -254,7 +254,7 @@ describe('duplicateAgent', () => {
           and(
             eq(functions.tenantId, testTenantId),
             eq(functions.projectId, testProjectId),
-            eq(functions.id, duplicatedFunctionId!)
+            eq(functions.id, duplicatedFunctionId as string)
           )
         );
 
