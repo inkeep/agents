@@ -273,13 +273,13 @@ export async function deleteFullAgentAction(
 }
 
 /**
- * Duplicate an existing agent with a new ID and optional new name
+ * Duplicate an existing agent with a new ID and name
  */
 export async function duplicateAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  data: { newAgentId: string; newAgentName?: string }
+  data: { newAgentId: string; newAgentName: string }
 ): Promise<ActionResult<AgentApiInsert>> {
   try {
     const response = await apiDuplicateAgent(tenantId, projectId, agentId, data);

@@ -146,13 +146,13 @@ export async function deleteFullAgent(
 }
 
 /**
- * Duplicate an existing agent with a new ID and optional new name
+ * Duplicate an existing agent with a new ID and name
  */
 export async function duplicateAgent(
   tenantId: string,
   projectId: string,
   agentId: string,
-  data: { newAgentId: string; newAgentName?: string }
+  data: { newAgentId: string; newAgentName: string }
 ): Promise<CreateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
