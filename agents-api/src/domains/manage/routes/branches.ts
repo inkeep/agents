@@ -17,9 +17,24 @@ import {
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:branchName', async (c, next) => {
+  if (c.req.method === 'DELETE') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
 
 // List branches for a project
 app.openapi(
