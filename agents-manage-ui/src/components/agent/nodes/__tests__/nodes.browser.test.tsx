@@ -7,27 +7,40 @@ import {
   BaseNodeFooter,
 } from '../base-node';
 import '../../../form/__tests__/styles.css';
+import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
+import { ReactFlowProvider } from '@xyflow/react';
+import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
+import { FunctionToolNode } from '@/components/agent/nodes/function-tool-node';
+import { MCPNode } from '@/components/agent/nodes/mcp-node';
+import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
+import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
 
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
-    <>
-      <BaseNode>
-        <BaseNodeHeader style={{ background: 'blue' }}>
-          {'BaseNodeHeader'.repeat(10)}
-          <BaseNodeHeaderTitle style={{ background: 'green' }}>
-            {'BaseNodeHeaderTitle'.repeat(10)}
-          </BaseNodeHeaderTitle>
-        </BaseNodeHeader>
-        <BaseNodeContent style={{ background: 'red' }}>
-          {'BaseNodeContent'.repeat(10)}
-        </BaseNodeContent>
-        <BaseNodeFooter style={{ background: 'yellow' }}>
-          {'BaseNodeFooter'.repeat(10)}
-        </BaseNodeFooter>
-      </BaseNode>
+    <ReactFlowProvider>
       {divider}
-    </>
+      <ExternalAgentNode />
+      {divider}
+      <FunctionToolNode />
+      {divider}
+      <MCPNode />
+      {divider}
+      <PlaceholderNode />
+      {divider}
+      <SubAgentNode
+        selected
+        data={{
+          id: 'foo',
+          name: 'SubAgentNode'.repeat(10),
+          isDefault: true,
+          description: 'description '.repeat(10),
+        }}
+      />
+      {divider}
+      <TeamAgentNode />
+      {divider}
+    </ReactFlowProvider>
   );
 }
 
