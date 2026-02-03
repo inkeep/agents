@@ -1,12 +1,4 @@
 import { act, render } from '@testing-library/react';
-import {
-  BaseNode,
-  BaseNodeHeader,
-  BaseNodeContent,
-  BaseNodeHeaderTitle,
-  BaseNodeFooter,
-} from '../base-node';
-import '../../../form/__tests__/styles.css';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { ReactFlowProvider } from '@xyflow/react';
 import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
@@ -14,31 +6,58 @@ import { FunctionToolNode } from '@/components/agent/nodes/function-tool-node';
 import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
+import '../../../form/__tests__/styles.css';
+
+vi.mock('next/navigation', () => {
+  return {
+    useParams() {
+      return {};
+    },
+  };
+});
+vi.mock('@/contexts/runtime-config', () => {
+  return {
+    useRuntimeConfig() {
+      return {};
+    },
+  };
+});
+vi.mock('@/lib/query/mcp-tools', () => {
+  return {
+    useMcpToolStatusQuery() {
+      return {};
+    },
+  };
+});
 
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
+  const data = {
+    name: 'name'.repeat(10),
+    description: 'description'.repeat(10),
+  };
+
   return (
     <ReactFlowProvider>
       {divider}
-      <ExternalAgentNode />
+      <ExternalAgentNode id="foo" data={data} />
       {divider}
-      <FunctionToolNode />
+      <FunctionToolNode id="foo" data={data} />
       {divider}
-      <MCPNode />
+      <MCPNode id="foo" data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg' }} />
       {divider}
-      <PlaceholderNode />
+      <PlaceholderNode id="foo" data={{ ...data, type: 'agent' }} />
       {divider}
       <SubAgentNode
         selected
+        id="foo"
         data={{
-          id: 'foo',
-          name: 'SubAgentNode'.repeat(10),
+          ...data,
           isDefault: true,
-          description: 'description '.repeat(10),
         }}
       />
       {divider}
-      <TeamAgentNode />
+      <TeamAgentNode id="foo" data={data} />
       {divider}
     </ReactFlowProvider>
   );
