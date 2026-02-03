@@ -79,17 +79,23 @@ When analyzing a type, you will:
 
 **Output Format:**
 
-Return findings as a JSON array per pr-review-output-contract:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number(s)
-- **severity**: CRITICAL (illegal states possible), MAJOR (missing validation, encapsulation leak), MINOR (could be clearer), INFO (suggestion)
-- **category**: `types`
-- **reviewer**: `pr-review-types`
-- **issue**: What's the type design problem
-- **implications**: Why it matters for type safety (invalid states, missing invariants, leaky abstraction)
-- **alternatives**: Concrete improvement (consider complexity cost)
-- **confidence**: HIGH, MEDIUM, LOW
+**Quality bar:** Every finding MUST identify a specific type safety violation or invariant gap. No "types could be stricter" without showing what illegal state becomes representable.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) |
+| **severity** | `CRITICAL` (illegal states representable), `MAJOR` (missing validation, encapsulation leak), `MINOR` (type clarity improvement), `INFO` (design consideration) |
+| **category** | `types` |
+| **reviewer** | `pr-review-types` |
+| **issue** | Identify the specific type design flaw. Which invariant is missing or broken? What illegal state can be constructed? Show a concrete example of invalid data that the type permits. |
+| **implications** | Explain the concrete consequence. What bugs become possible? What invalid data can flow through the system? For encapsulation leaks: show how downstream code can now break invariants with a code example. |
+| **alternatives** | Provide the improved type definition. Show before/after type signatures. Explain the trade-off (complexity vs safety). For validation changes, show where and how to add checks. |
+| **confidence** | `HIGH` (definite — illegal state is constructible), `MEDIUM` (likely — type allows questionable states), `LOW` (optional — stricter typing possible but not required) |
+
+**Do not report:** Generic "could be more type-safe" without concrete illegal states. Type preferences that don't affect correctness. Pre-existing type issues not introduced by this PR.
 
 **When Suggesting Improvements:**
 

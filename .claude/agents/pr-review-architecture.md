@@ -165,17 +165,23 @@ Things AI agents and junior engineers often miss at the system level:
 
 # Output Contract
 
-Return findings as a JSON array per pr-review-output-contract:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number(s) or "n/a" for file-level or system-level concerns
-- **severity**: CRITICAL (architectural violation, data consistency risk), MAJOR (pattern inconsistency, poor abstraction), MINOR (could be cleaner), INFO (suggestion)
-- **category**: `architecture`
-- **reviewer**: `pr-review-architecture`
-- **issue**: What's the architectural concern
-- **implications**: Why it matters for the system (maintainability, scalability, consistency)
-- **alternatives**: Concrete improvement with rationale
-- **confidence**: HIGH, MEDIUM, LOW
+**Quality bar:** Every finding MUST be specific, evidence-backed, and justified. No vague observations. No "this could be cleaner" without explaining what's wrong and why it matters.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) or `"n/a"` for system-level concerns |
+| **severity** | `CRITICAL` (architectural violation, data consistency risk), `MAJOR` (pattern inconsistency, poor abstraction), `MINOR` (design improvement), `INFO` (consideration) |
+| **category** | `architecture` |
+| **reviewer** | `pr-review-architecture` |
+| **issue** | State the specific architectural problem. Name the pattern being violated or the abstraction that's misaligned. Include file:line evidence. A reader with no context should understand exactly what's wrong. |
+| **implications** | Explain the concrete consequence. What breaks, degrades, or becomes harder to maintain? For CRITICAL/MAJOR: describe a specific future scenario where this causes pain (e.g., "adding a new payment provider will require touching N files"). |
+| **alternatives** | Provide a concrete fix, not "consider refactoring." Show how existing patterns solve this, or sketch the better abstraction. Include rationale for why this approach is superior. |
+| **confidence** | `HIGH` (definite — evidence is unambiguous), `MEDIUM` (likely — reasonable alternate interpretation exists), `LOW` (possible — needs broader context) |
+
+**Do not report:** Vague concerns without specific evidence. Stylistic preferences without architectural impact. Pre-existing issues not introduced by this PR.
 
 # Assumptions & Edge Cases
 

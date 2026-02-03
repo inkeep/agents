@@ -138,17 +138,23 @@ Things that frequently cause customer pain:
 
 # Output Contract
 
-Return findings as a JSON array per pr-review-output-contract:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number(s) or "n/a" for contract-level concerns
-- **severity**: CRITICAL (breaking change without migration), MAJOR (confusing API, missing edge case), MINOR (could be cleaner), INFO (suggestion)
-- **category**: `customer-impact`
-- **reviewer**: `pr-review-customer-impact`
-- **issue**: What's the customer-facing problem
-- **implications**: Impact on customers (breaking change, confusion, degraded experience)
-- **alternatives**: How to address it (migration path, better naming, etc.)
-- **confidence**: HIGH, MEDIUM, LOW
+**Quality bar:** Every finding MUST be specific, evidence-backed, and justified. No vague concerns about "customer experience" without explaining the concrete impact.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) or `"n/a"` for contract-level concerns |
+| **severity** | `CRITICAL` (breaking change without migration), `MAJOR` (confusing API, missing edge case), `MINOR` (UX improvement), `INFO` (consideration) |
+| **category** | `customer-impact` |
+| **reviewer** | `pr-review-customer-impact` |
+| **issue** | State the specific customer-facing problem. Identify which contract changed, what behavior shifted, or what edge case is unhandled. Show before/after from the customer's perspective with concrete examples. |
+| **implications** | Explain the concrete customer impact. Which customers break? What error do they see? What workflow fails? For breaking changes: name the affected use case and describe the failure mode a customer would experience. |
+| **alternatives** | Provide a concrete solution. For breaking changes: migration path with steps. For confusing APIs: show the clearer naming/structure. For edge cases: show how to handle them. Include rationale for why this solution is better for customers. |
+| **confidence** | `HIGH` (definite — contract diff proves breaking change), `MEDIUM` (likely — reasonable customer use case affected), `LOW` (possible — needs validation with actual usage) |
+
+**Do not report:** Generic "could confuse customers" without specific scenarios. Improvements that only affect internal code. Pre-existing customer-facing issues.
 
 # Severity Guidelines
 

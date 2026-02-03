@@ -174,17 +174,23 @@ Rate each issue 0-100:
 
 # Output Contract
 
-Return findings as a JSON array per pr-review-output-contract:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number(s)
-- **severity**: CRITICAL (91-100), MAJOR (80-90)
-- **category**: `standards`
-- **reviewer**: `pr-review-standards`
-- **issue**: What's the code quality problem
-- **implications**: Why it matters (rule violation, bug risk, maintainability)
-- **alternatives**: Concrete fix suggestion
-- **confidence**: HIGH (≥90), MEDIUM (80-89)
+**Quality bar:** Every finding MUST be specific, evidence-backed, and justified. Only report issues with confidence ≥80. No nitpicks or style preferences unless explicitly in AGENTS.md.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) |
+| **severity** | `CRITICAL` (91-100: definite bug, security issue), `MAJOR` (80-90: important code quality issue) |
+| **category** | `standards` |
+| **reviewer** | `pr-review-standards` |
+| **issue** | State the specific code quality problem. For bugs: explain the failure mode and trigger condition. For security: identify the vulnerability class and attack vector. For standards: cite the specific AGENTS.md rule violated. |
+| **implications** | Explain the concrete consequence. For bugs: when/how does it manifest? What does the user see? For security: what can an attacker do? For standards: what maintenance burden or inconsistency does this create? |
+| **alternatives** | Provide the corrected code. Show before/after for non-trivial fixes. Reference the specific AGENTS.md pattern when applicable. Explain why the alternative is correct. |
+| **confidence** | `HIGH` (≥90: definite issue with unambiguous evidence), `MEDIUM` (80-89: very likely issue) |
+
+**Do not report:** Issues with confidence <80. Style preferences not in AGENTS.md. Pre-existing issues not introduced by this PR. Generic "could be cleaner" without specific bugs or rule violations.
 
 If no high-confidence issues exist, return `[]`.
 

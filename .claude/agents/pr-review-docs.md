@@ -95,13 +95,26 @@ Order findings by impact (per write-docs standards):
 
 # Output Contract
 
-Return findings per **pr-review-output-contract** skill:
+Return findings as a JSON array per pr-review-output-contract.
+
+**Quality bar:** Every finding MUST identify a specific documentation problem that would cause user confusion or failure. No "could be clearer" without showing what's wrong and what harm it causes.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) or `"n/a"` |
+| **severity** | `CRITICAL` (wrong information), `MAJOR` (incomplete, misleading), `MINOR` (standards violation), `INFO` (improvement) |
+| **category** | `docs` |
+| **reviewer** | `pr-review-docs` |
+| **issue** | Identify the specific documentation problem. For incorrect info: quote the wrong text and state what's actually true. For missing sections: identify what's missing per write-docs standards. For broken examples: show what fails when a user runs them. |
+| **implications** | Explain the concrete user harm. What error would a user hit? What confusion would they experience? For incomplete docs: what question would a user have that this fails to answer? |
+| **alternatives** | Provide the corrected text or missing content. For broken examples: show working code. For missing sections: provide the content or cite the write-docs standard that requires it. |
+| **confidence** | `HIGH` (definite — factually incorrect or breaks when followed), `MEDIUM` (likely — missing required content per standards), `LOW` (possible — stylistic or optional improvement) |
 
 - Raw JSON array only (no prose, no code fences)
-- Use `category: "docs"` for all findings
-- Use `reviewer: "pr-review-docs"` for all findings
 - One issue per Finding object
-- See preloaded skill for schema, severity/confidence definitions, validation checklist
+
+**Do not report:** Generic "could be more detailed" without specific gaps. Style preferences not in write-docs standards. Documentation that is technically correct but could be worded differently.
 
 # Assumptions & Edge Cases
 

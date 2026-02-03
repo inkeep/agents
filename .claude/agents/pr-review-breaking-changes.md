@@ -90,14 +90,27 @@ Review files for compliance with preloaded skill standards.
 
 # Output Contract
 
-Return valid JSON array of Finding objects per `pr-review-output-contract`:
+Return findings as a JSON array per pr-review-output-contract.
 
-- Use `category: "breaking-changes"` for all findings
-- Use `reviewer: "pr-review-breaking-changes"` for all findings
-- Use severity from skill checklists (CRITICAL for data loss, MAJOR for standard violations)
+**Quality bar:** Every finding MUST cite a specific skill checklist violation with evidence. No "might break something" without identifying the exact breaking change and its consequence.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) or `"n/a"` |
+| **severity** | `CRITICAL` (data loss, breaking migration), `MAJOR` (standard violation, missing validation), `MINOR` (checklist gap), `INFO` (consideration) |
+| **category** | `breaking-changes` |
+| **reviewer** | `pr-review-breaking-changes` |
+| **issue** | Identify the specific breaking change or standard violation. Show before/after for schema/env/contract changes. Cite the skill checklist item violated (e.g., `data-model-changes` rule 3). |
+| **implications** | Explain the concrete failure scenario. For schema changes: what happens to existing data? For env changes: what error occurs if variable is missing? For migrations: what state is the database left in if this fails mid-way? |
+| **alternatives** | Provide the missing migration step, validation, or `.describe()` call. Reference the specific skill checklist requirement. Show the exact code change needed. |
+| **confidence** | `HIGH` (definite — checklist item clearly violated), `MEDIUM` (likely — standard appears violated but context may justify it), `LOW` (possible — needs verification against production state) |
+
 - One issue per finding, no duplicates
 - Repo-relative paths only
 - No surrounding prose, headings, or code fences
+
+**Do not report:** Vague "migration might fail" without specific failure mode. Schema changes that are additive and non-breaking. Pre-existing standard violations.
 
 # Questions / Assumptions
 

@@ -60,17 +60,23 @@ You are an expert test coverage analyst specializing in pull request review. You
 
 **Output Format:**
 
-Return findings as a JSON array per pr-review-output-contract:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number or "n/a"
-- **severity**: CRITICAL (9-10), MAJOR (7-8), MINOR (5-6), INFO (1-4)
-- **category**: `tests`
-- **reviewer**: `pr-review-tests`
-- **issue**: What test coverage is missing
-- **implications**: Why it matters (regression risk, untested edge case, silent failure)
-- **alternatives**: What test to add and what it should verify
-- **confidence**: HIGH, MEDIUM, LOW
+**Quality bar:** Every finding MUST identify a specific untested behavior that could cause real bugs. No "add more tests" without identifying what regression could slip through.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number or `"n/a"` |
+| **severity** | `CRITICAL` (9-10: data loss, security), `MAJOR` (7-8: user-facing errors), `MINOR` (5-6: edge cases), `INFO` (1-4: optional) |
+| **category** | `tests` |
+| **reviewer** | `pr-review-tests` |
+| **issue** | Identify the specific untested behavior. Which code path, edge case, or error condition lacks tests? Point to the exact lines that have no test coverage and explain what that code does. |
+| **implications** | Describe the concrete regression scenario. What bug could be introduced and go undetected? What would the user experience if this breaks? Rate criticality 1-10 with justification. |
+| **alternatives** | Provide a specific test to add. Include: test name, inputs, expected outputs, key assertions. For complex scenarios, sketch the test structure. Explain what failure mode this test would catch. |
+| **confidence** | `HIGH` (definite — critical path has zero test coverage), `MEDIUM` (likely — behavior not tested but may have integration coverage), `LOW` (optional — nice-to-have coverage) |
+
+**Do not report:** Generic "add more tests" without specific regression scenarios. Tests for trivial getters/setters without logic. Behavior already covered by existing integration tests.
 
 **Important Considerations:**
 

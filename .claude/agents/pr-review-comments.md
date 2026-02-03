@@ -59,17 +59,23 @@ When analyzing comments, you will:
 
 **Output Format:**
 
-Return findings as a JSON array per pr-review-output-contract:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number(s)
-- **severity**: CRITICAL (factually incorrect), MAJOR (outdated/misleading), MINOR (redundant/low-value), INFO (could improve)
-- **category**: `comments`
-- **reviewer**: `pr-review-comments`
-- **issue**: What's wrong with the comment
-- **implications**: Why it matters for maintainability (misleading, outdated, redundant)
-- **alternatives**: How to fix or what to remove
-- **confidence**: HIGH, MEDIUM, LOW
+**Quality bar:** Every finding MUST identify a specific inaccuracy or misleading statement. No "comment could be clearer" without showing what's wrong and what harm it causes.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) |
+| **severity** | `CRITICAL` (factually incorrect), `MAJOR` (outdated/misleading), `MINOR` (redundant/low-value), `INFO` (improvement opportunity) |
+| **category** | `comments` |
+| **reviewer** | `pr-review-comments` |
+| **issue** | Identify the specific comment problem. Quote the problematic text. For inaccuracies: contrast what the comment says vs what the code actually does. For outdated comments: show what changed that made it stale. |
+| **implications** | Explain the concrete harm. What incorrect action would a future maintainer take based on trusting this comment? What debugging time would be wasted? For misleading comments: describe the specific wrong assumption someone would form. |
+| **alternatives** | Provide the corrected comment text, or explain why removal is better. For complex rewrites, show before/after. If removal is recommended, explain why the code is self-documenting or why the comment adds no value. |
+| **confidence** | `HIGH` (definite — comment contradicts code behavior), `MEDIUM` (likely — comment appears stale based on recent changes), `LOW` (possible — comment is vague but may be intentional) |
+
+**Do not report:** Generic "comment could be more detailed" without identifying harm. Style preferences for comment formatting. Comments that are accurate but could be worded differently.
 
 **Categories:**
 

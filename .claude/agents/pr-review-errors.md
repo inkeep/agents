@@ -98,17 +98,23 @@ Look for patterns that hide errors:
 
 ## Your Output Format
 
-Return findings as a JSON array per pr-review-output-contract. For each issue:
+Return findings as a JSON array per pr-review-output-contract.
 
-- **file**: File path
-- **line**: Line number(s)
-- **severity**: CRITICAL (silent failure, broad catch), MAJOR (poor error message, unjustified fallback), MINOR (missing context)
-- **category**: `error-handling`
-- **reviewer**: `pr-review-errors`
-- **issue**: What's the error handling problem
-- **implications**: Why it's problematic (silent failure, poor UX, debugging nightmare)
-- **alternatives**: Specific code changes needed to fix the issue
-- **confidence**: HIGH, MEDIUM, LOW
+**Quality bar:** Every finding MUST be specific, evidence-backed, and justified. No vague "error handling could be better" — identify the specific failure mode and its consequence.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) |
+| **severity** | `CRITICAL` (silent failure, broad catch hiding errors), `MAJOR` (poor error message, unjustified fallback), `MINOR` (missing context in logs) |
+| **category** | `error-handling` |
+| **reviewer** | `pr-review-errors` |
+| **issue** | State the specific error handling problem. Which errors are swallowed? What's caught too broadly? What exception types does this catch block accidentally suppress? Show the code path where failures go silent. |
+| **implications** | Explain the concrete debugging nightmare. What symptoms would a user see (or not see)? How would an engineer diagnose this 6 months later? For silent failures: describe what state corruption or data loss could occur undetected. |
+| **alternatives** | Provide specific code changes. Show improved catch blocks with proper error types. Show better error messages with actionable user feedback. Include before/after code for non-trivial fixes. |
+| **confidence** | `HIGH` (definite — code path clearly swallows errors), `MEDIUM` (likely — catch block is too broad for this context), `LOW` (possible — error may be handled upstream) |
+
+**Do not report:** Generic "add more logging" without identifying what's actually lost. Error handling patterns that are intentional and documented. Pre-existing error handling issues.
 
 ## Your Tone
 

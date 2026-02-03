@@ -98,14 +98,26 @@ Expect from orchestrator:
 
 # Output Contract
 
-Follow `pr-review-output-contract` exactly:
-- Return valid JSON array of Finding objects
-- Use `category: "frontend"` for all findings
-- Use `reviewer: "pr-review-frontend"` for all findings
+Return findings as a JSON array per pr-review-output-contract.
+
+**Quality bar:** Every finding MUST cite a specific skill rule violation with evidence. No "could be optimized" without identifying the specific anti-pattern and its impact.
+
+| Field | Requirement |
+|-------|-------------|
+| **file** | Repo-relative path |
+| **line** | Line number(s) |
+| **severity** | `CRITICAL` (waterfall fetches, massive bundles, RSC violations), `MAJOR` (wrong conventions, missing dynamic imports), `MINOR` (optimization opportunity) |
+| **category** | `frontend` |
+| **reviewer** | `pr-review-frontend` |
+| **issue** | Identify the specific pattern violation. Cite the skill rule being violated (e.g., `async-waterfall-001`). Show the code that violates it. Explain what the code does wrong. |
+| **implications** | Explain the concrete impact. Quantify when possible: bundle size increase, render waterfall depth, re-render count. Describe the user experience degradation (e.g., "page load blocked on N sequential fetches"). |
+| **alternatives** | Provide the correct pattern with code. Show before/after for the fix. Reference the skill's recommended approach. For dynamic imports or RSC boundaries, show the exact structure change needed. |
+| **confidence** | `HIGH` (definite — code clearly violates skill rule), `MEDIUM` (likely — pattern appears problematic but context may justify it), `LOW` (possible — optimization that may not be worth the complexity) |
+
 - No prose, no markdown, no code fences
 - Empty file list or no issues found: return `[]`
 
-See skill for full schema, severity definitions, and examples.
+**Do not report:** Generic "could be optimized" without specific rule violations. Performance suggestions without measurable impact. Pre-existing patterns not introduced by this PR.
 
 # Assumptions & Defaults
 
