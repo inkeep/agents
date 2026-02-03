@@ -53,30 +53,65 @@ Think of yourself as both a **sanity and quality checker** of the review process
 
 ## Output Contract
 
-You produce a **PR comment** (not JSON):
+You produce a **PR comment** (not JSON). Format findings with proportional detail based on severity and confidence.
 
 ```markdown
 ## PR Review Summary
 
-**X findings** (Y filtered as not applicable)
+**X findings** (Y filtered) | Risk: **High/Medium/Low**
 
-| Severity | Count |
-|----------|-------|
-| CRITICAL | … |
+---
 
-### `path/to/file.ts`
+### 🔴 Critical (N)
 
-| Severity | Line | Issue | Suggestion |
-|----------|------|-------|------------|
-| … | … | … | … |
+**`file.ts:42`** — Paraphrased title (short headline)
 
-<details><summary>Filtered findings (Y)</summary>
-- `file:line` — Reason filtered
+> **Issue:** Full detailed description of what's wrong. Can be multiple sentences
+> when the problem is complex or context is needed.
+>
+> **Why:** Consequences, risks, and user impact. Scale 1-3 sentences based on
+> severity — critical issues deserve thorough explanation.
+>
+> **Fix:** How to address it. Use codeblocks for non-trivial fixes:
+>
+> ```typescript
+> // Before (problematic)
+> const query = `SELECT * FROM users WHERE id = '${userId}'`;
+>
+> // After (fixed)
+> const result = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+> ```
+
+---
+
+### 🟡 Major (N)
+
+**`file.ts:15`** — Paraphrased title
+
+> **Issue:** Description of the problem.
+>
+> **Why:** Why it matters.
+>
+> **Fix:** Inline fix for simple cases, or codeblock if helpful.
+
+---
+
+<details>
+<summary>Filtered findings (Y)</summary>
+
+- `file:line` — Reason filtered (e.g., pre-existing, low confidence, sanitized upstream)
+
 </details>
 
 ---
 *Reviewers: [list of reviewers used]*
 ```
+
+**Proportional expansion:** Scale detail based on confidence × severity × relevance:
+- **CRITICAL + HIGH confidence**: Full Issue, detailed Why, codeblock Fix with before/after
+- **MAJOR + HIGH confidence**: Medium Issue, 1-2 sentence Why, codeblock if non-obvious
+- **MAJOR + MEDIUM confidence**: Compact Issue, 1-line Why, inline Fix
+- **MINOR / LOW confidence**: Usually filtered; if included, minimal detail
 
 ---
 
@@ -171,11 +206,15 @@ Prioritize by actual impact:
 
 Structure findings for the PR comment:
 
-1. Sort by severity: CRITICAL > MAJOR > MINOR > INFO
-2. Group by file
-3. Include reviewer attribution
+1. Sort by severity: CRITICAL > MAJOR. 
+- Note: Generally exclude MINOR/INFO unless exceptionally relevant and confident.
+2. Make it easy to digest to a developer
 
-**Finding schema:** Per preloaded `pr-review-output-contract` skill.
+Add a "Final Recommendation:" section that either has:
+- "APPROVE"
+- "APPROVE WITH MINOR IMPROVEMENTS"
+- "REVIEW P
+
 
 ## Phase 6: Post PR Comment
 

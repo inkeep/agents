@@ -67,9 +67,9 @@ A `Finding` is a single actionable issue (or informational note) tied to a file 
   "line": 42,
   "severity": "MAJOR",
   "category": "security",
-  "issue": "SQL query uses string concatenation with user input",
-  "implications": "Attacker can inject arbitrary SQL to read/modify/delete database contents",
-  "alternatives": "Use parameterized queries: db.query('SELECT * FROM users WHERE id = ?', [userId])",
+  "issue": "SQL query constructed via string concatenation with unsanitized user input from request.query.userId. The userId parameter is passed directly into the query string without parameterization or escaping.",
+  "implications": "Attacker can inject arbitrary SQL to read, modify, or delete database contents. This endpoint is public-facing and handles user authentication, so a breach exposes all user credentials and session tokens.",
+  "alternatives": "Use parameterized queries to separate SQL structure from user data: db.query('SELECT * FROM users WHERE id = ?', [userId])",
   "confidence": "HIGH"
 }
 ```
@@ -82,7 +82,7 @@ A `Finding` is a single actionable issue (or informational note) tied to a file 
 | `line`         | number \| string |    ✅    | Line number (number), range (`"10-15"`), or `"n/a"` if unknown.                           |
 | `severity`     | enum             |    ✅    | `CRITICAL` \| `MAJOR` \| `MINOR` \| `INFO`                                                |
 | `category`     | string           |    ✅    | Freeform string matching reviewer domain (e.g., "docs", "security", "api").               |
-| `issue`        | string           |    ✅    | What's wrong — the specific violation or problem.                                         |
+| `issue`        | string           |    ✅    | What's wrong — thorough description of the violation or problem. Be specific and detailed; the orchestrator will paraphrase for headlines. |
 | `implications` | string           |    ✅    | Why it matters — consequence, risk, or user impact.                                       |
 | `alternatives` | string           |    ✅    | How to address it. Default to one; list multiple only if truly plausible.                 |
 | `confidence`   | enum             |    ✅    | `HIGH` \| `MEDIUM` \| `LOW`                                                               |
@@ -180,9 +180,9 @@ Why: The orchestrator cannot reliably dedupe semantically-similar findings. Pre-
     "line": 73,
     "severity": "MAJOR",
     "category": "docs",
-    "issue": "Code block is missing a language tag",
-    "implications": "Reduces syntax highlighting and copy-paste usability for developers",
-    "alternatives": "Add a language identifier: ```typescript",
+    "issue": "Code block on line 73 showing the authentication flow is missing a language tag. The fenced code block uses triple backticks but no language identifier, so syntax highlighting is disabled.",
+    "implications": "Reduces syntax highlighting and copy-paste usability for developers. Without highlighting, the code example is harder to read and developers may miss syntax errors when adapting it.",
+    "alternatives": "Add a language identifier after the opening backticks: ```typescript",
     "confidence": "HIGH"
   }
 ]
