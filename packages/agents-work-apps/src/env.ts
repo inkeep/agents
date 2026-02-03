@@ -5,25 +5,48 @@ import { loadEnvironmentFiles } from '@inkeep/agents-core';
 loadEnvironmentFiles();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).default('development'),
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+  // Core Environment
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development')
+    .describe('Node.js environment mode'),
+  ENVIRONMENT: z
+    .enum(['development', 'production', 'pentest', 'test'])
+    .default('development')
+    .describe('Application environment mode'),
+  LOG_LEVEL: z
+    .enum(['trace', 'debug', 'info', 'warn', 'error'])
+    .default('info')
+    .describe('Logging verbosity level'),
 
-  INKEEP_AGENTS_RUN_DATABASE_URL: z.string(),
-  INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
+  // Database
+  INKEEP_AGENTS_RUN_DATABASE_URL: z
+    .string()
+    .describe(
+      'PostgreSQL connection URL for the runtime database (Doltgres with Git version control)'
+    ),
+  INKEEP_AGENTS_MANAGE_UI_URL: z
+    .string()
+    .optional()
+    .describe('URL where the management UI is hosted'),
 
-  GITHUB_APP_ID: z.string().optional(),
-  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
-  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+  // GitHub App Configuration
+  GITHUB_APP_ID: z.string().optional().describe('GitHub App ID for GitHub integration'),
+  GITHUB_APP_PRIVATE_KEY: z
+    .string()
+    .optional()
+    .describe('GitHub App private key for authentication'),
+  GITHUB_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .describe('Secret for validating GitHub webhook payloads'),
   GITHUB_STATE_SIGNING_SECRET: z
     .string()
     .min(32, 'GITHUB_STATE_SIGNING_SECRET must be at least 32 characters')
-    .optional(),
-  GITHUB_APP_NAME: z.string().optional(),
-  GITHUB_MCP_API_KEY: z
-    .string()
     .optional()
-    .describe('API key for the GitHub MCP in agents-work-apps'),
+    .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
+  GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
+  GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 });
 
 const parseEnv = () => {

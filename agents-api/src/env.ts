@@ -138,15 +138,33 @@ const envSchema = z.object({
     .optional()
     .describe('Google Generative AI API key for Gemini models'),
 
-  GITHUB_APP_ID: z.string().optional(),
-  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
-  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+  // GitHub App Configuration
+  GITHUB_APP_ID: z
+    .string()
+    .optional()
+    .describe('GitHub App ID for GitHub integration'),
+  GITHUB_APP_PRIVATE_KEY: z
+    .string()
+    .optional()
+    .describe('GitHub App private key for authentication'),
+  GITHUB_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .describe('Secret for validating GitHub webhook payloads'),
   GITHUB_STATE_SIGNING_SECRET: z
     .string()
     .min(32, 'GITHUB_STATE_SIGNING_SECRET must be at least 32 characters')
-    .optional(),
-  GITHUB_APP_NAME: z.string().optional(),
-  GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+    .optional()
+    .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
+  GITHUB_APP_NAME: z
+    .string()
+    .optional()
+    .describe('Name of the GitHub App'),
+  GITHUB_MCP_API_KEY: z
+    .string()
+    .optional()
+    .describe('API key for the GitHub MCP'),
+
   // Workflow Configuration
   WORKFLOW_TARGET_WORLD: z.string().optional().describe('Target world for workflow execution'),
   WORKFLOW_POSTGRES_URL: z

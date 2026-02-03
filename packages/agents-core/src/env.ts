@@ -94,7 +94,10 @@ const envSchema = z.object({
     .string()
     .optional()
     .describe('URL where the agents management API is running'),
-  GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+  GITHUB_MCP_API_KEY: z
+    .string()
+    .optional()
+    .describe('API key for the GitHub MCP'),
 });
 
 const parseEnv = () => {
