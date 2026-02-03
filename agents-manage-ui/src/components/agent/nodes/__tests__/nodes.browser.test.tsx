@@ -34,8 +34,8 @@ vi.mock('@/lib/query/mcp-tools', () => {
 function Nodes() {
   const divider = <hr style={{ borderColor: 'green' }} />;
   const data = {
-    name: 'name'.repeat(10),
-    description: 'description'.repeat(10),
+    name: 'name '.repeat(10),
+    description: 'description '.repeat(10),
   };
 
   const baseProps: NodeProps = {
