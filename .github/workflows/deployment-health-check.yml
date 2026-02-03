@@ -9,6 +9,7 @@ run-name: Vercel Deployment - ${{ github.event.client_payload.project.name }} ($
 jobs:
   health-check:
     runs-on: ubuntu-latest
+    if: ${{ github.event.client_payload.project.name == 'agents-api' }}
     permissions:
       actions: read
       statuses: write
