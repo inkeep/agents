@@ -717,8 +717,10 @@ const getServer = async (toolId: string) => {
       title: z.string().describe('Pull request title'),
       body: z.string().describe('Pull request description'),
       head_branch: z.string().describe('Branch containing the changes'),
+      team_reviewers: z.array(z.string()).describe('Team reviewers to request reviews from'),
+      user_reviewers: z.array(z.string()).describe('User reviewers to request reviews from'),
     },
-    async ({ owner, repo, title, body, head_branch }) => {
+    async ({ owner, repo, title, body, head_branch, team_reviewers, user_reviewers }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -753,6 +755,32 @@ const getServer = async (toolId: string) => {
           base: targetBaseBranch,
           draft: false,
         });
+
+        // Request reviewers if provided (non-fatal - PR is still created if this fails)
+        if (user_reviewers?.length || team_reviewers?.length) {
+          try {
+            const reviewerParams: {
+              owner: string;
+              repo: string;
+              pull_number: number;
+              reviewers?: string[];
+              team_reviewers?: string[];
+            } = {
+              owner,
+              repo,
+              pull_number: pullRequestResponse.data.number,
+            };
+            if (user_reviewers?.length) {
+              reviewerParams.reviewers = user_reviewers;
+            }
+            if (team_reviewers?.length) {
+              reviewerParams.team_reviewers = team_reviewers;
+            }
+            await githubClient.rest.pulls.requestReviewers(reviewerParams);
+          } catch (reviewerError) {
+            console.error('Error requesting reviewers:', reviewerError);
+          }
+        }
 
         return {
           content: [
