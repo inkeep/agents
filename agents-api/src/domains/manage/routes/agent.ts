@@ -296,13 +296,11 @@ app.openapi(
       });
     }
 
-    const newAgentName = validatedBody.newAgentName || `${originalAgent.name} (Copy)`;
-
     try {
       const duplicatedAgent = await duplicateAgent(db)({
         scopes: { tenantId, projectId, agentId },
         newAgentId: validatedBody.newAgentId,
-        newAgentName,
+        newAgentName: validatedBody.newAgentName,
       });
 
       return c.json({ data: duplicatedAgent }, 201);

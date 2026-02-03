@@ -3039,21 +3039,22 @@
       "DuplicateAgentRequest": {
         "properties": {
           "newAgentId": {
-            "description": "Unique identifier for the new duplicated agent (2-256 chars, URL-safe)",
+            "description": "Unique identifier for the new duplicated agent",
+            "example": "resource_789",
             "maxLength": 255,
-            "minLength": 2,
+            "minLength": 1,
             "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
           },
           "newAgentName": {
-            "description": "Name for the duplicated agent. Defaults to \"{originalName} (Copy)\" if not provided.",
-            "maxLength": 255,
+            "description": "Name for the duplicated agent.",
             "minLength": 1,
             "type": "string"
           }
         },
         "required": [
-          "newAgentId"
+          "newAgentId",
+          "newAgentName"
         ],
         "type": "object"
       },

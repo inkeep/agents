@@ -112,11 +112,11 @@ describe('Agent Duplication - Integration Tests', () => {
       expect(getRes.status).toBe(200);
     });
 
-    it('should duplicate agent with default name when newAgentName is not provided', async () => {
-      const tenantId = await createTestTenantWithOrg('agent-duplicate-default-name');
+    it('should return 400 when newAgentName is not provided', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-duplicate-missing-name');
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const { agentId, agentData } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       const newAgentId = generateId();
 
@@ -130,11 +130,7 @@ describe('Agent Duplication - Integration Tests', () => {
         }
       );
 
-      expect(res.status).toBe(201);
-
-      const body = await res.json();
-      expect(body.data.id).toBe(newAgentId);
-      expect(body.data.name).toBe(`${agentData.name} (Copy)`);
+      expect(res.status).toBe(400);
     });
 
     it('should return 404 when original agent not found', async () => {
@@ -149,6 +145,7 @@ describe('Agent Duplication - Integration Tests', () => {
           method: 'POST',
           body: JSON.stringify({
             newAgentId,
+            newAgentName: 'Does Not Matter',
           }),
         }
       );
@@ -181,6 +178,7 @@ describe('Agent Duplication - Integration Tests', () => {
           method: 'POST',
           body: JSON.stringify({
             newAgentId: existingAgentId,
+            newAgentName: 'Duplicate Agent',
           }),
         }
       );
@@ -200,7 +198,7 @@ describe('Agent Duplication - Integration Tests', () => {
       });
     });
 
-    it('should return 400 when newAgentId is invalid', async () => {
+    it('should return 400 when newAgentId is empty', async () => {
       const tenantId = await createTestTenantWithOrg('agent-duplicate-invalid-id');
       await createTestProject(manageDbClient, tenantId, projectId);
 
@@ -211,7 +209,8 @@ describe('Agent Duplication - Integration Tests', () => {
         {
           method: 'POST',
           body: JSON.stringify({
-            newAgentId: 'a',
+            newAgentId: '',
+            newAgentName: 'Duplicate Agent',
           }),
         }
       );
@@ -231,6 +230,7 @@ describe('Agent Duplication - Integration Tests', () => {
           method: 'POST',
           body: JSON.stringify({
             newAgentId: 'invalid@id#with$special',
+            newAgentName: 'Duplicate Agent',
           }),
         }
       );
@@ -284,6 +284,7 @@ describe('Agent Duplication - Integration Tests', () => {
           method: 'POST',
           body: JSON.stringify({
             newAgentId,
+            newAgentName: 'Duplicated Agent With SubAgents',
           }),
         }
       );

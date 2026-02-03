@@ -2195,11 +2195,7 @@ export const DuplicateAgentRequestSchema = z
     newAgentId: AgentInsertSchema.shape.id.describe(
       'Unique identifier for the new duplicated agent'
     ),
-    newAgentName: AgentInsertSchema.shape.name
-      .optional()
-      .describe(
-        'Name for the duplicated agent. Defaults to "{originalName} (Copy)" if not provided.'
-      ),
+    newAgentName: AgentInsertSchema.shape.name.describe('Name for the duplicated agent.'),
   })
   .openapi('DuplicateAgentRequest');
 

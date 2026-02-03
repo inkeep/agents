@@ -20,11 +20,7 @@ import {
 } from '../ui/dialog';
 import { Form } from '../ui/form';
 
-const duplicateAgentFormSchema = DuplicateAgentRequestSchema.required({
-  newAgentName: true,
-});
-
-type DuplicateAgentFormData = z.infer<typeof duplicateAgentFormSchema>;
+type DuplicateAgentFormData = z.infer<typeof DuplicateAgentRequestSchema>;
 
 interface DuplicateAgentModalProps {
   tenantId: string;
@@ -45,7 +41,7 @@ export function DuplicateAgentModal({
 }: DuplicateAgentModalProps) {
   const router = useRouter();
   const form = useForm<DuplicateAgentFormData>({
-    resolver: zodResolver(duplicateAgentFormSchema),
+    resolver: zodResolver(DuplicateAgentRequestSchema),
     defaultValues: {
       newAgentName: `${agentName} (Copy)`,
       newAgentId: '',

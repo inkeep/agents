@@ -89,10 +89,11 @@ describe('duplicateAgent', () => {
   });
 
   describe('basic agent duplication', () => {
-    it('should duplicate agent with new ID and default name', async () => {
+    it('should duplicate agent with new ID and name', async () => {
       const result = await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       expect(result.id).toBe(newAgentId);
@@ -120,6 +121,7 @@ describe('duplicateAgent', () => {
         duplicateAgent(db)({
           scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: 'non-existent' },
           newAgentId,
+          newAgentName: 'Does Not Matter',
         })
       ).rejects.toThrow('Source agent non-existent not found');
     });
@@ -130,6 +132,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedSubAgents = await listSubAgents(db)({
@@ -170,6 +173,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedFunctionTools = await listFunctionTools(db)({
@@ -208,6 +212,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedContextConfigs = await db.query.contextConfigs.findMany({
@@ -251,6 +256,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentRelations.findMany({
@@ -304,6 +310,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentToolRelations.findMany({
@@ -359,6 +366,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentFunctionToolRelations.findMany({
@@ -403,6 +411,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentExternalAgentRelations.findMany({
@@ -446,6 +455,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentTeamAgentRelations.findMany({
@@ -488,6 +498,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentDataComponents.findMany({
@@ -529,6 +540,7 @@ describe('duplicateAgent', () => {
       await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       const duplicatedRelations = await db.query.subAgentArtifactComponents.findMany({
@@ -630,6 +642,7 @@ describe('duplicateAgent', () => {
       const result = await duplicateAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
         newAgentId,
+        newAgentName: 'Original Agent (Copy)',
       });
 
       expect(result.id).toBe(newAgentId);

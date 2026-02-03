@@ -936,7 +936,7 @@ export const duplicateAgent =
   async (params: {
     scopes: AgentScopeConfig;
     newAgentId: string;
-    newAgentName?: string;
+    newAgentName: string;
   }): Promise<AgentSelect> => {
     const { tenantId, projectId, agentId: sourceAgentId } = params.scopes;
     const { newAgentId, newAgentName } = params;
@@ -957,7 +957,7 @@ export const duplicateAgent =
         id: newAgentId,
         tenantId,
         projectId,
-        name: newAgentName || `${sourceAgent.name} (Copy)`,
+        name: newAgentName,
         description: sourceAgent.description,
         defaultSubAgentId: sourceAgent.defaultSubAgentId,
         contextConfigId: sourceAgent.contextConfigId,
