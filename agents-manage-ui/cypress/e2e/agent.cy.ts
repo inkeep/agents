@@ -7,7 +7,7 @@ function dragNode(selector: string) {
   cy.get(selector).trigger('dragstart', { dataTransfer });
 
   cy.get('.react-flow__node-agent')
-    .eq(1)
+    .eq(0)
     .trigger('dragover', { dataTransfer })
     .trigger('drop', { dataTransfer });
 }
