@@ -18,6 +18,6 @@ jobs:
       - name: Trigger Inkeep Agent
         uses: inkeep/inkeep-agents-action@v0
         with:
-          trigger-url: 'https://api.pilot.inkeep.com/run/tenants/default/projects/content-team-project/agents/docs-writer-agent/triggers/6qjqo4mr2kmvlqu4g6sjh'
+          trigger-url: ${{ secrets.INKEEP_CONTENT_WRITER_TRIGGER_URL }}
           
     
