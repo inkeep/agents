@@ -1,5 +1,11 @@
 name: Deploy to Vercel Production
 
+# This workflow deploys to Vercel production only when a GitHub release is published.
+# It uses Vercel's deployment checks to verify API health before promoting to production:
+# 1. Deploy to a preview URL (not production)
+# 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
+# 3. Promote the verified deployment to production
+
 on:
   release:
     types: [published]
@@ -27,5 +33,19 @@ jobs:
       - name: Build
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy to Production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Preview for Checks
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          # Vercel deployment checks are configured in the Vercel dashboard
+          # This step waits for checks to pass before promoting
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --wait
+
+      - name: Promote to Production
+        run: vercel promote ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }}
