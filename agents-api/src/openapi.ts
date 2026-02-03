@@ -19,6 +19,7 @@ export const TagToDescription = {
   'External Agents': 'Operations for managing external agents',
   'Function Tools': 'Operations for managing function tools',
   Functions: 'Operations for managing functions',
+  GitHub: 'GitHub App integration endpoints',
   MCP: 'MCP (Model Context Protocol) endpoints',
   'MCP Catalog': 'Operations for MCP catalog',
   OAuth: 'OAuth authentication endpoints',

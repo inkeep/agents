@@ -33567,6 +33567,10 @@
       "name": "Functions"
     },
     {
+      "description": "GitHub App integration endpoints",
+      "name": "GitHub"
+    },
+    {
       "description": "MCP (Model Context Protocol) endpoints",
       "name": "MCP"
     },
