@@ -84,7 +84,7 @@ You produce a **PR comment** (not JSON). Format findings with proportional detai
 
 ---
 
-### 🟡 Major (N)
+### 🟠 Major (N)
 
 **`file.ts:15`** — Paraphrased title
 
