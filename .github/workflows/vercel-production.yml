@@ -5,6 +5,11 @@ name: Deploy to Vercel Production
 # 1. Deploy to a preview URL (not production)
 # 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
 # 3. Promote the verified deployment to production
+#
+# Required secrets (configure in GitHub Repository Settings > Secrets):
+# - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
+# - VERCEL_ORG_ID: Organization/team ID from .vercel/project.json after running `vercel link`
+# - VERCEL_PROJECT_ID: Project ID from .vercel/project.json after running `vercel link`
 
 on:
   release:

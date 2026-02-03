@@ -479,3 +479,211 @@ jobs:
     </ul>
   </Accordion>
 </Accordions>
+
+## Staging and Production Deployment Strategy
+
+This section explains how to configure Vercel for a staged deployment workflow where:
+- Pushes to `main` create **staging** (preview) deployments
+- GitHub releases trigger **production** deployments
+
+This approach allows you to test changes on staging before promoting to production, with full control over production releases.
+
+### Deployment Flow Overview
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                     DEVELOPMENT WORKFLOW                         │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   PR Created ──────► Vercel Preview Deployment                   │
+│                      (pr-123-<project>.vercel.app)               │
+│                                                                  │
+│   PR Merged to main ──────► Vercel Preview Deployment (Staging)  │
+│                             (main-<project>.vercel.app)          │
+│                                                                  │
+│   GitHub Release Published ──────► GitHub Action                 │
+│                                    │                             │
+│                                    ├──► Deploy to Preview        │
+│                                    ├──► Wait for Checks          │
+│                                    └──► Promote to Production    │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Step 1: Disable Automatic Production Deployments
+
+By default, Vercel deploys to production when you push to your production branch (usually `main`). To separate staging from production, disable automatic production deployments:
+
+1. Go to **Project Settings > Git** in the Vercel Dashboard
+2. Under **Production Branch**, change the value to `_disabled_`
+3. Save your changes
+
+<Note>
+  Setting the Production Branch to `_disabled_` is a special Vercel value that prevents any branch from automatically triggering production deployments. All pushes, including to `main`, will create preview deployments instead.
+</Note>
+
+After this configuration:
+- Pushes to `main` create preview deployments at `main-<project>.vercel.app`
+- Pushes to PR branches create preview deployments at `<branch>-<project>.vercel.app`
+- **No branch** triggers automatic production deployments
+
+### Step 2: Configure GitHub Actions for Production Releases
+
+The Inkeep Agent Framework includes a workflow that deploys to production when you publish a GitHub release. This integrates with the existing changesets release flow.
+
+The workflow file is located at `.github/workflows/vercel-production.yml`:
+
+```yaml
+name: Deploy to Vercel Production
+
+on:
+  release:
+    types: [published]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Preview for Checks
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --wait
+
+      - name: Promote to Production
+        run: vercel promote ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }}
+```
+
+**Key features:**
+- **Triggered by GitHub releases**: Uses `release: types: [published]` to deploy only when you explicitly publish a release
+- **Uses the tagged commit**: Checks out `github.event.release.tag_name` to ensure the exact release version is deployed
+- **Deployment checks**: Deploys to a preview URL first, waits for Vercel Checks to pass, then promotes to production
+- **Vercel CLI**: Uses `vercel deploy --prebuilt` for faster deployments with pre-built artifacts
+
+### Step 3: Configure Required Secrets
+
+The GitHub Actions workflow requires three secrets to authenticate with Vercel. Add these to your GitHub repository:
+
+**Settings > Secrets and variables > Actions > New repository secret**
+
+| Secret | Description | How to Obtain |
+|--------|-------------|---------------|
+| `VERCEL_TOKEN` | API token for Vercel CLI authentication | [Vercel Dashboard > Settings > Tokens](https://vercel.com/account/tokens) - Create a new token with appropriate scope |
+| `VERCEL_ORG_ID` | Your Vercel team/organization ID | Run `vercel link` in your project, then check `.vercel/project.json` for `orgId` |
+| `VERCEL_PROJECT_ID` | Your Vercel project ID | Run `vercel link` in your project, then check `.vercel/project.json` for `projectId` |
+
+<Note>
+  After running `vercel link`, your `.vercel/project.json` will contain both IDs:
+  ```json
+  {
+    "orgId": "team_xxxxxxxxxxxx",
+    "projectId": "prj_xxxxxxxxxxxx"
+  }
+  ```
+  Copy these values to your GitHub repository secrets. **Do not commit** this file to your repository if it contains sensitive project identifiers.
+</Note>
+
+### Step 4: Optional Staging Domain Configuration
+
+For easier access to your staging environment, you can configure a custom domain that always points to your `main` branch deployments.
+
+1. Go to **Project Settings > Domains** in the Vercel Dashboard
+2. Click **Add Domain**
+3. Enter your staging domain (e.g., `staging.yourdomain.com`)
+4. Under **Git Branch**, select `main`
+5. Save your changes
+
+Vercel will automatically:
+- Route traffic for the staging domain to the latest `main` branch deployment
+- Provision an SSL certificate for the domain
+- Update the deployment whenever `main` is updated
+
+**Example domain configuration:**
+
+| Domain | Branch | Purpose |
+|--------|--------|---------|
+| `staging.yourdomain.com` | `main` | Staging environment for testing |
+| `yourdomain.com` | Production | Production (deployed via GitHub releases) |
+
+### Creating a Production Release
+
+With this configuration, the production deployment flow is:
+
+1. **Merge PRs to main**: Changes go to staging automatically
+2. **Test on staging**: Verify changes at `staging.yourdomain.com` or `main-<project>.vercel.app`
+3. **Create a GitHub release**: Use the changesets workflow or manually create a release
+4. **Automatic production deployment**: The GitHub Action builds, verifies, and promotes to production
+
+```bash
+# Using changesets (recommended)
+pnpm changeset
+git add .
+git commit -m "chore: version packages"
+git push
+
+# When the "Version Packages" PR is merged, the release workflow creates a GitHub release
+# which triggers the production deployment
+```
+
+<Accordions>
+  <Accordion title="Troubleshooting Staging/Production Deployments">
+    <strong>Main branch still deploying to production:</strong>
+    <ul>
+      <li>Verify Production Branch is set to <code>_disabled_</code> in Project Settings > Git</li>
+      <li>Check that you saved the changes in the Vercel Dashboard</li>
+    </ul>
+
+    <strong>GitHub Action not triggering:</strong>
+    <ul>
+      <li>Ensure the workflow file exists at <code>.github/workflows/vercel-production.yml</code></li>
+      <li>Verify the release is <strong>published</strong>, not just a draft</li>
+      <li>Check GitHub Actions is enabled for your repository</li>
+    </ul>
+
+    <strong>Deployment fails with authentication error:</strong>
+    <ul>
+      <li>Verify all three secrets are configured: <code>VERCEL_TOKEN</code>, <code>VERCEL_ORG_ID</code>, <code>VERCEL_PROJECT_ID</code></li>
+      <li>Check that the Vercel token has not expired</li>
+      <li>Ensure the token has permissions for the target project</li>
+    </ul>
+
+    <strong>Staging domain not updating:</strong>
+    <ul>
+      <li>Verify the domain is configured with Git Branch set to <code>main</code></li>
+      <li>Check DNS propagation if recently configured</li>
+      <li>Ensure the deployment completed successfully</li>
+    </ul>
+
+    <strong>Promote step fails:</strong>
+    <ul>
+      <li>The <code>vercel promote</code> command requires the deployment URL from the previous step</li>
+      <li>Check that deployment checks passed before promotion</li>
+      <li>Verify the deployment wasn't cancelled or deleted</li>
+    </ul>
+  </Accordion>
+</Accordions>
