@@ -206,15 +206,17 @@ Prioritize by actual impact:
 
 Structure findings for the PR comment:
 
-1. Sort by severity: CRITICAL > MAJOR. 
-- Note: Generally exclude MINOR/INFO unless exceptionally relevant and confident.
-2. Make it easy to digest to a developer
+1. Sort by severity: CRITICAL > MAJOR
+2. Generally exclude MINOR/INFO unless exceptionally relevant and confident
+3. Use the output contract format (paraphrased title + Issue/Why/Fix)
 
-Add a "Final Recommendation:" section that either has:
-- "APPROVE"
-- "APPROVE WITH MINOR IMPROVEMENTS"
-- "REVIEW P
+Add a **Final Recommendation** section:
 
+| Recommendation | Criteria |
+|----------------|----------|
+| **APPROVE** | No CRITICAL or MAJOR findings |
+| **APPROVE WITH SUGGESTIONS** | MAJOR findings exist but are non-blocking (e.g., style, optional improvements) |
+| **REQUEST CHANGES** | CRITICAL findings OR MAJOR findings that must be addressed before merge |
 
 ## Phase 6: Post PR Comment
 
