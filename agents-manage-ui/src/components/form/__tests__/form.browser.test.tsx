@@ -65,6 +65,6 @@ describe('Form', () => {
       await document.fonts.ready;
     });
 
-    expect(container).toMatchScreenshot();
+    await expect(container).toMatchScreenshot();
   }, 20_000);
 });
