@@ -1,9 +1,9 @@
 'use client';
 
 import { type ComponentProps, type FC, useId } from 'react';
-import { MonacoEditor } from './monaco-editor';
 import { Button } from '@/components/ui/button';
 import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
+import { MonacoEditor } from './monaco-editor';
 
 interface CodeEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.${'js' | 'jsx' | 'ts' | 'tsx'}`;
