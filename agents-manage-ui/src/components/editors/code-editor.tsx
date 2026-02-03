@@ -2,29 +2,54 @@
 
 import { type ComponentProps, type FC, useId } from 'react';
 import { MonacoEditor } from './monaco-editor';
+import { Button } from '@/components/ui/button';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 
 interface CodeEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.${'js' | 'jsx' | 'ts' | 'tsx'}`;
 }
 
 export const CodeEditor: FC<CodeEditorProps> = ({
-  uri,
   placeholder = 'Enter code...',
   editorOptions,
+  children,
   ...props
 }) => {
+  'use memo';
   const id = useId();
-  uri ??= `${id}.jsx`;
+  const { getEditorByUri } = useMonacoActions();
+  const uri = props.uri ?? `${id}.jsx`;
 
   return (
     <MonacoEditor
-      uri={uri}
       placeholder={placeholder}
       editorOptions={{
         ariaLabel: 'Code editor',
         ...editorOptions,
       }}
       {...props}
-    />
+      uri={uri}
+    >
+      <div className="absolute end-2 top-2 flex gap-2 z-1">
+        {children}
+
+        {!props.readOnly && (
+          <Button
+            type="button"
+            onClick={() => {
+              const editor = getEditorByUri(uri);
+              const formatAction = editor?.getAction('editor.action.formatDocument');
+              formatAction?.run();
+            }}
+            variant="outline"
+            size="sm"
+            className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+            disabled={!props.value?.trim()}
+          >
+            Format
+          </Button>
+        )}
+      </div>
+    </MonacoEditor>
   );
 };
