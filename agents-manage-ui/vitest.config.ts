@@ -4,7 +4,7 @@ import { defaultExclude, defineConfig } from 'vitest/config';
 import type { ToMatchScreenshotOptions } from 'vitest/node';
 import pkgJson from './package.json' with { type: 'json' };
 
-const NODE_TESTS_PATTERN = '**/*.node.test.ts';
+const BROWSER_TESTS_PATTERN = '**/*.browser.test.tsx';
 
 const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] = ({
   root,
@@ -32,7 +32,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: `${pkgJson.name}/browser`,
-          exclude: [NODE_TESTS_PATTERN, ...defaultExclude],
+          include: [BROWSER_TESTS_PATTERN],
           browser: {
             enabled: true,
             headless: true,
@@ -58,7 +58,7 @@ export default defineConfig({
         test: {
           name: `${pkgJson.name}/node`,
           setupFiles: './setup-files',
-          include: [NODE_TESTS_PATTERN],
+          exclude: [BROWSER_TESTS_PATTERN, ...defaultExclude],
         },
       },
     ],
