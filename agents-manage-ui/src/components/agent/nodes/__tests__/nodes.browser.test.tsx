@@ -1,11 +1,12 @@
 import { act, render } from '@testing-library/react';
 import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
-import { ReactFlowProvider } from '@xyflow/react';
+import { type NodeProps, ReactFlowProvider } from '@xyflow/react';
 import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
 import { FunctionToolNode } from '@/components/agent/nodes/function-tool-node';
 import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
+import { NodeType } from '@/components/agent/configuration/node-types';
 import '../../../form/__tests__/styles.css';
 
 vi.mock('next/navigation', () => {
@@ -37,27 +38,38 @@ function Nodes() {
     description: 'description'.repeat(10),
   };
 
+  const baseProps: NodeProps = {
+    type: 'foo',
+    id: 'foo',
+    dragging: false,
+    zIndex: 0,
+    selectable: true,
+    deletable: true,
+    selected: true,
+    draggable: true,
+    isConnectable: true,
+    positionAbsoluteX: 0,
+    positionAbsoluteY: 0,
+    data: {},
+  };
+
   return (
     <ReactFlowProvider>
       {divider}
-      <ExternalAgentNode id="foo" data={data} />
+      <ExternalAgentNode {...baseProps} data={{ ...data, id: 'foo', baseUrl: 'foo' }} />
       {divider}
-      <FunctionToolNode id="foo" data={data} />
+      <FunctionToolNode {...baseProps} data={{ ...data, functionToolId: 'foo' }} />
       {divider}
-      <MCPNode id="foo" data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg' }} />
-      {divider}
-      <PlaceholderNode id="foo" data={{ ...data, type: 'agent' }} />
-      {divider}
-      <SubAgentNode
-        selected
-        id="foo"
-        data={{
-          ...data,
-          isDefault: true,
-        }}
+      <MCPNode
+        {...baseProps}
+        data={{ ...data, imageUrl: 'https://pilot.inkeep.com/icon.svg', toolId: 'foo' }}
       />
       {divider}
-      <TeamAgentNode id="foo" data={data} />
+      <PlaceholderNode {...baseProps} data={{ ...data, type: NodeType.MCPPlaceholder }} />
+      {divider}
+      <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true }} />
+      {divider}
+      <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
       {divider}
     </ReactFlowProvider>
   );
