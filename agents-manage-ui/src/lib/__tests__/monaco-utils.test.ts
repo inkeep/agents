@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type * as Monaco from 'monaco-editor';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';

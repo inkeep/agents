@@ -25,7 +25,6 @@ const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] =
 
 export default defineConfig({
   test: {
-    environment: 'jsdom',
     globals: true,
     projects: [
       {
