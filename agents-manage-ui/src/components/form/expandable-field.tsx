@@ -1,7 +1,7 @@
 'use client';
 
 import { Maximize } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import { type ComponentProps, type ReactNode, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 type DialogProps = Required<ComponentProps<typeof Dialog>>;
@@ -40,13 +40,16 @@ export function ExpandableField({
   onOpenChange,
   hasError,
 }: ExpandableFieldProps) {
-  'use memo';
+  const monaco = useMonacoStore((state) => state.monaco);
 
-  const { getEditorByUri } = useMonacoActions();
-
-  function handleClick() {
-    getEditorByUri(uri)?.focus();
-  }
+  const handleClick = useCallback(() => {
+    if (!monaco) {
+      return;
+    }
+    const model = monaco.editor.getModel(monaco.Uri.parse(uri));
+    const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
+    editor?.focus();
+  }, [monaco, uri]);
 
   const content = (
     <>

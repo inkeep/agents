@@ -20,7 +20,6 @@ interface MonacoActions {
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
   importMonaco: () => Promise<void>;
-  getEditorByUri: (uri: string) => Monaco.editor.ICodeEditor | undefined;
 }
 
 interface MonacoState extends MonacoStateData {
@@ -29,17 +28,9 @@ interface MonacoState extends MonacoStateData {
 
 let wasInitialized = false;
 
-const monacoState: StateCreator<MonacoState> = (set, get) => ({
+const monacoState: StateCreator<MonacoState> = (set) => ({
   monaco: null,
   actions: {
-    getEditorByUri(uri) {
-      const { monaco } = get();
-      if (!monaco) {
-        return;
-      }
-      const model = monaco.editor.getModel(monaco.Uri.file(uri));
-      return monaco.editor.getEditors().find((editor) => editor.getModel() === model);
-    },
     async importMonaco() {
       if (wasInitialized) {
         return;
@@ -84,10 +75,6 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
          * @see https://github.com/shikijs/shiki/issues/865
          */
         tokens: false,
-        /** Enable formatting of the entire document */
-        documentFormattingEdits: true,
-        /** Enable formatting of only a selected range */
-        documentRangeFormattingEdits: true,
       });
 
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {

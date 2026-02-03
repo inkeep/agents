@@ -2,21 +2,6 @@
 
 import { generateId } from '../../src/lib/utils/id-utils';
 
-function dragNode(selector: string) {
-  const dataTransfer = new DataTransfer();
-  cy.get(selector).trigger('dragstart', { dataTransfer });
-
-  cy.get('.react-flow__node-agent')
-    .eq(0)
-    .trigger('dragover', { dataTransfer })
-    .trigger('drop', { dataTransfer });
-}
-function connectEdge(selector: string) {
-  // React flow doesn't use onDragStart
-  cy.get(selector).trigger('mousedown', { button: 0 });
-  cy.get('[data-handleid="target-agent"]').trigger('mousemove').trigger('mouseup', { force: true });
-}
-
 describe('Agent', () => {
   describe('Unsaved changes dialog', () => {
     beforeEach(() => {
@@ -91,6 +76,22 @@ describe('Agent', () => {
     cy.get('button[type=submit]').click();
     cy.get('.react-flow__node').should('exist');
 
+    function dragNode(selector: string) {
+      const dataTransfer = new DataTransfer();
+      cy.get(selector).trigger('dragstart', { dataTransfer });
+
+      cy.get('.react-flow__node-agent')
+        .trigger('dragover', { dataTransfer })
+        .trigger('drop', { dataTransfer });
+    }
+    function connectEdge(selector: string) {
+      // React flow doesn't use onDragStart
+      cy.get(selector).trigger('mousedown', { button: 0 });
+      cy.get('[data-handleid="target-agent"]')
+        .trigger('mousemove')
+        .trigger('mouseup', { force: true });
+    }
+
     dragNode('[aria-label="Drag Function Tool node"]');
     connectEdge('[data-handleid="target-function-tool"]');
     cy.typeInMonaco('code.jsx', 'function () {}');
@@ -108,25 +109,5 @@ describe('Agent', () => {
       cy.reload();
       cy.get('.react-flow__node').should('have.length', 3);
     }
-  });
-
-  describe('Format', () => {
-    it('JSON', () => {
-      const uri = 'contextVariables.json';
-
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
-      cy.typeInMonaco(uri, '{"foo":123}');
-      cy.contains('Format').click();
-      cy.assertMonacoContent(uri, '{\n  "foo": 123\n}');
-    });
-    it('JavaScript', () => {
-      const uri = 'code.jsx';
-
-      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
-      dragNode('[aria-label="Drag Function Tool node"]');
-      cy.typeInMonaco(uri, 'function(){return"foo"}');
-      cy.contains('Format').click();
-      cy.assertMonacoContent(uri, 'function() { return "foo" }');
-    });
   });
 });

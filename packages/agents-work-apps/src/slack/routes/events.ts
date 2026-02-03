@@ -1,0 +1,397 @@
+/**
+ * Slack Events Routes
+ *
+ * Endpoints for handling Slack events, commands, and webhooks:
+ * - POST /commands - Handle /inkeep slash commands
+ * - POST /events - Handle Slack events & interactivity
+ * - POST /nango-webhook - Handle Nango auth webhooks
+ */
+
+import { OpenAPIHono } from '@hono/zod-openapi';
+import {
+  deleteAllWorkAppSlackChannelAgentConfigsByTeam,
+  deleteAllWorkAppSlackUserMappingsByTeam,
+  deleteWorkAppSlackWorkspaceByNangoConnectionId,
+} from '@inkeep/agents-core';
+import runDbClient from '../../db/runDbClient';
+import { env } from '../../env';
+import { getLogger } from '../../logger';
+import {
+  findWorkspaceConnectionByTeamId,
+  getSlackClient,
+  getSlackIntegrationId,
+  getSlackNango,
+  getSlackUserInfo,
+  handleCommand,
+  parseSlackCommandBody,
+  parseSlackEventBody,
+  type SlackCommandPayload,
+  updateConnectionMetadata,
+  verifySlackRequest,
+} from '../services';
+import {
+  handleAppMention,
+  handleModalSubmission,
+  handleOpenAgentSelectorModal,
+  handleShareToChannel,
+  handleShareToThread,
+} from '../services/events';
+import type { WorkAppsVariables } from '../types';
+import { pendingSessionTokens } from './users';
+
+const logger = getLogger('slack-events');
+
+const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
+
+app.post('/commands', async (c) => {
+  const body = await c.req.text();
+  const timestamp = c.req.header('x-slack-request-timestamp') || '';
+  const signature = c.req.header('x-slack-signature') || '';
+
+  if (env.SLACK_SIGNING_SECRET) {
+    if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
+      logger.error({}, 'Invalid Slack request signature');
+      return c.json({ response_type: 'ephemeral', text: 'Invalid request signature' }, 401);
+    }
+  }
+
+  const params = parseSlackCommandBody(body);
+
+  const payload: SlackCommandPayload = {
+    command: params.command || '',
+    text: params.text || '',
+    userId: params.user_id || '',
+    userName: params.user_name || '',
+    teamId: params.team_id || '',
+    teamDomain: params.team_domain || '',
+    enterpriseId: params.enterprise_id,
+    channelId: params.channel_id || '',
+    channelName: params.channel_name || '',
+    responseUrl: params.response_url || '',
+    triggerId: params.trigger_id || '',
+  };
+
+  const response = await handleCommand(payload);
+
+  // If response is empty object, return empty body (Slack expects this to not show any message)
+  if (Object.keys(response).length === 0) {
+    return c.body(null, 200);
+  }
+
+  return c.json(response);
+});
+
+app.post('/events', async (c) => {
+  const contentType = c.req.header('content-type') || '';
+  const body = await c.req.text();
+
+  let eventBody: Record<string, unknown>;
+  try {
+    eventBody = parseSlackEventBody(body, contentType);
+  } catch {
+    return c.json({ error: 'Invalid payload' }, 400);
+  }
+
+  logger.debug({ eventType: eventBody.type }, 'Slack event received');
+
+  const eventType = eventBody.type as string | undefined;
+
+  if (eventType === 'url_verification') {
+    logger.info({}, 'Responding to Slack URL verification challenge');
+    return c.text(String(eventBody.challenge));
+  }
+
+  if (eventType === 'event_callback') {
+    const teamId = eventBody.team_id as string | undefined;
+    const event = eventBody.event as
+      | {
+          type?: string;
+          user?: string;
+          text?: string;
+          channel?: string;
+          ts?: string;
+          thread_ts?: string;
+          bot_id?: string;
+          subtype?: string;
+        }
+      | undefined;
+
+    if (event?.bot_id || event?.subtype === 'bot_message') {
+      logger.debug({ botId: event.bot_id }, 'Ignoring bot message');
+      return c.json({ ok: true });
+    }
+
+    logger.debug({ eventType: event?.type, teamId }, 'Slack event callback');
+
+    if (event?.type === 'app_mention' && event.channel && event.user && teamId) {
+      const question = (event.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
+
+      logger.info({ userId: event.user, channel: event.channel, teamId }, 'Bot was mentioned');
+
+      handleAppMention({
+        slackUserId: event.user,
+        channel: event.channel,
+        text: question,
+        threadTs: event.thread_ts || event.ts || '',
+        messageTs: event.ts || '',
+        teamId,
+      }).catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const errorStack = err instanceof Error ? err.stack : undefined;
+        logger.error({ errorMessage, errorStack }, 'Failed to handle app mention (outer catch)');
+      });
+    }
+  }
+
+  if (eventType === 'block_actions' || eventType === 'interactive_message') {
+    logger.debug({ eventType }, 'Slack interactive event received');
+
+    const actions = eventBody.actions as
+      | Array<{
+          action_id: string;
+          value?: string;
+        }>
+      | undefined;
+
+    const teamId = (eventBody.team as { id?: string })?.id;
+    const channelId = (eventBody.channel as { id?: string })?.id;
+    const userId = (eventBody.user as { id?: string })?.id;
+    const responseUrl = eventBody.response_url as string | undefined;
+
+    const triggerId = eventBody.trigger_id as string | undefined;
+
+    if (actions && teamId) {
+      for (const action of actions) {
+        if (action.action_id === 'share_to_channel' && action.value) {
+          handleShareToChannel({
+            teamId,
+            channelId: channelId || '',
+            userId: userId || '',
+            actionValue: action.value,
+            responseUrl: responseUrl || '',
+          }).catch((err: unknown) => {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error(
+              { errorMessage, actionId: action.action_id },
+              'Failed to handle share_to_channel'
+            );
+          });
+        }
+
+        if (action.action_id === 'share_to_thread' && action.value) {
+          handleShareToThread({
+            teamId,
+            channelId: channelId || '',
+            userId: userId || '',
+            actionValue: action.value,
+            responseUrl: responseUrl || '',
+          }).catch((err: unknown) => {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error(
+              { errorMessage, actionId: action.action_id },
+              'Failed to handle share_to_thread'
+            );
+          });
+        }
+
+        if (action.action_id === 'open_agent_selector_modal' && action.value && triggerId) {
+          handleOpenAgentSelectorModal({
+            triggerId,
+            actionValue: action.value,
+            teamId,
+            responseUrl: responseUrl || '',
+          }).catch((err: unknown) => {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error(
+              { errorMessage, actionId: action.action_id },
+              'Failed to open agent selector modal'
+            );
+          });
+        }
+      }
+    }
+  }
+
+  if (eventType === 'view_submission') {
+    const callbackId = (eventBody.view as { callback_id?: string })?.callback_id;
+
+    if (callbackId === 'agent_selector_modal') {
+      const view = eventBody.view as {
+        private_metadata?: string;
+        state?: { values?: Record<string, Record<string, unknown>> };
+      };
+
+      handleModalSubmission(view).catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        logger.error({ errorMessage, callbackId }, 'Failed to handle modal submission');
+      });
+
+      return new Response(null, { status: 200 });
+    }
+  }
+
+  return c.json({ ok: true });
+});
+
+app.post('/nango-webhook', async (c) => {
+  const body = await c.req.text();
+
+  let payload: {
+    type: string;
+    success?: boolean;
+    connectionId?: string;
+    providerConfigKey?: string;
+    endUser?: {
+      endUserId: string;
+      endUserEmail?: string;
+      displayName?: string;
+    };
+    organization?: {
+      id: string;
+      displayName?: string;
+    };
+  };
+
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400);
+  }
+
+  logger.debug({ payload }, 'Nango webhook received');
+
+  if (payload.type === 'connection_deleted' && payload.connectionId && payload.providerConfigKey) {
+    const { connectionId, providerConfigKey } = payload;
+
+    if (providerConfigKey === getSlackIntegrationId()) {
+      try {
+        const teamMatch = connectionId.match(/T:([A-Z0-9]+)/);
+        if (teamMatch) {
+          const teamId = teamMatch[1];
+          const workspace = await findWorkspaceConnectionByTeamId(teamId);
+          const tenantId = workspace?.tenantId || 'default';
+
+          const dbDeleted =
+            await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
+          if (dbDeleted) {
+            logger.info({ connectionId }, 'Deleted workspace from database via Nango webhook');
+          }
+
+          const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
+            tenantId,
+            teamId
+          );
+          if (deletedMappings > 0) {
+            logger.info({ teamId, deletedMappings }, 'Deleted user mappings via Nango webhook');
+          }
+
+          const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(
+            runDbClient
+          )(tenantId, teamId);
+          if (deletedChannelConfigs > 0) {
+            logger.info(
+              { teamId, deletedChannelConfigs },
+              'Deleted channel configs via Nango webhook'
+            );
+          }
+
+          logger.info({ connectionId, teamId }, 'Processed Nango connection deletion webhook');
+        }
+      } catch (error: unknown) {
+        logger.error({ error, connectionId }, 'Failed to process Nango deletion webhook');
+      }
+    }
+
+    return c.json({ received: true });
+  }
+
+  if (payload.type === 'auth' && payload.success && payload.endUser && payload.connectionId) {
+    const { endUser, connectionId } = payload;
+    const integrationId = getSlackIntegrationId();
+
+    try {
+      const nango = getSlackNango();
+      const connection = await nango.getConnection(integrationId, connectionId);
+
+      const rawResponse = (connection as { credentials?: { raw?: unknown } }).credentials?.raw as {
+        ok?: boolean;
+        authed_user?: { id: string };
+        bot_user_id?: string;
+        team?: { id: string; name: string };
+        enterprise?: { id: string; name: string };
+        access_token?: string;
+        scope?: string;
+        is_enterprise_install?: boolean;
+      };
+
+      logger.debug({ teamId: rawResponse?.team?.id }, 'Retrieved Nango connection info');
+
+      if (rawResponse?.ok && rawResponse.access_token) {
+        const slackUserId = rawResponse.authed_user?.id || '';
+        const slackTeamId = rawResponse.team?.id || '';
+        const accessToken = rawResponse.access_token;
+
+        let slackUsername = '';
+        let slackDisplayName = '';
+        let slackEmail = '';
+        let isSlackAdmin = false;
+        let isSlackOwner = false;
+
+        if (slackUserId && accessToken) {
+          const client = getSlackClient(accessToken);
+          const userInfo = await getSlackUserInfo(client, slackUserId);
+
+          if (userInfo) {
+            slackUsername = userInfo.name || '';
+            slackDisplayName = userInfo.displayName || userInfo.realName || '';
+            slackEmail = userInfo.email || '';
+            isSlackAdmin = userInfo.isAdmin || false;
+            isSlackOwner = userInfo.isOwner || false;
+          }
+        }
+
+        const tenantId = payload.organization?.id || 'default';
+
+        const pendingSession = pendingSessionTokens.get(endUser.endUserId);
+        if (pendingSession) {
+          pendingSessionTokens.delete(endUser.endUserId);
+          logger.info({ userId: endUser.endUserId }, 'Retrieved pending session token');
+        }
+
+        await updateConnectionMetadata(connectionId, {
+          linked_at: new Date().toISOString(),
+          app_user_id: endUser.endUserId,
+          app_user_email: endUser.endUserEmail || '',
+          tenant_id: tenantId,
+          slack_user_id: slackUserId,
+          slack_team_id: slackTeamId,
+          slack_team_name: rawResponse.team?.name || '',
+          slack_username: slackUsername,
+          slack_display_name: slackDisplayName,
+          slack_email: slackEmail,
+          is_slack_admin: String(isSlackAdmin),
+          is_slack_owner: String(isSlackOwner),
+          enterprise_id: rawResponse.enterprise?.id || '',
+          enterprise_name: rawResponse.enterprise?.name || '',
+          ...(pendingSession
+            ? {
+                inkeep_session_token: pendingSession.token,
+                inkeep_session_expires_at: pendingSession.expiresAt,
+              }
+            : {}),
+        });
+
+        logger.info(
+          { appUserId: endUser.endUserId, slackUserId, slackEmail },
+          'User linked to Slack with enriched metadata'
+        );
+      }
+    } catch (error) {
+      logger.error({ error, connectionId }, 'Failed to process Nango webhook');
+    }
+  }
+
+  return c.json({ received: true });
+});
+
+export default app;
