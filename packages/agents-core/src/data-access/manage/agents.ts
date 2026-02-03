@@ -6,6 +6,7 @@ import {
   artifactComponents,
   contextConfigs,
   dataComponents,
+  functions,
   functionTools,
   projects,
   subAgentArtifactComponents,
@@ -1007,9 +1008,41 @@ export const duplicateAgent =
         );
 
       const functionToolIdMapping: Record<string, string> = {};
+      const functionIdMapping: Record<string, string> = {};
 
-      // Batch insert all function tools in a single query
       if (sourceFunctionTools.length > 0) {
+        const uniqueFunctionIds = [...new Set(sourceFunctionTools.map((ft) => ft.functionId))];
+
+        const sourceFunctions = await tx
+          .select()
+          .from(functions)
+          .where(
+            and(
+              eq(functions.tenantId, tenantId),
+              eq(functions.projectId, projectId),
+              inArray(functions.id, uniqueFunctionIds)
+            )
+          );
+
+        if (sourceFunctions.length > 0) {
+          await tx.insert(functions).values(
+            sourceFunctions.map((sourceFunction) => {
+              const newFunctionId = generateId();
+              functionIdMapping[sourceFunction.id] = newFunctionId;
+              return {
+                id: newFunctionId,
+                tenantId,
+                projectId,
+                inputSchema: sourceFunction.inputSchema,
+                executeCode: sourceFunction.executeCode,
+                dependencies: sourceFunction.dependencies,
+                createdAt: now,
+                updatedAt: now,
+              };
+            })
+          );
+        }
+
         await tx.insert(functionTools).values(
           sourceFunctionTools.map((sourceFunctionTool) => {
             const newFunctionToolId = generateId();
@@ -1021,7 +1054,7 @@ export const duplicateAgent =
               agentId: newAgentId,
               name: sourceFunctionTool.name,
               description: sourceFunctionTool.description,
-              functionId: sourceFunctionTool.functionId,
+              functionId: functionIdMapping[sourceFunctionTool.functionId] as string,
               createdAt: now,
               updatedAt: now,
             };

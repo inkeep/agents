@@ -1,3 +1,4 @@
+import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createAgent,
@@ -148,12 +149,14 @@ describe('duplicateAgent', () => {
   });
 
   describe('function tools duplication', () => {
-    it('should copy function tools with new IDs', async () => {
+    it('should copy function tools with new IDs and duplicate underlying functions', async () => {
       await db.insert(functions).values({
         tenantId: testTenantId,
         projectId: testProjectId,
         id: 'func-1',
         executeCode: 'return { result: "test" };',
+        inputSchema: { type: 'object', properties: { input: { type: 'string' } } },
+        dependencies: { lodash: '^4.17.21' },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -183,7 +186,91 @@ describe('duplicateAgent', () => {
       expect(duplicatedFunctionTools.data).toHaveLength(1);
       expect(duplicatedFunctionTools.data[0]?.id).not.toBe('func-tool-1');
       expect(duplicatedFunctionTools.data[0]?.name).toBe('Test Function Tool');
-      expect(duplicatedFunctionTools.data[0]?.functionId).toBe('func-1');
+      expect(duplicatedFunctionTools.data[0]?.functionId).not.toBe('func-1');
+
+      const allFunctions = await db
+        .select()
+        .from(functions)
+        .where(and(eq(functions.tenantId, testTenantId), eq(functions.projectId, testProjectId)));
+
+      expect(allFunctions).toHaveLength(2);
+
+      const originalFunction = allFunctions.find((f) => f.id === 'func-1');
+      const duplicatedFunction = allFunctions.find(
+        (f) => f.id === duplicatedFunctionTools.data[0]?.functionId
+      );
+
+      expect(originalFunction).toBeDefined();
+      expect(duplicatedFunction).toBeDefined();
+      expect(duplicatedFunction?.executeCode).toBe(originalFunction?.executeCode);
+      expect(duplicatedFunction?.inputSchema).toEqual(originalFunction?.inputSchema);
+      expect(duplicatedFunction?.dependencies).toEqual(originalFunction?.dependencies);
+    });
+
+    it('should ensure modifying duplicated function does not affect original', async () => {
+      await db.insert(functions).values({
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        id: 'func-original',
+        executeCode: 'return { original: true };',
+        inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      await db.insert(functionTools).values({
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        id: 'func-tool-original',
+        name: 'Original Function Tool',
+        description: 'Original description',
+        functionId: 'func-original',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      await duplicateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        newAgentId,
+        newAgentName: 'Original Agent (Copy)',
+      });
+
+      const duplicatedFunctionTools = await listFunctionTools(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: newAgentId },
+      });
+
+      const duplicatedFunctionId = duplicatedFunctionTools.data[0]?.functionId;
+      expect(duplicatedFunctionId).toBeDefined();
+      expect(duplicatedFunctionId).not.toBe('func-original');
+
+      await db
+        .update(functions)
+        .set({
+          executeCode: 'return { modified: true };',
+          inputSchema: { type: 'object', properties: { modified: { type: 'boolean' } } },
+        })
+        .where(
+          and(
+            eq(functions.tenantId, testTenantId),
+            eq(functions.projectId, testProjectId),
+            eq(functions.id, duplicatedFunctionId!)
+          )
+        );
+
+      const originalFunction = await db.query.functions.findFirst({
+        where: and(
+          eq(functions.tenantId, testTenantId),
+          eq(functions.projectId, testProjectId),
+          eq(functions.id, 'func-original')
+        ),
+      });
+
+      expect(originalFunction?.executeCode).toBe('return { original: true };');
+      expect(originalFunction?.inputSchema).toEqual({
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      });
     });
   });
 
