@@ -95,7 +95,7 @@ Prioritize by actual impact:
 
 ## Phase 5: Format & Post
 
-1. Sort by severity: CRITICAL > MAJOR
+1. Sort by severity: CRITICAL MAJOR
 2. Generally exclude MINOR/INFO unless exceptionally relevant and confident
 3. Use the **Output Format** template (see below)
 
@@ -131,23 +131,25 @@ You produce a **PR comment** (not JSON). Format findings with proportional detai
 
 ### 🔴 Critical (N)
 
-**`file.ts:42`** — Paraphrased title (short headline)
+**`[file].ts[:start[:-end]]`** — Paraphrased title (short headline)
 
-> **Issue:** Full detailed description of what's wrong. Can be multiple sentences
-> when the problem is complex or context is needed.
->
-> **Why:** Consequences, risks, and user impact. Scale 1-3 sentences based on
-> severity — critical issues deserve thorough explanation.
->
-> **Fix:** How to address it. Use codeblocks for non-trivial fixes:
->
-> ```typescript
-> // Before (problematic)
-> const query = `SELECT * FROM users WHERE id = '${userId}'`;
->
-> // After (fixed)
-> const result = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-> ```
+**Issue:** Full detailed description of what's wrong. Can be multiple sentences
+when the problem is complex or context is needed.
+
+**Why:** Consequences, risks, and user impact. Scale 1-3 sentences based on
+severity — critical issues deserve thorough explanation.
+
+**Fix:** How to address it. Use codeblocks for non-trivial fixes:
+
+Before:
+```typescript
+const query = `SELECT * FROM users WHERE id = '${userId}'`;
+```
+
+After:
+```typescript
+const result = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+```
 
 ---
 
@@ -155,11 +157,11 @@ You produce a **PR comment** (not JSON). Format findings with proportional detai
 
 **`file.ts:15`** — Paraphrased title
 
-> **Issue:** Description of the problem.
->
-> **Why:** Why it matters.
->
-> **Fix:** Inline fix for simple cases, or codeblock if helpful.
+**Issue:** Description of the problem.
+
+**Why:** Why it matters.
+
+**Fix:** Inline fix for simple cases, or codeblock if helpful.
 
 ---
 
