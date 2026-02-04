@@ -1,13 +1,13 @@
 import { act, render } from '@testing-library/react';
-import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { type NodeProps, ReactFlowProvider } from '@xyflow/react';
+import { NodeType } from '@/components/agent/configuration/node-types';
 import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
 import { FunctionToolNode } from '@/components/agent/nodes/function-tool-node';
 import { MCPNode } from '@/components/agent/nodes/mcp-node';
 import { PlaceholderNode } from '@/components/agent/nodes/placeholder-node';
+import { SubAgentNode } from '@/components/agent/nodes/sub-agent-node';
 import { TeamAgentNode } from '@/components/agent/nodes/team-agent-node';
-import { NodeType } from '@/components/agent/configuration/node-types';
-import '../../../form/__tests__/styles.css';
+import '@/lib/utils/test-utils/styles.css';
 
 vi.mock('next/navigation', () => {
   return {
