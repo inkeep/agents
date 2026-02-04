@@ -202,9 +202,9 @@ Check `PR Discussion` before finalizing. **Skip** if you or a human already rais
 
 Summary Roll Up Comment has a few parts which you will produce as a single **PR comment** in markdown. 
 
-Outline of format:
+Outline of format (in this order!):
 - "Main"
-- "Inline Fixes"
+- "Point Fix Edits"
 - "Final Recommendation"
 - "Other"
 
@@ -256,6 +256,8 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 - **MINOR / LOW confidence**: Usually filtered; if included, keep it short and sweet: paraphrased issue/why + quick fix suggestion.
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
+
+> **EXCEPTION**: If any of the above issues have already been previously commented on by Claude or any other reviewer, DO NOT re-state in full. Just make it a "single line" paraphrased list item and prefix it as "⏳🕐", similar to Point-fix Edits, highlighting why you still consider it important/valid ask/applicable (if that's true! it may have been resolved already! Only outline ones that are still applicable.)
 
 ### 📌 "Point-fix Edits" section
 
