@@ -12,7 +12,7 @@ export * from './jwt-helpers';
 export * from './logger';
 export * from './mcp-client';
 export * from './model-factory';
-export * from './schema-conversion';
+export * from './json-schema/schema-conversion';
 export * from './service-token-auth';
 export * from './temp-jwt';
 export * from './template-interpolation';

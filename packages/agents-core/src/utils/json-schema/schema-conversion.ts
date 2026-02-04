@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { getLogger } from './logger';
+import { getLogger } from '../logger';
 
 const logger = getLogger('schema-conversion');
 
