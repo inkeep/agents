@@ -6,6 +6,7 @@ export {
   playgroundCorsConfig,
   runCorsConfig,
   signozCorsConfig,
+  workAppsCorsConfig,
 } from './cors';
 export { errorHandler } from './errorHandler';
 export { manageApiKeyAuth } from './manageAuth';
