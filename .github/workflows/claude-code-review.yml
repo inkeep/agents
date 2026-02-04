@@ -44,7 +44,7 @@ jobs:
           claude_args: |
             --agent pr-review
             --allowedTools "Task,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr comment:*)"
-          direct_prompt: |
+          prompt: |
             Review this pull request.
 
             Base branch: ${{ github.event.pull_request.base.ref }}
