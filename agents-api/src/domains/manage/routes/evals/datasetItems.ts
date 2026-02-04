@@ -17,10 +17,32 @@ import {
   updateDatasetItem,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetItems');
+
+app.use('/:datasetId/items', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:datasetId/items/bulk', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:datasetId/items/:itemId', async (c, next) => {
+  if (['PATCH', 'DELETE'].includes(c.req.method)) {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
