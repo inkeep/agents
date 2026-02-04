@@ -1,6 +1,5 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
-import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { type Dispatch, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
@@ -131,7 +130,7 @@ export function ChatWidget({
       <div className="flex-1 min-w-0 h-full">
         <InkeepEmbeddedChat
           baseSettings={{
-            async onEvent(event: InkeepCallbackEvent) {
+            async onEvent(event) {
               if (event.eventName === 'assistant_message_received') {
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
