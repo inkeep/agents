@@ -1,5 +1,21 @@
 # @inkeep/agents-manage-ui
 
+## 0.45.0
+
+### Minor Changes
+
+- bab4641: add format action button for code editor
+
+### Patch Changes
+
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 8f067f4: chore(dashboard): update vitest deps and add image snapshots for form error state
+- 48b5400: Fix text overflow for function tool node and placeholder node in agent flow
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-core@0.45.0
+
 ## 0.44.0
 
 ### Minor Changes

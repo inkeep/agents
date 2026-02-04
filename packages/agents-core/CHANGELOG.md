@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.45.0
+
+### Patch Changes
+
+- 938ffb8: Revert refine method in resource id schema
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 6f5bd15: Add CI check for env.ts descriptions
+
 ## 0.44.0
 
 ### Minor Changes
