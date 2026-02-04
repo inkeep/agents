@@ -8,6 +8,7 @@ import {
   deleteScheduledTrigger,
   fetchScheduledTriggerInvocations,
   fetchScheduledTriggers,
+  fetchUpcomingRuns,
   rerunScheduledTriggerInvocation,
   type ScheduledTrigger,
   type ScheduledTriggerInvocation,
@@ -53,6 +54,25 @@ export async function getScheduledTriggerInvocationsAction(
     return response.data;
   } catch (error) {
     console.error('Failed to fetch scheduled trigger invocations:', error);
+    return [];
+  }
+}
+
+export async function getUpcomingRunsAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  options?: {
+    includeRunning?: boolean;
+    limit?: number;
+    page?: number;
+  }
+): Promise<ScheduledTriggerInvocation[]> {
+  try {
+    const response = await fetchUpcomingRuns(tenantId, projectId, agentId, options);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch upcoming runs:', error);
     return [];
   }
 }

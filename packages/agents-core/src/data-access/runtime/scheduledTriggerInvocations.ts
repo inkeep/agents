@@ -328,6 +328,7 @@ export const markScheduledTriggerInvocationFailed =
     invocationId: string;
     errorMessage: string;
     errorCode?: string;
+    conversationId?: string;
   }): Promise<ScheduledTriggerInvocation | undefined> => {
     const result = await db
       .update(scheduledTriggerInvocations)
@@ -336,6 +337,7 @@ export const markScheduledTriggerInvocationFailed =
         completedAt: new Date().toISOString(),
         errorMessage: params.errorMessage,
         errorCode: params.errorCode,
+        conversationId: params.conversationId,
       })
       .where(
         and(
@@ -456,4 +458,104 @@ export const deleteScheduledTriggerInvocations =
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId)
         )
       );
+  };
+
+/**
+ * List upcoming invocations across ALL triggers for an agent
+ * Used for the upcoming runs dashboard
+ */
+export const listUpcomingInvocationsForAgent =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: Omit<AgentScopeConfig, 'agentId'> & { agentId: string };
+    limit?: number;
+    includeRunning?: boolean;
+  }): Promise<ScheduledTriggerInvocation[]> => {
+    const maxLimit = Math.min(params.limit || 20, 100);
+    const now = new Date().toISOString();
+
+    // Include running invocations if requested (for dashboard showing active + upcoming)
+    const statusCondition = params.includeRunning
+      ? inArray(scheduledTriggerInvocations.status, ['pending', 'running'])
+      : eq(scheduledTriggerInvocations.status, 'pending');
+
+    const result = await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          statusCondition
+        )
+      )
+      .orderBy(asc(scheduledTriggerInvocations.scheduledFor))
+      .limit(maxLimit);
+
+    return result as ScheduledTriggerInvocation[];
+  };
+
+/**
+ * List upcoming invocations across ALL triggers for an agent with pagination
+ * Used for the upcoming runs dashboard with full pagination support
+ */
+export const listUpcomingInvocationsForAgentPaginated =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: Omit<AgentScopeConfig, 'agentId'> & { agentId: string };
+    pagination?: PaginationConfig;
+    includeRunning?: boolean;
+  }) => {
+    const page = params.pagination?.page || 1;
+    const limit = Math.min(params.pagination?.limit || 20, 100);
+    const offset = (page - 1) * limit;
+
+    console.log('[listUpcomingInvocationsForAgentPaginated] Query params:', {
+      tenantId: params.scopes.tenantId,
+      projectId: params.scopes.projectId,
+      agentId: params.scopes.agentId,
+      includeRunning: params.includeRunning,
+      page,
+      limit,
+    });
+
+    // Include running invocations if requested (for dashboard showing active + upcoming)
+    const statusCondition = params.includeRunning
+      ? inArray(scheduledTriggerInvocations.status, ['pending', 'running'])
+      : eq(scheduledTriggerInvocations.status, 'pending');
+
+    const conditions = [
+      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+      eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+      statusCondition,
+    ];
+
+    const whereClause = and(...conditions);
+
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(scheduledTriggerInvocations)
+        .where(whereClause)
+        .limit(limit)
+        .offset(offset)
+        .orderBy(asc(scheduledTriggerInvocations.scheduledFor)),
+      db.select({ count: count() }).from(scheduledTriggerInvocations).where(whereClause),
+    ]);
+
+    const total = totalResult[0]?.count || 0;
+    const pages = Math.ceil(total / limit);
+
+    console.log('[listUpcomingInvocationsForAgentPaginated] Results:', {
+      dataCount: data.length,
+      total,
+      firstItem: data[0] ? { id: data[0].id, status: data[0].status, scheduledFor: data[0].scheduledFor } : null,
+    });
+
+    return {
+      data,
+      pagination: { page, limit, total, pages },
+    };
   };
