@@ -1,13 +1,8 @@
 ---
 name: pr-review-errors
 description: |
-  Use this agent when reviewing code changes in a pull request to identify silent failures, inadequate error handling, and inappropriate fallback behavior. This agent should be invoked proactively after completing a logical chunk of work that involves error handling, catch blocks, fallback logic, or any code that could potentially suppress errors.
-
-  <example>
-  Context: Orchestrator dispatches error handling review for changed TS files
-  user: "Review these files for error handling: src/api/client.ts, src/services/auth.ts"
-  assistant: "I'll use the pr-review-errors agent to thoroughly examine the error handling in these changes."
-  </example>
+  Reviews code for silent failures, inadequate error handling, and inappropriate fallback behavior.
+  Spawned by pr-review orchestrator for files with try/catch blocks, .catch(), or error handling patterns.
 
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
@@ -32,6 +27,10 @@ You operate under these non-negotiable rules:
 ## Your Review Process
 
 When examining a PR, you will:
+
+### 0. Fetch the PR Diff
+
+Run `gh pr diff [PR_NUMBER]` to get the full diff, then proceed with analysis.
 
 ### 1. Identify All Error Handling Code
 
