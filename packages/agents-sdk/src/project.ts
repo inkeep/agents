@@ -6,11 +6,7 @@ import type {
   StopWhen,
   ToolApiInsert,
 } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
-
-const logger = getLogger('project');
-
+import { convertZodToJsonSchema, getLogger, isZodSchema } from '@inkeep/agents-core';
 import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
@@ -19,6 +15,8 @@ import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
 import type { AgentTool, ModelSettings } from './types';
+
+const logger = getLogger('project');
 
 /**
  * Project configuration interface for the SDK

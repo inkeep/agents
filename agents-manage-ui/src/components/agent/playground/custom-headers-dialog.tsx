@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { jsonSchemaToZod } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -17,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { customHeadersTemplate } from '@/lib/templates/schema-templates';
 
 const CustomHeadersSchema = z.object({

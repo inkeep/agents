@@ -8,9 +8,9 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
+import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { FeedbackDialog } from './feedback-dialog';
-import { css } from '@/lib/utils';
 
 interface ChatWidgetProps {
   agentId?: string;
