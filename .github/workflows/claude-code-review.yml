@@ -195,7 +195,10 @@ jobs:
 
       - name: Run PR Review
         id: claude
-        uses: anthropics/claude-code-action@v1
+        # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
+        # Tracking: https://github.com/anthropics/claude-code-action/issues/892
+        # Remove pin when issue is resolved and @v1 is stable again
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
         env:
           CLAUDE_CODE_DEBUG_LOGS_DIR: ${{ runner.temp }}/claude-debug
         with:
