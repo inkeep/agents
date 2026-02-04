@@ -89,7 +89,7 @@ Cluster findings describing the same issue:
 - `inline`: Same file + overlapping lines + similar problem → **merge**
 - `file`: Same file + similar problem → **merge**
 - `multi-file`/`system`: Similar scope + similar problem → **merge**
-- Keep or consolidate to the most actionable version (clearest issue + implications + alternatives)
+- Keep or consolidate to the most actionable version (clearest issue + implications + fixes)
 
 ### 4.2 Relevancy Check
 
@@ -121,7 +121,7 @@ Inline-eligible criteria (**ALL must be true**):
 - **Type:** `type: "inline"` (findings with `type: "file"`, `"multi-file"`, or `"system"` are summary-only)
 - **Fix scope:** same file, ~1–10 lines changed, no cross-file refactor
 - **Actionability:** you can propose a concrete, low-risk fix (not just “consider X”)
-- **Fix Confidence:** `HIGH` (one clear best-practice fix), `MEDIUM` (likely correct but alternatives exist), `LOW` (multiple valid approaches requiring judgment). Must be `HIGH` for inline.
+- **Fix Confidence:** Finding's `fix_confidence` field must be `HIGH` (fix is complete and can be applied as-is). `MEDIUM` or `LOW` → summary-only.
 
 If none of the above fit, or larger scope or complex/require high consideration, defer to considering it for **summary-only**
 

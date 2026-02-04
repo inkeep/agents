@@ -14,7 +14,7 @@ This skill defines **how to format your output** when returning findings.
 Goals:
 - **machine-parseable** — output can be `JSON.parse()`'d directly
 - **self-describing** — each finding declares its type and scope
-- **actionable** — structured issue + implications + alternatives
+- **actionable** — structured issue + implications + fixes
 
 Preload this skill via `skills: [pr-review-output-contract]` into any `pr-review-*` agent.
 
@@ -90,8 +90,11 @@ These fields are **required on all finding types**:
 | `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
 | `issue` | string | What's wrong. Thorough description. |
 | `implications` | string | Why it matters. Consequence, risk, user impact. |
-| `alternatives` | string | How to address it. Fix, recommendation, or options. |
 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? |
+| `fix` | string | Suggestion[s] (aka "fix" or "fixes") for how to address it. If a simple fix, then just give the full solution as a code block. If a bigger-scoped resolution is needed, but brief code example[s] would be helpful to illustrate, incorporate them as full code block[s] (still minimum viable short) interweaved into the explanation. Otherwise, describe the alternative approaches to consider qualitatively/from a technical perspective. Note: Don't go into over-engineering a solution if wide-scoped or you're unsure, this is more about giving a starting point/direction as to what a resolution may look like. |
+| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
 
 ---
 
@@ -181,6 +184,16 @@ How certain you are that this is a real issue. Not how severe it is.
 | `MEDIUM` | Likely issue. Reasonable alternate interpretation exists. | "This looks wrong, but there might be context I'm missing." |
 | `LOW` | Possible issue. Needs human confirmation or more context. | "This could be a problem, but I'm not sure." |
 
+### `fix_confidence`
+
+How confident you are in the proposed fix. Distinct from `confidence` (issue certainty).
+
+| Fix Confidence | Meaning |
+|----------------|---------|
+| `HIGH` | Fix is complete and correct. Can be applied as-is. |
+| `MEDIUM` | Fix is directionally correct but may need adjustment. |
+| `LOW` | Fix is a starting point; human should verify approach. |
+
 ### `category`
 
 Use **your primary domain**. This is a freeform string.
@@ -199,13 +212,13 @@ Use **your primary domain**. This is a freeform string.
 | `comments` | comment accuracy, staleness |
 | `frontend` | React/Next.js patterns, components |
 
-**Cross-domain findings:** If you find an issue outside your domain, still use your domain as the category.
+**Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category relevant to you.
 
-### `issue`, `implications`, `alternatives`
+### `issue`, `implications`, `fix`
 
-Scale depth with severity × confidence. Lean detailed — thorough analysis is better than vague.
+Scale depth with severity × confidence. Lean detailed — thorough analysis and specific resolutions or suggestions to consider are better than vague!
 
-| Severity × Confidence | issue | implications | alternatives |
+| Severity × Confidence | issue | implications | fix |
 |-----------------------|-------|--------------|--------------|
 | CRITICAL + HIGH | Full context: what, where, how it happens | Detailed consequences, attack scenarios, blast radius | Concrete fix with code example, before/after |
 | MAJOR + HIGH | Specific description with relevant context | Clear consequences, who/what is affected | Concrete fix, code if non-obvious |
@@ -245,7 +258,7 @@ Before returning, verify:
 - [ ] Output is an array of Finding objects
 - [ ] Every finding has a `type` field with valid value
 - [ ] Every finding has all required fields for its type
-- [ ] `severity` and `confidence` use allowed enum values
+- [ ] `severity`, `confidence`, and `fix_confidence` use allowed enum values
 - [ ] `category` is a non-empty string matching your domain
 - [ ] `file`/`files` paths are repo-relative (no absolute paths)
 - [ ] `inline` findings have numeric `line` or valid range string

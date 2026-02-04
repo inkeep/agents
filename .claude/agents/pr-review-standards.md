@@ -150,6 +150,39 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 
 *Flag only obvious gaps here. Deep comment accuracy analysis is out of scope.*
 
+## Verbosity & Over-Engineering
+- **Unnecessary abstractions**: classes/factories/patterns for one-time use; a 20-line script wrapped in a class hierarchy
+- Premature design patterns (singletons, strategies, builders) without clear justification
+- Defensive overkill: redundant null checks already guaranteed by types; try/catch wrapping every operation
+- Over-parameterized functions with many optional arguments "for flexibility" that's never used
+- Deep nesting (4+ levels) that could be guard clauses or early returns
+
+*Ask: "Would a senior engineer simplify this, or is the complexity justified?"*
+
+## Generic/Template Naming
+- **Variables named `data`, `result`, `item`, `value`, `temp`, `obj`** when context-specific names would be clearer
+- Generic verbs: `process()`, `handle()`, `execute()`, `doWork()` instead of domain-specific names
+- Numbered names: `item1`, `item2`, `data1`, `data2`
+- Suffix spam: `Manager`, `Handler`, `Processor`, `Helper`, `Util` when a domain noun would suffice
+
+*Ask: "Would someone unfamiliar with this code understand what this name represents?"*
+
+## Over-Documentation
+- **Docstrings on trivial functions** that restate the obvious (`"Adds two numbers and returns the result"`)
+- Line-by-line comments describing *what* code does, not *why* (`x += 1  // increment x`)
+- Uniform comment density across the file—every function documented identically regardless of complexity
+- Overly confident comments asserting correctness without hedging (`"Handles all edge cases"`)
+
+*Ask: "Do these comments add value, or are they noise that will become stale and misleading?"*
+
+## Inconsistent Patterns Within Same File
+- **Mixed paradigms**: OOP in one function, functional in the next, without justification
+- Same logical operation implemented differently in sibling functions
+- Inconsistent error handling: try/catch in some places, error returns in others, silent swallowing elsewhere
+- Style drift: different naming conventions, spacing, or idioms within the same file
+
+*Ask: "Does this file read like one author wrote it, or several?"*
+
 # Review Process
 
 1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill

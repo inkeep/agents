@@ -142,6 +142,12 @@ For each changed file that introduces a new route/handler/service/type/module:
 - Error messages follow existing vocabulary and structure (tone, consistency)
 - Avoid introducing new error concepts when an existing one fits
 
+### 2.7 Database Schema Naming
+- Table names: pluralization, casing (snake_case vs PascalCase), prefix/suffix conventions
+- Column names: casing, naming patterns for foreign keys, timestamps, status fields
+- Index and constraint names: consistency with existing naming patterns
+- Enum/type names in the database layer
+
 ## 3. Reuse of Existing Helpers/Utilities
 Before accepting a new helper or "common" function:
 - Grep for existing utilities that already solve the problem

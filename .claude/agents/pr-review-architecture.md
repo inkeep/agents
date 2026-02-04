@@ -187,6 +187,16 @@ When a PR introduces or expands a major runtime dependency / framework:
 - Does it force cross-cutting adoption (touching many modules) without a clear migration/convergence plan?
 - Is it being introduced as a convenience for a local use case, but likely to become a system-wide dependency later?
 
+## 9. Database Schema Design
+When a PR introduces or modifies database schema:
+- **Normalization vs denormalization tradeoffs**: Is the design appropriate for the access patterns? Over-normalized schemas create join-heavy queries; over-denormalized creates update anomalies.
+- **Relationship modeling**: Are foreign key relationships, cardinality, and ownership semantics correct? Will cascading deletes or orphaned records be a problem?
+- **Index strategy**: Are indexes justified by query patterns? Missing indexes on frequently-queried columns? Redundant indexes that slow writes?
+- **Schema evolution**: Will this schema be painful to migrate later? Are nullable columns, default values, and constraints set up for forward compatibility?
+- **Data lifecycle**: Is there a strategy for archival, soft-delete, or historical data? Will this table grow unbounded?
+
+*Schema changes are one-way doors—treat new tables and columns as architectural decisions.*
+
 # Common Anti-Patterns to Flag
 
 Things AI agents and junior engineers often miss at the system level:
