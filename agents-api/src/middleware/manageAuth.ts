@@ -138,7 +138,10 @@ export const manageApiKeyAuth = () =>
       );
 
       c.set('userId', result.payload.sub);
-      c.set('userEmail', `slack-${result.payload.slack.userId}@slack.inkeep`);
+      c.set(
+        'userEmail',
+        result.payload.slack.email || `slack-${result.payload.slack.userId}@slack.inkeep`
+      );
       c.set('tenantId', result.payload.tenantId);
 
       await next();

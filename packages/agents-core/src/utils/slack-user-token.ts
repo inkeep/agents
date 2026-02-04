@@ -34,6 +34,7 @@ export const SlackAccessTokenPayloadSchema = z.object({
     teamId: z.string().min(1),
     userId: z.string().min(1),
     enterpriseId: z.string().min(1).optional(),
+    email: z.string().email().optional(),
   }),
 });
 
@@ -48,6 +49,7 @@ export interface SignSlackUserTokenParams {
   slackTeamId: string;
   slackUserId: string;
   slackEnterpriseId?: string;
+  slackEmail?: string;
 }
 
 /**
@@ -66,6 +68,7 @@ export interface SlackUserAuthContext {
     slackTeamId: string;
     slackUserId: string;
     slackEnterpriseId?: string;
+    slackEmail?: string;
   };
 }
 
@@ -94,6 +97,7 @@ export async function signSlackUserToken(params: SignSlackUserTokenParams): Prom
           teamId: params.slackTeamId,
           userId: params.slackUserId,
           ...(params.slackEnterpriseId && { enterpriseId: params.slackEnterpriseId }),
+          ...(params.slackEmail && { email: params.slackEmail }),
         },
       },
     });
@@ -204,6 +208,7 @@ export function toSlackUserAuthContext(payload: SlackAccessTokenPayload): SlackU
       slackTeamId: payload.slack.teamId,
       slackUserId: payload.slack.userId,
       slackEnterpriseId: payload.slack.enterpriseId,
+      slackEmail: payload.slack.email,
     },
   };
 }
