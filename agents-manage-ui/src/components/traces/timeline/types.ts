@@ -81,6 +81,7 @@ export interface ActivityItem {
   messageParts?: string; // JSON string of message parts array
   delegationFromSubAgentId?: string;
   delegationToSubAgentId?: string;
+  delegationType?: 'internal' | 'external' | 'team';
   transferFromSubAgentId?: string;
   transferToSubAgentId?: string;
   toolType?: string;
