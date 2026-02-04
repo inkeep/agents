@@ -62,7 +62,9 @@ Here are the available reviewers:
 | `pr-review-types` | Type design, invariants, and type safety. |
 | `pr-review-comments` | Comment accuracy and detects stale/misleading documentation. |
 | `pr-review-architecture` | System design, pattern consistency, and architectural decisions. |
-| `pr-review-customer-impact` | API contracts and changes that could impact end users. |
+| `pr-review-consistency` | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. |
+| `pr-review-product` | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. |
+| `pr-review-security-iam` | Auth, tenant isolation, authorization, token/session security, and credential handling. |
 
 **Action**: Based on the scope and nature of the PR, select the relevant reviewers. 
 **Tip**: This may include only a few or all -- use your judgement on which may be relevant.

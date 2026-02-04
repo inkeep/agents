@@ -68,7 +68,9 @@ Detect fault classes and anti-patterns using domain expertise. No external skill
 | `pr-review-types` | Type safety gaps, missing invariants |
 | `pr-review-comments` | Stale/misleading comments |
 | `pr-review-architecture` | Pattern inconsistency, poor abstractions |
-| `pr-review-customer-impact` | Breaking API changes, UX regressions |
+| `pr-review-consistency` | Convention drift across APIs, SDKs, CLI, config, telemetry |
+| `pr-review-product` | Customer mental-model clarity, concept economy, product debt |
+| `pr-review-security-iam` | Auth bypass, tenant isolation, access control, credential handling |
 
 ## Files
 
@@ -89,7 +91,7 @@ All reviewers load `product-surface-areas` — a consolidated inventory of 63 cu
 **High-value for:**
 - `pr-review-architecture` — evaluates system-wide impact and evolvability
 - `pr-review-breaking-changes` — maps schema/contract changes to affected surfaces
-- `pr-review-customer-impact` — identifies which customers/workflows break
+- `pr-review-product` — evaluates customer mental-model impact and cross-surface coherence
 
 **Lower-value for (candidates for removal):**
 - `pr-review-comments` — focused on comment accuracy, not product architecture
