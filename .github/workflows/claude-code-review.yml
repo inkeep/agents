@@ -84,7 +84,6 @@ jobs:
                           author { login }
                           body
                           diffHunk
-                          url
                         }
                       }
                     }
@@ -116,7 +115,6 @@ jobs:
                       }
                       body
                       createdAt
-                      url
                     }
                   }
                 }
@@ -176,13 +174,13 @@ jobs:
           ```
 
           ## Existing Inline Comments
-          Prior review threads on specific lines. Each object has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and first comment with `body`, `author`, `diffHunk` context, and `url` (permalink). Use to avoid posting duplicate inline comments and to link to existing comments in the summary.
+          Prior review threads on specific lines. Each object has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and first comment with `body`, `author`, and `diffHunk` context. Use to avoid posting duplicate inline comments.
           ```json
           ${{ steps.threads.outputs.review_threads }}
           ```
 
           ## PR Discussion
-          General comments from humans and previous review summaries. Each has `author`, `body`, `createdAt`, and `url` (permalink). Use to avoid re-raising addressed issues.
+          General comments from humans and previous review summaries. Use to avoid re-raising addressed issues.
           ```json
           ${{ steps.pr_comments.outputs.pr_comments }}
           ```
@@ -194,27 +192,13 @@ jobs:
           echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
 
       - name: Run PR Review
-        id: claude
         uses: anthropics/claude-code-action@v1
-        env:
-          CLAUDE_CODE_DEBUG_LOGS_DIR: ${{ runner.temp }}/claude-debug
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           track_progress: true
           include_fix_links: true
           claude_args: |
             --agent pr-review
-            --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*)"
+            --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
           prompt: |
             Review PR #${{ github.event.pull_request.number }}.
-
-      - name: Upload Debug Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: claude-debug-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/claude-debug/
-            ${{ steps.claude.outputs.execution_file }}
-          retention-days: 7
-          if-no-files-found: ignore
