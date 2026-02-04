@@ -3,13 +3,16 @@ import { generateId } from './conversations';
 
 export interface TempTokenPayload {
   tenantId: string;
-  projectId: string;
-  agentId: string;
+  /** Optional - can be provided via x-inkeep-project-id header instead */
+  projectId?: string;
+  /** Optional - can be provided via x-inkeep-agent-id header instead */
+  agentId?: string;
   type: 'temporary';
-  initiatedBy: {
+  initiatedBy?: {
     type: 'user' | 'api_key';
     id: string;
   };
+  sub: string;
 }
 
 export interface SignedTempToken {
@@ -19,8 +22,7 @@ export interface SignedTempToken {
 
 export async function signTempToken(
   privateKeyPem: string,
-  payload: TempTokenPayload,
-  userId: string
+  payload: TempTokenPayload
 ): Promise<SignedTempToken> {
   const privateKey = await jose.importPKCS8(privateKeyPem, 'RS256');
 
@@ -30,7 +32,7 @@ export async function signTempToken(
     .setExpirationTime('1h')
     .setIssuer('inkeep-manage-api')
     .setAudience('inkeep-run-api')
-    .setSubject(userId)
+    .setSubject(payload.sub)
     .setJti(generateId())
     .sign(privateKey);
 
@@ -52,6 +54,10 @@ export async function verifyTempToken(
 
   if (payload.type !== 'temporary') {
     throw new Error('Invalid token type');
+  }
+
+  if (!payload.sub) {
+    throw new Error('Invalid token: missing subject claim');
   }
 
   return payload as unknown as TempTokenPayload;

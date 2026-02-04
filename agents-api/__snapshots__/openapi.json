@@ -9536,6 +9536,66 @@
         ]
       }
     },
+    "/manage/available-agents": {
+      "get": {
+        "description": "List all agents the user can invoke. Requires a valid JWT token.",
+        "operationId": "list-available-agents",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "agentId": {
+                            "type": "string"
+                          },
+                          "agentName": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "agentId",
+                          "agentName",
+                          "projectId"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of available agents"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing JWT token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List available agents",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
     "/manage/capabilities": {
       "get": {
         "description": "Get information about optional server-side capabilities and configuration.",

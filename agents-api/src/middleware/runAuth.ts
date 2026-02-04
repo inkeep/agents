@@ -1,5 +1,6 @@
 import {
   type BaseExecutionContext,
+  canUseProjectStrict,
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
@@ -108,8 +109,19 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
 
 /**
  * Attempts to authenticate using a JWT temporary token
+ *
+ * Supports two modes:
+ * 1. Full JWT: projectId/agentId in token (playground flow)
+ * 2. Slim JWT: projectId/agentId from headers (work-apps flow)
+ *
+ * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
+ * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
  */
-async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
+async function tryTempJwtAuth(
+  apiKey: string,
+  headerProjectId?: string,
+  headerAgentId?: string
+): Promise<AuthResult | null> {
   if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
     return null;
   }
@@ -120,17 +132,57 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
     );
     const payload = await verifyTempToken(publicKeyPem, apiKey);
 
-    logger.info({}, 'JWT temp token authenticated successfully');
+    const userId = payload.sub;
+
+    // Use JWT values if present, otherwise fall back to header values
+    const projectId = payload.projectId ?? headerProjectId;
+    const agentId = payload.agentId ?? headerAgentId;
+
+    if (!projectId) {
+      logger.warn({ userId }, 'No projectId in JWT or headers');
+      throw new HTTPException(400, {
+        message: 'Missing projectId: must be in JWT or x-inkeep-project-id header',
+      });
+    }
+
+    if (!agentId) {
+      logger.warn({ userId }, 'No agentId in JWT or headers');
+      throw new HTTPException(400, {
+        message: 'Missing agentId: must be in JWT or x-inkeep-agent-id header',
+      });
+    }
+
+    const canUse = await canUseProjectStrict({
+      userId,
+      projectId,
+    });
+
+    if (!canUse) {
+      logger.warn({ userId, projectId }, 'User does not have use permission on project');
+      throw new HTTPException(403, {
+        message: 'Access denied: insufficient permissions',
+      });
+    }
+
+    logger.info(
+      { projectId, agentId, fromHeaders: !payload.projectId },
+      'JWT temp token authenticated successfully'
+    );
 
     return {
       apiKey,
       tenantId: payload.tenantId,
-      projectId: payload.projectId,
-      agentId: payload.agentId,
+      projectId,
+      agentId,
       apiKeyId: 'temp-jwt',
       metadata: { initiatedBy: payload.initiatedBy },
     };
   } catch (error) {
+    // Re-throw HTTPExceptions (like our 403/400 above)
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    // Other errors (JWT verification failed) - allow fallback to other auth methods
     logger.debug({ error }, 'JWT verification failed');
     return null;
   }
@@ -292,8 +344,8 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
     return { authResult: null };
   }
 
-  // 1. Try JWT temp token
-  const jwtResult = await tryTempJwtAuth(apiKey);
+  // 1. Try JWT temp token (supports header fallback for projectId/agentId)
+  const jwtResult = await tryTempJwtAuth(apiKey, reqData.projectId, reqData.agentId);
   if (jwtResult) return { authResult: jwtResult };
 
   // 2. Try bypass secret
