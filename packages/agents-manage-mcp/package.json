@@ -28,7 +28,7 @@
     "@types/bun": "^1.2.13",
     "@types/express": "^5.0.1",
     "@types/node": "^18.19.3",
-    "@modelcontextprotocol/sdk": "1.24.3",
+    "@modelcontextprotocol/sdk": "1.26.0",
     "eslint": "^9.26.0",
     "globals": "^16.0.0",
     "typescript": "~5.8.3",
@@ -37,7 +37,7 @@
     "find-up": "^7.0.0"
   },
   "peerDependencies": {
-    "@modelcontextprotocol/sdk": "1.24.3"
+    "@modelcontextprotocol/sdk": "1.26.0"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

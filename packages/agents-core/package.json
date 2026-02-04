@@ -140,7 +140,7 @@
     "@better-auth/sso": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
-    "@modelcontextprotocol/sdk": "^1.17.2",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
     "@openrouter/ai-sdk-provider": "^1.2.0",
