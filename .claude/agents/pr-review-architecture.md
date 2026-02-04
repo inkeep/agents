@@ -117,7 +117,7 @@ Things AI agents and junior engineers often miss at the system level:
 
 # Workflow
 
-1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
+1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
 2. **Understand intent** — What is this PR trying to accomplish at a system level?
 3. **Research prior art** — Use Grep/Glob to find similar patterns in the codebase
 3. **Evaluate consistency** — Does this fit with what exists?

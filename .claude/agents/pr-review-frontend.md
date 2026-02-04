@@ -41,7 +41,7 @@ Do not re-explain rules that are documented in skills. Focus findings on specifi
 
 # Workflow
 
-1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
+1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
 2. Read each file using Read tool
 3. Evaluate against skill standards
 4. Create Finding objects per `pr-review-output-contract` schema

@@ -114,6 +114,59 @@ jobs:
           echo "$COMMENTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Write PR Context to Temp File
+        run: |
+          cat > /tmp/pr-context.md << 'PRCONTEXT_EOF'
+          # PR Review Context
+
+          Use this context to:
+          1. Get an initial sense of the purpose and scope of the changes
+          2. Note what's already been flagged or discussed
+          3. Identify if previous feedback was addressed or ignored
+
+          ---
+
+          ## PR Metadata
+
+          **PR #${{ github.event.pull_request.number }}:** ${{ github.event.pull_request.title }}
+          **Base:** ${{ github.event.pull_request.base.ref }}
+          **Author:** ${{ github.event.pull_request.user.login }}
+
+          ## Description
+          Author-provided description (may not fully reflect actual scope):
+
+          ${{ github.event.pull_request.body }}
+
+          ## Changed Files
+          Use for routing to appropriate reviewers:
+          ```
+          ${{ steps.diff.outputs.changed_files }}
+          ```
+
+          ## Diff
+          ${{ steps.diff.outputs.truncated == 'true' && '> **Note:** Diff was truncated due to size. Use `gh pr diff` to fetch the full diff.' || '' }}
+          ```diff
+          ${{ steps.diff.outputs.diff_content }}
+          ```
+
+          ## Existing Inline Comments
+          Prior review threads on specific lines. Each object has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and first comment with `body`, `author`, and `diffHunk` context. Use to avoid posting duplicate inline comments.
+          ```json
+          ${{ steps.threads.outputs.review_threads }}
+          ```
+
+          ## PR Discussion
+          General comments from humans and previous review summaries. Use to avoid re-raising addressed issues.
+          ```json
+          ${{ steps.pr_comments.outputs.pr_comments }}
+          ```
+
+          > **IMPORTANT:** Do NOT re-raise issues that have already been flagged, dismissed, or addressed in prior comments. You may allude to unresolved important items briefly, but do not restate details already covered.
+
+          PRCONTEXT_EOF
+          
+          echo "PR context written to /tmp/pr-context.md ($(wc -c < /tmp/pr-context.md) bytes)"
+
       - name: Run PR Review
         uses: anthropics/claude-code-action@v1
         with:
@@ -124,35 +177,4 @@ jobs:
             --agent pr-review
             --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
           prompt: |
-            Review this pull request.
-
-            **PR #${{ github.event.pull_request.number }}:** ${{ github.event.pull_request.title }}
-            **Base:** ${{ github.event.pull_request.base.ref }}
-            **Author:** ${{ github.event.pull_request.user.login }}
-
-            ## Description (User defined, may not be up to date//fully reflect scope)
-            ${{ github.event.pull_request.body }}
-
-            ## Changed Files
-            ```
-            ${{ steps.diff.outputs.changed_files }}
-            ```
-
-            ## Diff
-            ```diff
-            ${{ steps.diff.outputs.diff_content }}
-            ```
-
-            ${{ steps.diff.outputs.truncated == 'true' && '> **Note:** Diff was truncated. Use `gh pr diff` if you need the full diff for judgment.' || '' }}
-
-            ## Existing Inline Comments (for deduplication)
-            Use this to avoid posting duplicate inline comments. Each object has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and first comment with `body`, `author`, and `diffHunk` (code context).
-            ```json
-            ${{ steps.threads.outputs.review_threads }}
-            ```
-
-            ## PR Discussion (general comments)
-            Prior discussion on this PR (humans + your previous comments). Use to avoid re-raising addressed issues.
-            ```json
-            ${{ steps.pr_comments.outputs.pr_comments }}
-            ```
+            Review PR #${{ github.event.pull_request.number }}.

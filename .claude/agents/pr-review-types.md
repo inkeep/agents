@@ -19,7 +19,7 @@ You evaluate type designs with a critical eye toward invariant strength, encapsu
 
 **Analysis Framework:**
 
-**First:** Fetch the PR diff by running `gh pr diff [PR_NUMBER]` to see all type changes.
+**First:** Read the PR context from `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata.
 
 When analyzing a type, you will:
 

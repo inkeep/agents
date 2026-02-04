@@ -113,7 +113,7 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 
 # Review Process
 
-1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to get the changes
+1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
 2. **Read AGENTS.md first** — understand project-specific rules
 3. **Check scope** — are all changes necessary for the stated goal?
 4. **Analyze each file** against the code quality checklist
