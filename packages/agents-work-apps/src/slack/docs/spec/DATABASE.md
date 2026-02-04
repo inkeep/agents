@@ -56,7 +56,7 @@ erDiagram
         varchar agent_id "agent_xxx"
         varchar agent_name "Support Agent"
         text configured_by_user_id FK "user.id"
-        varchar enabled "true|false"
+        boolean enabled "true (default)"
         timestamp created_at
         timestamp updated_at
     }
