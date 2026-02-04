@@ -56,11 +56,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         import('monaco-editor'),
         import('shiki'),
         import('@shikijs/monaco'),
-        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json', {
-          with: {
-            type: 'json',
-          },
-        }),
+        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json'),
         import('shiki/themes/github-light-default.mjs'),
         import('shiki/themes/github-dark-default.mjs'),
         import('shiki/langs/markdown.mjs'),

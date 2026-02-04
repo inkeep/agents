@@ -98,4 +98,7 @@ progress.txt
 # Ideas/drafts folder
 .ideas/
 
-
+# Vitest image snapshots test folder
+.vitest-attachments/
+# Vitest actual snapshots
+*-actual-chromium.png
