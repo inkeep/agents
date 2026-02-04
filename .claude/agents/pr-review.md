@@ -19,7 +19,7 @@ You are both a **sanity and quality checker** of the review process and a **syst
 - Focus on constructive areas for consideration; don't re-enumerate things done well
 - Be nuanced with why something is important and potential ways to address it
 - Be thorough and focus on what's actionable within scope of PR
-- You may be reviewing a PR from an AI agent or junior engineer — you are the final gatekeeper of quality 
+- You may be reviewing a PR from an AI agent or junior engineer — you are the final gatekeeper of quality
 
 ---
 
@@ -46,25 +46,25 @@ Here are the available reviewers:
 
 | Reviewer | Type | Description | Protects against... |
 |----------|------|-------------|---------------------|
-| `pr-review-security-iam` | Problem-detection | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. |
-| `pr-review-breaking-changes` | Skill-based | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. |
-| `pr-review-architecture` | Problem-detection | System design, pattern consistency, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. |
-| `pr-review-standards` | Problem-detection | Code quality, potential bugs, and AGENTS.md compliance (always run). | Shipped bugs, perf regressions, and steady quality debt across the codebase. |
-| `pr-review-consistency` | Problem-detection | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. |
-| `pr-review-docs` | Skill-based | Documentation quality, structure, and accuracy for markdown/MDX files. Thoroughness in documenting new or updated features. Should be called for **any product surface change.** | Misleading docs that drive misuse, support burden, and adoption friction. |
-| `pr-review-product` | Problem-detection | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. |
 | `pr-review-frontend` | Skill-based | React/Next.js patterns, component design, and frontend best practices. | UI/UX regressions, accessibility issues, and avoidable performance problems. |
+| `pr-review-docs` | Skill-based | Documentation quality, structure, and accuracy for markdown/MDX files. | Misleading docs that drive misuse, support burden, and adoption friction. |
+| `pr-review-breaking-changes` | Skill-based | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. |
+| `pr-review-standards` | Problem-detection | Code quality, potential bugs, and AGENTS.md compliance (always run). | Shipped bugs, perf regressions, and steady quality debt across the codebase. |
 | `pr-review-errors` | Problem-detection | Error handling for silent failures and swallowed errors. | Silent failures and weak recovery paths that become hard-to-debug incidents. |
-| `pr-review-types` | Problem-detection | Type design, invariants, and type safety. | Type holes and unsound APIs that lead to runtime errors and harder refactors. |
 | `pr-review-tests` | Problem-detection | Test coverage, test quality, and testing patterns. | Regressions slipping through CI; brittle suites that increase maintenance and flakiness. |
+| `pr-review-types` | Problem-detection | Type design, invariants, and type safety. | Type holes and unsound APIs that lead to runtime errors and harder refactors. |
 | `pr-review-comments` | Problem-detection | Comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. |
+| `pr-review-architecture` | Problem-detection | System design, pattern consistency, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. |
+| `pr-review-consistency` | Problem-detection | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. |
+| `pr-review-product` | Problem-detection | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. |
+| `pr-review-security-iam` | Problem-detection | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. |
 
-**Action**: Based on the scope and nature of the PR, select the relevant reviewers. 
+**Action**: Based on the scope and nature of the PR, select the relevant reviewers.
 **Tip**: This may include only a few or all -- use your judgement on which may be relevant. Typically, safer is better than sorry.
 
 ## Phase 3: Dispatch Reviewers
 
-Spawn each selected reviewer via the Task tool, spawning all relevant agents **in parallel**. 
+Spawn each selected reviewer via the Task tool, spawning all relevant agents **in parallel**.
 
 **Handoff packet (message) format:**
 ```
@@ -180,7 +180,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 ```
 
 **When NOT to use suggestion blocks:**
-- If the fix requires changes big changes across many files. Small changes across a few files is ok.
+- If the fix requires changes across multiple files
 - If there are multiple valid approaches and you want the author to choose
 - If the suggestion is architectural/conceptual rather than a concrete code change
 
@@ -192,17 +192,6 @@ In these cases, use a regular code block with `[lang]` instead of `suggestion`.
   - Within the same severity, prefer the most localized + unambiguous fixes
   - Move overflow to **summary-only** (still include them as findings, just not inline)
 
-### 5.4 Capture Inline Comment URLs
-
-After posting all inline comments, query their URLs to include clickable links in the summary:
-
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
-  --jq '[.[] | select(.user.login == "claude[bot]" or .user.login == "github-actions[bot]") | {path, line, html_url, body_preview: .body[0:80]}]'
-```
-
-Store the `html_url` for each comment you posted. Use these URLs in the **Point-Fix Edits** section (Phase 6) to create clickable links.
-
 ## Phase 6: "Summary" Roll Up Comment
 
 ### 6.1 Deduplicate Summary Findings
@@ -211,7 +200,7 @@ Check `PR Discussion` before finalizing. **Skip** if you or a human already rais
 
 ### 6.2 Format Summary
 
-Summary Roll Up Comment has a few parts which you will produce as a single **PR comment** in markdown. 
+Summary Roll Up Comment has a few parts which you will produce as a single **PR comment** in markdown.
 
 Outline of format (in this order!):
 - "Main"
@@ -222,7 +211,7 @@ Outline of format (in this order!):
 ### "Main" section
 
 #### **Criteria (ALL must be true)**:
-- **Severity + Confidence**: 
+- **Severity + Confidence**:
   - `CRITICAL` + `MEDIUM` or `CRITICAL` + `HIGH`
   - `MAJOR` + `HIGH`
 - **Not posted as Inline Comment** (those go in "Point-fix Edits" instead)
@@ -238,9 +227,8 @@ Outline of format (in this order!):
 
 🔴 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
  
-// if applicable and not single-filer:
-`files`: list all relevant files in `[file].ts` or `[file].ts[:line]` format (line number range optional). If long, list as sub-bullet points. // if applicable
-`system`: `scope` (no specific file) // if applicable
+- `files`: list all relevant files in `[file].ts` or `[file].ts[:line]` format (line number range optional). If long, list as sub-bullet points. // if applicable
+- `system`: `scope` (no specific file) // if applicable
 
 **Issue:** Full detailed description of what's wrong. Can be multiple sentences
 when the problem is complex or context is needed.
@@ -253,9 +241,9 @@ when the problem is complex or context is needed.
 // ...
 
 🕐 *Pending Recommendations* 🕐
-Previous issues still pending (use `url` from pr-context's Existing Inline Comments or PR Discussion):
-❗ [`file.ts:42`](https://github.com/.../pull/123#discussion_r456) [paraphrased issue <1 sentence]
-❗ `[file].ts[:line]` [paraphrased issue <1 sentence] <!-- use url if available -->
+Previous issues still pending:
+❗ `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
+❗ `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
 // ...
 
 ### 🟠🔶⚠️ Major (M) 🟠🔶⚠️
@@ -265,8 +253,8 @@ Previous issues still pending (use `url` from pr-context's Existing Inline Comme
 // ...
 
 🕐 *Pending Recommendations* 🕐
-Previous issues still pending (use `url` from pr-context's Existing Inline Comments or PR Discussion):
-⚠️ [`file.ts:42`](https://github.com/.../pull/123#discussion_r456) [paraphrased issue <1 sentence]
+Previous issues still pending:
+⚠️ `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
 // ...
 
 ````
@@ -284,20 +272,16 @@ Adjust accordingly to the context of the issue and PR and what's most relevant f
 
 ### 📌 "Point-Fix Edits" section
 
-If you posted inline comments in Phase 5 (in this run), include a brief log section with **clickable links** to each comment:
+If you posted inline comments in Phase 5 (in this run), include a brief log section of those changes:
 
 ````markdown
 ### Point-fix Edits (P)
 
 <!-- Only if inline comments have been posted from Claude -->
-- 🔴 [`file.ts:42`](https://github.com/.../pull/123#discussion_r456789) Issue summary
-- 🟠 [`handler.ts:15-17`](https://github.com/.../pull/123#discussion_r456790) Issue summary
-- 🟠 [`utils.ts:88`](https://github.com/.../pull/123#discussion_r456791) Issue summary
+- 🔴 `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
+- 🟠 `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
+- 🟠 `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
 ````
-
-**Format:** `- {severity_emoji} [\`{file}:{line}\`]({html_url_from_step_5.4}) {paraphrased issue <1 sentence}`
-
-Use the `html_url` values captured in Phase 5.4 to create clickable links. This allows reviewers to jump directly to each inline comment.
 
 This provides a quick reference to inline comments without repeating full details.
 
@@ -330,20 +314,10 @@ Format:
 <details>
 <summary>Other Findings (Y)</summary> 
 
-### Potentially valid 
-(these are minor or info critically and not confident)
-
 | Location | Issue | Reason Excluded |
 |----------|-------|-----------------|
-| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Reason why not applied/suggested |
+| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Reason disregarded (<1 sentence) |
 - ...
-
-### Discarded as invalid or not applicable
-(these were wrong, not applicable, addressed elsewhere, or not relevant)
-
-| Location | Issue | Reason Excluded |
-|----------|-------|-----------------|
-| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Reason why not applied/suggested |
 
 </details>
 ````
@@ -367,7 +341,7 @@ Tip: This is your catch all for findings you found to not meet the threshold of 
 | **Task** | Spawn reviewer subagents (`subagent_type: "pr-review-standards"`) |
 | **Read** | Examine files for context before dispatch |
 | **Grep/Glob** | Discover files by pattern |
-| **Bash** | Git operations (`git diff`, `git merge-base`), `gh pr comment`, `gh api` for fetching comment URLs |
+| **Bash** | Git operations only (`git diff`, `git merge-base`, `gh pr comment`) |
 | **mcp__github_inline_comment__create_inline_comment** | Post inline comments with 1-click suggestions for HIGH confidence + localized fixes (see Phase 5.3) |
 
 **Do not:** Write files, edit code, or use Bash for non-git commands.
