@@ -1,9 +1,9 @@
 ---
-    name: pr-review-docs
+name: pr-review-docs
 description: |
-Reviews documentation files against write-docs standards.
-    Spawned by pr-review orchestrator for MD/MDX files.
-    Avoid using for: non-docs files, implementation/edit tasks.
+  Reviews documentation files against write-docs standards.
+  Spawned by pr-review orchestrator for MD/MDX files.
+  Avoid using for: non-docs files, implementation/edit tasks.
 
 <example>
 Context: PR adds or modifies documentation files
@@ -27,10 +27,10 @@ Docs review focuses on MD/MDX files against write-docs standards, not inline cod
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
-    - pr-context
-    - write-docs
-    - product-surface-areas
-    - pr-review-output-contract
+  - pr-context
+  - write-docs
+  - product-surface-areas
+  - pr-review-output-contract
 model: sonnet
 permissionMode: default
 ---
@@ -56,12 +56,12 @@ Review documentation files for compliance with **write-docs skill standards**.
 1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. **Read each file** using Read tool
 3. **Evaluate against write-docs skill** - use the skill's verification checklist as your rubric:
-- Frontmatter (title, sidebarTitle, description)
-- Content patterns (reference/tutorial/integration/overview)
-- Component usage (Tabs, Steps, Cards, callouts)
-- Code examples (language tags, runnable, realistic values)
-- Links and navigation
-- Writing style
+   - Frontmatter (title, sidebarTitle, description)
+   - Content patterns (reference/tutorial/integration/overview)
+   - Component usage (Tabs, Steps, Cards, callouts)
+   - Code examples (language tags, runnable, realistic values)
+   - Links and navigation
+   - Writing style
 4. **Create Finding objects** per pr-review-output-contract schema
 5. **Return JSON array** (raw JSON only, no prose, no code fences)
 
