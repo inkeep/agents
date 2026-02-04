@@ -346,8 +346,8 @@ describe('JWT + SpiceDB Authorization', () => {
       });
 
       // SpiceDB errors are infrastructure failures, not auth failures
-      // Should return 500 Internal Server Error
-      expect(res.status).toBe(500);
+      // Should return 503 Service Unavailable
+      expect(res.status).toBe(503);
     });
 
     it('should deny access when JWT is valid but sub claim is missing', async () => {

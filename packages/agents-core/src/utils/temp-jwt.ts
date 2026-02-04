@@ -3,10 +3,8 @@ import { generateId } from './conversations';
 
 export interface TempTokenPayload {
   tenantId: string;
-  /** Optional - can be provided via x-inkeep-project-id header instead */
-  projectId?: string;
-  /** Optional - can be provided via x-inkeep-agent-id header instead */
-  agentId?: string;
+  projectId: string;
+  agentId: string;
   type: 'temporary';
   initiatedBy: {
     type: 'user' | 'api_key';

@@ -13,6 +13,85 @@ const logger = getLogger('availableAgents');
 
 const app = new OpenAPIHono();
 
+// ============================================================================
+// Token Verification Strategies
+// ============================================================================
+
+/**
+ * Result from successful user identification
+ */
+interface IdentifiedUser {
+  userId: string;
+  tenantId: string;
+  tokenType: string;
+}
+
+async function tryTempTokenAuth(token: string): Promise<IdentifiedUser | null> {
+  if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
+    return null;
+  }
+
+  try {
+    const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
+      'utf-8'
+    );
+    const payload = await verifyTempToken(publicKeyPem, token);
+
+    return {
+      userId: payload.sub,
+      tenantId: payload.tenantId,
+      tokenType: 'temp-jwt',
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// Add Slack / Work-app user token verification here
+// ============================================================================
+//
+// Example implementation:
+//
+// async function trySlackUserTokenAuth(token: string): Promise<IdentifiedUser | null> {
+//   if (!isSlackUserToken(token)) {
+//     return null;
+//   }
+//
+//   const result = await verifySlackUserToken(token);
+//   if (!result.valid || !result.payload) {
+//     return null;
+//   }
+//
+//   return {
+//     userId: result.payload.sub,
+//     tenantId: result.payload.tenantId,
+//     tokenType: 'slack-user-jwt',
+//   };
+// }
+//
+// ============================================================================
+
+/**
+ * Identify user from any supported token type
+ * Add new token types by adding them to this function
+ */
+async function identifyUserFromToken(token: string): Promise<IdentifiedUser | null> {
+  // 1. Try temp JWT (playground tokens)
+  const tempResult = await tryTempTokenAuth(token);
+  if (tempResult) return tempResult;
+
+  // 2. Add Slack/ Work- app token auth here, for example:
+  // const slackResult = await trySlackUserTokenAuth(token);
+  // if (slackResult) return slackResult;
+
+  return null;
+}
+
+// ============================================================================
+// Route Definition
+// ============================================================================
+
 const AvailableAgentSchema = z.object({
   agentId: z.string(),
   agentName: z.string(),
@@ -51,8 +130,7 @@ app.openapi(
   }),
   async (c) => {
     const authHeader = c.req.header('Authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       throw createApiError({
         code: 'unauthorized',
         message: 'Missing or invalid authorization header. Expected: Bearer <jwt_token>',
@@ -60,7 +138,6 @@ app.openapi(
     }
 
     const token = authHeader.substring(7);
-
     if (!token.startsWith('eyJ')) {
       throw createApiError({
         code: 'unauthorized',
@@ -68,31 +145,17 @@ app.openapi(
       });
     }
 
-    if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
-      throw createApiError({
-        code: 'internal_server_error',
-        message: 'JWT verification not configured',
-      });
-    }
-
-    let userId: string;
-    let tenantId: string;
-    try {
-      const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
-        'utf-8'
-      );
-      const payload = await verifyTempToken(publicKeyPem, token);
-      userId = payload.sub;
-      tenantId = payload.tenantId;
-    } catch (error) {
-      logger.warn({ error }, 'JWT verification failed');
+    // Identify user from token (supports multiple token types)
+    const user = await identifyUserFromToken(token);
+    if (!user) {
+      logger.warn({}, 'Token verification failed - no valid auth method found');
       throw createApiError({
         code: 'unauthorized',
         message: 'Invalid or expired token',
       });
     }
 
-    logger.info({ userId, tenantId }, 'Fetching usable agents for user');
+    const { userId, tenantId } = user;
 
     // Get list of project IDs the user can use (SpiceDB lookup)
     const projectIds = await listUsableProjectIds({ userId });

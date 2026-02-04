@@ -135,10 +135,15 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
       });
     }
 
-    const canUse = await canUseProjectStrict({
-      userId,
-      projectId,
-    });
+    let canUse: boolean;
+    try {
+      canUse = await canUseProjectStrict({ userId, projectId });
+    } catch (error) {
+      logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
+      throw new HTTPException(503, {
+        message: 'Authorization service temporarily unavailable',
+      });
+    }
 
     if (!canUse) {
       logger.warn({ userId, projectId }, 'User does not have use permission on project');
