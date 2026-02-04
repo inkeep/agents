@@ -108,10 +108,12 @@ Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
 Cypress.Commands.add(
   'assertMonacoContent',
   ($uri: string, expected: string | ((content: string) => void)) => {
-    cy.window({ timeout: 10_000 }).should('have.property', 'monaco');
-    cy.window().then((win) => {
-      const uri = win.monaco.Uri.file($uri);
-      const model = win.monaco.editor.getModel(uri);
+    cy.window().should('have.property', 'monaco');
+    cy.window().should((win) => {
+      const { Uri, editor } = win.monaco;
+      const uri = Uri.file($uri);
+      const model = editor.getModel(uri);
+
       const value = model.getValue();
 
       if (typeof expected === 'function') {

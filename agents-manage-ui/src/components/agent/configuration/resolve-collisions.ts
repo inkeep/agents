@@ -9,7 +9,9 @@ interface CollisionAlgorithmOptions {
   margin?: number;
 }
 
-type CollisionAlgorithm = (nodes: Node[], options?: CollisionAlgorithmOptions) => Node[];
+interface CollisionAlgorithm {
+  (nodes: Node[], options?: CollisionAlgorithmOptions): Node[];
+}
 
 interface Box {
   x: number;

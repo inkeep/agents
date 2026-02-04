@@ -60,12 +60,15 @@ Used for authenticating API calls from Slack to the Run API.
   "slack": {
     "teamId": "T0AA0UWRXJS",
     "userId": "U0A9WJVPN1H",
-    "enterpriseId": "E0AA0UUL7ML"
+    "enterpriseId": "E0AA0UUL7ML",
+    "email": "john.doe@acme.com"
   },
   "iat": 1706123456,
   "exp": 1706123756
 }
 ```
+
+> **Note**: The `email` field is included when available from the user mapping (requires `users:read.email` scope).
 
 ---
 
