@@ -22,28 +22,15 @@ import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { toJson } from '@/lib/json-schema-validation';
 import { customHeadersTemplate } from '@/lib/templates/schema-templates';
 
-const DefaultHeadersSchema = z
-  .string()
-  .refine((val) => {
-    try {
-      const parsed = JSON.parse(val);
-      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
-    } catch {
-      return false;
-    }
-  }, 'Must be valid JSON object')
-  .refine((val) => {
-    try {
-      const parsed = JSON.parse(val);
-      return Object.values(parsed).every((v) => typeof v === 'string');
-    } catch {
-      return false;
-    }
-  }, 'All header values must be strings');
+const DefaultHeadersSchema = z.record(
+  z.string(),
+  z.string('All header values must be strings'),
+  'Must be valid JSON object'
+);
 
 interface CustomHeadersDialogProps {
   customHeaders?: Record<string, string>;
-  setCustomHeaders: (headers: Record<string, string>) => void;
+  setCustomHeaders: (headers?: CustomHeadersDialogProps['customHeaders']) => void;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
@@ -55,54 +42,44 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
     headers: JSON.stringify(customHeaders, null, 2) ?? '',
   }));
   const [isOpen, setIsOpen] = useState(true);
-
   const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
-  // const headers = headersSchemaString
-  //   ? jsonSchemaToZod(JSON.parse(headersSchemaString))
-  //   : DefaultHeadersSchema;
 
   const zodSchema = z.strictObject({
     headers: z
       .string()
       .trim()
       .transform((value, ctx) => (value ? toJson(value, ctx) : null))
-      .pipe(
-        z.record(
-          z.string(),
-          z.string('All header values must be strings'),
-          'Must be valid JSON object'
-        )
-      ),
+      // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
+      .superRefine((value, ctx) => {
+        const schema = headersSchemaString
+          ? jsonSchemaToZod(JSON.parse(headersSchemaString))
+          : DefaultHeadersSchema;
+        const result = schema.safeParse(value);
+        if (result.success) return;
+
+        ctx.addIssue({
+          code: 'custom',
+          message: z.prettifyError(result.error).replace('✖ ', ''),
+        });
+      }),
   });
 
   const form = useForm({
     defaultValues,
     resolver: zodResolver(zodSchema),
+    mode: 'onChange',
   });
   const numHeaders = Object.keys(customHeaders ?? {}).length;
 
-  const onSubmit = form.handleSubmit(async ({ headers }) => {
-    let parsedHeaders: Record<string, string> | undefined;
-    console.log({ headers });
-    // if (headers) {
-    //   try {
-    //     parsedHeaders = JSON.parse(headers);
-    //   } catch (error) {
-    //     console.error('Error parsing JSON:', error);
-    //     form.setError('headers', {
-    //       message: error instanceof Error ? error.message : 'Invalid JSON',
-    //     });
-    //     return;
-    //   }
-    // }
-    // setCustomHeaders(parsedHeaders || {});
-    // toast.success('Custom headers applied, you can now use them in the chat.');
-    // setIsOpen(false);
-  }, console.error);
+  const onSubmit = form.handleSubmit(({ headers }) => {
+    setCustomHeaders(headers);
+    toast.success('Custom headers applied, you can now use them in the chat.');
+    setIsOpen(false);
+  });
 
   function onRemoveHeaders() {
-    form.reset({ headers: '{}' });
-    setCustomHeaders({});
+    form.reset();
+    setCustomHeaders();
     setIsOpen(false);
     toast.success('Custom headers removed.');
   }

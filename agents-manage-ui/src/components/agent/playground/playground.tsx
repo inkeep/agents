@@ -38,7 +38,7 @@ export const Playground = ({
 }: PlaygroundProps) => {
   const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
-  const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
+  const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
   const [isCopying, setIsCopying] = useState(false);
   const {
     chatActivities,
