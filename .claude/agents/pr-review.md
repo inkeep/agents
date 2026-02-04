@@ -186,8 +186,8 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 
 In these cases, use a regular code block with `[lang]` instead of `suggestion`.
 
-**Throttle (max 15 inline comments per PR):**
-- If more than 15 findings are inline-eligible:
+**Throttle (max 50 inline comments per PR):**
+- If more than 50 findings are inline-eligible:
   - Prefer **CRITICAL > MAJOR > MINOR**
   - Within the same severity, prefer the most localized + unambiguous fixes
   - Move overflow to **summary-only** (still include them as findings, just not inline)
