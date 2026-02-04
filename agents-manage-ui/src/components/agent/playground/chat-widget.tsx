@@ -54,7 +54,7 @@ const styleHeadersError = css`
 .ikp-ai-chat-input__fieldset {
   border: 1px #ef4444 solid;
   &:after {
-    content: 'Please enter required request headers';
+    content: 'Custom headers are invalid.';
     position: absolute;
     top: -30px;
     font-size: 14px;

@@ -52,7 +52,7 @@ export const Playground = ({
       headers: z
         .string()
         .trim()
-        .transform((value, ctx) => (value ? toJson(value, ctx) : null))
+        .transform((value, ctx) => (value ? toJson(value, ctx) : {}))
         // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
         .superRefine((value, ctx) => {
           const schema = headersSchemaString
@@ -71,7 +71,13 @@ export const Playground = ({
     return zodResolver(zodSchema);
   }, [headersSchemaString]);
 
-  const form = useForm({ resolver, mode: 'onChange' });
+  const form = useForm({
+    defaultValues: {
+      headers: '',
+    },
+    resolver,
+    mode: 'onChange',
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: validate on mount
   useEffect(() => {
