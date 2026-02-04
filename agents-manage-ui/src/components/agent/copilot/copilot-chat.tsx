@@ -6,6 +6,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
@@ -147,7 +148,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           }}
           position="left"
           baseSettings={{
-            onEvent: async (event: InkeepCallbackEvent) => {
+            async onEvent(event) {
               if (event.eventName === 'user_message_submitted') {
                 setIsStreaming(true);
               }
@@ -165,13 +166,12 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                 });
               }
             },
-            primaryBrandColor: '#3784ff',
+            primaryBrandColor: INKEEP_BRAND_COLOR,
             colorMode: {
               sync: {
                 target: document.documentElement,
                 attributes: ['class'],
-                isDarkMode: (attributes: Record<string, string | null>) =>
-                  !!attributes?.class?.includes('dark'),
+                isDarkMode: (attributes) => !!attributes?.class?.includes('dark'),
               },
             },
             theme: {

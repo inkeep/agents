@@ -3,6 +3,7 @@ import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import { type Dispatch, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
+import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
@@ -157,13 +158,12 @@ export function ChatWidget({
                 setConversationId(generateId());
               }
             },
-            primaryBrandColor: '#3784ff',
+            primaryBrandColor: INKEEP_BRAND_COLOR,
             colorMode: {
               sync: {
                 target: document.documentElement,
                 attributes: ['class'],
-                isDarkMode: (attributes: Record<string, string | null>) =>
-                  !!attributes?.class?.includes('dark'),
+                isDarkMode: (attributes) => !!attributes?.class?.includes('dark'),
               },
             },
             theme: {
