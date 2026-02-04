@@ -35,6 +35,7 @@ import {
   handleOpenAgentSelectorModal,
   handleShareToChannel,
   handleShareToThread,
+  sendResponseUrlMessage,
 } from '../services/events';
 import type { WorkAppsVariables } from '../types';
 import { pendingSessionTokens } from './users';
@@ -48,11 +49,14 @@ app.post('/commands', async (c) => {
   const timestamp = c.req.header('x-slack-request-timestamp') || '';
   const signature = c.req.header('x-slack-signature') || '';
 
-  if (env.SLACK_SIGNING_SECRET) {
-    if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
-      logger.error({}, 'Invalid Slack request signature');
-      return c.json({ response_type: 'ephemeral', text: 'Invalid request signature' }, 401);
-    }
+  if (!env.SLACK_SIGNING_SECRET) {
+    logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
+    return c.json({ response_type: 'ephemeral', text: 'Server configuration error' }, 500);
+  }
+
+  if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
+    logger.error({}, 'Invalid Slack request signature');
+    return c.json({ response_type: 'ephemeral', text: 'Invalid request signature' }, 401);
   }
 
   const params = parseSlackCommandBody(body);
@@ -84,11 +88,17 @@ app.post('/commands', async (c) => {
 app.post('/events', async (c) => {
   const contentType = c.req.header('content-type') || '';
   const body = await c.req.text();
+  const timestamp = c.req.header('x-slack-request-timestamp') || '';
+  const signature = c.req.header('x-slack-signature') || '';
 
   let eventBody: Record<string, unknown>;
   try {
     eventBody = parseSlackEventBody(body, contentType);
-  } catch {
+  } catch (error) {
+    logger.error(
+      { error, contentType, bodyPreview: body.slice(0, 200) },
+      'Failed to parse Slack event body'
+    );
     return c.json({ error: 'Invalid payload' }, 400);
   }
 
@@ -99,6 +109,16 @@ app.post('/events', async (c) => {
   if (eventType === 'url_verification') {
     logger.info({}, 'Responding to Slack URL verification challenge');
     return c.text(String(eventBody.challenge));
+  }
+
+  if (!env.SLACK_SIGNING_SECRET) {
+    logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
+    return c.json({ error: 'Server configuration error' }, 500);
+  }
+
+  if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
+    logger.error({}, 'Invalid Slack request signature');
+    return c.json({ error: 'Invalid request signature' }, 401);
   }
 
   if (eventType === 'event_callback') {
@@ -169,12 +189,18 @@ app.post('/events', async (c) => {
             userId: userId || '',
             actionValue: action.value,
             responseUrl: responseUrl || '',
-          }).catch((err: unknown) => {
+          }).catch(async (err: unknown) => {
             const errorMessage = err instanceof Error ? err.message : String(err);
             logger.error(
               { errorMessage, actionId: action.action_id },
               'Failed to handle share_to_channel'
             );
+            if (responseUrl) {
+              await sendResponseUrlMessage(responseUrl, {
+                text: 'Sorry, something went wrong while sharing to channel. Please try again.',
+                response_type: 'ephemeral',
+              }).catch(() => {});
+            }
           });
         }
 
@@ -185,12 +211,18 @@ app.post('/events', async (c) => {
             userId: userId || '',
             actionValue: action.value,
             responseUrl: responseUrl || '',
-          }).catch((err: unknown) => {
+          }).catch(async (err: unknown) => {
             const errorMessage = err instanceof Error ? err.message : String(err);
             logger.error(
               { errorMessage, actionId: action.action_id },
               'Failed to handle share_to_thread'
             );
+            if (responseUrl) {
+              await sendResponseUrlMessage(responseUrl, {
+                text: 'Sorry, something went wrong while sharing to thread. Please try again.',
+                response_type: 'ephemeral',
+              }).catch(() => {});
+            }
           });
         }
 
@@ -200,12 +232,18 @@ app.post('/events', async (c) => {
             actionValue: action.value,
             teamId,
             responseUrl: responseUrl || '',
-          }).catch((err: unknown) => {
+          }).catch(async (err: unknown) => {
             const errorMessage = err instanceof Error ? err.message : String(err);
             logger.error(
               { errorMessage, actionId: action.action_id },
               'Failed to open agent selector modal'
             );
+            if (responseUrl) {
+              await sendResponseUrlMessage(responseUrl, {
+                text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
+                response_type: 'ephemeral',
+              }).catch(() => {});
+            }
           });
         }
       }
@@ -254,7 +292,8 @@ app.post('/nango-webhook', async (c) => {
 
   try {
     payload = JSON.parse(body);
-  } catch {
+  } catch (error) {
+    logger.error({ error, bodyPreview: body.slice(0, 200) }, 'Failed to parse Nango webhook JSON');
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 

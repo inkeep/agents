@@ -168,26 +168,26 @@ app.openapi(
         pagination: { limit: 100 },
       });
 
-      const allAgents: z.infer<typeof AgentSchema>[] = [];
-
-      for (const project of projectsResult.data || []) {
-        try {
-          const agents = await listAgents(manageDbClient)({
-            scopes: { tenantId, projectId: project.id },
-          });
-
-          for (const agent of agents) {
-            allAgents.push({
+      const agentResults = await Promise.all(
+        (projectsResult.data || []).map(async (project) => {
+          try {
+            const agents = await listAgents(manageDbClient)({
+              scopes: { tenantId, projectId: project.id },
+            });
+            return agents.map((agent) => ({
               id: agent.id,
               name: agent.name,
               projectId: project.id,
               projectName: project.name,
-            });
+            }));
+          } catch (error) {
+            logger.warn({ projectId: project.id, error }, 'Failed to fetch agents for project');
+            return [];
           }
-        } catch {
-          logger.warn({ projectId: project.id }, 'Failed to fetch agents for project');
-        }
-      }
+        })
+      );
+
+      const allAgents: z.infer<typeof AgentSchema>[] = agentResults.flat();
 
       return c.json({ agents: allAgents });
     } catch (error) {

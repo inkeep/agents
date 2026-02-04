@@ -233,23 +233,23 @@ export class SlackApiClient {
 
   async listAllAgents(): Promise<AgentWithProject[]> {
     const projectsResult = await this.listProjects({ limit: 100 });
-    const allAgents: AgentWithProject[] = [];
 
-    for (const project of projectsResult.data) {
-      try {
-        const agentsResult = await this.listAgents(project.id, { limit: 100 });
-        for (const agent of agentsResult.data) {
-          allAgents.push({
+    const agentResults = await Promise.all(
+      projectsResult.data.map(async (project) => {
+        try {
+          const agentsResult = await this.listAgents(project.id, { limit: 100 });
+          return agentsResult.data.map((agent) => ({
             ...agent,
             projectName: project.name,
-          });
+          }));
+        } catch (error) {
+          logger.warn({ projectId: project.id, error }, 'Failed to list agents for project');
+          return [];
         }
-      } catch (error) {
-        logger.warn({ projectId: project.id, error }, 'Failed to list agents for project');
-      }
-    }
+      })
+    );
 
-    return allAgents;
+    return agentResults.flat();
   }
 
   async findAgentByName(agentName: string): Promise<AgentWithProject | null> {

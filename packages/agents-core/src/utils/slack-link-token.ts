@@ -90,8 +90,9 @@ export async function signSlackLinkToken(params: SignSlackLinkTokenParams): Prom
 
     return token;
   } catch (error) {
-    logger.error({ error }, 'Failed to generate Slack link token');
-    throw new Error('Failed to generate Slack link token');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error({ error, errorMessage }, 'Failed to generate Slack link token');
+    throw new Error(`Failed to generate Slack link token: ${errorMessage}`);
   }
 }
 

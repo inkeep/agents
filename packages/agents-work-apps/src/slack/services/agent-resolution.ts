@@ -76,7 +76,7 @@ export async function resolveEffectiveAgent(
       channelId
     );
 
-    if (channelConfig && channelConfig.enabled === 'true') {
+    if (channelConfig?.enabled) {
       logger.info(
         { channelId, agentId: channelConfig.agentId, source: 'channel' },
         'Resolved agent from channel config'
@@ -135,7 +135,7 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
       teamId,
       channelId
     );
-    if (config && config.enabled === 'true') {
+    if (config?.enabled) {
       channelConfig = {
         projectId: config.projectId,
         agentId: config.agentId,

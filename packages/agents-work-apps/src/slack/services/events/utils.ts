@@ -282,19 +282,18 @@ export async function fetchAgentsForProject(
 
 export async function fetchAgentsForTenant(tenantId: string): Promise<AgentOption[]> {
   const projects = await fetchProjectsForTenant(tenantId);
-  const allAgents: AgentOption[] = [];
 
-  for (const project of projects) {
-    const agents = await fetchAgentsForProject(tenantId, project.id);
-    for (const agent of agents) {
-      allAgents.push({
+  const agentResults = await Promise.all(
+    projects.map(async (project) => {
+      const agents = await fetchAgentsForProject(tenantId, project.id);
+      return agents.map((agent) => ({
         ...agent,
         projectName: project.name,
-      });
-    }
-  }
+      }));
+    })
+  );
 
-  return allAgents;
+  return agentResults.flat();
 }
 
 export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultAgentConfig | null> {
@@ -321,7 +320,7 @@ export async function getChannelAgentConfig(
     channelId
   );
 
-  if (channelConfig && channelConfig.enabled === 'true') {
+  if (channelConfig?.enabled) {
     return {
       projectId: channelConfig.projectId,
       agentId: channelConfig.agentId,
