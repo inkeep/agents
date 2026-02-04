@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-Fix text overflowing for function tool node and placeholder node in agent flow
+Fix text overflow for function tool node and placeholder node in agent flow
