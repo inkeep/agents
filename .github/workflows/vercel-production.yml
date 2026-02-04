@@ -40,8 +40,12 @@ jobs:
 
       - name: Deploy Preview for Checks
         id: deploy
-        run: |
+      run: |
           DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Failed to capture deployment URL"
+            exit 1
+          fi
           echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $DEPLOYMENT_URL"
 
