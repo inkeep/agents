@@ -8,7 +8,7 @@ export interface TempTokenPayload {
   /** Optional - can be provided via x-inkeep-agent-id header instead */
   agentId?: string;
   type: 'temporary';
-  initiatedBy?: {
+  initiatedBy: {
     type: 'user' | 'api_key';
     id: string;
   };

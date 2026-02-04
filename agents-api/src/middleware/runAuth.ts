@@ -110,18 +110,10 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
 /**
  * Attempts to authenticate using a JWT temporary token
  *
- * Supports two modes:
- * 1. Full JWT: projectId/agentId in token (playground flow)
- * 2. Slim JWT: projectId/agentId from headers (work-apps flow)
- *
  * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
  * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
  */
-async function tryTempJwtAuth(
-  apiKey: string,
-  headerProjectId?: string,
-  headerAgentId?: string
-): Promise<AuthResult | null> {
+async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
   if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
     return null;
   }
@@ -133,22 +125,13 @@ async function tryTempJwtAuth(
     const payload = await verifyTempToken(publicKeyPem, apiKey);
 
     const userId = payload.sub;
+    const projectId = payload.projectId;
+    const agentId = payload.agentId;
 
-    // Use JWT values if present, otherwise fall back to header values
-    const projectId = payload.projectId ?? headerProjectId;
-    const agentId = payload.agentId ?? headerAgentId;
-
-    if (!projectId) {
-      logger.warn({ userId }, 'No projectId in JWT or headers');
+    if (!projectId || !agentId) {
+      logger.warn({ userId }, 'Missing projectId or agentId in JWT');
       throw new HTTPException(400, {
-        message: 'Missing projectId: must be in JWT or x-inkeep-project-id header',
-      });
-    }
-
-    if (!agentId) {
-      logger.warn({ userId }, 'No agentId in JWT or headers');
-      throw new HTTPException(400, {
-        message: 'Missing agentId: must be in JWT or x-inkeep-agent-id header',
+        message: 'Invalid token: missing projectId or agentId',
       });
     }
 
@@ -164,10 +147,7 @@ async function tryTempJwtAuth(
       });
     }
 
-    logger.info(
-      { projectId, agentId, fromHeaders: !payload.projectId },
-      'JWT temp token authenticated successfully'
-    );
+    logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
 
     return {
       apiKey,
@@ -178,7 +158,7 @@ async function tryTempJwtAuth(
       metadata: { initiatedBy: payload.initiatedBy },
     };
   } catch (error) {
-    // Re-throw HTTPExceptions (like our 403/400 above)
+    // Re-throw HTTPExceptions (like our 403 above)
     if (error instanceof HTTPException) {
       throw error;
     }
@@ -344,8 +324,8 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
     return { authResult: null };
   }
 
-  // 1. Try JWT temp token (supports header fallback for projectId/agentId)
-  const jwtResult = await tryTempJwtAuth(apiKey, reqData.projectId, reqData.agentId);
+  // 1. Try JWT temp token
+  const jwtResult = await tryTempJwtAuth(apiKey);
   if (jwtResult) return { authResult: jwtResult };
 
   // 2. Try bypass secret

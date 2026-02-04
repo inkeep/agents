@@ -137,12 +137,12 @@ export async function listAgentsAcrossProjectBranches(
 
       // Use Dolt's AS OF syntax to query at a specific branch without checkout
       const result = await db.execute(
-        sql.raw(`
+        sql`
           SELECT id as "agentId", name as "agentName", project_id as "projectId"
-          FROM agent AS OF '${branchName}'
-          WHERE tenant_id = '${tenantId}' AND project_id = '${projectId}'
+          FROM agent AS OF ${branchName}
+          WHERE tenant_id = ${tenantId} AND project_id = ${projectId}
           ORDER BY name
-        `)
+        `
       );
 
       allAgents.push(...(result.rows as AvailableAgentInfo[]));

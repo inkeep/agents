@@ -163,57 +163,17 @@ describe('JWT + SpiceDB Authorization', () => {
     });
   });
 
-  describe('Slim JWT with header fallback (work-apps flow)', () => {
-    // Slim JWT payload - no projectId/agentId in token
-    const slimJwtPayload = {
-      tenantId: 'slack-tenant',
-      type: 'temporary' as const,
-      initiatedBy: { type: 'user' as const, id: 'slack-user-789' },
-      sub: 'slack-user-789',
-      // Note: no projectId, no agentId
-    };
-
-    it('should use projectId and agentId from headers when not in JWT', async () => {
-      verifyTempTokenMock.mockResolvedValue(slimJwtPayload);
-      canUseProjectStrictMock.mockResolvedValue(true);
-
-      app.use('*', runApiKeyAuth());
-      app.get('/test', (c) => {
-        const ctx = c.get('executionContext' as never) as Record<string, unknown>;
-        return c.json({
-          success: true,
-          tenantId: ctx.tenantId,
-          projectId: ctx.projectId,
-          agentId: ctx.agentId,
-          userId: (ctx.metadata as { initiatedBy?: { id: string } })?.initiatedBy?.id,
-        });
-      });
-
-      const res = await app.request('/test', {
-        headers: {
-          Authorization: `Bearer ${mockJwtToken}`,
-          'x-inkeep-project-id': 'header-project',
-          'x-inkeep-agent-id': 'header-agent',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.success).toBe(true);
-      expect(body.tenantId).toBe('slack-tenant');
-      expect(body.projectId).toBe('header-project');
-      expect(body.agentId).toBe('header-agent');
-      expect(body.userId).toBe('slack-user-789');
-
-      // SpiceDB should check with header projectId
-      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
-        userId: 'slack-user-789',
-        projectId: 'header-project',
-      });
-    });
-
-    it('should return 400 when projectId missing from both JWT and headers', async () => {
-      verifyTempTokenMock.mockResolvedValue(slimJwtPayload);
+  describe('JWT with missing required fields', () => {
+    it('should return 400 when JWT is missing projectId', async () => {
+      const incompletePayload = {
+        tenantId: 'test-tenant',
+        agentId: 'test-agent',
+        type: 'temporary' as const,
+        initiatedBy: { type: 'user' as const, id: 'user-123' },
+        sub: 'user-123',
+        // Note: no projectId
+      };
+      verifyTempTokenMock.mockResolvedValue(incompletePayload);
 
       app.use('*', runApiKeyAuth());
       app.get('/test', (c) => c.text('OK'));
@@ -221,80 +181,27 @@ describe('JWT + SpiceDB Authorization', () => {
       const res = await app.request('/test', {
         headers: {
           Authorization: `Bearer ${mockJwtToken}`,
-          // No x-inkeep-project-id header
         },
       });
 
       expect(res.status).toBe(400);
       const body = await res.text();
-      expect(body).toContain('Missing projectId');
-      expect(body).toContain('x-inkeep-project-id');
+      expect(body).toContain('missing projectId or agentId');
 
       // SpiceDB should NOT be called (validation failed first)
       expect(canUseProjectStrictMock).not.toHaveBeenCalled();
     });
 
-    it('should return 400 when agentId missing from both JWT and headers', async () => {
-      verifyTempTokenMock.mockResolvedValue(slimJwtPayload);
-
-      app.use('*', runApiKeyAuth());
-      app.get('/test', (c) => c.text('OK'));
-
-      const res = await app.request('/test', {
-        headers: {
-          Authorization: `Bearer ${mockJwtToken}`,
-          'x-inkeep-project-id': 'header-project',
-          // No x-inkeep-agent-id header
-        },
-      });
-
-      expect(res.status).toBe(400);
-      const body = await res.text();
-      expect(body).toContain('Missing agentId');
-      expect(body).toContain('x-inkeep-agent-id');
-
-      // SpiceDB should NOT be called (validation failed first)
-      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
-    });
-
-    it('should prefer JWT values over header values when both present', async () => {
-      // Full JWT with projectId/agentId
-      verifyTempTokenMock.mockResolvedValue(mockVerifiedPayload);
-      canUseProjectStrictMock.mockResolvedValue(true);
-
-      app.use('*', runApiKeyAuth());
-      app.get('/test', (c) => {
-        const ctx = c.get('executionContext' as never) as Record<string, unknown>;
-        return c.json({
-          projectId: ctx.projectId,
-          agentId: ctx.agentId,
-        });
-      });
-
-      const res = await app.request('/test', {
-        headers: {
-          Authorization: `Bearer ${mockJwtToken}`,
-          'x-inkeep-project-id': 'header-project-ignored',
-          'x-inkeep-agent-id': 'header-agent-ignored',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      // JWT values should take precedence
-      expect(body.projectId).toBe('test-project');
-      expect(body.agentId).toBe('test-agent');
-
-      // SpiceDB should use JWT projectId
-      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
-        userId: 'user-123',
+    it('should return 400 when JWT is missing agentId', async () => {
+      const incompletePayload = {
+        tenantId: 'test-tenant',
         projectId: 'test-project',
-      });
-    });
-
-    it('should deny access with 403 when header projectId fails SpiceDB check', async () => {
-      verifyTempTokenMock.mockResolvedValue(slimJwtPayload);
-      canUseProjectStrictMock.mockResolvedValue(false);
+        type: 'temporary' as const,
+        initiatedBy: { type: 'user' as const, id: 'user-123' },
+        sub: 'user-123',
+        // Note: no agentId
+      };
+      verifyTempTokenMock.mockResolvedValue(incompletePayload);
 
       app.use('*', runApiKeyAuth());
       app.get('/test', (c) => c.text('OK'));
@@ -302,20 +209,15 @@ describe('JWT + SpiceDB Authorization', () => {
       const res = await app.request('/test', {
         headers: {
           Authorization: `Bearer ${mockJwtToken}`,
-          'x-inkeep-project-id': 'unauthorized-project',
-          'x-inkeep-agent-id': 'some-agent',
         },
       });
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(400);
       const body = await res.text();
-      expect(body).toContain('Access denied');
+      expect(body).toContain('missing projectId or agentId');
 
-      // SpiceDB should check header projectId
-      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
-        userId: 'slack-user-789',
-        projectId: 'unauthorized-project',
-      });
+      // SpiceDB should NOT be called (validation failed first)
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
     });
   });
 
