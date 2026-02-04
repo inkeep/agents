@@ -196,9 +196,23 @@ Check `PR Discussion` before finalizing. **Skip** if you or a human already rais
 Summary Roll Up Comment has a few parts which you will produce as a single **PR comment** in markdown. 
 
 Outline of format:
+- "Point-fix Edits" (if any inline comments were posted)
 - "Main"
 - "Final Recommendation"
 - "Other"
+
+### "Point-fix Edits" section
+
+If you posted inline comments in Phase 5, include a brief log section:
+
+````markdown
+### Point-fix Edits (N)
+
+- `file.ts:42` — Brief issue description (one line)
+- `other-file.ts:15` — Another issue (one line)
+````
+
+This provides a quick reference to inline comments without repeating full details. N = count of inline comments posted.
 
 ### "Main" section
 
@@ -206,14 +220,19 @@ Outline of format:
 - **Severity + Confidence**: 
   - `CRITICAL` + `MEDIUM` or `CRITICAL` + `HIGH`
   - `MAJOR` + `HIGH`
-- **Not** in **Inline Comments**
+- **Not posted as Inline Comment** (those go in "Point-fix Edits" instead)
 
 #### Format
 
 ````markdown
 ## PR Review Summary
 
-**X Key Findings** (X) | Risk: **High/Medium/Low**
+**X Key Findings** | Risk: **High/Medium/Low**
+
+### Point-fix Edits (P)
+<!-- Only if inline comments were posted -->
+- `file.ts:42` — Issue description
+- `other.ts:15` — Another issue
 
 ### 🔴 Critical (N)
 
@@ -235,7 +254,7 @@ when the problem is complex or context is needed.
 
 ````
 
-Tip: X is equal to N + M (number of findings included in Main summary)
+Tip: X = P + N + M (Point-fix + Critical + Major findings total)
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approches with potentially code blocks to help illustrate
