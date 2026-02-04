@@ -1,19 +1,25 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { jsonSchemaToZod } from '@inkeep/agents-core/client-exports';
 import { Bug, X } from 'lucide-react';
-import { type Dispatch, useState } from 'react';
+import { type Dispatch, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
+import { toJson } from '@/lib/json-schema-validation';
 import { generateId } from '@/lib/utils/id-utils';
 import {
   copyFullTraceToClipboard,
   copySummarizedTraceToClipboard,
 } from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
-import { CustomHeadersDialog } from './custom-headers-dialog';
+import { CustomHeadersDialog, DefaultHeadersSchema } from './custom-headers-dialog';
 
 interface PlaygroundProps {
   agentId: string;
@@ -39,6 +45,34 @@ export const Playground = ({
   const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
+  const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
+
+  const resolver = useMemo(() => {
+    const zodSchema = z.strictObject({
+      headers: z
+        .string()
+        .trim()
+        .transform((value, ctx) => (value ? toJson(value, ctx) : null))
+        // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
+        .superRefine((value, ctx) => {
+          const schema = headersSchemaString
+            ? jsonSchemaToZod(JSON.parse(headersSchemaString))
+            : DefaultHeadersSchema;
+          const result = schema.safeParse(value);
+          if (result.success) return;
+
+          ctx.addIssue({
+            code: 'custom',
+            message: z.prettifyError(result.error).replace('✖ ', ''),
+          });
+        }),
+    });
+
+    return zodResolver(zodSchema);
+  }, [headersSchemaString]);
+
+  const form = useForm({ resolver, mode: 'all' });
+
   const [isCopying, setIsCopying] = useState(false);
   const {
     chatActivities,
@@ -104,10 +138,16 @@ export const Playground = ({
     }
   };
 
+  const hasHeadersError = !!form.formState.errors.headers?.message;
+
   return (
     <div className="bg-background flex flex-col h-full">
       <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b shrink-0">
-        <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
+        <CustomHeadersDialog
+          customHeaders={customHeaders}
+          setCustomHeaders={setCustomHeaders}
+          form={form}
+        />
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -151,6 +191,7 @@ export const Playground = ({
               chatActivities={chatActivities}
               dataComponentLookup={dataComponentLookup}
               setShowTraces={setShowTraces}
+              hasHeadersError={hasHeadersError}
             />
           </ResizablePanel>
 
@@ -160,11 +201,11 @@ export const Playground = ({
               <TimelineWrapper
                 isPolling={isPolling}
                 conversation={chatActivities}
-                enableAutoScroll={true}
+                enableAutoScroll
                 error={error}
                 retryConnection={retryConnection}
                 refreshOnce={refreshOnce}
-                showConversationTracesLink={true}
+                showConversationTracesLink
                 conversationId={conversationId}
                 tenantId={tenantId}
                 projectId={projectId}

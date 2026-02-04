@@ -24,6 +24,7 @@ interface ChatWidgetProps {
   chatActivities: ConversationDetail | null;
   dataComponentLookup?: Record<string, DataComponent>;
   setShowTraces: Dispatch<boolean>;
+  hasHeadersError: boolean;
 }
 
 const styleOverrides = css`
@@ -49,6 +50,20 @@ const styleOverrides = css`
 }
 `;
 
+const styleHeadersError = css`
+.ikp-ai-chat-input__fieldset {
+  border: 1px #ef4444 solid;
+  &:after {
+    content: 'Please enter required request headers';
+    position: absolute;
+    top: -30px;
+    font-size: 14px;
+    color: #ef4444;
+    display: block;
+  }
+}
+`;
+
 export function ChatWidget({
   agentId,
   projectId,
@@ -61,6 +76,7 @@ export function ChatWidget({
   chatActivities,
   dataComponentLookup = {},
   setShowTraces,
+  hasHeadersError,
 }: ChatWidgetProps) {
   'use memo';
 
@@ -168,11 +184,10 @@ export function ChatWidget({
             },
             theme: {
               styles: [
-                {
-                  key: 'custom-styles',
-                  type: 'style',
-                  value: styleOverrides,
-                },
+                { key: 'custom-styles', type: 'style', value: styleOverrides },
+                ...(hasHeadersError
+                  ? [{ key: 'chat-input-error', type: 'style' as const, value: styleHeadersError }]
+                  : []),
               ],
               primaryColors: {
                 textColorOnPrimary: '#ffffff',
@@ -203,6 +218,7 @@ export function ChatWidget({
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
+            isViewOnly: hasHeadersError,
             conversationId,
             agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat` : undefined,
             headers: {

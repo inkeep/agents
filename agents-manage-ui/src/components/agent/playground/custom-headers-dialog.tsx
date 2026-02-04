@@ -1,8 +1,6 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { jsonSchemaToZod } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
 import { type FC, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
@@ -18,57 +16,29 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { toJson } from '@/lib/json-schema-validation';
 import { customHeadersTemplate } from '@/lib/templates/schema-templates';
 
-const DefaultHeadersSchema = z.record(
+export const DefaultHeadersSchema = z.record(
   z.string(),
   z.string('All header values must be strings'),
   'Must be valid JSON object'
 );
 
+type DefaultHeaders = z.infer<typeof DefaultHeadersSchema>;
+
 interface CustomHeadersDialogProps {
-  customHeaders?: Record<string, string>;
-  setCustomHeaders: (headers?: CustomHeadersDialogProps['customHeaders']) => void;
+  customHeaders?: DefaultHeaders;
+  setCustomHeaders: (headers?: DefaultHeaders) => void;
+  form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
   customHeaders,
   setCustomHeaders,
+  form,
 }) => {
   'use memo';
-  const [defaultValues] = useState(() => ({
-    headers: JSON.stringify(customHeaders, null, 2) ?? '',
-  }));
-  const [isOpen, setIsOpen] = useState(true);
-  const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
-
-  const zodSchema = z.strictObject({
-    headers: z
-      .string()
-      .trim()
-      .transform((value, ctx) => (value ? toJson(value, ctx) : null))
-      // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
-      .superRefine((value, ctx) => {
-        const schema = headersSchemaString
-          ? jsonSchemaToZod(JSON.parse(headersSchemaString))
-          : DefaultHeadersSchema;
-        const result = schema.safeParse(value);
-        if (result.success) return;
-
-        ctx.addIssue({
-          code: 'custom',
-          message: z.prettifyError(result.error).replace('✖ ', ''),
-        });
-      }),
-  });
-
-  const form = useForm({
-    defaultValues,
-    resolver: zodResolver(zodSchema),
-    mode: 'onChange',
-  });
+  const [isOpen, setIsOpen] = useState(false);
   const numHeaders = Object.keys(customHeaders ?? {}).length;
 
   const onSubmit = form.handleSubmit(({ headers }) => {
@@ -100,12 +70,7 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-8">
-            <FormFieldWrapper
-              // @ts-expect-error - this type error will be fixed in upcoming PR where I'll fix error state of Select and Combobox, cc @sarah
-              control={form.control}
-              name="headers"
-              label="Custom headers"
-            >
+            <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
                 <StandaloneJsonEditor
                   value={field.value}
