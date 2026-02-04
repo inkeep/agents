@@ -42,7 +42,8 @@ async function tryTempTokenAuth(token: string): Promise<IdentifiedUser | null> {
       tenantId: payload.tenantId,
       tokenType: 'temp-jwt',
     };
-  } catch {
+  } catch (error) {
+    logger.warn({ token, error }, 'Failed to verify temp token');
     return null;
   }
 }
