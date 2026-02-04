@@ -83,6 +83,7 @@ export async function getSlackUserJwt(
     slackTeamId: context.slackTeamId,
     slackUserId: context.slackUserId,
     slackEnterpriseId: context.slackEnterpriseId,
+    slackEmail: userMapping.slackEmail || undefined,
   });
 
   logger.debug(
