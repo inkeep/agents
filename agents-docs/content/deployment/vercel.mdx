@@ -490,44 +490,45 @@ This approach allows you to test changes on staging before promoting to producti
 
 ### Deployment Flow Overview
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                     DEVELOPMENT WORKFLOW                         │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│   PR Created ──────► Vercel Preview Deployment                   │
-│                      (pr-123-<project>.vercel.app)               │
-│                                                                  │
-│   PR Merged to main ──────► Vercel Preview Deployment (Staging)  │
-│                             (main-<project>.vercel.app)          │
-│                                                                  │
-│   GitHub Release Published ──────► GitHub Action                 │
-│                                    │                             │
-│                                    ├──► Deploy to Preview        │
-│                                    ├──► Wait for Checks          │
-│                                    └──► Promote to Production    │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[PR Created] --> B[Vercel Preview Deployment]
+    C[PR Merged to main] --> D[Vercel Preview Deployment]
+    D --> E[Staging Environment]
+    F[GitHub Release Published] --> G[GitHub Action Triggered]
+    G --> H[Deploy to Preview]
+    H --> I[Wait for Checks]
+    I --> J[Promote to Production]
 ```
 
-### Step 1: Disable Automatic Production Deployments
+### Step 1: Create a Placeholder Branch
 
-By default, Vercel deploys to production when you push to your production branch (usually `main`). To separate staging from production, disable automatic production deployments:
+Vercel requires the production branch to exist in your repository. Create an orphan branch that will never receive commits:
 
-1. Go to **Project Settings > Git** in the Vercel Dashboard
-2. Under **Production Branch**, change the value to `_disabled_`
+```bash
+git checkout --orphan never-deploy
+git rm -rf .
+git commit --allow-empty -m "Placeholder branch to disable Vercel production deployments"
+git push origin never-deploy
+git checkout main
+```
+
+### Step 2: Configure Vercel Production Branch
+
+1. Go to **Project Settings → Git** in the Vercel Dashboard
+2. Under **Production Branch**, set the value to `never-deploy`
 3. Save your changes
 
 <Note>
-  Setting the Production Branch to `_disabled_` is a special Vercel value that prevents any branch from automatically triggering production deployments. All pushes, including to `main`, will create preview deployments instead.
+  Since the `never-deploy` branch will never receive commits, Vercel will never trigger automatic production deployments. All pushes, including to `main`, will create preview deployments instead.
 </Note>
 
 After this configuration:
-- Pushes to `main` create preview deployments at `main-<project>.vercel.app`
-- Pushes to PR branches create preview deployments at `<branch>-<project>.vercel.app`
+- Pushes to `main` create preview deployments
+- Pushes to PR branches create preview deployments
 - **No branch** triggers automatic production deployments
 
-### Step 2: Configure GitHub Actions for Production Releases
+### Step 3: Configure GitHub Actions for Production Releases
 
 The Inkeep Agent Framework includes a workflow that deploys to production when you publish a GitHub release. This integrates with the existing changesets release flow.
 
@@ -585,7 +586,7 @@ jobs:
 - **Deployment checks**: Deploys to a preview URL first, waits for Vercel Checks to pass, then promotes to production
 - **Vercel CLI**: Uses `vercel deploy --prebuilt` for faster deployments with pre-built artifacts
 
-### Step 3: Configure Required Secrets
+### Step 4: Configure Required Secrets
 
 The GitHub Actions workflow requires three secrets to authenticate with Vercel. Add these to your GitHub repository:
 
@@ -608,13 +609,13 @@ The GitHub Actions workflow requires three secrets to authenticate with Vercel. 
   Copy these values to your GitHub repository secrets. **Do not commit** this file to your repository if it contains sensitive project identifiers.
 </Note>
 
-### Step 4: Optional Staging Domain Configuration
+### Step 5: Optional Staging Domain Configuration
 
 For easier access to your staging environment, you can configure a custom domain that always points to your `main` branch deployments.
 
-1. Go to **Project Settings > Domains** in the Vercel Dashboard
+1. Go to **Project Settings → Domains** in the Vercel Dashboard
 2. Click **Add Domain**
-3. Enter your staging domain (e.g., `staging.yourdomain.com`)
+3. Enter your staging domain (e.g., `api-staging.agents.yourdomain.com`)
 4. Under **Git Branch**, select `main`
 5. Save your changes
 
@@ -627,15 +628,15 @@ Vercel will automatically:
 
 | Domain | Branch | Purpose |
 |--------|--------|---------|
-| `staging.yourdomain.com` | `main` | Staging environment for testing |
-| `yourdomain.com` | Production | Production (deployed via GitHub releases) |
+| `api-staging.agents.yourdomain.com` | `main` | Staging environment for testing |
+| `api.agents.yourdomain.com` | Production | Production (deployed via GitHub releases) |
 
 ### Creating a Production Release
 
 With this configuration, the production deployment flow is:
 
 1. **Merge PRs to main**: Changes go to staging automatically
-2. **Test on staging**: Verify changes at `staging.yourdomain.com` or `main-<project>.vercel.app`
+2. **Test on staging**: Verify changes at your staging domain (e.g., `api-staging.agents.yourdomain.com`)
 3. **Create a GitHub release**: Use the changesets workflow or manually create a release
 4. **Automatic production deployment**: The GitHub Action builds, verifies, and promotes to production
 
@@ -654,7 +655,8 @@ git push
   <Accordion title="Troubleshooting Staging/Production Deployments">
     <strong>Main branch still deploying to production:</strong>
     <ul>
-      <li>Verify Production Branch is set to <code>_disabled_</code> in Project Settings > Git</li>
+      <li>Verify Production Branch is set to <code>never-deploy</code> in Project Settings → Git</li>
+      <li>Ensure the <code>never-deploy</code> branch exists in your repository</li>
       <li>Check that you saved the changes in the Vercel Dashboard</li>
     </ul>
 
@@ -674,7 +676,7 @@ git push
 
     <strong>Staging domain not updating:</strong>
     <ul>
-      <li>Verify the domain is configured with Git Branch set to <code>main</code></li>
+      <li>Verify the domain is configured with Git Branch set to <code>main</code> in Project Settings → Domains</li>
       <li>Check DNS propagation if recently configured</li>
       <li>Ensure the deployment completed successfully</li>
     </ul>
