@@ -169,10 +169,7 @@ export const listPendingScheduledTriggerInvocations =
  */
 export const countPendingScheduledTriggerInvocations =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    scheduledTriggerId: string;
-  }): Promise<number> => {
+  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(scheduledTriggerInvocations)
@@ -262,7 +259,6 @@ export const markScheduledTriggerInvocationRunning =
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
     invocationId: string;
-    traceId?: string;
   }): Promise<ScheduledTriggerInvocation> => {
     const now = new Date().toISOString();
     const result = await db
@@ -270,7 +266,6 @@ export const markScheduledTriggerInvocationRunning =
       .set({
         status: 'running',
         startedAt: sql`COALESCE(${scheduledTriggerInvocations.startedAt}, ${now})`,
-        traceId: params.traceId,
       })
       .where(
         and(

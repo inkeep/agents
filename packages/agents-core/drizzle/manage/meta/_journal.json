@@ -64,6 +64,13 @@
       "when": 1770065208733,
       "tag": "0008_noisy_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770156563686,
+      "tag": "0009_supreme_next_avengers",
+      "breakpoints": true
     }
   ]
 }
