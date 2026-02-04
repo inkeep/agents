@@ -25,7 +25,6 @@
  *   POST /users/connect              - Create Nango session
  *   POST /users/disconnect           - Disconnect/unlink user
  *   GET  /users/status               - Get user connection status
- *   POST /users/refresh-session      - Refresh session token
  *
  * Resources (resources.ts):
  *   GET  /projects                   - List projects
@@ -49,7 +48,7 @@ import eventsRouter from './events';
 import internalRouter from './internal';
 import oauthRouter from './oauth';
 import resourcesRouter from './resources';
-import usersRouter, { pendingSessionTokens } from './users';
+import usersRouter from './users';
 import workspacesRouter from './workspaces';
 
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
@@ -61,5 +60,4 @@ app.route('/', eventsRouter);
 app.route('/', internalRouter);
 app.route('/', resourcesRouter);
 
-export { pendingSessionTokens };
 export default app;

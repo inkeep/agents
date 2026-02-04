@@ -16,7 +16,6 @@
  */
 
 export { getBotTokenForTeam, setBotTokenForTeam } from './routes/oauth';
-export { pendingSessionTokens } from './routes/users';
 export { getChannelAgentConfig, getWorkspaceDefaultAgent } from './services/events';
 
 import slackRouter from './routes/index';

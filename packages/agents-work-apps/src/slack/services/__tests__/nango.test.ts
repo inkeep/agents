@@ -4,7 +4,7 @@
  * Tests cover:
  * - Workspace connection ID computation
  * - Integration ID resolution
- * - Type definitions for workspace and user connections
+ * - Type definitions for workspace connections
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -92,14 +92,12 @@ describe('nango types', () => {
         agentName: 'Test Agent',
         projectId: 'proj-1',
         projectName: 'Test Project',
-        apiKey: 'sk_test_123',
       };
 
       expect(config.agentId).toBe('test');
       expect(config.agentName).toBe('Test Agent');
       expect(config.projectId).toBe('proj-1');
       expect(config.projectName).toBe('Test Project');
-      expect(config.apiKey).toBe('sk_test_123');
     });
   });
 
@@ -151,28 +149,6 @@ describe('nango types', () => {
       expect(installData.enterpriseId).toBe('E0AA0UUL7ML');
       expect(installData.botToken).toBe('xoxb-fake-token-for-testing-only-not-real');
       expect(installData.isEnterpriseInstall).toBe(false);
-    });
-  });
-
-  describe('SlackUserSettings', () => {
-    it('should have correct shape', () => {
-      const settings = {
-        defaultAgentId: 'agent-1',
-        defaultAgentName: 'Support Agent',
-        defaultProjectId: 'proj-1',
-        defaultAgentApiKey: 'sk_test_123',
-      };
-
-      expect(settings.defaultAgentId).toBe('agent-1');
-      expect(settings.defaultAgentName).toBe('Support Agent');
-      expect(settings.defaultProjectId).toBe('proj-1');
-      expect(settings.defaultAgentApiKey).toBe('sk_test_123');
-    });
-
-    it('should handle optional fields', () => {
-      const settings = {};
-
-      expect(settings).toEqual({});
     });
   });
 });

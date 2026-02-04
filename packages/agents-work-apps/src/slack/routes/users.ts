@@ -35,23 +35,6 @@ const UserSettingsSchema = z.object({
   defaultAgentName: z.string().optional(),
 });
 
-const pendingSessionTokens = new Map<
-  string,
-  { token: string; expiresAt: string; createdAt: number }
->();
-
-setInterval(() => {
-  const now = Date.now();
-  const maxAge = 10 * 60 * 1000;
-  for (const [key, value] of pendingSessionTokens.entries()) {
-    if (now - value.createdAt > maxAge) {
-      pendingSessionTokens.delete(key);
-    }
-  }
-}, 60 * 1000);
-
-export { pendingSessionTokens };
-
 app.openapi(
   createRoute({
     method: 'get',
@@ -362,8 +345,6 @@ app.openapi(
               userEmail: z.string().optional().describe('User email'),
               userName: z.string().optional().describe('User display name'),
               tenantId: z.string().optional().describe('Tenant ID'),
-              sessionToken: z.string().optional().describe('Pre-authenticated session token'),
-              sessionExpiresAt: z.string().optional().describe('Session expiration ISO timestamp'),
             }),
           },
         },
@@ -387,25 +368,13 @@ app.openapi(
   }),
   async (c) => {
     const body = c.req.valid('json');
-    const { userId, userEmail, userName, tenantId, sessionToken, sessionExpiresAt } = body;
+    const { userId, userEmail, userName, tenantId } = body;
 
     if (!userId) {
       return c.json({ error: 'userId is required' }, 400);
     }
 
-    if (sessionToken && sessionExpiresAt) {
-      pendingSessionTokens.set(userId, {
-        token: sessionToken,
-        expiresAt: sessionExpiresAt,
-        createdAt: Date.now(),
-      });
-      logger.info({ userId }, 'Stored pending session token for Slack connection');
-    }
-
-    logger.debug(
-      { userId, userEmail, userName, hasSessionToken: !!sessionToken },
-      'Creating Nango connect session'
-    );
+    logger.debug({ userId, userEmail, userName }, 'Creating Nango connect session');
 
     const session = await createConnectSession({
       userId,

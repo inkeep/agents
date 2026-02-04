@@ -38,7 +38,6 @@ import {
   sendResponseUrlMessage,
 } from '../services/events';
 import type { WorkAppsVariables } from '../types';
-import { pendingSessionTokens } from './users';
 
 const logger = getLogger('slack-events');
 
@@ -391,12 +390,6 @@ app.post('/nango-webhook', async (c) => {
 
         const tenantId = payload.organization?.id || 'default';
 
-        const pendingSession = pendingSessionTokens.get(endUser.endUserId);
-        if (pendingSession) {
-          pendingSessionTokens.delete(endUser.endUserId);
-          logger.info({ userId: endUser.endUserId }, 'Retrieved pending session token');
-        }
-
         await updateConnectionMetadata(connectionId, {
           linked_at: new Date().toISOString(),
           app_user_id: endUser.endUserId,
@@ -412,12 +405,6 @@ app.post('/nango-webhook', async (c) => {
           is_slack_owner: String(isSlackOwner),
           enterprise_id: rawResponse.enterprise?.id || '',
           enterprise_name: rawResponse.enterprise?.name || '',
-          ...(pendingSession
-            ? {
-                inkeep_session_token: pendingSession.token,
-                inkeep_session_expires_at: pendingSession.expiresAt,
-              }
-            : {}),
         });
 
         logger.info(
