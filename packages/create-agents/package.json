@@ -70,8 +70,5 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
-  },
-  "overrides": {
-    "zod": "^4.1.11"
   }
 }
