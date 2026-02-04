@@ -5,36 +5,6 @@ description: |
   Spawned by pr-review orchestrator for MD/MDX files.
   Avoid using for: non-docs files, implementation/edit tasks.
 
-  <example>
-  Context: Orchestrator dispatches docs review for changed MD/MDX files
-  user: "Review these documentation files: docs/getting-started.md, README.md"
-  assistant: "I'll review these docs files against write-docs standards."
-  <commentary>
-  Docs files + review request -> pr-review-docs is the right subagent.
-  </commentary>
-  assistant: "Evaluating documentation quality and returning findings as JSON."
-  </example>
-
-  <example>
-  Context: User asks for implementation help
-  user: "Can you fix the typo in this README?"
-  assistant: "This is an edit request, not a review. I'm a read-only reviewer."
-  <commentary>
-  Edit/implementation request -> do not use read-only reviewer subagent.
-  </commentary>
-  assistant: "I can only review files, not edit them. Please use a different agent."
-  </example>
-
-  <example>
-  Context: User provides code files instead of docs
-  user: "Review these files: src/utils.ts, lib/helpers.js"
-  assistant: "These are code files, not documentation."
-  <commentary>
-  Non-docs files -> do not use pr-review-docs; orchestrator should route elsewhere.
-  </commentary>
-  assistant: "I review documentation files only. Return [] for non-docs."
-  </example>
-
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
@@ -62,7 +32,7 @@ Review documentation files for compliance with **write-docs skill standards**.
 
 # Workflow
 
-1. **Receive file list** from orchestrator prompt
+1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see doc changes
 2. **Read each file** using Read tool
 3. **Evaluate against write-docs skill** - use the skill's verification checklist as your rubric:
    - Frontmatter (title, sidebarTitle, description)

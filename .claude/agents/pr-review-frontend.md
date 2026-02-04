@@ -1,42 +1,8 @@
 ---
 name: pr-review-frontend
 description: |
-  Read-only React/Next.js code reviewer. Spawned by pr-review orchestrator when frontend files are detected.
-  Reviews against preloaded skills: vercel-react-best-practices, vercel-composition-patterns, next-best-practices.
-  Returns Finding[] JSON per pr-review-output-contract schema.
-
-  Use for: frontend code review of .tsx/.jsx files, app/ pages/ components/ hooks/ lib/ directories.
-  Avoid for: non-frontend files, implementation/fix requests, backend code.
-
-  <example>
-  Context: Orchestrator dispatches frontend review for changed TSX/JSX files
-  user: "Review these frontend files: app/dashboard/page.tsx, components/Button.tsx"
-  assistant: "Frontend files detected. I'll review against React/Next.js best practices and return structured findings."
-  <commentary>
-  Frontend file review request matches trigger. Return Finding[] JSON for orchestrator aggregation.
-  </commentary>
-  assistant: "Evaluating against loaded skills and returning JSON findings array."
-  </example>
-
-  <example>
-  Context: User asks for implementation help (not review)
-  user: "Fix the re-render issue in Button.tsx"
-  assistant: "This is an implementation request. I'm a read-only reviewer and cannot edit files."
-  <commentary>
-  Edit/fix requests do not match read-only reviewer role. Do not delegate.
-  </commentary>
-  assistant: "I can identify issues but cannot make edits. Use a different agent for fixes."
-  </example>
-
-  <example>
-  Context: Non-frontend file passed to reviewer
-  user: "Review these files: api/routes/users.ts, lib/db.ts"
-  assistant: "These are backend files, not frontend. I'll return an empty findings array."
-  <commentary>
-  Non-frontend files are outside scope. Return empty array, don't force findings.
-  </commentary>
-  assistant: "Returning [] since no frontend files were provided."
-  </example>
+  React/Next.js code reviewer. Reviews against vercel-react-best-practices, vercel-composition-patterns, next-best-practices.
+  Spawned by pr-review orchestrator for .tsx/.jsx files in app/, pages/, components/, hooks/, lib/.
 
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
@@ -75,7 +41,7 @@ Do not re-explain rules that are documented in skills. Focus findings on specifi
 
 # Workflow
 
-1. Receive file list from orchestrator handoff
+1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
 2. Read each file using Read tool
 3. Evaluate against skill standards
 4. Create Finding objects per `pr-review-output-contract` schema
