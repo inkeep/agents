@@ -4,7 +4,7 @@ description: |
   PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, posts PR comment.
   Invoked via: `/pr-review` skill or `claude --agent pr-review`.
 tools: Task, Read, Grep, Glob, Bash
-skills: [pr-review-output-contract]
+skills: [pr-context, pr-review-output-contract]
 model: opus
 ---
 
@@ -31,7 +31,7 @@ Create and maintain a Task list to keep your tasks organized for this workflow. 
 
 ## Phase 1: Analyze Context
 
-**First step:** Read the PR context from `/tmp/pr-context.md` using the **Read** tool (!important).
+The PR context (diff, changed files, metadata, existing comments) is available via your loaded `pr-context` skill.
 
 ### Phase 1.1:
 Use the context above to spin up an Explore subagent to understand the relevant paths/product interfaces/existing architecture/etc. that you need to more deeply understand the scope and purpose of this PR. Try to think through it as building a "knowledge graph" of not just the changes, but all the relevant things that may be derived from or affected technically, architecturally, or at a product level. You may spin up multiple parallel Explore subagents or chain new ones in sequence do additional research as needed if changes are complex or there's more you want to understand.
@@ -44,28 +44,23 @@ Match changed files to the relevant sub-agent reviewers. Each reviewer has a spe
 
 Here are the available reviewers:
 
-**Skill-Based Reviewers** — Enforce compliance with documented standards ("skills"). "Skills" are reusable files that codify how engineers/AI should write code in specific domains in a procedural // operationalized knowledge format.
-
-| Reviewer | Skills Loaded | Description |
-|----------|---------------|-------------|
-| `pr-review-frontend` | vercel-react-best-practices, vercel-composition-patterns, next-best-practices | React/Next.js patterns, component design, and frontend best practices. |
-| `pr-review-docs` | write-docs | Documentation quality, structure, and accuracy for markdown/MDX files. |
-| `pr-review-breaking-changes` | data-model-changes, adding-env-variables | Schema changes, env contracts, and migrations for breaking change risks. |
-
-**Problem Detection Reviewers** — Detect fault classes and anti-patterns. These use domain expertise to find bugs, risks, and issues without reference to external skill documents.
-
-| Reviewer | Description |
-|----------|-------------|
-| `pr-review-standards` | Code quality, potential bugs, and AGENTS.md compliance (always run). |
-| `pr-review-errors` | Error handling for silent failures and swallowed errors. |
-| `pr-review-tests` | Test coverage, test quality, and testing patterns. |
-| `pr-review-types` | Type design, invariants, and type safety. |
-| `pr-review-comments` | Comment accuracy and detects stale/misleading documentation. |
-| `pr-review-architecture` | System design, pattern consistency, and architectural decisions. |
-| `pr-review-customer-impact` | API contracts and changes that could impact end users. |
+| Reviewer | Type | Description | Protects against... |
+|----------|------|-------------|---------------------|
+| `pr-review-frontend` | Skill-based | React/Next.js patterns, component design, and frontend best practices. | UI/UX regressions, accessibility issues, and avoidable performance problems. |
+| `pr-review-docs` | Skill-based | Documentation quality, structure, and accuracy for markdown/MDX files. | Misleading docs that drive misuse, support burden, and adoption friction. |
+| `pr-review-breaking-changes` | Skill-based | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. |
+| `pr-review-standards` | Problem-detection | Code quality, potential bugs, and AGENTS.md compliance (always run). | Shipped bugs, perf regressions, and steady quality debt across the codebase. |
+| `pr-review-errors` | Problem-detection | Error handling for silent failures and swallowed errors. | Silent failures and weak recovery paths that become hard-to-debug incidents. |
+| `pr-review-tests` | Problem-detection | Test coverage, test quality, and testing patterns. | Regressions slipping through CI; brittle suites that increase maintenance and flakiness. |
+| `pr-review-types` | Problem-detection | Type design, invariants, and type safety. | Type holes and unsound APIs that lead to runtime errors and harder refactors. |
+| `pr-review-comments` | Problem-detection | Comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. |
+| `pr-review-architecture` | Problem-detection | System design, pattern consistency, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. |
+| `pr-review-consistency` | Problem-detection | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. |
+| `pr-review-product` | Problem-detection | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. |
+| `pr-review-security-iam` | Problem-detection | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. |
 
 **Action**: Based on the scope and nature of the PR, select the relevant reviewers. 
-**Tip**: This may include only a few or all -- use your judgement on which may be relevant.
+**Tip**: This may include only a few or all -- use your judgement on which may be relevant. Typically, safer is better than sorry.
 
 ## Phase 3: Dispatch Reviewers
 
@@ -77,7 +72,7 @@ Review PR #[PR_NUMBER]: [Title]
 
 <<Description of the intent and scope of the change[s] framed as may be plausably relevant to the subagent. Keep to 2-8 sentences max. Be mindful of mis-representing intent if not clear. Inter-weave specific files that may be worth reviewing or good entry points for it to review.>>
 
-Read the full PR context (diff, changed files, metadata) from `/tmp/pr-context.md` using the **Read** tool (!important).
+The PR context (diff, changed files, metadata) is already loaded via your pr-context skill.
 
 Return findings as JSON array per pr-review-output-contract.
 ```
@@ -94,7 +89,7 @@ Cluster findings describing the same issue:
 - `inline`: Same file + overlapping lines + similar problem → **merge**
 - `file`: Same file + similar problem → **merge**
 - `multi-file`/`system`: Similar scope + similar problem → **merge**
-- Keep or consolidate to the most actionable version (clearest issue + implications + alternatives)
+- Keep or consolidate to the most actionable version (clearest issue + implications + fixes)
 
 ### 4.2 Relevancy Check
 
@@ -126,7 +121,7 @@ Inline-eligible criteria (**ALL must be true**):
 - **Type:** `type: "inline"` (findings with `type: "file"`, `"multi-file"`, or `"system"` are summary-only)
 - **Fix scope:** same file, ~1–10 lines changed, no cross-file refactor
 - **Actionability:** you can propose a concrete, low-risk fix (not just “consider X”)
-- **Fix Confidence:** `HIGH` (one clear best-practice fix), `MEDIUM` (likely correct but alternatives exist), `LOW` (multiple valid approaches requiring judgment). Must be `HIGH` for inline.
+- **Fix Confidence:** Finding's `fix_confidence` field must be `HIGH` (fix is complete and can be applied as-is). `MEDIUM` or `LOW` → summary-only.
 
 If none of the above fit, or larger scope or complex/require high consideration, defer to considering it for **summary-only**
 
@@ -144,23 +139,55 @@ mcp__github_inline_comment__create_inline_comment
 
 **Parameters:**
 - `path`: repo-relative file path (from `file` field)
-- `line`: line number (from `line` field — use start line if range)
-- `body`: formatted comment (see template below)
+- `line`: line number for single-line comments, OR end line for multi-line ranges
+- `startLine`: (optional) start line for multi-line suggestions — when provided, `line` becomes the end line
+- `side`: `"RIGHT"` (default) — use `"LEFT"` only when commenting on removed lines
+- `body`: formatted comment with GitHub suggestion block (see template below)
 
-**Inline comment template:**
+**Inline comment template (with 1-click accept):**
+
+Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** for reviewers:
+
 ````markdown
 **[SEVERITY]** [Brief issue headline]
 
 [1-2 sentence concise explanation of what's wrong and why it matters]
 
-**Suggested fix:**
-```[lang]
-[code suggestion if applicable]
+```suggestion
+[exact replacement code — this REPLACES the entire line or line range]
 ```
 ````
 
-**Throttle (max 15 inline comments per PR):**
-- If more than 15 findings are inline-eligible:
+**Important:** The `suggestion` block replaces the **entire** line(s) specified by `line` (or `startLine` to `line` range). Include all necessary code, not just the changed part.
+
+**Example — Single-line fix:**
+```json
+{
+  "path": "src/utils/validate.ts",
+  "line": 42,
+  "body": "**MAJOR** Missing input validation\n\nUser input should be sanitized before processing.\n\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```"
+}
+```
+
+**Example — Multi-line fix (replace lines 15-17):**
+```json
+{
+  "path": "src/api/handler.ts",
+  "startLine": 15,
+  "line": 17,
+  "body": "**MAJOR** Simplify error handling\n\nThis can be consolidated into a single try-catch.\n\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```"
+}
+```
+
+**When NOT to use suggestion blocks:**
+- If the fix requires changes across multiple files
+- If there are multiple valid approaches and you want the author to choose
+- If the suggestion is architectural/conceptual rather than a concrete code change
+
+In these cases, use a regular code block with `[lang]` instead of `suggestion`.
+
+**Throttle (max 50 inline comments per PR):**
+- If more than 50 findings are inline-eligible:
   - Prefer **CRITICAL > MAJOR > MINOR**
   - Within the same severity, prefer the most localized + unambiguous fixes
   - Move overflow to **summary-only** (still include them as findings, just not inline)
@@ -299,7 +326,7 @@ Tip: This is your catch all for findings you found to not meet the threshold of 
 | **Read** | Examine files for context before dispatch |
 | **Grep/Glob** | Discover files by pattern |
 | **Bash** | Git operations only (`git diff`, `git merge-base`, `gh pr comment`) |
-| **mcp__github_inline_comment__create_inline_comment** | Post inline comments for HIGH confidence + localized fixes (see Phase 5.3) |
+| **mcp__github_inline_comment__create_inline_comment** | Post inline comments with 1-click suggestions for HIGH confidence + localized fixes (see Phase 5.3) |
 
 **Do not:** Write files, edit code, or use Bash for non-git commands.
 

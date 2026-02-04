@@ -23,6 +23,22 @@ Create clear, consistent documentation for the Inkeep docs site following establ
 - Creating skills (use `write-skill` instead)
 - Working on non-docs packages
 
+## Also update (when relevant)
+
+Product or engineering changes may require updates beyond product docs. Check these:
+
+| Artifact | Path | Update when |
+|----------|------|-------------|
+| `AGENTS.md` | `/AGENTS.md` | Commands, workflows, file locations, architecture patterns change |
+| AI agent skills | `/.agents/skills/`| Best practices, checklists, review criteria change. Symlinked across .claude, .cursor and .codex.|
+| AI (sub)agent definitions | `/.claude/agents/` | Review workflows, subagent responsibilities change |
+| `README.md` | `/README.md` | Setup, quick start, or project overview changes |
+| `CONTRIBUTING.md` | `/CONTRIBUTING.md` | Contribution workflows or standards change |
+| `.env.example` | `/.env.example`, `/.env.docker.example` | Environment variables added/removed |
+| `LICENSE.md` | `/LICENSE.md` | Licensing or attribution requirements change |
+| Spec documents | `/spec/` | Feature specs, authoring guidelines change |
+| CI/CD workflows | `/.github/workflows/` | Build, test, or deployment pipelines change |
+
 ---
 
 ## Workflow
