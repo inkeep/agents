@@ -223,14 +223,9 @@ Outline of format (in this order!):
 
 **X Key Findings** | Risk: **High/Medium/Low**
 
-### Point-fix Edits (P)
-<!-- Only if inline comments were posted -->
-- `file.ts:42` — Issue description
-- `other.ts:15` — Another issue
+### 🔴❗🚨 Critical (N) 🔴❗🚨
 
-### 🔴 Critical (N)
-
-`[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**</u>
+🔴 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
  
 - `files`: list all relevant files in `[file].ts` or `[file].ts[:line]` format (line number range optional). If long, list as sub-bullet points. // if applicable
 - `system`: `scope` (no specific file) // if applicable
@@ -242,9 +237,15 @@ when the problem is complex or context is needed.
 
 **Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
 
-### 🟠 Major (M)
+🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 
-// ...same format as Critical findings
+// ...
+
+### 🟠🔶⚠️ Major (M) 🟠🔶⚠️
+
+// 🟠 1) ...same format as Critical findings
+
+// ...
 
 ````
 
@@ -257,19 +258,19 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
-> **EXCEPTION**: If any of the above issues have already been previously commented on by Claude or any other reviewer, DO NOT re-state in full. Just make it a "single line" paraphrased list item and prefix it as "⏳🕐", similar to Point-fix Edits, highlighting why you still consider it important/valid ask/applicable (if that's true! it may have been resolved already! Only outline ones that are still applicable.)
+> **EXCEPTION**: If any of the above issues have already been previously suggested by Claude or any other reviewer, DO NOT re-state the item in full. Just make it a "single line" paraphrased list item and prefix it as "⏳🕐", similar to Point-fix Edits, highlighting why you still consider it important/valid ask/applicable (if that's true! it may have been resolved already! Only outline ones that are still applicable.)
 
 ### 📌 "Point-fix Edits" section
 
 If you posted inline comments in Phase 5, include a brief log section:
 
 ````markdown
-### Point-fix Edits (N)
+### Point-fix Edits (P)
 
-Left suggestions for:
-- `file.ts:42` — Brief label/description of issue (<1 line)
-- ...
-
+<!-- Only if inline comments have been posted from Claude -->
+- `file.ts:42` — Issue description (new)
+- `other.ts:15` — Another issue (new)
+- `previous-pass.ts:15` — Another issue (existing)
 ````
 
 This provides a quick reference to inline comments without repeating full details.
@@ -280,7 +281,7 @@ N = count of inline comments posted.
 Follow the below format:
 ````markdown
 ---
-**Recommendation:** ✅ APPROVE / 💡 APPROVE WITH SUGGESTIONS / 🚫 REQUEST CHANGES
+## **Recommendation:** ✅ APPROVE / 💡 APPROVE WITH SUGGESTIONS / 🚫 REQUEST CHANGES
 
 **Summary:** Brief 1-3 sentence explanation of your recommendation and any blocking concerns. Focus on explaining what seems most actionable [if applicable]. If approving, add some personality to the celebration.
 
