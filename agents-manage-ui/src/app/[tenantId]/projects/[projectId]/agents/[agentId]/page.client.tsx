@@ -1036,7 +1036,7 @@ export const Agent: FC<AgentProps> = ({
           </>
         )}
 
-      {showPlayground && agent.id && (
+      {true && agent.id && (
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
@@ -1059,7 +1059,7 @@ export const Agent: FC<AgentProps> = ({
           </ResizablePanel>
         </>
       )}
-      <UnsavedChangesDialog onSubmit={onSubmit} />
+      {/*<UnsavedChangesDialog onSubmit={onSubmit} />*/}
     </ResizablePanelGroup>
   );
 };
