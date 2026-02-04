@@ -1,15 +1,16 @@
 'use client';
 
 import {
-  AlertCircle,
   Ban,
   CheckCircle2,
   Clock,
+  ExternalLink,
   Loader2,
   MoreHorizontal,
   RotateCcw,
   XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -66,7 +67,7 @@ function getStatusBadge(status: InvocationStatus) {
       );
     case 'completed':
       return (
-        <Badge variant="default" className="gap-1 bg-green-500">
+        <Badge variant="default" className="gap-1 bg-blue-500">
           <CheckCircle2 className="w-3 h-3" />
           Completed
         </Badge>
@@ -228,7 +229,7 @@ export function ScheduledTriggerInvocationsTable({
             <TableHead>Started At</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Attempt</TableHead>
-            <TableHead>Error</TableHead>
+            <TableHead>Conversation</TableHead>
             <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
@@ -271,13 +272,14 @@ export function ScheduledTriggerInvocationsTable({
                     <Badge variant="outline">{invocation.attemptNumber}</Badge>
                   </TableCell>
                   <TableCell>
-                    {invocation.errorMessage ? (
-                      <div className="flex items-center gap-1 text-destructive max-w-xs truncate">
-                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                        <span className="text-sm truncate" title={invocation.errorMessage}>
-                          {invocation.errorMessage}
-                        </span>
-                      </div>
+                    {invocation.conversationId ? (
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${invocation.conversationId}`}
+                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                      >
+                        View
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}

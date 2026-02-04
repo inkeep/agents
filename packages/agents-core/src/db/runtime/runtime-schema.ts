@@ -313,7 +313,6 @@ export const scheduledTriggerInvocations = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
     resolvedPayload: jsonb('resolved_payload').$type<Record<string, unknown> | null>(),
     conversationId: varchar('conversation_id', { length: 256 }),
-    traceId: varchar('trace_id', { length: 256 }),
     errorMessage: text('error_message'),
     errorCode: varchar('error_code', { length: 100 }),
     attemptNumber: integer('attempt_number').notNull().default(1),
