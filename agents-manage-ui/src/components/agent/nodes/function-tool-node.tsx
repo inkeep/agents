@@ -14,8 +14,7 @@ export function FunctionToolNode({
   selected,
   id,
 }: NodeProps & { data: FunctionToolNodeData }) {
-  const name = String(data.name || 'Function Tool');
-  const description = String(data.description || '');
+  const { name = 'Function Tool', description } = data;
 
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
