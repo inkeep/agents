@@ -49,7 +49,7 @@ skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
-model: sonnet
+model: opus
 permissionMode: default
 ---
 

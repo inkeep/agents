@@ -44,30 +44,23 @@ Match changed files to the relevant sub-agent reviewers. Each reviewer has a spe
 
 Here are the available reviewers:
 
-**Skill-Based Reviewers** — Enforce compliance with documented standards ("skills"). "Skills" are reusable files that codify how engineers/AI should write code in specific domains in a procedural // operationalized knowledge format.
-
-| Reviewer | Skills Loaded | Description |
-|----------|---------------|-------------|
-| `pr-review-frontend` | vercel-react-best-practices, vercel-composition-patterns, next-best-practices | React/Next.js patterns, component design, and frontend best practices. |
-| `pr-review-docs` | write-docs | Documentation quality, structure, and accuracy for markdown/MDX files. |
-| `pr-review-breaking-changes` | data-model-changes, adding-env-variables | Schema changes, env contracts, and migrations for breaking change risks. |
-
-**Problem Detection Reviewers** — Detect fault classes and anti-patterns. These use domain expertise to find bugs, risks, and issues without reference to external skill documents.
-
-| Reviewer | Description |
-|----------|-------------|
-| `pr-review-standards` | Code quality, potential bugs, and AGENTS.md compliance (always run). |
-| `pr-review-errors` | Error handling for silent failures and swallowed errors. |
-| `pr-review-tests` | Test coverage, test quality, and testing patterns. |
-| `pr-review-types` | Type design, invariants, and type safety. |
-| `pr-review-comments` | Comment accuracy and detects stale/misleading documentation. |
-| `pr-review-architecture` | System design, pattern consistency, and architectural decisions. |
-| `pr-review-consistency` | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. |
-| `pr-review-product` | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. |
-| `pr-review-security-iam` | Auth, tenant isolation, authorization, token/session security, and credential handling. |
+| Reviewer | Type | Description | Protects against... |
+|----------|------|-------------|---------------------|
+| `pr-review-frontend` | Skill-based | React/Next.js patterns, component design, and frontend best practices. | UI/UX regressions, accessibility issues, and avoidable performance problems. |
+| `pr-review-docs` | Skill-based | Documentation quality, structure, and accuracy for markdown/MDX files. | Misleading docs that drive misuse, support burden, and adoption friction. |
+| `pr-review-breaking-changes` | Skill-based | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. |
+| `pr-review-standards` | Problem-detection | Code quality, potential bugs, and AGENTS.md compliance (always run). | Shipped bugs, perf regressions, and steady quality debt across the codebase. |
+| `pr-review-errors` | Problem-detection | Error handling for silent failures and swallowed errors. | Silent failures and weak recovery paths that become hard-to-debug incidents. |
+| `pr-review-tests` | Problem-detection | Test coverage, test quality, and testing patterns. | Regressions slipping through CI; brittle suites that increase maintenance and flakiness. |
+| `pr-review-types` | Problem-detection | Type design, invariants, and type safety. | Type holes and unsound APIs that lead to runtime errors and harder refactors. |
+| `pr-review-comments` | Problem-detection | Comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. |
+| `pr-review-architecture` | Problem-detection | System design, pattern consistency, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. |
+| `pr-review-consistency` | Problem-detection | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. |
+| `pr-review-product` | Problem-detection | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. |
+| `pr-review-security-iam` | Problem-detection | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. |
 
 **Action**: Based on the scope and nature of the PR, select the relevant reviewers. 
-**Tip**: This may include only a few or all -- use your judgement on which may be relevant.
+**Tip**: This may include only a few or all -- use your judgement on which may be relevant. Typically, safer is better than sorry.
 
 ## Phase 3: Dispatch Reviewers
 
