@@ -235,13 +235,6 @@ export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
   };
 }
 
-/**
- * Helper function to create a basic schema template
- */
-export function createSchemaTemplate(): string {
-  return basicSchemaTemplate;
-}
-
 export function getJsonParseError(error: unknown): string {
   if (error instanceof SyntaxError) {
     const message = error.message.toLowerCase();

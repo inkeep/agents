@@ -131,35 +131,33 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
           wordWrap: hasTextWrap ? 'on' : 'off',
         }}
       >
-        <div className="absolute end-2 top-2 flex gap-1 z-1">
-          <Button
-            variant="ghost"
-            className="backdrop-blur-3xl"
-            size="icon-sm"
-            title="Download File"
-            onClick={handleDownloadCode}
-          >
-            <Download />
-          </Button>
-          <Button
-            variant="ghost"
-            className="backdrop-blur-3xl"
-            size="icon-sm"
-            title="Copy Code"
-            onClick={handleCopyCode}
-          >
-            <Copy />
-          </Button>
-          <Button
-            variant="ghost"
-            className="backdrop-blur-3xl"
-            size="icon-sm"
-            title="Toggle Word Wrap"
-            onClick={toggleTextWrap}
-          >
-            <TextWrap />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          className="backdrop-blur-3xl"
+          size="icon-sm"
+          title="Download File"
+          onClick={handleDownloadCode}
+        >
+          <Download />
+        </Button>
+        <Button
+          variant="ghost"
+          className="backdrop-blur-3xl"
+          size="icon-sm"
+          title="Copy Code"
+          onClick={handleCopyCode}
+        >
+          <Copy />
+        </Button>
+        <Button
+          variant="ghost"
+          className="backdrop-blur-3xl"
+          size="icon-sm"
+          title="Toggle Word Wrap"
+          onClick={toggleTextWrap}
+        >
+          <TextWrap />
+        </Button>
       </JsonEditor>
     </>
   );

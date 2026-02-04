@@ -191,7 +191,7 @@ importers:
         version: 2.8.0
       workflow:
         specifier: 4.0.1-beta.33
-        version: 4.0.1-beta.33(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(magicast@0.5.2)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3)
+        version: 4.0.1-beta.33(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(magicast@0.5.1)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -10680,8 +10680,8 @@ packages:
   magicast@0.3.5:
     resolution: {integrity: sha512-L0WhttDl+2BOsybvEOLK7fW3UA0OQ0IQ2d6Zl2x/a6vVRs3bAY0ECOSHHeL5jD+SbOpOCUEi0y1DgHEn9Qn1AQ==}
 
-  magicast@0.5.2:
-    resolution: {integrity: sha512-E3ZJh4J3S9KfwdjZhe2afj6R9lGIN5Pher1pF39UGrXRqq/VDaGVIGN13BjHd2u8B61hArAGOnso7nBOouW3TQ==}
+  magicast@0.5.1:
+    resolution: {integrity: sha512-xrHS24IxaLrvuo613F719wvOIv9xPHFWQHuvGUBmPnCA/3MQxKI3b+r7n1jAoDHmsbC5bRhTZYR77invLAxVnw==}
 
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
@@ -16909,9 +16909,9 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
-  '@nuxt/kit@4.2.0(magicast@0.5.2)':
+  '@nuxt/kit@4.2.0(magicast@0.5.1)':
     dependencies:
-      c12: 3.3.3(magicast@0.5.2)
+      c12: 3.3.3(magicast@0.5.1)
       consola: 3.4.2
       defu: 6.1.4
       destr: 2.0.5
@@ -23219,7 +23219,7 @@ snapshots:
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
       istanbul-reports: 3.2.0
-      magicast: 0.5.2
+      magicast: 0.5.1
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
@@ -23558,9 +23558,9 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/nuxt@4.0.1-beta.20(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(magicast@0.5.2)':
+  '@workflow/nuxt@4.0.1-beta.20(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(magicast@0.5.1)':
     dependencies:
-      '@nuxt/kit': 4.2.0(magicast@0.5.2)
+      '@nuxt/kit': 4.2.0(magicast@0.5.1)
       '@workflow/nitro': 4.0.1-beta.31(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)
     transitivePeerDependencies:
       - '@aws-sdk/client-sts'
@@ -24356,7 +24356,7 @@ snapshots:
 
   bytes@3.1.2: {}
 
-  c12@3.3.3(magicast@0.5.2):
+  c12@3.3.3(magicast@0.5.1):
     dependencies:
       chokidar: 5.0.0
       confbox: 0.2.2
@@ -24371,7 +24371,7 @@ snapshots:
       pkg-types: 2.3.0
       rc9: 2.1.2
     optionalDependencies:
-      magicast: 0.5.2
+      magicast: 0.5.1
 
   cac@6.7.14: {}
 
@@ -27357,7 +27357,7 @@ snapshots:
       '@babel/types': 7.28.5
       source-map-js: 1.2.1
 
-  magicast@0.5.2:
+  magicast@0.5.1:
     dependencies:
       '@babel/parser': 7.29.0
       '@babel/types': 7.29.0
@@ -31493,7 +31493,7 @@ snapshots:
 
   wordwrap@1.0.0: {}
 
-  workflow@4.0.1-beta.33(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(magicast@0.5.2)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3):
+  workflow@4.0.1-beta.33(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(magicast@0.5.1)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3):
     dependencies:
       '@workflow/astro': 4.0.0-beta.10(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)
       '@workflow/cli': 4.0.1-beta.33(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128)(typescript@5.9.3)
@@ -31501,7 +31501,7 @@ snapshots:
       '@workflow/errors': 4.0.1-beta.10
       '@workflow/next': 4.0.1-beta.32(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0-canary-87ae75b3-20260128(react@19.3.0-canary-87ae75b3-20260128))(react@19.3.0-canary-87ae75b3-20260128))
       '@workflow/nitro': 4.0.1-beta.31(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)
-      '@workflow/nuxt': 4.0.1-beta.20(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(magicast@0.5.2)
+      '@workflow/nuxt': 4.0.1-beta.20(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)(magicast@0.5.1)
       '@workflow/rollup': 4.0.0-beta.6
       '@workflow/sveltekit': 4.0.0-beta.25(@aws-sdk/client-sts@3.970.0)(@opentelemetry/api@1.9.0)
       '@workflow/typescript-plugin': 4.0.1-beta.4(typescript@5.9.3)
