@@ -1,5 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ManageAppVariables } from '../../types/app';
+import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
@@ -53,6 +54,8 @@ export function createManageRoutes() {
   app.route('/oauth', oauthRoutes);
 
   app.route('/mcp', mcpRoutes);
+
+  app.route('/available-agents', availableAgentsRoutes);
 
   return app;
 }

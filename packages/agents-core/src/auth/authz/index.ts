@@ -36,8 +36,10 @@ export {
 export {
   canEditProject,
   canUseProject,
+  canUseProjectStrict,
   canViewProject,
   listAccessibleProjectIds,
+  listUsableProjectIds,
 } from './permissions';
 
 // Sync utilities
