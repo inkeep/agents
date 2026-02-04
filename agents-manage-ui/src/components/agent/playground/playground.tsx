@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { jsonSchemaToZod } from '@inkeep/agents-core/client-exports';
 import { Bug, X } from 'lucide-react';
-import { type Dispatch, useMemo, useState } from 'react';
+import { type Dispatch, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -71,7 +71,12 @@ export const Playground = ({
     return zodResolver(zodSchema);
   }, [headersSchemaString]);
 
-  const form = useForm({ resolver, mode: 'all' });
+  const form = useForm({ resolver, mode: 'onChange' });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: validate on mount
+  useEffect(() => {
+    form.trigger();
+  }, []);
 
   const [isCopying, setIsCopying] = useState(false);
   const {
