@@ -277,7 +277,7 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     configuredByUserId: text('configured_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
-    enabled: varchar('enabled', { length: 20 }).notNull().default('true'),
+    enabled: boolean('enabled').notNull().default(true),
     ...timestamps,
   },
   (table) => [
