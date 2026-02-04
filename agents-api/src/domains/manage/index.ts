@@ -1,5 +1,4 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { slackRoutes } from '@inkeep/agents-work-apps/slack';
 import type { ManageAppVariables } from '../../types/app';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
@@ -57,11 +56,6 @@ export function createManageRoutes() {
   app.route('/mcp', mcpRoutes);
 
   app.route('/available-agents', availableAgentsRoutes);
-
-  // LEGACY: Mount Slack routes at old path for backwards compatibility
-  // Slack events/commands may still point to /manage/slack/*
-  // TODO: Update Slack app config to use /work-apps/slack/* and remove this
-  app.route('/slack', slackRoutes);
 
   return app;
 }
