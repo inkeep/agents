@@ -102,3 +102,5 @@ progress.txt
 .vitest-attachments/
 # Vitest actual snapshots
 *-actual-chromium.png
+
+.pnpm-store/

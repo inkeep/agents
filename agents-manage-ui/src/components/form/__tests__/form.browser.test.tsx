@@ -7,7 +7,7 @@ import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
-import './styles.css';
+import '@/lib/utils/test-utils/styles.css';
 
 function TestForm() {
   const error = 'This field is required';
@@ -35,8 +35,7 @@ function TestForm() {
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
     <Form {...form}>
-      <form>
-        {divider}
+      <form style={{ width: 320 }}>
         <GenericInput {...getCommonProps('input')} />
         {divider}
         <GenericTextarea {...getCommonProps('textarea')} />
@@ -46,7 +45,6 @@ function TestForm() {
         <GenericComboBox {...getCommonProps('combobox')} options={[]} />
         {divider}
         <JsonSchemaInput {...getCommonProps('jsonSchemaEditor')} />
-        {divider}
       </form>
     </Form>
   );
@@ -56,6 +54,7 @@ describe('Form', () => {
   test('should properly highlight error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<TestForm />);
+
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });
