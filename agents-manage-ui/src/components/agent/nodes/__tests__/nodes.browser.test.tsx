@@ -75,7 +75,7 @@ function Nodes() {
   );
 }
 
-describe.only('Nodes', () => {
+describe('Nodes', () => {
   test('should handle of long names with character limit', async () => {
     const { container } = render(<Nodes />);
     await act(async () => {
