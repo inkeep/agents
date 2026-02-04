@@ -1,6 +1,6 @@
 'use client';
 
-import { Github, LayoutGrid, MessageSquare } from 'lucide-react';
+import { Github } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -10,18 +10,6 @@ interface WorkAppsNavProps {
 }
 
 const navItems = [
-  {
-    label: 'Overview',
-    href: (tenantId: string) => `/${tenantId}/work-apps`,
-    icon: LayoutGrid,
-    exact: true,
-  },
-  {
-    label: 'Slack',
-    href: (tenantId: string) => `/${tenantId}/work-apps/slack`,
-    icon: MessageSquare,
-    exact: false,
-  },
   {
     label: 'GitHub',
     href: (tenantId: string) => `/${tenantId}/work-apps/github`,
