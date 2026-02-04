@@ -37,9 +37,6 @@ importers:
       tsdown:
         specifier: ^0.19.0
         version: 0.19.0(oxc-resolver@11.16.0)(typescript@5.9.3)
-      zod:
-        specifier: ^4.1.11
-        version: 4.2.1
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.11

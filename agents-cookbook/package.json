@@ -18,7 +18,7 @@
     "@inkeep/agents-cli": "workspace:*",
     "@inkeep/agents-core": "workspace:*",
     "@inkeep/agents-sdk": "workspace:*",
-    "zod": "^4.1.12"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.18.12",

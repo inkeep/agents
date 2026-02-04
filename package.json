@@ -82,7 +82,6 @@
   "version": "0.1.0",
   "dependencies": {
     "tsdown": "^0.19.0",
-    "zod": "^4.1.12",
     "@hono/zod-openapi": "^1.1.5"
   },
   "devDependencies": {
