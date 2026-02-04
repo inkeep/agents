@@ -10,7 +10,6 @@ import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
-import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
@@ -25,7 +24,6 @@ import {
   runApiKeyAuthExcept,
   runCorsConfig,
   signozCorsConfig,
-  workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { evalApiKeyAuth } from './middleware/evalsAuth';
@@ -100,9 +98,6 @@ function createAgentsHono(config: AppConfig) {
 
   app.use('/manage/tenants/*/signoz/*', cors(signozCorsConfig));
 
-  // Work Apps routes - specific CORS config for dashboard integration
-  app.use('/work-apps/*', cors(workAppsCorsConfig));
-
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS for routes with their own CORS config
@@ -110,9 +105,6 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.startsWith('/run/')) {
-      return next();
-    }
-    if (c.req.path.startsWith('/work-apps/')) {
       return next();
     }
     if (c.req.path.includes('/playground/token')) {
@@ -360,85 +352,6 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/work-apps/github', githubRoutes);
-
-  // Work Apps routes - set auth context for session-based operations
-  app.use('/work-apps/*', async (c, next) => {
-    c.set('auth', auth);
-    await next();
-  });
-
-  // Work Apps auth - session auth for protected operations (workspace management)
-  // Most routes are unauthenticated (events, commands), but some require session
-  app.use('/work-apps/slack/workspaces/*', async (c, next) => {
-    // Skip auth for GET requests (listing is public) and in test mode
-    if (c.req.method === 'GET' || isTestEnvironment()) {
-      await next();
-      return;
-    }
-
-    // DEV ONLY: Allow localhost origins without session auth
-    // This is needed because cross-origin cookies don't work with ngrok during development
-    // In production, the dashboard and API are on the same domain so session cookies work
-    const origin = c.req.header('Origin');
-    if (origin && env.ENVIRONMENT !== 'production') {
-      try {
-        const originUrl = new URL(origin);
-        if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
-          c.set('userId', 'dev-user');
-          c.set('tenantId', 'default');
-          c.set('tenantRole', 'owner');
-          await next();
-          return;
-        }
-      } catch {
-        // Invalid origin URL, continue to auth check
-      }
-    }
-
-    // For DELETE/PUT, require session auth (dashboard uses Better Auth cookies)
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
-    }
-
-    return sessionAuth()(c as any, next);
-  });
-
-  // Work Apps user routes - session auth for user management endpoints
-  app.use('/work-apps/slack/users/*', async (c, next) => {
-    // Skip auth for GET requests and in test mode
-    if (c.req.method === 'GET' || isTestEnvironment()) {
-      await next();
-      return;
-    }
-
-    // DEV ONLY: Allow localhost origins without session auth
-    const origin = c.req.header('Origin');
-    if (origin && env.ENVIRONMENT !== 'production') {
-      try {
-        const originUrl = new URL(origin);
-        if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
-          c.set('userId', 'dev-user');
-          c.set('tenantId', 'default');
-          await next();
-          return;
-        }
-      } catch {
-        // Invalid origin URL, continue to auth check
-      }
-    }
-
-    // For POST/PUT/DELETE, require session auth
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
-    }
-
-    return sessionAuth()(c as any, next);
-  });
-
-  // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
-  app.route('/work-apps', workAppsRoutes);
 
   // Mount MCP routes at top level (eclipses both manage and run services)
   // Also available at /manage/mcp for backward compatibility
