@@ -35,12 +35,12 @@ export default defineConfig({
           browser: {
             // Vitest defaults to a 414x896 viewport, which causes the test iframe to be scaled.
             // Set a larger viewport to avoid downscaling.
-            viewport: { width: 2560, height: 1440 },
+            // viewport: { width: 2560, height: 1440 },
             enabled: true,
             headless: true,
             provider: playwright({
               // With the larger viewport, we use DPR=2 so screenshots match CSS pixel sizes.
-              contextOptions: { deviceScaleFactor: 2 },
+              // contextOptions: { viewport: { width: 2560, height: 1440 } },
               launchOptions: {
                 // Applying the `antialiased` class to <body> and enabling this option
                 // significantly reduces pixel mismatches (<1%) between macOS and Linux.

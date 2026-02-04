@@ -55,7 +55,6 @@ function Nodes() {
 
   return (
     <ReactFlowProvider>
-      {divider}
       <ExternalAgentNode {...baseProps} data={{ ...data, id: 'foo', baseUrl: 'foo' }} />
       {divider}
       <FunctionToolNode {...baseProps} data={{ ...data, functionToolId: 'foo' }} />
@@ -70,7 +69,6 @@ function Nodes() {
       <SubAgentNode {...baseProps} data={{ ...data, id: 'foo', isDefault: true }} />
       {divider}
       <TeamAgentNode {...baseProps} data={{ ...data, id: 'foo' }} />
-      {divider}
     </ReactFlowProvider>
   );
 }

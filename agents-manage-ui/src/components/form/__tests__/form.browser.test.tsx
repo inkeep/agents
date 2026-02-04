@@ -36,7 +36,6 @@ function TestForm() {
   return (
     <Form {...form}>
       <form style={{ width: 320 }}>
-        {divider}
         <GenericInput {...getCommonProps('input')} />
         {divider}
         <GenericTextarea {...getCommonProps('textarea')} />
@@ -46,7 +45,6 @@ function TestForm() {
         <GenericComboBox {...getCommonProps('combobox')} options={[]} />
         {divider}
         <JsonSchemaInput {...getCommonProps('jsonSchemaEditor')} />
-        {divider}
       </form>
     </Form>
   );
