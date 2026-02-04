@@ -100,7 +100,12 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-8">
-            <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
+            <FormFieldWrapper
+              // @ts-expect-error - this type error will be fixed in upcoming PR where I'll fix error state of Select and Combobox, cc @sarah
+              control={form.control}
+              name="headers"
+              label="Custom headers"
+            >
               {(field) => (
                 <StandaloneJsonEditor
                   value={field.value}
