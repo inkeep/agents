@@ -33,10 +33,14 @@ export default defineConfig({
           name: `${pkgJson.name}/browser`,
           include: [BROWSER_TESTS_PATTERN],
           browser: {
-            viewport: { width: 1280, height: 720 },
+            // Vitest scale screenshot with default viewport, we are changing it
+            viewport: { width: 2560, height: 1440 },
             enabled: true,
             headless: true,
             provider: playwright({
+              // With changed viewport setting image with size 100x100 will be 50x50,
+              // We are scaling to receive correct screenshot
+              contextOptions: { deviceScaleFactor: 2 },
               launchOptions: {
                 // Applying the `antialiased` class to <body> and enabling this option
                 // significantly reduces pixel mismatches (<1%) between macOS and Linux.
