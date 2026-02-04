@@ -69,7 +69,7 @@ jobs:
           HUSKY: 0
 
       - name: Install Playwright
-        run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+        run: npx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
 
       # Clean database files before running tests
       - name: Clean database files
