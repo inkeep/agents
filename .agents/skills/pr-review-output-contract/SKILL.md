@@ -1,6 +1,6 @@
 ---
 name: pr-review-output-contract
-description: Output contract for PR review subagents returning findings to the parent orchestrator. Category is a freeform string matching reviewer domain.
+description: Output contract for PR review agents. Defines four finding types based on scope.
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -9,27 +9,51 @@ disable-model-invocation: true
 
 ## Intent
 
-This skill defines **how PR review subagents must format their output** when returning findings to the parent orchestrator.
+This skill defines **how to format your output** when returning findings.
 
 Goals:
-- **machine-parseable** — orchestrator can parse without heuristics
-- **consistent across reviewers** — easy to aggregate + dedupe
+- **machine-parseable** — output can be `JSON.parse()`'d directly
+- **self-describing** — each finding declares its type and scope
 - **actionable** — structured issue + implications + alternatives
 
-Preload this skill via `skills: [pr-review-output-contract]` into any `pr-review-*` subagent.
+Preload this skill via `skills: [pr-review-output-contract]` into any `pr-review-*` agent.
 
 ## Scope
 
-**This contract covers:** Subagent → Orchestrator return format
+**This contract covers:** Your return format (the JSON you output)
 
-**This contract does NOT cover:**
-- Orchestrator output format (that's the orchestrator's responsibility)
-- Human-readable rendering (downstream concern)
-- File discovery or diff computation (input concern)
+**Out of scope:** File discovery, diff computation, or how you analyze code
 
 ---
 
-## Output rules
+## Finding Types
+
+Findings are a **discriminated union** based on the `type` field. Choose the type that matches the **scope** of your finding.
+
+| Type | When to Use |
+|------|-------------|
+| `inline` | Specific line(s), concrete fix, small scope |
+| `file` | Whole-file concern, no specific line |
+| `multi-file` | Cross-cutting issue spanning multiple files |
+| `system` | Architectural/pattern concern, no specific files |
+
+### Decision Tree
+
+```
+Is this about a specific line or small line range (≤10 lines)?
+├─ YES → Is there a concrete, unambiguous fix?
+│        ├─ YES → type: "inline"
+│        └─ NO  → type: "file" (guidance, not fix)
+└─ NO  → Does this involve specific files?
+         ├─ YES → How many files?
+         │        ├─ ONE  → type: "file"
+         │        └─ MANY → type: "multi-file"
+         └─ NO  → type: "system" (pattern/architectural)
+```
+
+---
+
+## Output Rules
 
 ### R1. Return valid JSON only
 
@@ -37,7 +61,7 @@ Preload this skill via `skills: [pr-review-output-contract]` into any `pr-review
 - No comments, no trailing commas.
 - No surrounding prose, headings, or code fences.
 
-The orchestrator must be able to `JSON.parse()` your output directly.
+Your output must be directly parseable via `JSON.parse()`.
 
 ### R2. Return a JSON array of Finding objects
 
@@ -47,186 +71,184 @@ Always return an array, even if empty:
 []
 ```
 
-### R3. Do not change the schema
+### R3. Use the correct type for each finding
 
-- Do not rename fields.
-- Do not add new required fields.
-- Optional fields are allowed only if listed below.
+The `type` field determines which other fields are required. Do not mix schemas.
 
 ---
 
-## Finding schema
+## Finding Schemas
 
-A `Finding` is a single actionable issue (or informational note) tied to a file and line.
+### Common Fields (All Types)
 
-### Required shape
+These fields are **required on all finding types**:
 
-```json
-{
-  "file": "path/to/file.ext",
-  "line": 42,
-  "severity": "MAJOR",
-  "category": "security",
-  "issue": "SQL query constructed via string concatenation with unsanitized user input from request.query.userId. The userId parameter is passed directly into the query string without parameterization or escaping.",
-  "implications": "Attacker can inject arbitrary SQL to read, modify, or delete database contents. This endpoint is public-facing and handles user authentication, so a breach exposes all user credentials and session tokens.",
-  "alternatives": "Use parameterized queries to separate SQL structure from user data: db.query('SELECT * FROM users WHERE id = ?', [userId])",
-  "confidence": "HIGH"
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
+| `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? |
+| `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
+| `issue` | string | What's wrong. Thorough description. |
+| `implications` | string | Why it matters. Consequence, risk, user impact. |
+| `alternatives` | string | How to address it. Fix, recommendation, or options. |
+| `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? |
 
-### Field definitions
+---
 
-| Field          | Type             | Required | Notes                                                                                     |
-| -------------- | ---------------: | :------: | ----------------------------------------------------------------------------------------- |
-| `file`         | string           |    ✅    | Repo-relative path. No absolute paths.                                                    |
-| `line`         | number \| string |    ✅    | Line number (number), range (`"10-15"`), or `"n/a"` if unknown.                           |
-| `severity`     | enum             |    ✅    | `CRITICAL` \| `MAJOR` \| `MINOR` \| `INFO`                                                |
-| `category`     | string           |    ✅    | Freeform string matching reviewer domain (e.g., "docs", "security", "api").               |
-| `issue`        | string           |    ✅    | What's wrong — thorough description. You're the deep analyst; lean detailed. Orchestrator will paraphrase for headlines. |
-| `implications` | string           |    ✅    | Why it matters — consequence, risk, user impact. Explain the "so what" thoroughly; orchestrator condenses for presentation. |
-| `alternatives` | string           |    ✅    | How to address it. Include code examples for non-trivial fixes. List multiple options if truly plausible. |
-| `confidence`   | enum             |    ✅    | `HIGH` \| `MEDIUM` \| `LOW`                                                               |
+### Type: `inline`
 
-**Proportional detail:** Scale depth with severity × confidence. You're doing the in-depth analysis — lean a notch more detailed than the final report needs, since the orchestrator will condense.
+**Use when:** You found an issue at a specific line (or small range ≤10 lines) AND you can propose a concrete fix.
 
-| Severity × Confidence | Issue | Implications | Alternatives |
+**Required fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"inline"` | Literal string. |
+| `file` | string | Repo-relative path (e.g., `"src/api/client.ts"`). |
+| `line` | number \| string | Line number (`42`) or range (`"42-48"`). |
+| + common fields | | See above. |
+
+**Optional fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `line_end` | number | Explicit end line (alternative to range string). |
+
+---
+
+### Type: `file`
+
+**Use when:** The issue concerns a whole file, a large section, or you have guidance but not a concrete line-level fix.
+
+**Required fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"file"` | Literal string. |
+| `file` | string | Repo-relative path. |
+| + common fields | | See above. |
+
+---
+
+### Type: `multi-file`
+
+**Use when:** The issue spans multiple files — e.g., inconsistency between API and SDK, type definitions out of sync, or a pattern that appears across several files.
+
+**Required fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"multi-file"` | Literal string. |
+| `files` | string[] | Array of repo-relative paths (at least 2). |
+| + common fields | | See above. |
+
+---
+
+### Type: `system`
+
+**Use when:** The issue is architectural or pattern-related, not tied to specific files — e.g., inconsistent patterns across the codebase, precedent-setting concerns, or design decisions that affect evolvability.
+
+**Required fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"system"` | Literal string. |
+| `scope` | string | Brief description of what area/pattern this concerns. |
+| + common fields | | See above. |
+
+---
+
+## Field Semantics
+
+### `severity`
+
+Use the smallest severity that is still honest. Severity indicates **impact**, not certainty.
+
+| Severity | Meaning | Merge Impact |
+|----------|---------|--------------|
+| `CRITICAL` | Security vulnerability, data loss, broken functionality, likely incident | Blocks merge |
+| `MAJOR` | Core standard violation, reliability/maintainability risk, likely bug | Fix before merge |
+| `MINOR` | Improvements, consistency issues, "would be better if…" | Can merge; fix later |
+| `INFO` | Informational notes, non-actionable observations | No action required |
+
+### `confidence`
+
+How certain you are that this is a real issue. Not how severe it is.
+
+| Confidence | Meaning | Evidence Level |
+|------------|---------|----------------|
+| `HIGH` | Definite issue. Evidence is unambiguous in the code/diff. | "I can point to the exact line and explain why it's wrong." |
+| `MEDIUM` | Likely issue. Reasonable alternate interpretation exists. | "This looks wrong, but there might be context I'm missing." |
+| `LOW` | Possible issue. Needs human confirmation or more context. | "This could be a problem, but I'm not sure." |
+
+### `category`
+
+Use **your primary domain**. This is a freeform string.
+
+| Category | Domain |
+|----------|--------|
+| `standards` | code quality, bugs, AGENTS.md compliance |
+| `security` | authn/authz, injection, data exposure |
+| `architecture` | patterns, abstractions, system design |
+| `customer-impact` | API contracts, breaking changes, UX |
+| `tests` | coverage, test quality, flaky tests |
+| `docs` | documentation quality, accuracy |
+| `breaking-changes` | schema, migrations, env variables |
+| `types` | type design, invariants |
+| `errors` | error handling, silent failures |
+| `comments` | comment accuracy, staleness |
+| `frontend` | React/Next.js patterns, components |
+
+**Cross-domain findings:** If you find an issue outside your domain, still use your domain as the category.
+
+### `issue`, `implications`, `alternatives`
+
+Scale depth with severity × confidence. Lean detailed — thorough analysis is better than vague.
+
+| Severity × Confidence | issue | implications | alternatives |
 |-----------------------|-------|--------------|--------------|
 | CRITICAL + HIGH | Full context: what, where, how it happens | Detailed consequences, attack scenarios, blast radius | Concrete fix with code example, before/after |
 | MAJOR + HIGH | Specific description with relevant context | Clear consequences, who/what is affected | Concrete fix, code if non-obvious |
 | MAJOR + MEDIUM | Clear description of the problem | 1-2 sentences on impact | Actionable suggestion |
-| MINOR | Brief description | Brief impact | Brief fix |
-
-### Optional fields
-
-| Field      | Type   | Use when                                                          |
-| ---------- | -----: | ----------------------------------------------------------------- |
-| `line_end` | number | Explicit end line when you have numeric start/end.                |
-| `details`  | string | One extra sentence of context (keep short).                       |
+| MINOR / LOW | Brief description | Brief impact | Brief suggestion |
 
 ---
 
-## Enum semantics
-
-### Severity
-
-Use the smallest severity that is still honest.
-
-| Severity     | Meaning                                                                  | Merge impact                                 |
-| ------------ | ------------------------------------------------------------------------ | -------------------------------------------- |
-| **CRITICAL** | Security vulnerability, data loss, broken functionality, likely incident | Blocks merge                                 |
-| **MAJOR**    | Core standard violation, reliability/maintainability risk, likely bug    | Fix before merge unless explicitly accepted  |
-| **MINOR**    | Improvements, consistency issues, "would be better if…"                  | Can merge; fix later                         |
-| **INFO**     | Informational notes, non-actionable observations                         | No action required                           |
-
-### Confidence
-
-How certain you are that this is a real issue (not how severe it is).
-
-| Confidence | Use when                                                         |
-| ---------- | ---------------------------------------------------------------- |
-| **HIGH**   | Definite violation; evidence is unambiguous in the code/diff.    |
-| **MEDIUM** | Likely issue, but there's a reasonable alternate interpretation. |
-| **LOW**    | Possible issue; needs human confirmation or more context.        |
-
-### Category
-
-Use **your reviewer's primary domain** as the category. This is a freeform string, not an enum—use whatever domain name best describes your reviewer's focus.
-
-**Common domain examples:**
-
-| Category   | Domain                                                              |
-| ---------- | ------------------------------------------------------------------- |
-| `docs`     | documentation quality, clarity, formatting, completeness            |
-| `security` | authn/authz, secrets, injection, crypto, data exposure              |
-| `api`      | request/response semantics, breaking changes, versioning, contracts |
-| `style`    | linting, naming, formatting, minor readability                      |
-| `test`     | missing/fragile tests, coverage gaps, flaky patterns                |
-
-You are not limited to these examples. Use any string that accurately describes your reviewer's domain (e.g., `"performance"`, `"accessibility"`, `"database"`).
-
-**Cross-domain findings:** If you find an issue outside your domain, still use your domain as the category.
-
-Example: `pr-review-security` finds a README that exposes an API key path.
-- Use `category: "security"` — your domain
-- Not `category: "docs"` — different reviewer's domain
-
-Why: The orchestrator routes findings by reviewer, not category. Cross-categorization causes ownership confusion during triage.
-
----
-
-## Normalization rules
+## Normalization Rules
 
 ### N1. One issue per finding
 
-Do not bundle multiple unrelated issues. Split them.
+Do not bundle multiple unrelated issues. Split them into separate findings.
 
-Why: The orchestrator deduplicates and prioritizes per-finding. Bundled issues get incorrect severity ranking or miss deduplication entirely.
+### N2. Choose the right type
 
-### N2. Stable line references
-
-- Exact line known → use number
-- Spans multiple lines → use `"start-end"`
-- Cannot determine → use `"n/a"` (do not guess)
-
-Why: Guessed line numbers break IDE navigation and erode trust. `"n/a"` signals the orchestrator to present the finding at file-level.
+If you're unsure between types:
+- `inline` vs `file`: If you can't point to a specific line with a concrete fix, use `file`.
+- `file` vs `multi-file`: If only one file is affected, use `file`. If the issue is the *relationship* between files, use `multi-file`.
+- `multi-file` vs `system`: If you can enumerate the specific files, use `multi-file`. If it's about a pattern that could affect *any* file, use `system`.
 
 ### N3. No duplicates
 
 If two findings describe the same issue differently, keep the more actionable one.
 
-Why: The orchestrator cannot reliably dedupe semantically-similar findings. Pre-deduplication at the reviewer level reduces noise.
+### N4. Repo-relative paths only
+
+Never use absolute paths. Always use paths relative to the repository root.
 
 ---
 
-## Examples
-
-### Correct
-
-```json
-[
-  {
-    "file": "docs/auth.md",
-    "line": 73,
-    "severity": "MAJOR",
-    "category": "docs",
-    "issue": "Code block on line 73 showing the authentication flow is missing a language tag. The fenced code block uses triple backticks but no language identifier, so syntax highlighting is disabled.",
-    "implications": "Reduces syntax highlighting and copy-paste usability for developers. Without highlighting, the code example is harder to read and developers may miss syntax errors when adapting it.",
-    "alternatives": "Add a language identifier after the opening backticks: ```typescript",
-    "confidence": "HIGH"
-  }
-]
-```
-
-### Incorrect
-
-```json
-[
-  {
-    "filepath": "/Users/me/repo/docs/auth.md",
-    "severity": "bad",
-    "message": "This looks wrong"
-  }
-]
-```
-
-Problems:
-- Wrong key (`filepath` vs `file`)
-- Absolute path
-- Invalid severity enum
-- Uses old `message` field instead of `issue` + `implications`
-- Missing: `line`, `category`, `alternatives`, `confidence`
-- Vague — no specific issue, no implications
-
----
-
-## Validation checklist
+## Validation Checklist
 
 Before returning, verify:
 
-- [ ] Output is valid JSON (no prose, no code fences)
+- [ ] Output is valid JSON (no prose, no code fences, no markdown)
 - [ ] Output is an array of Finding objects
-- [ ] Every finding has all required fields
-- [ ] `severity` and `confidence` use allowed enum values; `category` is a non-empty string
-- [ ] `file` is repo-relative (no absolute paths)
-- [ ] `issue` states the specific problem; `implications` explains why it matters; `alternatives` provides fix(es)
+- [ ] Every finding has a `type` field with valid value
+- [ ] Every finding has all required fields for its type
+- [ ] `severity` and `confidence` use allowed enum values
+- [ ] `category` is a non-empty string matching your domain
+- [ ] `file`/`files` paths are repo-relative (no absolute paths)
+- [ ] `inline` findings have numeric `line` or valid range string
+- [ ] `multi-file` findings have at least 2 files in the array
+- [ ] `system` findings have a descriptive `scope` string
 - [ ] No duplicate findings for the same issue

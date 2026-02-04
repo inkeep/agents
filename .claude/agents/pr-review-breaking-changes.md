@@ -4,41 +4,6 @@ description: |
   Reviews for breaking changes in schema, migration, env, and contract files.
   Spawned by pr-review orchestrator when these file types are detected.
 
-  Use when: reviewing schema changes, migrations, env variable additions, API contract modifications.
-  Avoid using for: implementation tasks, non-schema files, general code review.
-
-  <example>
-  Context: Orchestrator dispatches breaking-changes review for schema and migration files
-  user: "Review these files for breaking changes: src/db/manage/manage-schema.ts, drizzle/manage/0003_migration.sql"
-  assistant: "These are schema and migration files that need breaking change analysis."
-  <commentary>
-  Schema + migration files + explicit review request matches this subagent's scope.
-  The preloaded data-model-changes skill provides the evaluation checklist.
-  </commentary>
-  assistant: "I'll evaluate these against data-model-changes standards and return JSON findings."
-  </example>
-
-  <example>
-  Context: Orchestrator dispatches for env.ts changes
-  user: "Review these files for breaking changes: agents-api/src/env.ts, .env.example"
-  assistant: "Env configuration files need adding-env-variables checklist review."
-  <commentary>
-  Env files match this subagent's scope. The preloaded adding-env-variables skill provides the checklist.
-  </commentary>
-  assistant: "I'll check for missing .describe() calls and .env.example sync."
-  </example>
-
-  <example>
-  Context: User asks for implementation help (near-miss)
-  user: "Can you add a new column to this schema and generate the migration?"
-  assistant: "This is an edit request. I'm a read-only reviewer and cannot modify files."
-  <commentary>
-  Edit/implementation requests do not match read-only reviewer scope.
-  Refuse and explain the constraint; do not attempt to edit.
-  </commentary>
-  assistant: "I can only review files for breaking changes. Please use a different agent for edits."
-  </example>
-
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
@@ -70,7 +35,7 @@ Review files for compliance with preloaded skill standards.
 
 # Workflow
 
-1. Receive file list from orchestrator
+1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
 2. Read each file using the Read tool
 3. Evaluate against skill checklists:
    - Schema/migration files: `data-model-changes` checklist
