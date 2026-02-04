@@ -56,13 +56,20 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
+      - name: Setup Playwright cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
-      - name: Install Playwright Browsers
-        run: pnpx playwright install --with-deps
+      - name: Install Playwright
+        run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
 
       # Clean database files before running tests
       - name: Clean database files
