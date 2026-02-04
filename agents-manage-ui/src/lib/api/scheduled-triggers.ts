@@ -225,3 +225,35 @@ export async function fetchScheduledTriggerInvocations(
 
   return response;
 }
+
+/**
+ * Fetch upcoming runs across all scheduled triggers for an agent
+ */
+export async function fetchUpcomingRuns(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  options?: {
+    includeRunning?: boolean;
+    limit?: number;
+    page?: number;
+  }
+): Promise<ListResponse<ScheduledTriggerInvocation>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const params = new URLSearchParams();
+  if (options?.includeRunning !== undefined) {
+    params.append('includeRunning', options.includeRunning.toString());
+  }
+  if (options?.limit) params.append('limit', options.limit.toString());
+  if (options?.page) params.append('page', options.page.toString());
+
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+
+  const response = await makeManagementApiRequest<ListResponse<ScheduledTriggerInvocation>>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/upcoming-runs${queryString}`
+  );
+
+  return response;
+}

@@ -23,6 +23,7 @@ import {
   updateScheduledTriggerInvocationStatus,
   withRef,
 } from '@inkeep/agents-core';
+import { CronExpressionParser } from 'cron-parser';
 import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -59,8 +60,6 @@ export async function calculateNextExecutionStep(params: {
   if (cronExpression) {
     // Cron trigger - calculate next occurrence relative to last execution
     // This prevents drift when workflow wakes late or runs long
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { CronExpressionParser } = require('cron-parser');
     const baseDate = lastScheduledFor ? new Date(lastScheduledFor) : new Date();
     const interval = CronExpressionParser.parse(cronExpression, { currentDate: baseDate });
     const nextDate = interval.next();
@@ -100,8 +99,6 @@ export async function calculateNextNCronTimesStep(params: {
 }): Promise<string[]> {
   'use step';
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { CronExpressionParser } = require('cron-parser');
   const baseDate = params.startFrom ? new Date(params.startFrom) : new Date();
   const interval = CronExpressionParser.parse(params.cronExpression, { currentDate: baseDate });
 
@@ -173,8 +170,6 @@ export async function preCreatePendingInvocationsStep(params: {
   }
 
   // Calculate the next N times
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { CronExpressionParser } = require('cron-parser');
   const baseDate = startFrom ? new Date(startFrom) : new Date();
   const interval = CronExpressionParser.parse(params.cronExpression, { currentDate: baseDate });
 
@@ -538,6 +533,7 @@ export async function markFailedStep(params: {
   invocationId: string;
   errorMessage: string;
   errorCode?: string;
+  conversationId?: string;
 }) {
   'use step';
 
@@ -551,6 +547,7 @@ export async function markFailedStep(params: {
     invocationId: params.invocationId,
     errorMessage: params.errorMessage,
     errorCode: params.errorCode,
+    conversationId: params.conversationId,
   });
 }
 

@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { ScheduledTriggersTable } from '@/components/scheduled-triggers/scheduled-triggers-table';
+import { UpcomingRunsDashboard } from '@/components/scheduled-triggers/upcoming-runs-dashboard';
 import { Button } from '@/components/ui/button';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
-import { getScheduledTriggersAction } from '@/lib/actions/scheduled-triggers';
+import {
+  getScheduledTriggersAction,
+  getUpcomingRunsAction,
+} from '@/lib/actions/scheduled-triggers';
 
 export const metadata = {
   title: 'Scheduled Triggers',
@@ -26,8 +30,11 @@ export default async function ScheduledTriggersPage({
     notFound();
   }
 
-  // Fetch scheduled triggers for this agent
-  const triggers = await getScheduledTriggersAction(tenantId, projectId, agentId);
+  // Fetch scheduled triggers and upcoming runs for this agent
+  const [triggers, upcomingRuns] = await Promise.all([
+    getScheduledTriggersAction(tenantId, projectId, agentId),
+    getUpcomingRunsAction(tenantId, projectId, agentId, { includeRunning: true, limit: 20 }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -45,6 +52,16 @@ export default async function ScheduledTriggersPage({
           </Button>
         }
       />
+
+      {/* Upcoming Runs Dashboard */}
+      <UpcomingRunsDashboard
+        initialRuns={upcomingRuns}
+        tenantId={tenantId}
+        projectId={projectId}
+        agentId={agentId}
+      />
+
+      {/* Scheduled Triggers Table */}
       <ScheduledTriggersTable
         triggers={triggers}
         tenantId={tenantId}

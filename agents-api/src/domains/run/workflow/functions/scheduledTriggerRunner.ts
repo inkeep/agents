@@ -224,6 +224,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     // 7. Execute with retries
     let attemptNumber = invocation.attemptNumber;
     let lastError: string | null = null;
+    let lastConversationId: string | undefined = undefined;
 
     const maxAttempts = maxRetries + 1;
     while (attemptNumber <= maxAttempts) {
@@ -263,6 +264,10 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         payload: currentTrigger.payload ?? null,
         timeoutSeconds,
       });
+
+      if (result.conversationId) {
+        lastConversationId = result.conversationId;
+      }
 
       if (result.success) {
         await markCompletedStep({
@@ -320,6 +325,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         invocationId: invocation.id,
         errorMessage: lastError,
         errorCode: 'EXECUTION_ERROR',
+        conversationId: lastConversationId,
       });
     }
 

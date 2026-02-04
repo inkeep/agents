@@ -10,6 +10,7 @@ import {
   getScheduledTriggerInvocationById,
   listScheduledTriggerInvocationsPaginated,
   listScheduledTriggersPaginated,
+  listUpcomingInvocationsForAgentPaginated,
   markScheduledTriggerInvocationCancelled,
   PaginationQueryParamsSchema,
   ScheduledTriggerApiInsertSchema,
@@ -96,6 +97,79 @@ app.openapi(
     // Remove sensitive scope fields from triggers
     const dataWithoutScopes = result.data.map((trigger) => {
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = trigger;
+      return rest;
+    });
+
+    return c.json({
+      data: dataWithoutScopes,
+      pagination: result.pagination,
+    });
+  }
+);
+
+// Query params for upcoming runs (across all triggers)
+const UpcomingRunsQueryParamsSchema = PaginationQueryParamsSchema.extend({
+  includeRunning: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((val) => val === 'true')
+    .openapi({
+      description: 'Include currently running invocations in results',
+    }),
+}).openapi('UpcomingRunsQueryParams');
+
+/**
+ * List Upcoming Runs Across All Scheduled Triggers
+ * Dashboard endpoint to view all pending/running invocations for an agent
+ * NOTE: This route MUST be defined before /{id} to avoid path matching conflicts
+ */
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/upcoming-runs',
+    summary: 'List Upcoming Runs',
+    operationId: 'list-upcoming-scheduled-runs',
+    tags: ['Scheduled Triggers'],
+    request: {
+      params: TenantProjectAgentParamsSchema,
+      query: UpcomingRunsQueryParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'List of upcoming scheduled runs retrieved successfully',
+        content: {
+          'application/json': {
+            schema: ScheduledTriggerInvocationListResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+    ...speakeasyOffsetLimitPagination,
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const { page, limit, includeRunning } = c.req.valid('query');
+
+    logger.info(
+      { tenantId, projectId, agentId, includeRunning, page, limit },
+      'Listing upcoming scheduled runs across all triggers'
+    );
+
+    const result = await listUpcomingInvocationsForAgentPaginated(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      pagination: { page, limit },
+      includeRunning: includeRunning ?? true,
+    });
+
+    logger.info(
+      { count: result.data.length, total: result.pagination.total, tenantId, projectId, agentId },
+      'Upcoming runs query result'
+    );
+
+    // Remove sensitive scope fields from invocations
+    const dataWithoutScopes = result.data.map((invocation) => {
+      const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
       return rest;
     });
 
