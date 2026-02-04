@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-mcp
 
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+
 ## 0.45.0
 
 ## 0.44.0
