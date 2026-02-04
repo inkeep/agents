@@ -35,8 +35,8 @@ Review files for compliance with preloaded skill standards.
 
 # Workflow
 
-1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
-2. Read each file using the Read tool
+1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+2. Read each file using the **Read** tool (!important)
 3. Evaluate against skill checklists:
    - Schema/migration files: `data-model-changes` checklist
    - Env files: `adding-env-variables` checklist

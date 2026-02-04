@@ -18,7 +18,7 @@ Your primary mission is to protect codebases from comment rot by ensuring every 
 
 When analyzing comments, you will:
 
-0. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
+0. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
 
 1. **Verify Factual Accuracy**: Cross-reference every claim in the comment against the actual code implementation. Check:
    - Function signatures match documented parameters and return types

@@ -28,9 +28,9 @@ You operate under these non-negotiable rules:
 
 When examining a PR, you will:
 
-### 0. Fetch the PR Diff
+### 0. Read the PR Context
 
-Run `gh pr diff [PR_NUMBER]` to get the full diff, then proceed with analysis.
+Read the PR context from `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata. Then proceed with analysis.
 
 ### 1. Identify All Error Handling Code
 

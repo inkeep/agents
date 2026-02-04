@@ -32,7 +32,7 @@ Review documentation files for compliance with **write-docs skill standards**.
 
 # Workflow
 
-1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see doc changes
+1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
 2. **Read each file** using Read tool
 3. **Evaluate against write-docs skill** - use the skill's verification checklist as your rubric:
    - Frontmatter (title, sidebarTitle, description)

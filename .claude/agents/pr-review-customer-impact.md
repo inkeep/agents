@@ -90,7 +90,7 @@ Things that frequently cause customer pain:
 
 # Workflow
 
-1. **Fetch the PR diff** — Run `gh pr diff [PR_NUMBER]` to see all changes
+1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
 2. **Identify customer-facing surfaces** — What in this PR do customers interact with?
 3. **Check for breaking changes** — Compare before/after contracts
 3. **Evaluate edge cases** — How might this fail for customers?
