@@ -1,36 +1,36 @@
 ---
 name: pr-review-docs
 description: |
-  Reviews documentation files against write-docs standards.
-  Spawned by pr-review orchestrator for MD/MDX files.
-  Avoid using for: non-docs files, implementation/edit tasks.
+   Reviews documentation files against write-docs standards.
+   Spawned by pr-review orchestrator for MD/MDX files.
+   Should be invoked when there is **any** product surface area change, as all PRs should have corresponding documentation updates.
 
-<example>
+   <example>
 Context: PR adds or modifies documentation files
 user: "Review this PR that adds a new getting-started guide and updates the API reference."
 assistant: "Documentation changes need review against write-docs standards. I'll use the pr-review-docs agent."
-<commentary>
-New docs often have incorrect examples, missing frontmatter, or structure issues that confuse users.
-</commentary>
+   <commentary>
+   New docs often have incorrect examples, missing frontmatter, or structure issues that confuse users.
+   </commentary>
 assistant: "I'll use the pr-review-docs agent."
-</example>
+   </example>
 
-<example>
+   <example>
 Context: Near-miss — PR modifies code with inline comments only
 user: "Review this PR that adds JSDoc comments to the utility functions."
 assistant: "Inline code comments aren't documentation files. I won't use the docs reviewer for this."
-<commentary>
-Docs review focuses on MD/MDX files against write-docs standards, not inline code comments.
-</commentary>
-</example>
+   <commentary>
+   Docs review focuses on MD/MDX files against write-docs standards, not inline code comments.
+   </commentary>
+   </example>
 
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
-  - pr-context
-  - write-docs
-  - product-surface-areas
-  - pr-review-output-contract
+   - pr-context
+   - write-docs
+   - product-surface-areas
+   - pr-review-output-contract
 model: sonnet
 permissionMode: default
 ---

@@ -226,7 +226,7 @@ Outline of format (in this order!):
 ### 🔴❗🚨 Critical (N) 🔴❗🚨
 
 🔴 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
- 
+
 - `files`: list all relevant files in `[file].ts` or `[file].ts[:line]` format (line number range optional). If long, list as sub-bullet points. // if applicable
 - `system`: `scope` (no specific file) // if applicable
 
