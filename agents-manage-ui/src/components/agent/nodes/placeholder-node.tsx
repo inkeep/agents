@@ -21,7 +21,7 @@ export function PlaceholderNode({ data, selected }: NodeProps & { data: Placehol
           'outline-dashed outline-2 outline-gray-700 hover:outline-gray-700 ring-0 hover:ring-0'
       )}
     >
-      <BaseNodeHeader className="mb-0 py-3">
+      <BaseNodeHeader className="mb-0 py-3 min-w-0">
         <Icon className="size-4 text-muted-foreground/65" />
         <BaseNodeHeaderTitle className="text-muted-foreground">{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
