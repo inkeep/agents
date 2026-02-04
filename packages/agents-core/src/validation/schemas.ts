@@ -124,7 +124,6 @@ export const ResourceIdSchema = z
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   })
-  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
   .openapi({
     description: 'Resource identifier',
     example: 'resource_789',
