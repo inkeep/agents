@@ -1,7 +1,7 @@
 import type { NodeProps } from '@xyflow/react';
+import { cn } from '@/lib/utils';
 import { nodeTypeMap, type PlaceholderType } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
-import { cn } from '@/lib/utils';
 
 type PlaceholderNodeData = {
   name: string;
