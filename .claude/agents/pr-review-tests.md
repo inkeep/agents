@@ -7,6 +7,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 color: cyan
@@ -39,7 +41,7 @@ You are an expert test coverage analyst specializing in pull request review. You
 
 **Analysis Process:**
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. Examine the PR's changes to understand new functionality and modifications
 3. Review the accompanying tests to map coverage to functionality
 4. Identify critical paths that could cause production issues if broken

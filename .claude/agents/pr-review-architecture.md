@@ -8,6 +8,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 permissionMode: default
@@ -117,7 +119,7 @@ Things AI agents and junior engineers often miss at the system level:
 
 # Workflow
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. **Understand intent** — What is this PR trying to accomplish at a system level?
 3. **Research prior art** — Use Grep/Glob to find similar patterns in the codebase
 3. **Evaluate consistency** — Does this fit with what exists?

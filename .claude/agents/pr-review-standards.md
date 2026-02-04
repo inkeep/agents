@@ -8,6 +8,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 color: green
@@ -113,7 +115,7 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 
 # Review Process
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. **Read AGENTS.md first** — understand project-specific rules
 3. **Check scope** — are all changes necessary for the stated goal?
 4. **Analyze each file** against the code quality checklist

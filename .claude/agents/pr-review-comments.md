@@ -7,6 +7,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 color: green
@@ -18,7 +20,7 @@ Your primary mission is to protect codebases from comment rot by ensuring every 
 
 When analyzing comments, you will:
 
-0. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+0. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 
 1. **Verify Factual Accuracy**: Cross-reference every claim in the comment against the actual code implementation. Check:
    - Function signatures match documented parameters and return types

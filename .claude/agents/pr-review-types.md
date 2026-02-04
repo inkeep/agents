@@ -7,6 +7,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 color: pink
@@ -19,7 +21,7 @@ You evaluate type designs with a critical eye toward invariant strength, encapsu
 
 **Analysis Framework:**
 
-**First:** Read the PR context from `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata.
+**First:** Review the PR context — the diff, changed files, and PR metadata are available via your loaded `pr-context` skill.
 
 When analyzing a type, you will:
 

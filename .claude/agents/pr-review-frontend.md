@@ -7,9 +7,11 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
   - vercel-react-best-practices
   - vercel-composition-patterns
   - next-best-practices
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 permissionMode: default
@@ -41,7 +43,7 @@ Do not re-explain rules that are documented in skills. Focus findings on specifi
 
 # Workflow
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. Read each file using Read tool
 3. Evaluate against skill standards
 4. Create Finding objects per `pr-review-output-contract` schema

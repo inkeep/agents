@@ -4,7 +4,7 @@ description: |
   PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, posts PR comment.
   Invoked via: `/pr-review` skill or `claude --agent pr-review`.
 tools: Task, Read, Grep, Glob, Bash
-skills: [pr-review-output-contract]
+skills: [pr-context, pr-review-output-contract]
 model: opus
 ---
 
@@ -31,7 +31,7 @@ Create and maintain a Task list to keep your tasks organized for this workflow. 
 
 ## Phase 1: Analyze Context
 
-**First step:** Read the PR context from `/tmp/pr-context.md` using the **Read** tool (!important).
+The PR context (diff, changed files, metadata, existing comments) is available via your loaded `pr-context` skill.
 
 ### Phase 1.1:
 Use the context above to spin up an Explore subagent to understand the relevant paths/product interfaces/existing architecture/etc. that you need to more deeply understand the scope and purpose of this PR. Try to think through it as building a "knowledge graph" of not just the changes, but all the relevant things that may be derived from or affected technically, architecturally, or at a product level. You may spin up multiple parallel Explore subagents or chain new ones in sequence do additional research as needed if changes are complex or there's more you want to understand.
@@ -77,7 +77,7 @@ Review PR #[PR_NUMBER]: [Title]
 
 <<Description of the intent and scope of the change[s] framed as may be plausably relevant to the subagent. Keep to 2-8 sentences max. Be mindful of mis-representing intent if not clear. Inter-weave specific files that may be worth reviewing or good entry points for it to review.>>
 
-Read the full PR context (diff, changed files, metadata) from `/tmp/pr-context.md` using the **Read** tool (!important).
+The PR context (diff, changed files, metadata) is already loaded via your pr-context skill.
 
 Return findings as JSON array per pr-review-output-contract.
 ```
@@ -144,20 +144,52 @@ mcp__github_inline_comment__create_inline_comment
 
 **Parameters:**
 - `path`: repo-relative file path (from `file` field)
-- `line`: line number (from `line` field — use start line if range)
-- `body`: formatted comment (see template below)
+- `line`: line number for single-line comments, OR end line for multi-line ranges
+- `startLine`: (optional) start line for multi-line suggestions — when provided, `line` becomes the end line
+- `side`: `"RIGHT"` (default) — use `"LEFT"` only when commenting on removed lines
+- `body`: formatted comment with GitHub suggestion block (see template below)
 
-**Inline comment template:**
+**Inline comment template (with 1-click accept):**
+
+Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** for reviewers:
+
 ````markdown
 **[SEVERITY]** [Brief issue headline]
 
 [1-2 sentence concise explanation of what's wrong and why it matters]
 
-**Suggested fix:**
-```[lang]
-[code suggestion if applicable]
+```suggestion
+[exact replacement code — this REPLACES the entire line or line range]
 ```
 ````
+
+**Important:** The `suggestion` block replaces the **entire** line(s) specified by `line` (or `startLine` to `line` range). Include all necessary code, not just the changed part.
+
+**Example — Single-line fix:**
+```json
+{
+  "path": "src/utils/validate.ts",
+  "line": 42,
+  "body": "**MAJOR** Missing input validation\n\nUser input should be sanitized before processing.\n\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```"
+}
+```
+
+**Example — Multi-line fix (replace lines 15-17):**
+```json
+{
+  "path": "src/api/handler.ts",
+  "startLine": 15,
+  "line": 17,
+  "body": "**MAJOR** Simplify error handling\n\nThis can be consolidated into a single try-catch.\n\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```"
+}
+```
+
+**When NOT to use suggestion blocks:**
+- If the fix requires changes across multiple files
+- If there are multiple valid approaches and you want the author to choose
+- If the suggestion is architectural/conceptual rather than a concrete code change
+
+In these cases, use a regular code block with `[lang]` instead of `suggestion`.
 
 **Throttle (max 15 inline comments per PR):**
 - If more than 15 findings are inline-eligible:
@@ -299,7 +331,7 @@ Tip: This is your catch all for findings you found to not meet the threshold of 
 | **Read** | Examine files for context before dispatch |
 | **Grep/Glob** | Discover files by pattern |
 | **Bash** | Git operations only (`git diff`, `git merge-base`, `gh pr comment`) |
-| **mcp__github_inline_comment__create_inline_comment** | Post inline comments for HIGH confidence + localized fixes (see Phase 5.3) |
+| **mcp__github_inline_comment__create_inline_comment** | Post inline comments with 1-click suggestions for HIGH confidence + localized fixes (see Phase 5.3) |
 
 **Do not:** Write files, edit code, or use Bash for non-git commands.
 

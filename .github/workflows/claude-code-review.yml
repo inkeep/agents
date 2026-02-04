@@ -114,9 +114,16 @@ jobs:
           echo "$COMMENTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Write PR Context to Temp File
+      - name: Generate PR Context Skill
         run: |
-          cat > /tmp/pr-context.md << 'PRCONTEXT_EOF'
+          mkdir -p .claude/skills/pr-context
+          
+          cat > .claude/skills/pr-context/SKILL.md << 'SKILL_EOF'
+          ---
+          name: pr-context
+          description: PR metadata, diff, changed files, and discussion context. Auto-generated at CI time.
+          ---
+
           # PR Review Context
 
           Use this context to:
@@ -163,9 +170,9 @@ jobs:
 
           > **IMPORTANT:** Do NOT re-raise issues that have already been flagged, dismissed, or addressed in prior comments. You may allude to unresolved important items briefly, but do not restate details already covered.
 
-          PRCONTEXT_EOF
+          SKILL_EOF
           
-          echo "PR context written to /tmp/pr-context.md ($(wc -c < /tmp/pr-context.md) bytes)"
+          echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
 
       - name: Run PR Review
         uses: anthropics/claude-code-action@v1

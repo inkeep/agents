@@ -8,7 +8,9 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
   - write-docs
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 permissionMode: default
@@ -32,7 +34,7 @@ Review documentation files for compliance with **write-docs skill standards**.
 
 # Workflow
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. **Read each file** using Read tool
 3. **Evaluate against write-docs skill** - use the skill's verification checklist as your rubric:
    - Frontmatter (title, sidebarTitle, description)

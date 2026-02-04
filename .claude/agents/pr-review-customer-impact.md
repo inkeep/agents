@@ -7,6 +7,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 permissionMode: default
@@ -90,7 +92,7 @@ Things that frequently cause customer pain:
 
 # Workflow
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. **Identify customer-facing surfaces** — What in this PR do customers interact with?
 3. **Check for breaking changes** — Compare before/after contracts
 3. **Evaluate edge cases** — How might this fail for customers?

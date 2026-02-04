@@ -7,8 +7,10 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
   - data-model-changes
   - adding-env-variables
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 permissionMode: default
@@ -35,8 +37,8 @@ Review files for compliance with preloaded skill standards.
 
 # Workflow
 
-1. **Read the PR context** — Read `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata
-2. Read each file using the **Read** tool (!important)
+1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
+2. Read each file using the **Read** tool
 3. Evaluate against skill checklists:
    - Schema/migration files: `data-model-changes` checklist
    - Env files: `adding-env-variables` checklist

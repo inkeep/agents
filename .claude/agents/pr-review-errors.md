@@ -7,6 +7,8 @@ description: |
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
+  - pr-context
+  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 color: yellow
@@ -28,9 +30,9 @@ You operate under these non-negotiable rules:
 
 When examining a PR, you will:
 
-### 0. Read the PR Context
+### 0. Review the PR Context
 
-Read the PR context from `/tmp/pr-context.md` using the **Read** tool (!important) to see the diff, changed files, and PR metadata. Then proceed with analysis.
+The diff, changed files, and PR metadata are available via your loaded `pr-context` skill. Review the context, then proceed with analysis.
 
 ### 1. Identify All Error Handling Code
 
