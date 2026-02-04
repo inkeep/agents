@@ -38,6 +38,7 @@ describe('Validation Schemas', () => {
         'test/id', // slash
         'test\\id', // backslash
         'a'.repeat(256), // too long
+        'new', // reserved
       ];
 
       for (const id of invalidIds) {
