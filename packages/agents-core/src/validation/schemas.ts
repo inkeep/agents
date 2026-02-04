@@ -705,7 +705,7 @@ export const TriggerSelectSchema = registerFieldSchemas(
   })
 );
 
-const TriggerInsertSchemaBase = createInsertSchema(triggers, {
+export const TriggerInsertSchema = createInsertSchema(triggers, {
   id: () => ResourceIdSchema,
   name: () => z.string().trim().nonempty().describe('Trigger name'),
   description: () => z.string().optional().describe('Trigger description'),
@@ -724,87 +724,83 @@ const TriggerInsertSchemaBase = createInsertSchema(triggers, {
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
   signatureVerification: () =>
-    SignatureVerificationConfigSchema.nullable()
-      .optional()
-      .describe('Configuration for webhook signature verification'),
-});
-
-export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ctx) => {
-  const config = data.signatureVerification as SignatureVerificationConfig | null | undefined;
-  if (!config) return;
-
-  // Validate signature.regex if present
-  if (config.signature.regex) {
-    const regexResult = validateRegex(config.signature.regex);
-    if (!regexResult.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
-        path: ['signatureVerification', 'signature', 'regex'],
-      });
-    }
-  }
-
-  // Validate signature.key as JMESPath if source is 'body'
-  if (config.signature.source === 'body' && config.signature.key) {
-    const jmespathResult = validateJMESPathSecure(config.signature.key);
-    if (!jmespathResult.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
-        path: ['signatureVerification', 'signature', 'key'],
-      });
-    }
-  }
-
-  // Validate each signed component
-  config.signedComponents.forEach((component, index) => {
-    // Validate component.regex if present
-    if (component.regex) {
-      const regexResult = validateRegex(component.regex);
-      if (!regexResult.valid) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
-          path: ['signatureVerification', 'signedComponents', index, 'regex'],
-        });
-      }
-    }
-
-    // Validate component.key as JMESPath if source is 'body'
-    if (component.source === 'body' && component.key) {
-      const jmespathResult = validateJMESPathSecure(component.key);
-      if (!jmespathResult.valid) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
-          path: ['signatureVerification', 'signedComponents', index, 'key'],
-        });
-      }
-    }
-
-    // Validate component.value as JMESPath if provided (for header/body extraction)
-    if (component.value && component.source !== 'literal') {
-      // For non-literal sources, value might be a JMESPath expression
-      // Only validate if it looks like a JMESPath expression
-      if (component.value.includes('.') || component.value.includes('[')) {
-        const jmespathResult = validateJMESPathSecure(component.value);
-        if (!jmespathResult.valid) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
-            path: ['signatureVerification', 'signedComponents', index, 'value'],
-          });
+    SignatureVerificationConfigSchema.nullish()
+      .superRefine((config, ctx) => {
+        if (!config) return;
+        // Validate signature.regex if present
+        if (config.signature.regex) {
+          const regexResult = validateRegex(config.signature.regex);
+          if (!regexResult.valid) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
+              path: ['signatureVerification', 'signature', 'regex'],
+            });
+          }
         }
-      }
-    }
-  });
+
+        // Validate signature.key as JMESPath if source is 'body'
+        if (config.signature.source === 'body' && config.signature.key) {
+          const jmespathResult = validateJMESPathSecure(config.signature.key);
+          if (!jmespathResult.valid) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
+              path: ['signatureVerification', 'signature', 'key'],
+            });
+          }
+        }
+
+        // Validate each signed component
+        config.signedComponents.forEach((component, index) => {
+          // Validate component.regex if present
+          if (component.regex) {
+            const regexResult = validateRegex(component.regex);
+            if (!regexResult.valid) {
+              ctx.addIssue({
+                code: 'custom',
+                message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
+                path: ['signatureVerification', 'signedComponents', index, 'regex'],
+              });
+            }
+          }
+
+          // Validate component.key as JMESPath if source is 'body'
+          if (component.source === 'body' && component.key) {
+            const jmespathResult = validateJMESPathSecure(component.key);
+            if (!jmespathResult.valid) {
+              ctx.addIssue({
+                code: 'custom',
+                message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
+                path: ['signatureVerification', 'signedComponents', index, 'key'],
+              });
+            }
+          }
+
+          // Validate component.value as JMESPath if provided (for header/body extraction)
+          if (component.value && component.source !== 'literal') {
+            // For non-literal sources, value might be a JMESPath expression
+            // Only validate if it looks like a JMESPath expression
+            if (component.value.includes('.') || component.value.includes('[')) {
+              const jmespathResult = validateJMESPathSecure(component.value);
+              if (!jmespathResult.valid) {
+                ctx.addIssue({
+                  code: 'custom',
+                  message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
+                  path: ['signatureVerification', 'signedComponents', index, 'value'],
+                });
+              }
+            }
+          }
+        });
+      })
+      .describe('Configuration for webhook signature verification'),
 });
 
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
 // We use .removeDefault() to strip the default from enabled field
-export const TriggerUpdateSchema = TriggerInsertSchemaBase.extend({
+export const TriggerUpdateSchema = TriggerInsertSchema.extend({
   // Override enabled to remove the default so {} doesn't become {enabled: true}
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
 }).partial();
