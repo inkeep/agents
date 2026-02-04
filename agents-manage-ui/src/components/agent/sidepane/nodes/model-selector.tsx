@@ -110,8 +110,6 @@ export function ModelSelector({
           {isRequired && <span className="text-red-500">*</span>}
         </Label>
       )}
-      <div className="relative">
-        <div className="flex w-full shadow-xs rounded-md">
           <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -298,34 +296,32 @@ export function ModelSelector({
             <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
               <div className="space-y-2">
                 <div className="text-sm font-medium">
-                  {showCustomInput === 'openrouter'
-                    ? 'OpenRouter Model ID'
-                    : showCustomInput === 'gateway'
-                      ? 'Vercel AI Gateway Model ID'
-                      : showCustomInput === 'nim'
-                        ? 'NVIDIA NIM Model ID'
-                        : 'Custom Model ID'}
+                  {{
+                    openrouter: 'OpenRouter Model ID',
+                    gateway: 'Vercel AI Gateway Model ID',
+                    nim: 'NVIDIA NIM Model ID',
+                    custom: '',
+                  }[showCustomInput] || 'Custom Model ID'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {showCustomInput === 'openrouter'
-                    ? 'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct'
-                    : showCustomInput === 'gateway'
-                      ? 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'
-                      : showCustomInput === 'nim'
-                        ? 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct'
-                        : 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
+                  {{
+                    openrouter:
+                      'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct',
+                    gateway: 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet',
+                    nim: 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct',
+                    custom: '',
+                  }[showCustomInput] || 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
                 </div>
                 <div className="flex gap-2 items-center">
                   <input
                     className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={
-                      showCustomInput === 'openrouter'
-                        ? 'anthropic/claude-3-5-sonnet'
-                        : showCustomInput === 'gateway'
-                          ? 'openai/gpt-4o'
-                          : showCustomInput === 'nim'
-                            ? 'nvidia/llama-3.3-nemotron-super-49b-v1.5'
-                            : 'my-custom-model'
+                      {
+                        openrouter: 'anthropic/claude-3-5-sonnet',
+                        gateway: 'openai/gpt-4o',
+                        nim: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+                        custom: '',
+                      }[showCustomInput] || 'my-custom-model'
                     }
                     value={customModelInput}
                     onChange={(e) => setCustomModelInput(e.target.value)}
@@ -475,8 +471,7 @@ export function ModelSelector({
                       }
                     }}
                     disabled={
-                      !azureDeploymentName.trim() ||
-                      (!azureResourceName.trim() && !azureBaseURL.trim())
+                      !azureDeploymentName.trim() || (!azureResourceName.trim() && !azureBaseURL.trim())
                     }
                   >
                     Configure
@@ -519,8 +514,6 @@ export function ModelSelector({
               </Button>
             </div>
           )}
-        </div>
-      </div>
     </div>
   );
 }
