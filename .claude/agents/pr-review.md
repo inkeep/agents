@@ -109,13 +109,13 @@ If you are split on items that seem plausibly important but are gray area or you
 
 Feel free to make your own determination about the confidence and severity levels of the issues. Prioritize by what's most actionable, applicable, and of note.
 
-## Phase 5: **Inline Comments**
+## Phase 5: **Point-Fix Edits**
 
 ### 5.1 Identify Inline-Eligible Findings
 
 Before writing the summary comment, classify each finding as **inline-eligible** or **summary-only**.
 
-Inline-eligible criteria (**ALL must be true**):
+**Point-Fix-eligible criteria** (**ALL must be true**):
 - **Confidence:** `HIGH`
 - **Severity:** `CRITICAL`, `MAJOR`, or `MINOR`. Note: `MINOR` if issue should truly undoubtedly be addressed without reasonable exception.
 - **Type:** `type: "inline"` (findings with `type: "file"`, `"multi-file"`, or `"system"` are summary-only)
@@ -123,13 +123,13 @@ Inline-eligible criteria (**ALL must be true**):
 - **Actionability:** you can propose a concrete, low-risk fix (not just “consider X”)
 - **Fix Confidence:** Finding's `fix_confidence` field must be `HIGH` (fix is complete and can be applied as-is). `MEDIUM` or `LOW` → summary-only.
 
-If none of the above fit, or larger scope or complex/require high consideration, defer to considering it for **summary-only**
+If none of the above fit, or larger scope or complex/require high consideration, defer to considering it for **summary-only** or discarding it entirely.
 
-### 5.2 Deduplicate Inline Comments
+### 5.2 Deduplicate Point-Fix Edits
 
-Check `Existing Inline Comments` before posting. **Skip** if same location (±2 lines) with similar issue, or unresolved+current thread exists. **Post** if no thread, thread is outdated but issue persists, or issue is materially different.
+Check `Existing Point-Fix Edits` before posting. **Skip** if same location (±2 lines) with similar issue, or unresolved+current thread exists. **Post** if no thread, thread is outdated but issue persists, or issue is materially different.
 
-### 5.3 Post Inline Comments
+### 5.3 Post Point-Fix Edits
 
 For each inline-eligible finding (after deduplication and throttling), post an inline comment using:
 
@@ -149,9 +149,9 @@ mcp__github_inline_comment__create_inline_comment
 Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** for reviewers:
 
 ````markdown
-**[SEVERITY]** [Brief issue headline]
+**[SEVERITY]** [Brief issue slug]
 
-[1-2 sentence concise explanation of what's wrong and why it matters]
+[1-2 sentence concise explanation/justification of what's wrong and why it matters]
 
 ```suggestion
 [exact replacement code — this REPLACES the entire line or line range]
@@ -206,7 +206,7 @@ Outline of format (in this order!):
 - "Main"
 - "Point Fix Edits"
 - "Final Recommendation"
-- "Other"
+- "Other Findings"
 
 ### "Main" section
 
@@ -238,13 +238,23 @@ when the problem is complex or context is needed.
 **Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
+// ...
 
+🕐 *Pending Recommendations* 🕐
+Previous issues still pending:
+❗ `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
+❗ `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
 // ...
 
 ### 🟠🔶⚠️ Major (M) 🟠🔶⚠️
 
 // 🟠 1) ...same format as Critical findings
 
+// ...
+
+🕐 *Pending Recommendations* 🕐
+Previous issues still pending:
+⚠️ `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
 // ...
 
 ````
@@ -260,17 +270,17 @@ Adjust accordingly to the context of the issue and PR and what's most relevant f
 
 > **EXCEPTION**: If any of the above issues have already been previously suggested by Claude or any other reviewer, DO NOT re-state the item in full. Just make it a "single line" paraphrased list item and prefix it as "⏳🕐", similar to Point-fix Edits, highlighting why you still consider it important/valid ask/applicable (if that's true! it may have been resolved already! Only outline ones that are still applicable.)
 
-### 📌 "Point-fix Edits" section
+### 📌 "Point-Fix Edits" section
 
-If you posted inline comments in Phase 5, include a brief log section:
+If you posted inline comments in Phase 5 (in this run), include a brief log section of those changes:
 
 ````markdown
 ### Point-fix Edits (P)
 
 <!-- Only if inline comments have been posted from Claude -->
-- `file.ts:42` — Issue description (new)
-- `other.ts:15` — Another issue (new)
-- `previous-pass.ts:15` — Another issue (existing)
+- 🔴 `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
+- 🟠 `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
+- 🟠 `[file].ts[:line] || <issue_slug>` [paraphrased issue <1 sentence]
 ````
 
 This provides a quick reference to inline comments without repeating full details.
@@ -280,9 +290,14 @@ This provides a quick reference to inline comments without repeating full detail
 Follow the below format:
 ````markdown
 ---
-## **Recommendation:** ✅ APPROVE / 💡 APPROVE WITH SUGGESTIONS / 🚫 REQUEST CHANGES
+<div align="center">
+
+## ✅ APPROVE / 💡 APPROVE WITH SUGGESTIONS / 🚫 REQUEST CHANGES
+
+</div>
 
 **Summary:** Brief 1-3 sentence explanation of your recommendation and any blocking concerns. Focus on explaining what seems most actionable [if applicable]. If approving, add some personality to the celebration.
+````
 
 Post summary via:
 ```bash
@@ -291,7 +306,6 @@ gh pr comment --body "$(cat <<'EOF'
 ...
 EOF
 )"
-````
 
 ### Other Findings
 
@@ -308,7 +322,7 @@ Format:
 </details>
 ````
 
-Tip: This is your catch all for findings you found to not meet the threshold of the other sections. AI code reviewers can be noisy/inaccurate, so this is simply your log of other items you considered but decided did not meet the threshold. 'Y' is the count of these Other Findings. Note: avoid duplication/repetition, you can consolidate "dedup" as needed. 
+Tip: This is your catch all for findings you found to not meet the threshold of the other sections. AI code reviewers can be noisy/inaccurate, so this is simply your log of other items you considered but decided did not meet the threshold, were erronous, or were not really applicable, etc.. 'Y' is the count of these Other Findings. Note: avoid duplication/repetition, you can consolidate "dedup" as needed -- exclude listing any items otherwise represented or overridden by other issues you already listed.
 
 ---
 
