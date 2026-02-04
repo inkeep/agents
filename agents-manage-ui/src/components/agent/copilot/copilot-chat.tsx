@@ -1,7 +1,6 @@
 'use client';
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
-import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -12,6 +11,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { sentry } from '@/lib/sentry';
+import { css } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpMessage } from './message-parts/message';
 
@@ -22,7 +22,7 @@ interface CopilotChatProps {
   refreshAgentGraph: (options?: { fetchTools?: boolean }) => Promise<void>;
 }
 
-const styleOverrides = `
+const styleOverrides = css`
 .ikp-markdown-code {
   background-color: var(--ikp-color-gray-100);
   color: var(--ikp-color-gray-900);
