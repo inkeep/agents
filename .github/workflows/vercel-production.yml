@@ -1,0 +1,68 @@
+name: Deploy to Vercel Production
+
+# This workflow deploys to Vercel production only when a GitHub release is published.
+# It uses Vercel's deployment checks to verify API health before promoting to production:
+# 1. Deploy to a preview URL (not production)
+# 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
+# 3. Promote the verified deployment to production
+#
+# Required secrets (configure in GitHub Repository Settings > Secrets):
+# - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
+# - VERCEL_ORG_ID: Organization/team ID from .vercel/project.json after running `vercel link`
+# - VERCEL_API_PROJECT_ID: Project ID for agents-api
+# - VERCEL_MANAGE_UI_PROJECT_ID: Project ID for agents-manage-ui
+
+on:
+  release:
+    types: [published]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.project.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - name: agents-api
+            project_id_secret: VERCEL_API_PROJECT_ID
+          - name: agents-manage-ui
+            project_id_secret: VERCEL_MANAGE_UI_PROJECT_ID
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set Project ID
+        run: echo "VERCEL_PROJECT_ID=${{ secrets[matrix.project.project_id_secret] }}" >> $GITHUB_ENV
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Preview for Checks
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Failed to capture deployment URL"
+            exit 1
+          fi
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --wait
+
+      - name: Promote to Production
+        run: vercel promote ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }}
