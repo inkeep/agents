@@ -268,6 +268,10 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
+              key: SPAN_KEYS.DELEGATION_TYPE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
               key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
@@ -1357,6 +1361,7 @@ export async function GET(
       // delegation/transfer
       delegationFromSubAgentId?: string;
       delegationToSubAgentId?: string;
+      delegationType?: 'internal' | 'external' | 'team';
       transferFromSubAgentId?: string;
       transferToSubAgentId?: string;
       // streaming text
@@ -1419,6 +1424,7 @@ export async function GET(
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromSubAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
       const delegationToSubAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
+      const delegationType = getString(span, SPAN_KEYS.DELEGATION_TYPE, '');
       const transferFromSubAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
       const transferToSubAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
@@ -1450,6 +1456,7 @@ export async function GET(
         aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromSubAgentId: delegationFromSubAgentId || undefined,
         delegationToSubAgentId: delegationToSubAgentId || undefined,
+        delegationType: (delegationType as 'internal' | 'external' | 'team') || undefined,
         transferFromSubAgentId: transferFromSubAgentId || undefined,
         transferToSubAgentId: transferToSubAgentId || undefined,
         toolCallArgs: toolCallArgs || undefined,
