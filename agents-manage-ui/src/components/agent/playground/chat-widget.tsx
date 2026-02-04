@@ -20,7 +20,7 @@ interface ChatWidgetProps {
   setConversationId: (conversationId: string) => void;
   startPolling: () => void;
   stopPolling: () => void;
-  customHeaders: Record<string, string>;
+  customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
   dataComponentLookup?: Record<string, DataComponent>;
   setShowTraces: Dispatch<boolean>;

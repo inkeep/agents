@@ -80,12 +80,12 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
     setIsOpen(false);
   });
 
-  const onRemoveHeaders = () => {
+  function onRemoveHeaders() {
     form.reset({ headers: '{}' });
     setCustomHeaders({});
     setIsOpen(false);
     toast.success('Custom headers removed.');
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -96,7 +96,7 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
           {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}
         </Button>
       </DialogTrigger>
-      <DialogContent className="!max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Custom Headers</DialogTitle>
           <DialogDescription>Add custom headers to the chat API requests.</DialogDescription>

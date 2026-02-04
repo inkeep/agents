@@ -323,3 +323,4 @@ export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
 export { detectAuthenticationRequired } from './utils/auth-detection';
+export { jsonSchemaToZod } from './utils/json-schema/json-schema-to-zod';
