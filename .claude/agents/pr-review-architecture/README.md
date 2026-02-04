@@ -86,23 +86,23 @@ Detect fault classes and anti-patterns using domain expertise. No external skill
 
 ### product-surface-areas
 
-All reviewers load `product-surface-areas` — a consolidated inventory of 63 customer-facing surfaces with a dependency graph showing what breaks when something changes.
+`product-surface-areas` is a consolidated inventory of 63 customer-facing surfaces with a dependency graph showing what breaks when something changes.
 
-**High-value for:**
+**Loaded by reviewers that benefit from surface context:**
 - `pr-review-architecture` — evaluates system-wide impact and evolvability
 - `pr-review-breaking-changes` — maps schema/contract changes to affected surfaces
 - `pr-review-product` — evaluates customer mental-model impact and cross-surface coherence
+- `pr-review-consistency` — detects convention drift across surfaces
+- `pr-review-security-iam` — surface triage for auth/access control
+- `pr-review-standards` — AGENTS.md compliance checks
+- `pr-review-errors` — error handling patterns
+- `pr-review-types` — type safety across surfaces
+- `pr-review-docs` — documentation coverage
 
-**Lower-value for (candidates for removal):**
+**Not loaded (context cost outweighs benefit):**
 - `pr-review-comments` — focused on comment accuracy, not product architecture
-- `pr-review-errors` — focused on error handling patterns within code
 - `pr-review-tests` — focused on test coverage quality
-- `pr-review-types` — focused on type design and invariants
-- `pr-review-standards` — focused on micro-level code quality (bugs, security)
-- `pr-review-docs` — already has `write-docs` for documentation standards
-- `pr-review-frontend` — focused on React/Next.js technical patterns
-
-If context window becomes a concern, remove from the lower-value reviewers first.
+- `pr-review-frontend` — focused on React/Next.js technical patterns (has its own skills)
 
 ## Context Injection
 

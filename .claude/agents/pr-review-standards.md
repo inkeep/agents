@@ -1,13 +1,13 @@
 ---
 name: pr-review-standards
 description: |
-  Code quality reviewer. Detects bugs, security issues, performance regressions, and AGENTS.md compliance problems in changed code.
+  Code quality reviewer. Detects bugs, non-IAM security issues, performance regressions, and AGENTS.md compliance problems in changed code.
   Spawned by the pr-review orchestrator for all code changes (always runs).
-  Focus: micro-level correctness and safety — not convention conformance or system architecture.
+  Focus: micro-level correctness and safety — not convention conformance, system architecture, or IAM/tenant authorization design.
 
 <example>
 Context: PR changes application logic and needs a correctness/security review
-user: "Review this PR that adds a new API handler and touches auth checks."
+user: "Review this PR that adds a new API handler and touches request validation."
 assistant: "This is a micro-level correctness and security review. I'll use the pr-review-standards agent."
 <commentary>
 This reviewer specializes in bugs, security, performance, and project standards compliance.
@@ -56,13 +56,14 @@ You filter aggressively — false positives waste developer time and erode trust
 
 **In scope (micro-level code quality):**
 - Bug detection (logic errors, null handling, race conditions, concurrency)
-- Security vulnerabilities (authn/authz, injection, data exposure)
+- Non-IAM security vulnerabilities (injection, unsafe deserialization, secret exposure, SSRF)
 - Performance issues (N+1 queries, memory leaks, obvious inefficiencies)
 - Clean code (hard-coded values, magic numbers, brute-forced logic)
 - AGENTS.md compliance (import patterns, naming conventions, framework rules)
 - Scope discipline (unnecessary changes, out-of-scope modifications)
 
 **Out of scope:**
+- Authentication/authorization/tenant isolation design
 - Pattern/peer consistency and convention conformance across the codebase
 - System design, boundaries, and architecture decisions
 - Transaction boundaries, data consistency across operations

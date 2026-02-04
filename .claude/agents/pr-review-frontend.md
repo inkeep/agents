@@ -30,7 +30,6 @@ skills:
   - vercel-react-best-practices
   - vercel-composition-patterns
   - next-best-practices
-  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 permissionMode: default

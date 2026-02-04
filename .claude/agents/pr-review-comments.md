@@ -27,7 +27,6 @@ tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
-  - product-surface-areas
   - pr-review-output-contract
 model: sonnet
 color: green

@@ -1,14 +1,12 @@
 ---
 name: product-surface-areas
-description: Consolidated dependency graph of Inkeep customer-facing surface areas (UIs, CLIs, SDKs, APIs, protocols, config formats). Use as a pre-change checklist **before** or **after** modifying any surface to understand side-effects or what other surface areas need to change. Trigger on breaking changes, surface dependencies, API changes, SDK changes, UI changes, dependency graph.
+description: Consolidated dependency graph of Inkeep customer-facing surface areas (UIs, CLIs, SDKs, APIs, protocols, config formats). Example use: as a prd-time (planning/brainstorming phase) or post-change checklist to understand the full scope of side-effects or what making one change to the product means for the rest. Use whenever you need to understand the "ripple" out effects of any change.
 ---
 
 # Inkeep Product Surface Area Inventory
 
 ## Overview
-This is a consolidated inventory of customer-facing “surface areas” identified in the provided transcript: anything a customer can directly use, interact with, or take a dependency on (UIs, CLIs, SDKs, APIs, protocols, config formats, and content). Use it as a pre and post-change checklist: before or after modifying a surface, review any surface areas that depend on it to identify what changes may or may not to be needed there. 
-
-> !Important: Trace through the entire "dependency tree" (chain) of surface areas affected by any change. Requirement is to identify the full propegated blast-radius and consideration domains of what **must** be accounted for in any change.
+This is a consolidated inventory of customer-facing “surface areas”: anything a customer can directly use, interact with, or take a dependency on. Use it to conceptually understand the surface area of what one change may mean for the whole product (i.e. the entire feature dependency tree/propagation chain end-to-end).
 
 ## Summary
 
