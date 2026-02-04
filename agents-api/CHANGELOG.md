@@ -1,5 +1,20 @@
 # @inkeep/agents-api
 
+## 0.45.0
+
+### Patch Changes
+
+- 0626128: adjust manage api routes
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- Updated dependencies [0ef70dd]
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-work-apps@0.45.0
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-mcp@0.45.0
+  - @inkeep/agents-mcp@0.45.0
+
 ## 0.44.0
 
 ### Minor Changes
