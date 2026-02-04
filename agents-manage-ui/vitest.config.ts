@@ -33,6 +33,7 @@ export default defineConfig({
           name: `${pkgJson.name}/browser`,
           include: [BROWSER_TESTS_PATTERN],
           browser: {
+            viewport: { width: 1280, height: 720 },
             enabled: true,
             headless: true,
             provider: playwright({
