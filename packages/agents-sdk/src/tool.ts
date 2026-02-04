@@ -2,8 +2,8 @@ import {
   convertZodToJsonSchema,
   getLogger,
   isZodSchema,
-  normalizeToolSelections,
   type MCPToolConfig,
+  normalizeToolSelections,
   type ToolApiInsert,
 } from '@inkeep/agents-core';
 import type { AgentMcpConfig, AgentMcpConfigInput } from './builders';

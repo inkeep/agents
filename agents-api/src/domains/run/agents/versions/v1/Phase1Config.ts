@@ -1,9 +1,9 @@
 import {
+  type Artifact,
   convertZodToJsonSchema,
   isZodSchema,
-  V1_BREAKDOWN_SCHEMA,
-  type Artifact,
   type McpTool,
+  V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core';
 import systemPromptTemplate from '../../../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../../../templates/v1/phase1/thinking-preparation.xml?raw';
