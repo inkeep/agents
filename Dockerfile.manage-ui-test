@@ -1,0 +1,31 @@
+# ------------------------------------------------------------------------------
+# This Dockerfile builds an image for running Playwright image snapshot tests on Linux.
+#
+# Intended usage:
+#   docker build -f Dockerfile.manage-ui-test -t agents-ui-test:local .
+#   docker run --rm -t -v "$PWD":/app agents-ui-test:local
+#
+# Notes:
+# - `node_modules` is stored in a Docker volume to avoid host OS conflicts
+# - `pnpm install` runs at build time for reproducible, cached installs
+# ------------------------------------------------------------------------------
+
+FROM node:22
+
+WORKDIR /app
+VOLUME /app/node_modules
+
+USER root
+
+RUN npx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY agents-manage-ui/package.json agents-manage-ui/
+COPY patches/ patches/
+
+
+RUN pnpm install --frozen-lockfile
+
+CMD ["bash", "-lc", "pnpm --filter @inkeep/agents-manage-ui test .browser.test.tsx"]
