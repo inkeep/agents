@@ -13,7 +13,7 @@ import {
   copySummarizedTraceToClipboard,
 } from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
-import CustomHeadersDialog from './custom-headers-dialog';
+import { CustomHeadersDialog } from './custom-headers-dialog';
 
 interface PlaygroundProps {
   agentId: string;

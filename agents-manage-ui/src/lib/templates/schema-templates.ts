@@ -46,3 +46,7 @@ export const evaluatorSchemaTemplate = JSON.stringify(
   null,
   2
 );
+
+export const customHeadersTemplate = JSON.stringify({
+  tz: 'US/Pacific',
+});
