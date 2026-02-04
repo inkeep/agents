@@ -530,11 +530,12 @@ const getServer = async (toolId: string) => {
           };
         }
 
-        // Get the current file content
+        // Get the current file content from the specified branch
         const fileResponse = await githubClient.rest.repos.getContent({
           owner,
           repo,
           path: file_path,
+          ref: branch_name,
         });
 
         if (!('content' in fileResponse.data) || Array.isArray(fileResponse.data)) {
