@@ -53,11 +53,16 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
     setIsOpen(false);
     toast.success('Custom headers removed.');
   }
+  const hasHeadersError = !!form.formState.errors.headers?.message;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-6">
+        <Button
+          variant={hasHeadersError ? 'destructive-outline' : 'ghost'}
+          size="sm"
+          className="h-6"
+        >
           {numHeaders > 0 ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           Custom Headers
           {numHeaders > 0 && <Badge variant="code">{numHeaders}</Badge>}

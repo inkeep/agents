@@ -315,7 +315,7 @@ export const Agent: FC<AgentProps> = ({
     };
     clearSelection();
     markUnsaved();
-    commandManager.execute(new AddNodeCommand(newNode as Node));
+    commandManager.execute(new AddNodeCommand(newNode));
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
       fitView({

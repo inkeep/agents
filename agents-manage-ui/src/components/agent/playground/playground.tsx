@@ -63,7 +63,7 @@ export const Playground = ({
 
           ctx.addIssue({
             code: 'custom',
-            message: z.prettifyError(result.error).replace('✖ ', ''),
+            message: z.prettifyError(result.error).split('✖ ').join('\n').trim(),
           });
         }),
     });
