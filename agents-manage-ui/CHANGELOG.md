@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.45.1
+
+### Patch Changes
+
+- cd28e97: Fix optional chaining for data.details in error case to prevent runtime errors
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
 ## 0.45.0
 
 ### Minor Changes
