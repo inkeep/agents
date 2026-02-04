@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { customHeadersTemplate } from '@/lib/templates/schema-templates';
+import { customHeadersTemplate } from '@/lib/templates';
 
 export const DefaultHeadersSchema = z.record(
   z.string(),
