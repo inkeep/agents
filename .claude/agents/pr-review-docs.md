@@ -3,7 +3,7 @@ name: pr-review-docs
 description: |
   Reviews documentation files against write-docs standards.
   Spawned by pr-review orchestrator for MD/MDX files.
-  Avoid using for: non-docs files, implementation/edit tasks.
+  Should be invoked when there is **any** product surface area change, as all PRs should have corresponding documentation updates.
 
 <example>
 Context: PR adds or modifies documentation files
