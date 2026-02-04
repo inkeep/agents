@@ -75,7 +75,7 @@ describe('Agent Resolution', () => {
           agentId: 'channel-agent',
           projectId: 'channel-project',
           agentName: 'Channel Agent',
-          enabled: 'true',
+          enabled: true,
         })
       );
 
@@ -162,7 +162,7 @@ describe('Agent Resolution', () => {
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
           projectId: 'channel-project',
-          enabled: 'true',
+          enabled: true,
         })
       );
 
@@ -213,7 +213,7 @@ describe('Agent Resolution', () => {
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
           projectId: 'channel-project',
-          enabled: 'false',
+          enabled: false,
         })
       );
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
@@ -251,7 +251,7 @@ describe('Agent Resolution', () => {
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
           projectId: 'channel-project',
-          enabled: 'true',
+          enabled: true,
         })
       );
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
@@ -289,7 +289,7 @@ describe('Agent Resolution', () => {
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
           projectId: 'channel-project',
-          enabled: 'true',
+          enabled: true,
         })
       );
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({

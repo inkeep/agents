@@ -22,12 +22,7 @@ import {
 } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
-import {
-  createConnectSession,
-  deleteConnection,
-  findConnectionByAppUser,
-  updateConnectionMetadata,
-} from '../services';
+import { createConnectSession } from '../services';
 import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-users');
@@ -441,7 +436,6 @@ app.openapi(
           'application/json': {
             schema: z.object({
               userId: z.string().optional().describe('Inkeep user ID'),
-              connectionId: z.string().optional().describe('Nango connection ID'),
               slackUserId: z.string().optional().describe('Slack user ID'),
               slackTeamId: z.string().optional().describe('Slack team ID'),
               tenantId: z.string().optional().describe('Tenant ID'),
@@ -457,7 +451,6 @@ app.openapi(
           'application/json': {
             schema: z.object({
               success: z.boolean(),
-              connectionId: z.string().optional(),
             }),
           },
         },
@@ -469,18 +462,16 @@ app.openapi(
   }),
   async (c) => {
     const body = c.req.valid('json');
-    const { userId, connectionId, slackUserId, slackTeamId, tenantId } = body;
+    const { userId, slackUserId, slackTeamId, tenantId } = body;
 
-    if (!userId && !connectionId && !(slackUserId && slackTeamId)) {
-      return c.json(
-        { error: 'Either userId, connectionId, or (slackUserId + slackTeamId) is required' },
-        400
-      );
+    if (!userId && !(slackUserId && slackTeamId)) {
+      return c.json({ error: 'Either userId or (slackUserId + slackTeamId) is required' }, 400);
     }
 
     try {
+      const effectiveTenantId = tenantId || 'default';
+
       if (slackUserId && slackTeamId) {
-        const effectiveTenantId = tenantId || 'default';
         const deleted = await deleteWorkAppSlackUserMapping(runDbClient)(
           effectiveTenantId,
           slackUserId,
@@ -496,30 +487,31 @@ app.openapi(
         return c.json({ error: 'No link found for this user' }, 404);
       }
 
-      let targetConnectionId = connectionId;
+      if (userId) {
+        const userMappings = await findWorkAppSlackUserMappingByInkeepUserId(runDbClient)(userId);
 
-      if (!targetConnectionId && userId) {
-        const connection = await findConnectionByAppUser(userId);
-        if (connection) {
-          targetConnectionId = connection.connectionId;
+        if (userMappings.length === 0) {
+          return c.json({ error: 'No link found for this user' }, 404);
         }
+
+        let deletedCount = 0;
+        for (const mapping of userMappings) {
+          const deleted = await deleteWorkAppSlackUserMapping(runDbClient)(
+            mapping.tenantId,
+            mapping.slackUserId,
+            mapping.slackTeamId,
+            'work-apps-slack'
+          );
+          if (deleted) deletedCount++;
+        }
+
+        logger.info({ userId, deletedCount }, 'User disconnected from Slack');
+        return c.json({ success: true });
       }
 
-      if (!targetConnectionId) {
-        return c.json({ error: 'No connection found for this user' }, 404);
-      }
-
-      const success = await deleteConnection(targetConnectionId);
-
-      if (!success) {
-        return c.json({ error: 'Failed to delete connection' }, 500);
-      }
-
-      logger.info({ userId, connectionId: targetConnectionId }, 'User disconnected from Slack');
-
-      return c.json({ success: true, connectionId: targetConnectionId });
+      return c.json({ error: 'No connection found for this user' }, 404);
     } catch (error) {
-      logger.error({ error, userId, connectionId }, 'Failed to disconnect from Slack');
+      logger.error({ error, userId, slackUserId, slackTeamId }, 'Failed to disconnect from Slack');
       return c.json({ error: 'Failed to disconnect' }, 500);
     }
   }
@@ -597,70 +589,6 @@ app.openapi(
     } catch (error) {
       logger.error({ error, appUserId }, 'Failed to get connection status');
       return c.json({ error: 'Failed to get connection status' }, 500);
-    }
-  }
-);
-
-app.openapi(
-  createRoute({
-    method: 'post',
-    path: '/refresh-session',
-    summary: 'Refresh Session Token',
-    description: 'Update the stored session token for a linked user.',
-    operationId: 'slack-user-refresh-session',
-    tags: ['Work Apps', 'Slack', 'Users'],
-    request: {
-      body: {
-        content: {
-          'application/json': {
-            schema: z.object({
-              userId: z.string().describe('Inkeep user ID'),
-              sessionToken: z.string().describe('New session token'),
-              sessionExpiresAt: z.string().optional().describe('Session expiration ISO timestamp'),
-            }),
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Session refreshed',
-        content: {
-          'application/json': {
-            schema: z.object({
-              success: z.boolean(),
-              connectionId: z.string(),
-            }),
-          },
-        },
-      },
-      400: { description: 'Missing required fields' },
-      404: { description: 'No connection found' },
-      500: { description: 'Failed to refresh session' },
-    },
-  }),
-  async (c) => {
-    const body = c.req.valid('json');
-    const { userId, sessionToken, sessionExpiresAt } = body;
-
-    try {
-      const connection = await findConnectionByAppUser(userId);
-
-      if (!connection) {
-        return c.json({ error: 'No connection found for this user', needsRelink: true }, 404);
-      }
-
-      await updateConnectionMetadata(connection.connectionId, {
-        inkeep_session_token: sessionToken,
-        inkeep_session_expires_at: sessionExpiresAt || '',
-      });
-
-      logger.info({ userId, connectionId: connection.connectionId }, 'Refreshed session token');
-
-      return c.json({ success: true, connectionId: connection.connectionId });
-    } catch (error) {
-      logger.error({ error, userId }, 'Failed to refresh session token');
-      return c.json({ error: 'Failed to refresh session' }, 500);
     }
   }
 );

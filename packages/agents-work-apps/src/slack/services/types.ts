@@ -22,17 +22,3 @@ export interface SlackCommandResponse {
   replace_original?: boolean;
   delete_original?: boolean;
 }
-
-export interface SlackUserConnection {
-  connectionId: string;
-  appUserId: string;
-  appUserEmail: string;
-  slackDisplayName: string;
-  linkedAt: string;
-  tenantId?: string;
-  slackUserId?: string;
-  slackTeamId?: string;
-  inkeepSessionToken?: string;
-  inkeepSessionExpiresAt?: string;
-  defaultAgent?: string;
-}

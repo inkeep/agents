@@ -2742,3 +2742,98 @@ export const WorkAppConfigApiInsertSchema = WorkAppConfigInsertSchema.omit({
 
 export const WorkAppConfigApiUpdateSchema =
   WorkAppConfigApiInsertSchema.partial().openapi('WorkAppConfigUpdate');
+
+// ============================================================================
+// Work App Slack Schemas
+// ============================================================================
+
+import {
+  workAppSlackChannelAgentConfigs,
+  workAppSlackUserMappings,
+  workAppSlackUserSettings,
+  workAppSlackWorkspaces,
+} from '../db/runtime/runtime-schema';
+
+export const WorkAppSlackWorkspaceStatusSchema = z.enum(['active', 'suspended', 'disconnected']);
+
+export const WorkAppSlackWorkspaceSelectSchema = createSelectSchema(workAppSlackWorkspaces);
+export const WorkAppSlackWorkspaceInsertSchema = createInsertSchema(workAppSlackWorkspaces)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    status: WorkAppSlackWorkspaceStatusSchema.optional().default('active'),
+  });
+export const WorkAppSlackWorkspaceUpdateSchema = WorkAppSlackWorkspaceInsertSchema.partial();
+
+export const WorkAppSlackWorkspaceApiSelectSchema = omitTenantScope(
+  WorkAppSlackWorkspaceSelectSchema
+).openapi('WorkAppSlackWorkspace');
+export const WorkAppSlackWorkspaceApiInsertSchema = omitGeneratedFields(
+  WorkAppSlackWorkspaceInsertSchema
+).openapi('WorkAppSlackWorkspaceCreate');
+export const WorkAppSlackWorkspaceApiUpdateSchema =
+  WorkAppSlackWorkspaceUpdateSchema.partial().openapi('WorkAppSlackWorkspaceUpdate');
+
+export const WorkAppSlackUserMappingSelectSchema = createSelectSchema(workAppSlackUserMappings);
+export const WorkAppSlackUserMappingInsertSchema = createInsertSchema(workAppSlackUserMappings)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    linkedAt: true,
+  })
+  .extend({
+    clientId: z.string().optional().default('work-apps-slack'),
+  });
+export const WorkAppSlackUserMappingUpdateSchema = WorkAppSlackUserMappingInsertSchema.partial();
+
+export const WorkAppSlackUserMappingApiSelectSchema = omitTenantScope(
+  WorkAppSlackUserMappingSelectSchema
+).openapi('WorkAppSlackUserMapping');
+export const WorkAppSlackUserMappingApiInsertSchema = omitGeneratedFields(
+  WorkAppSlackUserMappingInsertSchema
+).openapi('WorkAppSlackUserMappingCreate');
+export const WorkAppSlackUserMappingApiUpdateSchema =
+  WorkAppSlackUserMappingUpdateSchema.partial().openapi('WorkAppSlackUserMappingUpdate');
+
+export const WorkAppSlackChannelAgentConfigSelectSchema = createSelectSchema(
+  workAppSlackChannelAgentConfigs
+);
+export const WorkAppSlackChannelAgentConfigInsertSchema = createInsertSchema(
+  workAppSlackChannelAgentConfigs
+).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export const WorkAppSlackChannelAgentConfigUpdateSchema =
+  WorkAppSlackChannelAgentConfigInsertSchema.partial();
+
+export const WorkAppSlackChannelAgentConfigApiSelectSchema = omitTenantScope(
+  WorkAppSlackChannelAgentConfigSelectSchema
+).openapi('WorkAppSlackChannelAgentConfig');
+export const WorkAppSlackChannelAgentConfigApiInsertSchema = omitGeneratedFields(
+  WorkAppSlackChannelAgentConfigInsertSchema
+).openapi('WorkAppSlackChannelAgentConfigCreate');
+export const WorkAppSlackChannelAgentConfigApiUpdateSchema =
+  WorkAppSlackChannelAgentConfigUpdateSchema.partial().openapi(
+    'WorkAppSlackChannelAgentConfigUpdate'
+  );
+
+export const WorkAppSlackUserSettingsSelectSchema = createSelectSchema(workAppSlackUserSettings);
+export const WorkAppSlackUserSettingsInsertSchema = createInsertSchema(
+  workAppSlackUserSettings
+).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export const WorkAppSlackUserSettingsUpdateSchema = WorkAppSlackUserSettingsInsertSchema.partial();
+
+export const WorkAppSlackUserSettingsApiSelectSchema = omitTenantScope(
+  WorkAppSlackUserSettingsSelectSchema
+).openapi('WorkAppSlackUserSettings');
+export const WorkAppSlackUserSettingsApiInsertSchema = omitGeneratedFields(
+  WorkAppSlackUserSettingsInsertSchema
+).openapi('WorkAppSlackUserSettingsCreate');
+export const WorkAppSlackUserSettingsApiUpdateSchema =
+  WorkAppSlackUserSettingsUpdateSchema.partial().openapi('WorkAppSlackUserSettingsUpdate');

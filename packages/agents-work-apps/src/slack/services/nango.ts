@@ -1,7 +1,22 @@
+/**
+ * Nango Service for Slack OAuth Token Management
+ *
+ * ARCHITECTURE NOTE: PostgreSQL is the authoritative source of truth for:
+ * - User linking data (work_app_slack_user_mappings table)
+ * - User settings/preferences (work_app_slack_user_settings table)
+ * - Workspace metadata (work_app_slack_workspaces table)
+ *
+ * Nango is used ONLY for:
+ * - OAuth token storage and refresh (bot tokens for workspaces)
+ * - OAuth flow management (createConnectSession)
+ *
+ * For user data, use the PostgreSQL data access layer:
+ * @see packages/agents-core/src/data-access/runtime/workAppSlack.ts
+ */
+
 import { Nango } from '@nangohq/node';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
-import type { SlackUserConnection } from './types';
 
 const logger = getLogger('slack-nango');
 
@@ -15,146 +30,6 @@ export function getSlackNango(): Nango {
 
 export function getSlackIntegrationId(): string {
   return env.NANGO_SLACK_INTEGRATION_ID || 'slack-agent';
-}
-
-export async function findConnectionBySlackUser(
-  slackUserId: string
-): Promise<SlackUserConnection | null> {
-  try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-
-    const connections = await nango.listConnections();
-
-    const matchingConnections: SlackUserConnection[] = [];
-
-    for (const conn of connections.connections) {
-      if (conn.provider_config_key === integrationId) {
-        try {
-          const fullConn = await nango.getConnection(integrationId, conn.connection_id);
-          const metadata = fullConn.metadata as Record<string, string> | undefined;
-
-          if (metadata?.slack_user_id === slackUserId) {
-            matchingConnections.push({
-              connectionId: conn.connection_id,
-              appUserId: metadata.app_user_id || '',
-              appUserEmail: metadata.app_user_email || '',
-              slackDisplayName: metadata.slack_display_name || metadata.slack_username || '',
-              linkedAt: metadata.linked_at || '',
-              tenantId: metadata.tenant_id || 'default',
-              slackUserId: metadata.slack_user_id,
-              slackTeamId: metadata.slack_team_id,
-              inkeepSessionToken: metadata.inkeep_session_token,
-              inkeepSessionExpiresAt: metadata.inkeep_session_expires_at,
-              defaultAgent: metadata.default_agent,
-            });
-          }
-        } catch (error) {
-          logger.debug(
-            { error, connectionId: conn.connection_id },
-            'Failed to get connection details'
-          );
-        }
-      }
-    }
-
-    if (matchingConnections.length === 0) {
-      return null;
-    }
-
-    if (matchingConnections.length > 1) {
-      logger.warn(
-        { count: matchingConnections.length, slackUserId },
-        'Multiple connections found for Slack user, using most recent'
-      );
-      matchingConnections.sort(
-        (a, b) => new Date(b.linkedAt).getTime() - new Date(a.linkedAt).getTime()
-      );
-    }
-
-    return matchingConnections[0];
-  } catch (error) {
-    logger.error({ error }, 'Failed to find connection by Slack user');
-    return null;
-  }
-}
-
-export async function findConnectionByAppUser(
-  appUserId: string
-): Promise<SlackUserConnection | null> {
-  try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-
-    const connections = await nango.listConnections();
-
-    const matchingConnections: SlackUserConnection[] = [];
-
-    for (const conn of connections.connections) {
-      if (conn.provider_config_key === integrationId) {
-        try {
-          const fullConn = await nango.getConnection(integrationId, conn.connection_id);
-          const metadata = fullConn.metadata as Record<string, string> | undefined;
-
-          if (metadata?.app_user_id === appUserId) {
-            matchingConnections.push({
-              connectionId: conn.connection_id,
-              appUserId: metadata.app_user_id || '',
-              appUserEmail: metadata.app_user_email || '',
-              slackDisplayName: metadata.slack_display_name || metadata.slack_username || '',
-              linkedAt: metadata.linked_at || '',
-            });
-          }
-        } catch (error) {
-          logger.debug(
-            { error, connectionId: conn.connection_id },
-            'Failed to get connection details'
-          );
-        }
-      }
-    }
-
-    if (matchingConnections.length === 0) {
-      return null;
-    }
-
-    if (matchingConnections.length > 1) {
-      logger.warn(
-        { count: matchingConnections.length, appUserId },
-        'Multiple connections found for app user, using most recent'
-      );
-      matchingConnections.sort(
-        (a, b) => new Date(b.linkedAt).getTime() - new Date(a.linkedAt).getTime()
-      );
-    }
-
-    return matchingConnections[0];
-  } catch (error) {
-    logger.error({ error }, 'Failed to find connection by app user');
-    return null;
-  }
-}
-
-export async function getConnectionStatus(
-  appUserId: string
-): Promise<{ connected: boolean; connection: SlackUserConnection | null }> {
-  const connection = await findConnectionByAppUser(appUserId);
-  return {
-    connected: connection !== null,
-    connection,
-  };
-}
-
-export async function deleteConnection(connectionId: string): Promise<boolean> {
-  try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-    await nango.deleteConnection(integrationId, connectionId);
-    return true;
-  } catch (error) {
-    logger.error({ error, connectionId }, 'Failed to delete Nango connection');
-    return false;
-  }
 }
 
 export async function createConnectSession(params: {
@@ -208,10 +83,6 @@ export async function getConnectionAccessToken(connectionId: string): Promise<st
     logger.error({ error, connectionId }, 'Failed to get connection access token');
     return null;
   }
-}
-
-export interface SlackConnectionWithToken extends SlackUserConnection {
-  botToken: string;
 }
 
 export interface DefaultAgentConfig {
@@ -286,41 +157,6 @@ export async function findWorkspaceConnectionByTeamId(
   }
 }
 
-export async function getConnectionWithBotToken(
-  connectionId: string
-): Promise<SlackConnectionWithToken | null> {
-  try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-    const connection = await nango.getConnection(integrationId, connectionId);
-
-    const credentials = connection as { credentials?: { access_token?: string } };
-    const metadata = connection.metadata as Record<string, string> | undefined;
-    const botToken = credentials.credentials?.access_token;
-
-    if (!botToken || !metadata) {
-      return null;
-    }
-
-    return {
-      connectionId,
-      appUserId: metadata.app_user_id || '',
-      appUserEmail: metadata.app_user_email || '',
-      slackDisplayName: metadata.slack_display_name || metadata.slack_username || '',
-      linkedAt: metadata.linked_at || '',
-      tenantId: metadata.tenant_id || 'default',
-      slackUserId: metadata.slack_user_id,
-      slackTeamId: metadata.slack_team_id,
-      inkeepSessionToken: metadata.inkeep_session_token,
-      inkeepSessionExpiresAt: metadata.inkeep_session_expires_at,
-      botToken,
-    };
-  } catch (error) {
-    logger.error({ error, connectionId }, 'Failed to get connection with bot token');
-    return null;
-  }
-}
-
 export async function updateConnectionMetadata(
   connectionId: string,
   metadata: Record<string, string>
@@ -334,58 +170,6 @@ export async function updateConnectionMetadata(
     logger.error({ error, connectionId }, 'Failed to update connection metadata');
     return false;
   }
-}
-
-export interface SlackUserSettings {
-  defaultAgentId?: string;
-  defaultAgentName?: string;
-  defaultProjectId?: string;
-  defaultAgentApiKey?: string;
-}
-
-export async function getUserSettings(connectionId: string): Promise<SlackUserSettings> {
-  try {
-    const nango = getSlackNango();
-    const integrationId = getSlackIntegrationId();
-    const connection = await nango.getConnection(integrationId, connectionId);
-    const metadata = connection.metadata as Record<string, string> | undefined;
-
-    return {
-      defaultAgentId: metadata?.default_agent_id,
-      defaultAgentName: metadata?.default_agent_name,
-      defaultProjectId: metadata?.default_project_id,
-      defaultAgentApiKey: metadata?.default_agent_api_key,
-    };
-  } catch (error) {
-    logger.error({ error, connectionId }, 'Failed to get user settings');
-    return {};
-  }
-}
-
-export async function setUserDefaultAgent(
-  connectionId: string,
-  settings: {
-    agentId: string;
-    agentName: string;
-    projectId: string;
-    apiKey: string;
-  }
-): Promise<boolean> {
-  return updateConnectionMetadata(connectionId, {
-    default_agent_id: settings.agentId,
-    default_agent_name: settings.agentName,
-    default_project_id: settings.projectId,
-    default_agent_api_key: settings.apiKey,
-  });
-}
-
-export async function clearUserDefaultAgent(connectionId: string): Promise<boolean> {
-  return updateConnectionMetadata(connectionId, {
-    default_agent_id: '',
-    default_agent_name: '',
-    default_project_id: '',
-    default_agent_api_key: '',
-  });
 }
 
 export async function setWorkspaceDefaultAgent(
@@ -586,7 +370,6 @@ export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnec
           const metadata = fullConn.metadata as Record<string, string> | undefined;
           const credentials = fullConn as { credentials?: { access_token?: string } };
 
-          // Only include workspace connections (not user connections)
           if (metadata?.connection_type === 'workspace' && credentials.credentials?.access_token) {
             let defaultAgent: DefaultAgentConfig | undefined;
             if (metadata?.default_agent) {

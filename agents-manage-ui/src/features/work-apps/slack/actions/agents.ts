@@ -19,28 +19,30 @@ export async function getAllAgentsForSlack(
     const projectsResponse = await apiFetchProjects(tenantId);
     const projects = projectsResponse.data;
 
-    const allAgents: SlackAgentOption[] = [];
+    const projectsWithIds = projects
+      .map((project) => ({ project, projectId: project.id || project.projectId }))
+      .filter((p): p is { project: (typeof projects)[0]; projectId: string } =>
+        Boolean(p.projectId)
+      );
 
-    for (const project of projects) {
-      const projectId = project.id || project.projectId;
-      if (!projectId) continue;
-
-      try {
-        const agentsResponse = await apiFetchAgents(tenantId, projectId);
-        for (const agent of agentsResponse.data) {
-          allAgents.push({
+    const agentResults = await Promise.all(
+      projectsWithIds.map(async ({ project, projectId }) => {
+        try {
+          const agentsResponse = await apiFetchAgents(tenantId, projectId);
+          return agentsResponse.data.map((agent) => ({
             id: agent.id,
             name: agent.name,
             projectId,
             projectName: project.name,
-          });
+          }));
+        } catch (error) {
+          console.warn(`Failed to fetch agents for project ${projectId}:`, error);
+          return [];
         }
-      } catch (error) {
-        console.warn(`Failed to fetch agents for project ${projectId}:`, error);
-      }
-    }
+      })
+    );
 
-    return { success: true, data: allAgents };
+    return { success: true, data: agentResults.flat() };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch agents';
     return { success: false, error: message };

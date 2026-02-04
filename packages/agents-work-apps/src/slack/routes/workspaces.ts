@@ -619,7 +619,7 @@ app.openapi(
       projectId: body.agentConfig.projectId,
       agentId: body.agentConfig.agentId,
       agentName: body.agentConfig.agentName,
-      enabled: 'true',
+      enabled: true,
     });
 
     logger.info(
@@ -719,7 +719,7 @@ app.openapi(
             projectId: body.agentConfig.projectId,
             agentId: body.agentConfig.agentId,
             agentName: body.agentConfig.agentName,
-            enabled: 'true',
+            enabled: true,
           });
           updated++;
         } catch (error) {
