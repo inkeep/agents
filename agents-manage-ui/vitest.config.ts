@@ -33,13 +33,13 @@ export default defineConfig({
           name: `${pkgJson.name}/browser`,
           include: [BROWSER_TESTS_PATTERN],
           browser: {
-            // Vitest scale screenshot with default viewport, we are changing it
+            // Vitest defaults to a 414x896 viewport, which causes the test iframe to be scaled.
+            // Set a larger viewport to avoid downscaling.
             viewport: { width: 2560, height: 1440 },
             enabled: true,
             headless: true,
             provider: playwright({
-              // With changed viewport setting image with size 100x100 will be 50x50,
-              // We are scaling to receive correct screenshot
+              // With the larger viewport, we use DPR=2 so screenshots match CSS pixel sizes.
               contextOptions: { deviceScaleFactor: 2 },
               launchOptions: {
                 // Applying the `antialiased` class to <body> and enabling this option
