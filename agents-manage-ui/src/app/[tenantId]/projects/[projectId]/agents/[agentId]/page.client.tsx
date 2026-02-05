@@ -12,7 +12,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
@@ -62,7 +62,6 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/api/external-agents';
-import { saveAgent } from '@/lib/services/save-agent';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
@@ -88,9 +87,7 @@ const Playground = dynamic(
 
 const CopilotChat = dynamic(
   () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 function getEdgeId(a: string, b: string) {
@@ -138,11 +135,10 @@ export const Agent: FC<AgentProps> = ({
 
   const { canEdit } = useProjectPermissions();
 
-  const router = useRouter();
-
-  const { tenantId, projectId } = useParams<{
+  const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
     projectId: string;
+    agentId: string;
   }>();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
@@ -294,7 +290,6 @@ export const Agent: FC<AgentProps> = ({
     setEdges,
     onNodesChange,
     onEdgesChange,
-    setMetadata,
     setInitial,
     markSaved,
     clearSelection,
@@ -397,10 +392,6 @@ export const Agent: FC<AgentProps> = ({
 
   // Callback function to fetch and update agent graph from copilot
   const refreshAgentGraph = async (options?: { fetchTools?: boolean }) => {
-    if (!agent.id) {
-      return;
-    }
-
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest(): Promise<void> {
@@ -416,9 +407,7 @@ export const Agent: FC<AgentProps> = ({
         return;
       }
       const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject?.agents?.[
-        agent.id as keyof typeof fullProject.agents
-      ] as ExtendedFullAgentDefinition;
+      const updatedAgent = fullProject?.agents?.[agentId] as ExtendedFullAgentDefinition;
 
       // Update tool lookup if tools were fetched
       const updatedToolLookup = toolsResult?.success
@@ -759,13 +748,7 @@ export const Agent: FC<AgentProps> = ({
       return false;
     }
 
-    const res = await updateFullAgentAction(
-      tenantId,
-      projectId,
-      // @ts-expect-error -- fix type, agent id is always defined
-      agent.id,
-      serializedData
-    );
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, serializedData);
 
     if (res.success) {
       // Clear any existing errors on successful save
@@ -816,11 +799,6 @@ export const Agent: FC<AgentProps> = ({
             return node;
           })
         );
-      }
-
-      if (!agent.id && res.data?.id) {
-        setMetadata('id', res.data.id);
-        router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
       }
       return true;
     }
@@ -900,7 +878,7 @@ export const Agent: FC<AgentProps> = ({
       className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
     >
       <CopilotChat
-        agentId={agent.id}
+        agentId={agentId}
         projectId={projectId}
         tenantId={tenantId}
         refreshAgentGraph={refreshAgentGraph}
@@ -1033,7 +1011,7 @@ export const Agent: FC<AgentProps> = ({
           </>
         )}
 
-      {showPlayground && agent.id && (
+      {showPlayground && (
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
@@ -1044,7 +1022,7 @@ export const Agent: FC<AgentProps> = ({
             className={showTraces ? 'w-full flex-none!' : ''}
           >
             <Playground
-              agentId={agent.id}
+              agentId={agentId}
               projectId={projectId}
               tenantId={tenantId}
               setShowPlayground={setShowPlayground}
