@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { PageHeader } from '@/components/layout/page-header';
 import { WorkAppsNav } from '@/components/work-apps/work-apps-nav';
 
 export const metadata = {
@@ -12,7 +11,6 @@ export default async function Layout({ children, params }: LayoutProps<'/[tenant
 
   return (
     <>
-      <PageHeader title={metadata.title} description={metadata.description} />
       <WorkAppsNav tenantId={tenantId} />
       {children}
     </>

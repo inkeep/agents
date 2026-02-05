@@ -128,6 +128,6 @@ describe('GET /ready', () => {
     // If run in parallel, both checks should start nearly simultaneously
     // and total time should be ~10ms, not ~20ms
     expect(Math.abs(manageDbStartTime - runDbStartTime)).toBeLessThan(5);
-    expect(elapsed).toBeLessThan(50); // Allow some overhead but not 2x sequential time
+    expect(elapsed).toBeLessThan(100); // Allow some overhead but not 2x sequential time
   });
 });

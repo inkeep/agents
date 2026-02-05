@@ -1,0 +1,1 @@
+DROP TABLE "work_app_slack_user_settings" CASCADE;
