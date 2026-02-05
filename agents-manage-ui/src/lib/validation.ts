@@ -28,16 +28,29 @@ export function createCustomHeadersSchema(customHeaders: string) {
     .transform((value, ctx) => (value ? transformToJson(value, ctx) : {}))
     // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
     .superRefine((value, ctx) => {
-      const schema = customHeaders
-        ? convertJsonSchemaToZod(JSON.parse(customHeaders))
-        : DefaultHeadersSchema;
-      const result = schema.safeParse(value);
-      if (result.success) return;
-
-      ctx.addIssue({
-        code: 'custom',
-        message: z.prettifyError(result.error).split('✖ ').join('').trim(),
-      });
+      try {
+        // First validate default schema
+        const result = DefaultHeadersSchema.safeParse(value);
+        if (!result.success) {
+          throw result.error;
+        }
+        if (customHeaders) {
+          const customSchema = convertJsonSchemaToZod(JSON.parse(customHeaders));
+          const result = customSchema.safeParse(value);
+          if (result.success) return;
+          throw result.error;
+        }
+      } catch (error) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            error instanceof z.ZodError
+              ? z.prettifyError(error).split('✖ ').join('').trim()
+              : error instanceof Error
+                ? error.message
+                : String(error),
+        });
+      }
     });
 
   return zodSchema;

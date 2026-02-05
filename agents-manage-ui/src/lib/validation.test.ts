@@ -52,11 +52,11 @@ describe('validation', () => {
     test('should validate custom schema', () => {
       const jsonSchema = z.object({ foo: z.string() }).toJSONSchema();
       const schema = createCustomHeadersSchema(JSON.stringify(jsonSchema));
-      const str = JSON.stringify({ bar: null });
+      const str = JSON.stringify({});
       expect(getErrorObject(schema, str)).toMatchObject([
         {
           path: [],
-          message: 'All header values must be strings\n  → at bar',
+          message: 'Invalid input: expected string, received undefined\n  → at foo',
         },
       ]);
     });
