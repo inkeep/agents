@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+  - @inkeep/agents-work-apps@0.45.2
+  - @inkeep/agents-manage-mcp@0.45.2
+  - @inkeep/agents-mcp@0.45.2
+
 ## 0.45.1
 
 ### Patch Changes
