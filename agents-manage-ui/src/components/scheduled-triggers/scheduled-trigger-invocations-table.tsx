@@ -272,14 +272,22 @@ export function ScheduledTriggerInvocationsTable({
                     <Badge variant="outline">{invocation.attemptNumber}</Badge>
                   </TableCell>
                   <TableCell>
-                    {invocation.conversationId ? (
-                      <Link
-                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${invocation.conversationId}`}
-                        className="flex items-center gap-1 text-blue-600 hover:underline"
-                      >
-                        View
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
+                    {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        {invocation.conversationIds.map((convId, idx) => (
+                          <Link
+                            key={convId}
+                            href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
+                            className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
+                          >
+                            <span className="text-muted-foreground text-xs">
+                              #{idx + 1}
+                            </span>
+                            View
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        ))}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}

@@ -5,78 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1762892536683,
-      "tag": "0000_exotic_mysterio",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1764024513126,
-      "tag": "0001_calm_sheva_callister",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1764045769142,
-      "tag": "0002_puzzling_goblin_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1764060547473,
-      "tag": "0003_sweet_human_robot",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1764095962055,
-      "tag": "0004_cuddly_shooting_star",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1765392765706,
-      "tag": "0005_reflective_starfox",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1765583388864,
-      "tag": "0006_stale_thaddeus_ross",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1767651466654,
-      "tag": "0007_slim_karma",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1768240742352,
-      "tag": "0008_silly_preak",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1768646273355,
-      "tag": "0009_freezing_leo",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1769788066893,
-      "tag": "0010_vengeful_legion",
+      "when": 1770317849157,
+      "tag": "0000_right_cassandra_nova",
       "breakpoints": true
     },
     {

@@ -1,1 +1,0 @@
-ALTER TABLE "scheduled_workflows" ADD COLUMN "status" varchar(50) DEFAULT 'running';

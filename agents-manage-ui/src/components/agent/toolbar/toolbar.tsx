@@ -1,5 +1,4 @@
-import { Clock, Play, Settings, Webhook } from 'lucide-react';
-import Link from 'next/link';
+import { Play, Settings } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -108,22 +107,6 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
         <Button {...commonProps} onClick={toggleSidePane}>
           <Settings className="size-4" />
           Agent Settings
-        </Button>
-      )}
-      {canEdit && (
-        <Button {...commonProps} asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`}>
-            <Webhook className="size-4" />
-            Triggers
-          </Link>
-        </Button>
-      )}
-      {canEdit && (
-        <Button {...commonProps} asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`}>
-            <Clock className="size-4" />
-            Scheduled
-          </Link>
         </Button>
       )}
     </div>

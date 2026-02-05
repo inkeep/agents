@@ -30,6 +30,7 @@ import type {
   ScheduledTriggerApiSelectSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationApiSelectSchema,
+  ScheduledTriggerWithRunInfoSchema,
   ToolApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerInvocationApiSelectSchema,
@@ -126,6 +127,7 @@ export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdate
 export type ScheduledTriggerInvocationApiSelect = z.infer<
   typeof ScheduledTriggerInvocationApiSelectSchema
 >;
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;

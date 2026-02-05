@@ -1,0 +1,45 @@
+import { ArrowLeft } from 'lucide-react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { PageHeader } from '@/components/layout/page-header';
+import { TriggerForm } from '@/components/triggers/trigger-form';
+import { Button } from '@/components/ui/button';
+import { getFullAgentAction } from '@/lib/actions/agent-full';
+
+export const metadata = {
+  title: 'New webhook trigger',
+  description: 'Create a new webhook trigger for this agent.',
+} satisfies Metadata;
+
+export default async function NewTriggerPage({
+  params,
+}: {
+  params: Promise<{ tenantId: string; projectId: string; agentId: string }>;
+}) {
+  const { tenantId, projectId, agentId } = await params;
+
+  // Fetch agent to verify it exists
+  const agent = await getFullAgentAction(tenantId, projectId, agentId);
+  if (!agent.success) {
+    notFound();
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-4 mb-6">
+        <Link href={`/${tenantId}/projects/${projectId}/triggers?tab=webhooks`}>
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to triggers
+          </Button>
+        </Link>
+      </div>
+      <PageHeader
+        title={metadata.title}
+        description={`${metadata.description} (Agent: ${agent.data.name})`}
+      />
+      <TriggerForm tenantId={tenantId} projectId={projectId} agentId={agentId} mode="create" />
+    </div>
+  );
+}

@@ -5,7 +5,7 @@
  * operations and external service calls.
  */
 import {
-  countPendingScheduledTriggerInvocations,
+  addConversationIdToInvocation,
   createScheduledTriggerInvocation,
   deletePendingInvocationsForTrigger,
   generateId,
@@ -86,131 +86,6 @@ export async function computeSleepDurationStep(targetTime: string): Promise<numb
 
   // If target is in the past or very soon, use minimum delay
   return Math.max(diffMs, 1000);
-}
-
-/**
- * Step: Calculate the next N execution times from a cron expression.
- * Used to pre-create pending invocations.
- */
-export async function calculateNextNCronTimesStep(params: {
-  cronExpression: string;
-  count: number;
-  startFrom?: string | null;
-}): Promise<string[]> {
-  'use step';
-
-  const baseDate = params.startFrom ? new Date(params.startFrom) : new Date();
-  const interval = CronExpressionParser.parse(params.cronExpression, { currentDate: baseDate });
-
-  const times: string[] = [];
-  for (let i = 0; i < params.count; i++) {
-    const nextDate = interval.next();
-    times.push(nextDate.toISOString());
-  }
-
-  return times;
-}
-
-/**
- * Step: Pre-create pending invocations up to the target count.
- * Returns the number of invocations created.
- */
-export async function preCreatePendingInvocationsStep(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  scheduledTriggerId: string;
-  cronExpression: string;
-  payload: Record<string, unknown> | null;
-  targetCount: number;
-}): Promise<{ created: number; total: number }> {
-  'use step';
-
-  const scopes = {
-    tenantId: params.tenantId,
-    projectId: params.projectId,
-    agentId: params.agentId,
-  };
-
-  // Count existing pending invocations
-  const existingCount = await countPendingScheduledTriggerInvocations(runDbClient)({
-    scopes,
-    scheduledTriggerId: params.scheduledTriggerId,
-  });
-
-  const toCreate = params.targetCount - existingCount;
-  if (toCreate <= 0) {
-    logger.info(
-      { scheduledTriggerId: params.scheduledTriggerId, existingCount, targetCount: params.targetCount },
-      'Already have enough pending invocations'
-    );
-    return { created: 0, total: existingCount };
-  }
-
-  // Get the latest pending invocation to start from
-  const pendingInvocations = await listPendingScheduledTriggerInvocations(runDbClient)({
-    scopes,
-    scheduledTriggerId: params.scheduledTriggerId,
-    limit: 1,
-  });
-
-  // Find the latest scheduledFor time (either from pending or we start from now)
-  let startFrom: string | null = null;
-  if (pendingInvocations.length > 0) {
-    // Get the last pending invocation's scheduledFor time
-    const allPending = await listPendingScheduledTriggerInvocations(runDbClient)({
-      scopes,
-      scheduledTriggerId: params.scheduledTriggerId,
-      limit: 100,
-    });
-    // Find the max scheduledFor
-    startFrom = allPending.reduce((max, inv) => {
-      return inv.scheduledFor > max ? inv.scheduledFor : max;
-    }, allPending[0].scheduledFor);
-  }
-
-  // Calculate the next N times
-  const baseDate = startFrom ? new Date(startFrom) : new Date();
-  const interval = CronExpressionParser.parse(params.cronExpression, { currentDate: baseDate });
-
-  let createdCount = 0;
-  for (let i = 0; i < toCreate; i++) {
-    const nextDate = interval.next();
-    const scheduledFor = nextDate.toISOString();
-    const idempotencyKey = `sched_${params.scheduledTriggerId}_${scheduledFor}`;
-
-    // Check if already exists (idempotency)
-    const existing = await getScheduledTriggerInvocationByIdempotencyKey(runDbClient)({
-      idempotencyKey,
-    });
-
-    if (!existing) {
-      await createScheduledTriggerInvocation(runDbClient)({
-        id: generateId(),
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-        scheduledTriggerId: params.scheduledTriggerId,
-        status: 'pending',
-        scheduledFor,
-        resolvedPayload: params.payload,
-        idempotencyKey,
-        attemptNumber: 1,
-      });
-      createdCount++;
-    }
-  }
-
-  logger.info(
-    {
-      scheduledTriggerId: params.scheduledTriggerId,
-      created: createdCount,
-      total: existingCount + createdCount,
-    },
-    'Pre-created pending invocations'
-  );
-
-  return { created: createdCount, total: existingCount + createdCount };
 }
 
 /**
@@ -498,19 +373,20 @@ export async function markRunningStep(params: {
 }
 
 /**
- * Step: Mark invocation as completed
+ * Step: Add a conversation ID to the invocation's conversationIds array
+ * Called after each attempt to track all conversations created during retries
  */
-export async function markCompletedStep(params: {
+export async function addConversationIdStep(params: {
   tenantId: string;
   projectId: string;
   agentId: string;
   scheduledTriggerId: string;
   invocationId: string;
-  conversationId?: string;
+  conversationId: string;
 }) {
   'use step';
 
-  return markScheduledTriggerInvocationCompleted(runDbClient)({
+  return addConversationIdToInvocation(runDbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
@@ -523,6 +399,29 @@ export async function markCompletedStep(params: {
 }
 
 /**
+ * Step: Mark invocation as completed
+ */
+export async function markCompletedStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  invocationId: string;
+}) {
+  'use step';
+
+  return markScheduledTriggerInvocationCompleted(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+    invocationId: params.invocationId,
+  });
+}
+
+/**
  * Step: Mark invocation as failed
  */
 export async function markFailedStep(params: {
@@ -531,9 +430,6 @@ export async function markFailedStep(params: {
   agentId: string;
   scheduledTriggerId: string;
   invocationId: string;
-  errorMessage: string;
-  errorCode?: string;
-  conversationId?: string;
 }) {
   'use step';
 
@@ -545,9 +441,6 @@ export async function markFailedStep(params: {
     },
     scheduledTriggerId: params.scheduledTriggerId,
     invocationId: params.invocationId,
-    errorMessage: params.errorMessage,
-    errorCode: params.errorCode,
-    conversationId: params.conversationId,
   });
 }
 
@@ -634,8 +527,23 @@ export async function executeScheduledTriggerStep(params: {
       error?: string;
     };
 
+    // Return conversationId even on failure - it's generated before execution starts
+    // and we want to link the conversation to the invocation for debugging
     if (!response.ok || !result.success) {
-      throw new Error(result.error || `HTTP ${response.status}: Execution failed`);
+      logger.error(
+        {
+          scheduledTriggerId: params.scheduledTriggerId,
+          invocationId: params.invocationId,
+          conversationId: result.conversationId,
+          error: result.error,
+        },
+        'Scheduled trigger execution failed via HTTP'
+      );
+      return {
+        success: false,
+        conversationId: result.conversationId,
+        error: result.error || `HTTP ${response.status}: Execution failed`,
+      };
     }
 
     logger.info(

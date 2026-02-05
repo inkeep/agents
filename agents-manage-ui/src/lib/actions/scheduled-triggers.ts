@@ -7,8 +7,6 @@ import {
   createScheduledTrigger,
   deleteScheduledTrigger,
   fetchScheduledTriggerInvocations,
-  fetchScheduledTriggers,
-  fetchUpcomingRuns,
   rerunScheduledTriggerInvocation,
   type ScheduledTrigger,
   type ScheduledTriggerInvocation,
@@ -17,20 +15,6 @@ import {
 } from '../api/scheduled-triggers';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
-
-export async function getScheduledTriggersAction(
-  tenantId: string,
-  projectId: string,
-  agentId: string
-): Promise<ScheduledTrigger[]> {
-  try {
-    const response = await fetchScheduledTriggers(tenantId, projectId, agentId);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch scheduled triggers:', error);
-    return [];
-  }
-}
 
 export async function getScheduledTriggerInvocationsAction(
   tenantId: string,
@@ -58,25 +42,6 @@ export async function getScheduledTriggerInvocationsAction(
   }
 }
 
-export async function getUpcomingRunsAction(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  options?: {
-    includeRunning?: boolean;
-    limit?: number;
-    page?: number;
-  }
-): Promise<ScheduledTriggerInvocation[]> {
-  try {
-    const response = await fetchUpcomingRuns(tenantId, projectId, agentId, options);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch upcoming runs:', error);
-    return [];
-  }
-}
-
 export async function updateScheduledTriggerEnabledAction(
   tenantId: string,
   projectId: string,
@@ -88,7 +53,7 @@ export async function updateScheduledTriggerEnabledAction(
     const result = await updateScheduledTrigger(tenantId, projectId, agentId, scheduledTriggerId, {
       enabled,
     });
-    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
     return {
       success: true,
       data: result,
@@ -118,7 +83,7 @@ export async function createScheduledTriggerAction(
 ): Promise<ActionResult<ScheduledTrigger>> {
   try {
     const result = await createScheduledTrigger(tenantId, projectId, agentId, triggerData);
-    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
     return {
       success: true,
       data: result,
@@ -155,7 +120,7 @@ export async function updateScheduledTriggerAction(
       scheduledTriggerId,
       triggerData
     );
-    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
     return {
       success: true,
       data: result,
@@ -185,7 +150,7 @@ export async function deleteScheduledTriggerAction(
 ): Promise<ActionResult<void>> {
   try {
     await deleteScheduledTrigger(tenantId, projectId, agentId, scheduledTriggerId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
     return {
       success: true,
     };
@@ -222,7 +187,7 @@ export async function cancelScheduledTriggerInvocationAction(
       invocationId
     );
     revalidatePath(
-      `/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations`
+      `/${tenantId}/projects/${projectId}/triggers/scheduled/${agentId}/${scheduledTriggerId}/invocations`
     );
     return {
       success: result.success,
@@ -261,7 +226,7 @@ export async function rerunScheduledTriggerInvocationAction(
       invocationId
     );
     revalidatePath(
-      `/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations`
+      `/${tenantId}/projects/${projectId}/triggers/scheduled/${agentId}/${scheduledTriggerId}/invocations`
     );
     return {
       success: result.success,

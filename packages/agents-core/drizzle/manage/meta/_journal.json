@@ -5,71 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1767821157311,
-      "tag": "0000_tearful_rhodey",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768766675586,
-      "tag": "0001_broken_wendell_vaughn",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768957920900,
-      "tag": "0002_bent_sunfire",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1769000000000,
-      "tag": "0003_tiny_captain_universe",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1769200490876,
-      "tag": "0004_curious_phil_sheldon",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1769554137371,
-      "tag": "0005_silent_shatterstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1769788066303,
-      "tag": "0006_tan_iron_lad",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1770046836403,
-      "tag": "0007_shallow_goliath",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1770065208733,
-      "tag": "0008_noisy_vindicator",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1770855763298,
-      "tag": "0008_friendly_mentallo",
+      "when": 1770317848547,
+      "tag": "0000_equal_captain_britain",
       "breakpoints": true
     }
   ]
