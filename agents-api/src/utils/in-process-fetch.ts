@@ -23,7 +23,7 @@ export function registerAppFetch(fn: typeof fetch): void {
 export function getInProcessFetch(): typeof fetch {
   if (!_appFetch) {
     throw new Error(
-      '[in-process-fetch] App fetch not registered. Call registerAppFetch() during app initialization before handling requests.',
+      '[in-process-fetch] App fetch not registered. Call registerAppFetch() during app initialization before handling requests.'
     );
   }
   return _appFetch;
