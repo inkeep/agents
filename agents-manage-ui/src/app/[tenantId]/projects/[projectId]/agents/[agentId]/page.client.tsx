@@ -619,9 +619,7 @@ export const Agent: FC<AgentProps> = ({
     );
   };
 
-  useOnSelectionChange({
-    onChange: onSelectionChange,
-  });
+  useOnSelectionChange({ onChange: onSelectionChange });
 
   useAgentShortcuts();
 
@@ -832,9 +830,7 @@ export const Agent: FC<AgentProps> = ({
     } catch (parseError) {
       // Fallback for unparseable errors
       console.error('Failed to parse validation errors:', parseError);
-      toast.error('Failed to save agent', {
-        closeButton: true,
-      });
+      toast.error('Failed to save agent', { closeButton: true });
     }
     return false;
   });
