@@ -120,7 +120,8 @@ Before writing the summary comment, classify each finding as **inline-eligible**
 - **Confidence:** `HIGH`
 - **Severity:** `CRITICAL`(🔴), `MAJOR`(🟠), or `MINOR`(🟡). Note: `MINOR` if issue should truly undoubtedly be addressed without reasonable exception.
 - **Type:** `type: "inline"` (findings with `type: "file"`, `"multi-file"`, or `"system"` are summary-only)
-- **Fix scope:** same file, ~1–10 lines changed. DO NOT consider for inline-comment is the issue involves multiple files, has multiple potential options you want the user to consider, or otherwise is non-trivial change you want the developer to carefully consider.
+- **Fix scope:** same file, ~1–10 lines changed. DO NOT consider for inline-comment if the issue involves multiple files, has multiple potential options you want the user to consider, or otherwise is non-trivial change you want the developer to carefully consider.
+- **NOT architectural:** If the suggestion is architectural/conceptual rather than a concrete code change, use summary-only
 - If the suggestion is architectural/conceptual rather than a concrete code change
 - **Actionability:** you can propose a concrete, low-risk fix (not just “consider X”)
 - **Fix Confidence:** Finding's `fix_confidence` field must be `HIGH` (fix is complete and can be applied as-is). `MEDIUM` or `LOW` → summary-only.
