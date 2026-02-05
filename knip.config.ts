@@ -25,6 +25,7 @@ export default {
     'packages/agents-sdk/tsdown.config.ts': ['files'],
     'packages/agents-manage-mcp/tsdown.config.ts': ['files'],
     'packages/agents-core/tsdown.config.ts': ['files'],
+    'packages/agents-work-apps/tsdown.config.ts': ['files'],
     'agents-cli/tsdown.config.ts': ['files'],
     'tsdown.config.ts': ['files'],
     // Specified scripts/README-MCP-GENERATOR.md
