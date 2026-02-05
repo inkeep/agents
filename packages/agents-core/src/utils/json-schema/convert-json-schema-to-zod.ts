@@ -1,5 +1,5 @@
-import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 import type { JSONSchema } from 'zod/v4/core';
+import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
 const jsonSchema: JSONSchema.BaseSchema = {
   type: 'object',
