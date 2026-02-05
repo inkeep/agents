@@ -78,20 +78,6 @@ export interface Agent {
   updatedAt: string;
 }
 
-export interface ApiKey {
-  id: string;
-  name: string;
-  agentId: string;
-  keyPrefix: string;
-  expiresAt: string | null;
-  createdAt: string;
-}
-
-export interface ApiKeyCreationResponse {
-  apiKey: ApiKey;
-  key: string;
-}
-
 export interface AgentWithProject extends Agent {
   projectName: string | null;
 }
@@ -337,56 +323,6 @@ export class SlackApiClient {
       content,
       conversationId: result.conversationId,
     };
-  }
-
-  async listApiKeys(projectId: string, agentId?: string): Promise<PaginatedResponse<ApiKey>> {
-    const params: Record<string, string | number> = { limit: 100 };
-    if (agentId) {
-      params.agentId = agentId;
-    }
-    return this.request<PaginatedResponse<ApiKey>>(
-      'GET',
-      `/manage/tenants/${this.tenantId}/projects/${projectId}/api-keys`,
-      { params }
-    );
-  }
-
-  async createApiKey(
-    projectId: string,
-    agentId: string,
-    name: string
-  ): Promise<{ data: ApiKeyCreationResponse }> {
-    return this.request<{ data: ApiKeyCreationResponse }>(
-      'POST',
-      `/manage/tenants/${this.tenantId}/projects/${projectId}/api-keys`,
-      {
-        body: { agentId, name },
-      }
-    );
-  }
-
-  async deleteApiKey(projectId: string, apiKeyId: string): Promise<void> {
-    await this.request<void>(
-      'DELETE',
-      `/manage/tenants/${this.tenantId}/projects/${projectId}/api-keys/${apiKeyId}`,
-      { expectNoContent: true }
-    );
-  }
-
-  async getOrCreateAgentApiKey(projectId: string, agentId: string): Promise<string> {
-    const existingKeys = await this.listApiKeys(projectId, agentId);
-    const slackKey = existingKeys.data.find((k) => k.name === 'slack-integration');
-
-    if (slackKey) {
-      logger.debug(
-        { apiKeyId: slackKey.id, agentId },
-        'Deleting existing slack-integration key to create fresh one'
-      );
-      await this.deleteApiKey(projectId, slackKey.id);
-    }
-
-    const newKey = await this.createApiKey(projectId, agentId, 'slack-integration');
-    return newKey.data.key;
   }
 
   getTenantId(): string {

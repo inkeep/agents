@@ -1,202 +1,69 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
 
-export function createLinkMessage(dashboardUrl: string) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('Connect your Inkeep account') +
-          '\n\nTo link your Slack account to Inkeep:\n' +
-          '1. Click the button below to open the dashboard\n' +
-          '2. Sign in to your Inkeep account\n' +
-          '3. Click "Connect Slack Account"\n' +
-          '4. Authorize the connection'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button()
-          .text('🔗 Go to Inkeep Dashboard')
-          .url(dashboardUrl)
-          .actionId('open_dashboard')
-          .primary()
-      )
-    )
-    .buildToObject();
-}
-
-export function createAlreadyConnectedMessage(
-  email: string,
-  linkedAt: string,
-  dashboardUrl: string
-) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('✅ Already Connected!') +
-          '\n\nYour Slack account is linked to Inkeep.\n\n' +
-          Md.bold('Inkeep Account:') +
-          ` ${email}\n` +
-          Md.bold('Linked:') +
-          ` ${new Date(linkedAt).toLocaleDateString()}`
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('📊 View Dashboard').url(dashboardUrl).actionId('view_dashboard')
-      )
-    )
-    .buildToObject();
-}
-
-export function createStatusConnectedMessage(
-  userName: string,
-  email: string,
-  linkedAt: string,
-  dashboardUrl: string
-) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('✅ Connected to Inkeep') +
-          `\n\n${Md.bold('Slack User:')} @${userName}\n` +
-          `${Md.bold('Inkeep Account:')} ${email}\n` +
-          `${Md.bold('Linked:')} ${new Date(linkedAt).toLocaleDateString()}\n\n` +
-          'You can now use Inkeep from Slack!'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('📊 View Dashboard').url(dashboardUrl).actionId('view_dashboard')
-      )
-    )
-    .buildToObject();
-}
-
-export function createStatusNotConnectedMessage(
-  userName: string,
-  teamDomain: string,
-  _dashboardUrl: string
-) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('❌ Not Linked') +
-          `\n\n${Md.bold('Slack User:')} @${userName}\n` +
-          `${Md.bold('Team:')} ${teamDomain}\n\n` +
-          'Run `/inkeep link` to connect your Inkeep account.'
-      )
-    )
-    .buildToObject();
-}
-
-export function createLogoutSuccessMessage() {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('✅ Logged out successfully') +
-          '\n\nYour Slack account has been unlinked from Inkeep.\n\n' +
-          'Use `/inkeep link` to reconnect anytime.'
-      )
-    )
-    .buildToObject();
-}
-
-export function createProjectListMessage(
-  email: string,
-  projects: Array<{ id: string; name: string | null; description: string | null }>,
-  dashboardUrl: string,
-  totalCount: number
-) {
-  const projectList = projects
-    .slice(0, 10)
-    .map(
-      (p) =>
-        `• ${Md.bold(p.name || p.id)} (\`${p.id}\`)${p.description ? `\n  ${Md.italic(p.description)}` : ''}`
-    )
-    .join('\n');
-
-  const moreText = totalCount > 10 ? `\n\n...and ${totalCount - 10} more` : '';
-
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('📋 Your Inkeep Projects') +
-          `\n\n${Md.bold('Account:')} ${email}\n\n` +
-          projectList +
-          moreText
-      ),
-      Blocks.Actions().elements(
-        Elements.Button()
-          .text('📊 View All in Dashboard')
-          .url(`${dashboardUrl}/projects`)
-          .actionId('view_projects')
-      )
-    )
-    .buildToObject();
-}
-
-export function createNoProjectsMessage(email: string, dashboardUrl: string) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('📋 Your Inkeep Projects') +
-          `\n\n${Md.bold('Account:')} ${email}\n\n` +
-          Md.italic('No projects found. Create one in the dashboard!')
-      ),
-      Blocks.Actions().elements(
-        Elements.Button()
-          .text('➕ Create Project')
-          .url(`${dashboardUrl}/projects`)
-          .actionId('create_project')
-          .primary()
-      )
-    )
-    .buildToObject();
-}
-
-export function createHelpMessage() {
-  return Message()
-    .blocks(
-      Blocks.Section().text(`${Md.bold('Inkeep Slack Commands')}\n\nAvailable commands:`),
-      Blocks.Section().text(
-        '• `/inkeep link` - Connect your Slack account to Inkeep\n' +
-          '• `/inkeep status` - Check your connection status\n' +
-          '• `/inkeep list` - List your Inkeep projects\n' +
-          '• `/inkeep logout` - Unlink your account\n' +
-          '• `/inkeep help` - Show this help message'
-      )
-    )
-    .buildToObject();
-}
-
 export function createErrorMessage(message: string) {
   return Message()
     .blocks(Blocks.Section().text(`❌ ${message}`))
     .buildToObject();
 }
 
-export function createAgentResponseMessage(
-  agentName: string,
-  response: string,
-  channelId?: string
-) {
-  if (channelId) {
-    const truncatedResponse = response.length > 1800 ? `${response.slice(0, 1800)}...` : response;
+export interface ContextBlockParams {
+  agentName: string;
+  isPrivate?: boolean;
+  sharedBy?: string;
+}
 
-    return Message()
-      .blocks(
-        Blocks.Section().text(response),
-        Blocks.Context().elements(`Powered by ${Md.bold(agentName)} via Inkeep`),
-        Blocks.Actions().elements(
-          Elements.Button()
-            .text('📢 Share to Channel')
-            .actionId('share_to_channel')
-            .value(JSON.stringify({ channelId, text: truncatedResponse, agentName }))
-        )
-      )
-      .buildToObject();
+export function createContextBlock(params: ContextBlockParams) {
+  const { agentName, isPrivate = false, sharedBy } = params;
+
+  let text = `Powered by *${agentName}* via Inkeep`;
+  if (sharedBy) {
+    text = `Shared by <@${sharedBy}> • ${text}`;
+  }
+  if (isPrivate) {
+    text = `_Private response_ • ${text}`;
   }
 
-  return Message()
-    .blocks(
-      Blocks.Section().text(response),
-      Blocks.Context().elements(`Powered by ${Md.bold(agentName)} via Inkeep`)
-    )
-    .buildToObject();
+  return {
+    type: 'context' as const,
+    elements: [{ type: 'mrkdwn' as const, text }],
+  };
+}
+
+export interface ShareButtonsParams {
+  channelId: string;
+  text: string;
+  agentName: string;
+  threadTs?: string;
+}
+
+export function buildShareButtons(params: ShareButtonsParams) {
+  const { channelId, text, agentName, threadTs } = params;
+  const buttons: Array<{
+    type: 'button';
+    text: { type: 'plain_text'; text: string; emoji: boolean };
+    action_id: string;
+    value: string;
+    style?: 'primary';
+  }> = [];
+
+  if (threadTs) {
+    buttons.push({
+      type: 'button',
+      text: { type: 'plain_text', text: 'Share to Thread', emoji: true },
+      action_id: 'share_to_thread',
+      style: 'primary',
+      value: JSON.stringify({ channelId, threadTs, text, agentName }),
+    });
+  }
+
+  buttons.push({
+    type: 'button',
+    text: { type: 'plain_text', text: 'Share to Channel', emoji: true },
+    action_id: 'share_to_channel',
+    value: JSON.stringify({ channelId, text, agentName }),
+  });
+
+  return buttons;
 }
 
 export function createSettingsMessage(
@@ -284,32 +151,6 @@ export function createAgentListMessage(
     .buildToObject();
 }
 
-export function createNoDefaultAgentMessage(dashboardUrl: string) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold('⚠️ No Default Agent Configured')}\n\n` +
-          'To use `/inkeep [question]`, you need to set a default agent first.\n\n' +
-          '1. Use `/inkeep list` to see available agents\n' +
-          '2. Use `/inkeep settings set [agent-name]` to set your default'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button()
-          .text('🔗 Configure in Dashboard')
-          .url(dashboardUrl)
-          .actionId('configure_default')
-          .primary()
-      )
-    )
-    .buildToObject();
-}
-
-export function createThinkingMessage(agentName: string) {
-  return Message()
-    .blocks(Blocks.Section().text(`🤔 ${Md.italic(`${agentName} is thinking...`)}`))
-    .buildToObject();
-}
-
 export function createUpdatedHelpMessage() {
   return Message()
     .blocks(
@@ -334,65 +175,6 @@ export function createUpdatedHelpMessage() {
           '• `/inkeep link` / `/inkeep unlink` - Manage account connection\n' +
           '• `/inkeep help` - Show this help message'
       )
-    )
-    .buildToObject();
-}
-
-export function createDeviceCodeMessage(code: string, linkUrl: string, expiresInMinutes: number) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold('🔗 Link your Inkeep account')}\n\nTo connect your Slack and Inkeep accounts:`
-      ),
-      Blocks.Section().text(
-        `${Md.bold('Your code:')} \`${code}\`\n\n` +
-          '1. Click the button below (or copy the code)\n' +
-          '2. Sign in to Inkeep (or create an account)\n' +
-          '3. The link will complete automatically!'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('🔗 Link Account').url(linkUrl).actionId('link_account').primary()
-      ),
-      Blocks.Context().elements(
-        `${Md.emoji('clock')} This code expires in ${expiresInMinutes} minutes`
-      )
-    )
-    .buildToObject();
-}
-
-export function createLinkSuccessMessage(email: string, dashboardUrl: string) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('✅ Account Linked!') +
-          '\n\nYour Slack account is now connected to Inkeep.\n\n' +
-          Md.bold('Inkeep Account:') +
-          ` ${email}`
-      ),
-      Blocks.Divider(),
-      Blocks.Section().text(
-        `${Md.bold('🚀 Two Ways to Ask Questions:')}\n\n` +
-          `${Md.bold('@Inkeep')} - Ask publicly in channels (uses workspace agent)\n` +
-          `${Md.bold('/inkeep')} - Ask privately (uses YOUR personal agent)\n\n` +
-          '• `/inkeep list` - See available agents\n' +
-          '• `/inkeep settings set "agent name"` - Set your personal default\n' +
-          '• `/inkeep help` - See all commands'
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('📊 Open Dashboard').url(dashboardUrl).actionId('open_dashboard')
-      )
-    )
-    .buildToObject();
-}
-
-export function createLinkExpiredMessage(_dashboardUrl: string) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        Md.bold('⏰ Code Expired') +
-          '\n\nYour link code has expired. Please run `/inkeep link` again to get a new code.'
-      ),
-      Blocks.Actions().elements(Elements.Button().text('🔗 Get New Code').actionId('get_new_code'))
     )
     .buildToObject();
 }

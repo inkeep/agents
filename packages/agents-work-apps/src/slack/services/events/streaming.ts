@@ -6,6 +6,7 @@
 
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { buildShareButtons, createContextBlock } from '../blocks';
 import type { getSlackClient } from '../client';
 import {
   classifyError,
@@ -15,6 +16,8 @@ import {
 } from './utils';
 
 const logger = getLogger('slack-streaming');
+
+const STREAM_TIMEOUT_MS = 120_000;
 
 export interface StreamResult {
   success: boolean;
@@ -60,22 +63,65 @@ export async function streamAgentResponse(params: {
     'Streaming agent response with conversation context'
   );
 
-  const response = await fetch(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${jwtToken}`,
-      'x-inkeep-project-id': projectId,
-      'x-inkeep-agent-id': agentId,
-    },
-    body: JSON.stringify({
-      messages: [{ role: 'user', content: question }],
-      stream: true,
-      ...(conversationId && { conversationId }),
-    }),
-  });
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    logger.warn({ channel, threadTs, timeoutMs: STREAM_TIMEOUT_MS }, 'Stream timeout reached');
+    abortController.abort();
+  }, STREAM_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl.replace(/\/$/, '')}/run/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${jwtToken}`,
+        'x-inkeep-project-id': projectId,
+        'x-inkeep-agent-id': agentId,
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: question }],
+        stream: true,
+        ...(conversationId && { conversationId }),
+      }),
+      signal: abortController.signal,
+    });
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    if ((fetchError as Error).name === 'AbortError') {
+      const errorType = SlackErrorType.TIMEOUT;
+      const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
+
+      if (isEphemeral) {
+        await slackClient.chat.postEphemeral({
+          channel,
+          user: slackUserId,
+          thread_ts: threadTs,
+          text: errorMessage,
+        });
+      } else {
+        await slackClient.chat.postMessage({
+          channel,
+          thread_ts: threadTs,
+          text: errorMessage,
+        });
+      }
+
+      if (thinkingMessageTs) {
+        try {
+          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
+        } catch {
+          // Ignore delete errors
+        }
+      }
+
+      return { success: false, errorType, errorMessage };
+    }
+    throw fetchError;
+  }
 
   if (!response.ok) {
+    clearTimeout(timeoutId);
     const errorBody = await response.text().catch(() => 'Unknown error');
     logger.error({ status: response.status, errorBody }, 'Agent streaming request failed');
 
@@ -109,6 +155,7 @@ export async function streamAgentResponse(params: {
   }
 
   if (!response.body) {
+    clearTimeout(timeoutId);
     const errorType = SlackErrorType.API_ERROR;
     const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
 
@@ -179,43 +226,17 @@ export async function streamAgentResponse(params: {
         }
       }
 
+      clearTimeout(timeoutId);
+
       // Convert markdown to Slack mrkdwn format
       const formattedText = markdownToMrkdwn(fullText);
 
-      const contextBlock = {
-        type: 'context' as const,
-        elements: [
-          {
-            type: 'mrkdwn' as const,
-            text: `_Private response_ • Powered by *${agentName}* via Inkeep`,
-          },
-        ],
-      };
-
-      // Build share buttons - if in a thread, show both "Share to Thread" (primary) and "Share to Channel"
-      const shareButtons: Array<{
-        type: 'button';
-        text: { type: 'plain_text'; text: string; emoji: boolean };
-        action_id: string;
-        value: string;
-        style?: 'primary';
-      }> = [];
-
-      if (threadTs) {
-        shareButtons.push({
-          type: 'button',
-          text: { type: 'plain_text', text: 'Share to Thread', emoji: true },
-          action_id: 'share_to_thread',
-          style: 'primary',
-          value: JSON.stringify({ channelId: channel, threadTs, text: formattedText, agentName }),
-        });
-      }
-
-      shareButtons.push({
-        type: 'button',
-        text: { type: 'plain_text', text: 'Share to Channel', emoji: true },
-        action_id: 'share_to_channel',
-        value: JSON.stringify({ channelId: channel, text: formattedText, agentName }),
+      const contextBlock = createContextBlock({ agentName, isPrivate: true });
+      const shareButtons = buildShareButtons({
+        channelId: channel,
+        text: formattedText,
+        agentName,
+        threadTs,
       });
 
       await slackClient.chat.postEphemeral({
@@ -237,6 +258,7 @@ export async function streamAgentResponse(params: {
 
       return { success: true };
     } catch (error) {
+      clearTimeout(timeoutId);
       logger.error({ error }, 'Error posting ephemeral response');
 
       const errorType = classifyError(error);
@@ -311,18 +333,12 @@ export async function streamAgentResponse(params: {
       }
     }
 
-    // Public responses don't need "Share to Channel" - content is already visible
-    const contextBlock = {
-      type: 'context' as const,
-      elements: [
-        {
-          type: 'mrkdwn' as const,
-          text: `Powered by *${agentName}* via Inkeep`,
-        },
-      ],
-    };
+    clearTimeout(timeoutId);
 
-    await streamer.stop({ blocks: [contextBlock] });
+    // Public responses don't need "Share to Channel" - content is already visible
+    const publicContextBlock = createContextBlock({ agentName });
+
+    await streamer.stop({ blocks: [publicContextBlock] });
 
     if (thinkingMessageTs) {
       try {
@@ -339,6 +355,7 @@ export async function streamAgentResponse(params: {
 
     return { success: true };
   } catch (streamError) {
+    clearTimeout(timeoutId);
     logger.error({ streamError }, 'Error during Slack streaming');
     await streamer.stop();
 

@@ -210,9 +210,9 @@ export const workAppSlackWorkspaces = pgTable(
   },
   (table) => [
     unique('work_app_slack_workspaces_tenant_team_unique').on(table.tenantId, table.slackTeamId),
+    unique('work_app_slack_workspaces_nango_connection_unique').on(table.nangoConnectionId),
     index('work_app_slack_workspaces_tenant_idx').on(table.tenantId),
     index('work_app_slack_workspaces_team_idx').on(table.slackTeamId),
-    index('work_app_slack_workspaces_nango_idx').on(table.nangoConnectionId),
   ]
 );
 

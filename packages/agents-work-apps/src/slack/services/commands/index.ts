@@ -13,6 +13,7 @@ import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   createAgentListMessage,
   createAlreadyLinkedMessage,
+  createContextBlock,
   createErrorMessage,
   createJwtLinkMessage,
   createNotLinkedMessage,
@@ -22,6 +23,7 @@ import {
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
+import { sendResponseUrlMessage } from '../events/utils';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { SlackCommandPayload, SlackCommandResponse } from '../types';
 
@@ -265,13 +267,6 @@ export async function handleStatusCommand(
   return { response_type: 'ephemeral', ...message };
 }
 
-export async function handleLogoutCommand(
-  payload: SlackCommandPayload,
-  tenantId: string
-): Promise<SlackCommandResponse> {
-  return handleUnlinkCommand(payload, tenantId);
-}
-
 export async function handleHelpCommand(): Promise<SlackCommandResponse> {
   const message = createUpdatedHelpMessage();
   return { response_type: 'ephemeral', ...message };
@@ -387,12 +382,6 @@ async function executeAgentInBackground(
       }),
     });
 
-    let responsePayload: {
-      response_type: 'ephemeral' | 'in_channel';
-      text?: string;
-      blocks?: unknown[];
-    };
-
     if (!response.ok) {
       const errorText = await response.text();
       logger.error(
@@ -404,10 +393,10 @@ async function executeAgentInBackground(
         },
         'Run API call failed'
       );
-      responsePayload = {
+      await sendResponseUrlMessage(payload.responseUrl, {
         response_type: 'ephemeral',
         text: `Failed to run agent: ${response.status} ${response.statusText}`,
-      };
+      });
     } else {
       const result = await response.json();
       const assistantMessage =
@@ -423,8 +412,10 @@ async function executeAgentInBackground(
         'Agent execution completed via Slack'
       );
 
-      responsePayload = {
+      const contextBlock = createContextBlock({ agentName: targetAgent.name || targetAgent.id });
+      await sendResponseUrlMessage(payload.responseUrl, {
         response_type: 'ephemeral',
+        text: assistantMessage,
         blocks: [
           {
             type: 'section',
@@ -433,39 +424,17 @@ async function executeAgentInBackground(
               text: assistantMessage,
             },
           },
-          {
-            type: 'context',
-            elements: [
-              {
-                type: 'mrkdwn',
-                text: `Powered by *${targetAgent.name || targetAgent.id}* via Inkeep`,
-              },
-            ],
-          },
+          contextBlock,
         ],
-      };
+      });
     }
-
-    await fetch(payload.responseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(responsePayload),
-    });
   } catch (error) {
     logger.error({ error, slackUserId: payload.userId }, 'Background agent execution failed');
 
-    try {
-      await fetch(payload.responseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          response_type: 'ephemeral',
-          text: 'An error occurred while running the agent. Please try again.',
-        }),
-      });
-    } catch {
-      logger.error({ slackUserId: payload.userId }, 'Failed to send error response to Slack');
-    }
+    await sendResponseUrlMessage(payload.responseUrl, {
+      response_type: 'ephemeral',
+      text: 'An error occurred while running the agent. Please try again.',
+    });
   }
 }
 

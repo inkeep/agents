@@ -59,14 +59,20 @@ export const findWorkAppSlackWorkspaceByTeamId =
     return results[0] || null;
   };
 
+/**
+ * Find a workspace by its Nango connection ID.
+ *
+ * One Nango connection = one OAuth token = one Slack workspace.
+ * The nangoConnectionId should be globally unique (not per-tenant).
+ * The schema has a unique constraint on nangoConnectionId ensuring this.
+ */
 export const findWorkAppSlackWorkspaceByNangoConnectionId =
   (db: AgentsRunDatabaseClient) =>
   async (nangoConnectionId: string): Promise<WorkAppSlackWorkspaceSelect | null> => {
     const results = await db
       .select()
       .from(workAppSlackWorkspaces)
-      .where(eq(workAppSlackWorkspaces.nangoConnectionId, nangoConnectionId))
-      .limit(1);
+      .where(eq(workAppSlackWorkspaces.nangoConnectionId, nangoConnectionId));
 
     return results[0] || null;
   };

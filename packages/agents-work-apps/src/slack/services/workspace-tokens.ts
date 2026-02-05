@@ -31,20 +31,3 @@ export function setBotTokenForTeam(
 ): void {
   workspaceBotTokens.set(teamId, data);
 }
-
-/**
- * Remove a cached bot token for a Slack team.
- */
-export function clearBotTokenForTeam(teamId: string): boolean {
-  return workspaceBotTokens.delete(teamId);
-}
-
-/**
- * Get all cached workspace tokens (for debugging/monitoring).
- */
-export function getAllWorkspaceTokens(): Map<
-  string,
-  { botToken: string; teamName: string; installedAt: string }
-> {
-  return workspaceBotTokens;
-}

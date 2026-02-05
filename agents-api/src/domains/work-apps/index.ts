@@ -10,8 +10,7 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { slackRoutes } from '@inkeep/agents-work-apps/slack';
-import type { WorkAppsVariables } from './types';
+import { slackRoutes, type WorkAppsVariables } from '@inkeep/agents-work-apps/slack';
 
 export function createWorkAppsRoutes() {
   const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();

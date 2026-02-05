@@ -22,7 +22,6 @@
 export type { InlineSelectorMetadata } from './app-mention';
 export { handleAppMention } from './app-mention';
 export {
-  handleModalProjectSelect,
   handleOpenAgentSelectorModal,
   handleShareToChannel,
   handleShareToThread,

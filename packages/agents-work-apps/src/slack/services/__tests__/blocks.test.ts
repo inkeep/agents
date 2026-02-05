@@ -2,8 +2,7 @@
  * Tests for Slack Block Kit message builders
  *
  * Tests all message builders in blocks/index.ts including:
- * - Link and connection messages
- * - Status messages (connected/not connected)
+ * - Context blocks and share buttons (centralized helpers)
  * - Help and command reference messages
  * - Agent list and settings messages
  * - Error and success messages
@@ -11,158 +10,104 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildShareButtons,
   createAgentListMessage,
-  createAgentResponseMessage,
-  createAlreadyConnectedMessage,
   createAlreadyLinkedMessage,
-  createDeviceCodeMessage,
+  createContextBlock,
   createErrorMessage,
-  createHelpMessage,
-  createLinkExpiredMessage,
-  createLinkMessage,
-  createLinkSuccessMessage,
-  createLogoutSuccessMessage,
-  createNoDefaultAgentMessage,
-  createNoProjectsMessage,
   createNotLinkedMessage,
-  createProjectListMessage,
   createSettingsMessage,
   createSettingsUpdatedMessage,
-  createStatusConnectedMessage,
-  createStatusNotConnectedMessage,
-  createThinkingMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
 
 describe('Slack Block Builders', () => {
-  describe('createLinkMessage', () => {
-    it('should create a link message with dashboard URL', () => {
-      const dashboardUrl = 'https://app.inkeep.com/default/work-apps/slack';
-      const result = createLinkMessage(dashboardUrl);
+  describe('createContextBlock', () => {
+    it('should create a basic context block with agent name', () => {
+      const result = createContextBlock({ agentName: 'Test Agent' });
 
-      expect(result.blocks).toBeDefined();
-      expect(result.blocks?.length).toBeGreaterThan(0);
-      expect(JSON.stringify(result)).toContain('Connect your Inkeep account');
-      expect(JSON.stringify(result)).toContain(dashboardUrl);
-    });
-  });
-
-  describe('createAlreadyConnectedMessage', () => {
-    it('should create message showing connection status', () => {
-      const email = 'test@example.com';
-      const linkedAt = '2026-01-25T12:00:00Z';
-      const dashboardUrl = 'https://app.inkeep.com/dashboard';
-
-      const result = createAlreadyConnectedMessage(email, linkedAt, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Already Connected');
-      expect(JSON.stringify(result)).toContain(email);
-    });
-  });
-
-  describe('createStatusConnectedMessage', () => {
-    it('should create connected status message with user details', () => {
-      const userName = 'testuser';
-      const email = 'test@example.com';
-      const linkedAt = '2026-01-25T12:00:00Z';
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createStatusConnectedMessage(userName, email, linkedAt, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Connected to Inkeep');
-      expect(JSON.stringify(result)).toContain(userName);
-      expect(JSON.stringify(result)).toContain(email);
-    });
-  });
-
-  describe('createStatusNotConnectedMessage', () => {
-    it('should create not connected status message', () => {
-      const userName = 'testuser';
-      const teamDomain = 'mycompany';
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createStatusNotConnectedMessage(userName, teamDomain, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Not Linked');
-      expect(JSON.stringify(result)).toContain(userName);
-      expect(JSON.stringify(result)).toContain(teamDomain);
-    });
-  });
-
-  describe('createLogoutSuccessMessage', () => {
-    it('should create logout success message', () => {
-      const result = createLogoutSuccessMessage();
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Logged out successfully');
-      expect(JSON.stringify(result)).toContain('/inkeep link');
-    });
-  });
-
-  describe('createProjectListMessage', () => {
-    it('should create project list message with multiple projects', () => {
-      const email = 'test@example.com';
-      const projects = [
-        { id: 'proj-1', name: 'Project One', description: 'First project' },
-        { id: 'proj-2', name: 'Project Two', description: null },
-        { id: 'proj-3', name: null, description: 'Third project' },
-      ];
-      const dashboardUrl = 'https://app.inkeep.com';
-      const totalCount = 3;
-
-      const result = createProjectListMessage(email, projects, dashboardUrl, totalCount);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Your Inkeep Projects');
-      expect(JSON.stringify(result)).toContain('Project One');
-      expect(JSON.stringify(result)).toContain('Project Two');
+      expect(result.type).toBe('context');
+      expect(result.elements[0].type).toBe('mrkdwn');
+      expect(result.elements[0].text).toBe('Powered by *Test Agent* via Inkeep');
     });
 
-    it('should show more text when total exceeds 10', () => {
-      const projects = Array.from({ length: 10 }, (_, i) => ({
-        id: `proj-${i}`,
-        name: `Project ${i}`,
-        description: null,
-      }));
-      const totalCount = 15;
+    it('should add private response prefix when isPrivate is true', () => {
+      const result = createContextBlock({ agentName: 'Test Agent', isPrivate: true });
 
-      const result = createProjectListMessage(
-        'test@example.com',
-        projects,
-        'https://app.inkeep.com',
-        totalCount
+      expect(result.elements[0].text).toBe(
+        '_Private response_ • Powered by *Test Agent* via Inkeep'
       );
+    });
 
-      expect(JSON.stringify(result)).toContain('and 5 more');
+    it('should add shared by prefix when sharedBy is provided', () => {
+      const result = createContextBlock({ agentName: 'Test Agent', sharedBy: 'U123ABC' });
+
+      expect(result.elements[0].text).toBe(
+        'Shared by <@U123ABC> • Powered by *Test Agent* via Inkeep'
+      );
+    });
+
+    it('should combine sharedBy and isPrivate correctly', () => {
+      const result = createContextBlock({
+        agentName: 'Test Agent',
+        sharedBy: 'U123ABC',
+        isPrivate: true,
+      });
+
+      expect(result.elements[0].text).toBe(
+        '_Private response_ • Shared by <@U123ABC> • Powered by *Test Agent* via Inkeep'
+      );
     });
   });
 
-  describe('createNoProjectsMessage', () => {
-    it('should create no projects message', () => {
-      const email = 'test@example.com';
-      const dashboardUrl = 'https://app.inkeep.com';
+  describe('buildShareButtons', () => {
+    it('should create only share to channel button when no threadTs', () => {
+      const result = buildShareButtons({
+        channelId: 'C123',
+        text: 'Response text',
+        agentName: 'Test Agent',
+      });
 
-      const result = createNoProjectsMessage(email, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('No projects found');
-      expect(JSON.stringify(result)).toContain('Create Project');
+      expect(result.length).toBe(1);
+      expect(result[0].action_id).toBe('share_to_channel');
+      expect(result[0].text.text).toBe('Share to Channel');
     });
-  });
 
-  describe('createHelpMessage', () => {
-    it('should create help message with commands', () => {
-      const result = createHelpMessage();
+    it('should create both buttons when threadTs is provided', () => {
+      const result = buildShareButtons({
+        channelId: 'C123',
+        text: 'Response text',
+        agentName: 'Test Agent',
+        threadTs: '1234567890.123456',
+      });
 
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Inkeep Slack Commands');
-      expect(JSON.stringify(result)).toContain('/inkeep link');
-      expect(JSON.stringify(result)).toContain('/inkeep status');
-      expect(JSON.stringify(result)).toContain('/inkeep help');
+      expect(result.length).toBe(2);
+      expect(result[0].action_id).toBe('share_to_thread');
+      expect(result[0].style).toBe('primary');
+      expect(result[1].action_id).toBe('share_to_channel');
+      expect(result[1].style).toBeUndefined();
+    });
+
+    it('should encode correct data in button values', () => {
+      const result = buildShareButtons({
+        channelId: 'C123ABC',
+        text: 'Test response',
+        agentName: 'My Agent',
+        threadTs: '123.456',
+      });
+
+      const threadButton = JSON.parse(result[0].value);
+      expect(threadButton.channelId).toBe('C123ABC');
+      expect(threadButton.threadTs).toBe('123.456');
+      expect(threadButton.text).toBe('Test response');
+      expect(threadButton.agentName).toBe('My Agent');
+
+      const channelButton = JSON.parse(result[1].value);
+      expect(channelButton.channelId).toBe('C123ABC');
+      expect(channelButton.text).toBe('Test response');
+      expect(channelButton.agentName).toBe('My Agent');
+      expect(channelButton.threadTs).toBeUndefined();
     });
   });
 
@@ -180,41 +125,6 @@ describe('Slack Block Builders', () => {
       const result = createErrorMessage('Error occurred');
 
       expect(JSON.stringify(result)).toContain('❌');
-    });
-  });
-
-  describe('createAgentResponseMessage', () => {
-    it('should create agent response without share button when no channel', () => {
-      const agentName = 'Support Agent';
-      const response = 'Here is your answer based on our documentation.';
-
-      const result = createAgentResponseMessage(agentName, response);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain(response);
-      expect(JSON.stringify(result)).toContain(agentName);
-    });
-
-    it('should create agent response with share button when channel provided', () => {
-      const agentName = 'Support Agent';
-      const response = 'Here is your answer.';
-      const channelId = 'C123ABC';
-
-      const result = createAgentResponseMessage(agentName, response, channelId);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Share to Channel');
-      expect(JSON.stringify(result)).toContain('share_to_channel');
-    });
-
-    it('should truncate long responses for share button value', () => {
-      const agentName = 'Agent';
-      const longResponse = 'x'.repeat(2000);
-      const channelId = 'C123';
-
-      const result = createAgentResponseMessage(agentName, longResponse, channelId);
-
-      expect(JSON.stringify(result)).toContain('...');
     });
   });
 
@@ -284,31 +194,6 @@ describe('Slack Block Builders', () => {
     });
   });
 
-  describe('createNoDefaultAgentMessage', () => {
-    it('should create no default agent message', () => {
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createNoDefaultAgentMessage(dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('No Default Agent Configured');
-      expect(JSON.stringify(result)).toContain('/inkeep list');
-      expect(JSON.stringify(result)).toContain('/inkeep settings');
-    });
-  });
-
-  describe('createThinkingMessage', () => {
-    it('should create thinking message with agent name', () => {
-      const agentName = 'Support Agent';
-
-      const result = createThinkingMessage(agentName);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('thinking');
-      expect(JSON.stringify(result)).toContain(agentName);
-    });
-  });
-
   describe('createUpdatedHelpMessage', () => {
     it('should create comprehensive help message', () => {
       const result = createUpdatedHelpMessage();
@@ -319,46 +204,6 @@ describe('Slack Block Builders', () => {
       expect(JSON.stringify(result)).toContain('/inkeep run');
       expect(JSON.stringify(result)).toContain('Commands');
       expect(JSON.stringify(result)).toContain('settings');
-    });
-  });
-
-  describe('createDeviceCodeMessage', () => {
-    it('should create device code message', () => {
-      const code = 'ABCD-1234';
-      const linkUrl = 'https://app.inkeep.com/link?code=ABCD-1234';
-      const expiresInMinutes = 60;
-
-      const result = createDeviceCodeMessage(code, linkUrl, expiresInMinutes);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Link your Inkeep account');
-      expect(JSON.stringify(result)).toContain(code);
-      expect(JSON.stringify(result)).toContain('60 minutes');
-    });
-  });
-
-  describe('createLinkSuccessMessage', () => {
-    it('should create link success message', () => {
-      const email = 'test@example.com';
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createLinkSuccessMessage(email, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Account Linked');
-      expect(JSON.stringify(result)).toContain(email);
-    });
-  });
-
-  describe('createLinkExpiredMessage', () => {
-    it('should create link expired message', () => {
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createLinkExpiredMessage(dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Code Expired');
-      expect(JSON.stringify(result)).toContain('/inkeep link');
     });
   });
 

@@ -10,13 +10,24 @@
  * - OAuth token storage and refresh (bot tokens for workspaces)
  * - OAuth flow management (createConnectSession)
  *
+ * PERFORMANCE: Workspace lookups use PostgreSQL first (O(1)), with Nango
+ * fallback only when needed for bot token retrieval.
+ *
  * For user data, use the PostgreSQL data access layer:
  * @see packages/agents-core/src/data-access/runtime/workAppSlack.ts
  */
 
+import { listWorkAppSlackWorkspacesByTenant } from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
+import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
+
+const workspaceConnectionCache = new Map<
+  string,
+  { connection: SlackWorkspaceConnection; expiresAt: number }
+>();
+const CACHE_TTL_MS = 60_000;
 
 const logger = getLogger('slack-nango');
 
@@ -103,10 +114,89 @@ export interface SlackWorkspaceConnection {
 
 /**
  * Find a workspace connection by Slack team ID.
- * Used for @mentions where any user can trigger the bot.
- * Returns the bot token for the workspace.
+ * Uses PostgreSQL first (O(1)) with in-memory caching, then falls back to Nango.
+ *
+ * Performance: This function is called on every @mention and command.
+ * The PostgreSQL-first approach with caching provides O(1) lookups.
  */
 export async function findWorkspaceConnectionByTeamId(
+  teamId: string
+): Promise<SlackWorkspaceConnection | null> {
+  const cached = workspaceConnectionCache.get(teamId);
+  if (cached && cached.expiresAt > Date.now()) {
+    logger.debug({ teamId }, 'Workspace connection cache hit');
+    return cached.connection;
+  }
+
+  try {
+    const workspaces = await listWorkAppSlackWorkspacesByTenant(runDbClient)('default');
+    const dbWorkspace = workspaces.find((w) => w.slackTeamId === teamId);
+
+    if (dbWorkspace?.nangoConnectionId) {
+      const botToken = await getConnectionAccessToken(dbWorkspace.nangoConnectionId);
+
+      if (botToken) {
+        const connection: SlackWorkspaceConnection = {
+          connectionId: dbWorkspace.nangoConnectionId,
+          teamId,
+          teamName: dbWorkspace.slackTeamName || undefined,
+          botToken,
+          tenantId: dbWorkspace.tenantId,
+          defaultAgent: undefined,
+        };
+
+        const defaultAgentConfig = await getWorkspaceDefaultAgentFromNangoByConnectionId(
+          dbWorkspace.nangoConnectionId
+        );
+        if (defaultAgentConfig) {
+          connection.defaultAgent = defaultAgentConfig;
+        }
+
+        workspaceConnectionCache.set(teamId, {
+          connection,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+        });
+
+        logger.debug({ teamId }, 'Workspace connection found via PostgreSQL');
+        return connection;
+      }
+    }
+
+    logger.debug({ teamId }, 'PostgreSQL lookup failed, falling back to Nango iteration');
+    return findWorkspaceConnectionByTeamIdFromNango(teamId);
+  } catch (error) {
+    logger.error({ error, teamId }, 'Failed to find workspace connection by team ID');
+    return findWorkspaceConnectionByTeamIdFromNango(teamId);
+  }
+}
+
+async function getWorkspaceDefaultAgentFromNangoByConnectionId(
+  connectionId: string
+): Promise<DefaultAgentConfig | null> {
+  try {
+    const nango = getSlackNango();
+    const integrationId = getSlackIntegrationId();
+    const fullConn = await nango.getConnection(integrationId, connectionId);
+    const metadata = fullConn.metadata as Record<string, string> | undefined;
+
+    if (metadata?.default_agent) {
+      try {
+        return JSON.parse(metadata.default_agent);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Legacy fallback: Find workspace by iterating all Nango connections.
+ * Only used when PostgreSQL lookup fails.
+ */
+async function findWorkspaceConnectionByTeamIdFromNango(
   teamId: string
 ): Promise<SlackWorkspaceConnection | null> {
   try {
@@ -135,7 +225,7 @@ export async function findWorkspaceConnectionByTeamId(
               }
             }
 
-            return {
+            const connection: SlackWorkspaceConnection = {
               connectionId: conn.connection_id,
               teamId,
               teamName: metadata?.slack_team_name,
@@ -143,6 +233,13 @@ export async function findWorkspaceConnectionByTeamId(
               tenantId: metadata?.tenant_id || 'default',
               defaultAgent,
             };
+
+            workspaceConnectionCache.set(teamId, {
+              connection,
+              expiresAt: Date.now() + CACHE_TTL_MS,
+            });
+
+            return connection;
           }
         } catch {
           // Continue to next connection
@@ -152,8 +249,16 @@ export async function findWorkspaceConnectionByTeamId(
 
     return null;
   } catch (error) {
-    logger.error({ error, teamId }, 'Failed to find workspace connection by team ID');
+    logger.error({ error, teamId }, 'Failed to find workspace connection from Nango');
     return null;
+  }
+}
+
+export function clearWorkspaceConnectionCache(teamId?: string): void {
+  if (teamId) {
+    workspaceConnectionCache.delete(teamId);
+  } else {
+    workspaceConnectionCache.clear();
   }
 }
 

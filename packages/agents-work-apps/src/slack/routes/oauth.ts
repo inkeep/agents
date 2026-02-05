@@ -8,6 +8,7 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { createWorkAppSlackWorkspace } from '@inkeep/agents-core';
+import * as crypto from 'node:crypto';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
@@ -24,6 +25,44 @@ import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-oauth');
 
+const STATE_TTL_MS = 10 * 60 * 1000;
+
+interface OAuthState {
+  nonce: string;
+  tenantId?: string;
+  timestamp: number;
+}
+
+function createOAuthState(tenantId?: string): string {
+  const state: OAuthState = {
+    nonce: crypto.randomBytes(16).toString('hex'),
+    tenantId: tenantId || 'default',
+    timestamp: Date.now(),
+  };
+  return Buffer.from(JSON.stringify(state)).toString('base64url');
+}
+
+function parseOAuthState(stateStr: string): OAuthState | null {
+  try {
+    const decoded = Buffer.from(stateStr, 'base64url').toString('utf-8');
+    const state = JSON.parse(decoded) as OAuthState;
+
+    if (!state.nonce || !state.timestamp) {
+      return null;
+    }
+
+    if (Date.now() - state.timestamp > STATE_TTL_MS) {
+      logger.warn({ timestamp: state.timestamp }, 'OAuth state expired');
+      return null;
+    }
+
+    return state;
+  } catch {
+    logger.warn({ stateStr: stateStr.slice(0, 20) }, 'Failed to parse OAuth state');
+    return null;
+  }
+}
+
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 export { getBotTokenForTeam, setBotTokenForTeam };
@@ -36,6 +75,11 @@ app.openapi(
     description: 'Redirects to Slack OAuth page for workspace installation',
     operationId: 'slack-install',
     tags: ['Work Apps', 'Slack', 'OAuth'],
+    request: {
+      query: z.object({
+        tenant_id: z.string().optional(),
+      }),
+    },
     responses: {
       302: {
         description: 'Redirect to Slack OAuth',
@@ -43,6 +87,7 @@ app.openapi(
     },
   }),
   (c) => {
+    const { tenant_id: tenantId } = c.req.valid('query');
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
 
@@ -63,12 +108,15 @@ app.openapi(
       'users:read.email',
     ].join(',');
 
+    const state = createOAuthState(tenantId);
+
     const slackAuthUrl = new URL('https://slack.com/oauth/v2/authorize');
     slackAuthUrl.searchParams.set('client_id', clientId || '');
     slackAuthUrl.searchParams.set('scope', botScopes);
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
+    slackAuthUrl.searchParams.set('state', state);
 
-    logger.info({ redirectUri }, 'Redirecting to Slack OAuth');
+    logger.info({ redirectUri, tenantId: tenantId || 'default' }, 'Redirecting to Slack OAuth');
 
     return c.redirect(slackAuthUrl.toString());
   }
@@ -86,6 +134,7 @@ app.openapi(
       query: z.object({
         code: z.string().optional(),
         error: z.string().optional(),
+        state: z.string().optional(),
       }),
     },
     responses: {
@@ -95,9 +144,17 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { code, error } = c.req.valid('query');
+    const { code, error, state: stateParam } = c.req.valid('query');
     const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-    const dashboardUrl = `${manageUiUrl}/default/work-apps/slack`;
+
+    const parsedState = stateParam ? parseOAuthState(stateParam) : null;
+    const tenantId = parsedState?.tenantId || 'default';
+    const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
+
+    if (!stateParam || !parsedState) {
+      logger.error({ hasState: !!stateParam }, 'Invalid or missing OAuth state parameter');
+      return c.redirect(`${dashboardUrl}?error=invalid_state`);
+    }
 
     if (error) {
       logger.error({ error }, 'Slack OAuth error');
@@ -166,8 +223,6 @@ app.openapi(
       };
 
       if (workspaceData.teamId && workspaceData.botToken) {
-        const tenantId = 'default';
-
         const nangoResult = await storeWorkspaceInstallation({
           teamId: workspaceData.teamId,
           teamName: workspaceData.teamName,

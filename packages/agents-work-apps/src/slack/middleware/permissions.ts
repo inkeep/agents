@@ -47,28 +47,3 @@ export const requireWorkspaceAdmin = <
 
     await next();
   });
-
-export const requireAuthenticatedUser = <
-  Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
->() =>
-  createMiddleware<Env>(async (c: Context, next: Next) => {
-    const isTestEnvironment = process.env.ENVIRONMENT === 'test';
-
-    if (isTestEnvironment) {
-      await next();
-      return;
-    }
-
-    const userId = c.get('userId');
-    const tenantId = c.get('tenantId');
-
-    if (!userId || !tenantId) {
-      throw createApiError({
-        code: 'unauthorized',
-        message: 'Authentication required',
-        instance: c.req.path,
-      });
-    }
-
-    await next();
-  });

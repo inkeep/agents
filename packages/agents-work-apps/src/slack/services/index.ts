@@ -14,14 +14,8 @@
  * - `createSlackApiClient` - Factory function for client creation
  * - `sendDeferredResponse` - Send delayed responses via response_url
  *
- * Auth (JWT):
- * - `getSlackUserJwt` - Generate JWT for API calls
- * - `verifySlackJwt` - Verify JWT tokens
- * - `executeAgentWithSlackJwt` - Execute agent with JWT auth
- * - `streamAgentWithSlackJwt` - Stream agent response with JWT auth
- *
  * Block Kit:
- * - All message builders: createHelpMessage, createStatusMessage, etc.
+ * - Message builders: createStatusMessage, createErrorMessage, etc.
  *
  * Slack Web API:
  * - `getSlackClient` - WebClient wrapper

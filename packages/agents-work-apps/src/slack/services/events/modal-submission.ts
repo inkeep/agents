@@ -6,6 +6,7 @@ import { findWorkAppSlackUserMapping, signSlackUserToken } from '@inkeep/agents-
 import runDbClient from '../../../db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { buildShareButtons, createContextBlock } from '../blocks';
 import { getSlackClient } from '../client';
 import type { ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
@@ -208,42 +209,12 @@ export async function handleModalSubmission(view: {
           await slackClient.chat.postEphemeral(ephemeralPayload);
         } else {
           // Success response - show with context and share buttons
-          // If in a thread, show both "Share to Thread" (primary) and "Share to Channel"
-          // If not in a thread, only show "Share to Channel"
-          const shareButtons: Array<{
-            type: 'button';
-            text: { type: 'plain_text'; text: string; emoji: boolean };
-            action_id: string;
-            value: string;
-            style?: 'primary';
-          }> = [];
-
-          if (metadata.isInThread && metadata.threadTs) {
-            // Share to Thread is primary when in a thread
-            shareButtons.push({
-              type: 'button',
-              text: { type: 'plain_text', text: 'Share to Thread', emoji: true },
-              action_id: 'share_to_thread',
-              style: 'primary',
-              value: JSON.stringify({
-                channelId: metadata.channel,
-                threadTs: metadata.threadTs,
-                text: responseText,
-                agentName: agentId,
-              }),
-            });
-          }
-
-          // Always include Share to Channel
-          shareButtons.push({
-            type: 'button',
-            text: { type: 'plain_text', text: 'Share to Channel', emoji: true },
-            action_id: 'share_to_channel',
-            value: JSON.stringify({
-              channelId: metadata.channel,
-              text: responseText,
-              agentName: agentId,
-            }),
+          const contextBlock = createContextBlock({ agentName: agentId, isPrivate: true });
+          const shareButtons = buildShareButtons({
+            channelId: metadata.channel,
+            text: responseText,
+            agentName: agentId,
+            threadTs: metadata.isInThread ? metadata.threadTs : undefined,
           });
 
           const ephemeralPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
@@ -255,15 +226,7 @@ export async function handleModalSubmission(view: {
                 type: 'section',
                 text: { type: 'mrkdwn', text: responseText },
               },
-              {
-                type: 'context',
-                elements: [
-                  {
-                    type: 'mrkdwn',
-                    text: `Powered by *${agentId}* via Inkeep • Only visible to you`,
-                  },
-                ],
-              },
+              contextBlock,
               {
                 type: 'actions',
                 elements: shareButtons,
@@ -296,6 +259,7 @@ export async function handleModalSubmission(view: {
         });
       } else {
         // Success response - show with context
+        const publicContextBlock = createContextBlock({ agentName: agentId });
         await slackClient.chat.postMessage({
           channel: metadata.channel,
           thread_ts: replyThreadTs,
@@ -305,15 +269,7 @@ export async function handleModalSubmission(view: {
               type: 'section',
               text: { type: 'mrkdwn', text: responseText },
             },
-            {
-              type: 'context',
-              elements: [
-                {
-                  type: 'mrkdwn',
-                  text: `Powered by *${agentId}* via Inkeep`,
-                },
-              ],
-            },
+            publicContextBlock,
           ],
         });
       }

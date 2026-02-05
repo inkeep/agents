@@ -1,0 +1,2 @@
+DROP INDEX "work_app_slack_workspaces_nango_idx";--> statement-breakpoint
+ALTER TABLE "work_app_slack_workspaces" ADD CONSTRAINT "work_app_slack_workspaces_nango_connection_unique" UNIQUE("nango_connection_id");

@@ -3,6 +3,7 @@
  */
 
 import { getLogger } from '../../../logger';
+import { createContextBlock } from '../blocks';
 import { getSlackClient } from '../client';
 import { buildAgentSelectorModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
@@ -78,6 +79,7 @@ export async function handleShareToThread(params: {
   const slackClient = getSlackClient(workspaceConnection.botToken);
 
   try {
+    const contextBlock = createContextBlock({ agentName, sharedBy: userId });
     await slackClient.chat.postMessage({
       channel: channelId,
       thread_ts: threadTs,
@@ -87,15 +89,7 @@ export async function handleShareToThread(params: {
           type: 'section',
           text: { type: 'mrkdwn', text: textToShare },
         },
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: `Shared by <@${userId}> • Powered by *${agentName}* via Inkeep`,
-            },
-          ],
-        },
+        contextBlock,
       ],
     });
 
@@ -167,6 +161,7 @@ export async function handleShareToChannel(params: {
   const slackClient = getSlackClient(workspaceConnection.botToken);
 
   try {
+    const channelContextBlock = createContextBlock({ agentName, sharedBy: userId });
     await slackClient.chat.postMessage({
       channel: channelId,
       text: textToShare,
@@ -175,15 +170,7 @@ export async function handleShareToChannel(params: {
           type: 'section',
           text: { type: 'mrkdwn', text: textToShare },
         },
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: `Shared by <@${userId}> • Powered by *${agentName}* via Inkeep`,
-            },
-          ],
-        },
+        channelContextBlock,
       ],
     });
 
@@ -307,56 +294,5 @@ export async function handleOpenAgentSelectorModal(params: {
     );
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to open agent selector modal');
-  }
-}
-
-/**
- * Handle project selection change in modal (updates agent dropdown)
- */
-export async function handleModalProjectSelect(params: {
-  triggerId: string;
-  viewId: string;
-  teamId: string;
-  tenantId: string;
-  selectedProjectId: string;
-  currentMetadata: ModalMetadata;
-}): Promise<void> {
-  const { viewId, teamId, tenantId, selectedProjectId, currentMetadata } = params;
-
-  try {
-    const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
-    if (!workspaceConnection?.botToken) {
-      logger.error({ teamId }, 'No bot token for modal update');
-      return;
-    }
-
-    const slackClient = getSlackClient(workspaceConnection.botToken);
-
-    // Fetch updated data
-    const [projectList, agentList] = await Promise.all([
-      fetchProjectsForTenant(tenantId),
-      fetchAgentsForProject(tenantId, selectedProjectId),
-    ]);
-
-    const modal = buildAgentSelectorModal({
-      projects: projectList,
-      agents: agentList.map((a) => ({
-        id: a.id,
-        name: a.name,
-        projectId: a.projectId,
-        projectName: a.projectName || a.projectId,
-      })),
-      metadata: currentMetadata,
-      selectedProjectId,
-    });
-
-    await slackClient.views.update({
-      view_id: viewId,
-      view: modal,
-    });
-
-    logger.info({ teamId, selectedProjectId, agentCount: agentList.length }, 'Updated modal view');
-  } catch (error) {
-    logger.error({ error, teamId }, 'Failed to update modal after project select');
   }
 }
