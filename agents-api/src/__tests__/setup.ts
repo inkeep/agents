@@ -11,10 +11,6 @@ import runDbClient from '../data/db/runDbClient';
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
-// Disable SpiceDB authorization for tests (unless explicitly testing authz)
-// This ensures tests run without requiring a SpiceDB instance
-process.env.ENABLE_AUTHZ = 'false';
-
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
 vi.mock('../logger.js', () => {
   const mockLogger = {

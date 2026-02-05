@@ -321,25 +321,42 @@ export class ExecutionHandler {
             const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
             logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
 
-            await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
+            // Create span to mark error
+            return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+              try {
+                span.setAttributes({
+                  'ai.response.content': `Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.`,
+                  'ai.response.timestamp': new Date().toISOString(),
+                  'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+                  'subAgent.id': currentAgentId,
+                });
+                setSpanWithError(span, new Error(errorMessage));
 
-            if (task) {
-              await updateTask(runDbClient)({
-                taskId: task.id,
-                data: {
-                  status: 'failed',
-                  metadata: {
-                    ...task.metadata,
-                    failed_at: new Date().toISOString(),
-                    error: errorMessage,
-                  },
-                },
-              });
-            }
+                await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
-            await agentSessionManager.endSession(requestId);
-            unregisterStreamHelper(requestId);
-            return { success: false, error: errorMessage, iterations };
+                if (task) {
+                  await updateTask(runDbClient)({
+                    taskId: task.id,
+                    data: {
+                      status: 'failed',
+                      metadata: {
+                        ...task.metadata,
+                        failed_at: new Date().toISOString(),
+                        error: errorMessage,
+                      },
+                    },
+                  });
+                }
+
+                await agentSessionManager.endSession(requestId);
+                unregisterStreamHelper(requestId);
+                return { success: false, error: errorMessage, iterations };
+              } finally {
+                span.end();
+                await new Promise((resolve) => setImmediate(resolve));
+                await flushBatchProcessor();
+              }
+            });
           }
 
           continue;
@@ -453,8 +470,7 @@ export class ExecutionHandler {
             }
           }
 
-          // Stream completion operation
-          // Completion operation (data operations removed)
+          // Stream completion operation - wrapped in span for tracing
           return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
             try {
               span.setAttributes({
@@ -572,8 +588,130 @@ export class ExecutionHandler {
           const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
           logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
 
-          await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
+          // Create span to mark error
+          return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+            try {
+              span.setAttributes({
+                'ai.response.content':
+                  'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+                'ai.response.timestamp': new Date().toISOString(),
+                'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+                'subAgent.id': currentAgentId,
+              });
+              setSpanWithError(span, new Error(errorMessage));
 
+              await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
+
+              if (task) {
+                await updateTask(runDbClient)({
+                  taskId: task.id,
+                  data: {
+                    status: 'failed',
+                    metadata: {
+                      ...task.metadata,
+                      failed_at: new Date(),
+                      error: errorMessage,
+                    },
+                  },
+                });
+              }
+
+              await agentSessionManager.endSession(requestId);
+              unregisterStreamHelper(requestId);
+              // Trigger evaluation for regular conversations (not dataset runs)
+              if (!params.datasetRunId) {
+                triggerConversationEvaluation({
+                  tenantId,
+                  projectId,
+                  conversationId,
+                  resolvedRef,
+                }).catch((evalError) => {
+                  logger.error(
+                    { error: evalError, conversationId, tenantId, projectId },
+                    'Failed to trigger conversation evaluation (non-blocking)'
+                  );
+                });
+              }
+
+              return { success: false, error: errorMessage, iterations };
+            } finally {
+              span.end();
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
+            }
+          });
+        }
+      }
+
+      // Max transfers reached
+      const maxTransfersErrorMessage = `Maximum transfer limit (${maxTransfers}) reached without completion`;
+      logger.error({ maxTransfers, iterations }, maxTransfersErrorMessage);
+
+      // Create span to mark error
+      return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+        try {
+          span.setAttributes({
+            'ai.response.content':
+              'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+            'ai.response.timestamp': new Date().toISOString(),
+            'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+            'subAgent.id': currentAgentId,
+          });
+          setSpanWithError(span, new Error(maxTransfersErrorMessage));
+
+          // Send error operation for max iterations reached
+          await sseHelper.writeOperation(
+            errorOp(maxTransfersErrorMessage, currentAgentId || 'system')
+          );
+
+          // Mark task as failed
+          if (task) {
+            await updateTask(runDbClient)({
+              taskId: task.id,
+              data: {
+                status: 'failed',
+                metadata: {
+                  ...task.metadata,
+                  failed_at: new Date(),
+                  error: maxTransfersErrorMessage,
+                },
+              },
+            });
+          }
+          // Clean up AgentSession and streamHelper on error
+          await agentSessionManager.endSession(requestId);
+          unregisterStreamHelper(requestId);
+          return { success: false, error: maxTransfersErrorMessage, iterations };
+        } finally {
+          span.end();
+          await new Promise((resolve) => setImmediate(resolve));
+          await flushBatchProcessor();
+        }
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ errorMessage, errorStack }, 'Error in execution handler');
+
+      // Create a span to mark this error for tracing
+      return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+        try {
+          span.setAttributes({
+            'ai.response.content':
+              'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+            'ai.response.timestamp': new Date().toISOString(),
+            'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+            'subAgent.id': currentAgentId,
+          });
+          setSpanWithError(span, error instanceof Error ? error : new Error(errorMessage));
+
+          // Stream error operation
+          // Send error operation for execution exception
+          await sseHelper.writeOperation(
+            errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system')
+          );
+
+          // Mark task as failed
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
@@ -587,81 +725,16 @@ export class ExecutionHandler {
               },
             });
           }
-
+          // Clean up AgentSession and streamHelper on exception
           await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
-          // Trigger evaluation for regular conversations (not dataset runs)
-          if (!params.datasetRunId) {
-            triggerConversationEvaluation({
-              tenantId,
-              projectId,
-              conversationId,
-              resolvedRef,
-            }).catch((error) => {
-              logger.error(
-                { error, conversationId, tenantId, projectId },
-                'Failed to trigger conversation evaluation (non-blocking)'
-              );
-            });
-          }
-
           return { success: false, error: errorMessage, iterations };
+        } finally {
+          span.end();
+          await new Promise((resolve) => setImmediate(resolve));
+          await flushBatchProcessor();
         }
-      }
-
-      // Max transfers reached
-      const errorMessage = `Maximum transfer limit (${maxTransfers}) reached without completion`;
-      logger.error({ maxTransfers, iterations }, errorMessage);
-
-      // Send error operation for max iterations reached
-      await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
-
-      // Mark task as failed
-      if (task) {
-        await updateTask(runDbClient)({
-          taskId: task.id,
-          data: {
-            status: 'failed',
-            metadata: {
-              ...task.metadata,
-              failed_at: new Date(),
-              error: errorMessage,
-            },
-          },
-        });
-      }
-      // Clean up AgentSession and streamHelper on error
-      await agentSessionManager.endSession(requestId);
-      unregisterStreamHelper(requestId);
-      return { success: false, error: errorMessage, iterations };
-    } catch (error) {
-      logger.error({ error }, 'Error in execution handler');
-      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
-
-      // Stream error operation
-      // Send error operation for execution exception
-      await sseHelper.writeOperation(
-        errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system')
-      );
-
-      // Mark task as failed
-      if (task) {
-        await updateTask(runDbClient)({
-          taskId: task.id,
-          data: {
-            status: 'failed',
-            metadata: {
-              ...task.metadata,
-              failed_at: new Date(),
-              error: errorMessage,
-            },
-          },
-        });
-      }
-      // Clean up AgentSession and streamHelper on exception
-      await agentSessionManager.endSession(requestId);
-      unregisterStreamHelper(requestId);
-      return { success: false, error: errorMessage, iterations };
+      });
     }
   }
 }

@@ -18,7 +18,6 @@ export {
 // Configuration
 export {
   getSpiceDbConfig,
-  isAuthzEnabled,
   type OrgRole,
   OrgRoles,
   type ProjectPermissionLevel,
@@ -37,8 +36,10 @@ export {
 export {
   canEditProject,
   canUseProject,
+  canUseProjectStrict,
   canViewProject,
   listAccessibleProjectIds,
+  listUsableProjectIds,
 } from './permissions';
 
 // Sync utilities

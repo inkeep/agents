@@ -1,5 +1,104 @@
 # @inkeep/agents-api
 
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+  - @inkeep/agents-work-apps@0.45.2
+  - @inkeep/agents-manage-mcp@0.45.2
+  - @inkeep/agents-mcp@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- Updated dependencies [54b2d4c]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-work-apps@0.45.1
+  - @inkeep/agents-manage-mcp@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-mcp@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- 0626128: adjust manage api routes
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- Updated dependencies [0ef70dd]
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-work-apps@0.45.0
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-mcp@0.45.0
+  - @inkeep/agents-mcp@0.45.0
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+  - @inkeep/agents-work-apps@0.44.0
+  - @inkeep/agents-manage-mcp@0.44.0
+  - @inkeep/agents-mcp@0.44.0
+
+## 0.43.0
+
+### Patch Changes
+
+- 57c5da1: Fix trigger HMAC signature verification to support Nango credential references for cloud deployments
+- e4077a0: Remove duplicate route
+- 5f432f9: stats page
+- eef0a3f: new OAuth callback route
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 5ffbf6b: trigger traces
+- 05a8a12: adding authorization checks and spicedb setup
+- c7fa88a: Fix trigger invocation flow: correct agent lookup from Record structure, fix database client usage for conversations/messages, and improve error serialization in logs. Default workflow world to 'local' for development when WORKFLOW_TARGET_WORLD is not set.
+- caad379: Add github token exchange endpoint
+- 800cba5: chore(agents-api): reduce OpenAPI tags
+- c145cb3: fix(agents-api): remove unused files with knip
+- caefccc: improve mcp servers page loading
+- 720d42f: trigger fix for vercel
+- 4b3eb21: fix(agents-api): compile directories which starts with dots
+- 0fff69c: Updated openapi snapshot
+- 5f66967: triggers for vercel
+- 8160ded: improve loading mcps in agent page
+- Updated dependencies [de9bed1]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [05a8a12]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [31b3310]
+- Updated dependencies [5f66967]
+- Updated dependencies [de5f12c]
+- Updated dependencies [8160ded]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+  - @inkeep/agents-manage-mcp@0.43.0
+  - @inkeep/agents-mcp@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

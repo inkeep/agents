@@ -6,7 +6,7 @@ import { use, useEffect } from 'react';
 import { toast } from 'sonner';
 import { CredentialForm } from '@/components/credentials/views/credential-form';
 import { CredentialFormInkeepCloud } from '@/components/credentials/views/credential-form-inkeep-cloud';
-import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
+import type { CredentialFormOutput } from '@/components/credentials/views/credential-form-validation';
 import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
@@ -32,7 +32,7 @@ export default function NewCredentialForm({
     }
   }, [canEdit, router, tenantId, projectId]);
 
-  const handleCreateCredential = async (data: CredentialFormData) => {
+  const handleCreateCredential = async (data: CredentialFormOutput) => {
     try {
       const newCredentialId = generateId();
 
@@ -78,7 +78,7 @@ export default function NewCredentialForm({
         storeId: data.credentialStoreId,
         key: credentialKeyToSet,
         value: credentialValueToSet,
-        metadata: data.metadata as Record<string, string>,
+        metadata: data.metadata,
       });
 
       newCredential = await findOrCreateCredential(tenantId, projectId, {

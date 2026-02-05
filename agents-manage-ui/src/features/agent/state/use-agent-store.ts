@@ -2,6 +2,7 @@
 
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
+import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
@@ -12,6 +13,7 @@ import {
   mcpNodeHandleId,
   NodeType,
 } from '@/components/agent/configuration/node-types';
+import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { sentry } from '@/lib/sentry';
@@ -151,6 +153,8 @@ const initialAgentState: AgentStateData = {
   variableSuggestions: [],
 };
 
+const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
+
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
@@ -225,22 +229,19 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       }));
     },
     onNodesChange(changes) {
-      const hasModifyingChange = changes.some(
-        // Don't trigger `position` as modified change, since when the nodes are repositioned,
-        // they'll be re-laid out during the initial load anyway
-        (change) => change.type === 'remove' || change.type === 'add' || change.type === 'replace'
-      );
-
-      set((state) => ({
-        history: [...state.history, { nodes: state.nodes, edges: state.edges }],
-        nodes: applyNodeChanges(changes, state.nodes),
-        dirty: hasModifyingChange || state.dirty,
-      }));
+      const hasModifyingChange = changes.some((change) => NODE_MODIFIED_CHANGE.has(change.type));
+      const hasDimensionsChange = changes.some((change) => change.type === 'dimensions');
+      set((state) => {
+        const newNodes = applyNodeChanges(changes, state.nodes);
+        return {
+          history: [...state.history, { nodes: state.nodes, edges: state.edges }],
+          nodes: hasDimensionsChange ? resolveCollisions(newNodes) : newNodes,
+          dirty: hasModifyingChange || state.dirty,
+        };
+      });
     },
     onEdgesChange(changes) {
-      const hasModifyingChange = changes.some(
-        (change) => change.type === 'remove' || change.type === 'add' || change.type === 'replace'
-      );
+      const hasModifyingChange = changes.some((change) => NODE_MODIFIED_CHANGE.has(change.type));
 
       set((state) => {
         // Check for edge removals that disconnect agent from MCP node
@@ -271,7 +272,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       });
     },
     onConnect(connection) {
-      set((state) => ({ edges: addEdge(connection as any, state.edges) }));
+      set((state) => ({ edges: addEdge(connection, state.edges) }));
     },
     setMetadata(field, value) {
       set((state) => ({ metadata: { ...state.metadata, [field]: value } }));
@@ -318,6 +319,15 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         const nodesToDelete = new Set(
           state.nodes.filter((n) => n.selected && (n.deletable ?? true)).map((n) => n.id)
         );
+
+        const unDeletableNodes = state.nodes.filter((n) => n.selected && !n.deletable);
+        if (unDeletableNodes.length) {
+          const formatter = new Intl.ListFormat('en', { type: 'conjunction' });
+          toast.error(
+            `Cannot delete default subagent ${formatter.format(unDeletableNodes.map((n) => n.id))}`
+          );
+        }
+
         const edgesRemaining = state.edges.filter(
           (e) => !e.selected && !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
         );
@@ -407,7 +417,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'delegation_sent':
           case 'transfer': {
-            const { fromSubAgent, targetSubAgent } = data.details.data;
+            const { fromSubAgent, targetSubAgent } = data.details?.data || {};
 
             return {
               edges: updateEdgeStatus((edge) =>
@@ -423,7 +433,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'delegation_returned': {
-            const { targetSubAgent, fromSubAgent } = data.details.data;
+            const { targetSubAgent, fromSubAgent } = data.details?.data || {};
             return {
               edges: updateEdgeStatus((edge) =>
                 edge.source === targetSubAgent && edge.target === fromSubAgent
@@ -439,8 +449,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'tool_call': {
-            const { relationshipId } = data.details.data;
-            const { subAgentId } = data.details;
+            const relationshipId = data.details?.data?.relationshipId;
             if (!relationshipId) {
               const error = new Error('[type: tool_call] relationshipId is missing');
               sentry.captureException(error, { extra: data });
@@ -454,7 +463,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   : edge.data?.status;
               }),
               nodes: updateNodeStatus((node) =>
-                node.data.id === subAgentId ||
+                node.data.id === data.details?.subAgentId ||
                 (relationshipId && relationshipId === node.data.relationshipId)
                   ? 'delegating'
                   : node.data.status
@@ -462,23 +471,23 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'error': {
-            const { relationshipId, agent } = data.details ?? {};
-            if (!relationshipId && !agent) {
-              const error = new Error('[type: error] relationshipId is missing');
+            const { relationshipId, agent } = data.details?.data ?? {};
+            if (!relationshipId && !data.agent && !agent) {
+              const error = new Error(`[type: error] relationshipId is missing`);
               sentry.captureException(error, { extra: data });
               console.warn(error);
             }
             return {
               nodes: updateNodeStatus((node) =>
-                relationshipId === node.data.relationshipId || agent === node.data.id
+                relationshipId === node.data.relationshipId ||
+                [agent, data.agent].includes(node.data.id)
                   ? 'error'
                   : node.data.status
               ),
             };
           }
           case 'tool_result': {
-            const { error, relationshipId } = data.details.data;
-            const { subAgentId } = data.details;
+            const relationshipId = data.details?.data?.relationshipId;
             if (!relationshipId) {
               const error = new Error('[type: tool_result] relationshipId is missing');
               sentry.captureException(error, { extra: data });
@@ -488,7 +497,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
 
-                return subAgentId === edge.source &&
+                return data.details?.subAgentId === edge.source &&
                   relationshipId &&
                   relationshipId === node?.data.relationshipId
                   ? 'inverted-delegating'
@@ -496,9 +505,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               }),
               nodes: updateNodeStatus((node) => {
                 if (relationshipId && relationshipId === node.data.relationshipId) {
-                  return error ? 'error' : 'inverted-delegating';
+                  return data.details?.data?.error ? 'error' : 'inverted-delegating';
                 }
-                if (node.id === subAgentId) {
+                if (node.id === data.details?.subAgentId) {
                   return 'delegating';
                 }
 
@@ -514,10 +523,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'agent_reasoning':
           case 'agent_generate': {
-            const { subAgentId } = data.details;
             return {
               nodes: updateNodeStatus((node) =>
-                node.id === subAgentId ? 'executing' : node.data.status
+                node.id === data.details?.subAgentId ? 'executing' : node.data.status
               ),
             };
           }

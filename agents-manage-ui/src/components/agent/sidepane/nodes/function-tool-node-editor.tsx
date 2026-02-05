@@ -227,7 +227,15 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         </div>
         <p className="text-xs text-muted-foreground">
           When enabled, the agent will pause and request user approval before running this function
-          tool.
+          tool.{' '}
+          <a
+            href="https://docs.inkeep.com/visual-builder/tools/tool-approvals"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:no-underline"
+          >
+            Learn more
+          </a>
         </p>
       </div>
       {canEdit && (

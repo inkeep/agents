@@ -170,6 +170,9 @@ export function ChatWidget({
                   value: styleOverrides,
                 },
               ],
+              primaryColors: {
+                textColorOnPrimary: '#ffffff',
+              },
               colors: {
                 gray: {
                   50: '#fafaf9',
@@ -187,9 +190,6 @@ export function ChatWidget({
                 },
                 grayDark: {
                   950: 'oklch(0.141 0.005 285.823)',
-                },
-                inkeepPrimary: {
-                  textColorOnPrimary: '#ffffff',
                 },
               },
             },

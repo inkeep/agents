@@ -13,6 +13,7 @@ import {
   generateId,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
+  isGithubWorkAppTool,
   JsonTransformer,
   listTaskIdsByContextId,
   MCPServerType,
@@ -42,6 +43,7 @@ import {
   tool,
 } from 'ai';
 import manageDbPool from 'src/data/db/manageDbPool';
+import { env } from 'src/env';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
@@ -1187,6 +1189,15 @@ export class Agent {
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
         headers: agentToolRelationHeaders,
+      };
+    }
+
+    // Inject github workapp tool id and authorization header if the tool is a github workapp
+    if (isGithubWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
       };
     }
 
@@ -3487,7 +3498,42 @@ ${output}`;
       }
     }
 
-    return steps.length >= this.getMaxGenerationSteps();
+    const maxSteps = this.getMaxGenerationSteps();
+    if (steps.length >= maxSteps) {
+      logger.warn(
+        {
+          subAgentId: this.config.id,
+          agentId: this.config.agentId,
+          stepsCompleted: steps.length,
+          maxSteps,
+          conversationId: this.conversationId,
+        },
+        'Sub-agent reached maximum generation steps limit'
+      );
+
+      tracer.startActiveSpan(
+        'agent.max_steps_reached',
+        {
+          attributes: {
+            'agent.max_steps_reached': true,
+            'agent.steps_completed': steps.length,
+            'agent.max_steps': maxSteps,
+            'agent.id': this.config.agentId,
+            'subAgent.id': this.config.id,
+          },
+        },
+        (span) => {
+          span.addEvent('max_generation_steps_reached', {
+            message: `Sub-agent "${this.config.id}" reached maximum generation steps (${steps.length}/${maxSteps})`,
+          });
+          span.end();
+        }
+      );
+
+      return true;
+    }
+
+    return false;
   }
 
   private setupStreamParser(sessionId: string, contextId: string) {

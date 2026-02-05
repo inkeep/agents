@@ -14,7 +14,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
 
   const deleteNode = useCallback(() => {
     deleteElements({ nodes: [{ id: selectedNodeId }] });
-  }, [selectedNodeId, deleteElements]);
+  }, [selectedNodeId]);
 
   const updateDefaultSubAgent = useCallback(
     (isDefault: boolean) => {
@@ -30,7 +30,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         })
       );
     },
-    [selectedNodeId, setNodes]
+    [selectedNodeId]
   );
 
   // Focus management for error fields
@@ -77,7 +77,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         markUnsaved();
       }
     },
-    [selectedNodeId, updateNodeData, markUnsaved, getNode]
+    [selectedNodeId]
   );
 
   // Handle input change events
@@ -92,7 +92,6 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
   // Enhanced updatePath that can handle nested objects
   const updateNestedPath = useCallback(
     (path: string, value: any, currentNodeData: any) => {
-      console.log('updateNestedPath called:', { path, value, currentNodeData });
       const pathParts = path.split('.');
 
       if (pathParts.length === 1) {
@@ -116,7 +115,6 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
 
         // Set the final value
         const finalKey = nestedPath[nestedPath.length - 1];
-        console.log('updateNestedPath setting:', { finalKey, value, current });
         if (value === undefined || value === null || value === '') {
           delete current[finalKey];
           if (Object.keys(updatedParent).length === 0) {
@@ -139,7 +137,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
       const currentNode = getNode(selectedNodeId);
       updateNestedPath(path, value, currentNode?.data);
     },
-    [getNode, selectedNodeId, updateNestedPath]
+    [selectedNodeId, updateNestedPath]
   );
 
   return {

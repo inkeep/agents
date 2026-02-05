@@ -7,7 +7,6 @@ vi.mock('../../env', () => ({
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
     BETTER_AUTH_URL: 'http://localhost:3002',
     BETTER_AUTH_SECRET: 'test-secret',
-    DISABLE_AUTH: false,
   },
 }));
 
@@ -44,7 +43,6 @@ describe('Auth Integration', () => {
     vi.doMock('../../env', () => ({
       env: {
         INKEEP_AGENTS_API_URL: 'http://localhost:3002',
-        DISABLE_AUTH: true,
       },
     }));
 

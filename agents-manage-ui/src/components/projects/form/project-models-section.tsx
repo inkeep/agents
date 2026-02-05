@@ -240,7 +240,7 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
             type="button"
             variant="ghost"
             size="sm"
-            className="flex items-center justify-start gap-2 w-full group p-0 h-auto  hover:!bg-transparent transition-colors py-2 px-4"
+            className="flex items-center justify-start gap-2 w-full group p-0 h-auto hover:!bg-transparent transition-colors py-2 px-4"
           >
             <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
             Configure default models

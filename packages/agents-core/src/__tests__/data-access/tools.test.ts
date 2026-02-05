@@ -12,6 +12,19 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { ToolInsert } from '../../types/index';
 import { testManageDbClient } from '../setup';
 
+// Mock the runtime database and cascade delete
+vi.mock('../../db/runtime/runtime-client', () => ({
+  createAgentsRunDatabaseClient: vi.fn(() => ({})),
+}));
+
+vi.mock('../../data-access/runtime/cascade-delete', () => ({
+  cascadeDeleteByTool: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('../../dolt/schema-sync', () => ({
+  getActiveBranch: vi.fn(() => vi.fn().mockResolvedValue('some_other_branch')),
+}));
+
 describe('Tools Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -254,6 +267,13 @@ describe('Tools Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Deleted Tool',
+        isWorkApp: false,
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/mcp' },
+          },
+        },
       };
 
       const mockDelete = vi.fn().mockReturnValue({
@@ -274,6 +294,139 @@ describe('Tools Data Access', () => {
 
       expect(mockDelete).toHaveBeenCalled();
       expect(result).toEqual(true);
+    });
+
+    it('should cascade delete runtime entities when deleting a github workapp tool on main branch', async () => {
+      const { getActiveBranch } = await import('../../dolt/schema-sync');
+      const { cascadeDeleteByTool } = await import('../../data-access/runtime/cascade-delete');
+      const { createAgentsRunDatabaseClient } = await import('../../db/runtime/runtime-client');
+
+      const mockCascadeDelete = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(cascadeDeleteByTool).mockReturnValue(mockCascadeDelete);
+      vi.mocked(getActiveBranch).mockReturnValue(
+        vi.fn().mockResolvedValue(`${testTenantId}_${testProjectId}_main`)
+      );
+
+      const expectedTool = {
+        id: testToolId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'GitHub Tool',
+        isWorkApp: true,
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/github/mcp' },
+          },
+        },
+      };
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedTool]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
+
+      const result = await deleteTool(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        toolId: testToolId,
+      });
+
+      expect(mockDelete).toHaveBeenCalled();
+      expect(result).toEqual(true);
+      expect(createAgentsRunDatabaseClient).toHaveBeenCalled();
+      expect(mockCascadeDelete).toHaveBeenCalledWith({ toolId: testToolId });
+    });
+
+    it('should not cascade delete when tool is not a github workapp', async () => {
+      const { getActiveBranch } = await import('../../dolt/schema-sync');
+      const { cascadeDeleteByTool } = await import('../../data-access/runtime/cascade-delete');
+
+      const mockCascadeDelete = vi.fn();
+      vi.mocked(cascadeDeleteByTool).mockReturnValue(mockCascadeDelete);
+      vi.mocked(getActiveBranch).mockReturnValue(
+        vi.fn().mockResolvedValue(`${testTenantId}_${testProjectId}_main`)
+      );
+
+      const expectedTool = {
+        id: testToolId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'Regular Tool',
+        isWorkApp: false,
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/mcp' },
+          },
+        },
+      };
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedTool]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
+
+      await deleteTool(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        toolId: testToolId,
+      });
+
+      expect(mockCascadeDelete).not.toHaveBeenCalled();
+    });
+
+    it('should not cascade delete when not on main branch', async () => {
+      const { getActiveBranch } = await import('../../dolt/schema-sync');
+      const { cascadeDeleteByTool } = await import('../../data-access/runtime/cascade-delete');
+
+      const mockCascadeDelete = vi.fn();
+      vi.mocked(cascadeDeleteByTool).mockReturnValue(mockCascadeDelete);
+      vi.mocked(getActiveBranch).mockReturnValue(
+        vi.fn().mockResolvedValue(`${testTenantId}_${testProjectId}_feature-branch`)
+      );
+
+      const expectedTool = {
+        id: testToolId,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        name: 'GitHub Tool',
+        isWorkApp: true,
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://example.com/github/mcp' },
+          },
+        },
+      };
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([expectedTool]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
+
+      await deleteTool(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        toolId: testToolId,
+      });
+
+      expect(mockCascadeDelete).not.toHaveBeenCalled();
     });
   });
 

@@ -289,6 +289,13 @@ export function renderPanelContent({
             />
 
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -341,12 +348,28 @@ export function renderPanelContent({
         </>
       );
 
-    case 'delegation':
+    case 'delegation': {
+      const getDelegationTypeLabel = (type?: string) => {
+        switch (type) {
+          case 'internal':
+            return 'Sub Agent';
+          case 'external':
+            return 'External Agent';
+          case 'team':
+            return 'Team Agent';
+          default:
+            return 'Unknown';
+        }
+      };
       return (
         <>
           <Section>
             <Info label="From sub agent" value={a.delegationFromSubAgentId || 'Unknown Agent'} />
             <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
+            <Info
+              label="Delegation to"
+              value={<Badge variant="secondary">{getDelegationTypeLabel(a.delegationType)}</Badge>}
+            />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -380,6 +403,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'transfer':
       return (
@@ -718,6 +742,31 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'max_steps_reached':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Steps completed"
+              value={
+                <Badge variant="code" className="font-mono">
+                  {a.stepsCompleted} / {a.maxSteps}
+                </Badge>
+              }
+            />
+            <LabeledBlock label="Description">
+              <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
+                The sub-agent reached the maximum number of generation steps and stopped.
+              </Bubble>
+            </LabeledBlock>
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

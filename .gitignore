@@ -70,6 +70,9 @@ vite.config.d.ts
 # Generated skill collections
 agents-docs/skills-collections/.generated/
 
+# CI-generated PR context skill (not committed)
+.claude/skills/pr-context/
+
 # Turborepo
 .turbo
 
@@ -89,13 +92,18 @@ node-compile-cache/
 tasks
 prd.json
 progress.txt
-
+.ralph-last-branch
 # PID files from auto-started services
 .pid
-
 .ralph-archives/
-
 .claude/settings.local.json
 
 # Ideas/drafts folder
 .ideas/
+
+# Vitest image snapshots test folder
+.vitest-attachments/
+# Vitest actual snapshots
+*-actual-chromium.png
+
+.pnpm-store/

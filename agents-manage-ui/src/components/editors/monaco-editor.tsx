@@ -53,7 +53,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
   const { importMonaco } = useMonacoActions();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+
   useEffect(() => {
     importMonaco();
   }, []);
@@ -104,7 +104,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
-      contextmenu: false, // Disable the right-click context menu
       padding: {
         top: 12,
         bottom: 12,

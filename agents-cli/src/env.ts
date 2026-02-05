@@ -13,19 +13,36 @@ import { z } from 'zod';
 loadEnvironmentFiles();
 
 const envSchema: z.ZodType<Env> = z.object({
-  DEBUG: z.string().optional(),
-  // Secrets loaded from .env files (relative to where CLI is executed)
-  ANTHROPIC_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
-  // Langfuse configuration for LLM observability
-  LANGFUSE_SECRET_KEY: z.string().optional(),
-  LANGFUSE_PUBLIC_KEY: z.string().optional(),
-  LANGFUSE_BASEURL: z.string().optional().default('https://cloud.langfuse.com'),
+  // Debug Configuration
+  DEBUG: z.string().optional().describe('Enable debug mode for verbose logging'),
+
+  // AI Provider API Keys (loaded from .env files relative to where CLI is executed)
+  ANTHROPIC_API_KEY: z
+    .string()
+    .optional()
+    .describe('Anthropic API key for Claude models. Get from https://console.anthropic.com/'),
+  OPENAI_API_KEY: z
+    .string()
+    .optional()
+    .describe('OpenAI API key for GPT models. Get from https://platform.openai.com/'),
+  GOOGLE_GENERATIVE_AI_API_KEY: z
+    .string()
+    .optional()
+    .describe('Google Generative AI API key for Gemini models'),
+
+  // Langfuse Configuration (LLM observability)
+  LANGFUSE_SECRET_KEY: z.string().optional().describe('Langfuse secret key for LLM observability'),
+  LANGFUSE_PUBLIC_KEY: z.string().optional().describe('Langfuse public key for LLM observability'),
+  LANGFUSE_BASEURL: z
+    .string()
+    .optional()
+    .default('https://cloud.langfuse.com')
+    .describe('Langfuse server base URL'),
   LANGFUSE_ENABLED: z
     .string()
     .optional()
-    .transform((val) => val === 'true'),
+    .transform((val) => val === 'true')
+    .describe('Enable Langfuse LLM observability (set to "true" to enable)'),
 });
 
 const parseEnv = (): Env => {
