@@ -1,6 +1,7 @@
 name: Deploy to Vercel Production
 
-# This workflow deploys to Vercel production only when a GitHub release is published.
+# This workflow deploys to Vercel production when a GitHub release is published,
+# or manually via workflow_dispatch (deploys latest main).
 # It uses Vercel's deployment checks to verify API health before promoting to production:
 # 1. Deploy to a preview URL (not production)
 # 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
@@ -15,6 +16,7 @@ name: Deploy to Vercel Production
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -34,7 +36,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || 'main' }}
 
       - name: Set Project ID
         run: echo "VERCEL_PROJECT_ID=${{ secrets[matrix.project.project_id_secret] }}" >> $GITHUB_ENV
@@ -45,13 +47,10 @@ jobs:
       - name: Pull Vercel Environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Deploy Preview for Checks
         id: deploy
         run: |
-          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "Error: Failed to capture deployment URL"
             exit 1
