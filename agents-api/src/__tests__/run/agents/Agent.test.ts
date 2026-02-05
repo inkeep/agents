@@ -1795,12 +1795,13 @@ describe('Agent Image Support', () => {
     };
   });
 
-  test('should accept string message for backward compatibility', async () => {
+  test('passes text-only input to generateText (string or message object)', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate('Simple text prompt');
-
     const { generateText } = await import('ai');
-    expect(generateText).toHaveBeenCalledWith(
+
+    await agent.generate('Simple text prompt');
+    expect(generateText).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         messages: expect.arrayContaining([
           expect.objectContaining({
@@ -1810,18 +1811,38 @@ describe('Agent Image Support', () => {
         ]),
       })
     );
+
+    await agent.generate({ text: 'Just text, no images' });
+    expect(generateText).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.stringContaining('Just text, no images'),
+          }),
+        ]),
+      })
+    );
   });
 
-  test('should pass image URL to generateText in AI SDK format', async () => {
+  test('passes image URL(s) to generateText in AI SDK format', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
 
     await agent.generate({
-      text: 'What is in this image?',
+      text: 'Compare these two screenshots',
       imageParts: [
         {
           kind: 'file',
           file: {
-            uri: 'https://example.com/screenshot.png',
+            uri: 'https://example.com/before.png',
+            mimeType: 'image/png',
+          },
+        },
+        {
+          kind: 'file',
+          file: {
+            uri: 'https://example.com/after.png',
             mimeType: 'image/png',
           },
         },
@@ -1837,8 +1858,9 @@ describe('Agent Image Support', () => {
             content: expect.arrayContaining([
               expect.objectContaining({
                 type: 'text',
-                text: expect.stringContaining('What is in this image?'),
+                text: expect.stringContaining('Compare these two screenshots'),
               }),
+              expect.objectContaining({ type: 'image', image: expect.any(URL) }),
               expect.objectContaining({ type: 'image', image: expect.any(URL) }),
             ]),
           }),
@@ -1847,7 +1869,7 @@ describe('Agent Image Support', () => {
     );
   });
 
-  test('should pass base64 image data to generateText', async () => {
+  test('passes base64 image data to generateText', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const base64Data =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -1876,60 +1898,6 @@ describe('Agent Image Support', () => {
               expect.objectContaining({ type: 'text' }),
               expect.objectContaining({ type: 'image', image: expectedDataUrl }),
             ]),
-          }),
-        ]),
-      })
-    );
-  });
-
-  test('should support multiple images in a single message', async () => {
-    const agent = new Agent(mockAgentConfig, mockExecutionContext);
-
-    await agent.generate({
-      text: 'Compare these two screenshots',
-      imageParts: [
-        {
-          kind: 'file',
-          file: { uri: 'https://example.com/before.png', mimeType: 'image/png' },
-        },
-        {
-          kind: 'file',
-          file: { uri: 'https://example.com/after.png', mimeType: 'image/png' },
-        },
-      ],
-    });
-
-    const { generateText } = await import('ai');
-    expect(generateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: expect.arrayContaining([
-          expect.objectContaining({
-            role: 'user',
-            content: expect.arrayContaining([
-              expect.objectContaining({ type: 'text' }),
-              expect.objectContaining({ type: 'image' }),
-              expect.objectContaining({ type: 'image' }),
-            ]),
-          }),
-        ]),
-      })
-    );
-  });
-
-  test('should handle text-only message object', async () => {
-    const agent = new Agent(mockAgentConfig, mockExecutionContext);
-
-    await agent.generate({
-      text: 'Just text, no images',
-    });
-
-    const { generateText } = await import('ai');
-    expect(generateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: expect.arrayContaining([
-          expect.objectContaining({
-            role: 'user',
-            content: expect.stringContaining('Just text, no images'),
           }),
         ]),
       })
