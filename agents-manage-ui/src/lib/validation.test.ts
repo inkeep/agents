@@ -102,7 +102,7 @@ describe('validation', () => {
         {
           path: [],
           message:
-            "Error during parsing JSON schema headers: Cannot read properties of null (reading 'const')",
+            "Error during parsing JSON schema headers: Cannot read properties of null (reading '$schema')",
         },
       ]);
     });

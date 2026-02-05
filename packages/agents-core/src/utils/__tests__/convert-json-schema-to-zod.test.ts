@@ -1,5 +1,5 @@
+import { z } from 'zod';
 import type { JSONSchema } from 'zod/v4/core';
-import { convertJsonSchemaToZod } from 'zod-from-json-schema';
 
 const jsonSchema: JSONSchema.BaseSchema = {
   type: 'object',
@@ -14,7 +14,7 @@ const jsonSchema: JSONSchema.BaseSchema = {
 
 describe('jsonSchemaToZod', () => {
   test('should return json schema', () => {
-    const zodSchema = convertJsonSchemaToZod(jsonSchema);
+    const zodSchema = z.fromJSONSchema(jsonSchema);
     expect(zodSchema.toJSONSchema()).toStrictEqual({
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',

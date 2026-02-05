@@ -14,7 +14,6 @@ import {
   getLedgerArtifacts,
   isGithubWorkAppTool,
   JsonTransformer,
-  jsonSchemaToZod,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -1393,7 +1392,9 @@ export class Agent {
           continue;
         }
 
-        const zodSchema = jsonSchemaToZod(functionData.inputSchema);
+        const zodSchema = functionData.inputSchema
+          ? z.fromJSONSchema(functionData.inputSchema)
+          : z.string();
         const toolPolicies = (functionToolDef as any).toolPolicies as
           | Record<string, { needsApproval?: boolean }>
           | null
@@ -1575,7 +1576,7 @@ export class Agent {
 
               const result = await sandboxExecutor.executeFunctionTool(
                 functionToolDef.id,
-                finalArgs,
+                finalArgs as Record<string, unknown>,
                 {
                   description: functionToolDef.description || functionToolDef.name,
                   inputSchema: functionData.inputSchema || {},
@@ -2196,7 +2197,7 @@ export class Agent {
           let inputSchema: any;
           try {
             inputSchema = override.schema
-              ? jsonSchemaToZod(override.schema)
+              ? z.fromJSONSchema(override.schema)
               : (toolDef as any).inputSchema;
           } catch (schemaError) {
             logger.error(
@@ -3654,18 +3655,16 @@ ${output}${structureHintsFormatted}`;
   private buildDataComponentsSchema() {
     const componentSchemas: z.ZodType<any>[] = [];
 
-    if (this.config.dataComponents && this.config.dataComponents.length > 0) {
-      this.config.dataComponents.forEach((dc) => {
-        const propsSchema = jsonSchemaToZod(dc.props);
-        componentSchemas.push(
-          z.object({
-            id: z.string(),
-            name: z.literal(dc.name),
-            props: propsSchema,
-          })
-        );
-      });
-    }
+    this.config.dataComponents?.forEach((dc) => {
+      const propsSchema = dc.props ? z.fromJSONSchema(dc.props) : z.string();
+      componentSchemas.push(
+        z.object({
+          id: z.string(),
+          name: z.literal(dc.name),
+          props: propsSchema,
+        })
+      );
+    });
 
     if (this.artifactComponents.length > 0) {
       const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(this.artifactComponents);
