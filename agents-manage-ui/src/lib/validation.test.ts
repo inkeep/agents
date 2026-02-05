@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 describe('validation', () => {
   describe('createCustomHeadersSchema', () => {
-    test('should throw when not object', () => {
+    test('returns error when JSON is not an object', () => {
       const error = getErrorObject({
         headersJsonSchema: '',
         headersString: 'null',
@@ -16,7 +16,7 @@ describe('validation', () => {
       ]);
     });
 
-    test('should throw when invalid syntax', () => {
+    test('returns error on invalid JSON syntax', () => {
       const error = getErrorObject({
         headersJsonSchema: '',
         headersString: '#',
@@ -29,7 +29,7 @@ describe('validation', () => {
       ]);
     });
 
-    test('should throw nested keys', () => {
+    test('returns error when header value is an object', () => {
       const error = getErrorObject({
         headersJsonSchema: '',
         headersString: JSON.stringify({
@@ -44,7 +44,7 @@ describe('validation', () => {
       ]);
     });
 
-    test('should throw when key is not object', () => {
+    test('returns error when header value is not string', () => {
       const error = getErrorObject({
         headersJsonSchema: '',
         headersString: JSON.stringify({ foo: null }),
@@ -57,7 +57,7 @@ describe('validation', () => {
       ]);
     });
 
-    test('should validate custom schema', () => {
+    test('validates against a custom JSON schema', () => {
       const jsonSchema = z.object({ foo: z.string() }).toJSONSchema();
       const error = getErrorObject({
         headersJsonSchema: JSON.stringify(jsonSchema),
@@ -71,7 +71,7 @@ describe('validation', () => {
       ]);
     });
 
-    test("should have object validation even json schema doesn't allow it", () => {
+    test('enforces object input even if schema allows non-objects', () => {
       const jsonSchema = z.string().toJSONSchema();
       const error = getErrorObject({
         headersJsonSchema: JSON.stringify(jsonSchema),
@@ -85,22 +85,24 @@ describe('validation', () => {
       ]);
     });
 
-    test('should throw on invalid json schemas', () => {
+    test('returns error for invalid JSON schemas syntax', () => {
+      const error = getErrorObject({ headersJsonSchema: '#', headersString: '' });
+
+      expect(error).toMatchObject([
+        {
+          path: [],
+          message: `Error during parsing JSON schema headers: Unexpected token '#', "#" is not valid JSON`,
+        },
+      ]);
+    });
+
+    test('returns error for invalid JSON schemas', () => {
       const error = getErrorObject({ headersJsonSchema: 'null', headersString: '' });
       expect(error).toMatchObject([
         {
           path: [],
           message:
             "Error during parsing JSON schema headers: Cannot read properties of null (reading 'const')",
-        },
-      ]);
-
-      const error2 = getErrorObject({ headersJsonSchema: '#', headersString: '' });
-
-      expect(error2).toMatchObject([
-        {
-          path: [],
-          message: `Error during parsing JSON schema headers: Unexpected token '#', "#" is not valid JSON`,
         },
       ]);
     });
