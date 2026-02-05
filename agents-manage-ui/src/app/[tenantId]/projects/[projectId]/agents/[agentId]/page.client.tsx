@@ -870,19 +870,20 @@ export const Agent: FC<AgentProps> = ({
     nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
   return (
-    <ResizablePanelGroup
-      // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
-      id="agent-panel-group"
-      direction="horizontal"
-      autoSaveId="agent-resizable-layout-state"
-      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
-    >
-      <CopilotChat
-        agentId={agentId}
-        projectId={projectId}
-        tenantId={tenantId}
-        refreshAgentGraph={refreshAgentGraph}
-      />
+    <FullAgentFormContext value={form}>
+      <ResizablePanelGroup
+        // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
+        id="agent-panel-group"
+        direction="horizontal"
+        autoSaveId="agent-resizable-layout-state"
+        className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
+      >
+        <CopilotChat
+          agentId={agentId}
+          projectId={projectId}
+          tenantId={tenantId}
+          refreshAgentGraph={refreshAgentGraph}
+        />
 
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
@@ -1011,30 +1012,31 @@ export const Agent: FC<AgentProps> = ({
           </>
         )}
 
-      {showPlayground && (
-        <>
-          {!showTraces && <ResizableHandle withHandle />}
-          <ResizablePanel
-            minSize={25}
-            // Panel id and order props recommended when panels are dynamically rendered
-            id="playground-pane"
-            order={3}
-            className={showTraces ? 'w-full flex-none!' : ''}
-          >
-            <Playground
-              agentId={agentId}
-              projectId={projectId}
-              tenantId={tenantId}
-              setShowPlayground={setShowPlayground}
-              closeSidePane={closeSidePane}
-              dataComponentLookup={dataComponentLookup}
-              showTraces={showTraces}
-              setShowTraces={setShowTraces}
-            />
-          </ResizablePanel>
-        </>
-      )}
-      <UnsavedChangesDialog onSubmit={onSubmit} />
-    </ResizablePanelGroup>
+        {showPlayground && (
+          <>
+            {!showTraces && <ResizableHandle withHandle />}
+            <ResizablePanel
+              minSize={25}
+              // Panel id and order props recommended when panels are dynamically rendered
+              id="playground-pane"
+              order={3}
+              className={showTraces ? 'w-full flex-none!' : ''}
+            >
+              <Playground
+                agentId={agentId}
+                projectId={projectId}
+                tenantId={tenantId}
+                setShowPlayground={setShowPlayground}
+                closeSidePane={closeSidePane}
+                dataComponentLookup={dataComponentLookup}
+                showTraces={showTraces}
+                setShowTraces={setShowTraces}
+              />
+            </ResizablePanel>
+          </>
+        )}
+        <UnsavedChangesDialog onSubmit={onSubmit} />
+      </ResizablePanelGroup>
+    </FullAgentFormContext>
   );
 };
