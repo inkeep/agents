@@ -115,8 +115,6 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
-    "@vitest/browser-playwright": "4.1.0-beta.3",
-    "babel-plugin-react-compiler": "^1.0.0",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -126,7 +124,9 @@
     "@types/node": "^22",
     "@types/react": "^19.2.4",
     "@types/react-dom": "^19.2.3",
+    "@vitest/browser-playwright": "4.1.0-beta.3",
     "@vitest/coverage-v8": "4.1.0-beta.3",
+    "babel-plugin-react-compiler": "^1.0.0",
     "cypress": "^15.9.0",
     "start-server-and-test": "^2.1.2",
     "tailwind-scrollbar": "^4.0.2",

@@ -314,8 +314,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
             }[showCustomInput] || 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
           </div>
           <div className="flex gap-2 items-center">
-            <input
-              className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <Input
               placeholder={
                 {
                   openrouter: 'anthropic/claude-3-5-sonnet',
