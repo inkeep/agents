@@ -1,4 +1,5 @@
 import { createCustomHeadersSchema } from '@/lib/validation';
+import { z } from 'zod';
 
 describe('validation', () => {
   describe('createCustomHeadersSchema', () => {
@@ -31,6 +32,22 @@ describe('validation', () => {
           })
         )
       ).toThrowError('All header values must be strings\\n  → at foo');
+    });
+    test('should validate custom schema', () => {
+      const jsonSchema = z
+        .object({
+          foo: z.string(),
+        })
+        .toJSONSchema();
+
+      const schema = createCustomHeadersSchema(JSON.stringify(jsonSchema));
+      expect(() =>
+        schema.parse(
+          JSON.stringify({
+            bar: null,
+          })
+        )
+      ).toThrowError('Invalid input: expected string, received undefined\\n  → at foo');
     });
   });
 });
