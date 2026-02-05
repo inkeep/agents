@@ -1,4 +1,9 @@
-import { AgentApiInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
+import {
+  AgentApiInsertSchema,
+  type AgentWithinContextOfProjectResponse,
+  AgentWithinContextOfProjectSchema,
+  transformToJson,
+} from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 export const AgentSchema = AgentApiInsertSchema.pick({
@@ -53,3 +58,7 @@ export function createCustomHeadersSchema(customHeaders: string) {
 
   return zodSchema;
 }
+
+export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema;
+
+export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];

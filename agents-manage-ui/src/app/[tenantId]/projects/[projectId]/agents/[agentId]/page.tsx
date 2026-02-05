@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
@@ -9,7 +10,6 @@ import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 import { Agent } from './page.client';
-import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,7 +73,11 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     : false;
 
   return (
-    <FullAgentFormProvider defaultValues={{}}>
+    <FullAgentFormProvider
+      defaultValues={{
+        name: agent.data.name,
+      }}
+    >
       <Agent
         agent={agent.data}
         dataComponentLookup={dataComponentLookup}
