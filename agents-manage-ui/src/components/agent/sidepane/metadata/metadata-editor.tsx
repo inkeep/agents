@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,7 +38,6 @@ import { FieldLabel } from '../form-components/label';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
