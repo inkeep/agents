@@ -25,6 +25,7 @@ export function createAgentsAuth(userAuthConfig?: UserAuthConfig) {
     baseURL: env.INKEEP_AGENTS_API_URL || `http://localhost:3002`,
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
     dbClient: runDbClient,
+    ...(env.AUTH_COOKIE_DOMAIN && { cookieDomain: env.AUTH_COOKIE_DOMAIN }),
     ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
   });
