@@ -42,15 +42,17 @@ export async function logStep(message: string, data: Record<string, unknown>) {
 /**
  * Step: Calculate the next execution time relative to a base time.
  * For cron, uses lastScheduledFor as base to prevent drift.
+ * Timezone is used to interpret the cron expression in the user's local time.
  */
 export async function calculateNextExecutionStep(params: {
   cronExpression?: string | null;
+  cronTimezone?: string | null;
   runAt?: string | null;
   lastScheduledFor?: string | null;
 }): Promise<{ nextExecutionTime: string; isOneTime: boolean }> {
   'use step';
 
-  const { cronExpression, runAt, lastScheduledFor } = params;
+  const { cronExpression, cronTimezone, runAt, lastScheduledFor } = params;
 
   if (runAt) {
     // One-time trigger - use the runAt time
@@ -61,7 +63,10 @@ export async function calculateNextExecutionStep(params: {
     // Cron trigger - calculate next occurrence relative to last execution
     // This prevents drift when workflow wakes late or runs long
     const baseDate = lastScheduledFor ? new Date(lastScheduledFor) : new Date();
-    const interval = CronExpressionParser.parse(cronExpression, { currentDate: baseDate });
+    const interval = CronExpressionParser.parse(cronExpression, {
+      currentDate: baseDate,
+      tz: cronTimezone || 'UTC',
+    });
     const nextDate = interval.next();
     const nextIso = nextDate.toISOString();
     if (!nextIso) {

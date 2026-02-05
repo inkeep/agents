@@ -18,8 +18,10 @@ type FrequencyType = 'minutes' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'cu
 interface FriendlyScheduleBuilderProps {
   value: string;
   onChange: (cronExpression: string) => void;
+  timezone?: string;
   className?: string;
 }
+
 
 const DAYS_OF_WEEK = [
   { value: '0', label: 'Sunday', short: 'Sun' },
@@ -192,6 +194,7 @@ function formatTime(hour: number, minute: number): string {
 export function FriendlyScheduleBuilder({
   value,
   onChange,
+  timezone = 'UTC',
   className,
 }: FriendlyScheduleBuilderProps) {
   const parsed = parseCronExpression(value);
@@ -418,6 +421,19 @@ export function FriendlyScheduleBuilder({
           />
           <p className="text-xs text-muted-foreground">
             Format: minute hour day-of-month month day-of-week
+          </p>
+        </div>
+      )}
+
+      {/* Timezone Display (read-only) */}
+      {timezone && (
+        <div className="space-y-1">
+          <Label className="text-sm font-medium">Timezone</Label>
+          <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+            {timezone}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Times will be interpreted in this timezone (auto-detected from your browser)
           </p>
         </div>
       )}

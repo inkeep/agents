@@ -37,7 +37,7 @@ import {
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocation } from '@/lib/api/scheduled-triggers';
 
-const POLLING_INTERVAL_MS = 5000; // Poll every 5 seconds
+const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds
 
 interface ScheduledTriggerInvocationsTableProps {
   invocations: ScheduledTriggerInvocation[];
@@ -280,9 +280,11 @@ export function ScheduledTriggerInvocationsTable({
                             href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
                             className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
                           >
-                            <span className="text-muted-foreground text-xs">
-                              #{idx + 1}
-                            </span>
+                            {invocation.conversationIds && invocation.conversationIds.length > 1 && (
+                              <span className="text-muted-foreground text-xs">
+                                #{idx + 1}
+                              </span>
+                            )}
                             View
                             <ExternalLink className="w-3 h-3" />
                           </Link>

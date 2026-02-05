@@ -328,6 +328,7 @@ app.openapi(
       description: body.description ?? null,
       enabled: body.enabled !== undefined ? body.enabled : true,
       cronExpression: body.cronExpression ?? null,
+      cronTimezone: body.cronTimezone ?? 'UTC',
       runAt: body.runAt ?? null,
       payload: body.payload ?? null,
       messageTemplate: body.messageTemplate ?? null,
@@ -403,6 +404,7 @@ app.openapi(
       body.description !== undefined ||
       body.enabled !== undefined ||
       body.cronExpression !== undefined ||
+      body.cronTimezone !== undefined ||
       body.runAt !== undefined ||
       body.payload !== undefined ||
       body.messageTemplate !== undefined ||
@@ -436,7 +438,10 @@ app.openapi(
     }
 
     // Determine if schedule changed (affects workflow timing)
-    const scheduleChanged = body.cronExpression !== undefined || body.runAt !== undefined;
+    const scheduleChanged =
+      body.cronExpression !== undefined ||
+      body.cronTimezone !== undefined ||
+      body.runAt !== undefined;
 
     const previousEnabled = existing.enabled;
 
@@ -465,6 +470,7 @@ app.openapi(
         description: body.description,
         enabled: body.enabled,
         cronExpression: body.cronExpression,
+        cronTimezone: body.cronTimezone,
         runAt: body.runAt,
         payload: body.payload,
         messageTemplate: body.messageTemplate,

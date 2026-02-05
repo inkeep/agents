@@ -8,6 +8,7 @@
 import {
   type AgentsManageDatabaseClient,
   cancelPastPendingInvocationsForTrigger,
+  cancelPendingInvocationsForTrigger,
   createScheduledWorkflow,
   generateId,
   getScheduledWorkflowByTriggerId,
@@ -314,8 +315,25 @@ export async function onTriggerUpdated(
     return;
   }
 
-  // Case 4: Still enabled but schedule changed = restart workflow
+  // Case 4: Still enabled but schedule changed = cancel pending and restart workflow
   if (scheduleChanged) {
+    // Cancel pending invocations so the new workflow creates fresh ones with the new schedule
+    const cancelledCount = await cancelPendingInvocationsForTrigger(runDbClient)({
+      scopes: {
+        tenantId: trigger.tenantId,
+        projectId: trigger.projectId,
+        agentId: trigger.agentId,
+      },
+      scheduledTriggerId: trigger.id,
+    });
+
+    if (cancelledCount > 0) {
+      logger.info(
+        { scheduledTriggerId: trigger.id, cancelledCount },
+        'Cancelled pending invocations on schedule change'
+      );
+    }
+
     await restartScheduledTriggerWorkflow(
       {
         tenantId: trigger.tenantId,

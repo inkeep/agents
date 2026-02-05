@@ -57,6 +57,13 @@
       "when": 1770319097703,
       "tag": "0007_wakeful_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770325896382,
+      "tag": "0008_polite_rattler",
+      "breakpoints": true
     }
   ]
 }

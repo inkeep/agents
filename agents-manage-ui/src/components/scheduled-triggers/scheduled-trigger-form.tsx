@@ -45,6 +45,7 @@ const scheduledTriggerFormSchema = z
     enabled: z.boolean(),
     scheduleType: z.enum(['cron', 'one-time']),
     cronExpression: z.string().default(''),
+    cronTimezone: z.string().default('UTC'),
     runAt: z.string().default(''),
     payloadJson: z.string().default(''),
     messageTemplate: z.string().default(''),
@@ -86,6 +87,9 @@ export function ScheduledTriggerForm({
   const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=scheduled`;
 
   const getDefaultValues = (): ScheduledTriggerFormData => {
+    // Get browser's timezone for new triggers
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
     if (!trigger) {
       return {
         enabled: true,
@@ -93,6 +97,7 @@ export function ScheduledTriggerForm({
         description: '',
         scheduleType: 'cron',
         cronExpression: '',
+        cronTimezone: browserTimezone,
         runAt: '',
         payloadJson: '',
         messageTemplate: '',
@@ -109,6 +114,7 @@ export function ScheduledTriggerForm({
       enabled: trigger.enabled,
       scheduleType: trigger.cronExpression ? 'cron' : 'one-time',
       cronExpression: trigger.cronExpression || '',
+      cronTimezone: trigger.cronTimezone || 'UTC',
       runAt: trigger.runAt ? new Date(trigger.runAt).toISOString().slice(0, 16) : '',
       payloadJson: trigger.payload ? JSON.stringify(trigger.payload, null, 2) : '',
       messageTemplate: trigger.messageTemplate || '',
@@ -147,6 +153,7 @@ export function ScheduledTriggerForm({
         description: data.description || undefined,
         enabled: data.enabled,
         cronExpression: data.scheduleType === 'cron' ? data.cronExpression : null,
+        cronTimezone: data.scheduleType === 'cron' ? data.cronTimezone : null,
         runAt: data.scheduleType === 'one-time' ? new Date(data.runAt).toISOString() : null,
         payload,
         messageTemplate: data.messageTemplate || undefined,
@@ -257,7 +264,11 @@ export function ScheduledTriggerForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <FriendlyScheduleBuilder value={field.value} onChange={field.onChange} />
+                      <FriendlyScheduleBuilder
+                        value={field.value}
+                        onChange={field.onChange}
+                        timezone={form.watch('cronTimezone')}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
