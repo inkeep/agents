@@ -32,7 +32,7 @@
     "@octokit/rest": "^22.0.1",
     "drizzle-orm": "^0.44.7",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.10.4",
+    "hono": "^4.11.7",
     "jose": "^6.1.0",
     "minimatch": "^10.1.1"
   },
