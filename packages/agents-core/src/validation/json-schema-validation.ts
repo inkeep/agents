@@ -181,7 +181,10 @@ export function validateJsonSchemaForLlm(parsed: Record<string, unknown>): Valid
   };
 }
 
-export function toJson<T extends string>(value: T, ctx: z.RefinementCtx<T>) {
+/**
+ * Used in z.transform, later will be reused in reusing zod schema from @inkeep/agents-core PR
+ */
+export function transformToJson<T extends string>(value: T, ctx: z.RefinementCtx<T>) {
   try {
     return JSON.parse(value);
   } catch {

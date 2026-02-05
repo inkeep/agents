@@ -1,11 +1,9 @@
 import {
   type ArtifactComponentInsert as ArtifactComponentType,
-  getLogger,
-} from '@inkeep/agents-core';
-import {
   convertZodToJsonSchemaWithPreview,
+  getLogger,
   isZodSchema,
-} from '@inkeep/agents-core/utils/schema-conversion';
+} from '@inkeep/agents-core';
 import type { z } from 'zod';
 import { generateIdFromName } from './utils/generateIdFromName';
 

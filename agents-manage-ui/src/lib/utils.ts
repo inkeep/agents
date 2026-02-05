@@ -3,6 +3,8 @@ import type { FieldPath } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
 import { z } from 'zod';
 
+export const css = String.raw;
+
 export function isMacOs() {
   return navigator?.userAgent.includes('Mac');
 }

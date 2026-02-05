@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-sdk",
-  "version": "0.43.0",
+  "version": "0.45.2",
   "description": "Agents SDK for building and managing agents in the Inkeep Agent Framework",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -29,7 +29,7 @@
     "@yarnpkg/lockfile": "^1.1.0",
     "js-yaml": "^4.1.0",
     "typescript": "^5.3.3",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

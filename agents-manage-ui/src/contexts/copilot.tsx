@@ -1,7 +1,7 @@
 'use client';
 
 import type { AIChatFunctions } from '@inkeep/agents-ui/types';
-import { createContext, type ReactNode, type RefObject, useContext, useRef, useState } from 'react';
+import { createContext, type ReactNode, type RefObject, use, useRef, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 interface CopilotContextHeaders {
@@ -66,7 +66,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCopilotContext() {
-  const context = useContext(CopilotContext);
+  const context = use(CopilotContext);
   if (!context) {
     throw new Error('useCopilotContext must be used within a <CopilotProvider />');
   }

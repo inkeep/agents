@@ -1,4 +1,0 @@
----
-alwaysApply: true
----
-If you are adding a markdownfile that is documentation, make sure to add it in the correct contextual place in the main README.md file rather than a separate file nested in some directory.

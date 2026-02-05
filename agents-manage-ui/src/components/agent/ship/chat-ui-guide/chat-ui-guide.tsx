@@ -2,7 +2,7 @@ import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui
 import { CodeIcon, EyeIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DOCS_BASE_URL } from '@/constants/theme';
+import { DOCS_BASE_URL, INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { DocsLink, Header } from '../guide-header';
 import { ChatUICode } from './chat-ui-code';
@@ -23,7 +23,7 @@ export function ChatUIGuide() {
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,
       baseSettings: {
-        primaryBrandColor: '#3784ff',
+        primaryBrandColor: INKEEP_BRAND_COLOR,
       },
       aiChatSettings: {
         agentUrl,
@@ -36,7 +36,7 @@ export function ChatUIGuide() {
   });
   const allValues = form.watch();
   const component = (allValues.component ?? ChatUIComponent.EMBEDDED_CHAT) as ChatUIComponent;
-  const baseSettings = allValues.baseSettings ?? { primaryBrandColor: '#3784ff' };
+  const baseSettings = allValues.baseSettings ?? { primaryBrandColor: INKEEP_BRAND_COLOR };
   const aiChatSettings = allValues.aiChatSettings ?? {
     agentUrl,
   };

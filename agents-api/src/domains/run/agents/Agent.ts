@@ -12,7 +12,9 @@ import {
   generateId,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
+  isGithubWorkAppTool,
   JsonTransformer,
+  jsonSchemaToZod,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -41,6 +43,7 @@ import {
   tool,
 } from 'ai';
 import manageDbPool from 'src/data/db/manageDbPool';
+import { env } from 'src/env';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
@@ -67,7 +70,6 @@ import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
-import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
@@ -1172,6 +1174,15 @@ export class Agent {
         activeTools: tool.config.mcp.activeTools,
         selectedTools,
         headers: agentToolRelationHeaders,
+      };
+    }
+
+    // Inject github workapp tool id and authorization header if the tool is a github workapp
+    if (isGithubWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
       };
     }
 

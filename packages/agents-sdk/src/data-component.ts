@@ -1,5 +1,9 @@
-import { type DataComponentInsert as DataComponentType, getLogger } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+import {
+  convertZodToJsonSchema,
+  type DataComponentInsert as DataComponentType,
+  getLogger,
+  isZodSchema,
+} from '@inkeep/agents-core';
 import type { z } from 'zod';
 import { generateIdFromName } from './utils/generateIdFromName';
 

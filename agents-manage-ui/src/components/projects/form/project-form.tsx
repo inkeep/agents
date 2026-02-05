@@ -16,6 +16,7 @@ import { cn, isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
+import { ProjectWorkAppGitHubAccessSection } from './project-work-app-github-access-section';
 
 interface ProjectFormProps {
   tenantId: string;
@@ -189,6 +190,18 @@ export function ProjectForm({
         <Separator />
 
         <ProjectStopWhenSection control={form.control} disabled={readOnly} />
+
+        {projectId && (
+          <>
+            <Separator />
+
+            <ProjectWorkAppGitHubAccessSection
+              tenantId={tenantId}
+              projectId={projectId}
+              disabled={readOnly}
+            />
+          </>
+        )}
 
         {!readOnly && (
           <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>

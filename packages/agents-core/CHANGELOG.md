@@ -1,5 +1,38 @@
 # @inkeep/agents-core
 
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+
+## 0.45.0
+
+### Patch Changes
+
+- 938ffb8: Revert refine method in resource id schema
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 6f5bd15: Add CI check for env.ts descriptions
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+- ba853ef: disallow resource id schema for value `new`
+
+### Patch Changes
+
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 8a283ea: Fix tool relations when renaming sub-agent IDs
+- bcc26b4: Add descriptions to environment variable schemas for better developer experience
+
 ## 0.43.0
 
 ### Minor Changes

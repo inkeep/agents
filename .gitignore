@@ -70,6 +70,9 @@ vite.config.d.ts
 # Generated skill collections
 agents-docs/skills-collections/.generated/
 
+# CI-generated PR context skill (not committed)
+.claude/skills/pr-context/
+
 # Turborepo
 .turbo
 
@@ -98,4 +101,9 @@ progress.txt
 # Ideas/drafts folder
 .ideas/
 
+# Vitest image snapshots test folder
+.vitest-attachments/
+# Vitest actual snapshots
+*-actual-chromium.png
 
+.pnpm-store/

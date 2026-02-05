@@ -1,5 +1,67 @@
 # @inkeep/agents-manage-ui
 
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- cd28e97: Fix optional chaining for data.details in error case to prevent runtime errors
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
+## 0.45.0
+
+### Minor Changes
+
+- bab4641: add format action button for code editor
+
+### Patch Changes
+
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 8f067f4: chore(dashboard): update vitest deps and add image snapshots for form error state
+- 48b5400: Fix text overflow for function tool node and placeholder node in agent flow
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-core@0.45.0
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+- 0ff87cf: feat(dashboard): sort available tools first by active status, after by name
+- 0f3c2e5: feat(dashboard): use official node collision solution in agent flow
+
+### Patch Changes
+
+- f23d445: invalidate cache when updating mcp servers
+- 4f2b927: If the sidebar is expanded via hover and the user clicks the toggle, keep the sidebar open (persist the expanded state).
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 9ea2de8: fix(dashboard): ignore hydration errors from radix DialogTrigger
+- 707d1c8: Prefer `React.use` over `React.useContext`
+- 7a57040: Refactor ux for tool overrides
+- 046f799: chore(dashboard): mark `useAgentActions`, `useMonacoActions`, `useProjectActions`, `useTheme#setTheme` as stable references to avoid warning from `useExhaustiveDependencies` biome rule
+- da3f64f: fix(dashboard): add toast with error when user want to remove undeletable nodes
+- 0d18b7e: remove feature flag
+- 5704c38: fix login redirect
+- 5e7cede: fix orphaned tools case
+- afd01d5: specify stable functions from `useReactFlow` hook for `useExhaustiveDependencies` biome rule
+- Updated dependencies [08aa941]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+
 ## 0.43.0
 
 ### Minor Changes

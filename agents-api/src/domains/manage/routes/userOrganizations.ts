@@ -1,89 +1,42 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { addUserToOrganization, getUserOrganizationsFromDb } from '@inkeep/agents-core';
-import {
-  AddUserToOrganizationRequestSchema,
-  AddUserToOrganizationResponseSchema,
-  UserOrganizationsResponseSchema,
-} from '@inkeep/agents-core/auth/validation';
+import { createApiError, getUserOrganizationsFromDb } from '@inkeep/agents-core';
+import { Hono } from 'hono';
 import runDbClient from '../../../data/db/runDbClient';
+import { sessionAuth } from '../../../middleware/sessionAuth';
 import type { ManageAppVariables } from '../../../types/app';
 
-const userOrganizationsRoutes = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+const userOrganizationsRoutes = new Hono<{ Variables: ManageAppVariables }>();
+
+// Require authentication for all routes
+userOrganizationsRoutes.use('*', sessionAuth());
 
 // GET /api/users/:userId/organizations - List all organizations for a user
-userOrganizationsRoutes.openapi(
-  createRoute({
-    method: 'get',
-    path: '/',
-    tags: ['User Organizations'],
-    summary: 'List user organizations',
-    description: 'Get all organizations associated with a user',
-    request: {
-      params: z.object({
-        userId: z.string().describe('User ID'),
-      }),
-    },
-    responses: {
-      200: {
-        description: 'List of user organizations',
-        content: {
-          'application/json': {
-            schema: UserOrganizationsResponseSchema,
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { userId } = c.req.valid('param');
-    const orgs = await getUserOrganizationsFromDb(runDbClient)(userId);
-    // Transform Date to string for API response
-    const userOrganizations = orgs.map((org) => ({
-      ...org,
-      createdAt: org.createdAt.toISOString(),
-    }));
-    return c.json(userOrganizations);
-  }
-);
+// Internal route - not exposed in OpenAPI spec
+userOrganizationsRoutes.get('/', async (c) => {
+  const userId = c.req.param('userId');
+  const authenticatedUserId = c.get('userId');
 
-// POST /api/users/:userId/organizations - Add user to organization
-userOrganizationsRoutes.openapi(
-  createRoute({
-    method: 'post',
-    path: '/',
-    tags: ['User Organizations'],
-    summary: 'Add user to organization',
-    description: 'Associate a user with an organization',
-    request: {
-      params: z.object({
-        userId: z.string().describe('User ID'),
-      }),
-      body: {
-        content: {
-          'application/json': {
-            schema: AddUserToOrganizationRequestSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      201: {
-        description: 'User added to organization',
-        content: {
-          'application/json': {
-            schema: AddUserToOrganizationResponseSchema,
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { userId } = c.req.valid('param');
-    const { organizationId, role } = c.req.valid('json');
-
-    await addUserToOrganization(runDbClient)({ userId, organizationId, role });
-    return c.json({ organizationId, role, createdAt: new Date().toISOString() }, 201);
+  if (!userId) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'User ID is required',
+    });
   }
-);
+
+  // Only allow querying own organizations
+  if (userId !== authenticatedUserId) {
+    throw createApiError({
+      code: 'forbidden',
+      message: "Cannot access another user's organizations",
+    });
+  }
+
+  const orgs = await getUserOrganizationsFromDb(runDbClient)(userId);
+  // Transform Date to string for API response
+  const userOrganizations = orgs.map((org) => ({
+    ...org,
+    createdAt: org.createdAt.toISOString(),
+  }));
+  return c.json(userOrganizations);
+});
 
 export default userOrganizationsRoutes;

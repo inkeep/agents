@@ -31,7 +31,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'External Agents': 'LuGlobe',
   'Function Tools': 'LuCode',
   Functions: 'LuCode2',
-  Invitations: 'LuUserPlus',
+  GitHub: 'LuGithub',
   MCP: 'LuServer',
   'MCP Catalog': 'LuLibrary',
   OAuth: 'LuShieldCheck',
@@ -43,7 +43,6 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Third-Party MCP Servers': 'LuServerCog',
   Tools: 'LuHammer',
   Triggers: 'LuWebhook',
-  'User Organizations': 'LuBuilding',
   'User Project Memberships': 'LuUserCheck',
   Webhooks: 'LuWebhook',
   Workflows: 'LuWorkflow',
@@ -104,6 +103,7 @@ ${prettyError}`);
         .replace('A2 A', 'A2A')
         .replace('A P I', 'API')
         .replace('C L I', 'CLI')
+        .replace('Git Hub', 'GitHub')
         .replace('O Auth', 'OAuth')
         .replace('Sub Agents', 'SubAgents')
         .replace('Third Party', 'Third-Party')

@@ -1,13 +1,11 @@
 import {
   type ArtifactComponentApiInsert,
+  convertZodToJsonSchemaWithPreview,
   type DataComponentApiInsert,
   getLogger,
+  isZodSchema,
   type ToolPolicy,
 } from '@inkeep/agents-core';
-import {
-  convertZodToJsonSchemaWithPreview,
-  isZodSchema,
-} from '@inkeep/agents-core/utils/schema-conversion';
 import { ArtifactComponent } from './artifact-component';
 import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
