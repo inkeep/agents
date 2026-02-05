@@ -44,7 +44,7 @@ describe('agent serialize/deserialize', () => {
             delegateTargetToSource: false,
           },
         },
-      } as Edge,
+      },
     ];
 
     const serialized = serializeAgentData(nodes, edges, {
@@ -114,7 +114,7 @@ describe('agent serialize/deserialize', () => {
         type: EdgeType.Default,
         source: 'a1',
         target: 't1node',
-      } as Edge,
+      },
       {
         id: 'e2',
         type: EdgeType.A2A,
@@ -128,7 +128,7 @@ describe('agent serialize/deserialize', () => {
             delegateTargetToSource: false,
           },
         },
-      } as Edge,
+      },
     ];
 
     const serialized = serializeAgentData(nodes, edges, {

@@ -65,6 +65,10 @@ import {
   taskRelations,
   tasks,
   triggerInvocations,
+  workAppGitHubInstallations,
+  workAppGitHubMcpToolRepositoryAccess,
+  workAppGitHubProjectRepositoryAccess,
+  workAppGitHubRepositories,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -189,6 +193,36 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 // We use type assertions with explicit return types to maintain type safety at call sites.
 type OmitProjectScope<T> = Omit<T, 'tenantId' | 'projectId'>;
 type OmitAgentScope<T> = Omit<T, 'tenantId' | 'projectId' | 'agentId'>;
+type OmitTenantScope<T> = Omit<T, 'tenantId'>;
+type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt'>;
+type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Generic helper for tenant-scoped entities (omits only tenantId, not projectId)
+const omitTenantScope = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTenantScope<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<
+    OmitTenantScope<T>
+  >;
+
+// Generic helper for omitting timestamp fields
+const omitTimestamps = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitTimestamps<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitTimestamps<T>>;
+
+// Generic helper for omitting auto-generated fields (common for API insert schemas)
+const omitGeneratedFields = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): z.ZodObject<OmitGeneratedFields<T>> =>
+  (schema as z.ZodObject<z.ZodRawShape>).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }) as z.ZodObject<OmitGeneratedFields<T>>;
 
 const createApiSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
@@ -671,7 +705,7 @@ export const TriggerSelectSchema = registerFieldSchemas(
   })
 );
 
-const TriggerInsertSchemaBase = createInsertSchema(triggers, {
+export const TriggerInsertSchema = createInsertSchema(triggers, {
   id: () => ResourceIdSchema,
   name: () => z.string().trim().nonempty().describe('Trigger name'),
   description: () => z.string().optional().describe('Trigger description'),
@@ -690,87 +724,83 @@ const TriggerInsertSchemaBase = createInsertSchema(triggers, {
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
   signatureVerification: () =>
-    SignatureVerificationConfigSchema.nullable()
-      .optional()
-      .describe('Configuration for webhook signature verification'),
-});
-
-export const TriggerInsertSchema = TriggerInsertSchemaBase.superRefine((data, ctx) => {
-  const config = data.signatureVerification as SignatureVerificationConfig | null | undefined;
-  if (!config) return;
-
-  // Validate signature.regex if present
-  if (config.signature.regex) {
-    const regexResult = validateRegex(config.signature.regex);
-    if (!regexResult.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
-        path: ['signatureVerification', 'signature', 'regex'],
-      });
-    }
-  }
-
-  // Validate signature.key as JMESPath if source is 'body'
-  if (config.signature.source === 'body' && config.signature.key) {
-    const jmespathResult = validateJMESPathSecure(config.signature.key);
-    if (!jmespathResult.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
-        path: ['signatureVerification', 'signature', 'key'],
-      });
-    }
-  }
-
-  // Validate each signed component
-  config.signedComponents.forEach((component, index) => {
-    // Validate component.regex if present
-    if (component.regex) {
-      const regexResult = validateRegex(component.regex);
-      if (!regexResult.valid) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
-          path: ['signatureVerification', 'signedComponents', index, 'regex'],
-        });
-      }
-    }
-
-    // Validate component.key as JMESPath if source is 'body'
-    if (component.source === 'body' && component.key) {
-      const jmespathResult = validateJMESPathSecure(component.key);
-      if (!jmespathResult.valid) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
-          path: ['signatureVerification', 'signedComponents', index, 'key'],
-        });
-      }
-    }
-
-    // Validate component.value as JMESPath if provided (for header/body extraction)
-    if (component.value && component.source !== 'literal') {
-      // For non-literal sources, value might be a JMESPath expression
-      // Only validate if it looks like a JMESPath expression
-      if (component.value.includes('.') || component.value.includes('[')) {
-        const jmespathResult = validateJMESPathSecure(component.value);
-        if (!jmespathResult.valid) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
-            path: ['signatureVerification', 'signedComponents', index, 'value'],
-          });
+    SignatureVerificationConfigSchema.nullish()
+      .superRefine((config, ctx) => {
+        if (!config) return;
+        // Validate signature.regex if present
+        if (config.signature.regex) {
+          const regexResult = validateRegex(config.signature.regex);
+          if (!regexResult.valid) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `Invalid regex pattern in signature.regex: ${regexResult.error}`,
+              path: ['signatureVerification', 'signature', 'regex'],
+            });
+          }
         }
-      }
-    }
-  });
+
+        // Validate signature.key as JMESPath if source is 'body'
+        if (config.signature.source === 'body' && config.signature.key) {
+          const jmespathResult = validateJMESPathSecure(config.signature.key);
+          if (!jmespathResult.valid) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `Invalid JMESPath expression in signature.key: ${jmespathResult.error}`,
+              path: ['signatureVerification', 'signature', 'key'],
+            });
+          }
+        }
+
+        // Validate each signed component
+        config.signedComponents.forEach((component, index) => {
+          // Validate component.regex if present
+          if (component.regex) {
+            const regexResult = validateRegex(component.regex);
+            if (!regexResult.valid) {
+              ctx.addIssue({
+                code: 'custom',
+                message: `Invalid regex pattern in signedComponents[${index}].regex: ${regexResult.error}`,
+                path: ['signatureVerification', 'signedComponents', index, 'regex'],
+              });
+            }
+          }
+
+          // Validate component.key as JMESPath if source is 'body'
+          if (component.source === 'body' && component.key) {
+            const jmespathResult = validateJMESPathSecure(component.key);
+            if (!jmespathResult.valid) {
+              ctx.addIssue({
+                code: 'custom',
+                message: `Invalid JMESPath expression in signedComponents[${index}].key: ${jmespathResult.error}`,
+                path: ['signatureVerification', 'signedComponents', index, 'key'],
+              });
+            }
+          }
+
+          // Validate component.value as JMESPath if provided (for header/body extraction)
+          if (component.value && component.source !== 'literal') {
+            // For non-literal sources, value might be a JMESPath expression
+            // Only validate if it looks like a JMESPath expression
+            if (component.value.includes('.') || component.value.includes('[')) {
+              const jmespathResult = validateJMESPathSecure(component.value);
+              if (!jmespathResult.valid) {
+                ctx.addIssue({
+                  code: 'custom',
+                  message: `Invalid JMESPath expression in signedComponents[${index}].value: ${jmespathResult.error}`,
+                  path: ['signatureVerification', 'signedComponents', index, 'value'],
+                });
+              }
+            }
+          }
+        });
+      })
+      .describe('Configuration for webhook signature verification'),
 });
 
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
 // We use .removeDefault() to strip the default from enabled field
-export const TriggerUpdateSchema = TriggerInsertSchemaBase.extend({
+export const TriggerUpdateSchema = TriggerInsertSchema.extend({
   // Override enabled to remove the default so {} doesn't become {enabled: true}
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
 }).partial();
@@ -2608,4 +2638,69 @@ export const PaginationWithRefQueryParamsSchema =
 export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
 export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
   createdAt: true,
+});
+
+export const WorkAppGitHubInstallationStatusSchema = z.enum([
+  'pending',
+  'active',
+  'suspended',
+  'disconnected',
+]);
+export const WorkAppGitHubAccountTypeSchema = z.enum(['Organization', 'User']);
+
+export const WorkAppGitHubInstallationSelectSchema = createSelectSchema(workAppGitHubInstallations);
+export const WorkAppGitHubInstallationInsertSchema = createInsertSchema(workAppGitHubInstallations)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+  })
+  .extend({
+    accountType: WorkAppGitHubAccountTypeSchema,
+    status: WorkAppGitHubInstallationStatusSchema.optional().default('active'),
+  });
+
+export const WorkAppGithubInstallationApiSelectSchema = omitTenantScope(
+  WorkAppGitHubInstallationSelectSchema
+);
+export const WorkAppGitHubInstallationApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubInstallationInsertSchema
+);
+
+export const WorkAppGitHubRepositorySelectSchema = createSelectSchema(workAppGitHubRepositories);
+export const WorkAppGitHubRepositoryInsertSchema = omitTimestamps(
+  createInsertSchema(workAppGitHubRepositories)
+);
+
+export const WorkAppGitHubRepositoryApiInsertSchema = omitGeneratedFields(
+  WorkAppGitHubRepositoryInsertSchema
+);
+
+export const WorkAppGitHubProjectRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubProjectRepositoryAccess
+);
+
+export const WorkAppGitHubMcpToolRepositoryAccessSelectSchema = createSelectSchema(
+  workAppGitHubMcpToolRepositoryAccess
+);
+
+// Shared GitHub Access API Schemas
+export const WorkAppGitHubAccessModeSchema = z.enum(['all', 'selected']);
+
+export const WorkAppGitHubAccessSetRequestSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryIds: z
+    .array(z.string())
+    .optional()
+    .describe('Internal repository IDs (required when mode="selected")'),
+});
+
+export const WorkAppGitHubAccessSetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositoryCount: z.number(),
+});
+
+export const WorkAppGitHubAccessGetResponseSchema = z.object({
+  mode: WorkAppGitHubAccessModeSchema,
+  repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });

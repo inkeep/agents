@@ -417,7 +417,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'delegation_sent':
           case 'transfer': {
-            const { fromSubAgent, targetSubAgent } = data.details.data;
+            const { fromSubAgent, targetSubAgent } = data.details?.data || {};
 
             return {
               edges: updateEdgeStatus((edge) =>
@@ -433,7 +433,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'delegation_returned': {
-            const { targetSubAgent, fromSubAgent } = data.details.data;
+            const { targetSubAgent, fromSubAgent } = data.details?.data || {};
             return {
               edges: updateEdgeStatus((edge) =>
                 edge.source === targetSubAgent && edge.target === fromSubAgent
@@ -449,8 +449,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'tool_call': {
-            const { relationshipId } = data.details.data;
-            const { subAgentId } = data.details;
+            const relationshipId = data.details?.data?.relationshipId;
             if (!relationshipId) {
               const error = new Error('[type: tool_call] relationshipId is missing');
               sentry.captureException(error, { extra: data });
@@ -464,7 +463,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   : edge.data?.status;
               }),
               nodes: updateNodeStatus((node) =>
-                node.data.id === subAgentId ||
+                node.data.id === data.details?.subAgentId ||
                 (relationshipId && relationshipId === node.data.relationshipId)
                   ? 'delegating'
                   : node.data.status
@@ -472,7 +471,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'error': {
-            const { relationshipId, agent } = data.details.data ?? {};
+            const { relationshipId, agent } = data.details?.data ?? {};
             if (!relationshipId && !data.agent && !agent) {
               const error = new Error(`[type: error] relationshipId is missing`);
               sentry.captureException(error, { extra: data });
@@ -488,8 +487,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'tool_result': {
-            const { error, relationshipId } = data.details.data;
-            const { subAgentId } = data.details;
+            const relationshipId = data.details?.data?.relationshipId;
             if (!relationshipId) {
               const error = new Error('[type: tool_result] relationshipId is missing');
               sentry.captureException(error, { extra: data });
@@ -499,7 +497,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
 
-                return subAgentId === edge.source &&
+                return data.details?.subAgentId === edge.source &&
                   relationshipId &&
                   relationshipId === node?.data.relationshipId
                   ? 'inverted-delegating'
@@ -507,9 +505,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               }),
               nodes: updateNodeStatus((node) => {
                 if (relationshipId && relationshipId === node.data.relationshipId) {
-                  return error ? 'error' : 'inverted-delegating';
+                  return data.details?.data?.error ? 'error' : 'inverted-delegating';
                 }
-                if (node.id === subAgentId) {
+                if (node.id === data.details?.subAgentId) {
                   return 'delegating';
                 }
 
@@ -525,10 +523,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'agent_reasoning':
           case 'agent_generate': {
-            const { subAgentId } = data.details;
             return {
               nodes: updateNodeStatus((node) =>
-                node.id === subAgentId ? 'executing' : node.data.status
+                node.id === data.details?.subAgentId ? 'executing' : node.data.status
               ),
             };
           }

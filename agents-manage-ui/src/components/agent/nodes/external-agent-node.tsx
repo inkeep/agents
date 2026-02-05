@@ -11,8 +11,11 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
 
-export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeData }) {
-  const { data, selected, id } = props;
+export function ExternalAgentNode({
+  data,
+  selected,
+  id,
+}: NodeProps & { data: ExternalAgentNodeData }) {
   const { name, description } = data;
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
@@ -43,7 +46,10 @@ export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeDa
         </BaseNodeHeader>
         <BaseNodeContent>
           <div
-            className={`text-sm ${description ? ' text-muted-foreground' : 'text-muted-foreground/50'}`}
+            className={cn(
+              'text-sm',
+              description ? ' text-muted-foreground' : 'text-muted-foreground/50'
+            )}
           >
             {description || 'No description'}
           </div>

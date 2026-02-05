@@ -56,12 +56,3 @@ export const BaseNodeContent: FC<ComponentProps<'div'>> = ({ className, ...props
     {...props}
   />
 );
-
-/** @lintignore */
-export const BaseNodeFooter: FC<ComponentProps<'div'>> = ({ className, ...props }) => (
-  <div
-    data-slot="base-node-footer"
-    className={cn('flex flex-col items-center gap-y-2 border-t px-4 pb-4 pt-3', className)}
-    {...props}
-  />
-);

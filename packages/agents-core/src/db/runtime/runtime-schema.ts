@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  boolean,
   foreignKey,
   index,
   jsonb,
@@ -17,6 +18,8 @@ import type {
   MessageContent,
   MessageMetadata,
   TaskMetadataConfig,
+  WorkAppGitHubAccountType,
+  WorkAppGitHubInstallationStatus,
 } from '../../types/utility';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 
@@ -491,3 +494,236 @@ export const ledgerArtifactsRelations = relations(ledgerArtifacts, ({ one }) => 
     references: [tasks.id],
   }),
 }));
+
+// ============================================================================
+// Work App TABLES
+// ============================================================================
+
+/**
+ * Tracks GitHub App installations linked to tenants.
+ * One tenant can have multiple installations (e.g., multiple orgs).
+ * The installation_id is the GitHub-assigned ID, unique across all GitHub.
+ */
+export const workAppGitHubInstallations = pgTable(
+  'work_app_github_installations',
+  {
+    ...tenantScoped,
+    installationId: text('installation_id').notNull().unique(),
+    accountLogin: varchar('account_login', { length: 256 }).notNull(),
+    accountId: text('account_id').notNull(),
+    accountType: varchar('account_type', { length: 20 })
+      .$type<WorkAppGitHubAccountType>()
+      .notNull(),
+    status: varchar('status', { length: 20 })
+      .$type<WorkAppGitHubInstallationStatus>()
+      .notNull()
+      .default('active'),
+    ...timestamps,
+  },
+  (table) => [
+    index('work_app_github_installations_tenant_idx').on(table.tenantId),
+    index('work_app_github_installations_installation_id_idx').on(table.installationId),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_github_installations_organization_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Repositories accessible through a GitHub App installation.
+ * These are synced from GitHub when the app is installed or updated.
+ * The repository_id is the GitHub-assigned ID, unique across all GitHub.
+ */
+export const workAppGitHubRepositories = pgTable(
+  'work_app_github_repositories',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    installationDbId: varchar('installation_db_id', { length: 256 }).notNull(),
+    repositoryId: text('repository_id').notNull(),
+    repositoryName: varchar('repository_name', { length: 256 }).notNull(),
+    repositoryFullName: varchar('repository_full_name', { length: 512 }).notNull(),
+    private: boolean('private').notNull().default(false),
+    ...timestamps,
+  },
+  (table) => [
+    index('work_app_github_repositories_installation_idx').on(table.installationDbId),
+    index('work_app_github_repositories_full_name_idx').on(table.repositoryFullName),
+    unique('work_app_github_repositories_repo_installation_unique').on(
+      table.installationDbId,
+      table.repositoryId
+    ),
+    foreignKey({
+      columns: [table.installationDbId],
+      foreignColumns: [workAppGitHubInstallations.id],
+      name: 'work_app_github_repositories_installation_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Links projects to specific GitHub repositories for fine-grained access control.
+ * When a project has entries here, only the listed repositories are accessible.
+ * When no entries exist for a project, all tenant repositories are accessible (mode='all').
+ * The tenant_id and project_id reference the projects table in the manage schema
+ * (cross-schema, no FK constraint for project). tenant_id is included because
+ * project IDs are only unique within a tenant.
+ */
+export const workAppGitHubProjectRepositoryAccess = pgTable(
+  'work_app_github_project_repository_access',
+  {
+    ...projectScoped,
+    repositoryDbId: varchar('repository_db_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index('work_app_github_project_repository_access_tenant_idx').on(table.tenantId),
+    index('work_app_github_project_repository_access_project_idx').on(table.projectId),
+    unique('work_app_github_project_repository_access_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.repositoryDbId
+    ),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_github_project_repository_access_tenant_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.repositoryDbId],
+      foreignColumns: [workAppGitHubRepositories.id],
+      name: 'work_app_github_project_repository_access_repo_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Links MCP tools to specific GitHub repositories for repository-scoped access.
+ * When an MCP tool has entries here, only the listed repositories are accessible to that tool.
+ * The tool_id, tenant_id, and project_id reference the tools table in the manage schema
+ * (cross-schema, no FK constraint). These are denormalized here so all GitHub access
+ * info can be queried from PostgreSQL alone.
+ */
+export const workAppGitHubMcpToolRepositoryAccess = pgTable(
+  'work_app_github_mcp_tool_repository_access',
+  {
+    ...projectScoped,
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    repositoryDbId: varchar('repository_db_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index('work_app_github_mcp_tool_repository_access_tool_idx').on(table.toolId),
+    index('work_app_github_mcp_tool_repository_access_tenant_idx').on(table.tenantId),
+    index('work_app_github_mcp_tool_repository_access_project_idx').on(table.projectId),
+    unique('work_app_github_mcp_tool_repository_access_unique').on(
+      table.toolId,
+      table.repositoryDbId
+    ),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_github_mcp_tool_repository_access_tenant_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.repositoryDbId],
+      foreignColumns: [workAppGitHubRepositories.id],
+      name: 'work_app_github_mcp_tool_repository_access_repo_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Stores the explicit access mode for project-level GitHub repository access.
+ * - 'all': Project has access to all repositories from tenant GitHub installations
+ * - 'selected': Project only has access to repositories listed in work_app_github_project_repository_access
+ * If no row exists for a project, defaults to 'selected' (fail-safe: no access unless explicitly granted).
+ */
+export const workAppGitHubProjectAccessMode = pgTable(
+  'work_app_github_project_access_mode',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    mode: varchar('mode', { length: 20 }).$type<'all' | 'selected'>().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId] }),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_github_project_access_mode_tenant_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Stores the explicit access mode for MCP tool-level GitHub repository access.
+ * - 'all': Tool has access to all repositories the project has access to
+ * - 'selected': Tool only has access to repositories listed in work_app_github_mcp_tool_repository_access
+ * If no row exists for a tool, defaults to 'selected' (fail-safe: no access unless explicitly granted).
+ */
+export const workAppGitHubMcpToolAccessMode = pgTable(
+  'work_app_github_mcp_tool_access_mode',
+  {
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    mode: varchar('mode', { length: 20 }).$type<'all' | 'selected'>().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.toolId] }),
+    index('work_app_github_mcp_tool_access_mode_tenant_idx').on(table.tenantId),
+    index('work_app_github_mcp_tool_access_mode_project_idx').on(table.projectId),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_github_mcp_tool_access_mode_tenant_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// GITHUB APP INSTALLATION RELATIONS
+// ============================================================================
+
+export const workAppGitHubInstallationsRelations = relations(
+  workAppGitHubInstallations,
+  ({ many }) => ({
+    repositories: many(workAppGitHubRepositories),
+  })
+);
+
+export const workAppGitHubRepositoriesRelations = relations(
+  workAppGitHubRepositories,
+  ({ one, many }) => ({
+    installation: one(workAppGitHubInstallations, {
+      fields: [workAppGitHubRepositories.installationDbId],
+      references: [workAppGitHubInstallations.id],
+    }),
+    projectAccess: many(workAppGitHubProjectRepositoryAccess),
+    mcpToolAccess: many(workAppGitHubMcpToolRepositoryAccess),
+  })
+);
+
+export const workAppGitHubProjectRepositoryAccessRelations = relations(
+  workAppGitHubProjectRepositoryAccess,
+  ({ one }) => ({
+    repository: one(workAppGitHubRepositories, {
+      fields: [workAppGitHubProjectRepositoryAccess.repositoryDbId],
+      references: [workAppGitHubRepositories.id],
+    }),
+  })
+);
+
+export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
+  workAppGitHubMcpToolRepositoryAccess,
+  ({ one }) => ({
+    repository: one(workAppGitHubRepositories, {
+      fields: [workAppGitHubMcpToolRepositoryAccess.repositoryDbId],
+      references: [workAppGitHubRepositories.id],
+    }),
+  })
+);

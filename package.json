@@ -13,7 +13,7 @@
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build --filter='!agents-cookbook-templates'",
     "knip": "turbo knip && knip --files",
-    "dev": "turbo dev --filter='!@inkeep/create-agents'",
+    "dev": "turbo dev --filter='!@inkeep/create-agents' --filter='!@inkeep/agents-work-apps'",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
@@ -76,13 +76,12 @@
     "spicedb:read:projects": "zed relationship read project --insecure --endpoint localhost:50051 --token dev-secret-key",
     "spicedb:sync": "bash scripts/sync-spicedb.sh",
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
-    "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init"
+    "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
+    "check:env-descriptions": "node scripts/check-env-descriptions.mjs"
   },
   "version": "0.1.0",
   "dependencies": {
-    "tsdown": "^0.19.0",
-    "zod": "^4.1.12",
-    "@hono/zod-openapi": "^1.1.5"
+    "tsdown": "^0.19.0"
   },
   "devDependencies": {
     "knip": "5.82.1",

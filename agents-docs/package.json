@@ -42,7 +42,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "llm-info": "^1.0.69",
     "lucide-react": "^0.503.0",
-    "next": "16.1.5",
+    "next": "^16.1.6",
     "posthog-js": "^1.308.0",
     "posthog-node": "^5.17.3",
     "react": "19.3.0-canary-87ae75b3-20260128",
@@ -54,7 +54,7 @@
     "remark-rehype": "^11.1.2",
     "remark-source-code": "^0.0.3",
     "tailwind-merge": "^3.2.0",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",

@@ -348,12 +348,28 @@ export function renderPanelContent({
         </>
       );
 
-    case 'delegation':
+    case 'delegation': {
+      const getDelegationTypeLabel = (type?: string) => {
+        switch (type) {
+          case 'internal':
+            return 'Sub Agent';
+          case 'external':
+            return 'External Agent';
+          case 'team':
+            return 'Team Agent';
+          default:
+            return 'Unknown';
+        }
+      };
       return (
         <>
           <Section>
             <Info label="From sub agent" value={a.delegationFromSubAgentId || 'Unknown Agent'} />
             <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
+            <Info
+              label="Delegation to"
+              value={<Badge variant="secondary">{getDelegationTypeLabel(a.delegationType)}</Badge>}
+            />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -387,6 +403,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'transfer':
       return (

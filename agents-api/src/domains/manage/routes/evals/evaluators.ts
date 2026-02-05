@@ -17,10 +17,27 @@ import {
   updateEvaluator,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluators');
+
+// Require edit permission for write operations
+// Note: POST /batch is a read operation (batch fetch), so only POST / needs edit
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:evaluatorId', async (c, next) => {
+  if (['PATCH', 'DELETE'].includes(c.req.method)) {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
