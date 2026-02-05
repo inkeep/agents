@@ -81,7 +81,7 @@ Return findings as JSON array per pr-review-output-contract.
 
 **You are the final arbiter** of the final feedback sent to the developer.
 
-Your goal is to make feedback actionable and relevant.
+Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE.
 
 ### 4.1 Semantic Deduplication
 
@@ -97,7 +97,8 @@ For each finding, ask:
 1. **Is this applicable and attributable to changes in this PR?** (not a pre-existing issue) → If No, **DROP**
 2. **Is this issue actually addressed elsewhere?** (e.g., sanitization happens upstream and that's the better place) → If Yes, **DROP**
 3. **Are the plausible resolutions reasonably addressable within the scope of this PR?** → If No, **DROP**
-
+4. **Has this issue been raised in the PR already and is pending or already resolved?** -> If Yes, **DROP** or briefly mention ONLY in 🕐 *Pending Recommendations* 🕐 later
+   
 ### 4.3 Conflict Resolution
 
 When sub-reviewers you invoked disagree on the same code, use your best judgement on which is likely correct or include both perspectives. Take into account your own understanding of the code base, the PR, and the points made by the subagents.
@@ -105,33 +106,34 @@ When sub-reviewers you invoked disagree on the same code, use your best judgemen
 ### 4.4 Additional Explore research (OPTIONAL)
 If you are split on items that seem plausibly important but are gray area or you don't have full confidence on, feel free to spin up additional Explore subagents or inspect the codebase yourself (to the minimum extent needed). This be reserved for any high stakes, complex, and grayarea items you want to increase your own understanding of a problem space to get full clarity and judgement. Keep passes here scoped/limited, if any.
 
-### 4.5 Final Ranking
+### 4.5 Final Categorizations
 
 Feel free to make your own determination about the confidence and severity levels of the issues. Prioritize by what's most actionable, applicable, and of note.
 
-## Phase 5: **Point-Fix Edits**
+## Phase 5: **Inline-Comment Edits**
 
 ### 5.1 Identify Inline-Eligible Findings
 
 Before writing the summary comment, classify each finding as **inline-eligible** or **summary-only**.
 
-**Point-Fix-eligible criteria** (**ALL must be true**):
+**Inline-Comment-eligible criteria** (**ALL must be true**):
 - **Confidence:** `HIGH`
-- **Severity:** `CRITICAL`, `MAJOR`, or `MINOR`. Note: `MINOR` if issue should truly undoubtedly be addressed without reasonable exception.
+- **Severity:** `CRITICAL`(🔴), `MAJOR`(🟠), or `MINOR`(🟡). Note: `MINOR` if issue should truly undoubtedly be addressed without reasonable exception.
 - **Type:** `type: "inline"` (findings with `type: "file"`, `"multi-file"`, or `"system"` are summary-only)
-- **Fix scope:** same file, ~1–10 lines changed, no cross-file refactor
+- **Fix scope:** same file, ~1–10 lines changed. DO NOT consider for inline-comment is the issue involves multiple files, has multiple potential options you want the user to consider, or otherwise is non-trivial change you want the developer to carefully consider.
+- If the suggestion is architectural/conceptual rather than a concrete code change
 - **Actionability:** you can propose a concrete, low-risk fix (not just “consider X”)
 - **Fix Confidence:** Finding's `fix_confidence` field must be `HIGH` (fix is complete and can be applied as-is). `MEDIUM` or `LOW` → summary-only.
 
-If none of the above fit, or larger scope or complex/require high consideration, defer to considering it for **summary-only** or discarding it entirely.
+Only if all of the above are true, then consider it for **inline-eligible**.
 
-### 5.2 Deduplicate Point-Fix Edits
+### 5.2 Deduplicate Inline-Comment Edits
 
-Check `Existing Point-Fix Edits` before posting. **Skip** if same location (±2 lines) with similar issue, or unresolved+current thread exists. **Post** if no thread, thread is outdated but issue persists, or issue is materially different.
+Check `Existing Inline-Comment Edits` (inline comments left by you or other users) before posting. **Skip** if same location (±2 lines) with similar issue, or unresolved+current thread exists. **Post** if no thread, thread is outdated but issue persists, or issue is materially different. TIP: It's important to not make noise in the PR!
 
-### 5.3 Post Point-Fix Edits
+### 5.3 Post Inline-Comment Edits
 
-For each inline-eligible finding (after deduplication and throttling), post an inline comment using:
+For each inline-eligible finding (after deduplication), post an inline comment using:
 
 ```
 mcp__github_inline_comment__create_inline_comment
@@ -144,9 +146,9 @@ mcp__github_inline_comment__create_inline_comment
 - `side`: `"RIGHT"` (default) — use `"LEFT"` only when commenting on removed lines
 - `body`: formatted comment with GitHub suggestion block (see template below)
 
-**Inline comment template (with 1-click accept):**
+**Inline comment body template (with 1-click accept):**
 
-Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** for reviewers:
+Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** for reviewers in Inline-Comments:
 
 ````markdown
 **[SEVERITY]** [Brief issue slug]
@@ -179,19 +181,6 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 }
 ```
 
-**When NOT to use suggestion blocks:**
-- If the fix requires changes big changes across many files. Small changes across a few files is ok.
-- If there are multiple valid approaches and you want the author to choose
-- If the suggestion is architectural/conceptual rather than a concrete code change
-
-In these cases, use a regular code block with `[lang]` instead of `suggestion`.
-
-**Throttle (max 50 inline comments per PR):**
-- If more than 50 findings are inline-eligible:
-  - Prefer **CRITICAL > MAJOR > MINOR**
-  - Within the same severity, prefer the most localized + unambiguous fixes
-  - Move overflow to **summary-only** (still include them as findings, just not inline)
-
 ### 5.4 Capture Inline Comment URLs
 
 After posting all inline comments, query their URLs to include clickable links in the summary:
@@ -201,13 +190,13 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
   --jq '[.[] | select(.user.login == "claude[bot]" or .user.login == "github-actions[bot]") | {path, line, html_url, body_preview: .body[0:80]}]'
 ```
 
-Store the `html_url` for each comment you posted. Use these URLs in the **Point-Fix Edits** section (Phase 6) to create clickable links.
+Store the `html_url` for each comment you posted. Use these URLs in the **Inline-Comment Edits** section (Phase 6) to create clickable links.
 
 ## Phase 6: "Summary" Roll Up Comment
 
 ### 6.1 Deduplicate Summary Findings
 
-Check `PR Discussion` before finalizing. **Skip** if you or a human already raised the issue and it was acknowledged/addressed. **Include** if raised but not addressed in latest commits, or issue persists from older version, and still relevant given context of PR.
+Consider what's in `PR Context` (pr-context) to ensure you don't regurgitate old stuff. **Skip** an item if you or a human already raised the issue and it was acknowledged/addressed. Include ONLY as a **Pending Recommendation** if raised but (1) not yet declined/closed by user or solved in code in latest commits and (2) still relevant given context of PR.
 
 ### 6.2 Format Summary
 
@@ -215,7 +204,8 @@ Summary Roll Up Comment has a few parts which you will produce as a single **PR 
 
 Outline of format (in this order!):
 - "Main"
-- "Point Fix Edits"
+- "Pending Items"
+- "Inline Comment Edits (new)"
 - "Final Recommendation"
 - "Other Findings"
 
@@ -225,7 +215,7 @@ Outline of format (in this order!):
 - **Severity + Confidence**:
   - `CRITICAL` + `MEDIUM` or `CRITICAL` + `HIGH`
   - `MAJOR` + `HIGH`
-- **Not posted as Inline Comment** (those go in "Point-fix Edits" instead)
+- **Not** already posted or addressed as a comment on the existing PR, from prior PR history (`pr_context`) or from inline comments.
 
 #### Format
 
@@ -234,7 +224,7 @@ Outline of format (in this order!):
 
 **X Key Findings** | Risk: **High/Medium/Low**
 
-### 🔴❗🚨 Critical (N) 🔴❗🚨
+### 🔴❗ Critical (N) ❗🔴
 
 🔴 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
  
@@ -252,26 +242,14 @@ when the problem is complex or context is needed.
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 // ...
 
-🕐 *Pending Recommendations* 🕐
-Previous issues still pending (use `url` from pr-context's Existing Inline Comments or PR Discussion):
-❗ [`file.ts:42`](https://github.com/.../pull/123#discussion_r456) [paraphrased issue <1 sentence]
-❗ `[file].ts[:line]` [paraphrased issue <1 sentence] <!-- use url if available -->
-// ...
+### 🟠⚠️ Major (M) 🟠⚠️
 
-### 🟠🔶⚠️ Major (M) 🟠🔶⚠️
+// 🟠 1) ...same format as "Critical" findings
 
-// 🟠 1) ...same format as Critical findings
-
-// ...
-
-🕐 *Pending Recommendations* 🕐
-Previous issues still pending (use `url` from pr-context's Existing Inline Comments or PR Discussion):
-⚠️ [`file.ts:42`](https://github.com/.../pull/123#discussion_r456) [paraphrased issue <1 sentence]
-// ...
-
+// 🟠 2) ...same format as "Critical" findings
 ````
 
-Tip: X = P + N + M (Point-fix + Critical + Major findings total)
+Tip: X = P + N + M (Inline Comments + Critical + Major findings total)
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approches with potentially code blocks to help illustrate
@@ -280,16 +258,15 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
-> **EXCEPTION**: If any of the above issues have already been previously suggested by Claude or any other reviewer, DO NOT re-state the item in full. Just make it a "single line" paraphrased list item and prefix it as "⏳🕐", similar to Point-fix Edits, highlighting why you still consider it important/valid ask/applicable (if that's true! it may have been resolved already! Only outline ones that are still applicable.)
+> **EXCEPTION**: DO NOT REPEAT ANY ITEMS THAT HAVE ALREADY BEEN RAISED PREVIOUSLY OR YOU ADDRESSED WITH INLINE COMMENTS. DUPLICATION OF THINGS IS NOT ACCEPTABLE.
 
-### 📌 "Point-Fix Edits" section
+###  New Inline-Commentss
 
-If you posted inline comments in Phase 5 (in this run), include a brief log section with **clickable links** to each comment:
+If you posted inline comments in Phase 5 (in this run, NOT previously posted), include a brief log section with **clickable links** to each comment:
 
 ````markdown
-### Point-fix Edits (P)
-
-<!-- Only if inline comments have been posted from Claude -->
+### 📌 New Inline Comments (P)
+<!-- Only if inline comments have been posted from Claude in this run-->
 - 🔴 [`file.ts:42`](https://github.com/.../pull/123#discussion_r456789) Issue summary
 - 🟠 [`handler.ts:15-17`](https://github.com/.../pull/123#discussion_r456790) Issue summary
 - 🟠 [`utils.ts:88`](https://github.com/.../pull/123#discussion_r456791) Issue summary
@@ -300,6 +277,16 @@ If you posted inline comments in Phase 5 (in this run), include a brief log sect
 Use the `html_url` values captured in Phase 5.4 to create clickable links. This allows reviewers to jump directly to each inline comment.
 
 This provides a quick reference to inline comments without repeating full details.
+
+### "Pending Recommendations" section
+Previous issues posted by humans or yourself from previous runs that are still pending AND applicable (use `url` from pr-context):
+
+````markdown
+### 🕐 Pending Recommendations (R)
+🔴 [`file.ts:42`](https://github.com/.../pull/123#discussion_r456) [paraphrased issue <1 sentence]
+🟠 [`file.ts:42`](https://github.com/.../pull/123#discussion_r457) [paraphrased issue <1 sentence]
+🟡 [`file.ts:42`](https://github.com/.../pull/123#discussion_r457) [paraphrased issue <1 sentence]
+// ...
 
 ### Final Recommendation
 
