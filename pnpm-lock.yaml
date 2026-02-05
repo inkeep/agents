@@ -907,9 +907,6 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
-      zod-from-json-schema:
-        specifier: ^0.5.2
-        version: 0.5.2
     devDependencies:
       '@types/jmespath':
         specifier: ^0.15.2
@@ -13625,9 +13622,6 @@ packages:
 
   youtube-video-element@1.8.1:
     resolution: {integrity: sha512-+5UuAGaj+5AnBf39huLVpy/4dLtR0rmJP1TxOHVZ81bac4ZHFpTtQ4Dz2FAn2GPnfXISezvUEaQoAdFW4hH9Xg==}
-
-  zod-from-json-schema@0.5.2:
-    resolution: {integrity: sha512-/dNaicfdhJTOuUd4RImbLUE2g5yrSzzDjI/S6C2vO2ecAGZzn9UcRVgtyLSnENSmAOBRiSpUdzDS6fDWX3Z35g==}
 
   zod-to-json-schema@3.25.0:
     resolution: {integrity: sha512-HvWtU2UG41LALjajJrML6uQejQhNJx+JBO9IflpSja4R03iNWfKXrj6W2h7ljuLyc1nKS+9yDyL/9tD1U/yBnQ==}
@@ -31389,10 +31383,6 @@ snapshots:
   yoctocolors@2.1.2: {}
 
   youtube-video-element@1.8.1: {}
-
-  zod-from-json-schema@0.5.2:
-    dependencies:
-      zod: 4.3.6
 
   zod-to-json-schema@3.25.0(zod@3.25.76):
     dependencies:
