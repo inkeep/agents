@@ -29,6 +29,7 @@ export type CreateScheduledTriggerInput = {
   description?: string;
   enabled?: boolean;
   cronExpression?: string | null;
+  cronTimezone?: string | null;
   runAt?: string | null;
   payload?: Record<string, unknown> | null;
   messageTemplate?: string;

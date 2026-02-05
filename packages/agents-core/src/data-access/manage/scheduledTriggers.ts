@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledTriggers } from '../../db/manage/manage-schema';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
@@ -19,25 +19,6 @@ export const getScheduledTriggerById =
   }): Promise<ScheduledTrigger | undefined> => {
     const { scopes, scheduledTriggerId } = params;
 
-    // DEBUG: Check if scheduledTriggers table is the expected object
-    console.log(
-      '[getScheduledTriggerById] scheduledTriggers table name:',
-      (scheduledTriggers as any)[Symbol.for('drizzle:Name')] ?? scheduledTriggers
-    );
-
-    // DEBUG: Raw SQL query to compare with Drizzle result
-    const rawSqlResult = await db.execute(
-      sql`SELECT id, max_retries, retry_delay_seconds, timeout_seconds 
-          FROM scheduled_triggers 
-          WHERE tenant_id = ${scopes.tenantId} 
-            AND project_id = ${scopes.projectId} 
-            AND agent_id = ${scopes.agentId} 
-            AND id = ${scheduledTriggerId} 
-          LIMIT 1`
-    );
-    const rawRow = (rawSqlResult as any).rows?.[0] ?? (rawSqlResult as any)[0];
-    console.log('[getScheduledTriggerById] RAW SQL result:', rawRow);
-
     const result = await db.query.scheduledTriggers.findFirst({
       where: and(
         eq(scheduledTriggers.tenantId, scopes.tenantId),
@@ -45,14 +26,6 @@ export const getScheduledTriggerById =
         eq(scheduledTriggers.agentId, scopes.agentId),
         eq(scheduledTriggers.id, scheduledTriggerId)
       ),
-    });
-
-    console.log('[getScheduledTriggerById] DRIZZLE result:', {
-      maxRetries: result?.maxRetries,
-      maxRetriesType: typeof result?.maxRetries,
-      maxRetriesIsNaN: typeof result?.maxRetries === 'number' ? Number.isNaN(result.maxRetries) : 'N/A',
-      retryDelaySeconds: result?.retryDelaySeconds,
-      timeoutSeconds: result?.timeoutSeconds,
     });
 
     return result as ScheduledTrigger | undefined;

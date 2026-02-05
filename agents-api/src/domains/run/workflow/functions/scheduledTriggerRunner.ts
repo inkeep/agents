@@ -108,6 +108,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       } else if (trigger.cronExpression) {
         const { nextExecutionTime } = await calculateNextExecutionStep({
           cronExpression: trigger.cronExpression,
+          cronTimezone: trigger.cronTimezone,
           lastScheduledFor,
         });
         scheduledFor = nextExecutionTime;

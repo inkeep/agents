@@ -935,6 +935,12 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
   description: () => z.string().optional().describe('Scheduled trigger description'),
   enabled: () => z.boolean().default(true).describe('Whether the trigger is enabled'),
   cronExpression: () => CronExpressionSchema.nullable().optional(),
+  cronTimezone: () =>
+    z
+      .string()
+      .max(64)
+      .default('UTC')
+      .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
   runAt: () => z.string().datetime().nullable().optional().describe('One-time execution timestamp'),
   payload: () =>
     z

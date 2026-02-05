@@ -1,9 +1,9 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { Filter, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -105,6 +105,7 @@ export function TriggersTabs({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [agentFilter, setAgentFilter] = useState<string>('');
 
   const tabParam = searchParams.get('tab');
   const activeTab: TabValue = VALID_TABS.includes(tabParam as TabValue)
@@ -116,6 +117,18 @@ export function TriggersTabs({
     params.set('tab', tab);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
+
+  const filteredScheduledTriggers = useMemo(() => {
+    if (!agentFilter) return scheduledTriggers;
+    return scheduledTriggers.filter((trigger) => trigger.agentId === agentFilter);
+  }, [scheduledTriggers, agentFilter]);
+
+  const filteredWebhookTriggers = useMemo(() => {
+    if (!agentFilter) return webhookTriggers;
+    return webhookTriggers.filter((trigger) => trigger.agentId === agentFilter);
+  }, [webhookTriggers, agentFilter]);
+
+  const selectedAgentName = agents.find((a) => a.id === agentFilter)?.name;
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -150,17 +163,54 @@ export function TriggersTabs({
         )}
       </div>
 
-      <TabsContent value="scheduled" className="mt-6">
+      {agents.length > 1 && (
+        <div className="flex items-center gap-2 mt-4">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Combobox
+            options={[
+              { value: '', label: 'All agents' },
+              ...agents.map((agent) => ({
+                value: agent.id,
+                label: agent.name,
+              })),
+            ]}
+            onSelect={setAgentFilter}
+            defaultValue={agentFilter}
+            placeholder="Filter by agent"
+            searchPlaceholder="Search agents..."
+            notFoundMessage="No agents found."
+            className="w-[200px]"
+          />
+          {agentFilter && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAgentFilter('')}
+              className="h-8 px-2 text-muted-foreground"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear filter
+            </Button>
+          )}
+          {agentFilter && (
+            <span className="text-sm text-muted-foreground">
+              Showing triggers for <span className="font-medium">{selectedAgentName}</span>
+            </span>
+          )}
+        </div>
+      )}
+
+      <TabsContent value="scheduled" className={agents.length > 1 ? 'mt-4' : 'mt-6'}>
         <ProjectScheduledTriggersTable
-          triggers={scheduledTriggers}
+          triggers={filteredScheduledTriggers}
           tenantId={tenantId}
           projectId={projectId}
         />
       </TabsContent>
 
-      <TabsContent value="webhooks" className="mt-6">
+      <TabsContent value="webhooks" className={agents.length > 1 ? 'mt-4' : 'mt-6'}>
         <ProjectTriggersTable
-          triggers={webhookTriggers}
+          triggers={filteredWebhookTriggers}
           tenantId={tenantId}
           projectId={projectId}
         />

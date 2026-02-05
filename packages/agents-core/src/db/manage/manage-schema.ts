@@ -169,6 +169,7 @@ export const scheduledTriggers = pgTable(
     ...uiProperties,
     enabled: boolean('enabled').notNull().default(true),
     cronExpression: varchar('cron_expression', { length: 256 }),
+    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
     runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
     payload: jsonb('payload').$type<Record<string, unknown> | null>(),
     messageTemplate: text('message_template'),
