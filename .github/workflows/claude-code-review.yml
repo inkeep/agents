@@ -2,7 +2,7 @@ name: Claude PR Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review]
 
 concurrency:
   group: pr-review-${{ github.event.pull_request.number }}
@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   pr-review:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
