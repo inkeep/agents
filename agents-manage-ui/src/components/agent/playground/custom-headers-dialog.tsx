@@ -25,15 +25,18 @@ interface CustomHeadersDialogProps {
   customHeaders?: DefaultHeaders;
   setCustomHeaders: (headers?: DefaultHeaders) => void;
   form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
   customHeaders,
   setCustomHeaders,
   form,
+  isOpen,
+  setIsOpen,
 }) => {
   'use memo';
-  const [isOpen, setIsOpen] = useState(false);
   const numHeaders = Object.keys(customHeaders ?? {}).length;
 
   const onSubmit = form.handleSubmit(({ headers }) => {
