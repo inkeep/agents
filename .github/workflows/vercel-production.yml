@@ -1,0 +1,62 @@
+name: Deploy to Vercel Production
+
+# This workflow deploys to Vercel production when a GitHub release is published,
+# or manually via workflow_dispatch (deploys latest main).
+# 1. Deploy to production (builds with production env vars, assigns production domains)
+# 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
+#
+# Required secrets (configure in GitHub Repository Settings > Secrets):
+# - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
+# - VERCEL_ORG_ID: Organization/team ID from .vercel/project.json after running `vercel link`
+# - VERCEL_API_PROJECT_ID: Project ID for agents-api
+# - VERCEL_MANAGE_UI_PROJECT_ID: Project ID for agents-manage-ui
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.project.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - name: agents-api
+            project_id_secret: VERCEL_API_PROJECT_ID
+          - name: agents-manage-ui
+            project_id_secret: VERCEL_MANAGE_UI_PROJECT_ID
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || 'main' }}
+
+      - name: Set Project ID
+        run: echo "VERCEL_PROJECT_ID=${{ secrets[matrix.project.project_id_secret] }}" >> $GITHUB_ENV
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Production
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }})
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Failed to capture deployment URL"
+            exit 1
+          fi
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Wait for Deployment Checks
+        run: |
+          echo "Waiting for Vercel deployment checks to complete..."
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait

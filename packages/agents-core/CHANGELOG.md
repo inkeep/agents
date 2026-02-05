@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+
 ## 0.45.0
 
 ### Patch Changes

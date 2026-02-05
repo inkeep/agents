@@ -1,5 +1,20 @@
 # @inkeep/agents-work-apps
 
+## 0.45.2
+
+### Patch Changes
+
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 54b2d4c: Get file content from feature branch
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
 ## 0.45.0
 
 ### Patch Changes
