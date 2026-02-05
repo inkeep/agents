@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
+import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { Input } from '@/components/ui/input';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 
 interface ModelSelectorProps {
@@ -393,9 +394,8 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               label="Deployment Name"
               isRequired
             />
-            <input
+            <Input
               id="azure-deployment-name"
-              className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="my-gpt-4o-deployment"
               value={azureDeploymentName}
               onChange={(e) => setAzureDeploymentName(e.target.value)}
