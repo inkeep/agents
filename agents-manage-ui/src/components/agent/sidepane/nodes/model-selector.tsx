@@ -96,7 +96,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   })();
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {label && (
         <Label>
           {label}
@@ -114,36 +114,60 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
         </Label>
       )}
       <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled}
-            className={cn(
-              'justify-between bg-background dark:bg-input/30 flex-1 text-foreground shadow-none truncate',
-              selectedModel && canClear ? 'rounded-r-none border-r-0' : 'rounded-r-md',
-              disabled && 'opacity-50 cursor-not-allowed'
-            )}
-          >
-            {selectedModel ? (
-              <div className="truncate">
-                {selectedModel.prefix && (
-                  <span className="text-gray-400">{selectedModel.prefix}</span>
-                )}
-                {selectedModel.label}
-              </div>
-            ) : inheritedModel ? (
-              <div className="truncate text-muted-foreground">
-                <span className="italic">{inheritedModel.label}</span>
-                <span className="text-xs ml-1">(inherited)</span>
-              </div>
-            ) : (
-              <div className="text-muted-foreground">{placeholder}</div>
-            )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
+        <div className="flex">
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              disabled={disabled}
+              className={cn(
+                'justify-between bg-background dark:bg-input/30 flex-1 text-foreground shadow-none truncate',
+                selectedModel && canClear ? 'rounded-r-none border-r-0' : 'rounded-r-md',
+                disabled && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              {selectedModel ? (
+                <div className="truncate">
+                  {selectedModel.prefix && (
+                    <span className="text-gray-400">{selectedModel.prefix}</span>
+                  )}
+                  {selectedModel.label}
+                </div>
+              ) : inheritedModel ? (
+                <div className="truncate text-muted-foreground">
+                  <span className="italic">{inheritedModel.label}</span>
+                  <span className="text-xs ml-1">(inherited)</span>
+                </div>
+              ) : (
+                <div className="text-muted-foreground">{placeholder}</div>
+              )}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          {canClear && !disabled && (
+            <div
+              className={cn(
+                'transition-all duration-200 ease-in-out overflow-hidden',
+                selectedModel ? 'w-10 opacity-100 scale-100' : 'w-0 opacity-0 scale-95'
+              )}
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-l-none border-l-0 px-2 bg-transparent w-10 transition-all duration-200 ease-in-out text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  onValueChange?.('');
+                }}
+                aria-label="Clear model selection"
+                type="button"
+                disabled={!selectedModel}
+              >
+                <X className="h-4 w-4 text-gray-500 dark:text-white/40" />
+              </Button>
+            </div>
+          )}
+        </div>
         <PopoverContent
           className="p-0 w-(--radix-popover-trigger-width) transition-all duration-200 ease-in-out"
           align="start"
@@ -490,28 +514,6 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
             </Button>
           </div>
         </Card>
-      )}
-      {canClear && !disabled && (
-        <div
-          className={cn(
-            'transition-all duration-200 ease-in-out overflow-hidden',
-            selectedModel && canClear ? 'w-10 opacity-100 scale-100' : 'w-0 opacity-0 scale-95'
-          )}
-        >
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-l-none border-l-0 px-2 bg-transparent w-10 transition-all duration-200 ease-in-out text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              onValueChange?.('');
-            }}
-            aria-label="Clear model selection"
-            type="button"
-            disabled={!selectedModel}
-          >
-            <X className="h-4 w-4 text-gray-500 dark:text-white/40" />
-          </Button>
-        </div>
       )}
     </div>
   );
