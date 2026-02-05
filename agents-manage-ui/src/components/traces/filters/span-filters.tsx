@@ -50,15 +50,18 @@ export function SpanFilters({
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const hasFetchedRef = useRef(false);
   const lastFetchParamsRef = useRef<string>('');
+  const isFetchingRef = useRef(false);
 
   const fetchSpanNames = useCallback(async () => {
     if (!startTime || !endTime || !tenantId) return;
+    if (isFetchingRef.current) return; // Guard against concurrent fetches
 
     const fetchParams = `${startTime}-${endTime}-${selectedAgent}-${projectId}-${tenantId}`;
     if (hasFetchedRef.current && lastFetchParamsRef.current === fetchParams) {
       return;
     }
 
+    isFetchingRef.current = true;
     setSpanNamesLoading(true);
     try {
       const client = getSigNozStatsClient(tenantId);
@@ -75,6 +78,7 @@ export function SpanFilters({
       console.error('Failed to fetch span names:', error);
       setAvailableSpanNames([]);
     } finally {
+      isFetchingRef.current = false;
       setSpanNamesLoading(false);
     }
   }, [startTime, endTime, selectedAgent, projectId, tenantId]);

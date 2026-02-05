@@ -378,14 +378,20 @@ class SigNozStatsAPI {
         .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
         .filter(Boolean) as string[];
 
-      const totalSeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS);
+      const totalSeries = this.extractSeries(
+        consolidatedResp,
+        QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS
+      );
       const total = countFromSeries(totalSeries[0] || { values: [{ value: '0' }] });
 
       return { conversationIds, total };
     }
 
     // Slow path: client-side filtering needed for search or span filters
-    const activitySeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.PAGE_CONVERSATIONS);
+    const activitySeries = this.extractSeries(
+      consolidatedResp,
+      QUERY_EXPRESSIONS.PAGE_CONVERSATIONS
+    );
     const activityMap = new Map<string, number>();
     for (const s of activitySeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
