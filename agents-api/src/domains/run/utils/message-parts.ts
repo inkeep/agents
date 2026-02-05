@@ -3,7 +3,7 @@ import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
 import type { ContentItem } from '../types/chat';
 
 export const imageUrlSchema = z.union([
-  z.string().url(),
+  z.httpUrl(),
   z
     .string()
     .regex(
