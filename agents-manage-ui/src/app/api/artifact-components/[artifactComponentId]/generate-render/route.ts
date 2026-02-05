@@ -68,7 +68,9 @@ export async function POST(
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
     // Define schema for generated output
-    const mockDataSchema = z.fromJSONSchema(artifactComponent.props);
+    const mockDataSchema = artifactComponent.props
+      ? z.fromJSONSchema(artifactComponent.props)
+      : z.string();
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
       mockData: mockDataSchema.describe('Sample data matching the props schema'),
