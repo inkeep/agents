@@ -133,21 +133,15 @@ export function MetadataEditor() {
         placeholder="This agent is used to..."
         isRequired={isRequired(schema, 'description')}
       />
-      <div className="space-y-2">
-        <ExpandablePromptEditor
-          name="agent-prompt"
-          label="Agent prompt"
-          value={prompt}
-          onChange={(value) => updateMetadata('prompt', value)}
-          placeholder="System-level instructions for this agent..."
-        />
-        <p className="text-xs text-muted-foreground">
-          System-level prompt that defines the intended audience and overall goal of this agent.
-          Applied to all sub agents.
-        </p>
-      </div>
+      <GenericPromptEditor
+        control={form.control}
+        name="prompt"
+        label="Agent prompt"
+        placeholder="System-level instructions for this agent..."
+        description="System-level prompt that defines the intended audience and overall goal of this agent. Applied to all sub agents."
+        isRequired={isRequired(schema, 'prompt')}
+      />
       <Separator />
-
       {/* Agent Model Settings */}
       <div className="space-y-8">
         <SectionHeader

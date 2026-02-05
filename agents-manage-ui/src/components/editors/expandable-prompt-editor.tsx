@@ -119,8 +119,10 @@ export function GenericPromptEditor<
   isRequired,
   label,
   className,
+  placeholder,
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   className?: string;
+  placeholder: string;
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
@@ -151,6 +153,7 @@ export function GenericPromptEditor<
                 autoFocus={open}
                 className={cn(!open && 'max-h-96', 'min-h-16', className)}
                 hasDynamicHeight={!open}
+                placeholder={placeholder}
                 // aria-labelledby={id}
                 {...field}
               />

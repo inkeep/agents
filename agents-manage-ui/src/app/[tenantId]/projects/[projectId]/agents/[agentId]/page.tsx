@@ -75,7 +75,10 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   return (
     <FullAgentFormProvider
       defaultValues={{
+        id: agent.data.id,
         name: agent.data.name,
+        description: agent.data.description,
+        prompt: agent.data.prompt,
       }}
     >
       <Agent
