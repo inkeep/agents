@@ -1,7 +1,6 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -60,7 +59,12 @@ const ExecutionLimitInheritanceInfo = () => {
 };
 
 export function MetadataEditor() {
-  const { agentId, tenantId, projectId } = useParams();
+  'use memo';
+  const { agentId, tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const metadata = useAgentStore((state) => state.metadata);
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
@@ -73,47 +77,42 @@ export function MetadataEditor() {
 
   const { markUnsaved, setMetadata } = useAgentActions();
 
-  const updateMetadata: typeof setMetadata = useCallback((...attrs) => {
+  const updateMetadata: typeof setMetadata = (...attrs) => {
     setMetadata(...attrs);
     markUnsaved();
-  }, []);
+  };
 
   // Helper to get the latest models from the store to avoid stale closure race conditions
-  const getCurrentModels = useCallback(() => {
+  const getCurrentModels = () => {
     return agentStore.getState().metadata.models;
-  }, []);
+  };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateMetadata('id', generatedId);
-    },
-    [updateMetadata]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updateMetadata('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (only for new agent)
   useAutoPrefillIdZustand({
     nameValue: name,
     idValue: id,
     onIdChange: handleIdChange,
-    isEditing: !!agentId,
+    isEditing: true,
   });
 
   return (
     <div className="space-y-8">
-      {agentId && (
-        <div className="space-y-2">
-          <FieldLabel
-            label="Chat URL"
-            tooltip="Use this endpoint to chat with your agent or connect it to the Inkeep widget via the agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream protocol."
-          />
-          <CopyableSingleLineCode code={agentUrl} />
-          {canUse && (
-            <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
-              Create API key
-            </ExternalLink>
-          )}
-        </div>
-      )}
+      <div className="space-y-2">
+        <FieldLabel
+          label="Chat URL"
+          tooltip="Use this endpoint to chat with your agent or connect it to the Inkeep widget via the agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream protocol."
+        />
+        <CopyableSingleLineCode code={agentUrl} />
+        {canUse && (
+          <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
+            Create API key
+          </ExternalLink>
+        )}
+      </div>
       <InputField
         id="name"
         name="name"
@@ -129,7 +128,7 @@ export function MetadataEditor() {
         label="Id"
         value={id || ''}
         onChange={(e) => updateMetadata('id', e.target.value)}
-        disabled={!!agentId} // only editable if no agentId is set (i.e. new agent)
+        disabled // only editable if no agentId is set (i.e. new agent)
         placeholder="my-agent"
         description={
           !agentId
