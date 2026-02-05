@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+
 ## 0.45.1
 
 ### Patch Changes
