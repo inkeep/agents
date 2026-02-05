@@ -19,6 +19,7 @@ import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface ModelSelectorProps {
   tooltip?: string;
@@ -388,10 +389,10 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
             Configure your Azure deployment and connection details
           </div>
 
-          <div>
+          <div className="space-y-1">
             <FieldLabel
               id="azure-deployment-name"
-              className="text-xs mb-1"
+              className="text-xs"
               label="Deployment Name"
               isRequired
             />
@@ -401,32 +402,24 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               value={azureDeploymentName}
               onChange={(e) => setAzureDeploymentName(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Your Azure model deployment name (required)
-            </p>
-          </div>
+            <p className="text-xs text-muted-foreground">Your Azure model deployment name</p>
 
-          <div className="border-t pt-3">
+            <Separator className="my-4" />
+
             <FieldLabel
-              className="text-xs text-muted-foreground mb-2"
+              className="text-xs text-muted-foreground"
               label="Choose one connection method"
               isRequired
             />
-            <FieldLabel
-              id="azure-resource-name"
-              className="text-xs mb-1"
-              label="Azure Resource Name"
-            />
+            <FieldLabel id="azure-resource-name" className="text-xs" label="Azure Resource Name" />
             <Input
               id="azure-resource-name"
               placeholder="your-azure-resource"
               value={azureResourceName}
               onChange={(e) => setAzureResourceName(e.target.value)}
             />
-
-            <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
-
-            <FieldLabel id="azure-base-url" className="text-xs mb-1" label="Custom Base URL" />
+            <div className="text-center text-xs text-muted-foreground">— OR —</div>
+            <FieldLabel id="azure-base-url" className="text-xs" label="Custom Base URL" />
             <Input
               id="azure-base-url"
               placeholder="https://your-endpoint.com"
