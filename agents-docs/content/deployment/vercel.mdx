@@ -56,6 +56,10 @@ INKEEP_AGENTS_RUN_DATABASE_URL=
 
 NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
+
+# Cross-subdomain authentication (optional, required when UI and API don't share a 3-part parent domain)
+AUTH_COOKIE_DOMAIN=
+TRUSTED_ORIGIN=
 ```
 
 | Environment Variable                     | Value                                                                                                                                                              |
@@ -66,6 +70,8 @@ NANGO_SERVER_URL=https://api.nango.dev
 | `INKEEP_AGENTS_RUN_DATABASE_URL`         | Postgres connection string from Step 4 (e.g., `postgresql://user:password@host:5433/database`)                                                                    |
 | `NANGO_SECRET_KEY`                       | Nango secret key from your [Nango Cloud account](/typescript-sdk/credentials/nango). Note: Local Nango setup won't work with Vercel deployments. |
 | `NANGO_SERVER_URL`                       | `https://api.nango.dev`                                                                                                                                            |
+| `AUTH_COOKIE_DOMAIN`                     | (Optional) Shared cookie domain for cross-subdomain auth. Required when UI and API domains don't share a 3-part parent (e.g., `app.inkeep.com` + `api.agents.inkeep.com`). Set to the common root domain with a leading dot (e.g., `.inkeep.com`). |
+| `TRUSTED_ORIGIN`                         | (Optional) Trusted origin for CORS. Required with `AUTH_COOKIE_DOMAIN`. Set to your Manage UI URL (e.g., `https://app.inkeep.com`). |
 
 ### Step 7: Create a Vercel project for Run API
 
