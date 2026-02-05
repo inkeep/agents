@@ -79,6 +79,7 @@ export function SpanFilters({
     }
   }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally reset ref when filter params change to trigger re-fetch
   useEffect(() => {
     hasFetchedRef.current = false;
   }, [startTime, endTime, selectedAgent, projectId, tenantId]);
