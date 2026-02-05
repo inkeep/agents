@@ -1,5 +1,22 @@
 # @inkeep/agents-api
 
+## 0.45.3
+
+### Patch Changes
+
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+- Updated dependencies [4a83260]
+- Updated dependencies [37248c6]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-work-apps@0.45.3
+  - @inkeep/agents-manage-mcp@0.45.3
+  - @inkeep/agents-mcp@0.45.3
+
 ## 0.45.2
 
 ### Patch Changes
