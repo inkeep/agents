@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 env:
-  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
 jobs:
   deploy:
@@ -59,4 +59,4 @@ jobs:
       - name: Wait for Deployment Checks
         run: |
           echo "Waiting for Vercel deployment checks to complete..."
-          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ vars.VERCEL_ORG_ID }} --wait
+          vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
