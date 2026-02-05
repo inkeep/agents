@@ -49,11 +49,13 @@ describe('validation', () => {
       ]);
     });
 
-    test('should validate custom schema', () => {
+    test.only('should validate custom schema', () => {
       const jsonSchema = z.object({ foo: z.string() }).toJSONSchema();
-      const schema = createCustomHeadersSchema(JSON.stringify(jsonSchema));
-      const str = JSON.stringify({});
-      expect(getErrorObject(schema, str)).toMatchObject([
+      const error = getErrorObject({
+        headersJsonSchema: JSON.stringify(jsonSchema),
+        headersString: JSON.stringify({}),
+      });
+      expect(error).toMatchObject([
         {
           path: [],
           message: 'Invalid input: expected string, received undefined\n  → at foo',
@@ -61,22 +63,51 @@ describe('validation', () => {
       ]);
     });
 
-    test("should have object validation even json schema doesn't allow it", () => {
+    test.only("should have object validation even json schema doesn't allow it", () => {
       const jsonSchema = z.string().toJSONSchema();
-      const schema = createCustomHeadersSchema(JSON.stringify(jsonSchema));
-
-      expect(getErrorObject(schema, '"bar"')).toMatchObject([
+      const error = getErrorObject({
+        headersJsonSchema: JSON.stringify(jsonSchema),
+        headersString: '"bar"',
+      });
+      expect(error).toMatchObject([
         {
           path: [],
           message: 'Must be valid JSON object',
         },
       ]);
     });
+
+    test.only('should throw on invalid json schemas', () => {
+      const error = getErrorObject({ headersJsonSchema: 'null', headersString: '' });
+      expect(error).toMatchObject([
+        {
+          path: [],
+          message:
+            "Error during parsing JSON schema headers: Cannot read properties of null (reading 'const')",
+        },
+      ]);
+
+      const error2 = getErrorObject({ headersJsonSchema: '#', headersString: '' });
+
+      expect(error2).toMatchObject([
+        {
+          path: [],
+          message: `Error during parsing JSON schema headers: Unexpected token '#', "#" is not valid JSON`,
+        },
+      ]);
+    });
   });
 });
 
-function getErrorObject(schema: z.Schema, str: string) {
-  const result = schema.safeParse(str);
+function getErrorObject({
+  headersJsonSchema,
+  headersString,
+}: {
+  headersJsonSchema: string;
+  headersString: string;
+}) {
+  const schema = createCustomHeadersSchema(headersJsonSchema);
+  const result = schema.safeParse(headersString);
 
   if (result.success) {
     throw new Error('Must throw zod error');

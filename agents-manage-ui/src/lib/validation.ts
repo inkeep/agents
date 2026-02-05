@@ -21,6 +21,13 @@ export const DefaultHeadersSchema = z.record(
   'Must be valid JSON object'
 );
 
+function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
+  ctx.addIssue({
+    code: 'custom',
+    message: z.prettifyError(error).split('✖ ').join('').trim(),
+  });
+}
+
 export function createCustomHeadersSchema(customHeaders: string) {
   const zodSchema = z
     .string()
@@ -28,28 +35,25 @@ export function createCustomHeadersSchema(customHeaders: string) {
     .transform((value, ctx) => (value ? transformToJson(value, ctx) : {}))
     // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
     .superRefine((value, ctx) => {
-      try {
-        // First validate default schema
-        const result = DefaultHeadersSchema.safeParse(value);
-        if (!result.success) {
-          throw result.error;
-        }
-        if (customHeaders) {
+      // First validate default schema
+      const result = DefaultHeadersSchema.safeParse(value);
+      if (!result.success) {
+        addIssue(ctx, result.error);
+        return;
+      }
+      if (customHeaders) {
+        try {
           const customSchema = convertJsonSchemaToZod(JSON.parse(customHeaders));
           const result = customSchema.safeParse(value);
           if (result.success) return;
-          throw result.error;
+          addIssue(ctx, result.error);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : error;
+          ctx.addIssue({
+            code: 'custom',
+            message: `Error during parsing JSON schema headers: ${message}`,
+          });
         }
-      } catch (error) {
-        ctx.addIssue({
-          code: 'custom',
-          message:
-            error instanceof z.ZodError
-              ? z.prettifyError(error).split('✖ ').join('').trim()
-              : error instanceof Error
-                ? error.message
-                : String(error),
-        });
       }
     });
 
