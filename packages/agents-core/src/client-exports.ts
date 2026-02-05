@@ -35,6 +35,8 @@ export {
   AgentApiInsertSchema,
   type AgentStopWhen,
   AgentStopWhenSchema,
+  AgentWithinContextOfProjectResponse,
+  AgentWithinContextOfProjectSchema,
   ApiKeyApiInsertSchema,
   ArtifactComponentApiInsertSchema,
   DataComponentApiInsertSchema,

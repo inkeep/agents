@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericInput } from '@/components/form/generic-input';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +28,8 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import { isRequired } from '@/lib/utils';
+import { FullAgentUpdateSchema } from '@/lib/validation';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
@@ -100,6 +103,8 @@ export function MetadataEditor() {
     isEditing: true,
   });
 
+  const form = useFullAgentFormContext();
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -114,14 +119,12 @@ export function MetadataEditor() {
           </ExternalLink>
         )}
       </div>
-      <InputField
-        id="name"
+      <GenericInput
+        control={form.control}
         name="name"
         label="Name"
-        value={name}
-        onChange={(e) => updateMetadata('name', e.target.value)}
         placeholder="My agent"
-        isRequired
+        isRequired={isRequired(FullAgentUpdateSchema, 'name')}
       />
       <InputField id="id" name="id" label="Id" value={agentId} disabled isRequired />
       <TextareaField
