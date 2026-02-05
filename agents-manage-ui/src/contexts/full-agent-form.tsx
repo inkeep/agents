@@ -2,8 +2,9 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createContext, type FC, type ReactNode, use } from 'react';
-import { type DefaultValues, Form, type UseFormReturn, useForm } from 'react-hook-form';
+import { type DefaultValues, type UseFormReturn, useForm } from 'react-hook-form';
 import type { z } from 'zod';
+import { Form } from '@/components/ui/form';
 import { FullAgentUpdateSchema } from '@/lib/validation';
 
 type Input = z.input<typeof FullAgentUpdateSchema>;
@@ -18,10 +19,9 @@ export const FullAgentFormProvider: FC<{
   defaultValues: DefaultValues<Input>;
 }> = ({ defaultValues, children }) => {
   'use memo';
-  const form = useForm({
-    defaultValues,
-    resolver,
-  });
+
+  const form = useForm({ defaultValues, resolver });
+
   return (
     <Form {...form}>
       <FullAgentFormContext value={form}>{children}</FullAgentFormContext>
@@ -32,7 +32,7 @@ export const FullAgentFormProvider: FC<{
 export function useFullAgentFormContext() {
   const ctx = use(FullAgentFormContext);
   if (!ctx) {
-    throw new Error('useFullAgentFormContext must be used within <FullAgentFormContext />');
+    throw new Error('useFullAgentFormContext must be used within a <FullAgentFormContext />');
   }
   return ctx;
 }
