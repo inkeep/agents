@@ -3,7 +3,10 @@
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Card } from '@/components/ui/card';
 import {
   Command,
@@ -13,13 +16,10 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
-import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
-import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
   tooltip?: string;
