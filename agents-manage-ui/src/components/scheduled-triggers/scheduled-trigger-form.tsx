@@ -83,6 +83,7 @@ export function ScheduledTriggerForm({
   mode,
 }: ScheduledTriggerFormProps) {
   const router = useRouter();
+  const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=scheduled`;
 
   const getDefaultValues = (): ScheduledTriggerFormData => {
     if (!trigger) {
@@ -174,7 +175,7 @@ export function ScheduledTriggerForm({
         toast.success(
           `Scheduled trigger ${mode === 'create' ? 'created' : 'updated'} successfully`
         );
-        router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`);
+        router.push(redirectPath);
       } else {
         toast.error(result.error || `Failed to ${mode} scheduled trigger`);
       }
@@ -394,13 +395,7 @@ export function ScheduledTriggerForm({
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers`)
-            }
-          >
+          <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>

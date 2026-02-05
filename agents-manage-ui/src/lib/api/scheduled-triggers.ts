@@ -10,6 +10,7 @@
 import type {
   ScheduledTriggerApiSelectSchema,
   ScheduledTriggerInvocationApiSelectSchema,
+  ScheduledTriggerWithRunInfoSchema,
 } from '@inkeep/agents-core/client-exports';
 import { cache } from 'react';
 import type { z } from 'zod';
@@ -20,6 +21,7 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 // Type definitions
 export type ScheduledTrigger = z.infer<typeof ScheduledTriggerApiSelectSchema>;
 export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationApiSelectSchema>;
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
 
 export type CreateScheduledTriggerInput = {
   id?: string;
@@ -44,11 +46,11 @@ export async function fetchScheduledTriggers(
   tenantId: string,
   projectId: string,
   agentId: string
-): Promise<ListResponse<ScheduledTrigger>> {
+): Promise<ListResponse<ScheduledTriggerWithRunInfo>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<ListResponse<ScheduledTrigger>>(
+  const response = await makeManagementApiRequest<ListResponse<ScheduledTriggerWithRunInfo>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers?limit=100`
   );
 
@@ -221,38 +223,6 @@ export async function fetchScheduledTriggerInvocations(
 
   const response = await makeManagementApiRequest<ListResponse<ScheduledTriggerInvocation>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/invocations${queryString}`
-  );
-
-  return response;
-}
-
-/**
- * Fetch upcoming runs across all scheduled triggers for an agent
- */
-export async function fetchUpcomingRuns(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  options?: {
-    includeRunning?: boolean;
-    limit?: number;
-    page?: number;
-  }
-): Promise<ListResponse<ScheduledTriggerInvocation>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const params = new URLSearchParams();
-  if (options?.includeRunning !== undefined) {
-    params.append('includeRunning', options.includeRunning.toString());
-  }
-  if (options?.limit) params.append('limit', options.limit.toString());
-  if (options?.page) params.append('page', options.page.toString());
-
-  const queryString = params.toString() ? `?${params.toString()}` : '';
-
-  const response = await makeManagementApiRequest<ListResponse<ScheduledTriggerInvocation>>(
-    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/upcoming-runs${queryString}`
   );
 
   return response;

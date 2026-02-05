@@ -85,37 +85,48 @@ app.post(
         metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
       });
 
-      // Generate conversation ID
+      // Generate conversation ID upfront so we can return it even on failure
       const conversationId = generateId();
 
-      // Reuse executeAgentAsync from TriggerService!
-      // This runs in main server context with proper OTel tracing and session management.
-      await executeAgentAsync({
-        tenantId,
-        projectId,
-        agentId,
-        triggerId: scheduledTriggerId, // Use scheduledTriggerId as triggerId
-        invocationId,
-        conversationId,
-        userMessage,
-        messageParts,
-        resolvedRef,
-      });
+      try {
+        // Reuse executeAgentAsync from TriggerService!
+        // This runs in main server context with proper OTel tracing and session management.
+        await executeAgentAsync({
+          tenantId,
+          projectId,
+          agentId,
+          triggerId: scheduledTriggerId, // Use scheduledTriggerId as triggerId
+          invocationId,
+          conversationId,
+          userMessage,
+          messageParts,
+          resolvedRef,
+        });
 
-      logger.info(
-        { tenantId, projectId, agentId, scheduledTriggerId, invocationId, conversationId },
-        'Internal scheduled trigger execution completed'
-      );
+        logger.info(
+          { tenantId, projectId, agentId, scheduledTriggerId, invocationId, conversationId },
+          'Internal scheduled trigger execution completed'
+        );
 
-      return c.json({
-        success: true,
-        conversationId,
-      });
+        return c.json({
+          success: true,
+          conversationId,
+        });
+      } catch (executionError) {
+        // Return conversationId even on failure so it can be linked to the invocation
+        const errorMessage =
+          executionError instanceof Error ? executionError.message : String(executionError);
+        logger.error(
+          { tenantId, projectId, agentId, scheduledTriggerId, invocationId, conversationId, error: errorMessage },
+          'Internal scheduled trigger execution failed'
+        );
+        return c.json({ success: false, conversationId, error: errorMessage }, 500);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(
         { tenantId, projectId, agentId, scheduledTriggerId, invocationId, error: errorMessage },
-        'Internal scheduled trigger execution failed'
+        'Internal scheduled trigger execution failed (pre-execution)'
       );
       return c.json({ success: false, error: errorMessage }, 500);
     }

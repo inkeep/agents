@@ -76,6 +76,8 @@ export {
   ScheduledTriggerInvocationStatusEnum,
   ScheduledTriggerListResponse,
   ScheduledTriggerResponse,
+  ScheduledTriggerWithRunInfoSchema,
+  ScheduledTriggerWithRunInfoListResponse,
   SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
@@ -309,6 +311,7 @@ export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdate
 export type ScheduledTriggerInvocationApiSelect = z.infer<
   typeof ScheduledTriggerInvocationApiSelectSchema
 >;
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;

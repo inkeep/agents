@@ -1,1 +1,0 @@
-ALTER TABLE "triggers" ALTER COLUMN "message_template" DROP NOT NULL;

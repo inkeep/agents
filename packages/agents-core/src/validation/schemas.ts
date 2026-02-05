@@ -994,10 +994,8 @@ export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
         .nullable()
         .optional()
         .describe('Resolved payload with variables'),
-    conversationId: () => ResourceIdSchema.optional().describe('Created conversation ID'),
-    traceId: () => z.string().optional().describe('OpenTelemetry trace ID'),
-    errorMessage: () => z.string().optional().describe('Error message if failed'),
-    errorCode: () => z.string().optional().describe('Error code if failed'),
+    conversationIds: () =>
+      z.array(ResourceIdSchema).default([]).describe('Conversation IDs created during execution'),
     attemptNumber: () => z.number().int().min(1).default(1),
     idempotencyKey: () => z.string().describe('Idempotency key for deduplication'),
   }
@@ -2592,6 +2590,16 @@ export const TriggerWithWebhookUrlListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerWithWebhookUrlListResponse');
+  
+export const ScheduledTriggerWithRunInfoSchema = ScheduledTriggerApiSelectSchema.extend({
+  lastRunAt: z.string().datetime().nullable().describe('Timestamp of the last completed or failed run'),
+  lastRunStatus: z.enum(['completed', 'failed']).nullable().describe('Status of the last run'),
+  lastRunConversationIds: z.array(z.string()).describe('Conversation IDs from the last run'),
+  nextRunAt: z.string().datetime().nullable().describe('Timestamp of the next pending run'),
+}).openapi('ScheduledTriggerWithRunInfo');
+
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
+
 export const ScheduledTriggerResponse = z
   .object({ data: ScheduledTriggerApiSelectSchema })
   .openapi('ScheduledTriggerResponse');
@@ -2601,6 +2609,12 @@ export const ScheduledTriggerListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('ScheduledTriggerListResponse');
+export const ScheduledTriggerWithRunInfoListResponse = z
+  .object({
+    data: z.array(ScheduledTriggerWithRunInfoSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ScheduledTriggerWithRunInfoListResponse');
 export const ScheduledTriggerInvocationResponse = z
   .object({ data: ScheduledTriggerInvocationApiSelectSchema })
   .openapi('ScheduledTriggerInvocationResponse');

@@ -1,28 +1,35 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  addConversationIdToInvocation,
   cancelPendingInvocationsForTrigger,
   commonGetErrorResponses,
   createApiError,
   createScheduledTrigger,
+  createScheduledTriggerInvocation,
   deleteScheduledTrigger,
   generateId,
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
+  getScheduledTriggerRunInfoBatch,
   listScheduledTriggerInvocationsPaginated,
   listScheduledTriggersPaginated,
   listUpcomingInvocationsForAgentPaginated,
   markScheduledTriggerInvocationCancelled,
+  markScheduledTriggerInvocationCompleted,
+  markScheduledTriggerInvocationFailed,
+  markScheduledTriggerInvocationRunning,
   PaginationQueryParamsSchema,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
   ScheduledTriggerInvocationResponse,
   ScheduledTriggerInvocationStatusEnum,
-  ScheduledTriggerListResponse,
   ScheduledTriggerResponse,
+  ScheduledTriggerWithRunInfoListResponse,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateScheduledTrigger,
+  updateScheduledTriggerInvocationStatus,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -76,7 +83,7 @@ app.openapi(
         description: 'List of scheduled triggers retrieved successfully',
         content: {
           'application/json': {
-            schema: ScheduledTriggerListResponse,
+            schema: ScheduledTriggerWithRunInfoListResponse,
           },
         },
       },
@@ -94,14 +101,34 @@ app.openapi(
       pagination: { page, limit },
     });
 
-    // Remove sensitive scope fields from triggers
-    const dataWithoutScopes = result.data.map((trigger) => {
+    // Fetch run info for all triggers in a single batch query
+    const triggerIds = result.data.map((trigger) => ({
+      agentId,
+      triggerId: trigger.id,
+    }));
+
+    const runInfoMap = await getScheduledTriggerRunInfoBatch(runDbClient)({
+      scopes: { tenantId, projectId },
+      triggerIds,
+    });
+
+    // Merge triggers with run info and remove sensitive scope fields
+    const dataWithRunInfo = result.data.map((trigger) => {
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = trigger;
-      return rest;
+      const runInfo = runInfoMap.get(trigger.id) || {
+        lastRunAt: null,
+        lastRunStatus: null,
+        lastRunConversationIds: [],
+        nextRunAt: null,
+      };
+      return {
+        ...rest,
+        ...runInfo,
+      };
     });
 
     return c.json({
-      data: dataWithoutScopes,
+      data: dataWithRunInfo,
       pagination: result.pagination,
     });
   }
@@ -442,7 +469,11 @@ app.openapi(
         payload: body.payload,
         messageTemplate: body.messageTemplate,
         maxRetries: resolveRetryValue(body.maxRetries, existing.maxRetries, 3),
-        retryDelaySeconds: resolveRetryValue(body.retryDelaySeconds, existing.retryDelaySeconds, 60),
+        retryDelaySeconds: resolveRetryValue(
+          body.retryDelaySeconds,
+          existing.retryDelaySeconds,
+          60
+        ),
         timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
       },
     });
@@ -890,14 +921,6 @@ app.openapi(
     const timeoutSeconds = trigger.timeoutSeconds ?? 300;
 
     // Create a new invocation for the rerun
-    const {
-      createScheduledTriggerInvocation,
-      markScheduledTriggerInvocationRunning,
-      markScheduledTriggerInvocationCompleted,
-      markScheduledTriggerInvocationFailed,
-      updateScheduledTriggerInvocationStatus,
-    } = await import('@inkeep/agents-core');
-
     const newInvocationId = generateId();
     const now = new Date().toISOString();
 
@@ -972,8 +995,10 @@ app.openapi(
       if (response.ok && result.success) {
         return { success: true, conversationId: result.conversationId };
       }
+      // Return conversationId even on failure for debugging (endpoint returns it now)
       return {
         success: false,
+        conversationId: result.conversationId,
         error: result.error || `HTTP ${response.status}: Execution failed`,
       };
     };
@@ -999,13 +1024,27 @@ app.openapi(
         try {
           const result = await executeAttempt();
 
+          // Save conversation ID immediately after each attempt (for debugging failed runs)
+          if (result.conversationId) {
+            await addConversationIdToInvocation(runDbClient)({
+              scopes,
+              scheduledTriggerId,
+              invocationId: newInvocationId,
+              conversationId: result.conversationId,
+            }).catch((err) => {
+              logger.error(
+                { err, invocationId: newInvocationId, conversationId: result.conversationId },
+                'Failed to save conversation ID to invocation'
+              );
+            });
+          }
+
           if (result.success) {
             // Success - mark completed and exit
             await markScheduledTriggerInvocationCompleted(runDbClient)({
               scopes,
               scheduledTriggerId,
               invocationId: newInvocationId,
-              conversationId: result.conversationId,
             });
             logger.info(
               {
@@ -1082,8 +1121,6 @@ app.openapi(
         scopes,
         scheduledTriggerId,
         invocationId: newInvocationId,
-        errorMessage: lastError || 'All retry attempts failed',
-        errorCode: 'EXECUTION_ERROR',
       }).catch((updateErr) => {
         logger.error(
           { updateErr, invocationId: newInvocationId },

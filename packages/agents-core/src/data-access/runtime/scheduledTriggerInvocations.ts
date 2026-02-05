@@ -164,29 +164,6 @@ export const listPendingScheduledTriggerInvocations =
   };
 
 /**
- * Count pending invocations for a trigger
- * Used to determine how many more to pre-create
- */
-export const countPendingScheduledTriggerInvocations =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
-    const result = await db
-      .select({ count: count() })
-      .from(scheduledTriggerInvocations)
-      .where(
-        and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
-          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
-          eq(scheduledTriggerInvocations.status, 'pending')
-        )
-      );
-
-    return result[0]?.count || 0;
-  };
-
-/**
  * Delete all pending invocations for a trigger
  * Used when cron expression changes or trigger is disabled
  */
@@ -291,14 +268,12 @@ export const markScheduledTriggerInvocationCompleted =
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
     invocationId: string;
-    conversationId?: string;
   }): Promise<ScheduledTriggerInvocation | undefined> => {
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
         status: 'completed',
         completedAt: new Date().toISOString(),
-        conversationId: params.conversationId,
       })
       .where(
         and(
@@ -307,7 +282,6 @@ export const markScheduledTriggerInvocationCompleted =
           eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId),
-          // Don't overwrite if already cancelled
           ne(scheduledTriggerInvocations.status, 'cancelled')
         )
       )
@@ -326,18 +300,12 @@ export const markScheduledTriggerInvocationFailed =
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
     invocationId: string;
-    errorMessage: string;
-    errorCode?: string;
-    conversationId?: string;
   }): Promise<ScheduledTriggerInvocation | undefined> => {
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
         status: 'failed',
         completedAt: new Date().toISOString(),
-        errorMessage: params.errorMessage,
-        errorCode: params.errorCode,
-        conversationId: params.conversationId,
       })
       .where(
         and(
@@ -348,6 +316,51 @@ export const markScheduledTriggerInvocationFailed =
           eq(scheduledTriggerInvocations.id, params.invocationId),
           // Don't overwrite if already cancelled
           ne(scheduledTriggerInvocations.status, 'cancelled')
+        )
+      )
+      .returning();
+
+    return result[0] as ScheduledTriggerInvocation | undefined;
+  };
+
+/**
+ * Add a conversation ID to the invocation's conversationIds array
+ * Used to track all conversations created during retries
+ */
+export const addConversationIdToInvocation =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    scheduledTriggerId: string;
+    invocationId: string;
+    conversationId: string;
+  }): Promise<ScheduledTriggerInvocation | undefined> => {
+    // First, get the current invocation to access existing conversationIds
+    const current = await db.query.scheduledTriggerInvocations.findFirst({
+      where: and(
+        eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+        eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+        eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+        eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+        eq(scheduledTriggerInvocations.id, params.invocationId)
+      ),
+    });
+
+    const existingIds = (current?.conversationIds as string[]) || [];
+    const newConversationIds = [...existingIds, params.conversationId];
+
+    const result = await db
+      .update(scheduledTriggerInvocations)
+      .set({
+        conversationIds: newConversationIds,
+      })
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.id, params.invocationId)
         )
       )
       .returning();
@@ -497,6 +510,90 @@ export const listUpcomingInvocationsForAgent =
   };
 
 /**
+ * Get run info for multiple scheduled triggers in a single query
+ * Returns last run (completed/failed) and next pending run for each trigger
+ */
+export const getScheduledTriggerRunInfoBatch =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: Omit<AgentScopeConfig, 'agentId'>;
+    triggerIds: Array<{ agentId: string; triggerId: string }>;
+  }): Promise<
+    Map<
+      string,
+      {
+        lastRunAt: string | null;
+        lastRunStatus: 'completed' | 'failed' | null;
+        lastRunConversationIds: string[];
+        nextRunAt: string | null;
+      }
+    >
+  > => {
+    if (params.triggerIds.length === 0) {
+      return new Map();
+    }
+
+    const { tenantId, projectId } = params.scopes;
+    const allInvocations = await db
+      .select({
+        scheduledTriggerId: scheduledTriggerInvocations.scheduledTriggerId,
+        status: scheduledTriggerInvocations.status,
+        scheduledFor: scheduledTriggerInvocations.scheduledFor,
+        completedAt: scheduledTriggerInvocations.completedAt,
+        conversationIds: scheduledTriggerInvocations.conversationIds,
+      })
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, tenantId),
+          eq(scheduledTriggerInvocations.projectId, projectId),
+          inArray(
+            scheduledTriggerInvocations.scheduledTriggerId,
+            params.triggerIds.map((t) => t.triggerId)
+          )
+        )
+      )
+      .orderBy(desc(scheduledTriggerInvocations.completedAt));
+
+    const result = new Map<
+      string,
+      {
+        lastRunAt: string | null;
+        lastRunStatus: 'completed' | 'failed' | null;
+        lastRunConversationIds: string[];
+        nextRunAt: string | null;
+      }
+    >();
+
+    for (const trigger of params.triggerIds) {
+      result.set(trigger.triggerId, {
+        lastRunAt: null,
+        lastRunStatus: null,
+        lastRunConversationIds: [],
+        nextRunAt: null,
+      });
+    }
+
+    for (const inv of allInvocations) {
+      const triggerInfo = result.get(inv.scheduledTriggerId);
+      if (!triggerInfo) continue;
+      if (inv.status === 'pending' && !triggerInfo.nextRunAt) {
+        triggerInfo.nextRunAt = inv.scheduledFor;
+      }
+      if (
+        (inv.status === 'completed' || inv.status === 'failed') &&
+        !triggerInfo.lastRunAt
+      ) {
+        triggerInfo.lastRunAt = inv.completedAt;
+        triggerInfo.lastRunStatus = inv.status;
+        triggerInfo.lastRunConversationIds = (inv.conversationIds as string[]) || [];
+      }
+    }
+
+    return result;
+  };
+
+/**
  * List upcoming invocations across ALL triggers for an agent with pagination
  * Used for the upcoming runs dashboard with full pagination support
  */
@@ -551,7 +648,9 @@ export const listUpcomingInvocationsForAgentPaginated =
     console.log('[listUpcomingInvocationsForAgentPaginated] Results:', {
       dataCount: data.length,
       total,
-      firstItem: data[0] ? { id: data[0].id, status: data[0].status, scheduledFor: data[0].scheduledFor } : null,
+      firstItem: data[0]
+        ? { id: data[0].id, status: data[0].status, scheduledFor: data[0].scheduledFor }
+        : null,
     });
 
     return {

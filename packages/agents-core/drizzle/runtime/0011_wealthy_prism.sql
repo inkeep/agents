@@ -1,1 +1,0 @@
-ALTER TABLE "scheduled_trigger_invocations" DROP COLUMN "trace_id";

@@ -14,6 +14,7 @@ import {
   Settings,
   Users,
   Workflow,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -87,6 +88,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.agents,
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: STATIC_LABELS.triggers,
+          url: `/${tenantId}/projects/${projectId}/triggers`,
+          icon: Zap,
         },
         {
           title: STATIC_LABELS['api-keys'],

@@ -2,16 +2,12 @@
  * Workflow for running scheduled triggers.
  *
  * This workflow:
- * 1. Pre-creates N pending invocations for upcoming scheduled times
- * 2. Gets the next pending invocation to execute
- * 3. Sleeps until its scheduled time
- * 4. Checks if cancelled (user can cancel during sleep)
- * 5. Executes the agent with retries
- * 6. Replenishes pending invocations to maintain N pending
- * 7. For cron triggers, loops back to step 2
+ * 1. Gets or creates the next pending invocation
+ * 2. Sleeps until its scheduled time
+ * 3. Checks if cancelled (user can cancel during sleep)
+ * 4. Executes the agent with retries
+ * 5. For cron triggers, loops back to step 1
  *
- * IMPORTANT: The main workflow function cannot use any Node.js modules.
- * All Node.js-dependent code must be in step functions.
  */
 import { getWorkflowMetadata, sleep } from 'workflow';
 
@@ -22,12 +18,8 @@ export type ScheduledTriggerRunnerPayload = {
   scheduledTriggerId: string;
 };
 
-// Number of pending invocations to maintain
-const PENDING_INVOCATIONS_COUNT = 5;
-
 /**
  * Generate idempotency key for a scheduled execution.
- * This is pure JS, no Node.js modules.
  */
 function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
   return `sched_${scheduledTriggerId}_${scheduledFor}`;
@@ -37,6 +29,7 @@ function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string
 import {
   calculateNextExecutionStep,
   checkInvocationCancelledStep,
+  addConversationIdStep,
   checkTriggerEnabledStep,
   computeSleepDurationStep,
   createInvocationIdempotentStep,
@@ -47,7 +40,6 @@ import {
   markCompletedStep,
   markFailedStep,
   markRunningStep,
-  preCreatePendingInvocationsStep,
 } from '../steps/scheduledTriggerSteps';
 
 /**
@@ -55,18 +47,11 @@ import {
  * For cron triggers, this loops indefinitely until disabled/deleted.
  * For one-time triggers, it executes once and completes.
  *
- * Pre-creates pending invocations so users can cancel specific future runs.
- *
- * IMPORTANT: This function MUST NOT use any Node.js modules directly.
- * Only pure JS and calls to step functions are allowed.
  */
 async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPayload) {
   'use workflow';
 
   const { tenantId, projectId, agentId, scheduledTriggerId } = payload;
-
-  // Get the actual workflow run ID from metadata (e.g., wrun_XXXXX)
-  // This is stored in the DB and used to detect supersession
   const metadata = getWorkflowMetadata();
   const runnerId = metadata.workflowRunId;
 
@@ -78,9 +63,11 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     runnerId,
   });
 
+  // Track the last scheduled time for cron calculations
+  let lastScheduledFor: string | null = null;
+
   // Main execution loop
   while (true) {
-    // 1. Check if trigger is still enabled and we're the authoritative runner
     const enabledCheck = await checkTriggerEnabledStep({
       tenantId,
       projectId,
@@ -100,20 +87,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     const trigger = enabledCheck.trigger;
     const isOneTime = !!trigger.runAt;
 
-    // 2. For cron triggers, pre-create pending invocations
-    if (!isOneTime && trigger.cronExpression) {
-      await preCreatePendingInvocationsStep({
-        tenantId,
-        projectId,
-        agentId,
-        scheduledTriggerId,
-        cronExpression: trigger.cronExpression,
-        payload: trigger.payload ?? null,
-        targetCount: PENDING_INVOCATIONS_COUNT,
-      });
-    }
-
-    // 3. Get the next pending invocation to execute
+    // Get any existing pending invocation
     let invocation = await getNextPendingInvocationStep({
       tenantId,
       projectId,
@@ -121,22 +95,41 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       scheduledTriggerId,
     });
 
-    // For one-time triggers, create the invocation if it doesn't exist
-    if (!invocation && isOneTime && trigger.runAt) {
-      const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, trigger.runAt);
+    // Create invocation if none exists
+    if (!invocation) {
+      let scheduledFor: string;
+
+      if (isOneTime) {
+        if (!trigger.runAt) {
+          await logStep('One-time trigger missing runAt', { scheduledTriggerId });
+          return { status: 'error', reason: 'one-time trigger missing runAt' };
+        }
+        scheduledFor = trigger.runAt;
+      } else if (trigger.cronExpression) {
+        const { nextExecutionTime } = await calculateNextExecutionStep({
+          cronExpression: trigger.cronExpression,
+          lastScheduledFor,
+        });
+        scheduledFor = nextExecutionTime;
+      } else {
+        await logStep('Trigger missing both cronExpression and runAt', { scheduledTriggerId });
+        return { status: 'error', reason: 'trigger missing cronExpression and runAt' };
+      }
+
+      const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, scheduledFor);
       const result = await createInvocationIdempotentStep({
         tenantId,
         projectId,
         agentId,
         scheduledTriggerId,
-        scheduledFor: trigger.runAt,
+        scheduledFor,
         payload: trigger.payload ?? null,
         idempotencyKey,
       });
       invocation = result.invocation;
 
-      // If already processed, we're done
-      if (result.alreadyExists && invocation.status !== 'pending') {
+      // For one-time triggers, check if already processed
+      if (isOneTime && result.alreadyExists && invocation.status !== 'pending') {
         await logStep('One-time trigger already executed', {
           scheduledTriggerId,
           invocationId: invocation.id,
@@ -144,15 +137,6 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         });
         return { status: 'already_executed', invocationId: invocation.id };
       }
-    }
-
-    // If no pending invocations (all were cancelled), wait a bit and retry
-    if (!invocation) {
-      await logStep('No pending invocations found, waiting before retry', {
-        scheduledTriggerId,
-      });
-      await sleep(60000); // Wait 1 minute before checking again
-      continue;
     }
 
     await logStep('Got next pending invocation', {
@@ -224,7 +208,6 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
     // 7. Execute with retries
     let attemptNumber = invocation.attemptNumber;
     let lastError: string | null = null;
-    let lastConversationId: string | undefined = undefined;
 
     const maxAttempts = maxRetries + 1;
     while (attemptNumber <= maxAttempts) {
@@ -265,8 +248,16 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         timeoutSeconds,
       });
 
+      // Save conversation ID immediately after each attempt
       if (result.conversationId) {
-        lastConversationId = result.conversationId;
+        await addConversationIdStep({
+          tenantId,
+          projectId,
+          agentId,
+          scheduledTriggerId,
+          invocationId: invocation.id,
+          conversationId: result.conversationId,
+        });
       }
 
       if (result.success) {
@@ -276,7 +267,6 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
           agentId,
           scheduledTriggerId,
           invocationId: invocation.id,
-          conversationId: result.conversationId,
         });
 
         await logStep('Scheduled trigger execution completed', {
@@ -323,18 +313,18 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         agentId,
         scheduledTriggerId,
         invocationId: invocation.id,
-        errorMessage: lastError,
-        errorCode: 'EXECUTION_ERROR',
-        conversationId: lastConversationId,
       });
     }
 
-    // 8. For one-time triggers, we're done
+    // Track this invocation's scheduled time for next cron calculation
+    lastScheduledFor = invocation.scheduledFor;
+
+    // For one-time triggers, we're done
     if (isOneTime) {
       return { status: lastError ? 'failed' : 'completed', invocationId: invocation.id };
     }
 
-    // For cron triggers, loop continues to get next pending invocation
+    // For cron triggers, loop continues to create/get next invocation
   }
 }
 
