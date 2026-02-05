@@ -4,11 +4,11 @@ import {
   findWorkAppSlackUserMappingBySlackUser,
   signSlackLinkToken,
   signSlackUserToken,
-  upsertWorkAppSlackUserSettings,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { SlackStrings } from '../../i18n';
 import { resolveEffectiveAgent } from '../agent-resolution';
 import {
   createAgentListMessage,
@@ -17,13 +17,18 @@ import {
   createErrorMessage,
   createJwtLinkMessage,
   createNotLinkedMessage,
-  createSettingsMessage,
-  createSettingsUpdatedMessage,
   createStatusMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
-import { sendResponseUrlMessage } from '../events/utils';
+import { getSlackClient } from '../client';
+import {
+  fetchAgentsForProject,
+  fetchProjectsForTenant,
+  getChannelAgentConfig,
+  sendResponseUrlMessage,
+} from '../events/utils';
+import { buildAgentSelectorModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { SlackCommandPayload, SlackCommandResponse } from '../types';
 
@@ -272,6 +277,105 @@ export async function handleHelpCommand(): Promise<SlackCommandResponse> {
   return { response_type: 'ephemeral', ...message };
 }
 
+/**
+ * Handle `/inkeep` with no arguments - opens the agent picker modal
+ * Similar to @mention behavior in channels
+ */
+export async function handleAgentPickerCommand(
+  payload: SlackCommandPayload,
+  tenantId: string
+): Promise<SlackCommandResponse> {
+  const { triggerId, teamId, channelId, userId, responseUrl } = payload;
+
+  try {
+    const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+    if (!workspaceConnection?.botToken) {
+      logger.error({ teamId }, 'No bot token for agent picker modal');
+      const message = createErrorMessage(SlackStrings.errors.generic);
+      return { response_type: 'ephemeral', ...message };
+    }
+
+    const slackClient = getSlackClient(workspaceConnection.botToken);
+
+    // Fetch projects
+    let projectList = await fetchProjectsForTenant(tenantId);
+
+    if (projectList.length === 0) {
+      const defaultAgent = await getChannelAgentConfig(teamId, channelId);
+      if (defaultAgent) {
+        projectList = [
+          {
+            id: defaultAgent.projectId,
+            name: defaultAgent.projectName || defaultAgent.projectId,
+          },
+        ];
+      }
+    }
+
+    if (projectList.length === 0) {
+      const message = createErrorMessage(SlackStrings.status.noProjectsConfigured);
+      return { response_type: 'ephemeral', ...message };
+    }
+
+    // Fetch agents for first project
+    const firstProject = projectList[0];
+    let agentList = await fetchAgentsForProject(tenantId, firstProject.id);
+
+    if (agentList.length === 0) {
+      const defaultAgent = await getChannelAgentConfig(teamId, channelId);
+      if (defaultAgent && defaultAgent.projectId === firstProject.id) {
+        agentList = [
+          {
+            id: defaultAgent.agentId,
+            name: defaultAgent.agentName || defaultAgent.agentId,
+            projectId: defaultAgent.projectId,
+            projectName: defaultAgent.projectName || defaultAgent.projectId,
+          },
+        ];
+      }
+    }
+
+    const modalMetadata: ModalMetadata = {
+      channel: channelId,
+      messageTs: Date.now().toString(),
+      teamId,
+      slackUserId: userId,
+      tenantId,
+      isInThread: false,
+      buttonResponseUrl: responseUrl,
+    };
+
+    const modal = buildAgentSelectorModal({
+      projects: projectList,
+      agents: agentList.map((a) => ({
+        id: a.id,
+        name: a.name,
+        projectId: a.projectId,
+        projectName: a.projectName || a.projectId,
+      })),
+      metadata: modalMetadata,
+      selectedProjectId: firstProject.id,
+    });
+
+    await slackClient.views.open({
+      trigger_id: triggerId,
+      view: modal,
+    });
+
+    logger.info(
+      { teamId, channelId, projectCount: projectList.length, agentCount: agentList.length },
+      'Opened agent picker modal from slash command'
+    );
+
+    // Return empty response - modal will handle the interaction
+    return { response_type: 'ephemeral' };
+  } catch (error) {
+    logger.error({ error, teamId }, 'Failed to open agent picker modal from slash command');
+    const message = createErrorMessage(SlackStrings.errors.failedToOpenSelector);
+    return { response_type: 'ephemeral', ...message };
+  }
+}
+
 async function generateLinkCodeWithIntent(
   payload: SlackCommandPayload,
   tenantId: string
@@ -328,7 +432,7 @@ export async function handleQuestionCommand(
 
   if (!resolvedAgent) {
     const message = createErrorMessage(
-      'No default agent configured. Ask your admin to set a workspace default, or use `/inkeep settings set [agent]` to set your personal default.\n\nUse `/inkeep list` to see available agents.'
+      'No default agent configured. Ask your admin to set a workspace default in the dashboard.\n\nUse `/inkeep list` to see available agents.'
     );
     return { response_type: 'ephemeral', ...message };
   }
@@ -499,133 +603,6 @@ export async function handleRunCommand(
   }
 }
 
-export async function handleSettingsCommand(
-  payload: SlackCommandPayload,
-  subCommand: string | undefined,
-  agentIdentifier: string | undefined,
-  dashboardUrl: string,
-  _tenantId: string
-): Promise<SlackCommandResponse> {
-  // Find user mapping without tenant filter to get the correct tenant
-  const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
-    payload.userId,
-    payload.teamId,
-    DEFAULT_CLIENT_ID
-  );
-
-  if (!existingLink) {
-    const message = createNotLinkedMessage();
-    return { response_type: 'ephemeral', ...message };
-  }
-
-  // Use the tenant from the user's mapping
-  const userTenantId = existingLink.tenantId;
-
-  if (subCommand === 'set' && agentIdentifier) {
-    try {
-      // Sign a token for manage API access
-      const authToken = await signSlackUserToken({
-        inkeepUserId: existingLink.inkeepUserId,
-        tenantId: userTenantId,
-        slackTeamId: payload.teamId,
-        slackUserId: payload.userId,
-        slackEnterpriseId: payload.enterpriseId,
-      });
-
-      // Use manage API to find agent with proper Dolt branch resolution
-      const targetAgent = await findAgentByIdentifier(userTenantId, agentIdentifier, authToken);
-
-      if (!targetAgent) {
-        const message = createErrorMessage(
-          `Agent "${agentIdentifier}" not found. Use \`/inkeep list\` to see available agents.`
-        );
-        return { response_type: 'ephemeral', ...message };
-      }
-
-      await upsertWorkAppSlackUserSettings(runDbClient)({
-        tenantId: userTenantId,
-        slackTeamId: payload.teamId,
-        slackUserId: payload.userId,
-        defaultProjectId: targetAgent.projectId,
-        defaultAgentId: targetAgent.id,
-        defaultAgentName: targetAgent.name,
-      });
-
-      logger.info(
-        {
-          slackUserId: payload.userId,
-          tenantId: userTenantId,
-          agentId: targetAgent.id,
-          agentName: targetAgent.name,
-        },
-        'User set personal default agent'
-      );
-
-      const message = createSettingsUpdatedMessage(targetAgent.name || targetAgent.id);
-      return { response_type: 'ephemeral', ...message };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(
-        { error: errorMessage, tenantId: userTenantId },
-        'Failed to update user settings'
-      );
-
-      const message = createErrorMessage('Failed to update settings. Please try again.');
-      return { response_type: 'ephemeral', ...message };
-    }
-  }
-
-  if (subCommand === 'clear') {
-    try {
-      await upsertWorkAppSlackUserSettings(runDbClient)({
-        tenantId: userTenantId,
-        slackTeamId: payload.teamId,
-        slackUserId: payload.userId,
-        defaultProjectId: undefined,
-        defaultAgentId: undefined,
-        defaultAgentName: undefined,
-      });
-
-      logger.info(
-        { slackUserId: payload.userId, tenantId: userTenantId },
-        'User cleared personal default agent'
-      );
-
-      return {
-        response_type: 'ephemeral',
-        blocks: [
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: '✅ *Personal default agent cleared*\n\nYou will now use the workspace or channel default.',
-            },
-          },
-        ],
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(
-        { error: errorMessage, tenantId: userTenantId },
-        'Failed to clear user settings'
-      );
-
-      const message = createErrorMessage('Failed to clear settings. Please try again.');
-      return { response_type: 'ephemeral', ...message };
-    }
-  }
-
-  const configs = await resolveEffectiveAgent({
-    tenantId: userTenantId,
-    teamId: payload.teamId,
-    channelId: payload.channelId,
-    userId: payload.userId,
-  });
-
-  const message = createSettingsMessage(configs, dashboardUrl);
-  return { response_type: 'ephemeral', ...message };
-}
-
 export async function handleAgentListCommand(
   payload: SlackCommandPayload,
   dashboardUrl: string,
@@ -751,26 +728,12 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
       return handleRunCommand(payload, parsed.agentName, parsed.question, dashboardUrl, tenantId);
     }
 
-    case 'settings': {
-      const settingsSubcommand = parts[1]?.toLowerCase();
-      // For "settings set", extract agent name from quotes
-      let agentName: string | undefined;
-      if (settingsSubcommand === 'set') {
-        // Extract quoted agent name after "settings set"
-        const quotedMatch = text.match(/^settings\s+set\s+["']([^"']+)["']/i);
-        if (quotedMatch) {
-          agentName = quotedMatch[1].trim();
-        }
-      }
-      return handleSettingsCommand(payload, settingsSubcommand, agentName, dashboardUrl, tenantId);
-    }
-
     case 'help':
+      return handleHelpCommand();
+
     case '':
-      if (text === '' || text === 'help') {
-        return handleHelpCommand();
-      }
-      return handleQuestionCommand(payload, text, dashboardUrl, tenantId);
+      // No arguments - open agent picker modal (same as @mention behavior)
+      return handleAgentPickerCommand(payload, tenantId);
 
     default:
       return handleQuestionCommand(payload, text, dashboardUrl, tenantId);

@@ -8,14 +8,15 @@
  * - DELETE /workspaces/:teamId - Uninstall workspace [ADMIN ONLY]
  * - GET /workspaces/:teamId/channels - List channels
  * - GET /workspaces/:teamId/channels/:channelId/settings - Get channel config
- * - PUT /workspaces/:teamId/channels/:channelId/settings - Set channel default agent [ADMIN ONLY]
- * - DELETE /workspaces/:teamId/channels/:channelId/settings - Remove channel config [ADMIN ONLY]
+ * - PUT /workspaces/:teamId/channels/:channelId/settings - Set channel default agent [ADMIN or CHANNEL MEMBER]
+ * - DELETE /workspaces/:teamId/channels/:channelId/settings - Remove channel config [ADMIN or CHANNEL MEMBER]
  * - GET /workspaces/:teamId/users - List linked users
  *
  * Permission Model:
- * - Read operations (GET): Any authenticated user
- * - Write operations for workspace/channel configs (PUT/DELETE): Org admin/owner only
- * - User personal settings: Any authenticated user (handled in users router)
+ * - Read operations (GET): Any authenticated user (members see read-only)
+ * - Workspace settings (PUT): Org admin/owner only
+ * - Channel settings (PUT/DELETE): Org admin/owner OR member who is in that Slack channel
+ * - Workspace uninstall (DELETE): Org admin/owner only
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
@@ -31,8 +32,9 @@ import {
 } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
-import { requireWorkspaceAdmin } from '../middleware/permissions';
+import { requireChannelMemberOrAdmin, requireWorkspaceAdmin } from '../middleware/permissions';
 import {
+  clearWorkspaceConnectionCache,
   computeWorkspaceConnectionId,
   deleteWorkspaceInstallation,
   findWorkspaceConnectionByTeamId,
@@ -40,6 +42,7 @@ import {
   getSlackClient,
   getWorkspaceDefaultAgentFromNango,
   listWorkspaceInstallations,
+  revokeSlackToken,
   setWorkspaceDefaultAgent as setWorkspaceDefaultAgentInNango,
 } from '../services';
 import type { ManageAppVariables } from '../types';
@@ -64,7 +67,7 @@ app.use('/:workspaceId', async (c, next) => {
 
 app.use('/:teamId/channels/:channelId/settings', async (c, next) => {
   if (c.req.method === 'PUT' || c.req.method === 'DELETE') {
-    return requireWorkspaceAdmin()(c, next);
+    return requireChannelMemberOrAdmin()(c, next);
   }
   return next();
 });
@@ -73,6 +76,7 @@ const ChannelAgentConfigSchema = z.object({
   projectId: z.string(),
   agentId: z.string(),
   agentName: z.string().optional(),
+  projectName: z.string().optional(),
 });
 
 const WorkspaceSettingsSchema = z.object({
@@ -222,7 +226,9 @@ app.openapi(
   async (c) => {
     const { teamId } = c.req.valid('param');
 
-    let defaultAgent: { projectId: string; agentId: string; agentName?: string } | undefined;
+    let defaultAgent:
+      | { projectId: string; agentId: string; agentName?: string; projectName?: string }
+      | undefined;
 
     const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
     if (nangoDefault) {
@@ -230,6 +236,7 @@ app.openapi(
         projectId: nangoDefault.projectId,
         agentId: nangoDefault.agentId,
         agentName: nangoDefault.agentName,
+        projectName: nangoDefault.projectName,
       };
     }
 
@@ -366,6 +373,15 @@ app.openapi(
         return c.json({ error: 'Workspace not found' }, 404);
       }
 
+      if (workspace.botToken) {
+        const tokenRevoked = await revokeSlackToken(workspace.botToken);
+        if (tokenRevoked) {
+          logger.info({ teamId }, 'Revoked Slack bot token');
+        } else {
+          logger.warn({ teamId }, 'Failed to revoke Slack bot token, continuing with uninstall');
+        }
+      }
+
       const nangoSuccess = await deleteWorkspaceInstallation(connectionId);
 
       if (!nangoSuccess) {
@@ -398,7 +414,8 @@ app.openapi(
         );
       }
 
-      logger.info({ connectionId }, 'Deleted workspace installation');
+      clearWorkspaceConnectionCache(teamId);
+      logger.info({ connectionId, teamId }, 'Deleted workspace installation and cleared cache');
       return c.json({ success: true });
     } catch (error) {
       logger.error({ error, workspaceId }, 'Failed to uninstall workspace');
@@ -436,6 +453,7 @@ app.openapi(
                   id: z.string(),
                   name: z.string(),
                   isPrivate: z.boolean(),
+                  isShared: z.boolean(),
                   memberCount: z.number().optional(),
                   hasAgentConfig: z.boolean(),
                   agentConfig: ChannelAgentConfigSchema.optional(),
@@ -487,7 +505,8 @@ app.openapi(
         return {
           id: channel.id || '',
           name: channel.name || '',
-          isPrivate: false,
+          isPrivate: channel.isPrivate ?? false,
+          isShared: channel.isShared ?? false,
           memberCount: channel.memberCount,
           hasAgentConfig: !!config,
           agentConfig: config

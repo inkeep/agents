@@ -4,7 +4,6 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  fetchAgentsForTenant,
   getChannelAgentConfig,
   getThreadContext,
   getWorkspaceDefaultAgent,
@@ -77,12 +76,13 @@ describe('Event Utils', () => {
       };
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
-      expect(result).toContain('<@U123>: First message');
-      expect(result).toContain('<@U456>: Second message');
+      // First message is marked as thread start, user IDs kept as-is when no users client
+      expect(result).toContain('[Thread Start] U123: First message');
+      expect(result).toContain('U456: Second message');
       expect(result).not.toContain('Current message');
     });
 
-    it('should include bot messages with Powered by', async () => {
+    it('should include bot messages and label them correctly', async () => {
       const mockClient = {
         conversations: {
           replies: vi.fn().mockResolvedValue({
@@ -96,7 +96,8 @@ describe('Event Utils', () => {
       };
 
       const result = await getThreadContext(mockClient, 'C123', '1234.5678');
-      expect(result).toContain('Assistant: Answer Powered by Agent');
+      expect(result).toContain('[Thread Start] U123: Question');
+      expect(result).toContain('Inkeep Agent: Answer Powered by Agent');
     });
 
     it('should handle API errors gracefully', async () => {
@@ -138,20 +139,6 @@ describe('Event Utils', () => {
         sendResponseUrlMessage('https://example.com/response', { text: 'Test' })
       ).resolves.not.toThrow();
     });
-  });
-});
-
-describe('fetchAgentsForTenant', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should return empty array when no projects', async () => {
-    const { listProjectsPaginated } = await import('@inkeep/agents-core');
-    vi.mocked(listProjectsPaginated).mockReturnValue(vi.fn().mockResolvedValue({ data: [] }));
-
-    const agents = await fetchAgentsForTenant('test-tenant');
-    expect(agents).toEqual([]);
   });
 });
 

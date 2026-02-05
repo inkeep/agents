@@ -2,19 +2,10 @@
  * Slack Agent Resolution Service
  *
  * Determines which agent to use for a given Slack interaction.
- *
- * For @mentions (bot interactions):
- * - Uses Channel > Workspace defaults (admin-controlled)
- *
- * For /slash commands (user interactions):
- * - User personal default > Channel > Workspace
- * - Users can set their own default via /inkeep settings
+ * Priority: Channel override > Workspace default (all admin-controlled)
  */
 
-import {
-  findWorkAppSlackChannelAgentConfig,
-  findWorkAppSlackUserSettings,
-} from '@inkeep/agents-core';
+import { findWorkAppSlackChannelAgentConfig } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
 import { getLogger } from '../../logger';
 import { getWorkspaceDefaultAgentFromNango } from './nango';
@@ -26,7 +17,7 @@ export interface ResolvedAgentConfig {
   projectId: string;
   agentId: string;
   agentName?: string;
-  source: 'channel' | 'workspace' | 'user' | 'none';
+  source: 'channel' | 'workspace' | 'none';
 }
 
 export interface AgentResolutionParams {
@@ -37,38 +28,20 @@ export interface AgentResolutionParams {
 }
 
 /**
- * Resolve the effective agent configuration for a Slack slash command.
- * Priority: User personal default > Channel override > Workspace default
+ * Resolve the effective agent configuration.
+ * Priority: Channel override > Workspace default
  *
- * @param params - Resolution parameters including tenant, team, channel, and user IDs
+ * @param params - Resolution parameters including tenant, team, and channel IDs
  * @returns The resolved agent configuration, or null if no agent is configured
  */
 export async function resolveEffectiveAgent(
   params: AgentResolutionParams
 ): Promise<ResolvedAgentConfig | null> {
-  const { tenantId, teamId, channelId, userId } = params;
+  const { tenantId, teamId, channelId } = params;
 
-  logger.debug({ tenantId, teamId, channelId, userId }, 'Resolving effective agent');
+  logger.debug({ tenantId, teamId, channelId }, 'Resolving effective agent');
 
-  // Priority 1: User's personal default (set via /inkeep settings)
-  if (userId) {
-    const userSettings = await findWorkAppSlackUserSettings(runDbClient)(tenantId, teamId, userId);
-
-    if (userSettings?.defaultAgentId && userSettings.defaultProjectId) {
-      logger.info(
-        { userId, agentId: userSettings.defaultAgentId, source: 'user' },
-        'Resolved agent from user settings'
-      );
-      return {
-        projectId: userSettings.defaultProjectId,
-        agentId: userSettings.defaultAgentId,
-        agentName: userSettings.defaultAgentName || undefined,
-        source: 'user',
-      };
-    }
-  }
-
-  // Priority 2: Channel override (admin-configured)
+  // Priority 1: Channel override (admin-configured)
   if (channelId) {
     const channelConfig = await findWorkAppSlackChannelAgentConfig(runDbClient)(
       tenantId,
@@ -90,7 +63,7 @@ export async function resolveEffectiveAgent(
     }
   }
 
-  // Priority 3: Workspace default (admin-configured)
+  // Priority 2: Workspace default (admin-configured)
   const workspaceConfig = await getWorkspaceDefaultAgentFromNango(teamId);
 
   if (workspaceConfig?.agentId && workspaceConfig.projectId) {
@@ -106,28 +79,25 @@ export async function resolveEffectiveAgent(
     };
   }
 
-  logger.debug({ tenantId, teamId, channelId, userId }, 'No agent configuration found');
+  logger.debug({ tenantId, teamId, channelId }, 'No agent configuration found');
   return null;
 }
 
 /**
- * Get all agent configuration sources for debugging and display purposes.
- * Returns each level of configuration and the effective result.
+ * Get all agent configuration sources for display purposes.
  *
  * @param params - Resolution parameters
- * @returns Object containing channel, workspace, user configs, and the effective choice
+ * @returns Object containing channel, workspace configs, and the effective choice
  */
 export async function getAgentConfigSources(params: AgentResolutionParams): Promise<{
   channelConfig: ResolvedAgentConfig | null;
   workspaceConfig: ResolvedAgentConfig | null;
-  userConfig: ResolvedAgentConfig | null;
   effective: ResolvedAgentConfig | null;
 }> {
-  const { tenantId, teamId, channelId, userId } = params;
+  const { tenantId, teamId, channelId } = params;
 
   let channelConfig: ResolvedAgentConfig | null = null;
   let workspaceConfig: ResolvedAgentConfig | null = null;
-  let userConfig: ResolvedAgentConfig | null = null;
 
   if (channelId) {
     const config = await findWorkAppSlackChannelAgentConfig(runDbClient)(
@@ -155,24 +125,11 @@ export async function getAgentConfigSources(params: AgentResolutionParams): Prom
     };
   }
 
-  if (userId) {
-    const settings = await findWorkAppSlackUserSettings(runDbClient)(tenantId, teamId, userId);
-    if (settings?.defaultAgentId && settings.defaultProjectId) {
-      userConfig = {
-        projectId: settings.defaultProjectId,
-        agentId: settings.defaultAgentId,
-        agentName: settings.defaultAgentName || undefined,
-        source: 'user',
-      };
-    }
-  }
-
-  const effective = userConfig || channelConfig || workspaceConfig;
+  const effective = channelConfig || workspaceConfig;
 
   return {
     channelConfig,
     workspaceConfig,
-    userConfig,
     effective,
   };
 }

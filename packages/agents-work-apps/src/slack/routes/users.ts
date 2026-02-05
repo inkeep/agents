@@ -1,9 +1,7 @@
 /**
  * Slack User Routes
  *
- * Endpoints for user linking and personal settings:
- * - GET /users/me/settings - Get user's personal settings
- * - PUT /users/me/settings - Update user's personal default agent
+ * Endpoints for user linking:
  * - GET /link-status - Check link status
  * - POST /link/verify-token - Verify JWT link token (primary linking method)
  * - POST /connect - Create Nango session
@@ -16,8 +14,6 @@ import {
   deleteWorkAppSlackUserMapping,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
-  findWorkAppSlackUserSettings,
-  upsertWorkAppSlackUserSettings,
   verifySlackLinkToken,
 } from '@inkeep/agents-core';
 import runDbClient from '../../db/runDbClient';
@@ -28,110 +24,6 @@ import type { WorkAppsVariables } from '../types';
 const logger = getLogger('slack-users');
 
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
-
-const UserSettingsSchema = z.object({
-  defaultProjectId: z.string().optional(),
-  defaultAgentId: z.string().optional(),
-  defaultAgentName: z.string().optional(),
-});
-
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/me/settings',
-    summary: 'Get User Settings',
-    description: "Get user's personal Slack settings including default agent",
-    operationId: 'slack-get-user-settings',
-    tags: ['Work Apps', 'Slack', 'Users'],
-    request: {
-      query: z.object({
-        slackUserId: z.string(),
-        slackTeamId: z.string(),
-        tenantId: z.string().optional().default('default'),
-      }),
-    },
-    responses: {
-      200: {
-        description: 'User settings',
-        content: {
-          'application/json': {
-            schema: UserSettingsSchema,
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { slackUserId, slackTeamId, tenantId } = c.req.valid('query');
-
-    const settings = await findWorkAppSlackUserSettings(runDbClient)(
-      tenantId,
-      slackTeamId,
-      slackUserId
-    );
-
-    return c.json({
-      defaultProjectId: settings?.defaultProjectId || undefined,
-      defaultAgentId: settings?.defaultAgentId || undefined,
-      defaultAgentName: settings?.defaultAgentName || undefined,
-    });
-  }
-);
-
-app.openapi(
-  createRoute({
-    method: 'put',
-    path: '/me/settings',
-    summary: 'Update User Settings',
-    description: "Update user's personal default agent",
-    operationId: 'slack-update-user-settings',
-    tags: ['Work Apps', 'Slack', 'Users'],
-    request: {
-      body: {
-        content: {
-          'application/json': {
-            schema: z.object({
-              slackUserId: z.string(),
-              slackTeamId: z.string(),
-              tenantId: z.string().optional(),
-              settings: UserSettingsSchema,
-            }),
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Settings updated',
-        content: {
-          'application/json': {
-            schema: z.object({ success: z.boolean() }),
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const body = c.req.valid('json');
-    const tenantId = body.tenantId || 'default';
-
-    await upsertWorkAppSlackUserSettings(runDbClient)({
-      tenantId,
-      slackTeamId: body.slackTeamId,
-      slackUserId: body.slackUserId,
-      defaultProjectId: body.settings.defaultProjectId,
-      defaultAgentId: body.settings.defaultAgentId,
-      defaultAgentName: body.settings.defaultAgentName,
-    });
-
-    logger.info(
-      { slackUserId: body.slackUserId, agentId: body.settings.defaultAgentId },
-      'Updated user settings'
-    );
-
-    return c.json({ success: true });
-  }
-);
 
 app.openapi(
   createRoute({

@@ -4,7 +4,7 @@
  * Tests all message builders in blocks/index.ts including:
  * - Context blocks and share buttons (centralized helpers)
  * - Help and command reference messages
- * - Agent list and settings messages
+ * - Agent list messages
  * - Error and success messages
  */
 
@@ -16,8 +16,6 @@ import {
   createContextBlock,
   createErrorMessage,
   createNotLinkedMessage,
-  createSettingsMessage,
-  createSettingsUpdatedMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
 } from '../blocks';
@@ -128,42 +126,6 @@ describe('Slack Block Builders', () => {
     });
   });
 
-  describe('createSettingsMessage', () => {
-    it('should create settings message with default agent', () => {
-      const currentConfig = {
-        agentId: 'agent-1',
-        agentName: 'My Default Agent',
-        source: 'workspace',
-      };
-      const dashboardUrl = 'https://app.inkeep.com';
-
-      const result = createSettingsMessage(currentConfig, dashboardUrl);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Your /inkeep Settings');
-      expect(JSON.stringify(result)).toContain('My Default Agent');
-      expect(JSON.stringify(result)).toContain('Workspace default (admin-set)');
-    });
-
-    it('should show not configured when no default agent', () => {
-      const result = createSettingsMessage(null, 'https://app.inkeep.com');
-
-      expect(JSON.stringify(result)).toContain('No default agent configured');
-    });
-  });
-
-  describe('createSettingsUpdatedMessage', () => {
-    it('should create settings updated message', () => {
-      const agentName = 'New Agent';
-
-      const result = createSettingsUpdatedMessage(agentName);
-
-      expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Settings Updated');
-      expect(JSON.stringify(result)).toContain(agentName);
-    });
-  });
-
   describe('createAgentListMessage', () => {
     it('should create agent list message', () => {
       const agents = [
@@ -199,11 +161,11 @@ describe('Slack Block Builders', () => {
       const result = createUpdatedHelpMessage();
 
       expect(result.blocks).toBeDefined();
-      expect(JSON.stringify(result)).toContain('Two Ways to Ask Questions');
-      expect(JSON.stringify(result)).toContain('@Inkeep');
+      expect(JSON.stringify(result)).toContain('@Inkeep Usage');
+      expect(JSON.stringify(result)).toContain('Agent picker');
+      expect(JSON.stringify(result)).toContain('/inkeep Usage');
       expect(JSON.stringify(result)).toContain('/inkeep run');
-      expect(JSON.stringify(result)).toContain('Commands');
-      expect(JSON.stringify(result)).toContain('settings');
+      expect(JSON.stringify(result)).toContain('/inkeep list');
     });
   });
 

@@ -1,12 +1,12 @@
 {
   "_readme": {
     "description": "Slack App Manifest for Inkeep Agent Work App",
-    "usage": "Copy this manifest to Slack App settings at https://api.slack.com/apps and delte the _readme section",
+    "usage": "Copy this manifest to Slack App settings at https://api.slack.com/apps and delete the _readme section",
     "ngrok_note": "Replace 'vic-agents-api.ngrok.app' with your ngrok domain",
     "production_note": "For production, replace ngrok URLs with your production API domain"
   },
   "display_information": {
-    "name": "Inkeep Agent",
+    "name": "Inkeep",
     "description": "Connect Inkeep agents to your Slack workspace",
     "background_color": "#4A154B"
   },
@@ -17,15 +17,23 @@
       "messages_tab_read_only_enabled": false
     },
     "bot_user": {
-      "display_name": "Inkeep Agent",
+      "display_name": "Inkeep",
       "always_online": true
     },
+    "shortcuts": [
+      {
+        "name": "Ask Inkeep Agent",
+        "type": "message",
+        "callback_id": "ask_agent_shortcut",
+        "description": "Ask an Inkeep agent about this message"
+      }
+    ],
     "slash_commands": [
       {
         "command": "/inkeep",
         "url": "https://vic-agents-api.ngrok.app/work-apps/slack/commands",
         "description": "Ask AI agents questions and manage your Inkeep integration",
-        "usage_hint": "[question] | run [agent] [question] | link | unlink | status | settings | list | help",
+        "usage_hint": "[question] | run [agent] [question] | link | unlink | status | list | help",
         "should_escape": false
       }
     ]

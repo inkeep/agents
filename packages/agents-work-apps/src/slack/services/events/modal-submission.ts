@@ -6,9 +6,10 @@ import { findWorkAppSlackUserMapping, signSlackUserToken } from '@inkeep/agents-
 import runDbClient from '../../../db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { SlackStrings } from '../../i18n';
 import { buildShareButtons, createContextBlock } from '../blocks';
 import { getSlackClient } from '../client';
-import type { ModalMetadata } from '../modals';
+import type { ModalMetadata, ResponseVisibility } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import {
   classifyError,
@@ -36,16 +37,29 @@ export async function handleModalSubmission(view: {
       selected_option?: { value?: string };
     };
     const questionValue = values.question_block?.question_input as { value?: string };
-    const visibilityValue = values.visibility_block?.visibility_checkbox as {
-      selected_options?: Array<{ value?: string }>;
-    };
     const includeContextValue = values.context_block?.include_context_checkbox as {
       selected_options?: Array<{ value?: string }>;
     };
 
+    // Parse visibility based on context (radio buttons for channel, checkbox for thread)
+    let visibility: ResponseVisibility = 'private';
+    if (metadata.isInThread) {
+      // Thread context uses checkbox
+      const visibilityCheckbox = values.visibility_block?.visibility_checkbox as {
+        selected_options?: Array<{ value?: string }>;
+      };
+      const isEphemeral =
+        visibilityCheckbox?.selected_options?.some((o) => o.value === 'ephemeral') || false;
+      visibility = isEphemeral ? 'private' : 'thread';
+    } else {
+      // Channel context uses radio buttons
+      const visibilityRadio = values.visibility_block?.visibility_radio as {
+        selected_option?: { value?: string };
+      };
+      visibility = (visibilityRadio?.selected_option?.value as ResponseVisibility) || 'private';
+    }
+
     const question = questionValue?.value || '';
-    const isEphemeral =
-      visibilityValue?.selected_options?.some((o) => o.value === 'ephemeral') || false;
     const includeContext =
       includeContextValue?.selected_options?.some((o) => o.value === 'include_context') ?? true;
 
@@ -81,7 +95,13 @@ export async function handleModalSubmission(view: {
 
     let fullQuestion = question;
 
-    if (metadata.isInThread && metadata.threadTs && includeContext) {
+    // Check if this is a message shortcut with pre-filled message context
+    if (metadata.messageContext) {
+      fullQuestion = question
+        ? `Based on the following message:\n\n${metadata.messageContext}\n\nUser request: ${question}`
+        : `Based on the following message, please provide a helpful response or analysis:\n\n${metadata.messageContext}`;
+    } else if (metadata.isInThread && metadata.threadTs && includeContext) {
+      // Regular thread context flow
       const contextMessages = await getThreadContext(
         slackClient,
         metadata.channel,
@@ -107,19 +127,11 @@ export async function handleModalSubmission(view: {
     );
 
     if (!existingLink) {
-      if (isEphemeral) {
-        await slackClient.chat.postEphemeral({
-          channel: metadata.channel,
-          user: metadata.slackUserId,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
-        });
-      } else {
-        await slackClient.chat.postMessage({
-          channel: metadata.channel,
-          thread_ts: metadata.threadTs || metadata.messageTs,
-          text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
-        });
-      }
+      await slackClient.chat.postEphemeral({
+        channel: metadata.channel,
+        user: metadata.slackUserId,
+        text: '🔗 You need to link your account first. Use `/inkeep link` to get started.',
+      });
       return;
     }
 
@@ -133,22 +145,55 @@ export async function handleModalSubmission(view: {
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
     const replyThreadTs = metadata.threadTs || metadata.messageTs;
 
+    // For "Ask Again" flow with private visibility, we can use buttonResponseUrl to replace messages in-place
+    // This avoids stacking multiple ephemeral messages
+    const canReplaceInPlace = Boolean(metadata.buttonResponseUrl) && visibility === 'private';
+
+    // For non-private visibility, delete the button message immediately
+    if (metadata.buttonResponseUrl && !canReplaceInPlace) {
+      sendResponseUrlMessage(metadata.buttonResponseUrl, {
+        text: '',
+        delete_original: true,
+      }).catch((deleteError) => {
+        logger.warn({ deleteError }, 'Failed to delete button message');
+      });
+    }
+
+    // Post thinking message based on visibility
     let thinkingMessageTs: string | undefined;
-    if (isEphemeral) {
-      const thinkingPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
-        channel: metadata.channel,
-        user: metadata.slackUserId,
-        text: `_${agentId} is thinking..._`,
-      };
-      if (metadata.isInThread && metadata.threadTs) {
-        thinkingPayload.thread_ts = metadata.threadTs;
+    const thinkingText = SlackStrings.status.thinking(agentId);
+    if (visibility === 'private') {
+      if (canReplaceInPlace && metadata.buttonResponseUrl) {
+        // Replace the previous response with "thinking..." message
+        await sendResponseUrlMessage(metadata.buttonResponseUrl, {
+          text: thinkingText,
+          response_type: 'ephemeral',
+          replace_original: true,
+        });
+      } else {
+        // Initial flow - post new ephemeral
+        const thinkingPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
+          channel: metadata.channel,
+          user: metadata.slackUserId,
+          text: thinkingText,
+        };
+        if (metadata.isInThread && metadata.threadTs) {
+          thinkingPayload.thread_ts = metadata.threadTs;
+        }
+        await slackClient.chat.postEphemeral(thinkingPayload);
       }
-      await slackClient.chat.postEphemeral(thinkingPayload);
-    } else {
+    } else if (visibility === 'thread') {
       const thinkingResult = await slackClient.chat.postMessage({
         channel: metadata.channel,
         thread_ts: replyThreadTs,
-        text: `_${agentId} is thinking..._`,
+        text: thinkingText,
+      });
+      thinkingMessageTs = thinkingResult.ts;
+    } else {
+      // visibility === 'channel' - post directly to channel
+      const thinkingResult = await slackClient.chat.postMessage({
+        channel: metadata.channel,
+        text: thinkingText,
       });
       thinkingMessageTs = thinkingResult.ts;
     }
@@ -186,52 +231,46 @@ export async function handleModalSubmission(view: {
       );
     }
 
-    if (isEphemeral) {
+    // Post response based on visibility
+    if (visibility === 'private') {
       try {
-        if (isError) {
-          // Error response - just show the error message
-          const ephemeralPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
-            channel: metadata.channel,
-            user: metadata.slackUserId,
-            text: responseText,
-            blocks: [
-              {
-                type: 'section',
-                text: { type: 'mrkdwn', text: responseText },
-              },
-            ],
-          };
+        const contextBlock = createContextBlock({ agentName: agentId, isPrivate: true });
+        const shareButtons = buildShareButtons({
+          channelId: metadata.channel,
+          text: responseText,
+          agentName: agentId,
+          threadTs: metadata.isInThread ? metadata.threadTs : undefined,
+          askAgainMetadata: {
+            teamId: metadata.teamId,
+            slackUserId: metadata.slackUserId,
+            tenantId,
+            messageTs: metadata.messageTs,
+          },
+        });
 
-          if (metadata.isInThread && metadata.threadTs) {
-            ephemeralPayload.thread_ts = metadata.threadTs;
-          }
-
-          await slackClient.chat.postEphemeral(ephemeralPayload);
-        } else {
-          // Success response - show with context and share buttons
-          const contextBlock = createContextBlock({ agentName: agentId, isPrivate: true });
-          const shareButtons = buildShareButtons({
-            channelId: metadata.channel,
-            text: responseText,
-            agentName: agentId,
-            threadTs: metadata.isInThread ? metadata.threadTs : undefined,
-          });
-
-          const ephemeralPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
-            channel: metadata.channel,
-            user: metadata.slackUserId,
-            text: responseText,
-            blocks: [
-              {
-                type: 'section',
-                text: { type: 'mrkdwn', text: responseText },
-              },
+        const responseBlocks = isError
+          ? [{ type: 'section' as const, text: { type: 'mrkdwn' as const, text: responseText } }]
+          : [
+              { type: 'section' as const, text: { type: 'mrkdwn' as const, text: responseText } },
               contextBlock,
-              {
-                type: 'actions',
-                elements: shareButtons,
-              },
-            ],
+              { type: 'actions' as const, elements: shareButtons },
+            ];
+
+        if (canReplaceInPlace && metadata.buttonResponseUrl) {
+          // Replace "thinking..." with actual response (in-place update)
+          await sendResponseUrlMessage(metadata.buttonResponseUrl, {
+            text: responseText,
+            response_type: 'ephemeral',
+            replace_original: true,
+            blocks: responseBlocks,
+          });
+        } else {
+          // Initial flow - post new ephemeral
+          const ephemeralPayload: Parameters<typeof slackClient.chat.postEphemeral>[0] = {
+            channel: metadata.channel,
+            user: metadata.slackUserId,
+            text: responseText,
+            blocks: responseBlocks,
           };
 
           if (metadata.isInThread && metadata.threadTs) {
@@ -243,36 +282,46 @@ export async function handleModalSubmission(view: {
       } catch (ephemeralError) {
         logger.error({ ephemeralError }, 'Failed to post ephemeral message');
       }
-    } else {
-      if (isError) {
-        // Error response - just show the error message
-        await slackClient.chat.postMessage({
-          channel: metadata.channel,
-          thread_ts: replyThreadTs,
-          text: responseText,
-          blocks: [
-            {
-              type: 'section',
-              text: { type: 'mrkdwn', text: responseText },
-            },
-          ],
-        });
-      } else {
-        // Success response - show with context
-        const publicContextBlock = createContextBlock({ agentName: agentId });
-        await slackClient.chat.postMessage({
-          channel: metadata.channel,
-          thread_ts: replyThreadTs,
-          text: responseText,
-          blocks: [
-            {
-              type: 'section',
-              text: { type: 'mrkdwn', text: responseText },
-            },
-            publicContextBlock,
-          ],
-        });
+    } else if (visibility === 'thread') {
+      // Post to thread
+      const blocks = isError
+        ? [{ type: 'section' as const, text: { type: 'mrkdwn' as const, text: responseText } }]
+        : [
+            { type: 'section' as const, text: { type: 'mrkdwn' as const, text: responseText } },
+            createContextBlock({ agentName: agentId }),
+          ];
+
+      await slackClient.chat.postMessage({
+        channel: metadata.channel,
+        thread_ts: replyThreadTs,
+        text: responseText,
+        blocks,
+      });
+
+      if (thinkingMessageTs) {
+        try {
+          await slackClient.chat.delete({
+            channel: metadata.channel,
+            ts: thinkingMessageTs,
+          });
+        } catch (deleteError) {
+          logger.warn({ deleteError }, 'Failed to delete thinking message');
+        }
       }
+    } else {
+      // visibility === 'channel' - post directly to channel (no thread)
+      const blocks = isError
+        ? [{ type: 'section' as const, text: { type: 'mrkdwn' as const, text: responseText } }]
+        : [
+            { type: 'section' as const, text: { type: 'mrkdwn' as const, text: responseText } },
+            createContextBlock({ agentName: agentId }),
+          ];
+
+      await slackClient.chat.postMessage({
+        channel: metadata.channel,
+        text: responseText,
+        blocks,
+      });
 
       if (thinkingMessageTs) {
         try {
@@ -286,19 +335,8 @@ export async function handleModalSubmission(view: {
       }
     }
 
-    if (metadata.buttonResponseUrl) {
-      try {
-        await sendResponseUrlMessage(metadata.buttonResponseUrl, {
-          text: '',
-          delete_original: true,
-        });
-      } catch (deleteError) {
-        logger.warn({ deleteError }, 'Failed to delete button message');
-      }
-    }
-
     logger.info(
-      { agentId, projectId, tenantId, slackUserId: metadata.slackUserId, isEphemeral },
+      { agentId, projectId, tenantId, slackUserId: metadata.slackUserId, visibility },
       'Modal submission agent execution completed'
     );
   } catch (error) {

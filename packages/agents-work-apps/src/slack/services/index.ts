@@ -6,13 +6,8 @@
  * This module re-exports all Slack service functionality:
  *
  * Agent Resolution:
- * - `resolveEffectiveAgent` - Determine which agent to use (user > channel > workspace)
+ * - `resolveEffectiveAgent` - Determine which agent to use (channel > workspace)
  * - `getAgentConfigSources` - Get all config sources for status display
- *
- * API Client:
- * - `SlackApiClient` - Internal API client for manage endpoints
- * - `createSlackApiClient` - Factory function for client creation
- * - `sendDeferredResponse` - Send delayed responses via response_url
  *
  * Block Kit:
  * - Message builders: createStatusMessage, createErrorMessage, etc.
@@ -41,8 +36,6 @@
  */
 
 export * from './agent-resolution';
-export * from './api-client';
-export * from './auth';
 export * from './blocks';
 export * from './client';
 export * from './commands';

@@ -6,8 +6,10 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronRight,
+  Globe,
   Hash,
   Loader2,
+  Lock,
   RefreshCw,
   Settings2,
   Sparkles,
@@ -33,6 +35,8 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { cn } from '@/lib/utils';
 import { getAllAgentsForSlack, type SlackAgentOption } from '../actions/agents';
 import { slackApi } from '../api/slack-api';
@@ -42,6 +46,7 @@ interface Channel {
   id: string;
   name: string;
   isPrivate: boolean;
+  isShared?: boolean;
   memberCount?: number;
   hasAgentConfig: boolean;
   agentConfig?: {
@@ -61,6 +66,7 @@ interface DefaultAgentConfig {
 export function AgentConfigurationCard() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const { installedWorkspaces, actions } = useSlack();
+  const { isAdmin, isLoading: isLoadingAdmin } = useIsOrgAdmin();
 
   const [agents, setAgents] = useState<SlackAgentOption[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -76,13 +82,26 @@ export function AgentConfigurationCard() {
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set());
   const [bulkPopoverOpen, setBulkPopoverOpen] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [channelFilter, setChannelFilter] = useState<'all' | 'private' | 'shared'>('all');
 
   const firstWorkspace = installedWorkspaces.data[0];
   const teamId = firstWorkspace?.teamId;
   const workspaceName = firstWorkspace?.teamName || 'your workspace';
+  const canEditWorkspaceDefault = isAdmin;
 
-  const channelsWithCustomAgent = channels.filter((c) => c.hasAgentConfig);
-  const channelsUsingDefault = channels.filter((c) => !c.hasAgentConfig);
+  const filteredChannels = channels.filter((c) => {
+    if (channelFilter === 'private') return c.isPrivate;
+    if (channelFilter === 'shared') return c.isShared;
+    return true;
+  });
+
+  const channelsWithCustomAgent = filteredChannels.filter((c) => c.hasAgentConfig);
+  const channelsUsingDefault = filteredChannels.filter((c) => !c.hasAgentConfig);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally clear selections when filter changes
+  useEffect(() => {
+    setSelectedChannels(new Set());
+  }, [channelFilter]);
 
   useEffect(() => {
     setMounted(true);
@@ -210,9 +229,13 @@ export function AgentConfigurationCard() {
       });
     } catch (error) {
       console.error('Failed to set channel agent:', error);
+      const errorMessage =
+        error instanceof Error && error.message.includes('forbidden')
+          ? `You can only configure channels you're a member of`
+          : 'Failed to set channel agent';
       actions.setNotification({
         type: 'error',
-        message: 'Failed to set channel agent',
+        message: errorMessage,
         action: 'error',
       });
     } finally {
@@ -241,9 +264,13 @@ export function AgentConfigurationCard() {
       });
     } catch (error) {
       console.error('Failed to reset channel:', error);
+      const errorMessage =
+        error instanceof Error && error.message.includes('forbidden')
+          ? `You can only configure channels you're a member of`
+          : 'Failed to reset channel to default';
       actions.setNotification({
         type: 'error',
-        message: 'Failed to reset channel to default',
+        message: errorMessage,
         action: 'error',
       });
     } finally {
@@ -264,10 +291,10 @@ export function AgentConfigurationCard() {
   };
 
   const handleSelectAll = () => {
-    if (selectedChannels.size === channels.length) {
+    if (selectedChannels.size === filteredChannels.length) {
       setSelectedChannels(new Set());
     } else {
-      setSelectedChannels(new Set(channels.map((c) => c.id)));
+      setSelectedChannels(new Set(filteredChannels.map((c) => c.id)));
     }
   };
 
@@ -424,6 +451,14 @@ export function AgentConfigurationCard() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Workspace Default</span>
+            {!canEditWorkspaceDefault && !isLoadingAdmin && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>Only admins can modify workspace defaults</TooltipContent>
+              </Tooltip>
+            )}
           </div>
 
           <div className="rounded-lg border bg-muted/30 p-4">
@@ -437,75 +472,91 @@ export function AgentConfigurationCard() {
             </div>
 
             <div className="mt-3">
-              <Popover open={defaultOpen} onOpenChange={setDefaultOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-11 bg-background"
-                    onClick={() => {
-                      if (agents.length === 0) fetchAgents();
-                    }}
-                  >
-                    {savingDefault ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </span>
-                    ) : defaultAgent ? (
-                      <span className="flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{defaultAgent.agentName}</span>
-                        <span className="text-muted-foreground text-xs">
-                          · {defaultAgent.projectName}
+              {canEditWorkspaceDefault ? (
+                <Popover open={defaultOpen} onOpenChange={setDefaultOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-11 bg-background"
+                      onClick={() => {
+                        if (agents.length === 0) fetchAgents();
+                      }}
+                    >
+                      {savingDefault ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
                         </span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">Select a default agent...</span>
-                    )}
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search agents..." />
-                    <CommandList>
-                      <CommandEmpty>
-                        {loadingAgents ? (
-                          <div className="flex items-center justify-center py-6">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Loading agents...
-                          </div>
-                        ) : (
-                          'No agents found. Create an agent first.'
-                        )}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {agents.map((agent) => (
-                          <CommandItem
-                            key={agent.id}
-                            value={`${agent.name} ${agent.projectName}`}
-                            onSelect={() => handleSetDefaultAgent(agent)}
-                            className="py-3"
-                          >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4',
-                                defaultAgent?.agentId === agent.id ? 'opacity-100' : 'opacity-0'
-                              )}
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{agent.name || agent.id}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {agent.projectName}
-                              </span>
+                      ) : defaultAgent ? (
+                        <span className="flex items-center gap-2">
+                          <Bot className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{defaultAgent.agentName}</span>
+                          <span className="text-muted-foreground text-xs">
+                            · {defaultAgent.projectName}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Select a default agent...</span>
+                      )}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search agents..." />
+                      <CommandList>
+                        <CommandEmpty>
+                          {loadingAgents ? (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Loading agents...
                             </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                          ) : (
+                            'No agents found. Create an agent first.'
+                          )}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {agents.map((agent) => (
+                            <CommandItem
+                              key={agent.id}
+                              value={`${agent.name} ${agent.projectName}`}
+                              onSelect={() => handleSetDefaultAgent(agent)}
+                              className="py-3"
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  defaultAgent?.agentId === agent.id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{agent.name || agent.id}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {agent.projectName}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <div className="flex items-center h-11 px-3 rounded-md border bg-muted/50 text-sm">
+                  {defaultAgent ? (
+                    <span className="flex items-center gap-2">
+                      <Bot className="h-4 w-4 text-primary" />
+                      <span className="font-medium">{defaultAgent.agentName}</span>
+                      <span className="text-muted-foreground text-xs">
+                        · {defaultAgent.projectName}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">No default agent configured</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {defaultAgent && (
@@ -547,16 +598,60 @@ export function AgentConfigurationCard() {
           <CollapsibleContent className="mt-3 space-y-2">
             <p className="text-xs text-muted-foreground mb-3">
               Set specific agents for individual channels. These override the workspace default.
+              {!isAdmin && <> You can configure channels you&apos;re a member of.</>}
             </p>
 
+            {/* Channel Type Filters */}
             {channels.length > 0 && (
+              <div className="flex items-center gap-1 mb-3">
+                <span className="text-xs text-muted-foreground mr-2">Filter:</span>
+                <Button
+                  variant={channelFilter === 'all' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setChannelFilter('all')}
+                >
+                  All
+                  <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                    {channels.length}
+                  </Badge>
+                </Button>
+                <Button
+                  variant={channelFilter === 'private' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setChannelFilter('private')}
+                >
+                  <Lock className="h-3 w-3 mr-1" />
+                  Private
+                  <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                    {channels.filter((c) => c.isPrivate).length}
+                  </Badge>
+                </Button>
+                <Button
+                  variant={channelFilter === 'shared' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setChannelFilter('shared')}
+                >
+                  <Globe className="h-3 w-3 mr-1" />
+                  Shared
+                  <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">
+                    {channels.filter((c) => c.isShared).length}
+                  </Badge>
+                </Button>
+              </div>
+            )}
+
+            {filteredChannels.length > 0 && (
               <div className="flex items-center justify-between mb-2 p-2 bg-muted/30 rounded-lg">
                 <button
                   type="button"
                   onClick={handleSelectAll}
                   className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {selectedChannels.size === channels.length ? (
+                  {selectedChannels.size === filteredChannels.length &&
+                  filteredChannels.length > 0 ? (
                     <CheckSquare className="h-4 w-4" />
                   ) : selectedChannels.size > 0 ? (
                     <CheckSquare className="h-4 w-4 opacity-50" />
@@ -637,9 +732,21 @@ export function AgentConfigurationCard() {
                   No channels found. Make sure the bot is invited to channels.
                 </p>
               </div>
+            ) : filteredChannels.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground">No {channelFilter} channels found.</p>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-xs mt-1"
+                  onClick={() => setChannelFilter('all')}
+                >
+                  Show all channels
+                </Button>
+              </div>
             ) : (
               <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
-                {channels.map((channel) => (
+                {filteredChannels.map((channel) => (
                   <div
                     key={channel.id}
                     className={cn(
@@ -656,8 +763,29 @@ export function AgentConfigurationCard() {
                         onCheckedChange={() => handleToggleChannel(channel.id)}
                         className="shrink-0"
                       />
-                      <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      {channel.isPrivate ? (
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      )}
                       <span className="font-medium text-sm truncate">{channel.name}</span>
+                      {channel.isPrivate && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-4 shrink-0 border-amber-500/50 text-amber-600 bg-amber-500/10"
+                        >
+                          Private
+                        </Badge>
+                      )}
+                      {channel.isShared && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-4 shrink-0 border-blue-500/50 text-blue-600 bg-blue-500/10"
+                        >
+                          <Globe className="h-2.5 w-2.5 mr-0.5" />
+                          Shared
+                        </Badge>
+                      )}
                       {channel.memberCount !== undefined && (
                         <span className="text-xs text-muted-foreground shrink-0">
                           {channel.memberCount}

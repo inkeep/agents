@@ -18,8 +18,6 @@
  *   GET  /workspaces/:teamId/users   - List linked users
  *
  * Users (users.ts):
- *   GET  /users/me/settings          - Get user's personal settings
- *   PUT  /users/me/settings          - Update user's personal settings
  *   GET  /users/link-status          - Check link status
  *   POST /users/link/verify-token    - Verify JWT link token (primary linking method)
  *   POST /users/connect              - Create Nango session

@@ -3,7 +3,7 @@
  *
  * Tests cover:
  * - SlackCommandPayload type structure
- * - Command parsing (link, status, run, settings, help)
+ * - Command parsing (link, status, run, help)
  * - Response types (ephemeral vs in_channel)
  * - TenantId resolution
  * - Dashboard URL construction
@@ -159,26 +159,6 @@ describe('Slack Commands', () => {
       expect(parts.length).toBeLessThan(3);
     });
 
-    it('should parse settings command', () => {
-      const text = 'settings';
-      const parts = text.split(/\s+/);
-      const subcommand = parts[0]?.toLowerCase() || '';
-
-      expect(subcommand).toBe('settings');
-    });
-
-    it('should parse settings set command with agent name', () => {
-      const text = 'settings set my-agent';
-      const parts = text.split(/\s+/);
-      const subcommand = parts[0]?.toLowerCase() || '';
-      const settingsSubcommand = parts[1]?.toLowerCase();
-      const agentName = parts.slice(2).join(' ') || parts[2];
-
-      expect(subcommand).toBe('settings');
-      expect(settingsSubcommand).toBe('set');
-      expect(agentName).toBe('my-agent');
-    });
-
     it('should parse help command', () => {
       const text = 'help';
       const parts = text.split(/\s+/);
@@ -209,7 +189,6 @@ describe('Slack Commands', () => {
         'disconnect',
         'list',
         'run',
-        'settings',
         'help',
         '',
       ]).not.toContain(subcommand);

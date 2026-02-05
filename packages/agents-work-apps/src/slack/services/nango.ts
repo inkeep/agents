@@ -3,12 +3,13 @@
  *
  * ARCHITECTURE NOTE: PostgreSQL is the authoritative source of truth for:
  * - User linking data (work_app_slack_user_mappings table)
- * - User settings/preferences (work_app_slack_user_settings table)
  * - Workspace metadata (work_app_slack_workspaces table)
+ * - Channel agent configs (work_app_slack_channel_agent_configs table)
  *
  * Nango is used ONLY for:
  * - OAuth token storage and refresh (bot tokens for workspaces)
  * - OAuth flow management (createConnectSession)
+ * - Workspace default agent config (stored in connection metadata)
  *
  * PERFORMANCE: Workspace lookups use PostgreSQL first (O(1)), with Nango
  * fallback only when needed for bot token retrieval.
@@ -288,9 +289,15 @@ export async function setWorkspaceDefaultAgent(
       return false;
     }
 
-    return updateConnectionMetadata(workspace.connectionId, {
+    const success = await updateConnectionMetadata(workspace.connectionId, {
       default_agent: defaultAgent ? JSON.stringify(defaultAgent) : '',
     });
+
+    if (success) {
+      clearWorkspaceConnectionCache(teamId);
+    }
+
+    return success;
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to set workspace default agent');
     return false;

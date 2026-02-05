@@ -1,4 +1,5 @@
 import { Blocks, Elements, Md, Message } from 'slack-block-builder';
+import { SlackStrings } from '../../i18n';
 
 export function createErrorMessage(message: string) {
   return Message()
@@ -15,12 +16,12 @@ export interface ContextBlockParams {
 export function createContextBlock(params: ContextBlockParams) {
   const { agentName, isPrivate = false, sharedBy } = params;
 
-  let text = `Powered by *${agentName}* via Inkeep`;
+  let text = SlackStrings.context.poweredBy(agentName);
   if (sharedBy) {
-    text = `Shared by <@${sharedBy}> • ${text}`;
+    text = `${SlackStrings.context.sharedBy(sharedBy)} • ${text}`;
   }
   if (isPrivate) {
-    text = `_Private response_ • ${text}`;
+    text = `${SlackStrings.context.privateResponse} • ${text}`;
   }
 
   return {
@@ -34,10 +35,16 @@ export interface ShareButtonsParams {
   text: string;
   agentName: string;
   threadTs?: string;
+  askAgainMetadata?: {
+    teamId: string;
+    slackUserId: string;
+    tenantId: string;
+    messageTs: string;
+  };
 }
 
 export function buildShareButtons(params: ShareButtonsParams) {
-  const { channelId, text, agentName, threadTs } = params;
+  const { channelId, text, agentName, threadTs, askAgainMetadata } = params;
   const buttons: Array<{
     type: 'button';
     text: { type: 'plain_text'; text: string; emoji: boolean };
@@ -49,7 +56,7 @@ export function buildShareButtons(params: ShareButtonsParams) {
   if (threadTs) {
     buttons.push({
       type: 'button',
-      text: { type: 'plain_text', text: 'Share to Thread', emoji: true },
+      text: { type: 'plain_text', text: SlackStrings.buttons.shareToThread, emoji: true },
       action_id: 'share_to_thread',
       style: 'primary',
       value: JSON.stringify({ channelId, threadTs, text, agentName }),
@@ -58,66 +65,28 @@ export function buildShareButtons(params: ShareButtonsParams) {
 
   buttons.push({
     type: 'button',
-    text: { type: 'plain_text', text: 'Share to Channel', emoji: true },
+    text: { type: 'plain_text', text: SlackStrings.buttons.shareToChannel, emoji: true },
     action_id: 'share_to_channel',
     value: JSON.stringify({ channelId, text, agentName }),
   });
 
-  return buttons;
-}
-
-export function createSettingsMessage(
-  currentConfig: { agentId: string; agentName?: string; source: string } | null,
-  dashboardUrl: string
-) {
-  let configText: string;
-
-  if (currentConfig) {
-    const sourceLabel =
-      currentConfig.source === 'user'
-        ? 'Your personal default'
-        : currentConfig.source === 'channel'
-          ? 'Channel default (admin-set)'
-          : 'Workspace default (admin-set)';
-
-    configText =
-      `${Md.bold('/inkeep commands use:')} ${currentConfig.agentName || currentConfig.agentId}\n` +
-      `${Md.bold('Source:')} ${sourceLabel}`;
-
-    if (currentConfig.source !== 'user') {
-      configText += `\n\n${Md.italic('You can set your own personal default below.')}`;
-    }
-  } else {
-    configText = `${Md.bold('No default agent configured')}\n\nSet your personal default to use /inkeep commands.`;
+  if (askAgainMetadata) {
+    buttons.push({
+      type: 'button',
+      text: { type: 'plain_text', text: SlackStrings.buttons.askAgain, emoji: true },
+      action_id: 'open_agent_selector_modal',
+      value: JSON.stringify({
+        channel: channelId,
+        threadTs,
+        messageTs: askAgainMetadata.messageTs,
+        teamId: askAgainMetadata.teamId,
+        slackUserId: askAgainMetadata.slackUserId,
+        tenantId: askAgainMetadata.tenantId,
+      }),
+    });
   }
 
-  return Message()
-    .blocks(
-      Blocks.Section().text(`${Md.bold('⚙️ Your /inkeep Settings')}\n\n${configText}`),
-      Blocks.Divider(),
-      Blocks.Section().text(
-        `${Md.bold('Set Your Personal Default:')}\n` +
-          '• `/inkeep settings set "agent name"` - Set your default for /inkeep\n' +
-          '• `/inkeep list` - See available agents\n\n' +
-          `${Md.italic('Note: @Inkeep mentions always use the workspace agent set by admin.')}`
-      ),
-      Blocks.Actions().elements(
-        Elements.Button().text('📊 View Dashboard').url(dashboardUrl).actionId('view_dashboard')
-      )
-    )
-    .buildToObject();
-}
-
-export function createSettingsUpdatedMessage(agentName: string) {
-  return Message()
-    .blocks(
-      Blocks.Section().text(
-        `${Md.bold('✅ Settings Updated')}\n\n` +
-          `Your personal default agent is now ${Md.bold(agentName)}.\n\n` +
-          'You can now use `/inkeep [question]` to ask questions directly!'
-      )
-    )
-    .buildToObject();
+  return buttons;
 }
 
 export function createAgentListMessage(
@@ -131,21 +100,24 @@ export function createAgentListMessage(
     )
     .join('\n');
 
-  const moreText = agents.length > 15 ? `\n\n...and ${agents.length - 15} more` : '';
+  const moreText =
+    agents.length > 15 ? `\n\n${SlackStrings.agentList.andMore(agents.length - 15)}` : '';
 
   return Message()
     .blocks(
       Blocks.Section().text(
-        `${Md.bold('🤖 Available Agents')}\n\n` +
+        `${Md.bold(SlackStrings.agentList.title)}\n\n` +
           agentList +
           moreText +
           '\n\n' +
-          `${Md.bold('Usage:')}\n` +
-          '• `/inkeep run "agent name" question` - Run a specific agent\n' +
-          '• `/inkeep settings set "agent name"` - Set your default agent'
+          `${Md.bold(SlackStrings.agentList.usage)}\n` +
+          `• ${SlackStrings.agentList.runUsage}`
       ),
       Blocks.Actions().elements(
-        Elements.Button().text('📊 View All in Dashboard').url(dashboardUrl).actionId('view_agents')
+        Elements.Button()
+          .text(SlackStrings.buttons.viewAllInDashboard)
+          .url(dashboardUrl)
+          .actionId('view_agents')
       )
     )
     .buildToObject();
@@ -154,26 +126,28 @@ export function createAgentListMessage(
 export function createUpdatedHelpMessage() {
   return Message()
     .blocks(
-      Blocks.Section().text(`${Md.bold('Inkeep Slack Commands')}`),
+      Blocks.Section().text(`${Md.bold(SlackStrings.help.title)}`),
       Blocks.Section().text(
-        `${Md.bold('Two Ways to Ask Questions:')}\n\n` +
-          `${Md.bold('@Inkeep [question]')} - Public in channels\n` +
-          '• Creates a thread visible to everyone\n' +
-          '• Uses the workspace agent (set by admin)\n\n' +
-          `${Md.bold('/inkeep [question]')} - Private to you\n` +
-          '• Only you see the response\n' +
-          '• Uses YOUR personal default agent\n' +
-          '• Set your own with `/inkeep settings set "agent name"`'
+        `${Md.bold(SlackStrings.help.mentionUsage)}\n\n` +
+          `${Md.bold(SlackStrings.help.mentionWithQuestion)} - ${SlackStrings.help.mentionWithQuestionDesc}\n` +
+          `• ${SlackStrings.help.mentionWithQuestionDetail}\n\n` +
+          `${Md.bold(SlackStrings.help.mentionNoQuestion)} - ${SlackStrings.help.mentionNoQuestionDesc}\n` +
+          `• ${SlackStrings.help.mentionNoQuestionChannelDetail}\n` +
+          `• ${SlackStrings.help.mentionNoQuestionThreadDetail}`
       ),
       Blocks.Divider(),
       Blocks.Section().text(
-        `${Md.bold('Commands:')}\n` +
-          '• `/inkeep run "agent name" [question]` - Ask a specific agent\n' +
-          '• `/inkeep settings` - View/set your personal default agent\n' +
-          '• `/inkeep list` - List available agents\n' +
-          '• `/inkeep status` - Check connection and agent settings\n' +
-          '• `/inkeep link` / `/inkeep unlink` - Manage account connection\n' +
-          '• `/inkeep help` - Show this help message'
+        `${Md.bold(SlackStrings.help.slashUsage)}\n\n` +
+          `${Md.bold(SlackStrings.help.slashNoArgs)} - ${SlackStrings.help.slashNoArgsDesc}\n` +
+          `• ${SlackStrings.help.slashNoArgsDetail}\n\n` +
+          `${Md.bold(SlackStrings.help.slashWithQuestion)} - ${SlackStrings.help.slashWithQuestionDesc}\n` +
+          `• ${SlackStrings.help.slashWithQuestionDetail}\n\n` +
+          `${Md.bold(SlackStrings.help.otherCommands)}\n` +
+          `• ${SlackStrings.help.commandRun}\n` +
+          `• ${SlackStrings.help.commandList}\n` +
+          `• ${SlackStrings.help.commandStatus}\n` +
+          `• ${SlackStrings.help.commandLink}\n` +
+          `• ${SlackStrings.help.commandHelp}`
       )
     )
     .buildToObject();
@@ -192,7 +166,10 @@ export function createAlreadyLinkedMessage(email: string, linkedAt: string, dash
           'To switch accounts, first run `/inkeep unlink`'
       ),
       Blocks.Actions().elements(
-        Elements.Button().text('📊 Open Dashboard').url(dashboardUrl).actionId('open_dashboard')
+        Elements.Button()
+          .text(SlackStrings.buttons.openDashboard)
+          .url(dashboardUrl)
+          .actionId('open_dashboard')
       )
     )
     .buildToObject();
@@ -225,7 +202,6 @@ export function createNotLinkedMessage() {
 export interface AgentConfigSources {
   channelConfig: { agentName?: string; agentId: string } | null;
   workspaceConfig: { agentName?: string; agentId: string } | null;
-  userConfig: { agentName?: string; agentId: string } | null;
   effective: { agentName?: string; agentId: string; source: string } | null;
 }
 
@@ -235,29 +211,31 @@ export function createStatusMessage(
   dashboardUrl: string,
   agentConfigs: AgentConfigSources
 ) {
-  const { workspaceConfig, userConfig, effective } = agentConfigs;
+  const { workspaceConfig, channelConfig, effective } = agentConfigs;
 
   let agentSection = `\n\n${Md.bold('Agent Configuration')}\n\n`;
 
-  // @mention default (admin-controlled)
+  // Workspace default (admin-controlled)
   if (workspaceConfig) {
-    agentSection += `${Md.bold('@Inkeep bot uses:')} ${workspaceConfig.agentName || workspaceConfig.agentId}\n`;
+    agentSection += `${Md.bold('Workspace default:')} ${workspaceConfig.agentName || workspaceConfig.agentId}\n`;
     agentSection += `${Md.italic('(Set by admin in dashboard)')}\n\n`;
   } else {
-    agentSection += `${Md.bold('@Inkeep bot:')} Not configured\n`;
+    agentSection += `${Md.bold('Workspace default:')} Not configured\n`;
     agentSection += `${Md.italic('(Admin can set this in the dashboard)')}\n\n`;
   }
 
-  // Slash command default (user or fallback to workspace)
-  if (userConfig) {
-    agentSection += `${Md.bold('/inkeep commands use:')} ${userConfig.agentName || userConfig.agentId}\n`;
-    agentSection += `${Md.italic('(Your personal default)')}\n`;
-  } else if (effective) {
-    agentSection += `${Md.bold('/inkeep commands use:')} ${effective.agentName || effective.agentId}\n`;
-    agentSection += `${Md.italic('(Workspace default - set your own with /inkeep settings)')}\n`;
+  // Channel override if present
+  if (channelConfig) {
+    agentSection += `${Md.bold('Channel override:')} ${channelConfig.agentName || channelConfig.agentId}\n`;
+    agentSection += `${Md.italic('(This channel uses a specific agent)')}\n\n`;
+  }
+
+  // Effective agent
+  if (effective) {
+    agentSection += `${Md.bold('Active agent:')} ${effective.agentName || effective.agentId}\n`;
   } else {
-    agentSection += `${Md.bold('/inkeep commands:')} No default configured\n`;
-    agentSection += `${Md.italic('Use /inkeep settings set "agent name" to set your default')}\n`;
+    agentSection += `${Md.bold('Active agent:')} None configured\n`;
+    agentSection += `${Md.italic('Ask your admin to configure a workspace default')}\n`;
   }
 
   return Message()
@@ -271,11 +249,14 @@ export function createStatusMessage(
       Blocks.Divider(),
       Blocks.Section().text(
         `${Md.bold('Tip:')}\n` +
-          '• `@Inkeep` uses the admin-configured agent for public responses in channels\n' +
-          '• `/inkeep` commands can use your personal default (private, only visible to you)'
+          '• `@Inkeep` for public responses in channels (visible to everyone)\n' +
+          '• `/inkeep` for private responses (only visible to you)'
       ),
       Blocks.Actions().elements(
-        Elements.Button().text('📊 Open Dashboard').url(dashboardUrl).actionId('open_dashboard')
+        Elements.Button()
+          .text(SlackStrings.buttons.openDashboard)
+          .url(dashboardUrl)
+          .actionId('open_dashboard')
       )
     )
     .buildToObject();

@@ -129,65 +129,6 @@ export function getUserFriendlyErrorMessage(errorType: SlackErrorType, agentName
   }
 }
 
-/**
- * Post an error message to Slack (ephemeral if possible, thread fallback)
- */
-export async function postErrorMessage(
-  slackClient: {
-    chat: {
-      postEphemeral: (params: {
-        channel: string;
-        user: string;
-        text: string;
-        thread_ts?: string;
-      }) => Promise<unknown>;
-      postMessage: (params: {
-        channel: string;
-        text: string;
-        thread_ts?: string;
-      }) => Promise<unknown>;
-    };
-  },
-  params: {
-    channel: string;
-    slackUserId: string;
-    threadTs?: string;
-    errorType: SlackErrorType;
-    agentName?: string;
-    useEphemeral?: boolean;
-  }
-): Promise<void> {
-  const { channel, slackUserId, threadTs, errorType, agentName, useEphemeral = true } = params;
-  const message = getUserFriendlyErrorMessage(errorType, agentName);
-
-  try {
-    if (useEphemeral) {
-      await slackClient.chat.postEphemeral({
-        channel,
-        user: slackUserId,
-        text: message,
-        thread_ts: threadTs,
-      });
-    } else {
-      await slackClient.chat.postMessage({
-        channel,
-        text: message,
-        thread_ts: threadTs,
-      });
-    }
-  } catch (postError) {
-    logger.error({ postError, channel, errorType }, 'Failed to post error message to Slack');
-  }
-}
-
-const workspaceSettings = new Map<
-  string,
-  {
-    defaultAgent?: DefaultAgentConfig;
-    updatedAt: string;
-  }
->();
-
 export type ProjectOption = { id: string; name: string };
 
 export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectOption[]> {
@@ -280,31 +221,13 @@ export async function fetchAgentsForProject(
   }
 }
 
-export async function fetchAgentsForTenant(tenantId: string): Promise<AgentOption[]> {
-  const projects = await fetchProjectsForTenant(tenantId);
-
-  const agentResults = await Promise.all(
-    projects.map(async (project) => {
-      const agents = await fetchAgentsForProject(tenantId, project.id);
-      return agents.map((agent) => ({
-        ...agent,
-        projectName: project.name,
-      }));
-    })
-  );
-
-  return agentResults.flat();
-}
-
 export async function getWorkspaceDefaultAgent(teamId: string): Promise<DefaultAgentConfig | null> {
   const nangoDefault = await getWorkspaceDefaultAgentFromNango(teamId);
   if (nangoDefault) {
     logger.debug({ teamId }, 'Found workspace default agent from Nango metadata');
     return nangoDefault;
   }
-
-  const settings = workspaceSettings.get(teamId);
-  return settings?.defaultAgent || null;
+  return null;
 }
 
 export async function getChannelAgentConfig(
@@ -460,39 +383,109 @@ export async function checkIfBotThread(
   }
 }
 
+interface ThreadContextOptions {
+  includeLastMessage?: boolean;
+  resolveUserNames?: boolean;
+}
+
 export async function getThreadContext(
   slackClient: {
     conversations: {
-      replies: (params: {
-        channel: string;
-        ts: string;
-        limit?: number;
-      }) => Promise<{ messages?: Array<{ bot_id?: string; user?: string; text?: string }> }>;
+      replies: (params: { channel: string; ts: string; limit?: number }) => Promise<{
+        messages?: Array<{
+          bot_id?: string;
+          user?: string;
+          text?: string;
+          ts?: string;
+        }>;
+      }>;
+    };
+    users?: {
+      info: (params: { user: string }) => Promise<{
+        user?: { real_name?: string; display_name?: string; name?: string };
+      }>;
     };
   },
   channel: string,
-  threadTs: string
+  threadTs: string,
+  options: ThreadContextOptions = {}
 ): Promise<string> {
+  const { includeLastMessage = false, resolveUserNames = true } = options;
+
   try {
     const threadMessages = await slackClient.conversations.replies({
       channel,
       ts: threadTs,
-      limit: 20,
+      limit: 50,
     });
 
-    if (threadMessages.messages && threadMessages.messages.length > 1) {
-      const contextMessages = threadMessages.messages
-        .slice(0, -1)
-        .filter((msg) => !msg.bot_id || msg.text?.includes('Powered by'))
-        .map((msg) => {
-          const isBot = !!msg.bot_id;
-          const role = isBot ? 'Assistant' : `<@${msg.user}>`;
-          return `${role}: ${msg.text || ''}`;
-        })
-        .join('\n');
-
-      return contextMessages.trim();
+    if (!threadMessages.messages || threadMessages.messages.length === 0) {
+      return '';
     }
+
+    // Get all messages, optionally excluding the last one (the @mention itself)
+    const messagesToProcess = includeLastMessage
+      ? threadMessages.messages
+      : threadMessages.messages.slice(0, -1);
+
+    if (messagesToProcess.length === 0) {
+      return '';
+    }
+
+    // Build a cache of user IDs to names
+    const userNameCache = new Map<string, string>();
+
+    if (resolveUserNames && slackClient.users) {
+      const uniqueUserIds = [
+        ...new Set(
+          messagesToProcess
+            .filter((m): m is typeof m & { user: string } => !!m.user)
+            .map((m) => m.user)
+        ),
+      ];
+
+      await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          try {
+            const userInfo = await slackClient.users?.info({ user: userId });
+            const name =
+              userInfo?.user?.display_name ||
+              userInfo?.user?.real_name ||
+              userInfo?.user?.name ||
+              userId;
+            userNameCache.set(userId, name);
+          } catch {
+            userNameCache.set(userId, userId);
+          }
+        })
+      );
+    }
+
+    // Format messages with clear structure
+    const formattedMessages = messagesToProcess.map((msg, index) => {
+      const isBot = !!msg.bot_id;
+      const isParent = index === 0;
+
+      let role: string;
+      if (isBot) {
+        role = 'Inkeep Agent';
+      } else if (msg.user) {
+        role = resolveUserNames ? userNameCache.get(msg.user) || msg.user : `<@${msg.user}>`;
+      } else {
+        role = 'Unknown';
+      }
+
+      const prefix = isParent ? '[Thread Start] ' : '';
+      const messageText =
+        msg.text?.replace(/<@U[A-Z0-9]+>/g, (match) => {
+          const userId = match.slice(2, -1);
+          return `@${userNameCache.get(userId) || userId}`;
+        }) || '';
+
+      return `${prefix}${role}: ${messageText}`;
+    });
+
+    return formattedMessages.join('\n\n');
   } catch (threadError) {
     logger.warn({ threadError, channel, threadTs }, 'Failed to fetch thread context');
   }

@@ -7,9 +7,9 @@
  * 3. Check if user is linked to Inkeep
  * 4. If not linked → prompt to link account
  * 5. Handle based on context:
- *    - Channel + no query → Show welcome/help message
+ *    - Channel + no query → Show button to open agent selector modal
  *    - Channel + query → Execute agent with streaming response
- *    - Thread + no query → Show modal to select agent
+ *    - Thread + no query → Auto-execute agent with thread context as query
  *    - Thread + query → Execute agent with thread context included
  */
 
@@ -17,6 +17,7 @@ import { findWorkAppSlackUserMapping, signSlackUserToken } from '@inkeep/agents-
 import runDbClient from '../../../db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { SlackStrings } from '../../i18n';
 import { getSlackClient, postMessageInThread } from '../client';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import { getBotTokenForTeam } from '../workspace-tokens';
@@ -37,12 +38,12 @@ const logger = getLogger('slack-app-mention');
  */
 export interface InlineSelectorMetadata {
   channel: string;
-  threadTs: string;
+  threadTs?: string;
   messageTs: string;
   teamId: string;
   slackUserId: string;
   tenantId: string;
-  threadMessageCount: number;
+  threadMessageCount?: number;
 }
 
 /**
@@ -115,8 +116,42 @@ export async function handleAppMention(params: {
     }
 
     // Step 3: Handle based on context
+    if (!isInThread && !hasQuery) {
+      // Channel + no query → Show button to open agent selector modal
+      // (Modal can only be opened via interactive action, not directly from app_mention event)
+      const metadata: InlineSelectorMetadata = {
+        channel,
+        messageTs,
+        teamId,
+        slackUserId,
+        tenantId,
+      };
+
+      await slackClient.chat.postEphemeral({
+        channel,
+        user: slackUserId,
+        text: SlackStrings.buttons.triggerAgent,
+        blocks: [
+          {
+            type: 'actions',
+            block_id: 'agent_selector_trigger',
+            elements: [
+              {
+                type: 'button',
+                action_id: 'open_agent_selector_modal',
+                text: { type: 'plain_text', text: SlackStrings.buttons.triggerAgent, emoji: true },
+                style: 'primary',
+                value: JSON.stringify(metadata),
+              },
+            ],
+          },
+        ],
+      });
+      return;
+    }
+
     if (isInThread && !hasQuery) {
-      // Thread + no query → Check if bot thread or show agent selector
+      // Thread + no query → Check if bot thread or auto-execute with thread context
       const isBotThread = await checkIfBotThread(slackClient, channel, threadTs);
 
       if (isBotThread) {
@@ -130,63 +165,76 @@ export async function handleAppMention(params: {
             `Or use \`@Inkeep <prompt>\` to run a new prompt.\n\n` +
             `_Using: ${agentDisplayName}_`,
         });
-      } else {
-        // Non-bot thread → Show button to open agent selector modal
-        const metadata: InlineSelectorMetadata = {
-          channel,
-          threadTs,
-          messageTs,
-          teamId,
-          slackUserId,
-          tenantId,
-          threadMessageCount: 0,
-        };
+        return;
+      }
 
+      // Non-bot thread → Auto-execute with thread context as query
+      const contextMessages = await getThreadContext(slackClient, channel, threadTs);
+      if (!contextMessages) {
         await slackClient.chat.postEphemeral({
           channel,
           user: slackUserId,
           thread_ts: threadTs,
-          text: 'Select an agent to analyze this thread',
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: '*Run an agent on this thread*\nClick the button below to select an agent and run it with this thread as context.',
-              },
-            },
-            {
-              type: 'actions',
-              block_id: 'agent_selector_trigger',
-              elements: [
-                {
-                  type: 'button',
-                  action_id: 'open_agent_selector_modal',
-                  text: { type: 'plain_text', text: 'Select Agent', emoji: true },
-                  style: 'primary',
-                  value: JSON.stringify(metadata),
-                },
-              ],
-            },
-          ],
+          text: `Unable to retrieve thread context. Try using \`@Inkeep <your question>\` instead.`,
         });
+        return;
       }
-      return;
-    }
 
-    if (!hasQuery) {
-      // Channel + no query → Show welcome message
-      await slackClient.chat.postEphemeral({
+      // Sign JWT token for authentication
+      const slackUserToken = await signSlackUserToken({
+        inkeepUserId: existingLink.inkeepUserId,
+        tenantId,
+        slackTeamId: teamId,
+        slackUserId,
+      });
+
+      // Post acknowledgement message
+      const ackMessage = await slackClient.chat.postMessage({
         channel,
-        user: slackUserId,
-        text:
-          `*${agentDisplayName}* is your workspace's default agent.\n\n` +
-          `*Get started:*\n` +
-          `\`@Inkeep <prompt>\` — Run the agent with your prompt\n\n` +
-          `*In threads:*\n` +
-          `• \`@Inkeep <prompt>\` — Include thread context automatically\n` +
-          `• \`@Inkeep\` (no prompt) — Open agent selector to choose a different agent\n\n` +
-          `Use \`/inkeep help\` for more options.`,
+        thread_ts: threadTs,
+        text: `_${agentDisplayName} is analyzing this thread..._`,
+      });
+
+      const conversationId = generateSlackConversationId({
+        teamId,
+        threadTs,
+        channel,
+        isDM: false,
+      });
+
+      const threadQuery = `A user mentioned you in a thread to get your help understanding or responding to the conversation.
+
+## Thread Context
+
+${contextMessages}
+
+## Your Task
+
+Analyze the thread above and provide a helpful response. Consider:
+- What is the main topic or question being discussed?
+- Is there anything that needs clarification or a direct answer?
+- If appropriate, summarize key points or provide relevant information.
+
+Respond naturally as if you're joining the conversation to help.`;
+
+      logger.info(
+        { projectId: agentConfig.projectId, agentId: agentConfig.agentId, conversationId },
+        'Auto-executing agent with thread context'
+      );
+
+      await streamAgentResponse({
+        slackClient,
+        channel,
+        threadTs,
+        thinkingMessageTs: ackMessage.ts || '',
+        slackUserId,
+        teamId,
+        jwtToken: slackUserToken,
+        projectId: agentConfig.projectId,
+        agentId: agentConfig.agentId,
+        question: threadQuery,
+        agentName: agentDisplayName,
+        conversationId,
       });
       return;
     }

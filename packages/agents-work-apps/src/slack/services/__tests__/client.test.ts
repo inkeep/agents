@@ -188,14 +188,15 @@ describe('Slack Client', () => {
   });
 
   describe('getSlackChannels', () => {
-    it('should return channel list when successful', async () => {
+    it('should return channel list with privacy info when successful', async () => {
       const mockClient = {
         conversations: {
           list: vi.fn().mockResolvedValue({
             ok: true,
             channels: [
-              { id: 'C123', name: 'general', num_members: 50, is_member: true },
-              { id: 'C456', name: 'random', num_members: 30, is_member: false },
+              { id: 'C123', name: 'general', num_members: 50, is_member: true, is_private: false },
+              { id: 'C456', name: 'secret', num_members: 5, is_member: true, is_private: true },
+              { id: 'C789', name: 'shared', num_members: 10, is_member: false, is_shared: true },
             ],
           }),
         },
@@ -204,12 +205,34 @@ describe('Slack Client', () => {
       const result = await getSlackChannels(mockClient);
 
       expect(result).toEqual([
-        { id: 'C123', name: 'general', memberCount: 50, isBotMember: true },
-        { id: 'C456', name: 'random', memberCount: 30, isBotMember: false },
+        {
+          id: 'C123',
+          name: 'general',
+          memberCount: 50,
+          isBotMember: true,
+          isPrivate: false,
+          isShared: false,
+        },
+        {
+          id: 'C456',
+          name: 'secret',
+          memberCount: 5,
+          isBotMember: true,
+          isPrivate: true,
+          isShared: false,
+        },
+        {
+          id: 'C789',
+          name: 'shared',
+          memberCount: 10,
+          isBotMember: false,
+          isPrivate: false,
+          isShared: true,
+        },
       ]);
     });
 
-    it('should use default limit of 20', async () => {
+    it('should fetch public and private channels with default limit', async () => {
       const mockClient = {
         conversations: {
           list: vi.fn().mockResolvedValue({ ok: true, channels: [] }),
@@ -219,7 +242,8 @@ describe('Slack Client', () => {
       await getSlackChannels(mockClient);
 
       expect(mockClient.conversations.list).toHaveBeenCalledWith({
-        types: 'public_channel',
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
         limit: 20,
       });
     });
@@ -234,7 +258,8 @@ describe('Slack Client', () => {
       await getSlackChannels(mockClient, 50);
 
       expect(mockClient.conversations.list).toHaveBeenCalledWith({
-        types: 'public_channel',
+        types: 'public_channel,private_channel',
+        exclude_archived: true,
         limit: 50,
       });
     });

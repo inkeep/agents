@@ -6,13 +6,14 @@
  * - GET /oauth_redirect - Handle OAuth callback
  */
 
+import * as crypto from 'node:crypto';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { createWorkAppSlackWorkspace } from '@inkeep/agents-core';
-import * as crypto from 'node:crypto';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
 import {
+  clearWorkspaceConnectionCache,
   computeWorkspaceConnectionId,
   getBotTokenForTeam,
   getSlackClient,
@@ -223,6 +224,8 @@ app.openapi(
       };
 
       if (workspaceData.teamId && workspaceData.botToken) {
+        clearWorkspaceConnectionCache(workspaceData.teamId);
+
         const nangoResult = await storeWorkspaceInstallation({
           teamId: workspaceData.teamId,
           teamName: workspaceData.teamName,

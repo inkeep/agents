@@ -182,6 +182,7 @@ export const slackApi = {
       id: string;
       name: string;
       isPrivate: boolean;
+      isShared: boolean;
       memberCount?: number;
       hasAgentConfig: boolean;
       agentConfig?: {

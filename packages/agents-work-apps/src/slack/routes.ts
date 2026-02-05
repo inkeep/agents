@@ -6,7 +6,7 @@
  *
  * - routes/oauth.ts      - OAuth flow (/install, /oauth_redirect)
  * - routes/workspaces.ts - Workspace management
- * - routes/users.ts      - User linking and settings
+ * - routes/users.ts      - User account linking
  * - routes/resources.ts  - Projects and agents listing
  * - routes/events.ts     - Slack events, commands, webhooks
  * - routes/internal.ts   - Debug and internal endpoints

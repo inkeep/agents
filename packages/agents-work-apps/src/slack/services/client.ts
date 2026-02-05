@@ -75,16 +75,20 @@ export async function getSlackTeamInfo(client: WebClient) {
 }
 
 /**
- * List public channels in the workspace.
+ * List channels in the workspace (public, private, and shared).
+ *
+ * Note: The bot must be a member of private channels to see them.
+ * Users can invite the bot with `/invite @BotName` in the private channel.
  *
  * @param client - Authenticated Slack WebClient
  * @param limit - Maximum number of channels to return (default 20)
- * @returns Array of channel objects with id, name, and member count
+ * @returns Array of channel objects with id, name, member count, and privacy status
  */
 export async function getSlackChannels(client: WebClient, limit = 20) {
   try {
     const result = await client.conversations.list({
-      types: 'public_channel',
+      types: 'public_channel,private_channel',
+      exclude_archived: true,
       limit,
     });
     if (result.ok && result.channels) {
@@ -93,6 +97,8 @@ export async function getSlackChannels(client: WebClient, limit = 20) {
         name: ch.name,
         memberCount: ch.num_members,
         isBotMember: ch.is_member,
+        isPrivate: ch.is_private ?? false,
+        isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
       }));
     }
     return [];
@@ -165,5 +171,80 @@ export async function postMessageInThread(
   } catch (error) {
     logger.error({ error, channel, threadTs }, 'Failed to post Slack message in thread');
     throw error;
+  }
+}
+
+/**
+ * Check if a user is a member of a Slack channel.
+ *
+ * Uses conversations.members to verify membership. Handles pagination
+ * for channels with many members.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelId - Channel ID to check membership for
+ * @param userId - Slack user ID to check
+ * @returns true if user is a member, false otherwise
+ */
+export async function checkUserIsChannelMember(
+  client: WebClient,
+  channelId: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    let cursor: string | undefined;
+    do {
+      const result = await client.conversations.members({
+        channel: channelId,
+        limit: 200,
+        cursor,
+      });
+
+      if (!result.ok || !result.members) {
+        return false;
+      }
+
+      if (result.members.includes(userId)) {
+        return true;
+      }
+
+      cursor = result.response_metadata?.next_cursor;
+    } while (cursor);
+
+    return false;
+  } catch (error) {
+    logger.error({ error, channelId, userId }, 'Failed to check channel membership');
+    return false;
+  }
+}
+
+/**
+ * Revoke a Slack bot token.
+ *
+ * This should be called when uninstalling a workspace to ensure
+ * the token can no longer be used to make API calls.
+ *
+ * @param token - Bot OAuth token to revoke
+ * @returns true if revocation succeeded or token was already invalid
+ */
+export async function revokeSlackToken(token: string): Promise<boolean> {
+  try {
+    const client = new WebClient(token);
+    const result = await client.auth.revoke();
+
+    if (result.ok) {
+      logger.info({}, 'Successfully revoked Slack token');
+      return true;
+    }
+
+    logger.warn({ error: result.error }, 'Token revocation returned non-ok status');
+    return false;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('token_revoked') || errorMessage.includes('invalid_auth')) {
+      logger.info({}, 'Token already revoked or invalid');
+      return true;
+    }
+    logger.error({ error }, 'Failed to revoke Slack token');
+    return false;
   }
 }

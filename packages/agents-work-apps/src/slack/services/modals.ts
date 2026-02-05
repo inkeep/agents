@@ -6,6 +6,7 @@
  */
 
 import type { ModalView } from '@slack/web-api';
+import { SlackStrings } from '../i18n';
 
 /** Agent option for dropdown selection */
 export interface AgentOption {
@@ -14,6 +15,9 @@ export interface AgentOption {
   projectId: string;
   projectName: string | null;
 }
+
+/** Visibility options for agent responses */
+export type ResponseVisibility = 'private' | 'thread' | 'channel';
 
 export interface ModalMetadata {
   channel: string;
@@ -25,6 +29,7 @@ export interface ModalMetadata {
   isInThread: boolean;
   threadMessageCount?: number;
   buttonResponseUrl?: string;
+  messageContext?: string;
 }
 
 export interface BuildAgentSelectorModalParams {
@@ -72,7 +77,11 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
         }))
       : [
           {
-            text: { type: 'plain_text' as const, text: 'No agents available', emoji: true },
+            text: {
+              type: 'plain_text' as const,
+              text: SlackStrings.status.noAgentsAvailable,
+              emoji: true,
+            },
             value: 'none',
           },
         ];
@@ -90,14 +99,14 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
         action_id: 'modal_project_select',
         placeholder: {
           type: 'plain_text',
-          text: 'Select a project...',
+          text: SlackStrings.placeholders.selectProject,
         },
         options: projectOptions,
         ...(selectedProjectOption ? { initial_option: selectedProjectOption } : {}),
       },
       label: {
         type: 'plain_text',
-        text: 'Project',
+        text: SlackStrings.labels.project,
         emoji: true,
       },
     },
@@ -109,14 +118,14 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
         action_id: 'agent_select',
         placeholder: {
           type: 'plain_text',
-          text: 'Select an agent...',
+          text: SlackStrings.placeholders.selectAgent,
         },
         options: agentOptions,
         ...(agents.length > 0 ? { initial_option: agentOptions[0] } : {}),
       },
       label: {
         type: 'plain_text',
-        text: 'Agent',
+        text: SlackStrings.labels.agent,
         emoji: true,
       },
     },
@@ -133,7 +142,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
           {
             text: {
               type: 'plain_text',
-              text: 'Include thread context',
+              text: SlackStrings.visibility.includeThreadContext,
               emoji: true,
             },
             value: 'include_context',
@@ -143,7 +152,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
           {
             text: {
               type: 'plain_text',
-              text: 'Include thread context',
+              text: SlackStrings.visibility.includeThreadContext,
               emoji: true,
             },
             value: 'include_context',
@@ -152,7 +161,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
       },
       label: {
         type: 'plain_text',
-        text: 'Context',
+        text: SlackStrings.labels.context,
         emoji: true,
       },
       optional: true,
@@ -168,41 +177,93 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
       multiline: true,
       placeholder: {
         type: 'plain_text',
-        text: isInThread ? 'Additional instructions (optional)...' : 'What would you like to ask?',
+        text: isInThread
+          ? SlackStrings.placeholders.additionalInstructionsOptional
+          : SlackStrings.placeholders.enterPrompt,
       },
     },
     label: {
       type: 'plain_text',
-      text: isInThread ? 'Additional Instructions' : 'Your Question',
+      text: isInThread ? SlackStrings.labels.additionalInstructions : SlackStrings.labels.prompt,
       emoji: true,
     },
     optional: isInThread,
   });
 
-  blocks.push({
-    type: 'input',
-    block_id: 'visibility_block',
-    element: {
-      type: 'checkboxes',
-      action_id: 'visibility_checkbox',
-      options: [
-        {
+  if (isInThread) {
+    blocks.push({
+      type: 'input',
+      block_id: 'visibility_block',
+      element: {
+        type: 'checkboxes',
+        action_id: 'visibility_checkbox',
+        options: [
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.privateResponse,
+              emoji: true,
+            },
+            value: 'ephemeral',
+          },
+        ],
+      },
+      label: {
+        type: 'plain_text',
+        text: SlackStrings.labels.visibility,
+        emoji: true,
+      },
+      optional: true,
+    });
+  } else {
+    blocks.push({
+      type: 'input',
+      block_id: 'visibility_block',
+      element: {
+        type: 'radio_buttons',
+        action_id: 'visibility_radio',
+        options: [
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.private,
+              emoji: true,
+            },
+            value: 'private',
+          },
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.replyInThread,
+              emoji: true,
+            },
+            value: 'thread',
+          },
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.postToChannel,
+              emoji: true,
+            },
+            value: 'channel',
+          },
+        ],
+        initial_option: {
           text: {
             type: 'plain_text',
-            text: 'Private response (only visible to you)',
+            text: SlackStrings.visibility.private,
             emoji: true,
           },
-          value: 'ephemeral',
+          value: 'private',
         },
-      ],
-    },
-    label: {
-      type: 'plain_text',
-      text: 'Visibility',
-      emoji: true,
-    },
-    optional: true,
-  });
+      },
+      label: {
+        type: 'plain_text',
+        text: SlackStrings.labels.response,
+        emoji: true,
+      },
+    });
+  }
 
   return {
     type: 'modal',
@@ -210,17 +271,219 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     private_metadata: JSON.stringify(metadata),
     title: {
       type: 'plain_text',
-      text: isInThread ? 'Ask About Thread' : 'Ask an Agent',
+      text: isInThread ? SlackStrings.modals.triggerAgentThread : SlackStrings.modals.triggerAgent,
       emoji: true,
     },
     submit: {
       type: 'plain_text',
-      text: 'Ask Agent',
+      text: SlackStrings.buttons.triggerAgent,
       emoji: true,
     },
     close: {
       type: 'plain_text',
-      text: 'Cancel',
+      text: SlackStrings.buttons.cancel,
+      emoji: true,
+    },
+    blocks,
+  };
+}
+
+export interface BuildMessageShortcutModalParams {
+  projects: Array<{ id: string; name: string }>;
+  agents: AgentOption[];
+  metadata: ModalMetadata;
+  selectedProjectId?: string;
+  messageContext: string;
+}
+
+/**
+ * Build the modal for message shortcut (context menu on a message).
+ *
+ * Shows:
+ * - Message context (read-only display)
+ * - Project dropdown
+ * - Agent dropdown
+ * - Additional instructions input
+ * - Visibility options (private, thread, channel)
+ *
+ * @param params - Modal configuration parameters
+ * @returns Slack ModalView object ready for views.open()
+ */
+export function buildMessageShortcutModal(params: BuildMessageShortcutModalParams): ModalView {
+  const { projects, agents, metadata, selectedProjectId, messageContext } = params;
+
+  const projectOptions = projects.map((project) => ({
+    text: {
+      type: 'plain_text' as const,
+      text: project.name,
+      emoji: true,
+    },
+    value: project.id,
+  }));
+
+  const agentOptions =
+    agents.length > 0
+      ? agents.map((agent) => ({
+          text: {
+            type: 'plain_text' as const,
+            text: agent.name || agent.id,
+            emoji: true,
+          },
+          value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
+        }))
+      : [
+          {
+            text: {
+              type: 'plain_text' as const,
+              text: SlackStrings.status.noAgentsAvailable,
+              emoji: true,
+            },
+            value: 'none',
+          },
+        ];
+
+  const selectedProjectOption = selectedProjectId
+    ? projectOptions.find((p) => p.value === selectedProjectId)
+    : projectOptions[0];
+
+  const truncatedContext =
+    messageContext.length > 500 ? `${messageContext.slice(0, 500)}...` : messageContext;
+
+  const blocks: ModalView['blocks'] = [
+    {
+      type: 'section',
+      block_id: 'message_context_display',
+      text: {
+        type: 'mrkdwn',
+        text: `*${SlackStrings.messageContext.label}*\n>${truncatedContext.split('\n').join('\n>')}`,
+      },
+    },
+    {
+      type: 'divider',
+    },
+    {
+      type: 'input',
+      block_id: 'project_select_block',
+      element: {
+        type: 'static_select',
+        action_id: 'modal_project_select',
+        placeholder: {
+          type: 'plain_text',
+          text: SlackStrings.placeholders.selectProject,
+        },
+        options: projectOptions,
+        ...(selectedProjectOption ? { initial_option: selectedProjectOption } : {}),
+      },
+      label: {
+        type: 'plain_text',
+        text: SlackStrings.labels.project,
+        emoji: true,
+      },
+    },
+    {
+      type: 'input',
+      block_id: 'agent_select_block',
+      element: {
+        type: 'static_select',
+        action_id: 'agent_select',
+        placeholder: {
+          type: 'plain_text',
+          text: SlackStrings.placeholders.selectAgent,
+        },
+        options: agentOptions,
+        ...(agents.length > 0 ? { initial_option: agentOptions[0] } : {}),
+      },
+      label: {
+        type: 'plain_text',
+        text: SlackStrings.labels.agent,
+        emoji: true,
+      },
+    },
+    {
+      type: 'input',
+      block_id: 'question_block',
+      element: {
+        type: 'plain_text_input',
+        action_id: 'question_input',
+        multiline: true,
+        placeholder: {
+          type: 'plain_text',
+          text: SlackStrings.placeholders.additionalInstructionsMessage,
+        },
+      },
+      label: {
+        type: 'plain_text',
+        text: SlackStrings.labels.additionalInstructions,
+        emoji: true,
+      },
+      optional: true,
+    },
+    {
+      type: 'input',
+      block_id: 'visibility_block',
+      element: {
+        type: 'radio_buttons',
+        action_id: 'visibility_radio',
+        options: [
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.private,
+              emoji: true,
+            },
+            value: 'private',
+          },
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.replyInThread,
+              emoji: true,
+            },
+            value: 'thread',
+          },
+          {
+            text: {
+              type: 'plain_text',
+              text: SlackStrings.visibility.postToChannel,
+              emoji: true,
+            },
+            value: 'channel',
+          },
+        ],
+        initial_option: {
+          text: {
+            type: 'plain_text',
+            text: SlackStrings.visibility.private,
+            emoji: true,
+          },
+          value: 'private',
+        },
+      },
+      label: {
+        type: 'plain_text',
+        text: SlackStrings.labels.response,
+        emoji: true,
+      },
+    },
+  ];
+
+  return {
+    type: 'modal',
+    callback_id: 'agent_selector_modal',
+    private_metadata: JSON.stringify(metadata),
+    title: {
+      type: 'plain_text',
+      text: SlackStrings.modals.askAboutMessage,
+      emoji: true,
+    },
+    submit: {
+      type: 'plain_text',
+      text: SlackStrings.buttons.triggerAgent,
+      emoji: true,
+    },
+    close: {
+      type: 'plain_text',
+      text: SlackStrings.buttons.cancel,
       emoji: true,
     },
     blocks,

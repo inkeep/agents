@@ -2,8 +2,7 @@
  * Tests for Slack Agent Resolution Service
  *
  * Tests cover:
- * - Priority resolution: user > channel > workspace for slash commands
- * - Priority resolution: channel > workspace for @mentions
+ * - Priority resolution: channel > workspace (all admin-controlled)
  * - Edge cases when no config exists
  * - getAgentConfigSources for status display
  */
@@ -12,7 +11,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', () => ({
   findWorkAppSlackChannelAgentConfig: vi.fn(() => vi.fn()),
-  findWorkAppSlackUserSettings: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('../../db/runDbClient', () => ({
@@ -38,38 +36,8 @@ describe('Agent Resolution', () => {
   });
 
   describe('resolveEffectiveAgent', () => {
-    it('should return user config when user has personal default', async () => {
-      const { findWorkAppSlackUserSettings } = await import('@inkeep/agents-core');
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(
-        vi.fn().mockResolvedValue({
-          defaultAgentId: 'user-agent',
-          defaultProjectId: 'user-project',
-          defaultAgentName: 'My Personal Agent',
-        })
-      );
-
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
-
-      const result = await resolveEffectiveAgent({
-        tenantId: 'tenant-1',
-        teamId: 'T123',
-        channelId: 'C123',
-        userId: 'U123',
-      });
-
-      expect(result).toEqual({
-        projectId: 'user-project',
-        agentId: 'user-agent',
-        agentName: 'My Personal Agent',
-        source: 'user',
-      });
-    });
-
-    it('should fall back to channel config when no user default', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
+    it('should return channel config when channel override exists', async () => {
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
@@ -96,13 +64,10 @@ describe('Agent Resolution', () => {
       });
     });
 
-    it('should fall back to workspace config when no user or channel default', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+    it('should fall back to workspace config when no channel override', async () => {
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
@@ -130,12 +95,9 @@ describe('Agent Resolution', () => {
     });
 
     it('should return null when no config exists at any level', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
@@ -153,38 +115,10 @@ describe('Agent Resolution', () => {
       expect(result).toBeNull();
     });
 
-    it('should skip user check when userId is not provided', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
-
-      vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
-        vi.fn().mockResolvedValue({
-          agentId: 'channel-agent',
-          projectId: 'channel-project',
-          enabled: true,
-        })
-      );
-
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
-
-      const result = await resolveEffectiveAgent({
-        tenantId: 'tenant-1',
-        teamId: 'T123',
-        channelId: 'C123',
-      });
-
-      expect(result?.source).toBe('channel');
-      expect(findWorkAppSlackUserSettings).not.toHaveBeenCalled();
-    });
-
     it('should skip channel check when channelId is not provided', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
         agentId: 'workspace-agent',
         projectId: 'workspace-project',
@@ -203,12 +137,9 @@ describe('Agent Resolution', () => {
     });
 
     it('should skip disabled channel config', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
@@ -236,17 +167,9 @@ describe('Agent Resolution', () => {
 
   describe('getAgentConfigSources', () => {
     it('should return all config sources and effective choice', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(
-        vi.fn().mockResolvedValue({
-          defaultAgentId: 'user-agent',
-          defaultProjectId: 'user-project',
-        })
-      );
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
           agentId: 'channel-agent',
@@ -268,56 +191,18 @@ describe('Agent Resolution', () => {
         userId: 'U123',
       });
 
-      expect(result.userConfig).not.toBeNull();
-      expect(result.userConfig?.agentId).toBe('user-agent');
       expect(result.channelConfig).not.toBeNull();
       expect(result.channelConfig?.agentId).toBe('channel-agent');
       expect(result.workspaceConfig).not.toBeNull();
       expect(result.workspaceConfig?.agentId).toBe('workspace-agent');
-      expect(result.effective?.agentId).toBe('user-agent');
-      expect(result.effective?.source).toBe('user');
-    });
-
-    it('should set effective to channelConfig when no userConfig', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
-
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
-      vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
-        vi.fn().mockResolvedValue({
-          agentId: 'channel-agent',
-          projectId: 'channel-project',
-          enabled: true,
-        })
-      );
-      vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
-        agentId: 'workspace-agent',
-        projectId: 'workspace-project',
-      });
-
-      const { getAgentConfigSources } = await import('../agent-resolution');
-
-      const result = await getAgentConfigSources({
-        tenantId: 'tenant-1',
-        teamId: 'T123',
-        channelId: 'C123',
-        userId: 'U123',
-      });
-
-      expect(result.userConfig).toBeNull();
       expect(result.effective?.agentId).toBe('channel-agent');
       expect(result.effective?.source).toBe('channel');
     });
 
-    it('should set effective to workspaceConfig when no user or channel config', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+    it('should set effective to workspaceConfig when no channel config', async () => {
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
@@ -335,19 +220,15 @@ describe('Agent Resolution', () => {
         userId: 'U123',
       });
 
-      expect(result.userConfig).toBeNull();
       expect(result.channelConfig).toBeNull();
       expect(result.effective?.agentId).toBe('workspace-agent');
       expect(result.effective?.source).toBe('workspace');
     });
 
     it('should return null effective when no configs exist', async () => {
-      const { findWorkAppSlackUserSettings, findWorkAppSlackChannelAgentConfig } = await import(
-        '@inkeep/agents-core'
-      );
+      const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
       const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
 
-      vi.mocked(findWorkAppSlackUserSettings).mockReturnValue(vi.fn().mockResolvedValue(null));
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
@@ -362,7 +243,6 @@ describe('Agent Resolution', () => {
         userId: 'U123',
       });
 
-      expect(result.userConfig).toBeNull();
       expect(result.channelConfig).toBeNull();
       expect(result.workspaceConfig).toBeNull();
       expect(result.effective).toBeNull();

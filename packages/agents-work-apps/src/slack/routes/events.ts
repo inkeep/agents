@@ -31,6 +31,7 @@ import {
 } from '../services';
 import {
   handleAppMention,
+  handleMessageShortcut,
   handleModalSubmission,
   handleOpenAgentSelectorModal,
   handleShareToChannel,
@@ -245,6 +246,39 @@ app.post('/events', async (c) => {
             }
           });
         }
+      }
+    }
+  }
+
+  if (eventType === 'message_action') {
+    const callbackId = eventBody.callback_id as string | undefined;
+
+    if (callbackId === 'ask_agent_shortcut') {
+      const triggerId = eventBody.trigger_id as string | undefined;
+      const teamId = (eventBody.team as { id?: string })?.id;
+      const channelId = (eventBody.channel as { id?: string })?.id;
+      const userId = (eventBody.user as { id?: string })?.id;
+      const message = eventBody.message as {
+        ts?: string;
+        text?: string;
+        thread_ts?: string;
+      };
+      const responseUrl = eventBody.response_url as string | undefined;
+
+      if (triggerId && teamId && channelId && userId && message?.ts) {
+        handleMessageShortcut({
+          triggerId,
+          teamId,
+          channelId,
+          userId,
+          messageTs: message.ts,
+          messageText: message.text || '',
+          threadTs: message.thread_ts,
+          responseUrl,
+        }).catch((err: unknown) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          logger.error({ errorMessage, callbackId }, 'Failed to handle message shortcut');
+        });
       }
     }
   }

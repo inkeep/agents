@@ -5,7 +5,7 @@
  * OAuth tokens are managed by Nango (not stored here).
  */
 
-export type IntegrationType = 'slack' | 'teams' | 'discord';
+export type IntegrationType = 'slack' | 'github';
 
 export interface WorkspaceRecord {
   id: string;
