@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type FC, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +30,7 @@ interface ModelSelectorProps {
   disabled?: boolean;
 }
 
-export function ModelSelector({
+export const ModelSelector: FC<ModelSelectorProps> = ({
   label = 'Model',
   tooltip,
   value,
@@ -41,7 +41,9 @@ export function ModelSelector({
   isRequired = false,
   canClear = true,
   disabled = false,
-}: ModelSelectorProps) {
+}) => {
+  'use memo';
+
   const [open, setOpen] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState<
     'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
@@ -51,46 +53,46 @@ export function ModelSelector({
   const [azureBaseURL, setAzureBaseURL] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
 
-  const selectedModel = useMemo(() => {
-    for (const [_provider, models] of Object.entries(modelOptions)) {
+  const selectedModel = (() => {
+    for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === value);
       if (model) return model;
     }
-    // Handle custom models with prefix display
-    if (value) {
-      if (value.startsWith('openrouter/')) {
-        const modelName = value.replace('openrouter/', '');
-        return { value, label: modelName, prefix: 'openrouter/' };
-      }
-      if (value.startsWith('gateway/')) {
-        const modelName = value.replace('gateway/', '');
-        return { value, label: modelName, prefix: 'gateway/' };
-      }
-      if (value.startsWith('nim/')) {
-        const modelName = value.replace('nim/', '');
-        return { value, label: modelName, prefix: 'nim/' };
-      }
-      if (value.startsWith('custom/')) {
-        const modelName = value.replace('custom/', '');
-        return { value, label: modelName, prefix: 'custom/' };
-      }
-      if (value.startsWith('azure/')) {
-        const modelName = value.replace('azure/', '');
-        return { value, label: modelName, prefix: 'azure/' };
-      }
-      return { value, label: `${value} (custom)` };
+    if (!value) {
+      return null;
     }
-    return null;
-  }, [value]);
+    // Handle custom models with prefix display
+    if (value.startsWith('openrouter/')) {
+      const modelName = value.replace('openrouter/', '');
+      return { value, label: modelName, prefix: 'openrouter/' };
+    }
+    if (value.startsWith('gateway/')) {
+      const modelName = value.replace('gateway/', '');
+      return { value, label: modelName, prefix: 'gateway/' };
+    }
+    if (value.startsWith('nim/')) {
+      const modelName = value.replace('nim/', '');
+      return { value, label: modelName, prefix: 'nim/' };
+    }
+    if (value.startsWith('custom/')) {
+      const modelName = value.replace('custom/', '');
+      return { value, label: modelName, prefix: 'custom/' };
+    }
+    if (value.startsWith('azure/')) {
+      const modelName = value.replace('azure/', '');
+      return { value, label: modelName, prefix: 'azure/' };
+    }
+    return { value, label: `${value} (custom)` };
+  })();
 
-  const inheritedModel = useMemo(() => {
+  const inheritedModel = (() => {
     if (!inheritedValue) return null;
-    for (const [_provider, models] of Object.entries(modelOptions)) {
+    for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === inheritedValue);
       if (model) return model;
     }
-    return inheritedValue ? { value: inheritedValue, label: inheritedValue } : null;
-  }, [inheritedValue]);
+    return { value: inheritedValue, label: inheritedValue };
+  })();
 
   return (
     <div className="space-y-2">
@@ -142,7 +144,7 @@ export function ModelSelector({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="p-0 w-[var(--radix-popover-trigger-width)] transition-all duration-200 ease-in-out"
+          className="p-0 w-(--radix-popover-trigger-width) transition-all duration-200 ease-in-out"
           align="start"
           side="bottom"
           onWheel={(e) => {
@@ -516,4 +518,4 @@ export function ModelSelector({
       )}
     </div>
   );
-}
+};
