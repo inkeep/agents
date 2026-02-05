@@ -229,4 +229,4 @@ export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
 export { MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
-export { toJson } from './validation/json-schema-validation';
+export { transformToJson } from './validation/json-schema-validation';

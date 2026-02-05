@@ -1,4 +1,7 @@
-import { ArtifactComponentApiInsertSchema, toJson } from '@inkeep/agents-core/client-exports';
+import {
+  ArtifactComponentApiInsertSchema,
+  transformToJson,
+} from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 const PropsSchema = ArtifactComponentApiInsertSchema.shape.props;
@@ -7,7 +10,7 @@ export const ArtifactComponentSchema = ArtifactComponentApiInsertSchema.extend({
   props: z
     .string()
     .trim()
-    .transform((value, ctx) => (value ? toJson(value, ctx) : null))
+    .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
     .pipe(PropsSchema)
     .optional(),
 });
