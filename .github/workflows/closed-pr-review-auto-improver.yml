@@ -1,0 +1,280 @@
+name: Closed PR Review Auto-Improver
+
+on:
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  analyze-reviewer-feedback:
+    # Only run on merged PRs
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # For creating branches and commits
+      pull-requests: write # For creating draft PRs
+      issues: read         # For reading PR comments
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Extract Human Comments
+        id: comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          # Fetch all comment types via GraphQL for efficiency
+          COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  # General PR discussion comments
+                  comments(first: 100) {
+                    nodes {
+                      id
+                      author { login __typename }
+                      body
+                      createdAt
+                      url
+                    }
+                  }
+                  # Review comments (inline on code)
+                  reviewThreads(first: 100) {
+                    nodes {
+                      comments(first: 20) {
+                        nodes {
+                          id
+                          author { login __typename }
+                          body
+                          createdAt
+                          url
+                          path
+                          line
+                          diffHunk
+                        }
+                      }
+                    }
+                  }
+                  # Review summaries
+                  reviews(first: 50) {
+                    nodes {
+                      id
+                      author { login __typename }
+                      body
+                      state
+                      createdAt
+                      url
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" \
+            -f repo="${{ github.event.repository.name }}" \
+            -F pr=$PR_NUMBER)
+
+          # Extract and filter human comments (not Bot type, no [bot] suffix)
+          # Also filter out trivial comments: LGTM, thanks, approved, etc.
+          HUMAN_COMMENTS=$(echo "$COMMENTS" | jq '
+            # Flatten all comment sources
+            [
+              .data.repository.pullRequest.comments.nodes[],
+              (.data.repository.pullRequest.reviewThreads.nodes[].comments.nodes[] // empty),
+              .data.repository.pullRequest.reviews.nodes[]
+            ]
+            # Filter to humans only
+            | map(select(
+                .author.__typename != "Bot" and
+                (.author.login | test("\\[bot\\]$") | not)
+              ))
+            # Filter out trivial comments (< 15 chars or common phrases)
+            | map(select(
+                (.body | length) >= 15 and
+                (.body | test("^(lgtm|looks good|thanks|thank you|approved|shipit|ship it|👍|🚀|✅)\\s*$"; "i") | not)
+              ))
+            # Add source type for context
+            | map(. + {
+                source_type: (if .path then "inline" elif .state then "review" else "discussion" end)
+              })
+          ')
+
+          COMMENT_COUNT=$(echo "$HUMAN_COMMENTS" | jq 'length')
+
+          if [ "$COMMENT_COUNT" -gt 0 ]; then
+            echo "has_human_comments=true" >> $GITHUB_OUTPUT
+            echo "comment_count=$COMMENT_COUNT" >> $GITHUB_OUTPUT
+
+            # Save to file for the agent
+            echo "$HUMAN_COMMENTS" > $RUNNER_TEMP/human_comments.json
+            echo "Extracted $COMMENT_COUNT substantive human comments"
+          else
+            echo "has_human_comments=false" >> $GITHUB_OUTPUT
+            echo "No substantive human comments found - skipping analysis"
+          fi
+
+      - name: Extract Bot Comments (for comparison)
+        if: steps.comments.outputs.has_human_comments == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+
+          # Same query structure but filter for bots
+          BOT_COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  comments(first: 100) {
+                    nodes {
+                      id
+                      author { login __typename }
+                      body
+                      createdAt
+                      url
+                    }
+                  }
+                  reviewThreads(first: 100) {
+                    nodes {
+                      comments(first: 20) {
+                        nodes {
+                          id
+                          author { login __typename }
+                          body
+                          createdAt
+                          url
+                          path
+                          line
+                        }
+                      }
+                    }
+                  }
+                  reviews(first: 50) {
+                    nodes {
+                      id
+                      author { login __typename }
+                      body
+                      state
+                      createdAt
+                      url
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" \
+            -f repo="${{ github.event.repository.name }}" \
+            -F pr=$PR_NUMBER | jq '
+            [
+              .data.repository.pullRequest.comments.nodes[],
+              (.data.repository.pullRequest.reviewThreads.nodes[].comments.nodes[] // empty),
+              .data.repository.pullRequest.reviews.nodes[]
+            ]
+            | map(select(
+                .author.__typename == "Bot" or
+                (.author.login | test("\\[bot\\]$"))
+              ))
+          ')
+
+          echo "$BOT_COMMENTS" > $RUNNER_TEMP/bot_comments.json
+          BOT_COUNT=$(echo "$BOT_COMMENTS" | jq 'length')
+          echo "Extracted $BOT_COUNT bot comments for comparison"
+
+      - name: Get PR Diff
+        if: steps.comments.outputs.has_human_comments == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr diff ${{ github.event.pull_request.number }} > $RUNNER_TEMP/pr_diff.txt
+          DIFF_LINES=$(wc -l < $RUNNER_TEMP/pr_diff.txt)
+          echo "Captured PR diff ($DIFF_LINES lines)"
+
+      - name: Generate Analysis Context
+        if: steps.comments.outputs.has_human_comments == 'true'
+        run: |
+          # Create a context file with all the information the agent needs
+          cat > $RUNNER_TEMP/analysis_context.md << 'CONTEXT_EOF'
+          # PR Analysis Context
+
+          ## PR Metadata
+          - **PR Number:** #${{ github.event.pull_request.number }}
+          - **Title:** ${{ github.event.pull_request.title }}
+          - **Author:** ${{ github.event.pull_request.user.login }}
+          - **Base Branch:** ${{ github.event.pull_request.base.ref }}
+          - **Merged At:** ${{ github.event.pull_request.merged_at }}
+          - **Merged By:** ${{ github.event.pull_request.merged_by.login }}
+
+          ## PR Description
+          ${{ github.event.pull_request.body }}
+
+          ---
+
+          ## Human Comments
+          These are the substantive comments from human reviewers (bots filtered out, trivial comments like "LGTM" filtered out).
+
+          See file: `$RUNNER_TEMP/human_comments.json`
+
+          ## Bot Comments (for comparison)
+          These are comments from automated reviewers (Claude, etc.) to help identify what bots caught vs missed.
+
+          See file: `$RUNNER_TEMP/bot_comments.json`
+
+          ## PR Diff
+          The complete diff of changes in this PR.
+
+          See file: `$RUNNER_TEMP/pr_diff.txt`
+          CONTEXT_EOF
+
+          echo "Analysis context generated"
+
+      - name: Run Meta-Analyzer Agent
+        if: steps.comments.outputs.has_human_comments == 'true'
+        id: analyze
+        uses: anthropics/claude-code-action@v1
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --agent closed-pr-review-auto-improver
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout -b:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(cat:*)"
+          prompt: |
+            Analyze the merged PR #${{ github.event.pull_request.number }} to identify patterns from human reviewer feedback that could improve the pr-review-* subagent system.
+
+            ## Context Files (in ${{ runner.temp }}/)
+            - `human_comments.json` - Substantive human reviewer comments (${{ steps.comments.outputs.comment_count }} comments)
+            - `bot_comments.json` - Bot reviewer comments (for comparison)
+            - `pr_diff.txt` - The PR diff
+            - `analysis_context.md` - PR metadata
+
+            ## Your Task
+            1. Read the human comments and understand what patterns/issues humans identified
+            2. Compare against bot comments to identify what bots missed
+            3. Evaluate if any patterns are GENERALIZABLE (pass the generalizability test in your agent definition)
+            4. If generalizable patterns found:
+               a. Create branch: `closed-pr-review-auto-improver/pr-${{ github.event.pull_request.number }}-learnings`
+               b. Edit the relevant pr-review-*.md agent files with specific improvements
+               c. Create a draft PR with your changes
+            5. If no generalizable patterns: Report that finding and exit
+
+            ## Important
+            - Only propose changes that pass the generalizability test (would apply to other TypeScript/React/Node codebases)
+            - Repo-specific conventions should NOT become pr-review-* agent changes
+            - Be conservative: HIGH generalizability threshold only
+
+      - name: Upload Analysis Artifacts
+        if: always() && steps.comments.outputs.has_human_comments == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-review-analysis-${{ github.event.pull_request.number }}
+          path: |
+            ${{ runner.temp }}/human_comments.json
+            ${{ runner.temp }}/bot_comments.json
+            ${{ runner.temp }}/pr_diff.txt
+            ${{ runner.temp }}/analysis_context.md
+          retention-days: 30
+          if-no-files-found: ignore
