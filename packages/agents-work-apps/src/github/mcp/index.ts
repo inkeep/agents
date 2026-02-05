@@ -171,8 +171,14 @@ const getServer = async (toolId: string) => {
       file_path: z
         .string()
         .describe('Path to the file. the path is relative to the root of the repository'),
+      branch_name: z
+        .string()
+        .optional()
+        .describe(
+          'The name of the branch to get the file content for (defaults to master/main branch). If you are analyzing a pr you created, you should use the branch name from the pr.'
+        ),
     },
-    async ({ owner, repo, file_path }) => {
+    async ({ owner, repo, file_path, branch_name }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -194,6 +200,7 @@ const getServer = async (toolId: string) => {
           owner,
           repo,
           path: file_path,
+          ref: branch_name,
         });
 
         // Handle single file response
@@ -945,7 +952,10 @@ const getServer = async (toolId: string) => {
       file_path: z.string().describe('The path of the file to visualize the update operations for'),
       branch_name: z
         .string()
-        .describe('The name of the branch to visualize the update operations for'),
+        .optional()
+        .describe(
+          'The name of the branch to visualize the update operations for (defaults to master/main branch). If you are modifying a pr you created, you should use the branch name from the pr.'
+        ),
       operations: updateOperationsSchema,
     },
     async ({ owner, repo, file_path, branch_name, operations }) => {
