@@ -128,7 +128,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
           >
             {selectedModel ? (
               <div className="truncate">
-                {'prefix' in selectedModel && selectedModel.prefix && (
+                {selectedModel.prefix && (
                   <span className="text-gray-400">{selectedModel.prefix}</span>
                 )}
                 {selectedModel.label}
