@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Command,
   CommandEmpty,
@@ -161,7 +162,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 {(() => {
                   // Only access document on the client side
                   if (typeof document !== 'undefined') {
-                    const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                    const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
                     const searchValue = input?.value || '';
 
                     if (searchValue.trim()) {
@@ -295,204 +296,200 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
         </PopoverContent>
       </Popover>
       {showCustomInput && showCustomInput !== 'azure' && (
-        <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">
-              {{
-                openrouter: 'OpenRouter Model ID',
-                gateway: 'Vercel AI Gateway Model ID',
-                nim: 'NVIDIA NIM Model ID',
-                custom: '',
-              }[showCustomInput] || 'Custom Model ID'}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {{
-                openrouter:
-                  'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct',
-                gateway: 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet',
-                nim: 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct',
-                custom: '',
-              }[showCustomInput] || 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
-            </div>
-            <div className="flex gap-2 items-center">
-              <input
-                className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={
-                  {
-                    openrouter: 'anthropic/claude-3-5-sonnet',
-                    gateway: 'openai/gpt-4o',
-                    nim: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
-                    custom: '',
-                  }[showCustomInput] || 'my-custom-model'
-                }
-                value={customModelInput}
-                onChange={(e) => setCustomModelInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && customModelInput.trim()) {
-                    const prefix =
-                      showCustomInput === 'openrouter'
-                        ? 'openrouter/'
-                        : showCustomInput === 'gateway'
-                          ? 'gateway/'
-                          : showCustomInput === 'nim'
-                            ? 'nim/'
-                            : 'custom/';
-                    onValueChange?.(`${prefix}${customModelInput.trim()}`);
-                    setShowCustomInput(null);
-                    setCustomModelInput('');
-                    setOpen(false);
-                  }
-                  if (e.key === 'Escape') {
-                    setShowCustomInput(null);
-                    setCustomModelInput('');
-                  }
-                }}
-              />
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (customModelInput.trim()) {
-                    const prefix =
-                      showCustomInput === 'openrouter'
-                        ? 'openrouter/'
-                        : showCustomInput === 'gateway'
-                          ? 'gateway/'
-                          : showCustomInput === 'nim'
-                            ? 'nim/'
-                            : 'custom/';
-                    onValueChange?.(`${prefix}${customModelInput.trim()}`);
-                    setShowCustomInput(null);
-                    setCustomModelInput('');
-                    setOpen(false);
-                  }
-                }}
-                disabled={!customModelInput.trim()}
-              >
-                Add
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
+        <Card className="p-3 gap-3">
+          <div className="text-sm font-medium">
+            {{
+              openrouter: 'OpenRouter Model ID',
+              gateway: 'Vercel AI Gateway Model ID',
+              nim: 'NVIDIA NIM Model ID',
+              custom: '',
+            }[showCustomInput] || 'Custom Model ID'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {{
+              openrouter:
+                'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct',
+              gateway: 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet',
+              nim: 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct',
+              custom: '',
+            }[showCustomInput] || 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
+          </div>
+          <div className="flex gap-2 items-center">
+            <input
+              className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={
+                {
+                  openrouter: 'anthropic/claude-3-5-sonnet',
+                  gateway: 'openai/gpt-4o',
+                  nim: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+                  custom: '',
+                }[showCustomInput] || 'my-custom-model'
+              }
+              value={customModelInput}
+              onChange={(e) => setCustomModelInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && customModelInput.trim()) {
+                  const prefix =
+                    showCustomInput === 'openrouter'
+                      ? 'openrouter/'
+                      : showCustomInput === 'gateway'
+                        ? 'gateway/'
+                        : showCustomInput === 'nim'
+                          ? 'nim/'
+                          : 'custom/';
+                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
+                  setOpen(false);
+                }
+                if (e.key === 'Escape') {
+                  setShowCustomInput(null);
+                  setCustomModelInput('');
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              onClick={() => {
+                if (customModelInput.trim()) {
+                  const prefix =
+                    showCustomInput === 'openrouter'
+                      ? 'openrouter/'
+                      : showCustomInput === 'gateway'
+                        ? 'gateway/'
+                        : showCustomInput === 'nim'
+                          ? 'nim/'
+                          : 'custom/';
+                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                  setShowCustomInput(null);
+                  setCustomModelInput('');
+                  setOpen(false);
+                }
+              }}
+              disabled={!customModelInput.trim()}
+            >
+              Add
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowCustomInput(null);
+                setCustomModelInput('');
+              }}
+            >
+              Cancel
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
       {showCustomInput === 'azure' && (
-        <div className="p-3 bg-background border rounded-md shadow-lg">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">Azure Configuration</div>
-            <div className="text-xs text-muted-foreground">
-              Configure your Azure deployment and connection details
-            </div>
+        <Card className="p-3 gap-3">
+          <div className="text-sm font-medium">Azure Configuration</div>
+          <div className="text-xs text-muted-foreground">
+            Configure your Azure deployment and connection details
+          </div>
+
+          <div>
+            <label htmlFor="azure-deployment-name" className="block text-xs font-medium mb-1">
+              Deployment Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="azure-deployment-name"
+              className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="my-gpt-4o-deployment"
+              value={azureDeploymentName}
+              onChange={(e) => setAzureDeploymentName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Your Azure model deployment name (required)
+            </p>
+          </div>
+
+          <div className="border-t pt-3">
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Choose one connection method <span className="text-red-500">*</span>
+            </p>
 
             <div>
-              <label htmlFor="azure-deployment-name" className="block text-xs font-medium mb-1">
-                Deployment Name <span className="text-red-500">*</span>
+              <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">
+                Azure Resource Name
               </label>
               <input
-                id="azure-deployment-name"
+                id="azure-resource-name"
                 className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="my-gpt-4o-deployment"
-                value={azureDeploymentName}
-                onChange={(e) => setAzureDeploymentName(e.target.value)}
+                placeholder="your-azure-resource"
+                value={azureResourceName}
+                onChange={(e) => setAzureResourceName(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Your Azure model deployment name (required)
-              </p>
             </div>
 
-            <div className="border-t pt-3">
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                Choose one connection method <span className="text-red-500">*</span>
-              </p>
+            <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
 
-              <div>
-                <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">
-                  Azure Resource Name
-                </label>
-                <input
-                  id="azure-resource-name"
-                  className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="your-azure-resource"
-                  value={azureResourceName}
-                  onChange={(e) => setAzureResourceName(e.target.value)}
-                />
-              </div>
-
-              <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
-
-              <div>
-                <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">
-                  Custom Base URL
-                </label>
-                <input
-                  id="azure-base-url"
-                  className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://your-endpoint.com"
-                  value={azureBaseURL}
-                  onChange={(e) => setAzureBaseURL(e.target.value)}
-                />
-              </div>
+            <div>
+              <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">
+                Custom Base URL
+              </label>
+              <input
+                id="azure-base-url"
+                className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://your-endpoint.com"
+                value={azureBaseURL}
+                onChange={(e) => setAzureBaseURL(e.target.value)}
+              />
             </div>
+          </div>
 
-            <div className="text-xs text-muted-foreground">
-              Set <code>AZURE_API_KEY</code> environment variable
-            </div>
+          <div className="text-xs text-muted-foreground">
+            Set <code>AZURE_API_KEY</code> environment variable
+          </div>
 
-            <div className="flex gap-2 items-center">
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (
-                    azureDeploymentName.trim() &&
-                    (azureResourceName.trim() || azureBaseURL.trim())
-                  ) {
-                    // Set the Azure model FIRST so the store has it
-                    onValueChange?.(`azure/${azureDeploymentName.trim()}`);
+          <div className="flex gap-2 items-center">
+            <Button
+              size="sm"
+              onClick={() => {
+                if (
+                  azureDeploymentName.trim() &&
+                  (azureResourceName.trim() || azureBaseURL.trim())
+                ) {
+                  // Set the Azure model FIRST so the store has it
+                  onValueChange?.(`azure/${azureDeploymentName.trim()}`);
 
-                    // Then set the provider options
-                    const providerOptions: Record<string, any> = {};
-                    if (azureResourceName.trim()) {
-                      providerOptions.resourceName = azureResourceName.trim();
-                    } else if (azureBaseURL.trim()) {
-                      providerOptions.baseURL = azureBaseURL.trim();
-                    }
-                    onProviderOptionsChange?.(providerOptions);
-
-                    setShowCustomInput(null);
-                    setAzureDeploymentName('');
-                    setAzureResourceName('');
-                    setAzureBaseURL('');
+                  // Then set the provider options
+                  const providerOptions: Record<string, any> = {};
+                  if (azureResourceName.trim()) {
+                    providerOptions.resourceName = azureResourceName.trim();
+                  } else if (azureBaseURL.trim()) {
+                    providerOptions.baseURL = azureBaseURL.trim();
                   }
-                }}
-                disabled={
-                  !azureDeploymentName.trim() || (!azureResourceName.trim() && !azureBaseURL.trim())
-                }
-              >
-                Configure
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
+                  onProviderOptionsChange?.(providerOptions);
+
                   setShowCustomInput(null);
                   setAzureDeploymentName('');
                   setAzureResourceName('');
                   setAzureBaseURL('');
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
+                }
+              }}
+              disabled={
+                !azureDeploymentName.trim() || (!azureResourceName.trim() && !azureBaseURL.trim())
+              }
+            >
+              Configure
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowCustomInput(null);
+                setAzureDeploymentName('');
+                setAzureResourceName('');
+                setAzureBaseURL('');
+              }}
+            >
+              Cancel
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
       {canClear && !disabled && (
         <div
