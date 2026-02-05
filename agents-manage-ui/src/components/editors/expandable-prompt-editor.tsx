@@ -1,4 +1,4 @@
-import { Braces } from 'lucide-react';
+import { Braces, Maximize } from 'lucide-react';
 import type { ComponentProps, FC } from 'react';
 import { useState } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
@@ -16,12 +16,19 @@ import {
 } from '@/components/ui/form';
 import type { FieldPath, FieldValues } from 'react-hook-form';
 import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   name: string;
 };
 
-const AddVariableAction: FC<{ uri: string }> = ({ uri }) => {
+const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, className }) => {
   const monaco = useMonacoStore((state) => state.monaco);
 
   const handleAddVariable = () => {
@@ -49,7 +56,7 @@ const AddVariableAction: FC<{ uri: string }> = ({ uri }) => {
     <Button
       size="sm"
       variant="link"
-      className="text-xs rounded-sm h-6"
+      className={cn('text-xs rounded-sm h-6', className)}
       type="button"
       onClick={handleAddVariable}
     >
@@ -85,7 +92,7 @@ export function ExpandablePromptEditor({
       label={label}
       isRequired={isRequired}
       hasError={!!error}
-      actions={<AddVariableAction uri="uri" />}
+      actions={<AddVariableAction uri={uri} />}
     >
       <PromptEditor
         uri={uri}
@@ -112,29 +119,65 @@ export function GenericPromptEditor<
   isRequired,
   label,
   className,
-}: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'>) {
+}: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
+  className?: string;
+}) {
+  'use memo';
+  const [open, onOpenChange] = useState(false);
+  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
+
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel isRequired={isRequired}>{label}</FormLabel>
-          <FormControl>
-            <PromptEditor
-              uri={uri}
-              autoFocus={open}
-              aria-invalid={error ? 'true' : undefined}
-              className={cn(!open && 'max-h-96', 'min-h-16', className)}
-              hasDynamicHeight={!open}
-              // aria-labelledby={id}
-              {...field}
-            />
-          </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
+      render={({ field }) => {
+        const content = (
+          <>
+            <FormLabel isRequired={isRequired}>
+              {label}
+              <AddVariableAction uri={uri} className="ml-auto" />
+              {!open && (
+                <DialogTrigger asChild>
+                  <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">
+                    <Maximize className="size-3.5" />
+                    Expand
+                  </Button>
+                </DialogTrigger>
+              )}
+            </FormLabel>
+            <FormControl>
+              <PromptEditor
+                uri={uri}
+                autoFocus={open}
+                className={cn(!open && 'max-h-96', 'min-h-16', className)}
+                hasDynamicHeight={!open}
+                // aria-labelledby={id}
+                {...field}
+              />
+            </FormControl>
+          </>
+        );
+
+        return (
+          <FormItem>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+              {content}
+              <DialogContent
+                size="fullscreen"
+                className="!max-w-none h-screen w-screen max-h-screen p-0 gap-0 border-0 rounded-none"
+              >
+                <DialogTitle className="sr-only">{label}</DialogTitle>
+                <DialogDescription className="sr-only">{`${label} Editor`}</DialogDescription>
+                <div className="flex flex-col w-full px-8 pb-8 pt-12 mx-auto max-w-7xl min-w-0 gap-2">
+                  {content}
+                </div>
+              </DialogContent>
+            </Dialog>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }
