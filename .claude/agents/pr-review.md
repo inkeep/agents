@@ -289,7 +289,7 @@ Previous issues posted by humans or yourself from previous runs that are still p
 🟡 [`file.ts:42`](https://github.com/.../pull/123#discussion_r457) [paraphrased issue <1 sentence]
 // ...
 
-### Final Recommendation
+// ...
 
 Follow the below format:
 ````markdown
