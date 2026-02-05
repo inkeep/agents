@@ -1070,7 +1070,7 @@ Return your evaluation as a JSON object matching the schema above.`;
     // Convert JSON schema to Zod schema
     let resultSchema: z.ZodType<any>;
     try {
-      resultSchema = jsonSchemaToZod(schema);
+      resultSchema = z.fromJSONSchema(schema);
       logger.info(
         {
           schemaType: typeof schema,

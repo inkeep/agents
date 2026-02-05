@@ -14,7 +14,6 @@ import {
   getLedgerArtifacts,
   isGithubWorkAppTool,
   JsonTransformer,
-  jsonSchemaToZod,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -1393,7 +1392,7 @@ export class Agent {
           continue;
         }
 
-        const zodSchema = jsonSchemaToZod(functionData.inputSchema);
+        const zodSchema = z.fromJSONSchema(functionData.inputSchema);
         const toolPolicies = (functionToolDef as any).toolPolicies as
           | Record<string, { needsApproval?: boolean }>
           | null
@@ -2196,7 +2195,7 @@ export class Agent {
           let inputSchema: any;
           try {
             inputSchema = override.schema
-              ? jsonSchemaToZod(override.schema)
+              ? z.fromJSONSchema(override.schema)
               : (toolDef as any).inputSchema;
           } catch (schemaError) {
             logger.error(
@@ -3656,7 +3655,7 @@ ${output}${structureHintsFormatted}`;
 
     if (this.config.dataComponents && this.config.dataComponents.length > 0) {
       this.config.dataComponents.forEach((dc) => {
-        const propsSchema = jsonSchemaToZod(dc.props);
+        const propsSchema = z.fromJSONSchema(dc.props);
         componentSchemas.push(
           z.object({
             id: z.string(),

@@ -3,7 +3,6 @@ import {
   type ArtifactComponentApiInsert,
   type ArtifactComponentApiSelect,
   type DataComponentInsert,
-  jsonSchemaToZod,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { SchemaProcessor } from './SchemaProcessor';
@@ -22,7 +21,7 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
       const cleanSchema = component.props
         ? removePreviewFlags(component.props as ExtendedJsonSchema)
         : {};
-      const propsSchema = jsonSchemaToZod(cleanSchema);
+      const propsSchema = z.fromJSONSchema(cleanSchema);
 
       return z
         .object({
@@ -90,7 +89,7 @@ export class ArtifactReferenceSchema {
     return z.object({
       id: z.string(),
       name: z.literal('Artifact'),
-      props: jsonSchemaToZod(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
+      props: z.fromJSONSchema(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
     });
   }
 
@@ -158,7 +157,7 @@ export class ArtifactCreateSchema {
       return z.object({
         id: z.string(),
         name: z.literal(`ArtifactCreate_${component.name}`),
-        props: jsonSchemaToZod(propsSchema),
+        props: z.fromJSONSchema(propsSchema),
       });
     });
   }
