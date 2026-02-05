@@ -759,19 +759,18 @@ export const Agent: FC<AgentProps> = ({
       return false;
     }
 
-    const res = await saveAgent(
+    const res = await updateFullAgentAction(
       tenantId,
       projectId,
-      serializedData,
-      agent.id // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
+      // @ts-expect-error -- fix type, agent id is always defined
+      agent.id,
+      serializedData
     );
 
     if (res.success) {
       // Clear any existing errors on successful save
       clearErrors();
-      toast.success('Agent saved', {
-        closeButton: true,
-      });
+      toast.success('Agent saved', { closeButton: true });
       markSaved();
 
       // Update MCP nodes with new relationshipIds from backend response
@@ -940,9 +939,7 @@ export const Agent: FC<AgentProps> = ({
           fitView
           snapToGrid
           snapGrid={[20, 20]}
-          fitViewOptions={{
-            maxZoom: 1,
-          }}
+          fitViewOptions={{ maxZoom: 1 }}
           minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={({ sourceHandle, targetHandle }) => {
