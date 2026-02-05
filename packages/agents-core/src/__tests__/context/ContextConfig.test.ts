@@ -7,7 +7,7 @@ import {
   HeadersSchemaBuilder,
   headers,
 } from '../../context/ContextConfig';
-import { convertZodToJsonSchema } from '../../utils/json-schema/schema-conversion';
+import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

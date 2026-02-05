@@ -4,7 +4,7 @@ import type {
   ContextFetchDefinition,
   CredentialReferenceApiInsert,
 } from '../types/index';
-import { convertZodToJsonSchema } from '../utils/json-schema/schema-conversion';
+import { convertZodToJsonSchema } from '../utils/schema-conversion';
 import { getLogger } from '../utils/logger';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
 import type { DotPaths } from './validation-helpers';

@@ -8,7 +8,7 @@ export * from './format-messages';
 export * from './internal-service-auth';
 export * from './JsonTransformer';
 export * from './json-parser';
-export * from './json-schema/schema-conversion';
+export * from './schema-conversion';
 export * from './jwt-helpers';
 export * from './logger';
 export * from './mcp-client';
