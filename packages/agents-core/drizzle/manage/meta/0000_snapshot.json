@@ -1,5 +1,5 @@
 {
-  "id": "f4cc4e8f-568a-465a-93d5-b6a41b20bb31",
+  "id": "e3d08153-0e0d-43b9-a78e-bddb19ed4e9a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -629,7 +629,7 @@
         },
         "dataset_id": {
           "name": "dataset_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -737,7 +737,7 @@
         },
         "dataset_id": {
           "name": "dataset_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -830,13 +830,13 @@
         },
         "dataset_run_config_id": {
           "name": "dataset_run_config_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "agent_id": {
           "name": "agent_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1007,13 +1007,13 @@
         },
         "evaluation_job_config_id": {
           "name": "evaluation_job_config_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "evaluator_id": {
           "name": "evaluator_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1197,13 +1197,13 @@
         },
         "evaluation_run_config_id": {
           "name": "evaluation_run_config_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "evaluation_suite_config_id": {
           "name": "evaluation_suite_config_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1380,13 +1380,13 @@
         },
         "evaluation_suite_config_id": {
           "name": "evaluation_suite_config_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "evaluator_id": {
           "name": "evaluator_id",
-          "type": "varchar(256)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1943,278 +1943,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.scheduled_triggers": {
-      "name": "scheduled_triggers",
-      "schema": "",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "cron_expression": {
-          "name": "cron_expression",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "run_at": {
-          "name": "run_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "message_template": {
-          "name": "message_template",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "max_retries": {
-          "name": "max_retries",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 3
-        },
-        "retry_delay_seconds": {
-          "name": "retry_delay_seconds",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 60
-        },
-        "timeout_seconds": {
-          "name": "timeout_seconds",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 300
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "scheduled_triggers_agent_fk": {
-          "name": "scheduled_triggers_agent_fk",
-          "tableFrom": "scheduled_triggers",
-          "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "scheduled_triggers_tenant_id_project_id_agent_id_id_pk": {
-          "name": "scheduled_triggers_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.scheduled_workflows": {
-      "name": "scheduled_workflows",
-      "schema": "",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "workflow_run_id": {
-          "name": "workflow_run_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "scheduled_trigger_id": {
-          "name": "scheduled_trigger_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "scheduled_workflows_agent_fk": {
-          "name": "scheduled_workflows_agent_fk",
-          "tableFrom": "scheduled_workflows",
-          "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "scheduled_workflows_trigger_fk": {
-          "name": "scheduled_workflows_trigger_fk",
-          "tableFrom": "scheduled_workflows",
-          "tableTo": "scheduled_triggers",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "scheduled_trigger_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "scheduled_workflows_tenant_id_project_id_agent_id_id_pk": {
-          "name": "scheduled_workflows_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.sub_agent_artifact_components": {
       "name": "sub_agent_artifact_components",
       "schema": "",
@@ -2576,12 +2304,6 @@
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
-        },
-        "tool_policies": {
-          "name": "tool_policies",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -3241,154 +2963,6 @@
           "columns": [
             "tenant_id",
             "project_id",
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.triggers": {
-      "name": "triggers",
-      "schema": "",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "input_schema": {
-          "name": "input_schema",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "output_transform": {
-          "name": "output_transform",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "message_template": {
-          "name": "message_template",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "authentication": {
-          "name": "authentication",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "signing_secret_credential_reference_id": {
-          "name": "signing_secret_credential_reference_id",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "signature_verification": {
-          "name": "signature_verification",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'null'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "triggers_agent_fk": {
-          "name": "triggers_agent_fk",
-          "tableFrom": "triggers",
-          "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "triggers_credential_reference_fk": {
-          "name": "triggers_credential_reference_fk",
-          "tableFrom": "triggers",
-          "tableTo": "credential_references",
-          "columnsFrom": [
-            "signing_secret_credential_reference_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "triggers_tenant_id_project_id_agent_id_id_pk": {
-          "name": "triggers_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
             "id"
           ]
         }
