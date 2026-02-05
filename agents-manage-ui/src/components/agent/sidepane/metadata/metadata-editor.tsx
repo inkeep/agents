@@ -29,15 +29,15 @@ import {
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
-import { FullAgentUpdateSchema } from '@/lib/validation';
+import { FullAgentUpdateSchema as schema } from '@/lib/validation';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
-import { TextareaField } from '../form-components/text-area';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
@@ -70,8 +70,7 @@ export function MetadataEditor() {
     agentId: string;
   }>();
   const metadata = useAgentStore((state) => state.metadata);
-  const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
-    metadata;
+  const { id, name, contextConfig, models, stopWhen, prompt, statusUpdates } = metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const { canUse } = useProjectPermissions();
@@ -124,17 +123,15 @@ export function MetadataEditor() {
         name="name"
         label="Name"
         placeholder="My agent"
-        isRequired={isRequired(FullAgentUpdateSchema, 'name')}
+        isRequired={isRequired(schema, 'name')}
       />
       <InputField id="id" name="id" label="Id" value={agentId} disabled isRequired />
-      <TextareaField
-        id="description"
+      <GenericTextarea
+        control={form.control}
         name="description"
         label="Description"
-        value={description}
-        onChange={(e) => updateMetadata('description', e.target.value)}
         placeholder="This agent is used to..."
-        className="max-h-96"
+        isRequired={isRequired(schema, 'description')}
       />
       <div className="space-y-2">
         <ExpandablePromptEditor
