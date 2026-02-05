@@ -34,18 +34,18 @@ jobs:
           --health-retries 5
           --health-start-period 20s
       postgres:
-          image: postgres:18
-          env:
-            POSTGRES_DB: inkeep_agents
-            POSTGRES_USER: appuser
-            POSTGRES_PASSWORD: password
-          options: >-
-            --health-cmd "pg_isready -U appuser"
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
-          ports:
-            - 5433:5432
+        image: postgres:18
+        env:
+          POSTGRES_DB: inkeep_agents
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U appuser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
 
     steps:
       - name: Checkout code
@@ -107,7 +107,7 @@ jobs:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: test-bypass-secret-for-ci
