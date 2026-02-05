@@ -50,7 +50,7 @@ jobs:
       - name: Deploy Staged Production
         id: deploy
         run: |
-          DEPLOYMENT_URL=$(vercel deploy --prod --skip-domain --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(vercel deploy --prod --skip-domain --archive=tgz --token=${{ secrets.VERCEL_TOKEN }})
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "Error: Failed to capture deployment URL"
             exit 1
