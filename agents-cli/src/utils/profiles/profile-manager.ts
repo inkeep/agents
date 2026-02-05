@@ -7,6 +7,8 @@ import type { ZodError } from 'zod';
 import {
   CLOUD_REMOTE,
   DEFAULT_PROFILES_CONFIG,
+  isLegacyRemote,
+  migrateLegacyRemote,
   type Profile,
   type ProfilesConfig,
   profileNameSchema,
@@ -92,6 +94,7 @@ export class ProfileManager {
   /**
    * Load and validate profiles from YAML file
    * Creates default config if file doesn't exist
+   * Migrates legacy profile formats (manageApi/runApi) to new format (api)
    */
   loadProfiles(): ProfilesConfig {
     const profilePath = this.getProfilePath();
@@ -122,7 +125,10 @@ export class ProfileManager {
       );
     }
 
-    const result = profilesConfigSchema.safeParse(parsed);
+    // Attempt migration of legacy profiles before validation
+    const { migrated, migratedParsed } = this.migrateLegacyProfiles(parsed);
+
+    const result = profilesConfigSchema.safeParse(migratedParsed);
     if (!result.success) {
       throw new ProfileError(
         `Invalid profiles.yaml:\n  ${formatZodErrors(result.error)}`,
@@ -140,8 +146,66 @@ export class ProfileManager {
       );
     }
 
+    // If we migrated legacy profiles, save the updated config
+    if (migrated) {
+      logger.info({}, 'Migrated legacy profile format (manageApi/runApi -> api)');
+      this.saveProfiles(config);
+    }
+
     logger.info({ activeProfile: config.activeProfile }, 'Profiles loaded');
     return config;
+  }
+
+  /**
+   * Migrate legacy profile formats to new format
+   * Old format: { manageApi, manageUi, runApi }
+   * New format: { api, manageUi }
+   */
+  private migrateLegacyProfiles(parsed: unknown): { migrated: boolean; migratedParsed: unknown } {
+    if (!parsed || typeof parsed !== 'object') {
+      return { migrated: false, migratedParsed: parsed };
+    }
+
+    const parsedObj = parsed as Record<string, unknown>;
+    const profiles = parsedObj.profiles;
+
+    if (!profiles || typeof profiles !== 'object') {
+      return { migrated: false, migratedParsed: parsed };
+    }
+
+    let migrated = false;
+    const migratedProfiles: Record<string, unknown> = {};
+
+    for (const [name, profile] of Object.entries(profiles as Record<string, unknown>)) {
+      if (!profile || typeof profile !== 'object') {
+        migratedProfiles[name] = profile;
+        continue;
+      }
+
+      const profileObj = profile as Record<string, unknown>;
+      const remote = profileObj.remote;
+
+      if (isLegacyRemote(remote)) {
+        // Migrate legacy remote format
+        const migratedRemote = migrateLegacyRemote(remote);
+        migratedProfiles[name] = {
+          ...profileObj,
+          remote: migratedRemote,
+        };
+        migrated = true;
+        logger.info({ profile: name }, 'Migrating legacy profile format');
+      } else {
+        migratedProfiles[name] = profile;
+      }
+    }
+
+    return {
+      migrated,
+      migratedParsed: {
+        ...parsedObj,
+        profiles: migratedProfiles,
+      },
+    };
   }
 
   /**
