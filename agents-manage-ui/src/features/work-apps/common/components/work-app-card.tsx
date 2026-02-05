@@ -34,26 +34,12 @@ export function WorkAppCard({ app, tenantId, onInstall, workspaceCount = 0 }: Wo
             Installed
           </Badge>
         );
-      case 'coming_soon':
-        return (
-          <Badge variant="outline" className="text-muted-foreground">
-            Coming Soon
-          </Badge>
-        );
       default:
         return <Badge variant="outline">Available</Badge>;
     }
   };
 
   const getActionButton = () => {
-    if (app.status === 'coming_soon') {
-      return (
-        <Button variant="outline" disabled className="w-full">
-          Coming Soon
-        </Button>
-      );
-    }
-
     if (app.status === 'connected' || app.status === 'installed') {
       return (
         <div className="space-y-2 w-full">
@@ -83,11 +69,7 @@ export function WorkAppCard({ app, tenantId, onInstall, workspaceCount = 0 }: Wo
   };
 
   return (
-    <Card
-      className={`relative overflow-hidden transition-all hover:shadow-lg ${
-        app.status === 'coming_soon' ? 'opacity-60' : ''
-      }`}
-    >
+    <Card className="relative overflow-hidden transition-all hover:shadow-lg">
       <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: app.color }} />
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">

@@ -41,11 +41,6 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
           ...config,
           status: 'available',
         });
-      } else {
-        apps.push({
-          ...config,
-          status: 'coming_soon',
-        });
       }
     }
 
@@ -54,7 +49,6 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
         connected: 0,
         installed: 1,
         available: 2,
-        coming_soon: 3,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -75,8 +69,7 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
     const connected = workApps.filter((a) => a.status === 'connected').length;
     const installed = workApps.filter((a) => a.status === 'installed').length;
     const available = workApps.filter((a) => a.status === 'available').length;
-    const comingSoon = workApps.filter((a) => a.status === 'coming_soon').length;
-    return { connected, installed, available, comingSoon, total: workApps.length };
+    return { connected, installed, available, total: workApps.length };
   }, [workApps]);
 
   return (
@@ -86,7 +79,7 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
         description="Connect your favorite work tools to supercharge your Inkeep agents"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-card rounded-lg p-4 border">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <Plug className="h-4 w-4" />
@@ -108,16 +101,9 @@ export function WorkAppsOverview({ tenantId }: WorkAppsOverviewProps) {
           </div>
           <p className="text-2xl font-bold">{stats.available}</p>
         </div>
-        <div className="bg-card rounded-lg p-4 border">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Plug className="h-4 w-4" />
-            <span className="text-sm">Coming Soon</span>
-          </div>
-          <p className="text-2xl font-bold text-muted-foreground">{stats.comingSoon}</p>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {workApps.map((app) => (
           <WorkAppCard
             key={app.id}
