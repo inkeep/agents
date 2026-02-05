@@ -20,7 +20,11 @@ export const FullAgentFormProvider: FC<{
 }> = ({ defaultValues, children }) => {
   'use memo';
 
-  const form = useForm({ defaultValues, resolver });
+  const form = useForm({
+    defaultValues,
+    resolver,
+    mode: 'onChange',
+  });
 
   return (
     <Form {...form}>
