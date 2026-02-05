@@ -1,32 +1,28 @@
 import { Braces } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, FC } from 'react';
 import { useState } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import type { FieldPath, FieldValues } from 'react-hook-form';
+import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   name: string;
 };
 
-export function ExpandablePromptEditor({
-  label,
-  isRequired = false,
-  className,
-  error,
-  name,
-  ...props
-}: {
-  label: string;
-  isRequired?: boolean;
-  error?: string;
-} & PromptEditorProps) {
-  'use memo';
-  const [open, onOpenChange] = useState(false);
+const AddVariableAction: FC<{ uri: string }> = ({ uri }) => {
   const monaco = useMonacoStore((state) => state.monaco);
-  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
 
   const handleAddVariable = () => {
     if (!monaco) {
@@ -49,6 +45,35 @@ export function ExpandablePromptEditor({
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
   };
 
+  return (
+    <Button
+      size="sm"
+      variant="link"
+      className="text-xs rounded-sm h-6"
+      type="button"
+      onClick={handleAddVariable}
+    >
+      <Braces className="size-3.5" />
+      Add variables
+    </Button>
+  );
+};
+
+export function ExpandablePromptEditor({
+  label,
+  isRequired = false,
+  className,
+  error,
+  name,
+  ...props
+}: {
+  label: string;
+  isRequired?: boolean;
+  error?: string;
+} & PromptEditorProps) {
+  'use memo';
+  const [open, onOpenChange] = useState(false);
+  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
   const id = `${name}-label`;
 
   return (
@@ -60,18 +85,7 @@ export function ExpandablePromptEditor({
       label={label}
       isRequired={isRequired}
       hasError={!!error}
-      actions={
-        <Button
-          size="sm"
-          variant="link"
-          className="text-xs rounded-sm h-6"
-          type="button"
-          onClick={handleAddVariable}
-        >
-          <Braces className="size-3.5" />
-          Add variables
-        </Button>
-      }
+      actions={<AddVariableAction uri="uri" />}
     >
       <PromptEditor
         uri={uri}
@@ -84,5 +98,43 @@ export function ExpandablePromptEditor({
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
     </ExpandableField>
+  );
+}
+
+export function GenericPromptEditor<
+  FV extends FieldValues,
+  TV extends FieldValues,
+  TName extends FieldPath<FV>,
+>({
+  control,
+  name,
+  description,
+  isRequired,
+  label,
+  className,
+}: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'>) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel isRequired={isRequired}>{label}</FormLabel>
+          <FormControl>
+            <PromptEditor
+              uri={uri}
+              autoFocus={open}
+              aria-invalid={error ? 'true' : undefined}
+              className={cn(!open && 'max-h-96', 'min-h-16', className)}
+              hasDynamicHeight={!open}
+              // aria-labelledby={id}
+              {...field}
+            />
+          </FormControl>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }

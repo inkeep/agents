@@ -59,6 +59,11 @@ export function createCustomHeadersSchema(customHeaders: string) {
   return zodSchema;
 }
 
-export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema;
+export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
+  id: true,
+  name: true,
+  description: true,
+  prompt: true,
+});
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
