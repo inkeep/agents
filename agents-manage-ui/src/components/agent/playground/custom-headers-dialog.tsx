@@ -2,7 +2,7 @@ import { Pencil, Plus } from 'lucide-react';
 import { type FC, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { customHeadersTemplate } from '@/lib/templates';
-
-export const DefaultHeadersSchema = z.record(
-  z.string(),
-  z.string('All header values must be strings'),
-  'Must be valid JSON object'
-);
+import type { DefaultHeadersSchema } from '@/lib/validation';
 
 type DefaultHeaders = z.infer<typeof DefaultHeadersSchema>;
 

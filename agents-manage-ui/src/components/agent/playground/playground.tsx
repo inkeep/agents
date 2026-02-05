@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { convertJsonSchemaToZod } from '@inkeep/agents-core/client-exports';
 import { Bug, X } from 'lucide-react';
 import { type Dispatch, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -12,14 +11,14 @@ import { useCopilotContext } from '@/contexts/copilot';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
-import { toJson } from '@/lib/json-schema-validation';
 import { generateId } from '@/lib/utils/id-utils';
 import {
   copyFullTraceToClipboard,
   copySummarizedTraceToClipboard,
 } from '@/lib/utils/trace-formatter';
+import { createCustomHeadersSchema } from '@/lib/validation';
 import { ChatWidget } from './chat-widget';
-import { CustomHeadersDialog, DefaultHeadersSchema } from './custom-headers-dialog';
+import { CustomHeadersDialog } from './custom-headers-dialog';
 
 interface PlaygroundProps {
   agentId: string;
@@ -47,29 +46,15 @@ export const Playground = ({
   const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
   const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
 
-  const resolver = useMemo(() => {
-    const zodSchema = z.strictObject({
-      headers: z
-        .string()
-        .trim()
-        .transform((value, ctx) => (value ? toJson(value, ctx) : {}))
-        // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
-        .superRefine((value, ctx) => {
-          const schema = headersSchemaString
-            ? convertJsonSchemaToZod(JSON.parse(headersSchemaString))
-            : DefaultHeadersSchema;
-          const result = schema.safeParse(value);
-          if (result.success) return;
-
-          ctx.addIssue({
-            code: 'custom',
-            message: z.prettifyError(result.error).split('✖ ').join('').trim(),
-          });
-        }),
-    });
-
-    return zodResolver(zodSchema);
-  }, [headersSchemaString]);
+  const resolver = useMemo(
+    () =>
+      zodResolver(
+        z.strictObject({
+          headers: createCustomHeadersSchema(headersSchemaString),
+        })
+      ),
+    [headersSchemaString]
+  );
 
   const form = useForm({
     defaultValues: {

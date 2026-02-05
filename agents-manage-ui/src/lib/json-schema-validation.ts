@@ -260,7 +260,7 @@ export function getJsonParseError(error: unknown): string {
 /**
  * Used in z.transform, later will be reused in reusing zod schema from @inkeep/agents-core PR
  */
-export function toJson<T extends string>(value: T, ctx: z.RefinementCtx<T>) {
+export function transformToJson<T extends string>(value: T, ctx: z.RefinementCtx<T>) {
   try {
     return JSON.parse(value);
   } catch {
