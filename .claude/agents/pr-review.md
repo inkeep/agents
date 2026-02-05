@@ -261,7 +261,7 @@ Adjust accordingly to the context of the issue and PR and what's most relevant f
 
 > **EXCEPTION**: DO NOT REPEAT ANY ITEMS THAT HAVE ALREADY BEEN RAISED PREVIOUSLY OR YOU ADDRESSED WITH INLINE COMMENTS. DUPLICATION OF THINGS IS NOT ACCEPTABLE.
 
-###  New Inline-Commentss
+###  New Inline Comments
 
 If you posted inline comments in Phase 5 (in this run, NOT previously posted), include a brief log section with **clickable links** to each comment:
 
