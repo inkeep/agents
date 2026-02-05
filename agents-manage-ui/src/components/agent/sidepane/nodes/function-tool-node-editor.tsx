@@ -149,7 +149,14 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           label="Code"
           value={code}
           onChange={handleCodeChange}
-          placeholder="Enter function code here..."
+          placeholder={`async function execute({ param1, param2 }) {
+  // Your function logic here
+  const result = await doSomething(param1, param2);
+  return {
+    success: true,
+    data: result
+  };
+}`}
           error={getFieldError('code')}
           isRequired
         />
