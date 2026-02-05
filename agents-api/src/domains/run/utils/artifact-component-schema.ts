@@ -1,11 +1,11 @@
 import { z } from '@hono/zod-openapi';
-import type {
-  ArtifactComponentApiInsert,
-  ArtifactComponentApiSelect,
-  DataComponentInsert,
+import {
+  type ArtifactComponentApiInsert,
+  type ArtifactComponentApiSelect,
+  type DataComponentInsert,
+  jsonSchemaToZod,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { jsonSchemaToZod } from './data-component-schema';
 import { SchemaProcessor } from './SchemaProcessor';
 import type { ExtendedJsonSchema } from './schema-validation';
 

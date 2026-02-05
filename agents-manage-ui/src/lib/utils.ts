@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+export const css = String.raw;
+
 export function isMacOs() {
   return navigator?.userAgent.includes('Mac');
 }
