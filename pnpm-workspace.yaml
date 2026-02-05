@@ -23,3 +23,4 @@ overrides:
   esbuild: 0.25.9 # we pin it for Cypress
   "@modelcontextprotocol/sdk>zod": ^3.25.7
   "@anthropic-ai/mcpb>zod": ^3.25.7
+  preact: "-" # we don't use preact, this removes pnpm audit warnings from posthog-js>preact
