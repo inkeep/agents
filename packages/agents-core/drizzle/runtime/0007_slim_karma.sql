@@ -1,0 +1,1 @@
+ALTER TABLE "artifact_components" ADD COLUMN "render" jsonb;
