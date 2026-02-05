@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ButtonGroup } from '@/components/ui/button-group';
 
 interface ModelSelectorProps {
   tooltip?: string;
@@ -114,18 +115,14 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
         </Label>
       )}
       <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
-        <div className="flex">
+        <ButtonGroup className="w-full">
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
               disabled={disabled}
-              className={cn(
-                'justify-between bg-background dark:bg-input/30 flex-1 text-foreground shadow-none truncate',
-                selectedModel && canClear ? 'rounded-r-none border-r-0' : 'rounded-r-md',
-                disabled && 'opacity-50 cursor-not-allowed'
-              )}
+              className="justify-between flex-1"
             >
               {selectedModel ? (
                 <div className="truncate">
@@ -145,29 +142,20 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          {canClear && !disabled && (
-            <div
-              className={cn(
-                'transition-all duration-200 ease-in-out overflow-hidden',
-                selectedModel ? 'w-10 opacity-100 scale-100' : 'w-0 opacity-0 scale-95'
-              )}
+          {selectedModel && canClear && !disabled && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                onValueChange?.('');
+              }}
+              aria-label="Clear model selection"
+              type="button"
             >
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-l-none border-l-0 px-2 bg-transparent w-10 transition-all duration-200 ease-in-out text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  onValueChange?.('');
-                }}
-                aria-label="Clear model selection"
-                type="button"
-                disabled={!selectedModel}
-              >
-                <X className="h-4 w-4 text-gray-500 dark:text-white/40" />
-              </Button>
-            </div>
+              <X />
+            </Button>
           )}
-        </div>
+        </ButtonGroup>
         <PopoverContent
           className="p-0 w-(--radix-popover-trigger-width) transition-all duration-200 ease-in-out"
           align="start"
