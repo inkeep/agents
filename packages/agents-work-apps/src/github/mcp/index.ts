@@ -943,9 +943,12 @@ const getServer = async (toolId: string) => {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
       file_path: z.string().describe('The path of the file to visualize the update operations for'),
+      branch_name: z
+        .string()
+        .describe('The name of the branch to visualize the update operations for'),
       operations: updateOperationsSchema,
     },
-    async ({ owner, repo, file_path, operations }) => {
+    async ({ owner, repo, file_path, branch_name, operations }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -967,6 +970,7 @@ const getServer = async (toolId: string) => {
           owner,
           repo,
           path: file_path,
+          ref: branch_name,
         });
 
         // Handle single file response
