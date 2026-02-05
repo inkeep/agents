@@ -1,5 +1,6 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Background,
   ConnectionMode,
@@ -14,6 +15,7 @@ import {
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
@@ -38,6 +40,7 @@ import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { FullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -56,6 +59,7 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { EdgeArrow, SelectedEdgeArrow } from '@/icons';
+import { updateFullAgentAction } from '@/lib/actions/agent-full';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
@@ -75,6 +79,7 @@ import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
+import { FullAgentUpdateSchema } from '@/lib/validation';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -691,7 +696,12 @@ export const Agent: FC<AgentProps> = ({
     }
   };
 
-  const onSubmit = async (): Promise<boolean> => {
+  const form = useForm({
+    defaultValues: {},
+    resolver: zodResolver(FullAgentUpdateSchema),
+  });
+
+  const onSubmit = form.handleSubmit(async (data) => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
       serializedData = serializeAgentData(
@@ -830,7 +840,7 @@ export const Agent: FC<AgentProps> = ({
       });
     }
     return false;
-  };
+  });
 
   useEffect(() => {
     const onCompletion = () => {
