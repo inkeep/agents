@@ -8,6 +8,7 @@ import {
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   getFunctionToolsForSubAgent,
@@ -101,6 +102,20 @@ export function hasToolCallWithPrefix(prefix: string) {
 }
 
 const logger = getLogger('Agent');
+
+export type UserInput =
+  | string
+  | {
+      text: string;
+      imageParts?: FilePart[];
+    };
+
+function normalizeUserInput(input: UserInput): { text: string; imageParts?: FilePart[] } {
+  if (typeof input === 'string') {
+    return { text: input };
+  }
+  return input;
+}
 
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
@@ -2716,7 +2731,7 @@ ${output}`;
   }
 
   async generate(
-    userMessage: string,
+    userInput: UserInput,
     runtimeContext?: {
       contextId: string;
       metadata: {
@@ -2728,6 +2743,7 @@ ${output}`;
       };
     }
   ) {
+    const { text: userMessage, imageParts } = normalizeUserInput(userInput);
     // Extract conversation ID early for span attributes
     const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
 
@@ -2808,7 +2824,8 @@ ${output}`;
             thinkingSystemPrompt,
             hasStructuredOutput,
             conversationHistory,
-            userMessage
+            userMessage,
+            imageParts
           );
 
           // Setup compression for this generation
@@ -3213,7 +3230,8 @@ ${output}`;
     thinkingSystemPrompt: string,
     hasStructuredOutput: boolean,
     conversationHistory: string,
-    userMessage: string
+    userMessage: string,
+    imageParts?: FilePart[]
   ): any[] {
     // Build messages for Phase 1 - use thinking prompt if structured output needed
     const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
@@ -3223,12 +3241,47 @@ ${output}`;
     if (conversationHistory.trim() !== '') {
       messages.push({ role: 'user', content: conversationHistory });
     }
+
+    // Build user message content - use array format if images present
+    const userContent = this.buildUserMessageContent(userMessage, imageParts);
     messages.push({
       role: 'user',
-      content: userMessage,
+      content: userContent,
     });
 
     return messages;
+  }
+
+  /**
+   * Build user message content, formatting for multimodal if images are present
+   */
+  private buildUserMessageContent(
+    text: string,
+    imageParts?: FilePart[]
+  ): string | Array<{ type: string; text?: string; image?: string | URL }> {
+    // No images - return simple string for backward compatibility
+    if (!imageParts || imageParts.length === 0) {
+      return text;
+    }
+
+    // Build multimodal content array for Vercel AI SDK
+    const content: Array<{ type: string; text?: string; image?: string | URL }> = [
+      { type: 'text', text },
+    ];
+
+    for (const part of imageParts) {
+      const file = part.file;
+      // Transform directly from A2A FilePart to Vercel format:
+      // - HTTP URIs become URL objects
+      // - Base64 bytes become data URL strings (Vercel handles MIME detection)
+      const imageValue =
+        'uri' in file && file.uri
+          ? new URL(file.uri)
+          : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+      content.push({ type: 'image', image: imageValue });
+    }
+
+    return content;
   }
 
   /**
