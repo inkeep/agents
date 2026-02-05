@@ -231,16 +231,14 @@ DELETE FROM "user" WHERE email = 'testuser@example.com';
 ### View All Slack Data
 
 ```sql
--- All workspaces with default agent info
+-- All workspaces
 SELECT 
   id,
   tenant_id,
   slack_team_id,
   slack_team_name,
   status,
-  default_project_id,
-  default_agent_id,
-  default_agent_name,
+  nango_connection_id,
   installed_by_user_id,
   created_at
 FROM work_app_slack_workspaces;
@@ -250,32 +248,9 @@ SELECT * FROM work_app_slack_user_mappings;
 
 -- All channel configs
 SELECT * FROM work_app_slack_channel_agent_configs;
-
--- All user settings
-SELECT * FROM work_app_slack_user_settings;
 ```
 
-### Set Workspace Default Agent (SQL)
-
-```sql
--- Set default agent for a workspace
-UPDATE work_app_slack_workspaces
-SET 
-  default_project_id = 'your-project-id',
-  default_agent_id = 'your-agent-id',
-  default_agent_name = 'Your Agent Name',
-  updated_at = NOW()
-WHERE slack_team_id = 'T0YOUR_TEAM_ID';
-
--- Clear workspace default
-UPDATE work_app_slack_workspaces
-SET 
-  default_project_id = NULL,
-  default_agent_id = NULL,
-  default_agent_name = NULL,
-  updated_at = NOW()
-WHERE slack_team_id = 'T0YOUR_TEAM_ID';
-```
+> **Note**: Workspace default agents are stored in Nango metadata, not in the database.
 
 ### Set Workspace Default Agent (API)
 
@@ -297,7 +272,6 @@ curl -X PUT "http://localhost:3002/work-apps/slack/workspaces/T0YOUR_TEAM_ID/set
 
 ```sql
 -- Delete all Slack work app data (keeps users intact)
-TRUNCATE TABLE work_app_slack_user_settings CASCADE;
 TRUNCATE TABLE work_app_slack_channel_agent_configs CASCADE;
 TRUNCATE TABLE work_app_slack_user_mappings CASCADE;
 TRUNCATE TABLE work_app_slack_workspaces CASCADE;
@@ -333,15 +307,12 @@ SELECT
   u.name as inkeep_name,
   mem.role as org_role,
   w.slack_team_name,
-  m.linked_at,
-  s.default_agent_name
+  m.linked_at
 FROM work_app_slack_user_mappings m
 JOIN "user" u ON m.inkeep_user_id = u.id
 LEFT JOIN member mem ON u.id = mem.user_id
 LEFT JOIN work_app_slack_workspaces w 
   ON m.slack_team_id = w.slack_team_id AND m.tenant_id = w.tenant_id
-LEFT JOIN work_app_slack_user_settings s 
-  ON m.slack_user_id = s.slack_user_id AND m.slack_team_id = s.slack_team_id
 ORDER BY m.linked_at DESC;
 ```
 
@@ -456,10 +427,9 @@ pnpm --filter @inkeep/agents-api test --run        # API tests
 | Install Slack workspace | ✅ | ✅ | ❌ |
 | Uninstall workspace | ✅ | ✅ | ❌ |
 | Set workspace default agent | ✅ | ✅ | ❌ |
-| Set channel default agent | ✅ | ✅ | ❌ |
+| Set channel default agent | ✅ | ✅ | ✅ (own channels) |
 | Link own Slack account | ✅ | ✅ | ✅ |
 | Unlink own account | ✅ | ✅ | ✅ |
-| Set personal default agent | ✅ | ✅ | ✅ |
 | Use agents via Slack | ✅ | ✅ | ✅ |
 
 ---

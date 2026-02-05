@@ -37,19 +37,19 @@ All documentation is organized in the `docs/` folder:
 
 | Context | Priority |
 |---------|----------|
-| `/inkeep` commands | User personal > Channel > Workspace |
-| `@Inkeep` mentions | Channel > Workspace (admin-controlled) |
+| `/inkeep` commands | Channel > Workspace |
+| `@Inkeep` mentions | Channel > Workspace |
 
 ### Slash Commands
 
 | Command | Description |
 |---------|-------------|
+| `/inkeep` | Open agent picker modal |
 | `/inkeep help` | Show available commands |
 | `/inkeep link` | Link Slack account to Inkeep |
 | `/inkeep status` | Check account and agent status |
 | `/inkeep [question]` | Ask the default agent |
 | `/inkeep run "agent" [question]` | Ask a specific agent |
-| `/inkeep settings` | View/set personal default agent |
 
 ---
 

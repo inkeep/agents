@@ -59,8 +59,10 @@ docs/
 
 | Context | Priority Order |
 |---------|----------------|
-| `/inkeep` commands | User personal > Channel > Workspace |
-| `@Inkeep` mentions | Channel > Workspace (admin-controlled) |
+| `/inkeep` commands | Channel > Workspace |
+| `@Inkeep` mentions | Channel > Workspace |
+
+> **Note**: Personal user defaults were removed to simplify the architecture. Agents are resolved using admin-configured channel overrides or workspace defaults.
 
 ### Token Types
 
@@ -72,8 +74,8 @@ docs/
 
 ### Permissions
 
-| Role | Can Install | Can Configure | Can Use Agents |
-|------|-------------|---------------|----------------|
-| Owner | ✅ | ✅ | ✅ |
-| Admin | ✅ | ✅ | ✅ |
-| Member | ❌ | ❌ | ✅ |
+| Role | Can Install | Set Workspace Default | Set Channel Overrides | Can Use Agents |
+|------|-------------|----------------------|----------------------|----------------|
+| Owner | ✅ | ✅ | ✅ | ✅ |
+| Admin | ✅ | ✅ | ✅ | ✅ |
+| Member | ❌ | ❌ | ✅ (channels they're in) | ✅ |

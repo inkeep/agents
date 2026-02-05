@@ -83,36 +83,30 @@ sequenceDiagram
 
 ## 4. Agent Resolution Flow
 
-### For `/inkeep` slash commands (user-controlled)
+### Agent Resolution (All Contexts)
 
 ```mermaid
 flowchart TD
-    A[/inkeep command] --> B{User has personal default?}
-    B -->|Yes| C[Use user default]
-    B -->|No| D{Channel has agent config?}
-    D -->|Yes| E[Use channel default]
-    D -->|No| F{Workspace has default?}
-    F -->|Yes| G[Use workspace default]
-    F -->|No| H[Error: No agent configured]
+    A[/inkeep or @mention] --> B{Channel has agent config?}
+    B -->|Yes| C[Use channel default]
+    B -->|No| D{Workspace has default?}
+    D -->|Yes| E[Use workspace default]
+    D -->|No| F[Error: No agent configured]
     
-    C --> I[Generate SlackUserToken]
-    E --> I
-    G --> I
-    I --> J[Call /run/api/chat]
-    J --> K[Stream response to Slack]
+    C --> G[Generate SlackUserToken]
+    E --> G
+    G --> H[Call /run/api/chat]
+    H --> I[Stream response to Slack]
 ```
-
-### For `@Inkeep` mentions (admin-controlled)
-
-- Channel config > Workspace default
-- User personal defaults are **ignored** for public @mention responses
 
 ### Priority Summary
 
 | Context | Priority |
 |---------|----------|
-| `/inkeep` commands | User personal > Channel > Workspace |
-| `@Inkeep` mentions | Channel > Workspace (admin-controlled) |
+| `/inkeep` commands | Channel > Workspace |
+| `@Inkeep` mentions | Channel > Workspace |
+
+> **Note**: Both slash commands and @mentions use the same simplified resolution order.
 
 ---
 

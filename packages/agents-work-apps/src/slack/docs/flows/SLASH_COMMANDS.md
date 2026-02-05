@@ -6,13 +6,13 @@ Slash commands (`/inkeep`) are **private** - only the user sees the response. Th
 
 ## Agent Resolution Priority
 
-For slash commands, the resolution priority is **user-controlled**:
+For slash commands, the resolution priority is:
 
 ```
-User personal default > Channel config > Workspace default
+Channel config > Workspace default
 ```
 
-This differs from @mentions where admin-controlled defaults take precedence.
+This is the same resolution order used for @mentions. All agent configuration is admin-controlled.
 
 ---
 
@@ -27,29 +27,26 @@ flowchart TD
     ParseCommand -->|/inkeep unlink| Unlink["Remove link<br/>Show confirmation"]
     ParseCommand -->|/inkeep status| ShowStatus["Show ephemeral:<br/>Account & agent config status"]
     ParseCommand -->|/inkeep list| ListAgents["Show ephemeral:<br/>Available agents"]
-    ParseCommand -->|/inkeep settings| ShowSettings["Show ephemeral:<br/>Current default agent"]
-    ParseCommand -->|/inkeep settings set "agent"| SetDefault["Save personal default<br/>Show confirmation"]
     ParseCommand -->|/inkeep run "agent" question| RunSpecific["Run specific agent"]
     ParseCommand -->|/inkeep question| RunDefault["Run default agent"]
+    ParseCommand -->|/inkeep (no args)| OpenModal["Open agent picker modal"]
     
     CheckExistingLink -->|Yes| ShowAlreadyLinked["Show ephemeral:<br/>Already linked info"]
     CheckExistingLink -->|No| GenerateLinkToken["Generate JWT link token<br/>Show link button"]
     
     RunDefault --> CheckLinked{User linked?}
     RunSpecific --> CheckLinked
+    OpenModal --> CheckLinked
     
     CheckLinked -->|No| PromptLink["Show ephemeral:<br/>Link your account first"]
     CheckLinked -->|Yes| ResolveAgent{Resolve agent}
     
-    ResolveAgent --> CheckUserDefault{User has<br/>personal default?}
-    CheckUserDefault -->|Yes| UseUserDefault[Use user default]
-    CheckUserDefault -->|No| CheckChannel{Channel has<br/>agent config?}
+    ResolveAgent --> CheckChannel{Channel has<br/>agent config?}
     CheckChannel -->|Yes| UseChannelDefault[Use channel default]
     CheckChannel -->|No| CheckWorkspace{Workspace has<br/>default?}
     CheckWorkspace -->|Yes| UseWorkspaceDefault[Use workspace default]
     CheckWorkspace -->|No| ShowNoAgent["Show error:<br/>No agent configured"]
     
-    UseUserDefault --> ExecuteAgent
     UseChannelDefault --> ExecuteAgent
     UseWorkspaceDefault --> ExecuteAgent
     
@@ -62,8 +59,6 @@ flowchart TD
     Unlink --> End
     ShowStatus --> End
     ListAgents --> End
-    ShowSettings --> End
-    SetDefault --> End
     ShowNoAgent --> End
     PromptLink --> End
 
@@ -80,13 +75,12 @@ flowchart TD
 
 | Command | Requires Link | Description |
 |---------|---------------|-------------|
+| `/inkeep` | Yes | Open agent picker modal |
 | `/inkeep help` | No | Show command reference |
 | `/inkeep link` | No | Generate JWT link to connect accounts |
 | `/inkeep unlink` | Yes | Remove Slack ↔ Inkeep account link |
 | `/inkeep status` | No | Show account status and agent configuration |
 | `/inkeep list` | Yes | List available agents from linked account |
-| `/inkeep settings` | Yes | View current default agent |
-| `/inkeep settings set "agent"` | Yes | Set personal default agent |
 | `/inkeep run "agent" question` | Yes | Ask a specific agent (agent name in quotes) |
 | `/inkeep [question]` | Yes | Ask using resolved default agent |
 
@@ -96,17 +90,16 @@ flowchart TD
 
 | Scenario | Command | Response |
 |----------|---------|----------|
-| **First time user** | `/inkeep` | Ephemeral: "Link your account" + link button |
+| **Open modal** | `/inkeep` | Opens agent picker modal |
+| **First time user** | `/inkeep` (not linked) | Ephemeral: "Link your account" + link button |
 | **View help** | `/inkeep help` | Ephemeral: Command list with examples |
 | **Link account** | `/inkeep link` | Ephemeral: JWT link button (expires 10 min) |
 | **Already linked** | `/inkeep link` | Ephemeral: "Already linked" + account info |
-| **Check status** | `/inkeep status` | Ephemeral: Account, @mention agent, /inkeep agent |
+| **Check status** | `/inkeep status` | Ephemeral: Account and agent config status |
 | **List agents** | `/inkeep list` | Ephemeral: Available agents with projects |
-| **View settings** | `/inkeep settings` | Ephemeral: Current default + how to change |
-| **Set default** | `/inkeep settings set "My Agent"` | Ephemeral: Confirmation of new default |
 | **Ask question** | `/inkeep What is X?` | Ephemeral: Agent response (private) |
 | **Ask specific agent** | `/inkeep run "Helper" What is X?` | Ephemeral: Response from "Helper" agent |
-| **No agent configured** | `/inkeep What is X?` | Ephemeral: Error + instructions to set default |
+| **No agent configured** | `/inkeep What is X?` | Ephemeral: Error + instructions to configure |
 
 ---
 
@@ -149,26 +142,25 @@ Unlike @mentions which show a "thinking..." message, slash commands return silen
 ### Priority Order
 
 ```
-1. User personal default (/inkeep settings set)
-2. Channel agent config (admin-set)
-3. Workspace default (admin-set via dashboard/Nango)
+1. Channel agent config (admin or member-set)
+2. Workspace default (admin-set via dashboard/Nango)
 ```
 
-### Why User First?
+### Resolution Flow
 
-Slash command responses are **private** (only visible to the user), so:
-- Users can customize without affecting others
-- Power users can override workspace defaults
-- Flexibility for multi-team workspaces
+1. Check if channel has a configured agent override
+2. Fall back to workspace default agent
+3. If neither is set, show error with configuration instructions
 
 ### Comparison with @Mentions
 
 | Aspect | `/inkeep` Commands | `@Inkeep` Mentions |
 |--------|--------------------|--------------------|
 | Visibility | Private (ephemeral) | Public (channel/thread) |
-| Priority | User > Channel > Workspace | Channel > Workspace |
-| User control | Full (can set personal default) | None (admin-controlled) |
+| Priority | Channel > Workspace | Channel > Workspace |
 | Use case | Personal queries | Team collaboration |
+
+> **Note**: Both slash commands and @mentions use the same resolution priority for simplicity.
 
 ---
 
@@ -183,9 +175,9 @@ packages/agents-work-apps/src/slack/services/commands/
     ├── handleUnlinkCommand()   - /inkeep unlink
     ├── handleStatusCommand()   - /inkeep status
     ├── handleAgentListCommand() - /inkeep list
-    ├── handleSettingsCommand() - /inkeep settings [set|clear]
     ├── handleRunCommand()      - /inkeep run "agent" question
     ├── handleQuestionCommand() - /inkeep [question]
+    ├── handleNoArgsCommand()   - /inkeep (opens modal)
     └── parseAgentAndQuestion() - Parse "agent" question syntax
 ```
 

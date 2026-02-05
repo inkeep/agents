@@ -126,13 +126,13 @@ Error messages are posted as ephemeral when possible (only visible to user), fal
 
 ## Agent Resolution for @Mentions
 
-For @mentions, the resolution priority is **admin-controlled**:
+For @mentions, the resolution priority is:
 
 ```
 Channel config > Workspace default
 ```
 
-User personal defaults are **ignored** for @mentions because responses are public and visible to everyone in the channel.
+This is the same resolution order used for slash commands.
 
 ## Code Organization
 

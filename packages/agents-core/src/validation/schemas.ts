@@ -2750,7 +2750,6 @@ export const WorkAppConfigApiUpdateSchema =
 import {
   workAppSlackChannelAgentConfigs,
   workAppSlackUserMappings,
-  workAppSlackUserSettings,
   workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 
@@ -2819,21 +2818,3 @@ export const WorkAppSlackChannelAgentConfigApiUpdateSchema =
   WorkAppSlackChannelAgentConfigUpdateSchema.partial().openapi(
     'WorkAppSlackChannelAgentConfigUpdate'
   );
-
-export const WorkAppSlackUserSettingsSelectSchema = createSelectSchema(workAppSlackUserSettings);
-export const WorkAppSlackUserSettingsInsertSchema = createInsertSchema(
-  workAppSlackUserSettings
-).omit({
-  createdAt: true,
-  updatedAt: true,
-});
-export const WorkAppSlackUserSettingsUpdateSchema = WorkAppSlackUserSettingsInsertSchema.partial();
-
-export const WorkAppSlackUserSettingsApiSelectSchema = omitTenantScope(
-  WorkAppSlackUserSettingsSelectSchema
-).openapi('WorkAppSlackUserSettings');
-export const WorkAppSlackUserSettingsApiInsertSchema = omitGeneratedFields(
-  WorkAppSlackUserSettingsInsertSchema
-).openapi('WorkAppSlackUserSettingsCreate');
-export const WorkAppSlackUserSettingsApiUpdateSchema =
-  WorkAppSlackUserSettingsUpdateSchema.partial().openapi('WorkAppSlackUserSettingsUpdate');

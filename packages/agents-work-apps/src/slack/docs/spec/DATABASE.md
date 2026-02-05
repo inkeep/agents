@@ -9,7 +9,6 @@ erDiagram
     organization ||--o{ workAppSlackWorkspaces : "has many"
     organization ||--o{ workAppSlackUserMappings : "has many"
     organization ||--o{ workAppSlackChannelAgentConfigs : "has many"
-    organization ||--o{ workAppSlackUserSettings : "has many"
     user ||--o{ workAppSlackUserMappings : "linked to many"
     user ||--o| workAppSlackWorkspaces : "installed by"
     user ||--o| workAppSlackChannelAgentConfigs : "configured by"
@@ -51,24 +50,12 @@ erDiagram
         varchar slack_team_id "T0AA0UWRXJS"
         varchar slack_channel_id UK "C0AA0UWRXJS"
         varchar slack_channel_name "#support"
-        varchar slack_channel_type "public|private"
+        varchar slack_channel_type "public|private|mpim"
         varchar project_id "proj_xxx"
         varchar agent_id "agent_xxx"
         varchar agent_name "Support Agent"
         text configured_by_user_id FK "user.id"
         boolean enabled "true (default)"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    workAppSlackUserSettings {
-        varchar id PK "wsus_xxx"
-        varchar tenant_id FK "organization.id"
-        varchar slack_team_id "T0AA0UWRXJS"
-        varchar slack_user_id UK "U0A9WJVPN1H"
-        varchar default_project_id "proj_xxx"
-        varchar default_agent_id "agent_xxx"
-        varchar default_agent_name "My Agent"
         timestamp created_at
         timestamp updated_at
     }
@@ -80,10 +67,11 @@ erDiagram
 
 | Table | Purpose | Unique Constraint |
 |-------|---------|-------------------|
-| `work_app_slack_workspaces` | Track installed Slack workspaces | `(tenant_id, slack_team_id)` |
+| `work_app_slack_workspaces` | Track installed Slack workspaces | `(tenant_id, slack_team_id)`, `(nango_connection_id)` |
 | `work_app_slack_user_mappings` | Link Slack users to Inkeep users | `(tenant_id, client_id, slack_team_id, slack_user_id)` |
 | `work_app_slack_channel_agent_configs` | Channel-specific agent overrides | `(tenant_id, slack_team_id, slack_channel_id)` |
-| `work_app_slack_user_settings` | Personal default agent preferences | `(tenant_id, slack_team_id, slack_user_id)` |
+
+> **Note**: The `work_app_slack_user_settings` table was removed. Personal user defaults are no longer supported. Agent resolution uses channel overrides and workspace defaults only.
 
 ---
 

@@ -36,22 +36,24 @@
 
 ---
 
-## 3. Context-Aware Agent Resolution
+## 3. Simplified Agent Resolution
 
-**Decision**: Implement different resolution priorities based on context:
-- `/inkeep` slash commands: user personal > channel > workspace
-- `@Inkeep` mentions: channel > workspace (admin-controlled)
+**Decision**: Use consistent resolution priority for all contexts:
+- Both `/inkeep` commands and `@Inkeep` mentions: channel > workspace
 
 **Rationale**:
-- **User control for private**: Slash commands are private/ephemeral, users should control their default
-- **Admin control for public**: @mentions are public in channels, admin should control the agent
-- **Channel context**: Support channels can have support agent, engineering channels can have dev agent
-- **User autonomy**: Power users can set their preferred agent for slash commands
+- **Simplicity**: One resolution system is easier to understand and maintain
+- **Admin control**: Admins can configure channel-specific agents for different teams
 - **Fallback**: Workspace default ensures something always works
+- **Reduced complexity**: No need for personal settings table or user preferences UI
+
+**Previous approach** (deprecated):
+- User personal defaults were previously supported but removed to reduce complexity
+- The trade-off of user customization wasn't worth the added maintenance burden
 
 **Trade-offs**:
-- More complex resolution logic with context awareness
-- Users need to understand two different priority systems
+- Users cannot set personal default agents
+- All agent resolution is admin-controlled (workspace or channel level)
 
 ---
 

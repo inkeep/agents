@@ -6,6 +6,36 @@ This is a living document tracking all files in the Slack Work App integration. 
 
 ---
 
+## ⚠️ IMPORTANT UPDATES (January 2026)
+
+Several features documented in this runbook have been **removed or simplified**:
+
+### Removed Features
+
+1. **User Personal Settings** - The `work_app_slack_user_settings` table and all related functionality has been removed:
+   - ~~`/inkeep settings` and `/inkeep settings set`~~ commands removed
+   - ~~`GET /users/me/settings`~~ and ~~`PUT /users/me/settings`~~ endpoints removed
+   - Personal default agent preferences no longer supported
+
+2. **Simplified Agent Resolution** - Agent resolution is now consistent across all contexts:
+   - **All contexts (slash commands & @mentions):** Channel config > Workspace default
+   - ~~User personal defaults~~ are no longer part of the resolution chain
+
+3. **Channel Override Permissions** - Members can now set channel overrides for channels they are members of (not just admins)
+
+### Current Architecture
+
+| Table | Status |
+|-------|--------|
+| `work_app_slack_workspaces` | ✅ Active |
+| `work_app_slack_user_mappings` | ✅ Active |
+| `work_app_slack_channel_agent_configs` | ✅ Active |
+| ~~`work_app_slack_user_settings`~~ | 🗑️ **Removed** |
+
+References to user settings, personal defaults, or `/me/settings` endpoints in this document are outdated.
+
+---
+
 ## File Review Status Legend
 
 | Status | Meaning |

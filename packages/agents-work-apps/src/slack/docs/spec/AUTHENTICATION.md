@@ -100,8 +100,7 @@ The verification includes:
 │ Install workspace              │ Slack Workspace Admin + Inkeep User        │
 │ Uninstall workspace            │ Inkeep Org Admin/Owner                     │
 │ Set workspace default agent    │ Inkeep Org Admin/Owner                     │
-│ Set channel default agent      │ Inkeep Org Admin/Owner                     │
-│ Set personal default agent     │ Any linked Inkeep user                     │
+│ Set channel default agent      │ Admin/Owner OR Member in that channel      │
 │ Link own Slack account         │ Any Inkeep user                            │
 │ Unlink own Slack account       │ Any linked user                            │
 │ Run agent queries              │ Any linked user                            │
@@ -156,7 +155,7 @@ The Slack Work App builds on top of the existing **Better Auth** authentication 
 |------|-------------|---------------------------|
 | `owner` | Organization owner | Full access - install, configure, delete |
 | `admin` | Organization admin | Full access - install, configure workspace/channels |
-| `member` | Regular member | Limited - link account, use agents, set personal defaults |
+| `member` | Regular member | Link account, use agents, set channel overrides for channels they're in |
 
 ### How Slack Work App Uses Better Auth
 
@@ -172,8 +171,7 @@ The Slack Work App builds on top of the existing **Better Auth** authentication 
 │  │ organization │─────tenant_id───────►│ work_app_slack_workspaces          │  │
 │  │              │                      │ work_app_slack_user_mappings       │  │
 │  │ id = tenant  │                      │ work_app_slack_channel_agent_configs│ │
-│  └──────────────┘                      │ work_app_slack_user_settings       │  │
-│                                        └─────────────────────────────────────┘  │
+│  └──────────────┘                      └─────────────────────────────────────┘  │
 │                                                                                 │
 │  ┌──────────────┐                      ┌─────────────────────────────────────┐  │
 │  │    user      │─────inkeep_user_id──►│ work_app_slack_user_mappings       │  │
@@ -230,4 +228,3 @@ The Slack Work App builds on top of the existing **Better Auth** authentication 
 | `work_app_slack_user_mappings` | `inkeep_user_id` | `user.id` | **Core link: Slack ↔ Inkeep** |
 | `work_app_slack_channel_agent_configs` | `tenant_id` | `organization.id` | Multi-tenancy |
 | `work_app_slack_channel_agent_configs` | `configured_by_user_id` | `user.id` | Audit trail |
-| `work_app_slack_user_settings` | `tenant_id` | `organization.id` | Multi-tenancy |

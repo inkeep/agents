@@ -7,20 +7,17 @@ import * as runtimeSchema from '../../db/runtime/runtime-schema';
 import {
   createWorkAppSlackChannelAgentConfig,
   createWorkAppSlackUserMapping,
-  createWorkAppSlackUserSettings,
   createWorkAppSlackWorkspace,
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackChannelAgentConfig,
   deleteWorkAppSlackUserMapping,
-  deleteWorkAppSlackUserSettings,
   deleteWorkAppSlackWorkspace,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
   findWorkAppSlackChannelAgentConfig,
   findWorkAppSlackUserMapping,
   findWorkAppSlackUserMappingByInkeepUserId,
   findWorkAppSlackUserMappingBySlackUser,
-  findWorkAppSlackUserSettings,
   findWorkAppSlackWorkspaceByNangoConnectionId,
   findWorkAppSlackWorkspaceByTeamId,
   listWorkAppSlackChannelAgentConfigsByTeam,
@@ -29,7 +26,6 @@ import {
   updateWorkAppSlackUserMappingLastUsed,
   updateWorkAppSlackWorkspace,
   upsertWorkAppSlackChannelAgentConfig,
-  upsertWorkAppSlackUserSettings,
 } from '../runtime/workAppSlack';
 
 vi.mock('../../logger', () => ({
@@ -94,7 +90,6 @@ describe('workAppSlack data access', () => {
   }, 30000);
 
   beforeEach(async () => {
-    await db.delete(runtimeSchema.workAppSlackUserSettings);
     await db.delete(runtimeSchema.workAppSlackChannelAgentConfigs);
     await db.delete(runtimeSchema.workAppSlackUserMappings);
     await db.delete(runtimeSchema.workAppSlackWorkspaces);
@@ -493,107 +488,6 @@ describe('workAppSlack data access', () => {
         TEST_TEAM_ID
       );
       expect(deleted).toBe(2);
-    });
-  });
-
-  describe('User Settings CRUD', () => {
-    it('should create user settings', async () => {
-      const settings = await createWorkAppSlackUserSettings(db)({
-        tenantId: TEST_TENANT_ID,
-        slackTeamId: TEST_TEAM_ID,
-        slackUserId: TEST_USER_ID,
-        defaultProjectId: 'proj_123',
-        defaultAgentId: 'agent_456',
-        defaultAgentName: 'My Agent',
-      });
-
-      expect(settings.id).toMatch(/^wsus_/);
-      expect(settings.defaultAgentId).toBe('agent_456');
-    });
-
-    it('should find user settings', async () => {
-      await createWorkAppSlackUserSettings(db)({
-        tenantId: TEST_TENANT_ID,
-        slackTeamId: TEST_TEAM_ID,
-        slackUserId: TEST_USER_ID,
-        defaultProjectId: 'proj_123',
-        defaultAgentId: 'agent_456',
-      });
-
-      const found = await findWorkAppSlackUserSettings(db)(
-        TEST_TENANT_ID,
-        TEST_TEAM_ID,
-        TEST_USER_ID
-      );
-      expect(found).not.toBeNull();
-      expect(found?.defaultAgentId).toBe('agent_456');
-    });
-
-    it('should return null for non-existent settings', async () => {
-      const found = await findWorkAppSlackUserSettings(db)(
-        TEST_TENANT_ID,
-        TEST_TEAM_ID,
-        'U_NONEXISTENT'
-      );
-      expect(found).toBeNull();
-    });
-
-    it('should upsert user settings (insert)', async () => {
-      const settings = await upsertWorkAppSlackUserSettings(db)({
-        tenantId: TEST_TENANT_ID,
-        slackTeamId: TEST_TEAM_ID,
-        slackUserId: TEST_USER_ID,
-        defaultProjectId: 'proj_123',
-        defaultAgentId: 'agent_456',
-      });
-
-      expect(settings.defaultAgentId).toBe('agent_456');
-    });
-
-    it('should upsert user settings (update)', async () => {
-      await createWorkAppSlackUserSettings(db)({
-        tenantId: TEST_TENANT_ID,
-        slackTeamId: TEST_TEAM_ID,
-        slackUserId: TEST_USER_ID,
-        defaultProjectId: 'proj_123',
-        defaultAgentId: 'agent_456',
-      });
-
-      const updated = await upsertWorkAppSlackUserSettings(db)({
-        tenantId: TEST_TENANT_ID,
-        slackTeamId: TEST_TEAM_ID,
-        slackUserId: TEST_USER_ID,
-        defaultProjectId: 'proj_789',
-        defaultAgentId: 'agent_new',
-        defaultAgentName: 'New Agent',
-      });
-
-      expect(updated.defaultAgentId).toBe('agent_new');
-      expect(updated.defaultAgentName).toBe('New Agent');
-    });
-
-    it('should delete user settings', async () => {
-      await createWorkAppSlackUserSettings(db)({
-        tenantId: TEST_TENANT_ID,
-        slackTeamId: TEST_TEAM_ID,
-        slackUserId: TEST_USER_ID,
-        defaultProjectId: 'proj_123',
-        defaultAgentId: 'agent_456',
-      });
-
-      const deleted = await deleteWorkAppSlackUserSettings(db)(
-        TEST_TENANT_ID,
-        TEST_TEAM_ID,
-        TEST_USER_ID
-      );
-      expect(deleted).toBe(true);
-
-      const found = await findWorkAppSlackUserSettings(db)(
-        TEST_TENANT_ID,
-        TEST_TEAM_ID,
-        TEST_USER_ID
-      );
-      expect(found).toBeNull();
     });
   });
 });

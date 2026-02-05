@@ -56,8 +56,8 @@
 2. **Signature Verification** → Validate request is from Slack
 3. **User Resolution** → Check if Slack user is linked to Inkeep account
 4. **Agent Resolution** → Determine which agent to use:
-   - `/inkeep` commands: user personal > channel > workspace
-   - `@Inkeep` mentions: channel > workspace
+   - Check channel config first
+   - Fall back to workspace default
 5. **Token Generation** → Create short-lived SlackUserToken JWT
 6. **Agent Execution** → Call /run/api/chat with JWT
 7. **Response** → Stream or post response back to Slack
@@ -74,7 +74,7 @@
 |------------|---------|-----------|
 | `oauth.ts` | Slack OAuth installation flow | `/install`, `/oauth_redirect` |
 | `events.ts` | Slack events & commands | `/commands`, `/events`, `/nango-webhook` |
-| `users.ts` | User linking & settings | `/link/*`, `/status`, `/me/settings` |
+| `users.ts` | User linking | `/link/*`, `/status`, `/disconnect` |
 | `workspaces.ts` | Workspace management | `/workspaces/*`, `/channels/*` |
 | `resources.ts` | Agent/project listing | `/agents`, `/projects` |
 | `internal.ts` | Debug & maintenance | `/debug/*`, `/register-workspace` |
@@ -84,7 +84,7 @@
 | Service | Responsibility |
 |---------|----------------|
 | `commands/index.ts` | Slash command routing and execution |
-| `events/index.ts` | Event dispatcher (app_mention, message, etc.) |
+| `events/index.ts` | Event dispatcher (app_mention, message, shortcuts, etc.) |
 | `events/app-mention.ts` | @mention handler with streaming response |
 | `events/block-actions.ts` | Interactive component handlers (share buttons, modals) |
 | `events/modal-submission.ts` | Modal form submissions |
@@ -94,12 +94,11 @@
 | `modals.ts` | Agent selector modal builder |
 | `nango.ts` | Nango API client for OAuth tokens and workspace defaults |
 | `client.ts` | Slack Web API wrapper |
-| `api-client.ts` | Internal API client for manage endpoints |
-| `agent-resolution.ts` | Agent priority resolution logic |
-| `auth/index.ts` | JWT token generation |
+| `agent-resolution.ts` | Agent priority resolution logic (channel > workspace) |
 | `security.ts` | Slack signature verification |
 | `types.ts` | TypeScript type definitions |
 | `workspace-tokens.ts` | Workspace bot token retrieval |
+| `i18n/strings.ts` | Centralized UI text strings |
 
 ### Frontend Components (`agents-manage-ui`)
 

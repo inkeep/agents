@@ -4,7 +4,6 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   workAppSlackChannelAgentConfigs,
   workAppSlackUserMappings,
-  workAppSlackUserSettings,
   workAppSlackWorkspaces,
 } from '../../db/runtime/runtime-schema';
 
@@ -16,8 +15,6 @@ export type WorkAppSlackChannelAgentConfigInsert =
   typeof workAppSlackChannelAgentConfigs.$inferInsert;
 export type WorkAppSlackChannelAgentConfigSelect =
   typeof workAppSlackChannelAgentConfigs.$inferSelect;
-export type WorkAppSlackUserSettingsInsert = typeof workAppSlackUserSettings.$inferInsert;
-export type WorkAppSlackUserSettingsSelect = typeof workAppSlackUserSettings.$inferSelect;
 
 const DEFAULT_CLIENT_ID = 'work-apps-slack';
 
@@ -415,93 +412,4 @@ export const deleteAllWorkAppSlackChannelAgentConfigsByTeam =
       .returning();
 
     return result.length;
-  };
-
-export const createWorkAppSlackUserSettings =
-  (db: AgentsRunDatabaseClient) =>
-  async (
-    data: Omit<WorkAppSlackUserSettingsInsert, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<WorkAppSlackUserSettingsSelect> => {
-    const id = `wsus_${nanoid(21)}`;
-    const now = new Date().toISOString();
-
-    const [result] = await db
-      .insert(workAppSlackUserSettings)
-      .values({
-        id,
-        ...data,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    return result;
-  };
-
-export const findWorkAppSlackUserSettings =
-  (db: AgentsRunDatabaseClient) =>
-  async (
-    tenantId: string,
-    slackTeamId: string,
-    slackUserId: string
-  ): Promise<WorkAppSlackUserSettingsSelect | null> => {
-    const results = await db
-      .select()
-      .from(workAppSlackUserSettings)
-      .where(
-        and(
-          eq(workAppSlackUserSettings.tenantId, tenantId),
-          eq(workAppSlackUserSettings.slackTeamId, slackTeamId),
-          eq(workAppSlackUserSettings.slackUserId, slackUserId)
-        )
-      )
-      .limit(1);
-
-    return results[0] || null;
-  };
-
-export const upsertWorkAppSlackUserSettings =
-  (db: AgentsRunDatabaseClient) =>
-  async (
-    data: Omit<WorkAppSlackUserSettingsInsert, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<WorkAppSlackUserSettingsSelect> => {
-    const existing = await findWorkAppSlackUserSettings(db)(
-      data.tenantId,
-      data.slackTeamId,
-      data.slackUserId
-    );
-
-    if (existing) {
-      const [updated] = await db
-        .update(workAppSlackUserSettings)
-        .set({
-          defaultProjectId: data.defaultProjectId,
-          defaultAgentId: data.defaultAgentId,
-          defaultAgentName: data.defaultAgentName,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(workAppSlackUserSettings.id, existing.id))
-        .returning();
-
-      return updated;
-    }
-
-    return createWorkAppSlackUserSettings(db)(data);
-  };
-
-export const deleteWorkAppSlackUserSettings =
-  (db: AgentsRunDatabaseClient) =>
-  async (tenantId: string, slackTeamId: string, slackUserId: string): Promise<boolean> => {
-    const result = await db
-      .delete(workAppSlackUserSettings)
-      .where(
-        and(
-          eq(workAppSlackUserSettings.tenantId, tenantId),
-          eq(workAppSlackUserSettings.slackTeamId, slackTeamId),
-          eq(workAppSlackUserSettings.slackUserId, slackUserId)
-        )
-      )
-      .returning();
-
-    return result.length > 0;
   };

@@ -1,7 +1,9 @@
 # Slack Work App PR - File Changes Summary
 
-**Branch:** `feat/inkeep-slack-app-v4`
+**Branch:** `feat/inkeep-slack-app-v2`
 **Compared to:** `origin/main`
+
+> **Note:** This file was auto-generated during development. Some details may be outdated.
 
 ---
 
@@ -71,7 +73,7 @@
 | `services/events/modal-submission.ts` | Modal form handling |
 | `services/events/utils.ts` | Event utilities |
 | `services/blocks/index.ts` | Block Kit message builders |
-| `services/agent-resolution.ts` | User > Channel > Workspace priority |
+| `services/agent-resolution.ts` | Channel > Workspace priority |
 | `services/api-client.ts` | Internal API client |
 | `services/client.ts` | Slack Web API wrapper |
 | `services/security.ts` | Request signature verification |

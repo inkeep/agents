@@ -34114,137 +34114,6 @@
         ]
       }
     },
-    "/work-apps/slack/users/me/settings": {
-      "get": {
-        "description": "Get user's personal Slack settings including default agent",
-        "operationId": "slack-get-user-settings",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "slackUserId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "slackTeamId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "tenantId",
-            "required": false,
-            "schema": {
-              "default": "default",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "defaultAgentId": {
-                      "type": "string"
-                    },
-                    "defaultAgentName": {
-                      "type": "string"
-                    },
-                    "defaultProjectId": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "User settings"
-          }
-        },
-        "summary": "Get User Settings",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Users"
-        ]
-      },
-      "put": {
-        "description": "Update user's personal default agent",
-        "operationId": "slack-update-user-settings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "settings": {
-                    "properties": {
-                      "defaultAgentId": {
-                        "type": "string"
-                      },
-                      "defaultAgentName": {
-                        "type": "string"
-                      },
-                      "defaultProjectId": {
-                        "type": "string"
-                      }
-                    },
-                    "type": "object"
-                  },
-                  "slackTeamId": {
-                    "type": "string"
-                  },
-                  "slackUserId": {
-                    "type": "string"
-                  },
-                  "tenantId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "slackUserId",
-                  "slackTeamId",
-                  "settings"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Settings updated"
-          }
-        },
-        "summary": "Update User Settings",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Users"
-        ]
-      }
-    },
     "/work-apps/slack/users/status": {
       "get": {
         "description": "Check if an Inkeep user has a linked Slack account.",
@@ -34430,6 +34299,9 @@
                         },
                         "projectId": {
                           "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -34530,6 +34402,9 @@
                               },
                               "projectId": {
                                 "type": "string"
+                              },
+                              "projectName": {
+                                "type": "string"
                               }
                             },
                             "required": [
@@ -34547,6 +34422,9 @@
                           "isPrivate": {
                             "type": "boolean"
                           },
+                          "isShared": {
+                            "type": "boolean"
+                          },
                           "memberCount": {
                             "type": "number"
                           },
@@ -34558,6 +34436,7 @@
                           "id",
                           "name",
                           "isPrivate",
+                          "isShared",
                           "hasAgentConfig"
                         ],
                         "type": "object"
@@ -34675,6 +34554,9 @@
                         },
                         "projectId": {
                           "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -34739,6 +34621,9 @@
                         "type": "string"
                       },
                       "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
                         "type": "string"
                       }
                     },
@@ -34888,6 +34773,9 @@
                         "type": "string"
                       },
                       "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
                         "type": "string"
                       }
                     },
@@ -35084,6 +34972,9 @@
                         },
                         "projectId": {
                           "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -35134,6 +35025,9 @@
                         "type": "string"
                       },
                       "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
                         "type": "string"
                       }
                     },

@@ -75,8 +75,6 @@
 |--------|------|-------------|
 | GET | `/users/status` | Check if Inkeep user is linked |
 | GET | `/users/link-status` | Check if Slack user is linked |
-| GET | `/users/me/settings` | Get user's personal settings |
-| PUT | `/users/me/settings` | Set user's personal agent |
 | POST | `/users/connect` | Create Nango OAuth session |
 | POST | `/users/disconnect` | Unlink user |
 | POST | `/users/link/verify-token` | Verify JWT link token |

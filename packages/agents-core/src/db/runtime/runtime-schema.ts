@@ -292,37 +292,6 @@ export const workAppSlackChannelAgentConfigs = pgTable(
   ]
 );
 
-/**
- * Slack user personal settings - user-specific default agent preferences.
- * Allows individual users to set their own default agent for /inkeep trigger.
- * Unique per tenant + slackTeamId + slackUserId.
- */
-export const workAppSlackUserSettings = pgTable(
-  'work_app_slack_user_settings',
-  {
-    id: varchar('id', { length: 256 }).primaryKey(),
-    tenantId: varchar('tenant_id', { length: 256 })
-      .notNull()
-      .references(() => organization.id, { onDelete: 'cascade' }),
-    slackTeamId: varchar('slack_team_id', { length: 256 }).notNull(),
-    slackUserId: varchar('slack_user_id', { length: 256 }).notNull(),
-    defaultProjectId: varchar('default_project_id', { length: 256 }),
-    defaultAgentId: varchar('default_agent_id', { length: 256 }),
-    defaultAgentName: varchar('default_agent_name', { length: 256 }),
-    ...timestamps,
-  },
-  (table) => [
-    unique('work_app_slack_user_settings_unique').on(
-      table.tenantId,
-      table.slackTeamId,
-      table.slackUserId
-    ),
-    index('work_app_slack_user_settings_tenant_idx').on(table.tenantId),
-    index('work_app_slack_user_settings_team_idx').on(table.slackTeamId),
-    index('work_app_slack_user_settings_user_idx').on(table.slackUserId),
-  ]
-);
-
 // --- Tables with FK dependencies ---
 
 export const messages = pgTable(
