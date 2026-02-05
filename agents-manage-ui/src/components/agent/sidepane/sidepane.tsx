@@ -28,7 +28,7 @@ import {
 import EdgeEditor from './edges/edge-editor';
 import { EditorLoadingSkeleton } from './editor-loading-skeleton';
 import { Heading } from './heading';
-import MetadataEditor from './metadata/metadata-editor';
+import { MetadataEditor } from './metadata/metadata-editor';
 import { ExternalAgentNodeEditor } from './nodes/external-agent-node-editor';
 import { ExternalAgentSelector } from './nodes/external-agent-selector/external-agent-selector';
 import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
