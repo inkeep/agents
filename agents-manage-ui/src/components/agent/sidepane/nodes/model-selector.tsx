@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
+import { Badge } from '@/components/ui/badge';
 
 interface ModelSelectorProps {
   tooltip?: string;
@@ -406,41 +407,36 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
           </div>
 
           <div className="border-t pt-3">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              Choose one connection method <span className="text-red-500">*</span>
-            </p>
-
-            <div>
-              <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">
-                Azure Resource Name
-              </label>
-              <input
-                id="azure-resource-name"
-                className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="your-azure-resource"
-                value={azureResourceName}
-                onChange={(e) => setAzureResourceName(e.target.value)}
-              />
-            </div>
+            <FieldLabel
+              className="text-xs text-muted-foreground mb-2"
+              label="Choose one connection method"
+              isRequired
+            />
+            <FieldLabel
+              id="azure-resource-name"
+              className="text-xs mb-1"
+              label="Azure Resource Name"
+            />
+            <Input
+              id="azure-resource-name"
+              placeholder="your-azure-resource"
+              value={azureResourceName}
+              onChange={(e) => setAzureResourceName(e.target.value)}
+            />
 
             <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
 
-            <div>
-              <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">
-                Custom Base URL
-              </label>
-              <input
-                id="azure-base-url"
-                className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://your-endpoint.com"
-                value={azureBaseURL}
-                onChange={(e) => setAzureBaseURL(e.target.value)}
-              />
-            </div>
+            <FieldLabel id="azure-base-url" className="text-xs mb-1" label="Custom Base URL" />
+            <Input
+              id="azure-base-url"
+              placeholder="https://your-endpoint.com"
+              value={azureBaseURL}
+              onChange={(e) => setAzureBaseURL(e.target.value)}
+            />
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Set <code>AZURE_API_KEY</code> environment variable
+            Set <Badge variant="code">AZURE_API_KEY</Badge> environment variable
           </div>
 
           <div className="flex gap-2 items-center">
