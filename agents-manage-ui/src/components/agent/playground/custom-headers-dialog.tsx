@@ -1,5 +1,5 @@
 import { Pencil, Plus } from 'lucide-react';
-import { type FC, useState } from 'react';
+import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
