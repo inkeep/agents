@@ -9,6 +9,7 @@ import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 import { Agent } from './page.client';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,14 +73,16 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     : false;
 
   return (
-    <Agent
-      agent={agent.data}
-      dataComponentLookup={dataComponentLookup}
-      artifactComponentLookup={artifactComponentLookup}
-      toolLookup={toolLookup}
-      credentialLookup={credentialLookup}
-      sandboxEnabled={sandboxEnabled}
-    />
+    <FullAgentFormProvider defaultValues={{}}>
+      <Agent
+        agent={agent.data}
+        dataComponentLookup={dataComponentLookup}
+        artifactComponentLookup={artifactComponentLookup}
+        toolLookup={toolLookup}
+        credentialLookup={credentialLookup}
+        sandboxEnabled={sandboxEnabled}
+      />
+    </FullAgentFormProvider>
   );
 };
 

@@ -696,11 +696,6 @@ export const Agent: FC<AgentProps> = ({
     }
   };
 
-  const form = useForm({
-    defaultValues: {},
-    resolver: zodResolver(FullAgentUpdateSchema),
-  });
-
   const onSubmit = form.handleSubmit(async (data) => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
@@ -880,20 +875,19 @@ export const Agent: FC<AgentProps> = ({
     nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE;
 
   return (
-    <FullAgentFormContext value={form}>
-      <ResizablePanelGroup
-        // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
-        id="agent-panel-group"
-        direction="horizontal"
-        autoSaveId="agent-resizable-layout-state"
-        className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
-      >
-        <CopilotChat
-          agentId={agentId}
-          projectId={projectId}
-          tenantId={tenantId}
-          refreshAgentGraph={refreshAgentGraph}
-        />
+    <ResizablePanelGroup
+      // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
+      id="agent-panel-group"
+      direction="horizontal"
+      autoSaveId="agent-resizable-layout-state"
+      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden no-parent-container"
+    >
+      <CopilotChat
+        agentId={agentId}
+        projectId={projectId}
+        tenantId={tenantId}
+        refreshAgentGraph={refreshAgentGraph}
+      />
 
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered

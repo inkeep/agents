@@ -1,10 +1,10 @@
 import { Controller, type UseFormReturn } from 'react-hook-form';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { ColorPickerInput } from '@/components/ui/color-picker';
 import { Form, FormItem, FormLabel } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 
 export enum ChatUIComponent {
   EMBEDDED_CHAT = 'Embedded Chat',
