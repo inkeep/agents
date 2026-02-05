@@ -1826,7 +1826,7 @@ describe('Agent Image Support', () => {
     );
   });
 
-  test('passes image URL(s) to generateText in AI SDK format', async () => {
+  test('passes image URL(s) to generateText in AI SDK format with optional detail metadata', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
 
     await agent.generate({
@@ -1845,6 +1845,7 @@ describe('Agent Image Support', () => {
             uri: 'https://example.com/after.png',
             mimeType: 'image/png',
           },
+          metadata: { detail: 'high' },
         },
       ],
     });
@@ -1861,7 +1862,11 @@ describe('Agent Image Support', () => {
                 text: expect.stringContaining('Compare these two screenshots'),
               }),
               expect.objectContaining({ type: 'image', image: expect.any(URL) }),
-              expect.objectContaining({ type: 'image', image: expect.any(URL) }),
+              expect.objectContaining({
+                type: 'image',
+                image: expect.any(URL),
+                experimental_providerMetadata: { openai: { imageDetail: 'high' } },
+              }),
             ]),
           }),
         ]),

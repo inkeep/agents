@@ -86,6 +86,13 @@ import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { PromptConfig, V1_BREAKDOWN_SCHEMA } from './versions/v1/PromptConfig';
 
+type AiSdkContentPart = {
+  type: string;
+  text?: string;
+  image?: string | URL;
+  experimental_providerMetadata?: { openai?: { imageDetail?: 'auto' | 'low' | 'high' } };
+};
+
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names
@@ -3194,16 +3201,13 @@ ${output}`;
   private buildUserMessageContent(
     text: string,
     imageParts?: FilePart[]
-  ): string | Array<{ type: string; text?: string; image?: string | URL }> {
+  ): string | AiSdkContentPart[] {
     // No images - return simple string for backward compatibility
     if (!imageParts || imageParts.length === 0) {
       return text;
     }
 
-    // Build multimodal content array for Vercel AI SDK
-    const content: Array<{ type: string; text?: string; image?: string | URL }> = [
-      { type: 'text', text },
-    ];
+    const content: AiSdkContentPart[] = [{ type: 'text', text }];
 
     for (const part of imageParts) {
       const file = part.file;
@@ -3214,7 +3218,16 @@ ${output}`;
         'uri' in file && file.uri
           ? new URL(file.uri)
           : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
-      content.push({ type: 'image', image: imageValue });
+
+      const imagePart: AiSdkContentPart = {
+        type: 'image',
+        image: imageValue,
+        ...(part.metadata?.detail && {
+          experimental_providerMetadata: { openai: { imageDetail: part.metadata.detail } },
+        }),
+      };
+
+      content.push(imagePart);
     }
 
     return content;

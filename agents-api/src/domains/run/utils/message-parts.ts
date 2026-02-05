@@ -1,6 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
-import type { ContentItem } from '../types/chat';
+import { getLogger } from '../../../logger';
+import type { ContentItem, ImageContentItem } from '../types/chat';
+
+const logger = getLogger('message-parts');
 
 export const imageUrlSchema = z.union([
   z.httpUrl(),
@@ -12,23 +15,22 @@ export const imageUrlSchema = z.union([
     )
     .refine((val) => {
       const base64Part = val.split(',')[1];
-      return /^[A-Za-z0-9+/]*={0,2}$/.test(base64Part);
+      return /^[A-Za-z0-9+/]+={0,2}$/.test(base64Part);
     }, 'Invalid base64 data in image data URI'),
 ]);
 
-export const isTextContentItem = (
+const isTextContentItem = (
   item: ContentItem
 ): item is { type: 'text'; text: string } & ContentItem => {
   return item.type === 'text' && 'text' in item && typeof item.text === 'string';
 };
 
-export const isImageContentItem = (
-  item: ContentItem
-): item is { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } } => {
+const isImageContentItem = (item: ContentItem): item is ImageContentItem => {
   return (
     item.type === 'image_url' &&
     'image_url' in item &&
-    imageUrlSchema.safeParse(item.image_url?.url).success
+    item.image_url != null &&
+    imageUrlSchema.safeParse(item.image_url.url).success
   );
 };
 
@@ -42,23 +44,20 @@ const imageContentPartSchema = z.object({
 });
 const vercelMessageContentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
 
-export const buildTextPart = (text: string): TextPart => {
+const buildTextPart = (text: string): TextPart => {
   return { kind: 'text', text };
 };
 
-function parseDataUri(dataUri: string): { mimeType: string; base64Data: string } | null {
+const parseDataUri = (dataUri: string): { mimeType: string; base64Data: string } | null => {
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) return null;
   return {
     mimeType: match[1],
     base64Data: match[2],
   };
-}
+};
 
-export const buildFilePart = (
-  uri: string,
-  options?: { detail?: 'auto' | 'low' | 'high' }
-): FilePart => {
+const buildFilePart = (uri: string, options?: { detail?: 'auto' | 'low' | 'high' }): FilePart => {
   const parsed = parseDataUri(uri);
 
   if (parsed) {
@@ -70,6 +69,12 @@ export const buildFilePart = (
       },
       ...(options?.detail && { metadata: { detail: options.detail } }),
     };
+  }
+
+  try {
+    new URL(uri);
+  } catch {
+    throw new Error(`Invalid image URI: expected valid data URI or HTTP URL`);
   }
 
   return {
@@ -111,11 +116,18 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
     return [buildTextPart(content)];
   }
 
-  // Parse parts array
-  const parsedParts = (parts ?? [])
+  const rawParts = parts ?? [];
+  const parsedParts = rawParts
     .map((part) => vercelMessageContentPartSchema.safeParse(part))
     .filter((result) => result.success)
     .map((result) => result.data);
+
+  if (parsedParts.length < rawParts.length) {
+    logger.warn(
+      { expected: rawParts.length, received: parsedParts.length },
+      'Some message parts were dropped due to invalid schema'
+    );
+  }
 
   return parsedParts.map((part) => {
     if (part.type === 'text') {
