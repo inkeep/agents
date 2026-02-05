@@ -48,6 +48,7 @@ import {
   subAgentToolRelations,
   tools,
   triggers,
+  workAppConfigs,
 } from '../db/manage/manage-schema';
 
 // Runtime DB imports (Postgres - not versioned)
@@ -2710,3 +2711,87 @@ export const WorkAppGitHubAccessGetResponseSchema = z.object({
   mode: WorkAppGitHubAccessModeSchema,
   repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });
+
+// ============================================================================
+// Work App Configuration Schemas
+// ============================================================================
+
+export const WorkAppTypeSchema = z.enum(['slack', 'teams']).openapi('WorkAppType');
+
+export const WorkAppConfigMetadataSchema = z
+  .object({
+    configuredByUserId: z.string().optional(),
+    configuredByUserName: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .openapi('WorkAppConfigMetadata');
+
+export const WorkAppConfigSelectSchema = createSelectSchema(workAppConfigs);
+
+export const WorkAppConfigInsertSchema = createInsertSchema(workAppConfigs).extend({
+  id: ResourceIdSchema,
+  appType: WorkAppTypeSchema,
+  metadata: WorkAppConfigMetadataSchema.optional(),
+});
+
+export const WorkAppConfigUpdateSchema = WorkAppConfigInsertSchema.partial();
+
+export const WorkAppConfigApiSelectSchema = WorkAppConfigSelectSchema.omit({
+  tenantId: true,
+}).openapi('WorkAppConfig');
+
+export const WorkAppConfigApiInsertSchema = WorkAppConfigInsertSchema.omit({
+  tenantId: true,
+  createdAt: true,
+  updatedAt: true,
+}).openapi('WorkAppConfigCreate');
+
+export const WorkAppConfigApiUpdateSchema =
+  WorkAppConfigApiInsertSchema.partial().openapi('WorkAppConfigUpdate');
+
+// ============================================================================
+// Work App Slack Schemas
+// ============================================================================
+
+import {
+  workAppSlackChannelAgentConfigs,
+  workAppSlackUserMappings,
+  workAppSlackWorkspaces,
+} from '../db/runtime/runtime-schema';
+
+export const WorkAppSlackWorkspaceStatusSchema = z.enum(['active', 'suspended', 'disconnected']);
+
+export const WorkAppSlackWorkspaceSelectSchema = createSelectSchema(workAppSlackWorkspaces);
+export const WorkAppSlackWorkspaceInsertSchema = createInsertSchema(workAppSlackWorkspaces)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    status: WorkAppSlackWorkspaceStatusSchema.optional().default('active'),
+  });
+export const WorkAppSlackWorkspaceUpdateSchema = WorkAppSlackWorkspaceInsertSchema.partial();
+
+export const WorkAppSlackUserMappingSelectSchema = createSelectSchema(workAppSlackUserMappings);
+export const WorkAppSlackUserMappingInsertSchema = createInsertSchema(workAppSlackUserMappings)
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    linkedAt: true,
+  })
+  .extend({
+    clientId: z.string().optional().default('work-apps-slack'),
+  });
+export const WorkAppSlackUserMappingUpdateSchema = WorkAppSlackUserMappingInsertSchema.partial();
+
+export const WorkAppSlackChannelAgentConfigSelectSchema = createSelectSchema(
+  workAppSlackChannelAgentConfigs
+);
+export const WorkAppSlackChannelAgentConfigInsertSchema = createInsertSchema(
+  workAppSlackChannelAgentConfigs
+).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export const WorkAppSlackChannelAgentConfigUpdateSchema =
+  WorkAppSlackChannelAgentConfigInsertSchema.partial();

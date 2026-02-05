@@ -21,6 +21,7 @@ export default defineConfig({
     port: 3002,
     strictPort: true,
     cors: false,
+    allowedHosts: true,
   },
   optimizeDeps: {
     exclude: [
