@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -122,21 +123,7 @@ export function MetadataEditor() {
         placeholder="My agent"
         isRequired
       />
-      <InputField
-        id="id"
-        name="id"
-        label="Id"
-        value={id || ''}
-        onChange={(e) => updateMetadata('id', e.target.value)}
-        disabled // only editable if no agentId is set (i.e. new agent)
-        placeholder="my-agent"
-        description={
-          !agentId
-            ? 'Choose a unique identifier for this agent. Using an existing id will replace that agent.'
-            : undefined
-        }
-        isRequired
-      />
+      <InputField id="id" name="id" label="Id" value={agentId} disabled isRequired />
       <TextareaField
         id="description"
         name="description"

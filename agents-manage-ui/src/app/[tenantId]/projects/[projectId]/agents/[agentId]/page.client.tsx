@@ -40,7 +40,7 @@ import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
-import { FullAgentFormContext } from '@/contexts/full-agent-form';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -696,6 +696,8 @@ export const Agent: FC<AgentProps> = ({
     }
   };
 
+  const form = useFullAgentFormContext();
+
   const onSubmit = form.handleSubmit(async (data) => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
@@ -1016,31 +1018,30 @@ export const Agent: FC<AgentProps> = ({
           </>
         )}
 
-        {showPlayground && (
-          <>
-            {!showTraces && <ResizableHandle withHandle />}
-            <ResizablePanel
-              minSize={25}
-              // Panel id and order props recommended when panels are dynamically rendered
-              id="playground-pane"
-              order={3}
-              className={showTraces ? 'w-full flex-none!' : ''}
-            >
-              <Playground
-                agentId={agentId}
-                projectId={projectId}
-                tenantId={tenantId}
-                setShowPlayground={setShowPlayground}
-                closeSidePane={closeSidePane}
-                dataComponentLookup={dataComponentLookup}
-                showTraces={showTraces}
-                setShowTraces={setShowTraces}
-              />
-            </ResizablePanel>
-          </>
-        )}
-        <UnsavedChangesDialog onSubmit={onSubmit} />
-      </ResizablePanelGroup>
-    </FullAgentFormContext>
+      {showPlayground && (
+        <>
+          {!showTraces && <ResizableHandle withHandle />}
+          <ResizablePanel
+            minSize={25}
+            // Panel id and order props recommended when panels are dynamically rendered
+            id="playground-pane"
+            order={3}
+            className={showTraces ? 'w-full flex-none!' : ''}
+          >
+            <Playground
+              agentId={agentId}
+              projectId={projectId}
+              tenantId={tenantId}
+              setShowPlayground={setShowPlayground}
+              closeSidePane={closeSidePane}
+              dataComponentLookup={dataComponentLookup}
+              showTraces={showTraces}
+              setShowTraces={setShowTraces}
+            />
+          </ResizablePanel>
+        </>
+      )}
+      <UnsavedChangesDialog onSubmit={onSubmit} />
+    </ResizablePanelGroup>
   );
 };

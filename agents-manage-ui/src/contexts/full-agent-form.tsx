@@ -1,10 +1,10 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { createContext, type FC, type ReactNode, use } from 'react';
-import { useForm, type UseFormReturn, type DefaultValues } from 'react-hook-form';
+import { type DefaultValues, Form, type UseFormReturn, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { FullAgentUpdateSchema } from '@/lib/validation';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 type Input = z.input<typeof FullAgentUpdateSchema>;
 type Output = z.output<typeof FullAgentUpdateSchema>;
@@ -22,7 +22,11 @@ export const FullAgentFormProvider: FC<{
     defaultValues,
     resolver,
   });
-  return <FullAgentFormContext value={form}>{children}</FullAgentFormContext>;
+  return (
+    <Form {...form}>
+      <FullAgentFormContext value={form}>{children}</FullAgentFormContext>
+    </Form>
+  );
 };
 
 export function useFullAgentFormContext() {
