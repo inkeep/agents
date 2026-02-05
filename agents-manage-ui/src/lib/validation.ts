@@ -1,7 +1,4 @@
-import {
-  AgentApiInsertSchema,
-  transformToJson,
-} from '@inkeep/agents-core/client-exports';
+import { AgentApiInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 export const AgentSchema = AgentApiInsertSchema.pick({

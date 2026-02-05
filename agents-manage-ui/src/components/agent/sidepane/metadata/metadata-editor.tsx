@@ -1,6 +1,5 @@
 'use client';
 
-import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
@@ -18,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -104,19 +102,10 @@ export function MetadataEditor() {
     <div className="space-y-8">
       {agentId && (
         <div className="space-y-2">
-          <div className="text-sm leading-none font-medium flex items-center gap-1">
-            Chat URL
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="w-3 h-3 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                Use this endpoint to chat with your agent or connect it to the Inkeep widget via the
-                agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream
-                protocol.
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          <FieldLabel
+            label="Chat URL"
+            tooltip="Use this endpoint to chat with your agent or connect it to the Inkeep widget via the agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream protocol."
+          />
           <CopyableSingleLineCode code={agentUrl} />
           {canUse && (
             <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
