@@ -13,11 +13,10 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 
 interface ModelSelectorProps {
   tooltip?: string;
@@ -98,22 +97,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      {label && (
-        <Label>
-          {label}
-          {tooltip && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="w-3 h-3 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>{tooltip}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          {isRequired && <span className="text-red-500">*</span>}
-        </Label>
-      )}
+      {label && <FieldLabel label={label} tooltip={tooltip} isRequired={isRequired} />}
       <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
         <ButtonGroup className="w-full">
           <PopoverTrigger asChild>
@@ -403,9 +387,12 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
           </div>
 
           <div>
-            <label htmlFor="azure-deployment-name" className="block text-xs font-medium mb-1">
-              Deployment Name <span className="text-red-500">*</span>
-            </label>
+            <FieldLabel
+              id="azure-deployment-name"
+              className="text-xs mb-1"
+              label="Deployment Name"
+              isRequired
+            />
             <input
               id="azure-deployment-name"
               className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
