@@ -4,21 +4,22 @@ import { SidebarIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
+import { css } from '@/lib/utils';
 import { ChatUIComponent } from './chat-ui-preview-form';
 
-const styleOverrides = `
-  .ikp-chat-bubble__root {
-    position: absolute;
-  }
-  .ikp-chat-button__container {
-    position: absolute;
-  }
-  .ikp-sidebar-chat__root {
-    border-radius: 0px 9px 9px 0px;
-  }
-  [data-sidebar] .ikp-ai-chat-wrapper {
-    border-radius: inherit;
-  }
+const styleOverrides = css`
+.ikp-chat-bubble__root {
+  position: absolute;
+}
+.ikp-chat-button__container {
+  position: absolute;
+}
+.ikp-sidebar-chat__root {
+  border-radius: 0 9px 9px 0;
+}
+[data-sidebar] .ikp-ai-chat-wrapper {
+  border-radius: inherit;
+}
 `;
 
 interface ChatUIPreviewProps {

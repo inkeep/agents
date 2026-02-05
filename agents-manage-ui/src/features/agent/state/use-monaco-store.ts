@@ -3,6 +3,7 @@ import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import {
+  INKEEP_BRAND_COLOR,
   MONACO_THEME_NAME,
   TEMPLATE_LANGUAGE,
   TEMPLATE_VARIABLE_REGEX,
@@ -163,8 +164,8 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
             colors: {
               ...githubLightTheme.colors,
               'editor.background': 'transparent',
-              'diffEditor.insertedLineBackground': '#3784ff0d',
-              'diffEditor.insertedTextBackground': '#3784ff19',
+              'diffEditor.insertedLineBackground': `${INKEEP_BRAND_COLOR}0d`,
+              'diffEditor.insertedTextBackground': `${INKEEP_BRAND_COLOR}19`,
               'editorHoverWidget.background': '#fff',
             },
             tokenColors: [

@@ -13,13 +13,13 @@ importers:
     dependencies:
       '@inkeep/agents-core':
         specifier: ^0.42.0
-        version: 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
+        version: 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
       '@inkeep/agents-manage-ui':
         specifier: ^0.42.0
-        version: 0.42.0(@babel/core@7.28.5)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(@types/mdast@4.0.4)(@types/pg@8.15.6)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(immer@10.1.3)(kysely@0.28.8)(micromark-util-types@2.0.2)(micromark@4.0.2)(pg@8.16.3)(unified@11.0.5)(use-sync-external-store@1.6.0(react@19.2.0))(webpack@5.105.0(esbuild@0.25.10))(ws@8.18.3)
+        version: 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(@types/mdast@4.0.4)(@types/pg@8.15.6)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(immer@10.1.3)(kysely@0.28.8)(micromark-util-types@2.0.2)(micromark@4.0.2)(pg@8.16.3)(unified@11.0.5)(use-sync-external-store@1.6.0(react@19.2.0))(webpack@5.105.0(esbuild@0.25.10))(ws@8.18.3)
       '@inkeep/agents-sdk':
         specifier: ^0.42.0
-        version: 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)
+        version: 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)
       '@tailwindcss/vite':
         specifier: ^4.1.14
         version: 4.1.18(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.1))
@@ -35,7 +35,7 @@ importers:
     devDependencies:
       '@inkeep/agents-cli':
         specifier: ^0.42.0
-        version: 0.42.0(1655c72a85d668029585921867f4423a)
+        version: 0.42.0(62beefed6f81baea341e610439134516)
       '@types/node':
         specifier: ^22.13.14
         version: 22.19.3
@@ -62,23 +62,23 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^1.19.5
-        version: 1.19.7(hono@4.11.1)
+        version: 1.19.7(hono@4.11.7)
       '@hono/zod-openapi':
         specifier: ^1.1.5
-        version: 1.1.5(hono@4.11.1)(zod@4.3.6)
+        version: 1.1.5(hono@4.11.7)(zod@4.3.6)
       '@inkeep/agents-api':
         specifier: ^0.42.0
-        version: 0.42.0(@aws-sdk/client-sts@3.982.0)(@babel/core@7.28.5)(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.14)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@types/pg@8.15.6)(@types/react@19.2.7)(drizzle-kit@0.31.8)(immer@10.1.3)(kysely@0.28.8)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pino@9.14.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(ws@8.18.3)(zod@4.3.6)
+        version: 0.42.0(@aws-sdk/client-sts@3.982.0)(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.14)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@types/pg@8.15.6)(@types/react@19.2.7)(drizzle-kit@0.31.8)(immer@10.1.3)(kysely@0.28.8)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pino@9.14.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(ws@8.18.3)(zod@4.3.6)
       hono:
-        specifier: ^4.10.4
-        version: 4.11.1
+        specifier: ^4.11.7
+        version: 4.11.7
       zod:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.23.0
-        version: 0.23.0(hono@4.11.1)
+        version: 0.23.0(hono@4.11.7)
       '@types/node':
         specifier: ^20.12.0
         version: 20.19.27
@@ -145,7 +145,7 @@ importers:
     devDependencies:
       next:
         specifier: 16.0.10
-        version: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
   apps/mcp:
     devDependencies:
@@ -157,10 +157,10 @@ importers:
         version: 19.2.7
       mcp-handler:
         specifier: ^1.0.3
-        version: 1.0.4(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+        version: 1.0.4(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       next:
         specifier: 16.0.10
-        version: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -5676,7 +5676,6 @@ packages:
 
   bun@1.3.3:
     resolution: {integrity: sha512-2hJ4ocTZ634/Ptph4lysvO+LbbRZq8fzRvMwX0/CqaLBxrF2UB5D1LdMB8qGcdtCer4/VR9Bx5ORub0yn+yzmw==}
-    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 
@@ -7035,6 +7034,10 @@ packages:
 
   hono@4.11.1:
     resolution: {integrity: sha512-KsFcH0xxHes0J4zaQgWbYwmz3UPOOskdqZmItstUG93+Wk1ePBLkLGwbP9zlmh1BFUiL8Qp+Xfu9P7feJWpGNg==}
+    engines: {node: '>=16.9.0'}
+
+  hono@4.11.7:
+    resolution: {integrity: sha512-l7qMiNee7t82bH3SeyUCt9UF15EVmaBvsppY2zQtrbIhl/yzBTny+YUxsVjSjQ6gaqaeVtZmGocom8TzBlA4Yw==}
     engines: {node: '>=16.9.0'}
 
   html-url-attributes@3.0.1:
@@ -10570,11 +10573,11 @@ snapshots:
       nanostores: 1.1.0
       zod: 4.3.6
 
-  '@better-auth/sso@1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))':
+  '@better-auth/sso@1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))':
     dependencies:
       '@better-auth/utils': 0.3.0
       '@better-fetch/fetch': 1.1.21
-      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       fast-xml-parser: 5.3.2
       jose: 6.1.2
       samlify: 2.10.1
@@ -11071,42 +11074,42 @@ snapshots:
       protobufjs: 7.5.4
       yargs: 17.7.2
 
-  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(hono@4.11.1)':
+  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(hono@4.11.7)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
-      hono: 4.11.1
+      hono: 4.11.7
 
-  '@hono/node-server@1.19.7(hono@4.11.1)':
+  '@hono/node-server@1.19.7(hono@4.11.7)':
     dependencies:
-      hono: 4.11.1
+      hono: 4.11.7
 
-  '@hono/otel@0.4.0(hono@4.11.1)':
+  '@hono/otel@0.4.0(hono@4.11.7)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.38.0
-      hono: 4.11.1
+      hono: 4.11.7
 
-  '@hono/swagger-ui@0.5.2(hono@4.11.1)':
+  '@hono/swagger-ui@0.5.2(hono@4.11.7)':
     dependencies:
-      hono: 4.11.1
+      hono: 4.11.7
 
-  '@hono/vite-dev-server@0.23.0(hono@4.11.1)':
+  '@hono/vite-dev-server@0.23.0(hono@4.11.7)':
     dependencies:
-      '@hono/node-server': 1.19.7(hono@4.11.1)
-      hono: 4.11.1
+      '@hono/node-server': 1.19.7(hono@4.11.7)
+      hono: 4.11.7
       minimatch: 9.0.5
 
-  '@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6)':
+  '@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.1.0(zod@4.3.6)
-      '@hono/zod-validator': 0.7.5(hono@4.11.1)(zod@4.3.6)
-      hono: 4.11.1
+      '@hono/zod-validator': 0.7.5(hono@4.11.7)(zod@4.3.6)
+      hono: 4.11.7
       openapi3-ts: 4.5.0
       zod: 4.3.6
 
-  '@hono/zod-validator@0.7.5(hono@4.11.1)(zod@4.3.6)':
+  '@hono/zod-validator@0.7.5(hono@4.11.7)(zod@4.3.6)':
     dependencies:
-      hono: 4.11.1
+      hono: 4.11.7
       zod: 4.3.6
 
   '@hookform/resolvers@5.2.2(react-hook-form@7.66.1(react@19.2.0))':
@@ -11237,18 +11240,18 @@ snapshots:
   '@img/sharp-win32-x64@0.34.5':
     optional: true
 
-  '@inkeep/agents-api@0.42.0(@aws-sdk/client-sts@3.982.0)(@babel/core@7.28.5)(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.14)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@types/pg@8.15.6)(@types/react@19.2.7)(drizzle-kit@0.31.8)(immer@10.1.3)(kysely@0.28.8)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pino@9.14.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(ws@8.18.3)(zod@4.3.6)':
+  '@inkeep/agents-api@0.42.0(@aws-sdk/client-sts@3.982.0)(@better-auth/utils@0.3.0)(@electric-sql/pglite@0.3.14)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@types/pg@8.15.6)(@types/react@19.2.7)(drizzle-kit@0.31.8)(immer@10.1.3)(kysely@0.28.8)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pino@9.14.0)(postgres@3.4.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(ws@8.18.3)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/gateway': 3.0.9(zod@4.3.6)
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@ai-sdk/openai-compatible': 2.0.4(zod@4.3.6)
-      '@hono/mcp': 0.1.5(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(hono@4.11.1)
-      '@hono/otel': 0.4.0(hono@4.11.1)
-      '@hono/swagger-ui': 0.5.2(hono@4.11.1)
-      '@hono/zod-openapi': 1.1.5(hono@4.11.1)(zod@4.3.6)
-      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
+      '@hono/mcp': 0.1.5(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(hono@4.11.7)
+      '@hono/otel': 0.4.0(hono@4.11.7)
+      '@hono/swagger-ui': 0.5.2(hono@4.11.7)
+      '@hono/zod-openapi': 1.1.5(hono@4.11.7)(zod@4.3.6)
+      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
       '@inkeep/agents-manage-mcp': 0.42.0(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@openrouter/ai-sdk-provider': 1.2.5(ai@6.0.14(zod@4.3.6))(zod@4.3.6)
@@ -11272,13 +11275,13 @@ snapshots:
       axios: 1.13.2
       drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
       fetch-to-node: 2.1.0
-      hono: 4.11.1
-      hono-pino: 0.10.3(hono@4.11.1)(pino@9.14.0)
+      hono: 4.11.7
+      hono-pino: 0.10.3(hono@4.11.7)(pino@9.14.0)
       jmespath: 0.16.0
       llm-info: 1.0.69
       openid-client: 6.8.1
       pg: 8.16.3
-      workflow: 4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      workflow: 4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       zod: 4.3.6
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
@@ -11347,15 +11350,15 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-cli@0.42.0(1655c72a85d668029585921867f4423a)':
+  '@inkeep/agents-cli@0.42.0(62beefed6f81baea341e610439134516)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@clack/prompts': 0.11.0
-      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
-      '@inkeep/agents-manage-ui': 0.42.0(@babel/core@7.28.5)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(@types/mdast@4.0.4)(@types/pg@8.15.6)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(immer@10.1.3)(kysely@0.28.8)(micromark-util-types@2.0.2)(micromark@4.0.2)(pg@8.16.3)(unified@11.0.5)(use-sync-external-store@1.6.0(react@19.2.0))(webpack@5.105.0(esbuild@0.25.10))(ws@8.18.3)
-      '@inkeep/agents-sdk': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)
+      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
+      '@inkeep/agents-manage-ui': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(@types/mdast@4.0.4)(@types/pg@8.15.6)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(immer@10.1.3)(kysely@0.28.8)(micromark-util-types@2.0.2)(micromark@4.0.2)(pg@8.16.3)(unified@11.0.5)(use-sync-external-store@1.6.0(react@19.2.0))(webpack@5.105.0(esbuild@0.25.10))(ws@8.18.3)
+      '@inkeep/agents-sdk': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)
       '@vercel/otel': 2.1.0(@opentelemetry/api-logs@0.211.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.211.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))
       ai: 6.0.14(zod@4.3.6)
       chalk: 5.6.2
@@ -11429,7 +11432,7 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-core@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)':
+  '@inkeep/agents-core@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/azure': 3.0.26(zod@4.3.6)
@@ -11438,10 +11441,10 @@ snapshots:
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@ai-sdk/openai-compatible': 2.0.4(zod@4.3.6)
       '@authzed/authzed-node': 1.6.1
-      '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+      '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       '@composio/core': 0.2.5(ws@8.18.3)(zod@4.3.6)
       '@electric-sql/pglite': 0.3.14
-      '@hono/zod-openapi': 1.1.5(hono@4.11.1)(zod@4.3.6)
+      '@hono/zod-openapi': 1.1.5(hono@4.11.7)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@nangohq/node': 0.69.14
       '@nangohq/types': 0.69.14
@@ -11449,7 +11452,7 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       ai: 6.0.14(zod@4.3.6)
       ajv: 8.17.1
-      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       destr: 2.0.5
       dotenv: 17.2.3
       dotenv-expand: 12.0.3
@@ -11527,7 +11530,7 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-core@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)':
+  '@inkeep/agents-core@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/azure': 3.0.26(zod@4.3.6)
@@ -11536,10 +11539,10 @@ snapshots:
       '@ai-sdk/openai': 3.0.7(zod@4.3.6)
       '@ai-sdk/openai-compatible': 2.0.4(zod@4.3.6)
       '@authzed/authzed-node': 1.6.1
-      '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+      '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       '@composio/core': 0.2.5(ws@8.18.3)(zod@4.3.6)
       '@electric-sql/pglite': 0.3.14
-      '@hono/zod-openapi': 1.1.5(hono@4.11.1)(zod@4.3.6)
+      '@hono/zod-openapi': 1.1.5(hono@4.11.7)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       '@nangohq/node': 0.69.14
       '@nangohq/types': 0.69.14
@@ -11547,7 +11550,7 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       ai: 6.0.14(zod@4.3.6)
       ajv: 8.17.1
-      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       destr: 2.0.5
       dotenv: 17.2.3
       dotenv-expand: 12.0.3
@@ -11635,11 +11638,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@inkeep/agents-manage-ui@0.42.0(@babel/core@7.28.5)(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(@types/mdast@4.0.4)(@types/pg@8.15.6)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(immer@10.1.3)(kysely@0.28.8)(micromark-util-types@2.0.2)(micromark@4.0.2)(pg@8.16.3)(unified@11.0.5)(use-sync-external-store@1.6.0(react@19.2.0))(webpack@5.105.0(esbuild@0.25.10))(ws@8.18.3)':
+  '@inkeep/agents-manage-ui@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(@types/mdast@4.0.4)(@types/pg@8.15.6)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(immer@10.1.3)(kysely@0.28.8)(micromark-util-types@2.0.2)(micromark@4.0.2)(pg@8.16.3)(unified@11.0.5)(use-sync-external-store@1.6.0(react@19.2.0))(webpack@5.105.0(esbuild@0.25.10))(ws@8.18.3)':
     dependencies:
-      '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+      '@better-auth/sso': 1.4.18(@better-auth/utils@0.3.0)(better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       '@hookform/resolvers': 5.2.2(react-hook-form@7.66.1(react@19.2.0))
-      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
+      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
       '@inkeep/agents-ui': 0.15.12(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@nangohq/frontend': 0.69.14
       '@nangohq/node': 0.69.14
@@ -11667,7 +11670,7 @@ snapshots:
       ai: 6.0.14(zod@4.3.6)
       axios: 1.13.2
       axios-retry: 4.5.0(axios@1.13.2)
-      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      better-auth: 1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       cmdk: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -11678,9 +11681,9 @@ snapshots:
       lucide-react: 0.555.0(react@19.2.0)
       monaco-editor: 0.55.1
       nanoid: 5.1.6
-      next: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       next-themes: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      nuqs: 2.8.1(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+      nuqs: 2.8.1(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       pg-7e2a21e93ebd274c: pg@8.16.3
       pino-51ec28aa490c8dec: pino@9.14.0
       pino-pretty-0b6078bb23ab6ef9: pino-pretty@13.1.3
@@ -11705,7 +11708,7 @@ snapshots:
       zustand: 5.0.8(@types/react@19.2.7)(immer@10.1.3)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0))
     optionalDependencies:
       '@posthog/react': 1.7.0(@types/react@19.2.7)(posthog-js@1.341.0)(react@19.2.0)
-      '@sentry/nextjs': 10.38.0(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(webpack@5.105.0(esbuild@0.25.10))
+      '@sentry/nextjs': 10.38.0(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(webpack@5.105.0(esbuild@0.25.10))
       posthog-js: 1.341.0
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
@@ -11776,9 +11779,9 @@ snapshots:
       - webpack
       - ws
 
-  '@inkeep/agents-sdk@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)':
+  '@inkeep/agents-sdk@0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)':
     dependencies:
-      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.1)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
+      '@inkeep/agents-core': 0.42.0(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.1.5(hono@4.11.7)(zod@4.3.6))(@libsql/client@0.15.15)(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(drizzle-kit@0.31.8)(kysely@0.28.8)(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)(zod@4.3.6)
       '@yarnpkg/lockfile': 1.1.0
       js-yaml: 4.1.1
       typescript: 5.9.3
@@ -15241,7 +15244,7 @@ snapshots:
   '@sentry/core@10.38.0':
     optional: true
 
-  '@sentry/nextjs@10.38.0(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(webpack@5.105.0(esbuild@0.25.10))':
+  '@sentry/nextjs@10.38.0(@opentelemetry/context-async-hooks@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.0(@opentelemetry/api@1.9.0))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(webpack@5.105.0(esbuild@0.25.10))':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.38.0
@@ -15254,7 +15257,7 @@ snapshots:
       '@sentry/react': 10.38.0(react@19.2.0)
       '@sentry/vercel-edge': 10.38.0
       '@sentry/webpack-plugin': 4.9.0(webpack@5.105.0(esbuild@0.25.10))
-      next: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       rollup: 4.52.0
       stacktrace-parser: 0.1.11
     transitivePeerDependencies:
@@ -16410,7 +16413,7 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/cli@4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)':
+  '@workflow/cli@4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)':
     dependencies:
       '@oclif/core': 4.0.0(typescript@5.9.3)
       '@oclif/plugin-help': 6.2.31(typescript@5.9.3)
@@ -16419,7 +16422,7 @@ snapshots:
       '@workflow/core': 4.0.1-beta.28(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)
       '@workflow/errors': 4.0.1-beta.10
       '@workflow/swc-plugin': 4.0.1-beta.12(@swc/core@1.15.3)
-      '@workflow/web': 4.0.1-beta.17(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@workflow/web': 4.0.1-beta.17(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@workflow/world': 4.0.1-beta.10(zod@4.1.11)
       '@workflow/world-local': 4.0.1-beta.19(@opentelemetry/api@1.9.0)
       '@workflow/world-vercel': 4.0.1-beta.21
@@ -16495,7 +16498,7 @@ snapshots:
       '@workflow/utils': 4.0.1-beta.10
       ms: 2.1.3
 
-  '@workflow/next@4.0.1-beta.32(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))':
+  '@workflow/next@4.0.1-beta.32(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))':
     dependencies:
       '@swc/core': 1.15.3
       '@workflow/builders': 4.0.1-beta.27(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)
@@ -16504,7 +16507,7 @@ snapshots:
       semver: 7.7.3
       watchpack: 2.4.4
     optionalDependencies:
-      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
     transitivePeerDependencies:
       - '@aws-sdk/client-sts'
       - '@opentelemetry/api'
@@ -16580,11 +16583,11 @@ snapshots:
 
   '@workflow/vite@4.0.0-beta.2': {}
 
-  '@workflow/web@4.0.1-beta.17(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@workflow/web@4.0.1-beta.17(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@xyflow/react': 12.9.3(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      nuqs: 2.8.1(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+      next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      nuqs: 2.8.1(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
     transitivePeerDependencies:
       - '@babel/core'
       - '@opentelemetry/api'
@@ -16991,7 +16994,7 @@ snapshots:
   baseline-browser-mapping@2.9.19:
     optional: true
 
-  better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.2)(kysely@0.28.8)(nanostores@1.1.0)
       '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.2)(kysely@0.28.8)(nanostores@1.1.0))
@@ -17008,12 +17011,12 @@ snapshots:
     optionalDependencies:
       drizzle-kit: 0.31.8
       drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8)
-      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       pg: 8.16.3
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  better-auth@1.4.18(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8))(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.2)(kysely@0.28.8)(nanostores@1.1.0)
       '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.2)(kysely@0.28.8)(nanostores@1.1.0))
@@ -17030,7 +17033,7 @@ snapshots:
     optionalDependencies:
       drizzle-kit: 0.31.8
       drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.8)
-      next: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       pg: 8.16.3
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -18697,13 +18700,15 @@ snapshots:
       xtend: 4.0.2
     optional: true
 
-  hono-pino@0.10.3(hono@4.11.1)(pino@9.14.0):
+  hono-pino@0.10.3(hono@4.11.7)(pino@9.14.0):
     dependencies:
       defu: 6.1.4
-      hono: 4.11.1
+      hono: 4.11.7
       pino: 9.14.0
 
   hono@4.11.1: {}
+
+  hono@4.11.7: {}
 
   html-url-attributes@3.0.1: {}
 
@@ -19259,14 +19264,14 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mcp-handler@1.0.4(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)):
+  mcp-handler@1.0.4(@modelcontextprotocol/sdk@1.24.3(zod@4.3.6))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)):
     dependencies:
       '@modelcontextprotocol/sdk': 1.24.3(zod@4.3.6)
       chalk: 5.6.2
       commander: 11.1.0
       redis: 4.7.1
     optionalDependencies:
-      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
   mdast-util-find-and-replace@3.0.2:
     dependencies:
@@ -19798,7 +19803,7 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       '@next/env': 16.0.10
       '@swc/helpers': 0.5.15
@@ -19806,7 +19811,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      styled-jsx: 5.1.6(@babel/core@7.28.5)(react@19.2.0)
+      styled-jsx: 5.1.6(react@19.2.0)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.0.10
       '@next/swc-darwin-x64': 16.0.10
@@ -19822,7 +19827,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       '@next/env': 16.1.0
       '@swc/helpers': 0.5.15
@@ -19831,7 +19836,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      styled-jsx: 5.1.6(@babel/core@7.28.5)(react@19.2.0)
+      styled-jsx: 5.1.6(react@19.2.0)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.1.0
       '@next/swc-darwin-x64': 16.1.0
@@ -19890,19 +19895,19 @@ snapshots:
   normalize-path@3.0.0:
     optional: true
 
-  nuqs@2.8.1(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0):
+  nuqs@2.8.1(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0):
     dependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.2.0
     optionalDependencies:
-      next: 16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
-  nuqs@2.8.1(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0):
+  nuqs@2.8.1(next@16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0):
     dependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.2.0
     optionalDependencies:
-      next: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      next: 16.1.0(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
   nypm@0.6.4:
     dependencies:
@@ -21218,12 +21223,10 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  styled-jsx@5.1.6(@babel/core@7.28.5)(react@19.2.0):
+  styled-jsx@5.1.6(react@19.2.0):
     dependencies:
       client-only: 0.0.1
       react: 19.2.0
-    optionalDependencies:
-      '@babel/core': 7.28.5
 
   stylis@4.3.6: {}
 
@@ -21928,13 +21931,13 @@ snapshots:
 
   wordwrap@1.0.0: {}
 
-  workflow@4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
+  workflow@4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
     dependencies:
       '@workflow/astro': 4.0.0-beta.10(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)
-      '@workflow/cli': 4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      '@workflow/cli': 4.0.1-beta.33(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(@types/react@19.2.7)(immer@10.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       '@workflow/core': 4.0.1-beta.28(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)
       '@workflow/errors': 4.0.1-beta.10
-      '@workflow/next': 4.0.1-beta.32(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+      '@workflow/next': 4.0.1-beta.32(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       '@workflow/nitro': 4.0.1-beta.31(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)
       '@workflow/nuxt': 4.0.1-beta.20(@aws-sdk/client-sts@3.982.0)(@opentelemetry/api@1.9.0)
       '@workflow/rollup': 4.0.0-beta.6

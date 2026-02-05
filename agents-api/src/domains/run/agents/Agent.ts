@@ -14,6 +14,7 @@ import {
   getLedgerArtifacts,
   isGithubWorkAppTool,
   JsonTransformer,
+  jsonSchemaToZod,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -69,7 +70,6 @@ import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
-import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';

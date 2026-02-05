@@ -2,4 +2,4 @@
 "@inkeep/agents-work-apps": patch
 ---
 
-Get file content from feature branch
+visualize update from feature branch

@@ -14,6 +14,9 @@ type PreviewZodType = z.ZodTypeAny & {
 };
 
 /**
+ * TODO @Miles this function treats even non required JSON schema field as required, we should probably use
+ * import { convertJsonSchemaToZod } from 'zod-from-json-schema';
+ *
  * Converts JSON Schema to Zod schema at runtime.
  *
  * This is useful for dynamically creating Zod schemas from JSON Schema definitions,

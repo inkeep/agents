@@ -1,12 +1,13 @@
 import {
   type AgentStopWhen,
   type CredentialReferenceApiInsert,
+  convertZodToJsonSchema,
   type FullAgentDefinition,
   getLogger,
+  isZodSchema,
   type StatusUpdateSettings,
   type ToolPolicy,
 } from '@inkeep/agents-core';
-import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import { getFullProjectViaAPI } from './projectFullClient';

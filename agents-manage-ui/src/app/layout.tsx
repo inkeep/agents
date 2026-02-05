@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { AuthClientProvider } from '@/contexts/auth-client';
 import { PostHogProvider } from '@/contexts/posthog';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config';
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
     title: APP_NAME,
   },
   other: {
-    'msapplication-TileColor': '#69a3ff',
+    'msapplication-TileColor': INKEEP_BRAND_COLOR,
   },
   twitter: {
     creator: process.env.METADATA_TWITTER_CREATOR || '@inkeep',
