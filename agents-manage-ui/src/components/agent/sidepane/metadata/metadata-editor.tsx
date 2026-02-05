@@ -61,7 +61,7 @@ const ExecutionLimitInheritanceInfo = () => {
   );
 };
 
-function MetadataEditor() {
+export function MetadataEditor() {
   const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
@@ -599,5 +599,3 @@ function MetadataEditor() {
     </div>
   );
 }
-
-export default MetadataEditor;
