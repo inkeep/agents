@@ -9536,232 +9536,6 @@
         ]
       }
     },
-    "/manage/api/invitations/pending": {
-      "get": {
-        "description": "Get all pending (non-expired) invitations for a given email address",
-        "parameters": [
-          {
-            "description": "Email address to check for invitations",
-            "in": "query",
-            "name": "email",
-            "required": true,
-            "schema": {
-              "description": "Email address to check for invitations",
-              "format": "email",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      },
-                      "expiresAt": {
-                        "type": "number"
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "inviterId": {
-                        "type": "string"
-                      },
-                      "organizationId": {
-                        "type": "string"
-                      },
-                      "organizationName": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "organizationSlug": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "role": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "email",
-                      "organizationId",
-                      "organizationName",
-                      "organizationSlug",
-                      "role",
-                      "status",
-                      "expiresAt",
-                      "inviterId"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "List of pending invitations"
-          }
-        },
-        "summary": "Get pending invitations",
-        "tags": [
-          "Invitations"
-        ]
-      }
-    },
-    "/manage/api/users/{userId}/organizations": {
-      "get": {
-        "description": "Get all organizations associated with a user",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "path",
-            "name": "userId",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "properties": {
-                      "createdAt": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "format": "date",
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "organizationId": {
-                        "type": "string"
-                      },
-                      "organizationName": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "organizationSlug": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "role": {
-                        "type": "string"
-                      },
-                      "userId": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "userId",
-                      "organizationId",
-                      "role",
-                      "createdAt",
-                      "organizationName",
-                      "organizationSlug"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "List of user organizations"
-          }
-        },
-        "summary": "List user organizations",
-        "tags": [
-          "User Organizations"
-        ]
-      },
-      "post": {
-        "description": "Associate a user with an organization",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "path",
-            "name": "userId",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "organizationId": {
-                    "type": "string"
-                  },
-                  "role": {
-                    "default": "member",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "organizationId"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "organizationId": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "organizationId",
-                    "role",
-                    "createdAt"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "User added to organization"
-          }
-        },
-        "summary": "Add user to organization",
-        "tags": [
-          "User Organizations"
-        ]
-      }
-    },
     "/manage/available-agents": {
       "get": {
         "description": "List all agents the user can invoke. Requires a valid JWT token.",
@@ -33845,6 +33619,16 @@
       "get": {
         "description": "Redirects to Slack OAuth page for workspace installation",
         "operationId": "slack-install",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "302": {
             "description": "Redirect to Slack OAuth"
@@ -33874,6 +33658,14 @@
           {
             "in": "query",
             "name": "error",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
             "required": false,
             "schema": {
               "type": "string"
@@ -34050,14 +33842,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "sessionExpiresAt": {
-                    "description": "Session expiration ISO timestamp",
-                    "type": "string"
-                  },
-                  "sessionToken": {
-                    "description": "Pre-authenticated session token",
-                    "type": "string"
-                  },
                   "tenantId": {
                     "description": "Tenant ID",
                     "type": "string"
@@ -34126,10 +33910,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "connectionId": {
-                    "description": "Nango connection ID",
-                    "type": "string"
-                  },
                   "slackTeamId": {
                     "description": "Slack team ID",
                     "type": "string"
@@ -34158,9 +33938,6 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "connectionId": {
-                      "type": "string"
-                    },
                     "success": {
                       "type": "boolean"
                     }
@@ -34461,78 +34238,6 @@
           }
         },
         "summary": "Update User Settings",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Users"
-        ]
-      }
-    },
-    "/work-apps/slack/users/refresh-session": {
-      "post": {
-        "description": "Update the stored session token for a linked user.",
-        "operationId": "slack-user-refresh-session",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "sessionExpiresAt": {
-                    "description": "Session expiration ISO timestamp",
-                    "type": "string"
-                  },
-                  "sessionToken": {
-                    "description": "New session token",
-                    "type": "string"
-                  },
-                  "userId": {
-                    "description": "Inkeep user ID",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "userId",
-                  "sessionToken"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "connectionId": {
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "connectionId"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Session refreshed"
-          },
-          "400": {
-            "description": "Missing required fields"
-          },
-          "404": {
-            "description": "No connection found"
-          },
-          "500": {
-            "description": "Failed to refresh session"
-          }
-        },
-        "summary": "Refresh Session Token",
         "tags": [
           "Work Apps",
           "Slack",
@@ -35780,10 +35485,6 @@
       "name": "GitHub"
     },
     {
-      "description": "Operations for managing invitations",
-      "name": "Invitations"
-    },
-    {
       "description": "MCP (Model Context Protocol) endpoints",
       "name": "MCP"
     },
@@ -35834,10 +35535,6 @@
     {
       "description": "Operations for managing triggers",
       "name": "Triggers"
-    },
-    {
-      "description": "Operations for managing user organizations",
-      "name": "User Organizations"
     },
     {
       "description": "Operations for managing user project memberships",

@@ -7,6 +7,11 @@ const {
   getAgentByIdMock,
   verifyServiceTokenMock,
   validateTargetAgentMock,
+  isSlackUserTokenMock,
+  verifySlackUserTokenMock,
+  verifyTempTokenMock,
+  canUseProjectStrictMock,
+  createAgentsRunDatabaseClientMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   updateApiKeyLastUsedMock: vi.fn(),
@@ -19,6 +24,11 @@ const {
   ),
   verifyServiceTokenMock: vi.fn(),
   validateTargetAgentMock: vi.fn(),
+  isSlackUserTokenMock: vi.fn().mockReturnValue(false),
+  verifySlackUserTokenMock: vi.fn(),
+  verifyTempTokenMock: vi.fn(),
+  canUseProjectStrictMock: vi.fn(),
+  createAgentsRunDatabaseClientMock: vi.fn().mockReturnValue({}),
 }));
 
 // Mock the dependencies before imports
@@ -28,6 +38,11 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentById: getAgentByIdMock,
   verifyServiceToken: verifyServiceTokenMock,
   validateTargetAgent: validateTargetAgentMock,
+  isSlackUserToken: isSlackUserTokenMock,
+  verifySlackUserToken: verifySlackUserTokenMock,
+  verifyTempToken: verifyTempTokenMock,
+  canUseProjectStrict: canUseProjectStrictMock,
+  createAgentsRunDatabaseClient: createAgentsRunDatabaseClientMock,
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -44,7 +59,7 @@ import {
   runOptionalAuth as optionalAuth,
 } from '../../../middleware/runAuth';
 
-vi.mock('../../data/db/dbClient.js', () => ({
+vi.mock('../../../data/db/runDbClient', () => ({
   default: {},
 }));
 
