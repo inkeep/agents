@@ -2,10 +2,10 @@ name: Deploy to Vercel Production
 
 # This workflow deploys to Vercel production when a GitHub release is published,
 # or manually via workflow_dispatch (deploys latest main).
-# It uses Vercel's deployment checks to verify API health before promoting to production:
-# 1. Deploy to a preview URL (not production)
+# It uses staged production deployments to verify health before promoting:
+# 1. Deploy as production but skip domain assignment (staged)
 # 2. Wait for Vercel deployment checks to pass (configured in Vercel dashboard)
-# 3. Promote the verified deployment to production
+# 3. Promote the verified deployment to production (instant, no rebuild)
 #
 # Required secrets (configure in GitHub Repository Settings > Secrets):
 # - VERCEL_TOKEN: API token from Vercel Dashboard > Settings > Tokens
@@ -47,10 +47,10 @@ jobs:
       - name: Pull Vercel Environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy Preview for Checks
+      - name: Deploy Staged Production
         id: deploy
         run: |
-          DEPLOYMENT_URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOYMENT_URL=$(vercel deploy --prod --skip-domain --token=${{ secrets.VERCEL_TOKEN }})
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "Error: Failed to capture deployment URL"
             exit 1
@@ -64,4 +64,4 @@ jobs:
           vercel inspect ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --wait
 
       - name: Promote to Production
-        run: vercel promote ${{ steps.deploy.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
+        run: vercel promote ${{ steps.deploy.outputs.url }} --yes --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
