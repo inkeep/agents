@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { jsonSchemaToZod } from '@inkeep/agents-core/client-exports';
+import { convertJsonSchemaToZod } from '@inkeep/agents-core/client-exports';
 import { Bug, X } from 'lucide-react';
 import { type Dispatch, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -56,7 +56,7 @@ export const Playground = ({
         // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
         .superRefine((value, ctx) => {
           const schema = headersSchemaString
-            ? jsonSchemaToZod(JSON.parse(headersSchemaString))
+            ? convertJsonSchemaToZod(JSON.parse(headersSchemaString))
             : DefaultHeadersSchema;
           const result = schema.safeParse(value);
           if (result.success) return;
