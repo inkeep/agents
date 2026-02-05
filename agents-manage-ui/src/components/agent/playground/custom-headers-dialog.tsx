@@ -1,5 +1,5 @@
 import { Pencil, Plus } from 'lucide-react';
-import { type FC, useState } from 'react';
+import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
@@ -25,15 +25,18 @@ interface CustomHeadersDialogProps {
   customHeaders?: DefaultHeaders;
   setCustomHeaders: (headers?: DefaultHeaders) => void;
   form: UseFormReturn<any, any, { headers: DefaultHeaders }>;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
 export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
   customHeaders,
   setCustomHeaders,
   form,
+  isOpen,
+  setIsOpen,
 }) => {
   'use memo';
-  const [isOpen, setIsOpen] = useState(false);
   const numHeaders = Object.keys(customHeaders ?? {}).length;
 
   const onSubmit = form.handleSubmit(({ headers }) => {
