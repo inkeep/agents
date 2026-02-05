@@ -30,7 +30,7 @@ import {
 } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
 import { FullAgentUpdateSchema as schema } from '@/lib/validation';
-import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
+import { GenericPromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
@@ -70,7 +70,7 @@ export function MetadataEditor() {
     agentId: string;
   }>();
   const metadata = useAgentStore((state) => state.metadata);
-  const { id, name, contextConfig, models, stopWhen, prompt, statusUpdates } = metadata;
+  const { id, name, contextConfig, models, stopWhen, statusUpdates } = metadata;
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const { canUse } = useProjectPermissions();
@@ -154,10 +154,10 @@ export function MetadataEditor() {
           title="Default models"
           description="Set default models that will be inherited by sub agents that don't have their own models configured."
           titleTooltip={
-            <div>
-              <p>How model inheritance works:</p>
+            <>
+              How model inheritance works:
               <ModelInheritanceInfo />
-            </div>
+            </>
           }
         />
         <ModelConfiguration
