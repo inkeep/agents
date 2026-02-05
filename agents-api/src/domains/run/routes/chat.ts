@@ -17,8 +17,13 @@ import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
-import type { ContentItem, Message } from '../types/chat';
+import type { Message } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
+import {
+  extractTextFromParts,
+  getMessagePartsFromOpenAIContent,
+  imageUrlSchema,
+} from '../utils/message-parts';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
@@ -54,10 +59,19 @@ const chatCompletionsRoute = createRoute({
                     .union([
                       z.string(),
                       z.array(
-                        z.strictObject({
-                          type: z.string(),
-                          text: z.string().optional(),
-                        })
+                        z.discriminatedUnion('type', [
+                          z.object({
+                            type: z.literal('text'),
+                            text: z.string(),
+                          }),
+                          z.object({
+                            type: z.literal('image_url'),
+                            image_url: z.object({
+                              url: imageUrlSchema,
+                              detail: z.enum(['auto', 'low', 'high']).optional(),
+                            }),
+                          }),
+                        ])
                       ),
                     ])
                     .describe('The message content'),
@@ -299,7 +313,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
       const lastUserMessage = body.messages
         .filter((msg: Message) => msg.role === 'user')
         .slice(-1)[0];
-      const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
+
+      // Build Part[] for execution (text + image parts)
+      const messageParts = lastUserMessage
+        ? getMessagePartsFromOpenAIContent(lastUserMessage.content)
+        : [];
+
+      // Extract text content from parts
+      const userMessage = extractTextFromParts(messageParts);
 
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
@@ -456,6 +477,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage,
+            messageParts: messageParts.length > 1 ? messageParts : undefined,
             initialAgentId: subAgentId,
             requestId,
             sseHelper,
@@ -525,17 +547,5 @@ app.openapi(chatCompletionsRoute, async (c) => {
     });
   }
 });
-
-const getMessageText = (content: string | ContentItem[]): string => {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  // For content arrays, extract text from all text items
-  return content
-    .filter((item) => item.type === 'text' && item.text)
-    .map((item) => item.text)
-    .join(' ');
-};
 
 export default app;

@@ -8,6 +8,7 @@ import {
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   getFunctionToolsForSubAgent,
@@ -102,19 +103,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
-/**
- * Shape of a generation response after all Promise-based getters have been resolved.
- *
- * The AI SDK's `GenerateTextResult` and `StreamTextResult` classes expose properties
- * like `text`, `steps`, `finishReason`, and `output` as **prototype getters** — not
- * own enumerable properties. When one of these class instances is spread with `{ ...result }`,
- * the spread operator copies only own enumerable properties and silently drops the getters,
- * causing those fields to become `undefined` on the resulting plain object.
- *
- * This type represents the safely-resolved plain object produced by
- * `resolveGenerationResponse`, where every needed getter has been awaited and
- * assigned as a concrete own property.
- */
 export interface ResolvedGenerationResponse {
   steps: Array<StepResult<ToolSet>>;
   text: string;
@@ -124,18 +112,6 @@ export interface ResolvedGenerationResponse {
   formattedContent?: MessageContent | null;
 }
 
-/**
- * Resolves a generation response from either `generateText` or `streamText` into
- * a plain object with all needed values as own properties.
- *
- * **Why this exists:** The AI SDK returns class instances whose key properties
- * (`text`, `steps`, `finishReason`, `output`) are prototype getters.
- * `StreamTextResult` getters return `PromiseLike` values; `GenerateTextResult`
- * getters return direct values. In both cases, the spread operator `{ ...result }`
- * silently drops them. This function uses `Promise.resolve()` to safely resolve
- * both styles, then spreads them as explicit own properties so downstream code
- * (and further spreads) never loses them.
- */
 export async function resolveGenerationResponse(
   response: Record<string, unknown>
 ): Promise<ResolvedGenerationResponse> {
@@ -174,6 +150,20 @@ export async function resolveGenerationResponse(
       `Failed to resolve generation response: ${error instanceof Error ? error.message : String(error)}`
     );
   }
+}
+
+export type UserInput =
+  | string
+  | {
+      text: string;
+      imageParts?: FilePart[];
+    };
+
+function normalizeUserInput(input: UserInput): { text: string; imageParts?: FilePart[] } {
+  if (typeof input === 'string') {
+    return { text: input };
+  }
+  return input;
 }
 
 function validateModel(modelString: string | undefined, modelType: string): string {
@@ -2715,7 +2705,7 @@ ${output}`;
   }
 
   async generate(
-    userMessage: string,
+    userInput: UserInput,
     runtimeContext?: {
       contextId: string;
       metadata: {
@@ -2727,6 +2717,7 @@ ${output}`;
       };
     }
   ) {
+    const { text: userMessage, imageParts } = normalizeUserInput(userInput);
     // Extract conversation ID early for span attributes
     const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
 
@@ -2799,7 +2790,8 @@ ${output}`;
           const messages = this.buildInitialMessages(
             systemPrompt,
             conversationHistory,
-            userMessage
+            userMessage,
+            imageParts
           );
 
           // Setup compression for this generation
@@ -3176,7 +3168,8 @@ ${output}`;
   private buildInitialMessages(
     systemPrompt: string,
     conversationHistory: string,
-    userMessage: string
+    userMessage: string,
+    imageParts?: FilePart[]
   ): any[] {
     const messages: any[] = [];
     messages.push({ role: 'system', content: systemPrompt });
@@ -3184,12 +3177,47 @@ ${output}`;
     if (conversationHistory.trim() !== '') {
       messages.push({ role: 'user', content: conversationHistory });
     }
+
+    // Build user message content - use array format if images present
+    const userContent = this.buildUserMessageContent(userMessage, imageParts);
     messages.push({
       role: 'user',
-      content: userMessage,
+      content: userContent,
     });
 
     return messages;
+  }
+
+  /**
+   * Build user message content, formatting for multimodal if images are present
+   */
+  private buildUserMessageContent(
+    text: string,
+    imageParts?: FilePart[]
+  ): string | Array<{ type: string; text?: string; image?: string | URL }> {
+    // No images - return simple string for backward compatibility
+    if (!imageParts || imageParts.length === 0) {
+      return text;
+    }
+
+    // Build multimodal content array for Vercel AI SDK
+    const content: Array<{ type: string; text?: string; image?: string | URL }> = [
+      { type: 'text', text },
+    ];
+
+    for (const part of imageParts) {
+      const file = part.file;
+      // Transform directly from A2A FilePart to Vercel format:
+      // - HTTP URIs become URL objects
+      // - Base64 bytes become data URL strings (Vercel handles MIME detection)
+      const imageValue =
+        'uri' in file && file.uri
+          ? new URL(file.uri)
+          : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+      content.push({ type: 'image', image: imageValue });
+    }
+
+    return content;
   }
 
   /**

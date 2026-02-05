@@ -32486,11 +32486,54 @@
                                     "type": "string"
                                   },
                                   "type": {
+                                    "enum": [
+                                      "text"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "text": {
+                                    "anyOf": [
+                                      {
+                                        "format": "uri",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "pattern": "^data:image\\/(png|jpeg|jpg|webp);base64,",
+                                        "type": "string"
+                                      }
+                                    ]
+                                  },
+                                  "type": {
+                                    "enum": [
+                                      "image"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "properties": {
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "type": {
                                     "anyOf": [
                                       {
                                         "enum": [
-                                          "text",
-                                          "image",
                                           "audio",
                                           "video",
                                           "file"
@@ -33081,19 +33124,69 @@
                             },
                             {
                               "items": {
-                                "additionalProperties": false,
-                                "properties": {
-                                  "text": {
-                                    "type": "string"
+                                "oneOf": [
+                                  {
+                                    "properties": {
+                                      "text": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "text"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "text"
+                                    ],
+                                    "type": "object"
                                   },
-                                  "type": {
-                                    "type": "string"
+                                  {
+                                    "properties": {
+                                      "image_url": {
+                                        "properties": {
+                                          "detail": {
+                                            "enum": [
+                                              "auto",
+                                              "low",
+                                              "high"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "url": {
+                                            "anyOf": [
+                                              {
+                                                "format": "uri",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "pattern": "^data:image\\/(png|jpeg|jpg|webp);base64,",
+                                                "type": "string"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "url"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      "type": {
+                                        "enum": [
+                                          "image_url"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "image_url"
+                                    ],
+                                    "type": "object"
                                   }
-                                },
-                                "required": [
-                                  "type"
-                                ],
-                                "type": "object"
+                                ]
                               },
                               "type": "array"
                             }

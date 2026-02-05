@@ -129,6 +129,7 @@ const {
   getFullAgentDefinitionMock,
   agentHasArtifactComponentsMock,
   getToolsForAgentMock,
+  getFunctionToolsForSubAgentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
@@ -149,6 +150,7 @@ const {
       pagination: { page: 1, limit: 10, total: 0, pages: 0 },
     })
   );
+  const getFunctionToolsForSubAgentMock = vi.fn().mockResolvedValue([]);
 
   return {
     getCredentialReferenceMock,
@@ -158,6 +160,7 @@ const {
     getFullAgentDefinitionMock,
     agentHasArtifactComponentsMock,
     getToolsForAgentMock,
+    getFunctionToolsForSubAgentMock,
   };
 });
 
@@ -176,6 +179,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getFullAgentDefinition: getFullAgentDefinitionMock,
     agentHasArtifactComponents: agentHasArtifactComponentsMock,
     getToolsForAgent: getToolsForAgentMock,
+    getFunctionToolsForSubAgent: getFunctionToolsForSubAgentMock,
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
@@ -1756,5 +1760,179 @@ describe('Agent Conditional Tool Availability', () => {
 
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
+  });
+});
+
+describe('Agent Image Support', () => {
+  let mockAgentConfig: AgentConfig;
+  let mockExecutionContext: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockExecutionContext = createMockExecutionContext();
+
+    mockAgentConfig = {
+      id: 'test-agent',
+      projectId: 'test-project',
+      name: 'Test Agent',
+      description: 'Test agent for image support',
+      tenantId: 'test-tenant',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      prompt: 'You are a helpful assistant that can analyze images.',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      dataComponents: [],
+      tools: [],
+      functionTools: [],
+      models: {
+        base: {
+          model: 'anthropic/claude-sonnet-4-5',
+        },
+      },
+    };
+  });
+
+  test('should accept string message for backward compatibility', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+    await agent.generate('Simple text prompt');
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.stringContaining('Simple text prompt'),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('should pass image URL to generateText in AI SDK format', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+
+    await agent.generate({
+      text: 'What is in this image?',
+      imageParts: [
+        {
+          kind: 'file',
+          file: {
+            uri: 'https://example.com/screenshot.png',
+            mimeType: 'image/png',
+          },
+        },
+      ],
+    });
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'text',
+                text: expect.stringContaining('What is in this image?'),
+              }),
+              expect.objectContaining({ type: 'image', image: expect.any(URL) }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('should pass base64 image data to generateText', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+    const base64Data =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const expectedDataUrl = `data:image/png;base64,${base64Data}`;
+
+    await agent.generate({
+      text: 'Describe this screenshot',
+      imageParts: [
+        {
+          kind: 'file',
+          file: {
+            bytes: base64Data,
+            mimeType: 'image/png',
+          },
+        },
+      ],
+    });
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({ type: 'text' }),
+              expect.objectContaining({ type: 'image', image: expectedDataUrl }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('should support multiple images in a single message', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+
+    await agent.generate({
+      text: 'Compare these two screenshots',
+      imageParts: [
+        {
+          kind: 'file',
+          file: { uri: 'https://example.com/before.png', mimeType: 'image/png' },
+        },
+        {
+          kind: 'file',
+          file: { uri: 'https://example.com/after.png', mimeType: 'image/png' },
+        },
+      ],
+    });
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({ type: 'text' }),
+              expect.objectContaining({ type: 'image' }),
+              expect.objectContaining({ type: 'image' }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  test('should handle text-only message object', async () => {
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
+
+    await agent.generate({
+      text: 'Just text, no images',
+    });
+
+    const { generateText } = await import('ai');
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: 'user',
+            content: expect.stringContaining('Just text, no images'),
+          }),
+        ]),
+      })
+    );
   });
 });

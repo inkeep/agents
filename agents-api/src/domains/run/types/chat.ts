@@ -1,7 +1,17 @@
-export type ContentItem = {
-  type: string;
-  text?: string;
+export type TextContentItem = {
+  type: 'text';
+  text: string;
 };
+
+export type ImageContentItem = {
+  type: 'image_url';
+  image_url: {
+    url: string;
+    detail?: 'auto' | 'low' | 'high';
+  };
+};
+
+export type ContentItem = TextContentItem | ImageContentItem;
 
 export type Message = {
   role: 'system' | 'user' | 'assistant' | 'function' | 'tool';
