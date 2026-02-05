@@ -1,6 +1,5 @@
 import {
   AgentApiInsertSchema,
-  convertJsonSchemaToZod,
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
@@ -41,7 +40,7 @@ export function createCustomHeadersSchema(customHeaders: string) {
       }
       if (customHeaders) {
         try {
-          const customSchema = convertJsonSchemaToZod(JSON.parse(customHeaders));
+          const customSchema = z.fromJSONSchema(JSON.parse(customHeaders));
           const result = customSchema.safeParse(value);
           if (result.success) return;
           addIssue(ctx, result.error);

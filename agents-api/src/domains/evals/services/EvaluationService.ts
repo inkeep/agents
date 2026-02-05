@@ -33,73 +33,6 @@ import { getLogger } from '../../../logger';
 
 const logger = getLogger('EvaluationService');
 
-/**
- * Converts JSON Schema objects to Zod schema types
- */
-function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
-  if (!jsonSchema || typeof jsonSchema !== 'object') {
-    logger.warn({ jsonSchema }, 'Invalid JSON schema provided, using string fallback');
-    return z.string();
-  }
-
-  switch (jsonSchema.type) {
-    case 'object':
-      if (jsonSchema.properties) {
-        const shape: Record<string, z.ZodType<any>> = {};
-        const required = jsonSchema.required || [];
-
-        for (const [key, prop] of Object.entries(jsonSchema.properties)) {
-          const propSchema = prop as Record<string, unknown>;
-          let zodType = jsonSchemaToZod(propSchema);
-
-          // Add description if present
-          if (propSchema.description) {
-            zodType = zodType.describe(String(propSchema.description));
-          }
-
-          // Mark as optional if not in required array
-          if (!required.includes(key)) {
-            zodType = zodType.optional();
-          }
-
-          shape[key] = zodType;
-        }
-        return z.object(shape);
-      }
-      return z.record(z.string(), z.unknown());
-
-    case 'array': {
-      const itemSchema = jsonSchema.items ? jsonSchemaToZod(jsonSchema.items) : z.unknown();
-      return z.array(itemSchema);
-    }
-
-    case 'string':
-      return z.string();
-
-    case 'number':
-      return z.number();
-
-    case 'integer':
-      return z.number().int();
-
-    case 'boolean':
-      return z.boolean();
-
-    case 'null':
-      return z.null();
-
-    default:
-      logger.warn(
-        {
-          unsupportedType: jsonSchema.type,
-          schema: jsonSchema,
-        },
-        'Unsupported JSON schema type, using unknown validation'
-      );
-      return z.unknown();
-  }
-}
-
 export interface RunDatasetItemOptions {
   tenantId: string;
   projectId: string;
@@ -1137,7 +1070,7 @@ Return your evaluation as a JSON object matching the schema above.`;
     // Convert JSON schema to Zod schema
     let resultSchema: z.ZodType<any>;
     try {
-      resultSchema = jsonSchemaToZod(schema);
+      resultSchema = z.fromJSONSchema(schema);
       logger.info(
         {
           schemaType: typeof schema,

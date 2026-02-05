@@ -125,7 +125,6 @@
     "db:auth:init": "tsx src/auth/init.ts"
   },
   "dependencies": {
-    "zod-from-json-schema": "^0.5.2",
     "@sinclair/typebox": "^0.34.40",
     "@ai-sdk/anthropic": "3.0.7",
     "@ai-sdk/azure": "^3.0.4",
