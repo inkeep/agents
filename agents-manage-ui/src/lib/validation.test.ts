@@ -4,8 +4,11 @@ import { z } from 'zod';
 describe('validation', () => {
   describe('createCustomHeadersSchema', () => {
     test('should throw when not object', () => {
-      const schema = createCustomHeadersSchema('');
-      expect(getErrorObject(schema, 'null')).toMatchObject([
+      const error = getErrorObject({
+        headersJsonSchema: '',
+        headersString: 'null',
+      });
+      expect(error).toMatchObject([
         {
           path: [],
           message: 'Must be valid JSON object',
@@ -14,8 +17,11 @@ describe('validation', () => {
     });
 
     test('should throw when invalid syntax', () => {
-      const schema = createCustomHeadersSchema('');
-      expect(getErrorObject(schema, '#')).toMatchObject([
+      const error = getErrorObject({
+        headersJsonSchema: '',
+        headersString: '#',
+      });
+      expect(error).toMatchObject([
         {
           path: [],
           message: 'Invalid JSON syntax',
@@ -24,12 +30,13 @@ describe('validation', () => {
     });
 
     test('should throw nested keys', () => {
-      const schema = createCustomHeadersSchema('');
-      const str = JSON.stringify({
-        foo: { bar: 'baz' },
+      const error = getErrorObject({
+        headersJsonSchema: '',
+        headersString: JSON.stringify({
+          foo: { bar: 'baz' },
+        }),
       });
-
-      expect(getErrorObject(schema, str)).toMatchObject([
+      expect(error).toMatchObject([
         {
           path: [],
           message: 'All header values must be strings\n  → at foo',
@@ -38,10 +45,11 @@ describe('validation', () => {
     });
 
     test('should throw when key is not object', () => {
-      const schema = createCustomHeadersSchema('');
-      const str = JSON.stringify({ foo: null });
-
-      expect(getErrorObject(schema, str)).toMatchObject([
+      const error = getErrorObject({
+        headersJsonSchema: '',
+        headersString: JSON.stringify({ foo: null }),
+      });
+      expect(error).toMatchObject([
         {
           path: [],
           message: 'All header values must be strings\n  → at foo',
@@ -49,7 +57,7 @@ describe('validation', () => {
       ]);
     });
 
-    test.only('should validate custom schema', () => {
+    test('should validate custom schema', () => {
       const jsonSchema = z.object({ foo: z.string() }).toJSONSchema();
       const error = getErrorObject({
         headersJsonSchema: JSON.stringify(jsonSchema),
@@ -63,7 +71,7 @@ describe('validation', () => {
       ]);
     });
 
-    test.only("should have object validation even json schema doesn't allow it", () => {
+    test("should have object validation even json schema doesn't allow it", () => {
       const jsonSchema = z.string().toJSONSchema();
       const error = getErrorObject({
         headersJsonSchema: JSON.stringify(jsonSchema),
@@ -77,7 +85,7 @@ describe('validation', () => {
       ]);
     });
 
-    test.only('should throw on invalid json schemas', () => {
+    test('should throw on invalid json schemas', () => {
       const error = getErrorObject({ headersJsonSchema: 'null', headersString: '' });
       expect(error).toMatchObject([
         {
