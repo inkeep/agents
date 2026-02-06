@@ -148,9 +148,10 @@ For each changed file that introduces a new route/handler/service/type/module:
 - Index and constraint names: consistency with existing naming patterns
 - Enum/type names in the database layer
 
-## 3. Reuse of Existing Helpers/Utilities
-Before accepting a new helper or "common" function:
+## 3. Reuse of Existing Helpers/Utilities/Types
+Before accepting a new helper, type, or "common" function:
 - Grep for existing utilities that already solve the problem
+- **For new types/interfaces:** check if Zod schemas, protocol types, or domain types in shared packages already define the shape — prefer `z.infer<typeof schema>`, `Pick<T, K>`, `Omit<T, K>` over manual redefinition
 - Prefer extending the existing helper over adding a near-duplicate
 - If a new helper is warranted, ensure naming and location match existing conventions (avoid a new parallel "utils universe")
 

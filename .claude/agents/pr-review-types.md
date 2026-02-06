@@ -76,6 +76,18 @@ When analyzing a type, you will:
    - Is it impossible to create invalid instances?
    - Are runtime checks appropriate and comprehensive?
 
+6. **Check Schema-Type Derivation**: When new types are introduced:
+   - Does a Zod schema (or similar validation schema) already define this shape? → Use `z.infer<typeof schema>`
+   - Does a canonical domain/protocol type already exist in a shared package? → Use `Pick`, `Omit`, or `Partial` to derive
+   - Are string literal unions or enums being redefined inline? → Extract to a shared schema/const or reference existing ones
+
+   **Why this matters:** Manual type definitions that duplicate schema shapes will silently drift as schemas evolve, creating subtle bugs where validation passes but runtime types don't match the TypeScript type.
+
+   **Detection patterns:**
+   - New `type X = {` or `interface X {` appearing in a file that also imports from Zod or a schema package
+   - New type with fields that mirror an existing `z.object()` schema in the same package
+   - String literal union types (e.g., `'text' | 'image'`) that duplicate values from an existing `z.enum()` or `z.union()`
+
 **Key Principles:**
 
 - Prefer compile-time guarantees over runtime checks when feasible
@@ -95,6 +107,10 @@ When analyzing a type, you will:
 - Missing validation at construction boundaries
 - Inconsistent enforcement across mutation methods
 - Types that rely on external code to maintain invariants
+- Types manually duplicating schema shapes:
+  - New `type` or `interface` that mirrors an existing Zod schema (`z.infer<typeof schema>` should be used instead)
+  - String literal unions or inline enums that duplicate values from existing `z.enum()` or `z.union()` schemas
+  - Types that subset or reshape an existing domain/protocol type (should use `Pick<T, K>`, `Omit<T, K>`, or `Partial<T>`)
 
 **Output Format:**
 
