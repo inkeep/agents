@@ -284,7 +284,8 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         });
 
         attemptNumber++;
-        await sleep(currentTrigger.retryDelaySeconds * 1000);
+        const jitter = Math.random() * 0.3;
+        await sleep(currentTrigger.retryDelaySeconds * 1000 * (1 + jitter));
       } else {
         break;
       }
