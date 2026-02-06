@@ -89,6 +89,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       ...agent.data.statusUpdates,
       statusComponents: statusComponents ? JSON.stringify(statusComponents, null, 2) : '',
     },
+    stopWhen: agent.data.stopWhen,
   };
 
   console.log(defaultValues);

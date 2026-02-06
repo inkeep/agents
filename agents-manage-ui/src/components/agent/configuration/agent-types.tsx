@@ -3,8 +3,6 @@ type ModelSettings = {
   providerOptions?: string; // JSON string representation for form compatibility
 };
 
-import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
-
 export type AgentModels = {
   base?: ModelSettings;
   structuredOutput?: ModelSettings;
@@ -13,7 +11,6 @@ export type AgentModels = {
 
 export type AgentMetadata = {
   models?: AgentModels;
-  stopWhen?: AgentStopWhen;
 };
 
 export type ContextConfig = {

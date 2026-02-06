@@ -1,5 +1,5 @@
 'use client';
-
+import type { JSX } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { FormFieldWrapper } from './form-field-wrapper';
 interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
   control: Control<FV, any, TV>;
   name: FieldPath<FV>;
-  label: string;
+  label: string | JSX.Element;
   placeholder?: string;
   type?: string;
   min?: string;

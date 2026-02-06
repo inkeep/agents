@@ -67,6 +67,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
+  stopWhen: true,
 }).extend({
   contextConfig: z.strictObject({
     id: ContextConfigSchema.id,

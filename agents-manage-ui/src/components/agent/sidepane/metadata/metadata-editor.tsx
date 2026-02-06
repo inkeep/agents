@@ -80,7 +80,7 @@ export const MetadataEditor: FC = () => {
     projectId: string;
     agentId: string;
   }>();
-  const { models, stopWhen } = useAgentStore((state) => state.metadata);
+  const { models } = useAgentStore((state) => state.metadata);
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const { canUse } = useProjectPermissions();
@@ -105,6 +105,7 @@ export const MetadataEditor: FC = () => {
   const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
   const numEvents = useWatch({ control: form.control, name: 'statusUpdates.numEvents' });
   const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
+  const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
 
   return (
     <div className="space-y-8">
@@ -359,36 +360,28 @@ export const MetadataEditor: FC = () => {
         />
 
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="transfer-count">Max transfers</Label>
-            <InheritanceIndicator
-              {...getExecutionLimitInheritanceStatus(
-                'agent',
-                'transferCountIs',
-                stopWhen?.transferCountIs,
-                project?.stopWhen?.transferCountIs
-              )}
-              size="sm"
-            />
-          </div>
-          <Input
-            id="transfer-count"
+          <GenericInput
+            control={form.control}
+            label={
+              <>
+                Max transfers
+                <InheritanceIndicator
+                  {...getExecutionLimitInheritanceStatus(
+                    'agent',
+                    'transferCountIs',
+                    transferCountIs,
+                    project?.stopWhen?.transferCountIs
+                  )}
+                  size="sm"
+                />
+              </>
+            }
+            name="stopWhen.transferCountIs"
             type="number"
-            min="1"
-            max="100"
-            value={stopWhen?.transferCountIs || ''}
-            onChange={(e) => {
-              const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-              updateMetadata('stopWhen', {
-                ...(stopWhen || {}),
-                transferCountIs: value,
-              });
-            }}
             placeholder="10"
+            description="Maximum number of agent transfers per conversation (defaults to 10 if not set)"
+            isRequired={isRequired(schema, 'stopWhen.transferCountIs')}
           />
-          <p className="text-xs text-muted-foreground">
-            Maximum number of agent transfers per conversation (defaults to 10 if not set)
-          </p>
         </div>
       </div>
 
