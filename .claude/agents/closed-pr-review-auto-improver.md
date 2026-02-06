@@ -129,27 +129,63 @@ git rev-list -1 --before="<comment.createdAt>" HEAD
 
 ### Progressive context gathering
 
-Start minimal, expand only as needed to understand the issue:
+Start minimal, expand only as needed. **Stop early when you have enough information.**
 
-| Level | Command | What you get | When to use |
-|-------|---------|--------------|-------------|
-| 1 | (already have) | `diffHunk` in comment | Start here — immediate code snippet |
-| 2 | `git show <commit>:<path>` | Full file at comment time | Need imports, class structure, surrounding code |
-| 3 | `git diff <base>..<commit>` | Full PR diff at comment time | Need to understand cross-file changes |
-| 4 | `git show <commit>:<other_path>` | Any other file at comment time | Comment references schemas, types, etc. in other files |
+| Level | Command | What you get |
+|-------|---------|--------------|
+| 1 | (already have) | `diffHunk` in comment |
+| 2 | `git show <commit>:<path>` | Full file at comment time |
+| 3 | `git diff <base>..<commit>` | Full PR diff at comment time |
+| 4 | `git show <commit>:<other_path>` | Any other file at comment time |
 
-### Checklist for each comment
+### Stop conditions (check after EACH level)
 
-- [ ] **Level 1: Read diffHunk** — what code is the comment on?
-- [ ] **Level 2: Full file if needed** — `git show <commit>:<path>` for imports, context
-- [ ] **Level 3: PR diff if needed** — `git diff <base>..<commit>` for cross-file patterns
-- [ ] **Level 4: Other files if needed** — `git show <commit>:<other_path>` for referenced code
-- [ ] **Articulate the anti-pattern** — what did the author do vs should have done?
-- [ ] **Name the underlying principle** — why is the human's way better?
+**After gathering context at any level, ask: Can I now determine one of these?**
 
-**Stop if you can't articulate a clear principle.** Vague feelings don't become reviewer improvements.
+#### EXIT A: Not Generalizable
+You have enough information to conclude this is NOT worth pursuing:
+- "This is clearly repo-specific" (e.g., "we use snake_case here")
+- "This is a one-off bug, not a pattern"
+- "This is a style preference, not a principle"
+- "I still can't understand what the human meant after Level 4"
 
-### Example
+→ **Stop. Note as repo-specific or skip. Move to next comment.**
+
+#### EXIT B: Pattern Found
+You have enough information to articulate the generalizable pattern:
+- You can name the anti-pattern (what the author did wrong)
+- You can name the underlying principle (why the human's way is better)
+- The principle is universal (DRY, type safety, separation of concerns, etc.)
+
+→ **Stop. You have what you need. Move to Phase 3.**
+
+### Decision flow at each level
+
+```
+Level 1 (diffHunk)
+  → Can I determine EXIT A or EXIT B?
+    → YES: Stop, move on
+    → NO: Need more context → Level 2
+
+Level 2 (full file)
+  → Can I determine EXIT A or EXIT B?
+    → YES: Stop, move on
+    → NO: Need cross-file context → Level 3
+
+Level 3 (PR diff)
+  → Can I determine EXIT A or EXIT B?
+    → YES: Stop, move on
+    → NO: Comment references specific other file → Level 4
+
+Level 4 (other files)
+  → Can I determine EXIT A or EXIT B?
+    → YES: Stop, move on
+    → NO: Skip this comment (insufficient signal)
+```
+
+**Do NOT gather more context than needed.** If Level 1 tells you "use our internal DateUtils" → that's EXIT A (repo-specific), no need for Levels 2-4.
+
+### Example: EXIT B (Pattern Found)
 
 ```
 Comment: "Are we redefining types? You can infer types from zod schemas"
@@ -162,18 +198,35 @@ git rev-list -1 --before="2026-02-05T21:07:23Z" HEAD
 
 # Level 1: diffHunk shows
 export type ImageContentItem = { type: 'image_url'; url: string; ... }
+→ Check: Can I exit? Not yet — need to see if schema exists
 
-# Level 2: Full file at comment time (needed - want to see imports)
+# Level 2: Full file at comment time
 git show abc123:agents-api/src/domains/run/types/chat.ts
 → imports zod, has z.object schemas defined above
+→ Check: Can I exit? YES — EXIT B!
+   Anti-pattern: manually defined type when schema exists
+   Principle: DRY applies to types — derive from schemas
 
-# Level 4: Check how other files handle this (comment mentions "infer")
-git show abc123:agents-api/src/domains/run/schemas/message.ts
-→ uses z.infer<typeof messageSchema> pattern
+# STOP HERE — no need for Levels 3-4
+```
 
-# Analysis
-Anti-pattern: manually defined type when schema exists
-Principle: DRY applies to types — derive from schemas, don't duplicate
+### Example: EXIT A (Not Generalizable)
+
+```
+Comment: "We always use DateUtils.format() instead of date-fns here"
+Path: src/components/Calendar.tsx:42
+createdAt: 2026-02-05T15:30:00Z
+
+# Level 1: diffHunk shows
+import { format } from 'date-fns';
+...
+const formatted = format(date, 'yyyy-MM-dd');
+→ Check: Can I exit? YES — EXIT A!
+   This is repo-specific: they have an internal DateUtils convention
+   Not generalizable — other repos don't have this DateUtils
+
+# STOP HERE — no need for Levels 2-4
+# Note as repo-specific, move to next comment
 ```
 
 ## Phase 3: Compare Against Bot Comments
