@@ -59,12 +59,29 @@ export function createCustomHeadersSchema(customHeaders: string) {
   return zodSchema;
 }
 
+const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.shape;
+
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
   description: true,
   prompt: true,
-  contextConfig: true,
+}).extend({
+  contextConfig: z.strictObject({
+    id: ContextConfigSchema.id,
+    headersSchema: z
+      .string()
+      .trim()
+      .transform((value, ctx) => (value ? transformToJson(value, ctx) : undefined))
+      .pipe(ContextConfigSchema.headersSchema)
+      .optional(),
+    contextVariables: z
+      .string()
+      .trim()
+      .transform((value, ctx) => (value ? transformToJson(value, ctx) : undefined))
+      .pipe(ContextConfigSchema.contextVariables)
+      .optional(),
+  }),
 });
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
