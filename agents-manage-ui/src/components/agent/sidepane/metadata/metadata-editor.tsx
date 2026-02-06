@@ -32,7 +32,6 @@ import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useProjectData } from '@/hooks/use-project-data';
 import {
   statusUpdatesComponentsTemplate,
@@ -79,24 +78,10 @@ export const MetadataEditor: FC = () => {
     projectId: string;
     agentId: string;
   }>();
-  const models = useAgentStore((state) => state.metadata.models);
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { canUse } = useProjectPermissions();
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();
-
-  const { markUnsaved, setMetadata } = useAgentActions();
-
-  const updateMetadata: typeof setMetadata = (...attrs) => {
-    setMetadata(...attrs);
-    markUnsaved();
-  };
-
-  // Helper to get the latest models from the store to avoid stale closure race conditions
-  const getCurrentModels = () => {
-    return agentStore.getState().metadata.models;
-  };
-
   const form = useFullAgentFormContext();
 
   const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
@@ -155,8 +140,8 @@ export const MetadataEditor: FC = () => {
           }
         />
         <ModelConfiguration
-          value={models?.base?.model}
-          providerOptions={models?.base?.providerOptions}
+          value={models.base.model}
+          providerOptions={models.base.providerOptions}
           inheritedValue={project?.models?.base?.model}
           label={
             <div className="flex items-center gap-2">
@@ -164,7 +149,7 @@ export const MetadataEditor: FC = () => {
               <InheritanceIndicator
                 {...getModelInheritanceStatus(
                   'agent',
-                  models?.base?.model,
+                  models.base.model,
                   project?.models?.base?.model
                 )}
                 size="sm"
@@ -189,14 +174,14 @@ export const MetadataEditor: FC = () => {
             const currentModels = getCurrentModels();
             // If there's no base model in the store yet, check the component's `models` prop
             // which reflects the latest state from the selector (handles timing issues)
-            const baseModel = currentModels?.base?.model || models?.base?.model;
+            const baseModel = currentModels?.base?.model || models.base.model;
             if (!baseModel) {
               return;
             }
             const newModels = {
               ...(currentModels || models || {}),
               base: {
-                ...(currentModels?.base || models?.base || {}),
+                ...(currentModels?.base || models.base || {}),
                 model: baseModel,
                 providerOptions: value,
               },
@@ -207,15 +192,15 @@ export const MetadataEditor: FC = () => {
         />
 
         <CollapsibleSettings
-          defaultOpen={!!models?.structuredOutput || !!models?.summarizer}
+          defaultOpen={!!models.structuredOutput || !!models.summarizer}
           title="Advanced model options"
         >
           <div className="relative space-y-2">
             <ModelSelector
-              value={models?.structuredOutput?.model || ''}
+              value={models.structuredOutput.model || ''}
               inheritedValue={
                 project?.models?.structuredOutput?.model ||
-                models?.base?.model ||
+                models.base.model ||
                 project?.models?.base?.model
               }
               onValueChange={(value) => {
@@ -237,7 +222,7 @@ export const MetadataEditor: FC = () => {
                   <InheritanceIndicator
                     {...getModelInheritanceStatus(
                       'agent',
-                      models?.structuredOutput?.model,
+                      models.structuredOutput.model,
                       project?.models?.structuredOutput?.model
                     )}
                     size="sm"
@@ -250,7 +235,7 @@ export const MetadataEditor: FC = () => {
             </p>
           </div>
           {/* Structured Output Model Provider Options */}
-          {models?.structuredOutput?.model && (
+          {models.structuredOutput.model && (
             <div className="space-y-2">
               <FieldLabel
                 id="structured-provider-options"
@@ -276,10 +261,10 @@ export const MetadataEditor: FC = () => {
           )}
           <div className="relative space-y-2">
             <ModelSelector
-              value={models?.summarizer?.model || ''}
+              value={models.summarizer.model || ''}
               inheritedValue={
                 project?.models?.summarizer?.model ||
-                models?.base?.model ||
+                models.base.model ||
                 project?.models?.base?.model
               }
               onValueChange={(value) => {
@@ -301,7 +286,7 @@ export const MetadataEditor: FC = () => {
                   <InheritanceIndicator
                     {...getModelInheritanceStatus(
                       'agent',
-                      models?.summarizer?.model,
+                      models.summarizer.model,
                       project?.models?.summarizer?.model
                     )}
                     size="sm"
@@ -314,7 +299,7 @@ export const MetadataEditor: FC = () => {
             </p>
           </div>
           {/* Summarizer Model Provider Options */}
-          {models?.summarizer?.model && (
+          {models.summarizer.model && (
             <div className="space-y-2">
               <FieldLabel
                 id="summarizer-provider-options"
