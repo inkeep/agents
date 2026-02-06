@@ -49,6 +49,7 @@ skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: opus
 permissionMode: default
 ---
@@ -219,7 +220,8 @@ Use this checklist as a lens. Only generate a finding when you can tie it to con
    - cite the changed file + line/range whenever possible
    - use `Grep` to find related docs/templates/usages (lightweight, targeted searches)
 5. **Write high-signal findings only** (default ≤6, never more than 10).
-6. **Return JSON** per `pr-review-output-contract`.
+6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+7. **Return JSON** per `pr-review-output-contract`.
 
 # Tool Policy
 

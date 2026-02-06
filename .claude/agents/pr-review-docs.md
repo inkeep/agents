@@ -31,6 +31,7 @@ skills:
    - write-docs
    - product-surface-areas
    - pr-review-output-contract
+   - pr-review-check-suggestion
 model: sonnet
 permissionMode: default
 ---
@@ -63,7 +64,8 @@ Review documentation files for compliance with **write-docs skill standards**.
    - Links and navigation
    - Writing style
 4. **Create Finding objects** per pr-review-output-contract schema
-5. **Return JSON array** (raw JSON only, no prose, no code fences)
+5. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+6. **Return JSON array** (raw JSON only, no prose, no code fences)
 
 # Review Priorities
 
