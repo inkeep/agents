@@ -6,25 +6,9 @@
  */
 
 // Import core types and schemas
-import type {
-  FullAgentDefinition as CoreFullAgentDefinition,
-  FunctionApiInsert,
-  InternalAgentDefinition,
-  ToolApiInsert,
-} from '@inkeep/agents-core/client-exports';
-import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
-import type { AgentInput } from '@/lib/validation';
+import type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
+import type { AgentInput, FullAgentResponse } from '@/lib/validation';
 import type { SingleResponse } from './response';
-import type { TeamAgent } from './team-agents';
-
-// Extend FullAgentDefinition with UI-specific lookup maps
-export type FullAgentDefinition = CoreFullAgentDefinition & {
-  tools?: Record<string, ToolApiInsert>;
-  externalAgents?: Record<string, ExternalAgentFormData & { id: string }>;
-  teamAgents?: Record<string, TeamAgent>;
-  functionTools?: Record<string, any>; // Function tools are agent-scoped
-  functions?: Record<string, FunctionApiInsert>;
-};
 
 // Re-export types and schemas
 export type { InternalAgentDefinition };
@@ -38,10 +22,10 @@ export interface Agent {
 }
 
 // API Response Types
-export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
+export type CreateFullAgentResponse = SingleResponse<FullAgentResponse>;
 export type CreateAgentResponse = SingleResponse<AgentInput>;
-export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
-export type UpdateFullAgentResponse = SingleResponse<FullAgentDefinition>;
+export type GetAgentResponse = SingleResponse<FullAgentResponse>;
+export type UpdateFullAgentResponse = SingleResponse<FullAgentResponse>;
 export type UpdateAgentResponse = SingleResponse<AgentInput>;
 
 export type SubAgentTeamAgentConfig = {

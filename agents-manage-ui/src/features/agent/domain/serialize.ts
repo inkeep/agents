@@ -584,10 +584,7 @@ export function serializeAgentData(
     });
   }
 
-  const result: FullAgentDefinition = {
-    id: metadata?.id || generateId(),
-    name: metadata?.name ?? '',
-    description: metadata?.description || undefined,
+  const result: PartialFullAgentDefinition = {
     defaultSubAgentId,
     subAgents: subAgents,
     ...(Object.keys(functionTools).length > 0 && { functionTools }),
@@ -596,58 +593,6 @@ export function serializeAgentData(
     // ...(Object.keys(dataComponents).length > 0 && { dataComponents }),
     // ...(Object.keys(artifactComponents).length > 0 && { artifactComponents }),
   };
-
-  // Add new agent-level fields
-  if (metadata?.models) {
-    (result as any).models = {
-      base: metadata.models.base
-        ? {
-            model: metadata.models.base.model,
-            providerOptions: safeJsonParse(metadata.models.base.providerOptions),
-          }
-        : undefined,
-      structuredOutput: metadata.models.structuredOutput
-        ? {
-            model: metadata.models.structuredOutput.model,
-            providerOptions: safeJsonParse(metadata.models.structuredOutput.providerOptions),
-          }
-        : undefined,
-      summarizer: metadata.models.summarizer
-        ? {
-            model: metadata.models.summarizer.model,
-            providerOptions: safeJsonParse(metadata.models.summarizer.providerOptions),
-          }
-        : undefined,
-    };
-  }
-
-  if (metadata?.stopWhen) {
-    (result as any).stopWhen = metadata.stopWhen;
-  }
-
-  if (metadata) {
-    (result as any).prompt = metadata.prompt;
-  }
-
-  if (metadata?.statusUpdates) {
-    const parsedStatusComponents = safeJsonParse(metadata.statusUpdates.statusComponents);
-    (result as any).statusUpdates = {
-      ...metadata.statusUpdates,
-      statusComponents: parsedStatusComponents,
-    };
-  }
-
-  // Add contextConfig if there's meaningful data OR if there's an existing contextConfig that needs to be cleared
-  const existingContextConfigId = metadata?.contextConfig?.id;
-  if (hasContextConfig || existingContextConfigId) {
-    const contextConfigId = existingContextConfigId || generateId();
-    (result as any).contextConfigId = contextConfigId;
-    (result as any).contextConfig = {
-      id: contextConfigId,
-      headersSchema: parsedHeadersSchema ?? null,
-      contextVariables: parsedContextVariables ?? null,
-    };
-  }
 
   // Rebuild canDelegateTo arrays from delegate maps to ensure consistency
   Object.entries(subAgents).forEach(([subAgentId, agent]) => {
@@ -687,7 +632,7 @@ interface StructuredValidationError {
 }
 
 export function validateSerializedData(
-  data: FullAgentDefinition,
+  data: PartialFullAgentDefinition,
   functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
