@@ -54,7 +54,7 @@ Product or engineering changes may require updates beyond product docs. Check th
 - **Direct and practical**: Get to the point. Documentation exists to help users accomplish goals, not to showcase everything we know.
 - **Progressive disclosure**: Build up concepts before diving into details.
 - **Scoped and targeted**: Each doc has a clear outcome. Provide the context needed—nothing more, nothing less.
-- **Right detail, right place**: Avoid duplication. If something is explained elsewhere, link to it or reuse it in some way as a appropriate.
+- **Right detail, right place**: Avoid duplication. If something is explained elsewhere, link to it or reuse it in some way as appropriate.
 
 ---
 
