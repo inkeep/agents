@@ -1,18 +1,11 @@
 'use client';
 
-import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -22,6 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { TriggerInvocation } from '@/lib/api/triggers';
+import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
+import { Combobox } from '../ui/combobox';
 
 interface InvocationsTableProps {
   invocations: TriggerInvocation[];
@@ -51,13 +46,17 @@ function formatDate(dateString: string): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-    success: 'default',
-    pending: 'secondary',
-    failed: 'destructive',
+  const variants: Record<string, 'primary' | 'code' | 'error'> = {
+    success: 'primary',
+    pending: 'code',
+    failed: 'error',
   };
 
-  return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+  return (
+    <Badge className="uppercase" variant={variants[status] || 'code'}>
+      {status}
+    </Badge>
+  );
 }
 
 export function InvocationsTable({
@@ -105,21 +104,40 @@ export function InvocationsTable({
       {/* Filter Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by status:</span>
-          <Select value={currentStatus || 'all'} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
+          <Combobox
+            defaultValue={currentStatus || 'all'}
+            notFoundMessage={'No status found.'}
+            onSelect={(value) => {
+              handleStatusChange(value);
+            }}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'success', label: 'Success' },
+              { value: 'failed', label: 'Failed' },
+              { value: 'pending', label: 'Pending' },
+            ]}
+            TriggerComponent={
+              <FilterTriggerComponent
+                disabled={false}
+                filterLabel={currentStatus ? 'Status' : 'All statuses'}
+                isRemovable={true}
+                onDeleteFilter={() => {
+                  handleStatusChange('all');
+                }}
+                multipleCheckboxValues={currentStatus ? [currentStatus] : []}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'success', label: 'Success' },
+                  { value: 'failed', label: 'Failed' },
+                  { value: 'pending', label: 'Pending' },
+                ]}
+              />
+            }
+          />
         </div>
-        <div className="text-sm text-muted-foreground">
-          Total: {metadata.total} invocation{metadata.total !== 1 ? 's' : ''}
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <Badge variant="count">{metadata.total}</Badge> invocation
+          {metadata.total !== 1 ? 's' : ''}
         </div>
       </div>
 
@@ -167,10 +185,10 @@ export function InvocationsTable({
                         {invocation.conversationId ? (
                           <Link
                             href={`/${tenantId}/projects/${projectId}/traces/conversations/${invocation.conversationId}`}
-                            className="flex items-center gap-1 text-blue-600 hover:underline"
+                            className="flex items-center gap-1 text-primary hover:underline font-mono uppercase text-xs"
                           >
                             View
-                            <ExternalLink className="w-3 h-3" />
+                            <ArrowUpRight className="w-3 h-3" />
                           </Link>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -191,7 +209,7 @@ export function InvocationsTable({
                     {isExpanded && (
                       <TableRow noHover>
                         <TableCell colSpan={5} className="bg-muted/30 p-6">
-                          <div className="space-y-4">
+                          <div className="w-0 min-w-full space-y-4">
                             <div>
                               <h4 className="text-sm font-semibold mb-2">Request Payload</h4>
                               <pre className="bg-background border rounded-md p-4 text-xs overflow-x-auto max-h-64">

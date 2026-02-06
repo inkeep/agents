@@ -147,7 +147,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                         onCheckedChange={() => toggleEnabled(trigger.id, trigger.enabled)}
                         disabled={isLoading}
                       />
-                      <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
+                      <Badge className="uppercase" variant={trigger.enabled ? 'primary' : 'code'}>
                         {trigger.enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
                     </div>
@@ -179,7 +179,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                           <Link
                             href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`}
                           >
-                            <History className="w-4 h-4 mr-2" />
+                            <History className="w-4 h-4" />
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
@@ -187,15 +187,15 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                           <Link
                             href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
                           >
-                            <Pencil className="w-4 h-4 mr-2" />
+                            <Pencil className="w-4 h-4" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                          variant="destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.name)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-4 h-4" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

@@ -21,9 +21,9 @@ export default async function NewTriggerPage({
   }
 
   return (
-    <>
+    <div className="max-w-2xl mx-auto">
       <PageHeader title={metadata.title} description={metadata.description} />
       <TriggerForm tenantId={tenantId} projectId={projectId} agentId={agentId} mode="create" />
-    </>
+    </div>
   );
 }
