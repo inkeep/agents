@@ -245,6 +245,7 @@ Use **your primary domain**. This is a freeform string.
 | `errors` | error handling, silent failures |
 | `comments` | comment accuracy, staleness |
 | `frontend` | React/Next.js patterns, components |
+| `sre` | reliability, retries, timeouts, circuit breakers, observability |
 
 **Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category relevant to you.
 
