@@ -30,7 +30,6 @@ type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
-  metadata: AgentMetadata;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
@@ -62,7 +61,6 @@ interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
-    metadata: AgentMetadata,
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
@@ -84,7 +82,6 @@ interface AgentActions {
   onNodesChange(changes: NodeChange[]): void;
   onEdgesChange(changes: EdgeChange[]): void;
   onConnect(connection: Connection): void;
-  setMetadata<K extends keyof AgentMetadata>(field: K, value: AgentMetadata[K]): void;
   push(nodes: Node[], edges: Edge[]): void;
   undo(): void;
   redo(): void;
@@ -125,19 +122,6 @@ interface AgentState extends AllAgentStateData {
 const initialAgentState: AgentStateData = {
   nodes: [],
   edges: [],
-  metadata: {
-    id: undefined,
-    name: '',
-    description: '',
-    contextConfig: {
-      contextVariables: '',
-      headersSchema: '',
-    },
-    models: undefined,
-    stopWhen: undefined,
-    prompt: undefined,
-    statusUpdates: undefined,
-  },
   dataComponentLookup: {},
   artifactComponentLookup: {},
   toolLookup: {},
@@ -166,7 +150,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setInitial(
       nodes,
       edges,
-      metadata,
       dataComponentLookup = {},
       artifactComponentLookup = {},
       toolLookup = {},
@@ -177,7 +160,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set({
         nodes,
         edges,
-        metadata,
         dataComponentLookup,
         artifactComponentLookup,
         toolLookup,
@@ -273,9 +255,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     onConnect(connection) {
       set((state) => ({ edges: addEdge(connection, state.edges) }));
-    },
-    setMetadata(field, value) {
-      set((state) => ({ metadata: { ...state.metadata, [field]: value } }));
     },
     undo() {
       const { history } = get();
