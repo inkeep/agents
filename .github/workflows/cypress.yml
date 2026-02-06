@@ -46,6 +46,14 @@ jobs:
           --health-retries 5
         ports:
           - 5433:5432
+      spicedb:
+        image: authzed/spicedb:latest
+        env:
+          SPICEDB_GRPC_PRESHARED_KEY: dev-secret-key
+          SPICEDB_DATASTORE_ENGINE: memory
+          SPICEDB_HTTP_ENABLED: "true"
+        ports:
+          - 50051:50051
 
     steps:
       - name: Checkout code
