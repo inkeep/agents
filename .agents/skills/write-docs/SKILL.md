@@ -84,7 +84,7 @@ Before writing anything, map out which surface areas the change touches. Review 
 3. **What docs already exist?** — Search `agents-docs/content/` for pages that reference the affected feature; these may need updates
 4. **What's new vs. changed?** — New surface areas need new pages; changed behavior needs existing page updates
 
-If a change touches multiple surface areas, create or update a doc for each. Don't bundle unrelated surfaces into one page unless a natural fit with the existing document or similar analagous docs.
+If a change touches multiple surface areas, create or update a doc for each. Don't bundle unrelated surfaces into one page unless it's a natural fit with the existing document or similar analogous docs.
 
 ---
 
