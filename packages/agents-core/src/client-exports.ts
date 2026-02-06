@@ -35,6 +35,7 @@ import {
   type ScheduledTriggerApiSelectSchema,
   type ScheduledTriggerApiUpdateSchema,
   type ScheduledTriggerInvocationApiSelectSchema,
+  type ScheduledTriggerWithRunInfoSchema,
   type SignatureSource,
   type SignatureVerificationConfig,
   type SignedComponent,
