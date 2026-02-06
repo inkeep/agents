@@ -11,7 +11,7 @@ export interface FormFieldWrapperProps<
 > {
   control: Control<FV, any, TV>;
   name: TName;
-  label: string;
+  label: string | React.JSX.Element;
   children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
   description?: React.ReactNode;
   isRequired?: boolean;

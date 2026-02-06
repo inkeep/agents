@@ -8,12 +8,13 @@ import {
   type Node,
   Panel,
   ReactFlow,
+  type ReactFlowProps,
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
@@ -44,8 +45,6 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
-  type ExtendedFullAgentDefinition,
-  extractAgentMetadata,
   isContextConfigParseError,
   serializeAgentData,
   validateSerializedData,
@@ -77,6 +76,7 @@ import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
+import type { FullAgentResponse } from '@/lib/validation';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -98,15 +98,13 @@ function getEdgeId(a: string, b: string) {
 }
 
 interface AgentProps {
-  agent: ExtendedFullAgentDefinition;
+  agent: FullAgentResponse;
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
   sandboxEnabled: boolean;
 }
-
-type ReactFlowProps = ComponentProps<typeof ReactFlow>;
 
 const SHOW_CHAT_TO_CREATE = false;
 
@@ -192,9 +190,7 @@ export const Agent: FC<AgentProps> = ({
     : result.edges;
 
   // Helper functions to compute lookups from agent data
-  const computeAgentToolConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
-  ): AgentToolConfigLookup => {
+  const computeAgentToolConfigLookup = (agentData: FullAgentResponse): AgentToolConfigLookup => {
     if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
 
     const lookup: AgentToolConfigLookup = {};
@@ -231,7 +227,7 @@ export const Agent: FC<AgentProps> = ({
   };
 
   const computeSubAgentExternalAgentConfigLookup = (
-    agentData?: ExtendedFullAgentDefinition | null
+    agentData: FullAgentResponse
   ): SubAgentExternalAgentConfigLookup => {
     if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
     const lookup: SubAgentExternalAgentConfigLookup = {};
@@ -282,10 +278,9 @@ export const Agent: FC<AgentProps> = ({
   })();
 
   const { screenToFlowPosition, updateNodeData, fitView } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
+  const { storeNodes, edges } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
-    metadata: state.metadata,
   }));
   const {
     setNodes,
@@ -328,7 +323,6 @@ export const Agent: FC<AgentProps> = ({
     setInitial(
       agentNodes,
       agentEdges,
-      extractAgentMetadata(agent),
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
@@ -409,7 +403,7 @@ export const Agent: FC<AgentProps> = ({
         return;
       }
       const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject?.agents?.[agentId] as ExtendedFullAgentDefinition;
+      const updatedAgent = fullProject?.agents?.[agentId];
 
       // Update tool lookup if tools were fetched
       const updatedToolLookup = toolsResult?.success
@@ -434,9 +428,6 @@ export const Agent: FC<AgentProps> = ({
           }))
         : edges;
 
-      // Extract metadata
-      const metadata = extractAgentMetadata(updatedAgent);
-
       // Create lookups from full project data
       const updatedDataComponentLookup = fullProject.dataComponents || {};
       const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
@@ -451,7 +442,6 @@ export const Agent: FC<AgentProps> = ({
       setInitial(
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
-        metadata,
         updatedDataComponentLookup as Record<string, DataComponent>,
         updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
         updatedToolLookup as unknown as Record<string, MCPTool>,
@@ -700,7 +690,6 @@ export const Agent: FC<AgentProps> = ({
         serializedData = serializeAgentData(
           nodes,
           edges,
-          metadata,
           dataComponentLookup,
           artifactComponentLookup,
           agentToolConfigLookup,

@@ -9,7 +9,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
-import type { AgentInput, FullAgentResponse, FullAgentUpdateSchema } from '@/lib/validation';
+import type { AgentInput, FullAgentDefinition, FullAgentResponse } from '@/lib/validation';
 import {
   ApiError,
   createAgent as apiCreateAgent,
@@ -160,7 +160,7 @@ export async function updateFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: typeof FullAgentUpdateSchema
+  agentData: FullAgentDefinition
 ): Promise<ActionResult<FullAgentResponse>> {
   try {
     // Ensure the agent ID matches
