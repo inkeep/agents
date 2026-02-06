@@ -88,6 +88,7 @@ export const MetadataEditor: FC = () => {
   const numEvents = useWatch({ control: form.control, name: 'statusUpdates.numEvents' });
   const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
   const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
+  const models = useWatch({ control: form.control, name: 'models' });
 
   return (
     <div className="space-y-8">
@@ -158,17 +159,11 @@ export const MetadataEditor: FC = () => {
           }
           description="Primary model for general agent responses"
           onModelChange={(value) => {
-            const currentModels = getCurrentModels();
-            const newModels = {
-              ...(currentModels || {}),
-              base: value
-                ? {
-                    ...(currentModels?.base || {}),
-                    model: value,
-                  }
-                : undefined,
-            };
-            updateMetadata('models', newModels);
+            if (value) {
+              form.setValue('models.base.model', value);
+            } else {
+              form.setValue('models.base', {});
+            }
           }}
           onProviderOptionsChange={(value) => {
             const currentModels = getCurrentModels();
@@ -204,17 +199,11 @@ export const MetadataEditor: FC = () => {
                 project?.models?.base?.model
               }
               onValueChange={(value) => {
-                const currentModels = getCurrentModels();
-                const newModels = {
-                  ...(currentModels || {}),
-                  structuredOutput: value
-                    ? {
-                        ...(currentModels?.structuredOutput || {}),
-                        model: value,
-                      }
-                    : undefined,
-                };
-                updateMetadata('models', newModels);
+                if (value) {
+                  form.setValue('models.structuredOutput.model', value);
+                } else {
+                  form.setValue('models.structuredOutput', {});
+                }
               }}
               label={
                 <div className="flex items-center gap-2">
@@ -244,14 +233,7 @@ export const MetadataEditor: FC = () => {
               <StandaloneJsonEditor
                 name="structured-provider-options"
                 onChange={(value) => {
-                  const currentModels = getCurrentModels();
-                  updateMetadata('models', {
-                    ...(currentModels || {}),
-                    structuredOutput: {
-                      model: currentModels?.structuredOutput?.model || '',
-                      providerOptions: value,
-                    },
-                  });
+                  form.setValue('models.structuredOutput.providerOptions', value);
                 }}
                 value={models.structuredOutput.providerOptions || ''}
                 placeholder={structuredOutputModelProviderOptionsTemplate}
@@ -268,17 +250,11 @@ export const MetadataEditor: FC = () => {
                 project?.models?.base?.model
               }
               onValueChange={(value) => {
-                const currentModels = getCurrentModels();
-                const newModels = {
-                  ...(currentModels || {}),
-                  summarizer: value
-                    ? {
-                        ...(currentModels?.summarizer || {}),
-                        model: value,
-                      }
-                    : undefined,
-                };
-                updateMetadata('models', newModels);
+                if (value) {
+                  form.setValue('models.summarizer.model', value);
+                } else {
+                  form.setValue('models.summarizer', {});
+                }
               }}
               label={
                 <div className="flex items-center gap-2">
@@ -308,14 +284,7 @@ export const MetadataEditor: FC = () => {
               <StandaloneJsonEditor
                 name="summarizer-provider-options"
                 onChange={(value) => {
-                  const currentModels = getCurrentModels();
-                  updateMetadata('models', {
-                    ...(currentModels || {}),
-                    summarizer: {
-                      model: currentModels?.summarizer?.model || '',
-                      providerOptions: value,
-                    },
-                  });
+                  form.setValue('models.summarizer.providerOptions', value);
                 }}
                 value={models.summarizer.providerOptions || ''}
                 placeholder={summarizerModelProviderOptionsTemplate}
