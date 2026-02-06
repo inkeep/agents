@@ -115,27 +115,65 @@ The prompt includes: PR metadata, human comments (with `diffHunk` showing the co
 
 ## Phase 2: Deep-Dive on Promising Comments
 
-**For each promising comment, run this checklist:**
+**Important:** The human commented at a specific point in PR history. The code may have changed since (fixes applied). You need to see what the human saw, not the final merged state.
 
-- [ ] **Read the diffHunk** — what code is the comment on?
-- [ ] **Read the full file** — `Read {path}` to see imports, context, surrounding code
-- [ ] **Find what they reference** — if comment mentions "the schema" or "existing X", Grep/Glob to find it
-- [ ] **Articulate the anti-pattern** — what did the author do vs what should they have done?
-- [ ] **Name the underlying principle** — why is the human's way better? (DRY? Type safety? Separation of concerns?)
+### Find the commit at comment time
 
-**Stop here if you can't articulate a clear principle.** Vague feelings that "this seems wrong" don't become reviewer improvements.
+For inline comments with a `path`, find what commit was HEAD when the comment was made:
 
-**Example:**
+```bash
+# Get the commit at comment time (use the comment's createdAt timestamp)
+git rev-list -1 --before="<comment.createdAt>" HEAD
+# → abc123 (the commit the human was looking at)
+```
+
+### Progressive context gathering
+
+Start minimal, expand only as needed to understand the issue:
+
+| Level | Command | What you get | When to use |
+|-------|---------|--------------|-------------|
+| 1 | (already have) | `diffHunk` in comment | Start here — immediate code snippet |
+| 2 | `git show <commit>:<path>` | Full file at comment time | Need imports, class structure, surrounding code |
+| 3 | `git diff <base>..<commit>` | Full PR diff at comment time | Need to understand cross-file changes |
+| 4 | `git show <commit>:<other_path>` | Any other file at comment time | Comment references schemas, types, etc. in other files |
+
+### Checklist for each comment
+
+- [ ] **Level 1: Read diffHunk** — what code is the comment on?
+- [ ] **Level 2: Full file if needed** — `git show <commit>:<path>` for imports, context
+- [ ] **Level 3: PR diff if needed** — `git diff <base>..<commit>` for cross-file patterns
+- [ ] **Level 4: Other files if needed** — `git show <commit>:<other_path>` for referenced code
+- [ ] **Articulate the anti-pattern** — what did the author do vs should have done?
+- [ ] **Name the underlying principle** — why is the human's way better?
+
+**Stop if you can't articulate a clear principle.** Vague feelings don't become reviewer improvements.
+
+### Example
+
 ```
 Comment: "Are we redefining types? You can infer types from zod schemas"
 Path: agents-api/src/domains/run/types/chat.ts:7
+createdAt: 2026-02-05T21:07:23Z
 
-Checklist:
-✓ diffHunk shows: `export type ImageContentItem = { type: 'image_url'; ... }`
-✓ Read file: imports zod, has z.object schemas nearby
-✓ Grep "z.infer": other files use `type X = z.infer<typeof xSchema>`
-✓ Anti-pattern: manually defined type when schema exists
-✓ Principle: DRY applies to types — derive from schemas, don't duplicate
+# Find commit at comment time
+git rev-list -1 --before="2026-02-05T21:07:23Z" HEAD
+→ abc123
+
+# Level 1: diffHunk shows
+export type ImageContentItem = { type: 'image_url'; url: string; ... }
+
+# Level 2: Full file at comment time (needed - want to see imports)
+git show abc123:agents-api/src/domains/run/types/chat.ts
+→ imports zod, has z.object schemas defined above
+
+# Level 4: Check how other files handle this (comment mentions "infer")
+git show abc123:agents-api/src/domains/run/schemas/message.ts
+→ uses z.infer<typeof messageSchema> pattern
+
+# Analysis
+Anti-pattern: manually defined type when schema exists
+Principle: DRY applies to types — derive from schemas, don't duplicate
 ```
 
 ## Phase 3: Compare Against Bot Comments
@@ -318,8 +356,21 @@ When you complete analysis, output a JSON summary:
 | **Write** | Only if creating a new file is absolutely necessary (rare) |
 | **Bash** | Git operations (checkout, add, commit, push), gh pr create, gh api |
 
+## Git Time-Travel Commands (Phase 2)
+
+Use these commands to see code as it existed when the human commented:
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `git rev-list -1 --before="<timestamp>" HEAD` | Find commit at comment time | First step for any inline comment |
+| `git show <commit>:<path>` | View full file at comment time | Need imports, class structure, surrounding code |
+| `git diff <base>..<commit>` | View PR diff at comment time | Need to understand cross-file changes |
+| `git log --oneline -10` | See recent commit history | Understand PR progression |
+
+**Why this matters:** Humans comment at a specific point in PR history. The code may have changed since (fixes applied). You need to see what the human saw, not the final merged state.
+
 **Context gathering is critical.** Don't judge a comment without understanding:
-- The actual code being commented on (Read the file)
+- The actual code being commented on (git time-travel to see it)
 - What the human is referencing (Grep/Glob to find it)
 - Why their suggestion is better (understand the principle)
 
