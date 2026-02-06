@@ -2,6 +2,7 @@ import { Play, Settings, Webhook } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, useEffect, useRef } from 'react';
+import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -19,9 +20,9 @@ interface ToolbarProps {
 export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   'use memo';
   const form = useFullAgentFormContext();
-  const { isSubmitting, isDirty } = form.formState;
-  const isDirtyState = useAgentStore((state) => state.dirty);
-  const dirty = isDirty || isDirtyState;
+  const agentDirtyState = useAgentStore((state) => state.dirty);
+  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const dirty = agentDirtyState || isDirty;
 
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{

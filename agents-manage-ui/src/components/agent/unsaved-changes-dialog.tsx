@@ -1,5 +1,6 @@
 import { useRouter } from 'next/navigation';
 import { type FC, useEffect, useRef, useState, useTransition } from 'react';
+import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,19 +10,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 
-interface UnsavedChangesDialogProps {
-  onSubmit: () => Promise<boolean>;
-}
-
-export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {
+export const UnsavedChangesDialog: FC = () => {
   'use memo';
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
-  const dirty = useAgentStore((state) => state.dirty);
+
+  const form = useFullAgentFormContext();
+  const agentDirtyState = useAgentStore((state) => state.dirty);
+  const { isDirty } = useFormState({ control: form.control });
+  const dirty = agentDirtyState || isDirty;
+
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);
   const router = useRouter();
