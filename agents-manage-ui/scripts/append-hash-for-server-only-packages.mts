@@ -18,8 +18,6 @@ fs.readdir(NODE_MODULES_PATH).then(async (dirs) => {
     const pkgJsonPath = path.join('..', NODE_MODULES_PATH, dir, 'package.json');
     // @ts-expect-error -- ignore type error
     const { default: pkgJson } = await import(pkgJsonPath, { with: { type: 'json' } });
-    // Remove dependency without hash
-    delete newAppPkgJson.dependencies[pkgJson.name];
     // Add dependency with hash
     newAppPkgJson.dependencies[dir] = `npm:${pkgJson.name}@${pkgJson.version}`;
   }
