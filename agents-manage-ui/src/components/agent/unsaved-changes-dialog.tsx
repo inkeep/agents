@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { type FC, useEffect, useRef, useState, useTransition } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,14 +15,17 @@ import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 
-export const UnsavedChangesDialog: FC = () => {
+interface UnsavedChangesDialogProps {
+  onSubmit: () => Promise<boolean>;
+}
+
+export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {
   'use memo';
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
 
   const form = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty } = useFormState({ control: form.control });
+  const { isDirty, isSubmitting } = useFormState({ control: form.control });
   const dirty = agentDirtyState || isDirty;
 
   const pendingNavigationRef = useRef<PendingNavigation>(null);
@@ -45,17 +48,15 @@ export const UnsavedChangesDialog: FC = () => {
     navigate();
   }
 
-  function handleSaveAndLeave() {
-    if (isSavingPendingNavigation) {
+  async function handleSaveAndLeave() {
+    if (isSubmitting) {
       return;
     }
-    startSavingPendingNavigation(async () => {
-      const saved = await onSubmit();
-      if (saved) {
-        proceedWithNavigation();
-      }
-      setShowUnsavedDialog(false);
-    });
+    const saved = await onSubmit();
+    if (saved) {
+      proceedWithNavigation();
+    }
+    setShowUnsavedDialog(false);
   }
 
   useEffect(() => {
@@ -151,8 +152,8 @@ export const UnsavedChangesDialog: FC = () => {
           <Button variant="secondary" onClick={proceedWithNavigation} className="max-sm:order-1">
             Discard
           </Button>
-          <Button onClick={handleSaveAndLeave} disabled={isSavingPendingNavigation}>
-            {isSavingPendingNavigation ? 'Saving...' : 'Save changes'}
+          <Button onClick={handleSaveAndLeave} disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save changes'}
           </Button>
         </DialogFooter>
       </DialogContent>

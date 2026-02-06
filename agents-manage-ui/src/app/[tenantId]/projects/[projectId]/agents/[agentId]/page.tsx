@@ -73,7 +73,6 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     : false;
 
   const {
-    //
     id,
     name,
     description,

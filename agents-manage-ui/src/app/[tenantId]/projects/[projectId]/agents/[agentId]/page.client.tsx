@@ -15,6 +15,7 @@ import {
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
+import type { FieldError, FieldErrors, FieldValues } from 'react-hook-form';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
 import {
@@ -116,6 +117,38 @@ const nonValidationErrors = new Set([
   'internal_server_error',
   'bad_request',
 ]);
+
+type HandleSubmitParams = Parameters<ReturnType<typeof useFullAgentFormContext>['handleSubmit']>;
+
+function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
+  const lines: string[] = [];
+
+  function walk(value: FieldErrors<FV> | FieldError | undefined, path: string[]) {
+    if (!value) return;
+    if (value.message) {
+      const label = path.length ? `${path.join('.')}: ` : '';
+      lines.push(`${label}${value.message}`);
+    }
+    if (value.types) {
+      const label = path.length ? `${path.join('.')}: ` : '';
+      for (const message of Object.values(value.types)) {
+        if (message) {
+          lines.push(`${label}${message}`);
+        }
+      }
+    }
+    if (typeof value !== 'object') return;
+    for (const [key, nested] of Object.entries(value)) {
+      if (key === 'message' || key === 'type' || key === 'types' || key === 'ref') {
+        continue;
+      }
+      walk(nested as FieldErrors<FV> | FieldError | undefined, [...path, key]);
+    }
+  };
+
+  walk(errors, []);
+  return lines.length ? lines.join('\n') : 'Validation failed';
+}
 
 export const Agent: FC<AgentProps> = ({
   agent,
@@ -683,153 +716,154 @@ export const Agent: FC<AgentProps> = ({
 
   const form = useFullAgentFormContext();
 
-  const onSubmit = form.handleSubmit(
-    async (data) => {
-      let serializedData: ReturnType<typeof serializeAgentData>;
-      try {
-        serializedData = serializeAgentData(
-          nodes,
-          edges,
-          dataComponentLookup,
-          artifactComponentLookup,
-          agentToolConfigLookup,
-          subAgentExternalAgentConfigLookup,
-          subAgentTeamAgentConfigLookup
-        );
-      } catch (error) {
-        if (isContextConfigParseError(error)) {
-          const errorObjects = [
-            {
-              message: error.message,
-              field: error.field,
-              code: 'invalid_json',
-              path: [error.field],
-            },
-          ];
-          const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
-          setErrors(errorSummary);
-          const summaryMessage = getErrorSummaryMessage(errorSummary);
-          toast.error(summaryMessage);
-          return false;
-        }
-        throw error;
-      }
-
-      const functionToolNodeMap = new Map<string, string>();
-      nodes.forEach((node) => {
-        if (node.type === NodeType.FunctionTool) {
-          const nodeData = node.data as any;
-          const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
-          functionToolNodeMap.set(toolId, node.id);
-        }
-      });
-
-      const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
-      if (validationErrors.length > 0) {
-        const errorObjects = validationErrors.map((error) => ({
-          message: error.message,
-          field: error.field,
-          code: error.code,
-          path: error.path,
-          functionToolId: error.functionToolId,
-        }));
-
+  const onFormSubmit: HandleSubmitParams[0] = async (data) => {
+    let serializedData: ReturnType<typeof serializeAgentData>;
+    try {
+      serializedData = serializeAgentData(
+        nodes,
+        edges,
+        dataComponentLookup,
+        artifactComponentLookup,
+        agentToolConfigLookup,
+        subAgentExternalAgentConfigLookup,
+        subAgentTeamAgentConfigLookup
+      );
+    } catch (error) {
+      if (isContextConfigParseError(error)) {
+        const errorObjects = [
+          {
+            message: error.message,
+            field: error.field,
+            code: 'invalid_json',
+            path: [error.field],
+          },
+        ];
         const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
         setErrors(errorSummary);
-        toast.error(`Validation failed: ${validationErrors[0].message}`);
+        const summaryMessage = getErrorSummaryMessage(errorSummary);
+        toast.error(summaryMessage);
         return false;
       }
+      throw error;
+    }
 
-      console.log({ serializedData, data });
+    const functionToolNodeMap = new Map<string, string>();
+    nodes.forEach((node) => {
+      if (node.type === NodeType.FunctionTool) {
+        const nodeData = node.data as any;
+        const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
+        functionToolNodeMap.set(toolId, node.id);
+      }
+    });
 
-      const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-        ...serializedData,
-        ...data,
-      });
+    const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
+    if (validationErrors.length > 0) {
+      const errorObjects = validationErrors.map((error) => ({
+        message: error.message,
+        field: error.field,
+        code: error.code,
+        path: error.path,
+        functionToolId: error.functionToolId,
+      }));
 
-      if (res.success) {
-        // Clear any existing errors on successful save
-        clearErrors();
-        toast.success('Agent saved', { closeButton: true });
-        markSaved();
+      const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
+      setErrors(errorSummary);
+      toast.error(`Validation failed: ${validationErrors[0].message}`);
+      return false;
+    }
 
-        // Update MCP nodes with new relationshipIds from backend response
-        if (res.data) {
-          const processedRelationships = new Set<string>();
+    console.log({ serializedData, data });
 
-          setNodes((currentNodes) =>
-            currentNodes.map((node) => {
-              if (node.type === NodeType.MCP) {
-                const mcpNode = node as Node & { data: MCPNodeData };
-                if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
-                  // If node already has a relationshipId, keep it (it's an existing relationship)
-                  if (mcpNode.data.relationshipId) {
-                    return node;
-                  }
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+      ...serializedData,
+      ...data,
+    });
 
-                  // For new nodes (relationshipId is null), find the first unprocessed relationship
-                  // that matches this agent and tool
-                  const subAgentId = mcpNode.data.subAgentId;
-                  const toolId = mcpNode.data.toolId;
+    if (res.success) {
+      // Clear any existing errors on successful save
+      clearErrors();
+      toast.success('Agent saved', { closeButton: true });
+      markSaved();
 
-                  if (res.data.subAgents[subAgentId]?.canUse) {
-                    const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
-                      (tool: any) =>
-                        tool.toolId === toolId &&
-                        tool.agentToolRelationId &&
-                        !processedRelationships.has(tool.agentToolRelationId)
-                    );
+      // Update MCP nodes with new relationshipIds from backend response
+      if (res.data) {
+        const processedRelationships = new Set<string>();
 
-                    if (matchingRelationship?.agentToolRelationId) {
-                      processedRelationships.add(matchingRelationship.agentToolRelationId);
-                      return {
-                        ...node,
-                        data: {
-                          ...node.data,
-                          relationshipId: matchingRelationship.agentToolRelationId,
-                        },
-                      };
-                    }
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => {
+            if (node.type === NodeType.MCP) {
+              const mcpNode = node as Node & { data: MCPNodeData };
+              if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
+                // If node already has a relationshipId, keep it (it's an existing relationship)
+                if (mcpNode.data.relationshipId) {
+                  return node;
+                }
+
+                // For new nodes (relationshipId is null), find the first unprocessed relationship
+                // that matches this agent and tool
+                const subAgentId = mcpNode.data.subAgentId;
+                const toolId = mcpNode.data.toolId;
+
+                if (res.data.subAgents[subAgentId]?.canUse) {
+                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
+                    (tool: any) =>
+                      tool.toolId === toolId &&
+                      tool.agentToolRelationId &&
+                      !processedRelationships.has(tool.agentToolRelationId)
+                  );
+
+                  if (matchingRelationship?.agentToolRelationId) {
+                    processedRelationships.add(matchingRelationship.agentToolRelationId);
+                    return {
+                      ...node,
+                      data: {
+                        ...node.data,
+                        relationshipId: matchingRelationship.agentToolRelationId,
+                      },
+                    };
                   }
                 }
               }
-              return node;
-            })
-          );
-        }
-        return true;
+            }
+            return node;
+          })
+        );
       }
-
-      if (res.code && nonValidationErrors.has(res.code)) {
-        toast.error(res.error || 'An error occurred while saving the agent', {
-          closeButton: true,
-        });
-        return false;
-      }
-      // Workaround for a React Compiler limitation.
-      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-      function parseErrors(error: string) {
-        const errorSummary = parseAgentValidationErrors(error);
-        setErrors(errorSummary);
-
-        const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
-      }
-
-      // Handle validation errors (422 status - unprocessable_entity)
-      try {
-        parseErrors(res.error);
-      } catch (parseError) {
-        // Fallback for unparseable errors
-        console.error('Failed to parse validation errors:', parseError);
-        toast.error('Failed to save agent', { closeButton: true });
-      }
-      return false;
-    },
-    (error) => {
-      toast.error(JSON.stringify(error, null, 2));
+      return true;
     }
-  );
+
+    if (res.code && nonValidationErrors.has(res.code)) {
+      toast.error(res.error || 'An error occurred while saving the agent', {
+        closeButton: true,
+      });
+      return false;
+    }
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function parseErrors(error: string) {
+      const errorSummary = parseAgentValidationErrors(error);
+      setErrors(errorSummary);
+
+      const summaryMessage = getErrorSummaryMessage(errorSummary);
+      toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
+    }
+
+    // Handle validation errors (422 status - unprocessable_entity)
+    try {
+      parseErrors(res.error);
+    } catch (parseError) {
+      // Fallback for unparseable errors
+      console.error('Failed to parse validation errors:', parseError);
+      toast.error('Failed to save agent', { closeButton: true });
+    }
+    return false;
+  };
+
+  const onFormError: HandleSubmitParams[1] = (errors) => {
+    toast.error(formatFormErrors(errors), { className: 'whitespace-pre-wrap' });
+  };
+
+  const onSubmit = form.handleSubmit(onFormSubmit, onFormError);
 
   useEffect(() => {
     const onCompletion = () => {
