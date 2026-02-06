@@ -24,11 +24,12 @@ export const ContextConfigForm: FC = () => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: -- only on mount
   useEffect(() => {
-    // Generate suggestions from context config
-    form.subscribe({
+    // make sure to unsubscribe;
+    return form.subscribe({
       name: ['contextConfig.contextVariables', 'contextConfig.headersSchema'],
       formState: { values: true },
       callback({ values }) {
+        // Generate suggestions from context config
         const variables = getContextSuggestions({
           headersSchema: tryJsonParse(values.contextConfig.contextVariables),
           contextVariables: tryJsonParse(values.contextConfig.headersSchema),
