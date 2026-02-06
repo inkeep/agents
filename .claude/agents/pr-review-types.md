@@ -81,6 +81,7 @@ When analyzing a type, you will:
    | Source | Derivation Pattern | Example |
    |--------|-------------------|---------|
    | **Zod/validation schemas** | `z.infer<typeof schema>` | `type User = z.infer<typeof userSchema>` |
+   | **Zod schema extension** | `.extend()`, `.pick()`, `.omit()`, `.partial()` | `InsertSchema.extend({ id: StrictIdSchema })` |
    | **Database schemas** (Prisma, Drizzle, etc.) | Use generated types | `import { User } from '@prisma/client'` |
    | **Internal packages** | Import from shared packages | `import { MessagePart } from '@inkeep/agents-core'` |
    | **External packages/SDKs** | Use exported types | `import { CompletionChoice } from 'openai'` |
@@ -113,7 +114,39 @@ When analyzing a type, you will:
    - `typeof` used without `keyof` when deriving from constants
    - Manual async return types when `Awaited<ReturnType<>>` would work
 
-7. **Check Type Composition Patterns**: When reviewing type structure, verify proper use of composition:
+7. **Check Zod Schema Composition**: When new Zod schemas are introduced, verify proper extension patterns:
+
+   **Prefer schema derivation over duplication:**
+   ```typescript
+   // GOOD: Extend base schema with stricter/additional fields
+   const InsertSchema = createInsertSchema(table).extend({
+     id: ResourceIdSchema,  // Override with stricter validation
+     metadata: MetadataSchema.optional(),  // Add new field
+   });
+   const UpdateSchema = InsertSchema.partial();  // Derive update from insert
+
+   // BAD: Duplicate schema definition
+   const InsertSchema = z.object({ id: z.string(), name: z.string() });
+   const UpdateSchema = z.object({ id: z.string().optional(), name: z.string().optional() });
+   ```
+
+   **Schema derivation methods:**
+   | Method | Use Case | Example |
+   |--------|----------|---------|
+   | `.extend()` | Add or override fields | `BaseSchema.extend({ newField: z.string() })` |
+   | `.pick()` | Extract subset of fields | `UserSchema.pick({ id: true, name: true })` |
+   | `.omit()` | Remove fields | `UserSchema.omit({ password: true })` |
+   | `.partial()` | Make all fields optional | `InsertSchema.partial()` for Update schemas |
+   | `.merge()` | Combine two schemas | `SchemaA.merge(SchemaB)` |
+   | `.extend().refine()` | Add fields + cross-field validation | `Schema.extend({...}).refine(validator)` |
+
+   **Anti-patterns to flag:**
+   - Parallel Insert/Update schemas with manually duplicated fields
+   - New schema that mirrors an existing schema with minor changes
+   - Using `z.object()` when `.extend()` from a base would work
+   - Repeated field definitions across related schemas
+
+8. **Check Type Composition Patterns**: When reviewing type structure, verify proper use of composition:
 
    **Discriminated Unions (prefer for polymorphic types):**
    ```typescript
@@ -192,6 +225,10 @@ When analyzing a type, you will:
 - Unsafe type narrowing:
   - Using `as` assertions without runtime validation → add type guard
   - Inline type assertions for polymorphic data → use discriminated union + type guard
+- Zod schema duplication:
+  - Parallel Insert/Update schemas with same fields → use `.partial()` derivation
+  - New schema duplicating existing schema fields → use `.extend()`, `.pick()`, or `.omit()`
+  - Inline `z.object()` when a base schema exists → extend the base schema
 
 **Output Format:**
 

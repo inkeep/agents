@@ -174,6 +174,18 @@ Before accepting a new helper, type, or "common" function:
 - Repeated `as unknown as` casts → indicates missing type guard or improper derivation
 - Manual async return types → should use `Awaited<ReturnType<>>`
 
+**Zod schema composition patterns (check for consistency):**
+- Insert/Update schema pairs: Update should derive from Insert via `.partial()`
+- Schema extension: Use `.extend()` to add/override fields, not duplicate definitions
+- Field subsetting: Use `.pick()` or `.omit()` instead of manual field copying
+- Cross-field validation: Chain `.extend().refine()` for related validations
+- OpenAPI metadata: Schemas exposed via API should have `.openapi('Name')`
+
+**Detection signals for schema anti-patterns:**
+- Parallel `z.object()` definitions with overlapping fields
+- Insert schema and Update schema defined separately with duplicated fields
+- New schema that looks like an existing schema with minor field changes
+
 ## 4. Split-World / Partial Migration Awareness
 If a PR introduces a new pattern that coexists with an older one:
 - Is the old pattern now "legacy"?
