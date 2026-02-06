@@ -271,7 +271,7 @@ when the problem is complex or context is needed.
 
 **Why:** Consequences, risks, *justification*, and/or user impact. Scale 1-3 sentences based on severity — critical issues deserve thorough explanation.
 
-**Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
+**Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like. *(Note: Issues solvable with a single code block should likely be Inline Comments instead — Main is for issues requiring discussion or multiple approaches.)*
 
 **Refs:** Ground the finding with clickable hyperlinks. Use the GitHub URL base from `pr-context` to construct links.
 - Code: `[src/api/client.ts:42](https://github.com/{repo}/blob/{sha}/src/api/client.ts#L42)`
