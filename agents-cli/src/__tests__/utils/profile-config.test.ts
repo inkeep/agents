@@ -80,7 +80,7 @@ describe('Profile Configuration', () => {
 
       const profile = profileManager.getProfile('production');
       expect(profile?.name).toBe('production');
-      expect(profile?.remote.api).toBe('https://agents-api.inkeep.com');
+      expect(profile?.remote.api).toBe('https://api.agents.inkeep.com');
       expect(profile?.environment).toBe('production');
     });
 
@@ -123,8 +123,8 @@ describe('Profile Configuration', () => {
       writeFileSync(join(testDir, 'profiles.yaml'), yaml.stringify(config));
 
       const profile = profileManager.getActiveProfile();
-      expect(profile.remote.api).toBe('https://agents-api.inkeep.com');
-      expect(profile.remote.manageUi).toBe('https://manage.inkeep.com');
+      expect(profile.remote.api).toBe('https://api.agents.inkeep.com');
+      expect(profile.remote.manageUi).toBe('https://app.inkeep.com');
     });
 
     it('should use explicit URLs when provided', () => {
