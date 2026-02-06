@@ -1,11 +1,18 @@
 import { Braces, Maximize } from 'lucide-react';
 import type { ComponentProps, FC } from 'react';
 import { useState } from 'react';
+import type { FieldPath, FieldValues } from 'react-hook-form';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
+import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
 import { Button } from '@/components/ui/button';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
-import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   FormControl,
   FormDescription,
@@ -14,15 +21,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import type { FieldPath, FieldValues } from 'react-hook-form';
-import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   name: string;
