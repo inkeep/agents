@@ -1,8 +1,8 @@
 import {
   createApiError,
-  getLatestPasswordResetLink,
   type OrgRole,
   OrgRoles,
+  waitForPasswordResetLink,
 } from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { env } from '../../../env';
@@ -40,8 +40,24 @@ passwordResetLinksRoutes.post('/', async (c) => {
     throw createApiError({ code: 'internal_server_error', message: 'Auth not configured' });
   }
 
+  const result = await auth.api.listMembers({
+    query: { organizationId: tenantId },
+    headers: c.req.raw.headers,
+  });
+
+  const isMember = result.members.some((m: { user: { email: string } }) => m.user.email === email);
+
+  if (!isMember) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'User is not a member of this organization',
+    });
+  }
+
   const manageUiBaseUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
   const redirectTo = `${manageUiBaseUrl}/reset-password`;
+
+  const linkPromise = waitForPasswordResetLink(email);
 
   await auth.api.requestPasswordReset({
     body: {
@@ -50,15 +66,12 @@ passwordResetLinksRoutes.post('/', async (c) => {
     },
   });
 
-  const resetLinkMaxAgeMs = 30_000;
-  const link = getLatestPasswordResetLink(email, resetLinkMaxAgeMs);
-  if (!link) {
+  try {
+    const link = await linkPromise;
+    return c.json({ url: link.url });
+  } catch {
     throw createApiError({ code: 'internal_server_error', message: 'Reset link not available' });
   }
-
-  return c.json({
-    url: link.url,
-  });
 });
 
 export default passwordResetLinksRoutes;

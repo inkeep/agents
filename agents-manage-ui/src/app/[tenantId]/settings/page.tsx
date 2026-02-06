@@ -55,7 +55,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
         // Fetch providers for all members
         const userIds = orgResult.data.members?.map((m) => m.user.id) || [];
         if (userIds.length > 0) {
-          const providers = await getUserProviders(userIds);
+          const providers = await getUserProviders(userIds, tenantId);
           setMemberProviders(providers);
         }
       }

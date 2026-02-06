@@ -2,19 +2,24 @@ import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
-const { getLatestPasswordResetLinkMock, requestPasswordResetMock, sessionAuthMiddleware } =
-  vi.hoisted(() => ({
-    getLatestPasswordResetLinkMock: vi.fn(),
-    requestPasswordResetMock: vi.fn(),
-    sessionAuthMiddleware: vi.fn(),
-  }));
+const {
+  waitForPasswordResetLinkMock,
+  requestPasswordResetMock,
+  listMembersMock,
+  sessionAuthMiddleware,
+} = vi.hoisted(() => ({
+  waitForPasswordResetLinkMock: vi.fn(),
+  requestPasswordResetMock: vi.fn(),
+  listMembersMock: vi.fn(),
+  sessionAuthMiddleware: vi.fn(),
+}));
 
 // Mock @inkeep/agents-core
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const original = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...original,
-    getLatestPasswordResetLink: getLatestPasswordResetLinkMock,
+    waitForPasswordResetLink: waitForPasswordResetLinkMock,
   };
 });
 
@@ -36,6 +41,7 @@ describe('Password Reset Links Route', () => {
   const mockAuth = {
     api: {
       requestPasswordReset: requestPasswordResetMock,
+      listMembers: listMembersMock,
     },
   };
 
@@ -48,6 +54,13 @@ describe('Password Reset Links Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requestPasswordResetMock.mockResolvedValue({});
+    listMembersMock.mockResolvedValue({
+      members: [
+        { user: { id: 'user-456', email: 'test@example.com' } },
+        { user: { id: 'user-789', email: 'specific@example.com' } },
+      ],
+      total: 2,
+    });
   });
 
   afterEach(() => {
@@ -131,11 +144,10 @@ describe('Password Reset Links Route', () => {
             await next();
           }
         );
-        getLatestPasswordResetLinkMock.mockReturnValue({
+        waitForPasswordResetLinkMock.mockResolvedValue({
           email: 'test@example.com',
           url: 'https://example.com/reset?token=abc',
           token: 'abc',
-          createdAtMs: Date.now(),
         });
 
         const app = createAppWithTenantParam();
@@ -148,6 +160,56 @@ describe('Password Reset Links Route', () => {
         expect(res.status).toBe(200);
       });
 
+      it('should return 403 when target email is not a member of the tenant', async () => {
+        sessionAuthMiddleware.mockImplementation(
+          async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
+            c.set('userId', 'user-123');
+            c.set('auth', mockAuth);
+            c.set('tenantRole', 'admin');
+            await next();
+          }
+        );
+        listMembersMock.mockResolvedValue({
+          members: [{ user: { id: 'user-456', email: 'member@example.com' } }],
+          total: 1,
+        });
+
+        const app = createAppWithTenantParam();
+        const res = await app.request('/tenants/tenant-123/password-reset-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'outsider@other-org.com' }),
+        });
+
+        expect(res.status).toBe(403);
+        const body = await res.json();
+        expect(body.error.message).toContain('User is not a member of this organization');
+        expect(requestPasswordResetMock).not.toHaveBeenCalled();
+      });
+
+      it('should return 403 when listMembers returns empty array', async () => {
+        sessionAuthMiddleware.mockImplementation(
+          async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
+            c.set('userId', 'user-123');
+            c.set('auth', mockAuth);
+            c.set('tenantRole', 'admin');
+            await next();
+          }
+        );
+        listMembersMock.mockResolvedValue({ members: [], total: 0 });
+
+        const app = createAppWithTenantParam();
+        const res = await app.request('/tenants/tenant-123/password-reset-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'test@example.com' }),
+        });
+
+        expect(res.status).toBe(403);
+        const body = await res.json();
+        expect(body.error.message).toContain('User is not a member of this organization');
+      });
+
       it('should allow owner users', async () => {
         sessionAuthMiddleware.mockImplementation(
           async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
@@ -157,11 +219,10 @@ describe('Password Reset Links Route', () => {
             await next();
           }
         );
-        getLatestPasswordResetLinkMock.mockReturnValue({
+        waitForPasswordResetLinkMock.mockResolvedValue({
           email: 'test@example.com',
           url: 'https://example.com/reset?token=abc',
           token: 'abc',
-          createdAtMs: Date.now(),
         });
 
         const app = createAppWithTenantParam();
@@ -249,11 +310,10 @@ describe('Password Reset Links Route', () => {
       });
 
       it('should call auth.api.requestPasswordReset with correct params', async () => {
-        getLatestPasswordResetLinkMock.mockReturnValue({
+        waitForPasswordResetLinkMock.mockResolvedValue({
           email: 'test@example.com',
           url: 'https://app.example.com/reset-password?token=abc',
           token: 'abc',
-          createdAtMs: Date.now(),
         });
 
         const app = createAppWithTenantParam();
@@ -273,11 +333,10 @@ describe('Password Reset Links Route', () => {
 
       it('should return the reset link URL', async () => {
         const resetUrl = 'https://app.example.com/reset-password?token=xyz789';
-        getLatestPasswordResetLinkMock.mockReturnValue({
+        waitForPasswordResetLinkMock.mockResolvedValue({
           email: 'test@example.com',
           url: resetUrl,
           token: 'xyz789',
-          createdAtMs: Date.now(),
         });
 
         const app = createAppWithTenantParam();
@@ -292,8 +351,10 @@ describe('Password Reset Links Route', () => {
         expect(body.url).toBe(resetUrl);
       });
 
-      it('should return 500 when reset link is not available', async () => {
-        getLatestPasswordResetLinkMock.mockReturnValue(null);
+      it('should return 500 when reset link promise rejects (timeout)', async () => {
+        waitForPasswordResetLinkMock.mockRejectedValue(
+          new Error('Timed out waiting for password reset link')
+        );
 
         const app = createAppWithTenantParam();
         const res = await app.request('/tenants/tenant-123/password-reset-links', {
@@ -307,12 +368,11 @@ describe('Password Reset Links Route', () => {
         expect(body.error.message).toContain('Reset link not available');
       });
 
-      it('should call getLatestPasswordResetLink with correct email and maxAge', async () => {
-        getLatestPasswordResetLinkMock.mockReturnValue({
+      it('should call waitForPasswordResetLink with correct email', async () => {
+        waitForPasswordResetLinkMock.mockResolvedValue({
           email: 'specific@example.com',
           url: 'https://app.example.com/reset?token=abc',
           token: 'abc',
-          createdAtMs: Date.now(),
         });
 
         const app = createAppWithTenantParam();
@@ -322,10 +382,7 @@ describe('Password Reset Links Route', () => {
           body: JSON.stringify({ email: 'specific@example.com' }),
         });
 
-        expect(getLatestPasswordResetLinkMock).toHaveBeenCalledWith(
-          'specific@example.com',
-          30_000 // 30 seconds max age
-        );
+        expect(waitForPasswordResetLinkMock).toHaveBeenCalledWith('specific@example.com');
       });
     });
 
@@ -339,6 +396,11 @@ describe('Password Reset Links Route', () => {
             await next();
           }
         );
+        waitForPasswordResetLinkMock.mockResolvedValue({
+          email: 'test@example.com',
+          url: 'https://app.example.com/reset?token=abc',
+          token: 'abc',
+        });
         requestPasswordResetMock.mockRejectedValue(new Error('Email service unavailable'));
 
         const app = createAppWithTenantParam();

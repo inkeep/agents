@@ -27,7 +27,7 @@ export default function AcceptInvitationPage({
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
   // Full invitation (fetched with auth)
-  const [invitation, setInvitation] = useState<any>(null);
+  const [invitation, setInvitation] = useState<typeof authClient.$Infer.Invitation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -381,22 +381,15 @@ export default function AcceptInvitationPage({
         </div>
         <CardHeader>
           <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
-            {invitation?.organizationName
-              ? `Join ${invitation.organizationName}`
+            {invitationVerification?.organizationName
+              ? `Join ${invitationVerification.organizationName}`
               : 'Accept invitation'}
           </CardTitle>
           <CardDescription>
-            {invitation?.organizationName ? (
+            {invitationVerification?.organizationName ? (
               <>
                 You've been invited to join{' '}
-                <span className="font-medium">{invitation.organizationName}</span>
-                {invitation.inviterEmail && (
-                  <>
-                    {' '}
-                    by <span className="font-medium">{invitation.inviterEmail}</span>
-                  </>
-                )}
-                .
+                <span className="font-medium">{invitationVerification.organizationName}</span>.
               </>
             ) : (
               "You've been invited to join an organization."

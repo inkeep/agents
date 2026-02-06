@@ -108,120 +108,203 @@ describe('Users Route', () => {
   });
 
   describe('POST /providers', () => {
-    it('should return providers for requested user IDs', async () => {
-      const mockProviders = [
-        { userId: 'user-1', providers: ['credential', 'google'] },
-        { userId: 'user-2', providers: ['credential'] },
-      ];
-      getUserProvidersFromDbMock.mockResolvedValue(mockProviders);
+    const orgId = 'org-123';
 
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: ['user-1', 'user-2'] }),
+    const mockAdminOrgAccess = [{ organizationId: orgId, role: 'admin', userId: 'test-user-123' }];
+
+    const mockOwnerOrgAccess = [{ organizationId: orgId, role: 'owner', userId: 'test-user-123' }];
+
+    const mockMemberOrgAccess = [
+      { organizationId: orgId, role: 'member', userId: 'test-user-123' },
+    ];
+
+    describe('Authorization', () => {
+      it('should return 400 when organizationId is missing', async () => {
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'] }),
+        });
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error.message).toContain('organizationId is required');
       });
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body).toEqual(mockProviders);
+      it('should return 403 when user is not a member of the organization', async () => {
+        getUserOrganizationsFromDbMock.mockResolvedValue([]);
+
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(403);
+        const body = await res.json();
+        expect(body.error.message).toContain('Access denied to this organization');
+      });
+
+      it('should return 403 when user is a member (not admin/owner)', async () => {
+        getUserOrganizationsFromDbMock.mockResolvedValue(mockMemberOrgAccess);
+
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(403);
+        const body = await res.json();
+        expect(body.error.message).toContain('Admin access required');
+      });
+
+      it('should allow admin users', async () => {
+        getUserOrganizationsFromDbMock.mockResolvedValue(mockAdminOrgAccess);
+        getUserProvidersFromDbMock.mockResolvedValue([]);
+
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(200);
+      });
+
+      it('should allow owner users', async () => {
+        getUserOrganizationsFromDbMock.mockResolvedValue(mockOwnerOrgAccess);
+        getUserProvidersFromDbMock.mockResolvedValue([]);
+
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(200);
+      });
     });
 
-    it('should return 400 when userIds is missing', async () => {
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+    describe('Functionality', () => {
+      beforeEach(() => {
+        getUserOrganizationsFromDbMock.mockResolvedValue(mockAdminOrgAccess);
       });
 
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error.message).toContain('userIds array is required');
-    });
+      it('should return providers for requested user IDs', async () => {
+        const mockProviders = [
+          { userId: 'user-1', providers: ['credential', 'google'] },
+          { userId: 'user-2', providers: ['credential'] },
+        ];
+        getUserProvidersFromDbMock.mockResolvedValue(mockProviders);
 
-    it('should return 400 when userIds is not an array', async () => {
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: 'not-an-array' }),
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1', 'user-2'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body).toEqual(mockProviders);
       });
 
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error.message).toContain('userIds array is required');
-    });
+      it('should return 400 when userIds is missing', async () => {
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organizationId: orgId }),
+        });
 
-    it('should return empty array when userIds is empty', async () => {
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: [] }),
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error.message).toContain('userIds array is required');
       });
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body).toEqual([]);
-      // Should not call database for empty array
-      expect(getUserProvidersFromDbMock).not.toHaveBeenCalled();
-    });
+      it('should return 400 when userIds is not an array', async () => {
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: 'not-an-array', organizationId: orgId }),
+        });
 
-    it('should call getUserProvidersFromDb with correct userIds', async () => {
-      getUserProvidersFromDbMock.mockResolvedValue([]);
-
-      await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: ['user-1', 'user-2', 'user-3'] }),
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error.message).toContain('userIds array is required');
       });
 
-      expect(getUserProvidersFromDbMock).toHaveBeenCalledWith(['user-1', 'user-2', 'user-3']);
-    });
+      it('should return empty array when userIds is empty', async () => {
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: [], organizationId: orgId }),
+        });
 
-    it('should handle database errors gracefully', async () => {
-      getUserProvidersFromDbMock.mockRejectedValue(new Error('Database connection failed'));
-
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: ['user-1'] }),
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body).toEqual([]);
+        expect(getUserProvidersFromDbMock).not.toHaveBeenCalled();
       });
 
-      expect(res.status).toBe(500);
-      const body = await res.json();
-      expect(body.error.message).toContain('Failed to fetch user providers');
-    });
+      it('should call getUserProvidersFromDb with correct userIds', async () => {
+        getUserProvidersFromDbMock.mockResolvedValue([]);
 
-    it('should handle single user request', async () => {
-      const mockProviders = [{ userId: 'user-1', providers: ['credential'] }];
-      getUserProvidersFromDbMock.mockResolvedValue(mockProviders);
+        await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1', 'user-2', 'user-3'], organizationId: orgId }),
+        });
 
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: ['user-1'] }),
+        expect(getUserProvidersFromDbMock).toHaveBeenCalledWith(['user-1', 'user-2', 'user-3']);
       });
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body).toEqual(mockProviders);
-    });
+      it('should handle database errors gracefully', async () => {
+        getUserProvidersFromDbMock.mockRejectedValue(new Error('Database connection failed'));
 
-    it('should handle users with no providers', async () => {
-      const mockProviders = [
-        { userId: 'user-1', providers: [] },
-        { userId: 'user-2', providers: [] },
-      ];
-      getUserProvidersFromDbMock.mockResolvedValue(mockProviders);
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'], organizationId: orgId }),
+        });
 
-      const res = await usersRoutes.request('/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: ['user-1', 'user-2'] }),
+        expect(res.status).toBe(500);
+        const body = await res.json();
+        expect(body.error.message).toContain('Failed to fetch user providers');
       });
 
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body[0].providers).toEqual([]);
-      expect(body[1].providers).toEqual([]);
+      it('should handle single user request', async () => {
+        const mockProviders = [{ userId: 'user-1', providers: ['credential'] }];
+        getUserProvidersFromDbMock.mockResolvedValue(mockProviders);
+
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body).toEqual(mockProviders);
+      });
+
+      it('should handle users with no providers', async () => {
+        const mockProviders = [
+          { userId: 'user-1', providers: [] },
+          { userId: 'user-2', providers: [] },
+        ];
+        getUserProvidersFromDbMock.mockResolvedValue(mockProviders);
+
+        const res = await usersRoutes.request('/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: ['user-1', 'user-2'], organizationId: orgId }),
+        });
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body[0].providers).toEqual([]);
+        expect(body[1].providers).toEqual([]);
+      });
     });
   });
 });

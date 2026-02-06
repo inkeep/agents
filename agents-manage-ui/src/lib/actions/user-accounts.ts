@@ -11,8 +11,12 @@ export interface UserProvider {
 /**
  * Get the authentication providers for a list of users.
  * Returns which providers each user has linked (e.g., 'credential', 'google', 'auth0').
+ * Requires the caller to be an admin/owner of the specified organization.
  */
-export async function getUserProviders(userIds: string[]): Promise<UserProvider[]> {
+export async function getUserProviders(
+  userIds: string[],
+  organizationId: string
+): Promise<UserProvider[]> {
   if (userIds.length === 0) {
     return [];
   }
@@ -28,7 +32,7 @@ export async function getUserProviders(userIds: string[]): Promise<UserProvider[
         'Content-Type': 'application/json',
         Cookie: cookieHeader,
       },
-      body: JSON.stringify({ userIds }),
+      body: JSON.stringify({ userIds, organizationId }),
     });
 
     if (!response.ok) {

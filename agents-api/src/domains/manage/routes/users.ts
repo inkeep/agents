@@ -2,6 +2,8 @@ import {
   createApiError,
   getUserOrganizationsFromDb,
   getUserProvidersFromDb,
+  type OrgRole,
+  OrgRoles,
   type UserProviderInfo,
 } from '@inkeep/agents-core';
 import { Hono } from 'hono';
@@ -53,13 +55,23 @@ usersRoutes.get('/:userId/organizations', async (c) => {
  *
  * Get authentication providers for a list of users.
  * Returns which providers each user has (e.g., 'credential', 'google', 'auth0').
+ * Restricted to org admins/owners querying members of their organization.
  *
- * Body: { userIds: string[] }
+ * Body: { userIds: string[], organizationId: string }
  * Response: UserProviderInfo[]
  */
 usersRoutes.post('/providers', async (c) => {
-  const body = await c.req.json<{ userIds?: string[] }>();
-  const { userIds } = body;
+  const body = await c.req.json<{ userIds?: string[]; organizationId?: string }>();
+  const { userIds, organizationId } = body;
+  // sessionAuth middleware guarantees userId is set
+  const authenticatedUserId = c.get('userId') as string;
+
+  if (!organizationId) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'organizationId is required',
+    });
+  }
 
   if (!userIds || !Array.isArray(userIds)) {
     throw createApiError({
@@ -70,6 +82,24 @@ usersRoutes.post('/providers', async (c) => {
 
   if (userIds.length === 0) {
     return c.json([] as UserProviderInfo[]);
+  }
+
+  const userOrgs = await getUserOrganizationsFromDb(runDbClient)(authenticatedUserId);
+  const orgAccess = userOrgs.find((org) => org.organizationId === organizationId);
+
+  if (!orgAccess) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'Access denied to this organization',
+    });
+  }
+
+  const role = orgAccess.role as OrgRole;
+  if (role !== OrgRoles.ADMIN && role !== OrgRoles.OWNER) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'Admin access required',
+    });
   }
 
   try {
