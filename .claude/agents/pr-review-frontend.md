@@ -23,7 +23,7 @@ Frontend review focuses on React/Next.js patterns, not API implementation.
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context

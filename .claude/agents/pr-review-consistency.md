@@ -34,7 +34,7 @@ Consistency review checks conformance to existing patterns; it doesn't decide wh
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
