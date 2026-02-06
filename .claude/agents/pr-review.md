@@ -246,8 +246,9 @@ Outline of format (in this order!):
 
 #### **Criteria (ALL must be true)**:
 - **Severity + Confidence**:
-  - `CRITICAL` + `MEDIUM` or `CRITICAL` + `HIGH`
+  - `CRITICAL` + `MEDIUM` or `HIGH`
   - `MAJOR` + `HIGH`
+  - `MINOR` + `HIGH` (but NOT inline-eligible — if it qualifies for inline comment, post it there instead)
 - **NOT posted as inline comment** — items you handled in Phase 5 go in New Inline Comments only
 - **Not** in Pending Recommendations or already resolved
 
@@ -287,14 +288,30 @@ when the problem is complex or context is needed.
 // 🟠 1) ...same format as "Critical" findings
 
 // 🟠 2) ...same format as "Critical" findings
+
+### 🟡 Minor (L) 🟡
+
+// Only MINOR + HIGH confidence items that did NOT qualify for inline comments
+// These are confident issues but too complex for a single inline fix
+
+🟡 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
+
+**Issue:** Brief description.
+**Why:** 1 sentence impact.
+**Fix:** Quick suggestion.
+**Refs:** `[file:line](url)`
 ````
 
-Tip: X = P + N + M (Inline Comments + Critical + Major findings total)
+Tip: X = N + M + L (Critical + Major + Minor findings in Main, not counting Inline Comments)
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
-- **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approches with potentially code blocks to help illustrate
-- **MAJOR + HIGH confidence**: 1-2 sentence Why, high level recommendation on resolution.
-- **MINOR / LOW confidence**: Usually filtered; if included, keep it short and sweet: paraphrased issue/why + quick fix suggestion.
+- **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
+- **MAJOR + HIGH confidence**: 1-2 sentence Why, high level recommendation on resolution
+- **MINOR + HIGH confidence**: Brief issue/why + quick fix suggestion (only if NOT inline-eligible)
+
+**MINOR + HIGH routing:**
+- If inline-eligible (single file, concrete fix, 1-10 lines) → **Inline Comment**
+- If NOT inline-eligible (multi-file, architectural, multiple approaches) → **Main (Minor section)**
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
