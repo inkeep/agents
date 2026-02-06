@@ -3,11 +3,17 @@ name: Closed PR Review Auto-Improver
 on:
   pull_request_target:
     types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to analyze (for testing against historical PRs)'
+        required: true
+        type: number
 
 jobs:
   analyze-reviewer-feedback:
-    # Only run on merged PRs
-    if: github.event.pull_request.merged == true
+    # Run on merged PRs (auto) or manual dispatch (testing)
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write      # For creating branches and commits
@@ -35,12 +41,32 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
+      - name: Get PR Metadata
+        id: pr-meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=${{ inputs.pr_number || github.event.pull_request.number }}
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Fetch PR metadata via API (works for both auto and manual triggers)
+          PR_DATA=$(gh pr view $PR_NUMBER --json title,author,baseRefName,mergedBy,body)
+          echo "title=$(echo "$PR_DATA" | jq -r '.title')" >> $GITHUB_OUTPUT
+          echo "author=$(echo "$PR_DATA" | jq -r '.author.login')" >> $GITHUB_OUTPUT
+          echo "base=$(echo "$PR_DATA" | jq -r '.baseRefName')" >> $GITHUB_OUTPUT
+          echo "merged_by=$(echo "$PR_DATA" | jq -r '.mergedBy.login')" >> $GITHUB_OUTPUT
+
+          # Store body with HEREDOC (may contain newlines)
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$PR_DATA" | jq -r '.body' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Extract Comments
         id: extract
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
+          PR_NUMBER=${{ steps.pr-meta.outputs.pr_number }}
 
           # Fetch all comment types via GraphQL
           COMMENTS=$(gh api graphql -f query='
@@ -144,7 +170,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Get diff, cap at 200KB to stay under prompt limits
-          DIFF=$(gh pr diff ${{ github.event.pull_request.number }})
+          PR_NUM=${{ steps.pr-meta.outputs.pr_number }}
+          DIFF=$(gh pr diff $PR_NUM)
           DIFF_SIZE=${#DIFF}
           MAX_SIZE=200000
 
@@ -169,16 +196,16 @@ jobs:
             --agent closed-pr-review-auto-improver
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout -b:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git rev-list:*),Bash(git show:*)"
           prompt: |
-            Analyze merged PR #${{ github.event.pull_request.number }} to identify generalizable patterns from human reviewer feedback.
+            Analyze merged PR #${{ steps.pr-meta.outputs.pr_number }} to identify generalizable patterns from human reviewer feedback.
 
             # PR Metadata
-            - **Title:** ${{ github.event.pull_request.title }}
-            - **Author:** ${{ github.event.pull_request.user.login }}
-            - **Base:** ${{ github.event.pull_request.base.ref }}
-            - **Merged By:** ${{ github.event.pull_request.merged_by.login }}
+            - **Title:** ${{ steps.pr-meta.outputs.title }}
+            - **Author:** ${{ steps.pr-meta.outputs.author }}
+            - **Base:** ${{ steps.pr-meta.outputs.base }}
+            - **Merged By:** ${{ steps.pr-meta.outputs.merged_by }}
 
             ## Description
-            ${{ github.event.pull_request.body }}
+            ${{ steps.pr-meta.outputs.body }}
 
             ---
 
@@ -206,7 +233,7 @@ jobs:
             2. Compare against bot comments to find gaps (what humans caught that bots missed)
             3. Apply the generalizability test (all 4 criteria must pass)
             4. If HIGH-generalizability patterns found:
-               - Create branch: `closed-pr-review-auto-improver/pr-${{ github.event.pull_request.number }}-learnings`
+               - Create branch: `closed-pr-review-auto-improver/pr-${{ steps.pr-meta.outputs.pr_number }}-learnings`
                - Edit relevant `.claude/agents/pr-review-*.md` files
                - Create draft PR with changes
                - Add label: `pr-review-improvement`
