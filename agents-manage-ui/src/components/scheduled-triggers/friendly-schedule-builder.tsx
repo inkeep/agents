@@ -39,7 +39,10 @@ function toTimeString(hour: string, minute: string): string {
 // Helper to parse time string (HH:MM) to hour/minute
 function parseTimeString(time: string): { hour: string; minute: string } {
   const [h, m] = time.split(':');
-  return { hour: String(Number.parseInt(h || '9')), minute: String(Number.parseInt(m || '0')) };
+  return {
+    hour: String(Number.parseInt(h || '9', 10)),
+    minute: String(Number.parseInt(m || '0', 10)),
+  };
 }
 
 const DAY_OF_MONTH_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
@@ -103,8 +106,8 @@ function parseCronExpression(cron: string): {
   if (dayOfMonth !== '*' && dayOfWeek === '*' && !minute.includes('/') && !hour.includes('/')) {
     if (
       /^\d+$/.test(dayOfMonth) &&
-      Number.parseInt(dayOfMonth) >= 1 &&
-      Number.parseInt(dayOfMonth) <= 31
+      Number.parseInt(dayOfMonth, 10) >= 1 &&
+      Number.parseInt(dayOfMonth, 10) <= 31
     ) {
       return { frequency: 'monthly', minute, hour, dayOfMonth };
     }
@@ -156,15 +159,15 @@ function getScheduleDescription(cron: string): string {
       return `Runs hourly at ${min} minutes past the hour`;
     }
     case 'daily': {
-      const hour = Number.parseInt(parsed.hour || '9');
+      const hour = Number.parseInt(parsed.hour || '9', 10);
       const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min));
+      const timeStr = formatTime(hour, Number.parseInt(min, 10));
       return `Runs daily at ${timeStr}`;
     }
     case 'weekly': {
-      const hour = Number.parseInt(parsed.hour || '9');
+      const hour = Number.parseInt(parsed.hour || '9', 10);
       const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min));
+      const timeStr = formatTime(hour, Number.parseInt(min, 10));
       const dayNames = parsed.daysOfWeek
         ?.map((d) => DAYS_OF_WEEK.find((day) => day.value === d)?.short)
         .filter(Boolean)
@@ -172,11 +175,11 @@ function getScheduleDescription(cron: string): string {
       return `Runs weekly on ${dayNames || 'Monday'} at ${timeStr}`;
     }
     case 'monthly': {
-      const hour = Number.parseInt(parsed.hour || '9');
+      const hour = Number.parseInt(parsed.hour || '9', 10);
       const min = parsed.minute?.padStart(2, '0') || '00';
-      const timeStr = formatTime(hour, Number.parseInt(min));
+      const timeStr = formatTime(hour, Number.parseInt(min, 10));
       const day = parsed.dayOfMonth || '1';
-      return `Runs monthly on the ${day}${getOrdinalSuffix(Number.parseInt(day))} at ${timeStr}`;
+      return `Runs monthly on the ${day}${getOrdinalSuffix(Number.parseInt(day, 10))} at ${timeStr}`;
     }
     default:
       return cron ? `Custom schedule: ${cron}` : 'No schedule configured';

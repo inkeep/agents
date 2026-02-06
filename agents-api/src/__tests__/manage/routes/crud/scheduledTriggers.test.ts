@@ -135,9 +135,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const tenantId = await createTestTenantWithOrg('sched-list-empty');
       const { agentId, projectId } = await createTestAgent(tenantId);
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}?page=1&limit=10`
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}?page=1&limit=10`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -159,9 +157,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       await createTestScheduledTrigger({ tenantId, projectId, agentId, name: 'Cron Trigger 1' });
       await createTestScheduledTrigger({ tenantId, projectId, agentId, name: 'Cron Trigger 2' });
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}?page=1&limit=10`
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}?page=1&limit=10`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -196,9 +192,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
 
       await createTestScheduledTrigger({ tenantId, projectId, agentId });
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}?page=1&limit=10`
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}?page=1&limit=10`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -224,9 +218,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         });
       }
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}?page=1&limit=3`
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}?page=1&limit=3`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
@@ -262,9 +254,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const { agentId, projectId } = await createTestAgent(tenantId);
       const nonExistentId = `non-existent-${generateId()}`;
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${nonExistentId}`
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${nonExistentId}`);
       expect(res.status).toBe(404);
 
       const body = await res.json();
@@ -286,9 +276,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId2, projectId);
       const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
 
-      const res = await makeRequest(
-        `${basePath(tenantId2, projectId, agentId2)}/${trigger.id}`
-      );
+      const res = await makeRequest(`${basePath(tenantId2, projectId, agentId2)}/${trigger.id}`);
       expect(res.status).toBe(404);
     });
   });
@@ -475,13 +463,10 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         enabled: false,
       };
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${trigger.id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(updateData),
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -502,13 +487,10 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         cronTimezone: 'Europe/London',
       };
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${trigger.id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(updateData),
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -527,13 +509,10 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         timeoutSeconds: 1200,
       };
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${trigger.id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(updateData),
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -547,13 +526,10 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${trigger.id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({}),
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({}),
+      });
 
       // Schema applies defaults for retry fields, so this is treated as valid
       expect(res.status).toBe(200);
@@ -566,13 +542,10 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
 
       const updateData = { name: 'Updated Name' };
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${nonExistentId}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(updateData),
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${nonExistentId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
 
       expect(res.status).toBe(404);
     });
@@ -592,13 +565,10 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId2, projectId);
       const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
 
-      const res = await makeRequest(
-        `${basePath(tenantId2, projectId, agentId2)}/${trigger.id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ name: 'Hacked' }),
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId2, projectId, agentId2)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'Hacked' }),
+      });
 
       expect(res.status).toBe(404);
     });
@@ -610,18 +580,13 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${trigger.id}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'DELETE',
+      });
 
       expect(res.status).toBe(204);
 
-      const getRes = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${trigger.id}`
-      );
+      const getRes = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`);
       expect(getRes.status).toBe(404);
     });
 
@@ -630,12 +595,9 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const { agentId, projectId } = await createTestAgent(tenantId);
       const nonExistentId = `non-existent-${generateId()}`;
 
-      const res = await makeRequest(
-        `${basePath(tenantId, projectId, agentId)}/${nonExistentId}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${nonExistentId}`, {
+        method: 'DELETE',
+      });
 
       expect(res.status).toBe(404);
     });
@@ -679,12 +641,9 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId2, projectId);
       const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
 
-      const res = await makeRequest(
-        `${basePath(tenantId2, projectId, agentId2)}/${trigger.id}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const res = await makeRequest(`${basePath(tenantId2, projectId, agentId2)}/${trigger.id}`, {
+        method: 'DELETE',
+      });
 
       expect(res.status).toBe(404);
     });
