@@ -156,6 +156,8 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 
 [1-2 sentence concise explanation/justification of what's wrong and why it matters]
 
+[Refs as hyperlinks: code locations, skills, reviewer rules, external docs]
+
 ```suggestion
 [exact replacement code — this REPLACES the entire line or line range]
 ```
@@ -168,7 +170,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 {
   "path": "src/utils/validate.ts",
   "line": 42,
-  "body": "**MAJOR** Missing input validation\n\nUser input should be sanitized before processing.\n\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```"
+  "body": "**MAJOR** Missing input validation\n\nUser input should be sanitized before processing. See [OWASP Input Validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html) · [pr-review-security-iam: §3](https://github.com/org/repo/blob/sha/.claude/agents/pr-review-security-iam.md)\n\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```"
 }
 ```
 
@@ -178,7 +180,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
   "path": "src/api/handler.ts",
   "startLine": 15,
   "line": 17,
-  "body": "**MAJOR** Simplify error handling\n\nThis can be consolidated into a single try-catch.\n\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```"
+  "body": "**MAJOR** Simplify error handling\n\nThis can be consolidated into a single try-catch. See [pr-review-errors skill](https://github.com/org/repo/blob/sha/.agents/skills/pr-review-errors/SKILL.md)\n\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```"
 }
 ```
 
