@@ -11,23 +11,9 @@ export type AgentModels = {
   summarizer?: ModelSettings;
 };
 
-type StatusUpdateSettings = {
-  enabled?: boolean;
-  prompt?: string;
-  numEvents?: number; // Trigger after N events (default: 10)
-  timeInSeconds?: number; // Trigger after N seconds (default: 30)
-  statusComponents?: string; // JSON string representation of status components array
-};
-
 export type AgentMetadata = {
-  // id?: string;
-  // name: string;
-  // description: string;
-  // contextConfig: ContextConfig;
   models?: AgentModels;
   stopWhen?: AgentStopWhen;
-  // prompt?: string;
-  statusUpdates?: StatusUpdateSettings;
 };
 
 export type ContextConfig = {

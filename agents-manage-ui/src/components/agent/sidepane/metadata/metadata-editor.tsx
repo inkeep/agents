@@ -80,7 +80,7 @@ export const MetadataEditor: FC = () => {
     projectId: string;
     agentId: string;
   }>();
-  const { models, stopWhen, statusUpdates } = useAgentStore((state) => state.metadata);
+  const { models, stopWhen } = useAgentStore((state) => state.metadata);
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const { canUse } = useProjectPermissions();
