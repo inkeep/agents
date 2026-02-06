@@ -1,6 +1,9 @@
 import { z } from '@hono/zod-openapi';
-import type { artifactComponents, dataComponents } from '../db/manage/manage-schema';
+import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
+import type { agents, artifactComponents, dataComponents } from '../db/manage/manage-schema';
 import { validateJsonSchemaForLlm } from './json-schema-validation';
+
+const { VALIDATION_AGENT_PROMPT_MAX_CHARS } = schemaValidationDefaults;
 
 type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
@@ -22,6 +25,17 @@ export const ArtifactComponentExtendSchema = {
   description: DescriptionSchema,
   props: PropsSchema.nullable(),
 } satisfies ExtendSchema<typeof artifactComponents>;
+
+export const AgentWithinContextOfProjectExtendSchema = {
+  prompt: z
+    .string()
+    .trim()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .optional(),
+} satisfies ExtendSchema<typeof agents>;
 
 function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
   const validationResult = validateJsonSchemaForLlm(parsed);

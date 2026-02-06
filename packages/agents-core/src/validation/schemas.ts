@@ -68,7 +68,11 @@ import {
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
-import { ArtifactComponentExtendSchema, DataComponentExtendSchema } from './extend-schemas';
+import {
+  AgentWithinContextOfProjectExtendSchema,
+  ArtifactComponentExtendSchema,
+  DataComponentExtendSchema,
+} from './extend-schemas';
 
 // Destructure defaults for use in schemas
 const {
@@ -77,7 +81,6 @@ const {
   STATUS_UPDATE_MAX_INTERVAL_SECONDS,
   STATUS_UPDATE_MAX_NUM_EVENTS,
   SUB_AGENT_TURN_GENERATION_STEPS_MAX,
-  VALIDATION_AGENT_PROMPT_MAX_CHARS,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
