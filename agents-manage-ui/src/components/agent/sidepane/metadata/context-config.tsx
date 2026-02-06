@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
@@ -5,7 +6,8 @@ import { isRequired } from '@/lib/utils';
 import { FullAgentUpdateSchema as schema } from '@/lib/validation';
 import { SectionHeader } from '../section';
 
-export function ContextConfigForm() {
+export const ContextConfigForm: FC = () => {
+  'use memo';
   const form = useFullAgentFormContext();
 
   return (
@@ -32,4 +34,4 @@ export function ContextConfigForm() {
       />
     </div>
   );
-}
+};

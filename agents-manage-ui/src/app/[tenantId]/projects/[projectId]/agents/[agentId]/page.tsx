@@ -72,6 +72,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     ? Boolean(capabilities.data?.sandbox?.configured)
     : false;
 
+  const { headersSchema, contextVariables } = agent.data.contextConfig;
+
   const defaultValues = {
     id: agent.data.id,
     name: agent.data.name,
@@ -79,8 +81,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     prompt: agent.data.prompt,
     contextConfig: {
       id: agent.data.contextConfig.id,
-      headersSchema: agent.data.contextConfig.headersSchema,
-      contextVariables: agent.data.contextConfig.contextVariables,
+      headersSchema: JSON.stringify(headersSchema, null, 2),
+      contextVariables: JSON.stringify(contextVariables, null, 2),
     },
   };
 
