@@ -81,19 +81,23 @@ The `type` field determines which other fields are required. Do not mix schemas.
 
 ### Common Fields (All Types)
 
-These fields are **required on all finding types**:
+These fields are **required on all finding types**.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
-| `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? |
-| `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
-| `issue` | string | What's wrong. Thorough description. |
-| `implications` | string | Why it matters. Consequence, risk, user impact. |
-| `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? |
-| `fix` | string | Suggestion[s] (aka "fix" or "fixes") for how to address it. If a simple fix, then just give the full solution as a code block. If a bigger-scoped resolution is needed, but brief code example[s] would be helpful to illustrate, incorporate them as full code block[s] (still minimum viable short) interweaved into the explanation. Otherwise, describe the alternative approaches to consider qualitatively/from a technical perspective. Note: Don't go into over-engineering a solution if wide-scoped or you're unsure, this is more about giving a starting point/direction as to what a resolution may look like. |
-| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
-| `references` | string[] | **Required.** Citations that ground the finding. See Reference Types below. |
+**Field order matters.** Output fields in this exact order — it ensures you reason through the issue and cite evidence *before* committing to severity/confidence classifications.
+
+| # | Field | Type | Description |
+|---|-------|------|-------------|
+| 1 | `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
+| 2 | `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
+| 3 | `issue` | string | What's wrong. Thorough description. |
+| 4 | `implications` | string | Why it matters. Consequence, risk, user impact. |
+| 5 | `references` | string[] | **Required.** Citations that ground the finding. See Reference Types below. |
+| 6 | `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? (classify AFTER describing + citing evidence) |
+| 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
+| 8 | `fix` | string | Suggestion[s] for how to address it. If simple, give the full solution as a code block. If bigger-scoped, interweave brief code examples into the explanation. Don't over-engineer — give a starting point/direction. |
+| 9 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+
+**Why this order?** LLMs generate tokens sequentially. By describing the issue, explaining implications, and citing evidence *before* severity/confidence, you ensure classifications are grounded in reasoning rather than premature commitment.
 
 ### Reference Types
 
@@ -141,20 +145,14 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 **Use when:** You found an issue at a specific line (or small range ≤10 lines) AND you can propose a concrete fix.
 
-**Required fields:**
+**Field order:** `type` → `file` → `line` → common fields (category → issue → implications → references → severity → confidence → fix → fix_confidence)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"inline"` | Literal string. |
 | `file` | string | Repo-relative path (e.g., `"src/api/client.ts"`). |
 | `line` | number \| string | Line number (`42`) or range (`"42-48"`). |
-| + common fields | | See above. |
-
-**Optional fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `line_end` | number | Explicit end line (alternative to range string). |
+| `line_end` | number | (Optional) Explicit end line (alternative to range string). |
 
 ---
 
@@ -162,13 +160,12 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 **Use when:** The issue concerns a whole file, a large section, or you have guidance but not a concrete line-level fix.
 
-**Required fields:**
+**Field order:** `type` → `file` → common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"file"` | Literal string. |
 | `file` | string | Repo-relative path. |
-| + common fields | | See above. |
 
 ---
 
@@ -176,13 +173,12 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 **Use when:** The issue spans multiple files — e.g., inconsistency between API and SDK, type definitions out of sync, or a pattern that appears across several files.
 
-**Required fields:**
+**Field order:** `type` → `files` → common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"multi-file"` | Literal string. |
 | `files` | string[] | Array of repo-relative paths (at least 2). |
-| + common fields | | See above. |
 
 ---
 
@@ -190,13 +186,12 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 **Use when:** The issue is architectural or pattern-related, not tied to specific files — e.g., inconsistent patterns across the codebase, precedent-setting concerns, or design decisions that affect evolvability.
 
-**Required fields:**
+**Field order:** `type` → `scope` → common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"system"` | Literal string. |
 | `scope` | string | Brief description of what area/pattern this concerns. |
-| + common fields | | See above. |
 
 ---
 
@@ -289,12 +284,41 @@ Never use absolute paths. Always use paths relative to the repository root.
 
 ---
 
+## Complete Example (with correct field order)
+
+```json
+[
+  {
+    "type": "inline",
+    "file": "src/api/client.ts",
+    "line": 42,
+    "category": "security",
+    "issue": "User input is passed directly to SQL query without sanitization, creating SQL injection vulnerability.",
+    "implications": "Attackers can extract, modify, or delete database contents. Could lead to full database compromise and data breach.",
+    "references": [
+      "[src/api/client.ts:42](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42)",
+      "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)",
+      "[pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)"
+    ],
+    "severity": "CRITICAL",
+    "confidence": "HIGH",
+    "fix": "Use parameterized queries:\n```typescript\nconst result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);\n```",
+    "fix_confidence": "HIGH"
+  }
+]
+```
+
+**Note the order:** type → location → category → issue → implications → references → severity → confidence → fix → fix_confidence
+
+---
+
 ## Validation Checklist
 
 Before returning, verify:
 
 - [ ] Output is valid JSON (no prose, no code fences, no markdown)
 - [ ] Output is an array of Finding objects
+- [ ] **Field order is correct:** type → location → category → issue → implications → references → severity → confidence → fix → fix_confidence
 - [ ] Every finding has a `type` field with valid value
 - [ ] Every finding has all required fields for its type
 - [ ] `severity`, `confidence`, and `fix_confidence` use allowed enum values
@@ -304,4 +328,4 @@ Before returning, verify:
 - [ ] `multi-file` findings have at least 2 files in the array
 - [ ] `system` findings have a descriptive `scope` string
 - [ ] No duplicate findings for the same issue
-- [ ] Every finding has at least one reference (code location, skill/rule, or URL)
+- [ ] Every finding has at least one reference as markdown hyperlink `[text](url)`
