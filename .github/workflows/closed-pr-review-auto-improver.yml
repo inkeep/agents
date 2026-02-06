@@ -49,6 +49,7 @@ jobs:
                           url
                           path
                           line
+                          diffHunk
                         }
                       }
                     }
@@ -81,7 +82,7 @@ jobs:
                 (.body | length) >= 15 and
                 (.body | test("^(lgtm|looks good|thanks|thank you|approved|shipit|ship it|👍|🚀|✅)\\s*$"; "i") | not)
               ))
-            | map({author: .author.login, body: .body, url: .url, path: .path, line: .line})
+            | map({author: .author.login, body: .body, url: .url, path: .path, line: .line, diffHunk: .diffHunk})
           ')
 
           # Extract bot comments (truncate body to 1000 chars)

@@ -88,42 +88,87 @@ Instead, note it as "repo-specific" in your analysis output.
 
 # Workflow
 
-## Phase 1: Understand the Human Feedback
+## Phase 1: Triage Human Comments
 
-The prompt includes all context inline (PR metadata, human comments, bot comments, diff).
+The prompt includes: PR metadata, human comments (with `diffHunk` showing the code), bot comments, and the full diff.
 
-For each substantive human comment, understand:
-- What issue did the human identify?
-- What code/pattern triggered their concern?
-- What was their suggested fix or approach?
+**Quick scan each human comment:**
+- Is this substantive feedback about code quality/patterns? → Worth investigating
+- Is this a question, clarification, or discussion? → Skip
+- Is this clearly repo-specific ("we always do X here")? → Note as repo-specific, skip
 
-## Phase 2: Compare Against Bot Comments
+**Prioritize comments that:**
+- Reference code patterns, types, architecture, or conventions
+- Suggest "you should use X instead of Y"
+- Point out something the PR author missed
+- Have `path` and `line` info (inline comments on specific code)
 
-Using the bot comments provided in the prompt, identify gaps:
-   - Did bots flag this issue? (If yes → not a gap)
-   - Did bots miss it entirely? (If yes → potential gap)
-   - Did bots flag something similar but miss the key insight? (If yes → refinement opportunity)
+## Phase 2: Deep-Dive on Promising Comments
 
-## Phase 3: Classify the Pattern
+**For each promising comment, gather full context before judging:**
 
-For each gap identified in Phase 2:
+### 2a. Understand the code being commented on
+- **diffHunk**: Each inline comment includes the code snippet — read it carefully
+- **Read the full file**: Use `Read {path}` to see the broader context (imports, surrounding functions, class structure)
+- **Check line numbers**: The `line` field tells you exactly where the comment points
 
-1. **Apply the Generalizability Test** (all 4 criteria must pass)
-2. **Classify generalizability**:
-   - `HIGH`: Passes all 4 criteria with confidence
-   - `MEDIUM`: Likely passes but some uncertainty
-   - `LOW`: Probably repo-specific or edge case
-3. **Map to reviewer**: Which `pr-review-*` agent should have caught this?
-   - `pr-review-types`: Type safety, invariants, schema discipline
-   - `pr-review-consistency`: Convention conformance, naming, patterns
-   - `pr-review-architecture`: System design, boundaries, dependencies
-   - `pr-review-standards`: Code quality, bugs, AGENTS.md compliance
-   - `pr-review-errors`: Error handling, silent failures
-   - `pr-review-security-iam`: Auth, authz, tenant isolation
-   - `pr-review-tests`: Test coverage, test quality
-   - (etc. — read `.claude/agents/pr-review-*.md` to see all available)
+### 2b. Understand what the human is referencing
+If the comment mentions:
+- **"the schema"** → `Grep` for schema definitions, find what they're referring to
+- **"existing types"** → `Glob` for type files, understand what already exists
+- **"we already have X"** → Search for X to see the existing pattern
+- **"this should derive from"** → Find the source they're referencing
 
-## Phase 4: Propose Specific Improvements (HIGH generalizability only)
+### 2c. Understand the anti-pattern
+- What did the PR author do? (visible in diffHunk + file)
+- What should they have done instead? (from human comment + your investigation)
+- Why is the human's suggestion better? (the underlying principle)
+
+**Example investigation:**
+```
+Comment: "Are we redefining types? You can infer types from zod schemas"
+Path: agents-api/src/domains/run/types/chat.ts, Line: 7
+
+→ Read agents-api/src/domains/run/types/chat.ts (see the new type definition)
+→ Grep for "z.object" in same directory (find existing schemas)
+→ Grep for "z.infer" (see how other files derive types from schemas)
+→ Now you understand: PR defined `type X = {...}` when `z.infer<typeof schema>` exists
+```
+
+## Phase 3: Compare Against Bot Comments
+
+For each investigated comment:
+- Did bots flag this exact issue? → Not a gap
+- Did bots flag something related but miss the key insight? → Refinement opportunity
+- Did bots miss it entirely? → Potential gap
+
+**Be precise about what was missed.** "Bot said use imported type" vs "Human said derive from schema" are different insights even if related.
+
+## Phase 4: Apply Generalizability Test
+
+For each gap identified in Phase 3, apply the 4-criteria test:
+
+1. **Cross-codebase applicability**: Would this appear in other TS/React/Node codebases?
+2. **Universal principle**: Is it a recognized SE principle (DRY, SOLID, etc.)?
+3. **Expressible as checklist/pattern**: Can you write a concrete check for it?
+4. **Industry recognition**: Would senior engineers elsewhere recognize this?
+
+**Classify:**
+- `HIGH`: Passes all 4 with confidence → proceed to Phase 5
+- `MEDIUM`: Likely passes but uncertain → note it, don't create PR
+- `LOW`: Probably repo-specific → note as repo-specific
+
+**Map to reviewer** (which agent should have caught this?):
+- `pr-review-types`: Type safety, invariants, schema discipline
+- `pr-review-consistency`: Convention conformance, naming, patterns
+- `pr-review-architecture`: System design, boundaries, dependencies
+- `pr-review-standards`: Code quality, bugs, AGENTS.md compliance
+- `pr-review-errors`: Error handling, silent failures
+- `pr-review-security-iam`: Auth, authz, tenant isolation
+- `pr-review-tests`: Test coverage, test quality
+- (Use `Glob .claude/agents/pr-review-*.md` to see all available)
+
+## Phase 5: Propose Specific Improvements (HIGH generalizability only)
 
 For patterns with `HIGH` generalizability:
 
@@ -135,7 +180,7 @@ For patterns with `HIGH` generalizability:
    - New contrastive example (good vs bad)?
 3. **Draft the specific addition** — match the style of existing content in that agent
 
-## Phase 5: Create Draft PR (if improvements found)
+## Phase 6: Create Draft PR (if improvements found)
 
 If you identified HIGH-generalizability improvements:
 
@@ -259,12 +304,16 @@ When you complete analysis, output a JSON summary:
 
 | Tool | Use For |
 |------|---------|
-| **Read** | Existing pr-review-*.md agents (to understand current state before editing) |
-| **Grep/Glob** | Find existing patterns in agents, discover what conventions already exist |
+| **Read** | **(1) Gather context**: Read files referenced in comments to understand the full picture. **(2) Before editing**: Read existing pr-review-*.md agents to match their style. |
+| **Grep** | **(1) Find related code**: Search for schemas, types, patterns mentioned in comments. **(2) Find conventions**: See how the codebase handles similar situations. |
+| **Glob** | Find files by pattern (e.g., `**/types/*.ts`, `**/schemas/*.ts`) |
 | **Edit** | Modify pr-review-*.md files with new checklist items, failure modes, etc. |
 | **Write** | Only if creating a new file is absolutely necessary (rare) |
 | **Bash** | Git operations (checkout, add, commit, push), gh pr create, gh api |
 
-**Note:** PR context (metadata, comments, diff) is passed inline in the prompt — no need to read files for that.
+**Context gathering is critical.** Don't judge a comment without understanding:
+- The actual code being commented on (Read the file)
+- What the human is referencing (Grep/Glob to find it)
+- Why their suggestion is better (understand the principle)
 
 **Do not:** Modify any files outside `.claude/agents/pr-review-*.md`.
