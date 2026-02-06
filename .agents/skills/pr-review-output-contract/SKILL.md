@@ -99,29 +99,31 @@ These fields are **required on all finding types**:
 
 Every finding **must** include at least one reference. References ground your analysis in verifiable sources and prevent hallucinated recommendations.
 
+**Use markdown hyperlinks** `[text](url)` for URLs. Keep code/rule citations as plain text.
+
 | Type | Format | When to Use |
 |------|--------|-------------|
-| **Code reference** | `"file"`, `"file:line"`, or `"file:line-range"` | Point to code that exhibits the issue (line numbers optional) |
+| **Code reference** | `"file:line"` or `"file:line-range"` | Point to code that exhibits the issue |
 | **Reviewer instructions** | `"per reviewer: <section/rule>"` | Cite your own agent prompt instructions |
 | **Skill/rule reference** | `"per <skill-name> skill"` or `"per AGENTS.md: <rule>"` | Cite loaded skills or repo rules that define the violation |
-| **URL reference** | `"https://..."` | Cite external docs, GitHub issues, or web search results |
+| **URL reference** | `"[descriptive text](https://...)"` | Cite external docs, GitHub issues, or web search results — **always use markdown hyperlink format** |
 
 **Examples:**
 ```json
 "references": [
   "src/api/client.ts:42-48",
-  "src/utils/helpers.ts",
   "per reviewer: Checklist item 2 - tenant isolation",
   "per vercel-react-best-practices skill",
-  "https://react.dev/reference/react/memo"
+  "[React useMemo docs](https://react.dev/reference/react/useMemo)",
+  "[GitHub issue #1234](https://github.com/org/repo/issues/1234)"
 ]
 ```
 
 **Guidance:**
-- **Code issues** → always include the code location as a reference
+- **Code issues** → always include the code location as a reference (e.g., `file.ts:42`)
 - **Reviewer-defined rules** → cite your own prompt instructions (e.g., checklist items, failure modes)
 - **Standards violations** → cite the skill or AGENTS.md rule that defines the standard
-- **Best practice claims** → cite official docs or authoritative sources (especially if verified via web search)
+- **Best practice claims** → cite official docs or authoritative sources as `[descriptive text](url)` hyperlinks (especially if verified via web search)
 - **Multiple references** are encouraged when they strengthen the finding
 
 ---

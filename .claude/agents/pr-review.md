@@ -240,7 +240,10 @@ when the problem is complex or context is needed.
 
 **Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
 
-**Refs:** Interweave or list references that ground this finding: code locations (`file:line`), skills/rules (`per <skill>`), reviewer instructions (`per reviewer: <rule>`), or URLs (official docs, GitHub issues). Example: `src/api/client.ts:42` · `per pr-review-security-iam: Checklist §1` · [React docs](https://react.dev/...)
+**Refs:** Ground the finding with references. Use markdown hyperlinks `[text](url)` for any URLs. Code locations and internal rule citations can be plain text.
+- Code: `src/api/client.ts:42`
+- Rules: `per pr-review-security-iam: Checklist §1`
+- URLs: `[React useMemo docs](https://react.dev/reference/react/useMemo)` · `[Issue #1234](https://github.com/...)`
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 // ...
