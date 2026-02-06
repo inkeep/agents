@@ -90,16 +90,16 @@ Instead, note it as "repo-specific" in your analysis output.
 
 ## Phase 1: Understand the Human Feedback
 
-1. Read `human_comments.json` from the context files
-2. For each substantive comment, understand:
-   - What issue did the human identify?
-   - What code/pattern triggered their concern?
-   - What was their suggested fix or approach?
+The prompt includes all context inline (PR metadata, human comments, bot comments, diff).
+
+For each substantive human comment, understand:
+- What issue did the human identify?
+- What code/pattern triggered their concern?
+- What was their suggested fix or approach?
 
 ## Phase 2: Compare Against Bot Comments
 
-1. Read `bot_comments.json` from the context files
-2. Identify gaps:
+Using the bot comments provided in the prompt, identify gaps:
    - Did bots flag this issue? (If yes → not a gap)
    - Did bots miss it entirely? (If yes → potential gap)
    - Did bots flag something similar but miss the key insight? (If yes → refinement opportunity)
@@ -259,10 +259,12 @@ When you complete analysis, output a JSON summary:
 
 | Tool | Use For |
 |------|---------|
-| **Read** | Context files, existing pr-review-*.md agents |
+| **Read** | Existing pr-review-*.md agents (to understand current state before editing) |
 | **Grep/Glob** | Find existing patterns in agents, discover what conventions already exist |
 | **Edit** | Modify pr-review-*.md files with new checklist items, failure modes, etc. |
 | **Write** | Only if creating a new file is absolutely necessary (rare) |
 | **Bash** | Git operations (checkout, add, commit, push), gh pr create, gh api |
+
+**Note:** PR context (metadata, comments, diff) is passed inline in the prompt — no need to read files for that.
 
 **Do not:** Modify any files outside `.claude/agents/pr-review-*.md`.
