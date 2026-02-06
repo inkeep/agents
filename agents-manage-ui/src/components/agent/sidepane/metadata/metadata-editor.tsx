@@ -166,22 +166,7 @@ export const MetadataEditor: FC = () => {
             }
           }}
           onProviderOptionsChange={(value) => {
-            const currentModels = getCurrentModels();
-            // If there's no base model in the store yet, check the component's `models` prop
-            // which reflects the latest state from the selector (handles timing issues)
-            const baseModel = currentModels?.base?.model || models.base.model;
-            if (!baseModel) {
-              return;
-            }
-            const newModels = {
-              ...(currentModels || models || {}),
-              base: {
-                ...(currentModels?.base || models.base || {}),
-                model: baseModel,
-                providerOptions: value,
-              },
-            };
-            updateMetadata('models', newModels);
+            form.setValue('models.base.providerOptions', value);
           }}
           editorNamePrefix="agent-base"
         />
