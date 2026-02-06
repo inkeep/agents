@@ -99,6 +99,8 @@ export const QUERY_EXPRESSIONS = {
   LAST_ACTIVITY: 'lastActivity',
   CONVERSATION_METADATA: 'conversationMetadata',
   FILTERED_CONVERSATIONS: 'filteredConversations',
+  PAGE_CONVERSATIONS: 'pageConversations',
+  TOTAL_CONVERSATIONS: 'totalConversations',
   TOOLS: 'tools',
   TRANSFERS: 'transfers',
   DELEGATIONS: 'delegations',
@@ -124,6 +126,7 @@ export const QUERY_EXPRESSIONS = {
   TOOL_APPROVAL_APPROVED: 'toolApprovalApproved',
   TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
   COMPRESSION: 'compression',
+  MAX_STEPS_REACHED: 'maxStepsReached',
 } as const;
 
 /** Query Reduce Operations */

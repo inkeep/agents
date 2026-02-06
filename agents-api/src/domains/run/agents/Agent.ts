@@ -12,6 +12,7 @@ import {
   generateId,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
+  isGithubWorkAppTool,
   JsonTransformer,
   listTaskIdsByContextId,
   MCPServerType,
@@ -41,6 +42,7 @@ import {
   tool,
 } from 'ai';
 import manageDbPool from 'src/data/db/manageDbPool';
+import { env } from 'src/env';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
@@ -67,7 +69,6 @@ import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
-import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
@@ -1175,6 +1176,15 @@ export class Agent {
       };
     }
 
+    // Inject github workapp tool id and authorization header if the tool is a github workapp
+    if (isGithubWorkAppTool(tool)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        Authorization: `Bearer ${env.GITHUB_MCP_API_KEY}`,
+      };
+    }
+
     // Inject user_id for Composio servers at runtime
     if (serverConfig.url) {
       serverConfig.url = buildComposioMCPUrl(
@@ -1382,7 +1392,9 @@ export class Agent {
           continue;
         }
 
-        const zodSchema = jsonSchemaToZod(functionData.inputSchema);
+        const zodSchema = functionData.inputSchema
+          ? z.fromJSONSchema(functionData.inputSchema)
+          : z.string();
         const toolPolicies = (functionToolDef as any).toolPolicies as
           | Record<string, { needsApproval?: boolean }>
           | null
@@ -1564,7 +1576,7 @@ export class Agent {
 
               const result = await sandboxExecutor.executeFunctionTool(
                 functionToolDef.id,
-                finalArgs,
+                finalArgs as Record<string, unknown>,
                 {
                   description: functionToolDef.description || functionToolDef.name,
                   inputSchema: functionData.inputSchema || {},
@@ -2185,7 +2197,7 @@ export class Agent {
           let inputSchema: any;
           try {
             inputSchema = override.schema
-              ? jsonSchemaToZod(override.schema)
+              ? z.fromJSONSchema(override.schema)
               : (toolDef as any).inputSchema;
           } catch (schemaError) {
             logger.error(
@@ -3434,7 +3446,42 @@ ${output}`;
       }
     }
 
-    return steps.length >= this.getMaxGenerationSteps();
+    const maxSteps = this.getMaxGenerationSteps();
+    if (steps.length >= maxSteps) {
+      logger.warn(
+        {
+          subAgentId: this.config.id,
+          agentId: this.config.agentId,
+          stepsCompleted: steps.length,
+          maxSteps,
+          conversationId: this.conversationId,
+        },
+        'Sub-agent reached maximum generation steps limit'
+      );
+
+      tracer.startActiveSpan(
+        'agent.max_steps_reached',
+        {
+          attributes: {
+            'agent.max_steps_reached': true,
+            'agent.steps_completed': steps.length,
+            'agent.max_steps': maxSteps,
+            'agent.id': this.config.agentId,
+            'subAgent.id': this.config.id,
+          },
+        },
+        (span) => {
+          span.addEvent('max_generation_steps_reached', {
+            message: `Sub-agent "${this.config.id}" reached maximum generation steps (${steps.length}/${maxSteps})`,
+          });
+          span.end();
+        }
+      );
+
+      return true;
+    }
+
+    return false;
   }
 
   private setupStreamParser(sessionId: string, contextId: string) {
@@ -3608,18 +3655,16 @@ ${output}${structureHintsFormatted}`;
   private buildDataComponentsSchema() {
     const componentSchemas: z.ZodType<any>[] = [];
 
-    if (this.config.dataComponents && this.config.dataComponents.length > 0) {
-      this.config.dataComponents.forEach((dc) => {
-        const propsSchema = jsonSchemaToZod(dc.props);
-        componentSchemas.push(
-          z.object({
-            id: z.string(),
-            name: z.literal(dc.name),
-            props: propsSchema,
-          })
-        );
-      });
-    }
+    this.config.dataComponents?.forEach((dc) => {
+      const propsSchema = dc.props ? z.fromJSONSchema(dc.props) : z.string();
+      componentSchemas.push(
+        z.object({
+          id: z.string(),
+          name: z.literal(dc.name),
+          props: propsSchema,
+        })
+      );
+    });
 
     if (this.artifactComponents.length > 0) {
       const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(this.artifactComponents);

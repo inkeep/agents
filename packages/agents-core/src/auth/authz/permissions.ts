@@ -66,6 +66,29 @@ export async function canUseProject(params: {
 }
 
 /**
+ * Check if a user can use a project - always checks SpiceDB.
+ *
+ * Use this when orgRole is not available (e.g., run-api from JWT).
+ */
+export async function canUseProjectStrict(params: {
+  userId: string;
+  projectId: string;
+}): Promise<boolean> {
+  // System users and API key users bypass project access checks
+  const bypassCheck = params.userId === 'system' || params.userId.startsWith('apikey:');
+  if (bypassCheck) {
+    return true;
+  }
+  return checkPermission({
+    resourceType: SpiceDbResourceTypes.PROJECT,
+    resourceId: params.projectId,
+    permission: SpiceDbProjectPermissions.USE,
+    subjectType: SpiceDbResourceTypes.USER,
+    subjectId: params.userId,
+  });
+}
+
+/**
  * Check if a user can edit a project (modify configurations).
  *
  * - If authz is disabled: only org owner/admin can edit
@@ -115,6 +138,18 @@ export async function listAccessibleProjectIds(params: {
   return lookupResources({
     resourceType: SpiceDbResourceTypes.PROJECT,
     permission: SpiceDbProjectPermissions.VIEW,
+    subjectType: SpiceDbResourceTypes.USER,
+    subjectId: params.userId,
+  });
+}
+
+/**
+ * Get list of usable project IDs for a user - always checks SpiceDB.
+ */
+export async function listUsableProjectIds(params: { userId: string }): Promise<string[]> {
+  return lookupResources({
+    resourceType: SpiceDbResourceTypes.PROJECT,
+    permission: SpiceDbProjectPermissions.USE,
     subjectType: SpiceDbResourceTypes.USER,
     subjectId: params.userId,
   });

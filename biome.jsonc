@@ -55,6 +55,14 @@
         "noUselessLoneBlockStatements": "off"
       },
       "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": { "importNames": ["useContext"], "message": "Use the `use()` hook instead." }
+            }
+          }
+        },
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn",
         "noUselessElse": "error",

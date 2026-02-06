@@ -1,5 +1,77 @@
 # @inkeep/agents-api
 
+## 0.45.3
+
+### Patch Changes
+
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+- Updated dependencies [4a83260]
+- Updated dependencies [37248c6]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-work-apps@0.45.3
+  - @inkeep/agents-manage-mcp@0.45.3
+  - @inkeep/agents-mcp@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+  - @inkeep/agents-work-apps@0.45.2
+  - @inkeep/agents-manage-mcp@0.45.2
+  - @inkeep/agents-mcp@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- Updated dependencies [54b2d4c]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-work-apps@0.45.1
+  - @inkeep/agents-manage-mcp@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-mcp@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- 0626128: adjust manage api routes
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- Updated dependencies [0ef70dd]
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-work-apps@0.45.0
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-mcp@0.45.0
+  - @inkeep/agents-mcp@0.45.0
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+  - @inkeep/agents-work-apps@0.44.0
+  - @inkeep/agents-manage-mcp@0.44.0
+  - @inkeep/agents-mcp@0.44.0
+
 ## 0.43.0
 
 ### Patch Changes

@@ -1,6 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-Use pnpm as a package manager instead of yarn, bun, or npm.

@@ -1,10 +1,9 @@
 'use client';
 
-import { type ComponentProps, type FC, type ReactNode, useCallback } from 'react';
+import type { ComponentProps, FC } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
-import { createSchemaTemplate } from '@/lib/json-schema-validation';
-import { formatJson } from '@/lib/utils';
+import { basicSchemaTemplate } from '@/lib/templates';
 
 type JsonEditorProps = ComponentProps<typeof JsonEditor>;
 
@@ -15,65 +14,36 @@ interface StandaloneJsonEditorProps
   > {
   onChange: NonNullable<JsonEditorProps['onChange']>;
   name?: string;
-  actions?: ReactNode;
   customTemplate?: string;
 }
 
 export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   value = '',
   onChange,
-  actions: $actions,
-  customTemplate,
+  customTemplate = basicSchemaTemplate,
   name,
   readOnly,
   ...props
 }) => {
+  'use memo';
   // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
   const uri = props.uri ?? (name ? (`${name}.json` as const) : undefined);
-  const handleFormat = useCallback(() => {
-    if (value.trim()) {
-      const formatted = formatJson(value);
-      onChange(formatted);
-    }
-  }, [onChange, value]);
-
-  const handleInsertTemplate = useCallback(() => {
-    const template = customTemplate ?? createSchemaTemplate();
-    onChange(template);
-  }, [onChange, customTemplate]);
-
-  const actions = (
-    <>
-      {$actions}
-      {!readOnly && (
-        <>
-          <Button
-            type="button"
-            onClick={handleInsertTemplate}
-            variant="outline"
-            size="sm"
-            className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-          >
-            Template
-          </Button>
-          <Button
-            type="button"
-            onClick={handleFormat}
-            variant="outline"
-            size="sm"
-            className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-            disabled={!value.trim()}
-          >
-            Format
-          </Button>
-        </>
-      )}
-    </>
-  );
 
   return (
     <JsonEditor value={value} onChange={onChange} readOnly={readOnly} uri={uri} {...props}>
-      <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
+      {!readOnly && (
+        <Button
+          type="button"
+          onClick={() => {
+            onChange(customTemplate);
+          }}
+          variant="outline"
+          size="sm"
+          className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+        >
+          Template
+        </Button>
+      )}
     </JsonEditor>
   );
 };

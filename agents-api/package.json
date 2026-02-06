@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.43.0",
+  "version": "0.45.3",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -56,6 +56,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-mcp": "workspace:^",
     "@inkeep/agents-mcp": "workspace:^",
+    "@inkeep/agents-work-apps": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.64.1",
@@ -78,7 +79,7 @@
     "axios": "^1.13.2",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.10.4",
+    "hono": "^4.11.7",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
@@ -89,7 +90,7 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.20.1",

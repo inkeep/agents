@@ -1,5 +1,83 @@
 # @inkeep/agents-cli
 
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [14a2e6f]
+- Updated dependencies [4d291f1]
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [fd323b4]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-manage-ui@0.45.3
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-sdk@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+  - @inkeep/agents-sdk@0.45.2
+  - @inkeep/agents-manage-ui@0.45.2
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [cd28e97]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-manage-ui@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-sdk@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+- Updated dependencies [8f067f4]
+- Updated dependencies [bab4641]
+- Updated dependencies [48b5400]
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-ui@0.45.0
+  - @inkeep/agents-sdk@0.45.0
+
+## 0.44.0
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [f23d445]
+- Updated dependencies [4f2b927]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [9ea2de8]
+- Updated dependencies [707d1c8]
+- Updated dependencies [7a57040]
+- Updated dependencies [046f799]
+- Updated dependencies [0ff87cf]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+- Updated dependencies [da3f64f]
+- Updated dependencies [0d18b7e]
+- Updated dependencies [5704c38]
+- Updated dependencies [0f3c2e5]
+- Updated dependencies [5e7cede]
+- Updated dependencies [afd01d5]
+  - @inkeep/agents-core@0.44.0
+  - @inkeep/agents-manage-ui@0.44.0
+  - @inkeep/agents-sdk@0.44.0
+
 ## 0.43.0
 
 ### Minor Changes

@@ -1,148 +1,224 @@
-name: Claude Code Review
+name: Claude PR Review
 
 on:
   pull_request:
-    types: [opened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened, synchronize, ready_for_review]
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+  pr-review:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
-    
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Need full history to detect changes
+          fetch-depth: 0  # Full history for merge-base
 
-      - name: Check for documentation changes
-        uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            docs:
-              - 'agents-docs/**'
-              - '**/*.md'
-              - '**/*.mdx'
-              - '.cursor/skills/write-docs/**'
-
-      - name: Read docs writing skill
-        if: steps.changes.outputs.docs == 'true'
-        id: read-docs-skill
+      - name: Get PR Diff
+        id: diff
         run: |
-          content=$(cat .cursor/skills/write-docs/SKILL.md)
-          content="${content//'/'\'}"  # Escape single quotes
-          content="${content//$'\n'/'%0A'}"  # Escape newlines
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$content" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        shell: bash
+          # Exclude noisy auto-generated files from diff
+          EXCLUDE_PATTERNS=(
+            ':!pnpm-lock.yaml'
+            ':!package-lock.json'
+            ':!yarn.lock'
+            ':!agents-api/__snapshots__/openapi.json'
+            ':!**/drizzle/*/meta/*_snapshot.json'
+            ':!**/drizzle/*/meta/_journal.json'
+            ':!**/CHANGELOG.md'
+          )
 
-      - name: Run Claude Code Review
-        id: claude-review
-        uses: anthropics/claude-code-action@beta
+          # Get the diff for the PR (excluding noisy files)
+          DIFF=$(git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          DIFF_SIZE=${#DIFF}
+
+          # Get changed files list (excluding noisy files)
+          FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Cap diff at 500KB to stay safely under prompt limits
+          MAX_SIZE=512000
+          if [ $DIFF_SIZE -gt $MAX_SIZE ]; then
+            echo "diff_content<<EOF" >> $GITHUB_OUTPUT
+            echo "${DIFF:0:$MAX_SIZE}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "[TRUNCATED - diff exceeded ${MAX_SIZE} bytes (was ${DIFF_SIZE}). Use 'gh pr diff ${{ github.event.pull_request.number }}' for full diff]" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "truncated=true" >> $GITHUB_OUTPUT
+          else
+            echo "diff_content<<EOF" >> $GITHUB_OUTPUT
+            echo "$DIFF" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "truncated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get Existing Review Threads
+        id: threads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          THREADS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      isOutdated
+                      path
+                      line
+                      diffSide
+                      comments(first: 1) {
+                        nodes {
+                          author { login }
+                          body
+                          diffHunk
+                          url
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr=${{ github.event.pull_request.number }} --jq '.data.repository.pullRequest.reviewThreads.nodes // []')
+          
+          echo "review_threads<<EOF" >> $GITHUB_OUTPUT
+          echo "$THREADS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Get PR Comments
+        id: pr_comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Fetch PR comments, include humans + our bot, exclude other bots
+          COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  comments(first: 50) {
+                    nodes {
+                      author {
+                        __typename
+                        login
+                      }
+                      body
+                      createdAt
+                      url
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" \
+            -f repo="${{ github.event.repository.name }}" \
+            -F pr=${{ github.event.pull_request.number }} \
+            --jq '[.data.repository.pullRequest.comments.nodes[] | select(.author.__typename == "User" or (.author.login | test("github-actions|claude"; "i")))]')
+          
+          echo "pr_comments<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMENTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate PR Context Skill
+        run: |
+          mkdir -p .claude/skills/pr-context
+          
+          cat > .claude/skills/pr-context/SKILL.md << 'SKILL_EOF'
+          ---
+          name: pr-context
+          description: PR metadata, diff, changed files, and discussion context. Auto-generated at CI time.
+          ---
+
+          # PR Review Context
+
+          (!IMPORTANT)
+
+          Use this context to:
+          1. Get an initial sense of the purpose and scope of the changes
+          2. Note what's already been flagged or discussed
+          3. Identify if previous feedback was addressed or ignored
+
+          ---
+
+          ## PR Metadata
+
+          **PR #${{ github.event.pull_request.number }}:** ${{ github.event.pull_request.title }}
+          **Base:** ${{ github.event.pull_request.base.ref }}
+          **Author:** ${{ github.event.pull_request.user.login }}
+
+          ## Description
+          Author-provided description (may not fully reflect actual scope):
+
+          ${{ github.event.pull_request.body }}
+
+          ## Changed Files
+          Use for routing to appropriate reviewers:
+          ```
+          ${{ steps.diff.outputs.changed_files }}
+          ```
+
+          ## Diff
+          ${{ steps.diff.outputs.truncated == 'true' && '> **Note:** Diff was truncated due to size. Use `gh pr diff` to fetch the full diff.' || '' }}
+          ```diff
+          ${{ steps.diff.outputs.diff_content }}
+          ```
+
+          ## Existing Inline Comments
+          Prior review threads on specific lines. Each object has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and first comment with `body`, `author`, `diffHunk` context, and `url` (permalink). Use to avoid posting duplicate inline comments and to link to existing comments in the summary.
+          ```json
+          ${{ steps.threads.outputs.review_threads }}
+          ```
+
+          ## PR Discussion
+          General comments from humans and previous review summaries. Each has `author`, `body`, `createdAt`, and `url` (permalink). Use to avoid re-raising addressed issues.
+          ```json
+          ${{ steps.pr_comments.outputs.pr_comments }}
+          ```
+
+          > **IMPORTANT:** Do NOT re-raise issues that have already been flagged, dismissed, or addressed in prior comments. You may allude to unresolved important items briefly, but do not restate details already covered.
+
+          SKILL_EOF
+          
+          echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
+
+      - name: Run PR Review
+        id: claude
+        # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
+        # Tracking: https://github.com/anthropics/claude-code-action/issues/892
+        # Remove pin when issue is resolved and @v1 is stable again
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        env:
+          CLAUDE_CODE_DEBUG_LOGS_DIR: ${{ runner.temp }}/claude-debug
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          include_fix_links: true
+          claude_args: |
+            --agent pr-review
+            --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*)"
+          prompt: |
+            Review PR #${{ github.event.pull_request.number }}.
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
-          
-          # Direct prompt for automated review (no @claude mention needed)
-          direct_prompt: |
-            You are a TypeScript Staff Engineer and System Architect responsible for reviewing and providing thoughtful, constructive feedback on Pull Requests.
-
-            CONTEXT GATHERING AND INITIAL UNDERSTANDING:
-            1. Aim to understand the intended purpose and outcome of the PR (from an engineering and/or customer perspective)
-            2. Do research to find relevant existing code, concepts, files, types, etc. that may be relevant to the PR. Goal is to build up full understand of the existing system and "prior art" and ALL the different parts this PR may affect or that this PR should account for/consider.
-            3. Carefully evaluate each change in the PR and provide feedback at both a granular level but also at a system design, high level. Focus on areas areas for consideration, rather than recapping what's done well in a detailed way.
-            4. If linter checks pass, etc., don't worry about syntax type stuff. Focus on other aspects of code quality and engineering design.
-
-            BASELINE ENGINEERING REVIEW:
-            Consider in your review what seems sensible, like:
-            - high-quality, clean, well documented or intuitive code
-            - bugs, error boundaries and handling, logging
-            - security, authn/authz, data access layer and permissions
-            - performance and scalability
-            - evolvability and extensibility
-            - testing and test coverage
-            - race conditions, circular loops or dependencies, concurrency, state management, etc.
-            - transaction boundaries and atomicity
-            - following best practices of modern TypeScript and architectural design (imagine you're representing Matt Pocock // Dan Abramov // Kent C. Dodds // Tanner Linsley // Jared Palmer // colinhacks (zod) // etc.)
-
-            CHECK FOR GOTCHAS AND COMMON MISTAKES:
-            You may end up reviewing the work of an AI agent or a junior engineer, so make sure to check for common pitfalls or shortcomings, like:
-            1. Modifying files or creating code that is not actually needed for the intended use case or that has probably out-of-scope side effects or redundancies.
-            2. Creating duplicate or boilerplate code, superfluous variable names or types, or multiple sources of truth for the same concept that could be consolidated.
-            3. Not following existing patterns/norms or keeping parallelism and consistency with how similar patterns are accomplished.
-            4. Not creating good abstractions where appropriate (but also not over-engineering or complicating code for no reason)
-            5. Not providing good documentation for more complex parts of the codebase or not creating the right level of abstraction to simplify things.
-            6. Using "hard coded" or seemingly brute forced/repetitive code instead of thinking through how to have clean, composable, reusable, extensible, DRY, intuitive code.
-            7. Not considering polymorphism, unions, generics, or other abstraction types if they could help simplify code or normalize certain patterns.
-
-            ARCHITECT-LEVEL CONSIDERATIONS:
-            As the system architect, aim to go one level DEEPER. For example, check that:
-            8. Are there existing patterns, abstractions, or "ways of doing things" that this pattern should potentially leverage or stay consistent with? We want to avoid creating duplicate, repetitive code, or contradictory patterns for similar concepts // tasks // patterns
-            9. Is naming intuitive and semantic, especially in external-facing APIs, interfaces, configurations, or types? Is the naming consistent with existing concepts, and would the naming be unambiguous and clear to someone with little context?
-            10. Are design decisions evolvable to future potential scenarios, and are we following good patterns for avoiding breaking changes or 1-door decisions that don't account for future extensibility or use cases?
-            11. Have we addressed any side effects or potential issues that may arise from this change?
-            12. Are there any other system design considerations that the engineer should think through that were not accounted for?
-
-            CUSTOMER CONSIDERATIONS:
-            15. Carefully considering the impact of the changes on how customers use it, i.e. any breaking changes to data contracts, APIs, etc.? If there are, do we have a good strategy for addressing these?
-            16. Comprehensively evaluating all potential valid and relevant use cases or edge cases of how someone may expect to use the features or platform.
-            17. When creating configuration or "knobs", are we unnecessarily complicating the surface area of configuration or could there be a more elegant solution that keeps constructs and configuration simpler?
-            18. Thinking through future scenarios that could be appropriate to address now or that we should account for so we don't block future use cases. I.e., are things evolvable? We want to keep things simple but also not be short-sighted/myopic.
-            19. Accounting for all dimensions of how a customer/user/client may use the data contracts, APIs, UI, SDK, documentation, or any other interface of how they may consume or interact with the features or platform?
-            20. Ensuring that there is equal representation across any modality that this repo encompasses (e.g. both UI and API, if applicable to the repo or use case)?
-
-            ${{ steps.changes.outputs.docs == 'true' && steps.read-docs-skill.outputs.content || '' }}
-
-            Your final review should be thoughtful and cover what's actually most applicable to this PR -- don't leave superfluous comments that seem unrelated to the intent or proposed changes of the PR.  
-            The dimensions mentioned in these instructions are suggestions, they won't all always apply to every PR, and there may be additional considerations that you think are important to cover.
-            As you leave feedback, make sure to classify the severity or importance of feedback, and be nuanced with why you think something is important and potential ways to address it or things to consider. Feel free to leave explicit code suggestions where relevant.
-            Focus your review on constructive areas for consideration or improvement, you don't need to re-enumerate things that are done well.
-
-            To summarize, think of yourself as both a sanity and quality checker of the code, but also a system-level architect that cares deeply about ensuring PRs and changes are well thought-out and consider all dimensions of impacts on the full system, patterns that set precedent, maintainability of the code and featureset, as well as how it impacts end-user experiences and interfaces.
-
-            Since this is an open source repo, it's especially important to ensure we are thorough and thoughtful end-to-end across all relevant dimensions and focus the final report on what's potentially actionable.
-
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
-          
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-          
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' && 
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-          
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-          
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+      - name: Upload Debug Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-debug-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/claude-debug/
+            ${{ steps.claude.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: ignore

@@ -34,8 +34,8 @@ jobs:
       - name: Setup npm for OIDC publishing
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Ensure npm 11.5.1+ for OIDC support
         run: npm install -g npm@latest
@@ -53,7 +53,7 @@ jobs:
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
       - name: Publish packages
         id: changesets
@@ -82,36 +82,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
 
-      - name: Create Draft Release from PR
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
-          RELEASE_DATE=$(date +%Y-%m-%d)
-
-          # Get the most recently merged PR's body
-          PR_BODY=$(gh pr list --state merged --base main --json body,mergedAt --jq 'sort_by(.mergedAt) | last | .body')
-          
-          # Extract everything from "# Releases" onward and replace with "# Changelog"
-          CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
-          
-          # Create release notes with Highlights section above Changelog
-          RELEASE_NOTES="# Highlights
-
-          <!-- Add release highlights here before publishing -->
-
-          ${CHANGELOG}"
-
-          # Create draft release
-          gh release create "v${VERSION}" \
-            --title "${RELEASE_DATE}" \
-            --notes "$RELEASE_NOTES" \
-            --draft
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # This is an experimental step to create a draft release from PR with AI-generated Highlights
-      # If this works, we can remove the previous step
-      - name: Create Draft Release from PR with AI-generated Highlights
+      - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'
         shell: bash
         run: |
@@ -120,10 +91,10 @@ jobs:
 
           # Get the most recently merged PR's body
           PR_BODY=$(gh pr list --state merged --base main --json body,mergedAt --jq 'sort_by(.mergedAt) | last | .body')
-          
+
           # Extract everything from "# Releases" onward and replace with "# Changelog"
           CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
-          
+
           # Generate highlights using Claude
           HIGHLIGHTS=$(curl -s -K <(echo "header = \"x-api-key: $ANTHROPIC_API_KEY\"") \
             https://api.anthropic.com/v1/messages \
@@ -139,8 +110,6 @@ jobs:
                   content: "Based on this changelog, write a Highlights section for a GitHub release. Focus on the most impactful user-facing changes. Use markdown with ## headers for major features and bullet points for details. Do not include a top-level heading - start directly with the content.\n\nChangelog:\n\($changelog)"
                 }]
               }')" | jq -r '.content[0].text')
-          
-            # Create release notes with AI-generated Highlights
 
             RELEASE_NOTES="# Highlights
 
@@ -148,11 +117,9 @@ jobs:
 
             ${CHANGELOG}"
 
-            # Create draft release
-            gh release create "v${VERSION}-AI" \
-              --title "${RELEASE_DATE}-AI" \
-              --notes "$RELEASE_NOTES" \
-              --draft  
+            gh release create "v${VERSION}" \
+              --title "${RELEASE_DATE}" \
+              --notes "$RELEASE_NOTES"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
