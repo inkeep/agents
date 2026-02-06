@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { v1 } from '@authzed/authzed-node';
-import { getSpiceDbConfig } from './authz/config';
+import { getSpiceDbConfig, isLocalhostEndpoint } from './authz/config';
 
 export async function writeSpiceDbSchema(options?: {
   endpoint?: string;
@@ -20,11 +20,12 @@ export async function writeSpiceDbSchema(options?: {
 
   const schema = readFileSync(schemaPath, 'utf-8');
 
-  const isLocalhost = endpoint.startsWith('localhost') || endpoint.startsWith('127.0.0.1');
   const client = v1.NewClient(
     token,
     endpoint,
-    isLocalhost ? v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED : v1.ClientSecurity.SECURE
+    isLocalhostEndpoint(endpoint)
+      ? v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
+      : v1.ClientSecurity.SECURE
   );
 
   let lastError: Error | undefined;
