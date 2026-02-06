@@ -37,9 +37,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eo pipefail
-          MERGED=$(gh pr view ${{ inputs.pr_number }} --json merged --jq '.merged')
-          if [ "$MERGED" != "true" ]; then
-            echo "::error::PR #${{ inputs.pr_number }} is not merged. Only merged PRs can be analyzed."
+          STATE=$(gh pr view ${{ inputs.pr_number }} --json state --jq '.state')
+          if [ "$STATE" != "MERGED" ]; then
+            echo "::error::PR #${{ inputs.pr_number }} is not merged (state: $STATE). Only merged PRs can be analyzed."
             exit 1
           fi
           echo "✓ PR #${{ inputs.pr_number }} is merged"
@@ -264,10 +264,10 @@ jobs:
             Be conservative: only HIGH generalizability patterns should become PRs.
 
       - name: Upload Debug Artifacts
-        if: always()
+        if: always() && steps.analyze.outputs.execution_file
         uses: actions/upload-artifact@v4
         with:
-          name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number }}-${{ github.run_id }}
+          name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number || inputs.pr_number || github.event.pull_request.number }}-${{ github.run_id }}
           path: ${{ steps.analyze.outputs.execution_file }}
           retention-days: 7
           if-no-files-found: ignore
