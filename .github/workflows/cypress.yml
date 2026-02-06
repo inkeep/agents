@@ -122,3 +122,4 @@ jobs:
           INKEEP_AGENTS_MANAGE_UI_USERNAME: admin@example.com
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
           BETTER_AUTH_SECRET: test-secret-key-for-ci
+          SPICEDB_PRESHARED_KEY: dev-secret-key
