@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -134,9 +133,10 @@ function generateCronExpression(
       return `${minute} * * * *`;
     case 'daily':
       return `${minute} ${hour} * * *`;
-    case 'weekly':
-      const days = daysOfWeek.length > 0 ? daysOfWeek.sort().join(',') : '1'; // Default to Monday
+    case 'weekly': {
+      const days = daysOfWeek.length > 0 ? daysOfWeek.sort().join(',') : '1';
       return `${minute} ${hour} * * ${days}`;
+    }
     case 'monthly':
       return `${minute} ${hour} ${dayOfMonth} * *`;
     default:

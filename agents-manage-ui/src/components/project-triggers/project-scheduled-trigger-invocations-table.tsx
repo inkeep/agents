@@ -34,11 +34,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getProjectScheduledTriggerInvocationsAction } from '@/lib/actions/project-triggers';
-import type { ScheduledTriggerInvocationWithContext } from '@/lib/api/project-triggers';
 import {
   cancelScheduledTriggerInvocationAction,
   rerunScheduledTriggerInvocationAction,
 } from '@/lib/actions/scheduled-triggers';
+import type { ScheduledTriggerInvocationWithContext } from '@/lib/api/project-triggers';
 
 const POLLING_INTERVAL_MS = 3000;
 
@@ -349,97 +349,98 @@ export function ProjectScheduledTriggerInvocationsTable({
               </TableRow>
             ) : (
               filteredInvocations.map((invocation) => {
-              const isLoading = loadingInvocations.has(invocation.id);
-              const canCancel = invocation.status === 'pending' || invocation.status === 'running';
-              const canRerun =
-                invocation.status === 'completed' ||
-                invocation.status === 'failed' ||
-                invocation.status === 'cancelled';
-              const hasActions = canCancel || canRerun;
+                const isLoading = loadingInvocations.has(invocation.id);
+                const canCancel =
+                  invocation.status === 'pending' || invocation.status === 'running';
+                const canRerun =
+                  invocation.status === 'completed' ||
+                  invocation.status === 'failed' ||
+                  invocation.status === 'cancelled';
+                const hasActions = canCancel || canRerun;
 
-              return (
-                <TableRow key={invocation.id} noHover>
-                  <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${invocation.agentId}/${invocation.scheduledTriggerId}/invocations`}
-                      className="font-medium text-foreground hover:underline"
-                    >
-                      {invocation.triggerName}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/agents/${invocation.agentId}`}
-                      className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      {invocation.agentName}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-mono text-sm">
-                      {formatDateTime(invocation.scheduledFor)}
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(invocation.status as InvocationStatus)}</TableCell>
-                  <TableCell>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDuration(invocation.startedAt, invocation.completedAt)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
-                      <div className="flex flex-col gap-1">
-                        {invocation.conversationIds.map((convId, idx) => (
-                          <Link
-                            key={convId}
-                            href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                            className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
-                          >
-                            {invocation.conversationIds &&
-                              invocation.conversationIds.length > 1 && (
-                                <span className="text-muted-foreground text-xs">#{idx + 1}</span>
-                              )}
-                            View
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        ))}
+                return (
+                  <TableRow key={invocation.id} noHover>
+                    <TableCell>
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${invocation.agentId}/${invocation.scheduledTriggerId}/invocations`}
+                        className="font-medium text-foreground hover:underline"
+                      >
+                        {invocation.triggerName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/agents/${invocation.agentId}`}
+                        className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        {invocation.agentName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-mono text-sm">
+                        {formatDateTime(invocation.scheduledFor)}
                       </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {hasActions && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" disabled={isLoading}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {canRerun && (
-                            <DropdownMenuItem onClick={() => rerunInvocation(invocation)}>
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              Rerun
-                            </DropdownMenuItem>
-                          )}
-                          {canCancel && (
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => cancelInvocation(invocation)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(invocation.status as InvocationStatus)}</TableCell>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground">
+                        {formatDuration(invocation.startedAt, invocation.completedAt)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {invocation.conversationIds.map((convId, idx) => (
+                            <Link
+                              key={convId}
+                              href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
+                              className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
                             >
-                              <Ban className="w-4 h-4 mr-2" />
-                              Cancel
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
+                              {invocation.conversationIds &&
+                                invocation.conversationIds.length > 1 && (
+                                  <span className="text-muted-foreground text-xs">#{idx + 1}</span>
+                                )}
+                              View
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {hasActions && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-sm" disabled={isLoading}>
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {canRerun && (
+                              <DropdownMenuItem onClick={() => rerunInvocation(invocation)}>
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                Rerun
+                              </DropdownMenuItem>
+                            )}
+                            {canCancel && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => cancelInvocation(invocation)}
+                              >
+                                <Ban className="w-4 h-4 mr-2" />
+                                Cancel
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </div>

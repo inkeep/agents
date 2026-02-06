@@ -26,7 +26,7 @@ export default async function NewTriggerPage({
   }
 
   return (
-    <>
+    <div>
       <div className="flex items-center gap-4 mb-6">
         <Link href={`/${tenantId}/projects/${projectId}/triggers?tab=webhooks`}>
           <Button variant="ghost" size="sm">
