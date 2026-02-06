@@ -50,11 +50,13 @@ export const CommentSchema = z.object({
   body: z.string(),
   author: GitHubUserSchema,
   createdAt: z.string(),
-  updatedAt: z.string(),
-  type: z.enum(['issue', 'review']),
-  // For review comments
+  updatedAt: z.string().optional(),
+  type: z.enum(['issue', 'review', 'review_summary']),
+  // For review comments (inline code comments)
   path: z.string().optional(),
   line: z.number().optional(),
+  // For review summaries
+  state: z.enum(['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED', 'PENDING']).optional(),
 });
 
 export const GitHubEventSchema = z.object({

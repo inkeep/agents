@@ -13,6 +13,7 @@ import { githubMcpAuth } from './auth';
 import {
   commitFileChanges,
   commitNewFile,
+  fetchComments,
   fetchPrFileDiffs,
   fetchPrFiles,
   fetchPrInfo,
@@ -148,6 +149,32 @@ const getServer = async (toolId: string) => {
           ],
         };
       } catch (error) {
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as Error & {
+            status: number;
+            response?: { headers?: Record<string, string> };
+          };
+          if (apiError.status === 403 || apiError.status === 429) {
+            const retryAfter = apiError.response?.headers?.['retry-after'];
+            const resetHeader = apiError.response?.headers?.['x-ratelimit-reset'];
+            let waitMessage = '';
+            if (retryAfter) {
+              waitMessage = ` Try again in ${retryAfter} seconds.`;
+            } else if (resetHeader) {
+              const resetTime = new Date(Number(resetHeader) * 1000);
+              waitMessage = ` Rate limit resets at ${resetTime.toISOString()}.`;
+            }
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `GitHub Search API rate limit exceeded.${waitMessage} The search API is limited to 30 requests per minute. Please wait before retrying.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
         return {
           content: [
             {
@@ -263,10 +290,13 @@ const getServer = async (toolId: string) => {
             isError: true,
           };
         }
-        const pr = await fetchPrInfo(githubClient, owner, repo, pull_request_number);
-        const fileDiffs = await fetchPrFileDiffs(githubClient, owner, repo, pull_request_number);
+        const [pr, fileDiffs, comments] = await Promise.all([
+          fetchPrInfo(githubClient, owner, repo, pull_request_number),
+          fetchPrFileDiffs(githubClient, owner, repo, pull_request_number),
+          fetchComments(githubClient, owner, repo, pull_request_number),
+        ]);
 
-        const markdown = generatePrMarkdown(pr, fileDiffs, owner, repo);
+        const markdown = generatePrMarkdown(pr, fileDiffs, comments, owner, repo);
 
         return {
           content: [
@@ -1042,6 +1072,23 @@ const getServer = async (toolId: string) => {
   return server;
 };
 
+const SERVER_CACHE_TTL_MS = 5 * 60 * 1000;
+const serverCache = new Map<
+  string,
+  { server: Awaited<ReturnType<typeof getServer>>; expiresAt: number }
+>();
+
+const getCachedServer = async (toolId: string) => {
+  const cached = serverCache.get(toolId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.server;
+  }
+  serverCache.delete(toolId);
+  const server = await getServer(toolId);
+  serverCache.set(toolId, { server, expiresAt: Date.now() + SERVER_CACHE_TTL_MS });
+  return server;
+};
+
 const app = new Hono<{
   Variables: {
     toolId: string;
@@ -1056,7 +1103,7 @@ app.post('/', async (c) => {
   const toolId = c.get('toolId');
   const body = await c.req.json();
 
-  const server = await getServer(toolId);
+  const server = await getCachedServer(toolId);
 
   // Create fresh transport and server for this request
   const transport = new StreamableHTTPServerTransport({
