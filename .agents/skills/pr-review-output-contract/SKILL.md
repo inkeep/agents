@@ -101,7 +101,7 @@ Every finding **must** include at least one reference. References ground your an
 
 | Type | Format | When to Use |
 |------|--------|-------------|
-| **Code reference** | `"file:line"` or `"file:line-range"` | Point to specific code that exhibits the issue |
+| **Code reference** | `"file"`, `"file:line"`, or `"file:line-range"` | Point to code that exhibits the issue (line numbers optional) |
 | **Reviewer instructions** | `"per reviewer: <section/rule>"` | Cite your own agent prompt instructions |
 | **Skill/rule reference** | `"per <skill-name> skill"` or `"per AGENTS.md: <rule>"` | Cite loaded skills or repo rules that define the violation |
 | **URL reference** | `"https://..."` | Cite external docs, GitHub issues, or web search results |
@@ -110,6 +110,7 @@ Every finding **must** include at least one reference. References ground your an
 ```json
 "references": [
   "src/api/client.ts:42-48",
+  "src/utils/helpers.ts",
   "per reviewer: Checklist item 2 - tenant isolation",
   "per vercel-react-best-practices skill",
   "https://react.dev/reference/react/memo"
