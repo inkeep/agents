@@ -1,5 +1,21 @@
 # @inkeep/agents-cli
 
+## 0.46.0
+
+### Minor Changes
+
+- 96de898: Update api and manage ui urls
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [99388e9]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-ui@0.46.0
+  - @inkeep/agents-sdk@0.46.0
+
 ## 0.45.3
 
 ### Patch Changes
