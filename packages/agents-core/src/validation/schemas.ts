@@ -128,7 +128,7 @@ export const ModelSettingsSchema = z
     model: z.string().trim().optional().openapi({
       description: 'The model to use for the project.',
     }),
-    providerOptions: z.record(z.string(), z.any()).optional().openapi({
+    providerOptions: z.record(z.string(), z.unknown()).nullable().openapi({
       description: 'The provider options to use for the project.',
     }),
   })
@@ -2042,6 +2042,8 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   ...AgentWithinContextOfProjectExtendSchema,
   contextConfig: z.strictObject(ContextConfigExtendSchema),
   statusUpdates: StatusUpdateSchema,
+  stopWhen: AgentStopWhenSchema,
+  models: ModelSchema,
 })
   .extend({
     subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
@@ -2051,8 +2053,6 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
     functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
     functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
     triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-    models: ModelSchema.optional(),
-    stopWhen: AgentStopWhenSchema.optional(),
   })
   .openapi('AgentWithinContextOfProject');
 

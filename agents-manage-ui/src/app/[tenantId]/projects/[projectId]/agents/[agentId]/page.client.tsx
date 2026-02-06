@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { type FC, useEffect, useState } from 'react';
+import { type FC, type JSX, useEffect, useState } from 'react';
 import type { FieldError, FieldErrors, FieldValues } from 'react-hook-form';
 import { toast } from 'sonner';
 import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
@@ -38,6 +38,7 @@ import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loadin
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { Badge } from '@/components/ui/badge';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -120,14 +121,22 @@ const nonValidationErrors = new Set([
 
 type HandleSubmitParams = Parameters<ReturnType<typeof useFullAgentFormContext>['handleSubmit']>;
 
+// @sarah, we can reuse AgentErrorSummary component maybe
 function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
-  const lines: string[] = [];
+  const lines: (string | JSX.Element)[] = [];
 
   function walk(value: FieldErrors<FV> | FieldError | undefined, path: string[]) {
     if (!value) return;
     if (value.message) {
-      const label = path.length ? `${path.join('.')}: ` : '';
-      lines.push(`${label}${value.message}`);
+      const label = path.join('.');
+      lines.push(
+        <>
+          <b>{String(value.message)}</b> at{' '}
+          <Badge variant="code" className="text-xs">
+            {label}
+          </Badge>
+        </>
+      );
     }
     if (value.types) {
       const label = path.length ? `${path.join('.')}: ` : '';
@@ -144,10 +153,13 @@ function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
       }
       walk(nested as FieldErrors<FV> | FieldError | undefined, [...path, key]);
     }
-  };
+  }
 
   walk(errors, []);
-  return lines.length ? lines.join('\n') : 'Validation failed';
+  if (!lines.length) {
+    lines.push('Validation failed')
+  }
+  return lines;
 }
 
 export const Agent: FC<AgentProps> = ({
@@ -860,7 +872,14 @@ export const Agent: FC<AgentProps> = ({
   };
 
   const onFormError: HandleSubmitParams[1] = (errors) => {
-    toast.error(formatFormErrors(errors), { className: 'whitespace-pre-wrap' });
+    toast.error(
+      <div className="space-y-2 whitespace-pre-wrap">
+        {formatFormErrors(errors).map((error, index) => (
+          <p key={index}>{error}</p>
+        ))}
+      </div>,
+      { duration: Infinity, id: 'form-error' }
+    );
   };
 
   const onSubmit = form.handleSubmit(onFormSubmit, onFormError);
