@@ -10,6 +10,10 @@ on:
         required: true
         type: number
 
+concurrency:
+  group: closed-pr-review-auto-improver-${{ inputs.pr_number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   analyze-reviewer-feedback:
     # Run on merged PRs (auto) or manual dispatch (testing)
@@ -26,6 +30,19 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+
+      - name: Validate PR is merged (for workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          MERGED=$(gh pr view ${{ inputs.pr_number }} --json merged --jq '.merged')
+          if [ "$MERGED" != "true" ]; then
+            echo "::error::PR #${{ inputs.pr_number }} is not merged. Only merged PRs can be analyzed."
+            exit 1
+          fi
+          echo "✓ PR #${{ inputs.pr_number }} is merged"
 
       - name: Generate GitHub App token
         id: app-token
@@ -46,6 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -eo pipefail
           PR_NUMBER=${{ inputs.pr_number || github.event.pull_request.number }}
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
@@ -56,16 +74,17 @@ jobs:
           echo "base=$(echo "$PR_DATA" | jq -r '.baseRefName')" >> $GITHUB_OUTPUT
           echo "merged_by=$(echo "$PR_DATA" | jq -r '.mergedBy.login')" >> $GITHUB_OUTPUT
 
-          # Store body with HEREDOC (may contain newlines)
-          echo "body<<EOF" >> $GITHUB_OUTPUT
+          # Store body with HEREDOC (unique delimiter to avoid collision)
+          echo "body<<__BODY_DELIM_7f3a9b2c__" >> $GITHUB_OUTPUT
           echo "$PR_DATA" | jq -r '.body' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "__BODY_DELIM_7f3a9b2c__" >> $GITHUB_OUTPUT
 
       - name: Extract Comments
         id: extract
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -eo pipefail
           PR_NUMBER=${{ steps.pr-meta.outputs.pr_number }}
 
           # Fetch all comment types via GraphQL
@@ -148,14 +167,14 @@ jobs:
             echo "has_human_comments=true" >> $GITHUB_OUTPUT
             echo "comment_count=$COMMENT_COUNT" >> $GITHUB_OUTPUT
 
-            # Store in outputs using HEREDOC
-            echo "human_comments<<EOF" >> $GITHUB_OUTPUT
+            # Store in outputs using HEREDOC (unique delimiters to avoid collision)
+            echo "human_comments<<__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> $GITHUB_OUTPUT
             echo "$HUMAN_COMMENTS" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+            echo "__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> $GITHUB_OUTPUT
 
-            echo "bot_comments<<EOF" >> $GITHUB_OUTPUT
+            echo "bot_comments<<__BOT_COMMENTS_DELIM_9f5c2e4a__" >> $GITHUB_OUTPUT
             echo "$BOT_COMMENTS" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+            echo "__BOT_COMMENTS_DELIM_9f5c2e4a__" >> $GITHUB_OUTPUT
 
             echo "Extracted $COMMENT_COUNT substantive human comments"
           else
@@ -169,13 +188,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -eo pipefail
           # Get diff, cap at 200KB to stay under prompt limits
           PR_NUM=${{ steps.pr-meta.outputs.pr_number }}
           DIFF=$(gh pr diff $PR_NUM)
           DIFF_SIZE=${#DIFF}
           MAX_SIZE=200000
 
-          echo "diff_content<<EOF" >> $GITHUB_OUTPUT
+          echo "diff_content<<__DIFF_DELIM_a6d3f8c1__" >> $GITHUB_OUTPUT
           if [ $DIFF_SIZE -gt $MAX_SIZE ]; then
             echo "${DIFF:0:$MAX_SIZE}" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
@@ -183,12 +203,14 @@ jobs:
           else
             echo "$DIFF" >> $GITHUB_OUTPUT
           fi
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "__DIFF_DELIM_a6d3f8c1__" >> $GITHUB_OUTPUT
 
       - name: Run Meta-Analyzer Agent
         if: steps.extract.outputs.has_human_comments == 'true'
         id: analyze
-        uses: anthropics/claude-code-action@v1
+        # Tracking: https://github.com/anthropics/claude-code-action/issues/892
+        # Remove pin when issue is resolved and @v1 is stable again
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
