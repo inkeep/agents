@@ -8,7 +8,7 @@ import {
   organizationClient,
   ownerRole,
 } from '@inkeep/agents-core/auth/permissions';
-import { deviceAuthorizationClient } from 'better-auth/client/plugins';
+import { deviceAuthorizationClient, inferOrgAdditionalFields } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import { createContext, type ReactNode, use, useMemo } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
@@ -29,6 +29,15 @@ const createConfiguredAuthClient = (baseURL: string) =>
           admin: adminRole,
           owner: ownerRole,
         },
+        schema: inferOrgAdditionalFields({
+          invitation: {
+            additionalFields: {
+              authMethod: {
+                type: 'string',
+              },
+            },
+          },
+        }),
       }),
       deviceAuthorizationClient(),
     ],

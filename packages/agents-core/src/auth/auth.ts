@@ -9,6 +9,7 @@ import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { type OrgRole, OrgRoles } from './authz/config';
+import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
 /**
@@ -198,6 +199,10 @@ export function createAuth(config: BetterAuthConfig) {
       maxPasswordLength: 128,
       requireEmailVerification: false,
       autoSignIn: true,
+      resetPasswordTokenExpiresIn: 60 * 30,
+      sendResetPassword: async ({ user, url, token }) => {
+        setPasswordResetLink({ email: user.email, url, token });
+      },
     },
     account: {
       accountLinking: {
@@ -295,6 +300,17 @@ export function createAuth(config: BetterAuthConfig) {
           // - SendGrid: await sgMail.send({ ... })
           // - AWS SES: await ses.sendEmail({ ... })
           // - Postmark: await postmark.sendEmail({ ... })
+        },
+        schema: {
+          invitation: {
+            additionalFields: {
+              authMethod: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+            },
+          },
         },
         organizationHooks: {
           afterAcceptInvitation: async ({ member, user, organization: org }) => {

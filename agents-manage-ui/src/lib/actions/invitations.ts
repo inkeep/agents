@@ -1,6 +1,7 @@
 'use server';
 
 import { makeManagementApiRequest } from '../api/api-config';
+import { ApiError } from '../types/errors';
 
 interface PendingInvitation {
   id: string;
@@ -21,5 +22,44 @@ export async function getPendingInvitations(email: string): Promise<PendingInvit
     );
   } catch {
     return [];
+  }
+}
+
+export interface InvitationVerification {
+  valid: boolean;
+  email: string;
+  organizationName: string | null;
+  organizationId: string;
+  role: string;
+  expiresAt: string;
+}
+
+interface InvitationVerificationError {
+  valid: false;
+  error: string;
+}
+
+export type InvitationVerificationResult = InvitationVerification | InvitationVerificationError;
+
+/**
+ * Server action to verify an invitation (unauthenticated)
+ * Used by the accept-invitation page to pre-populate signup forms
+ */
+export async function verifyInvitation(
+  invitationId: string,
+  email: string
+): Promise<InvitationVerificationResult> {
+  try {
+    const result = await makeManagementApiRequest<InvitationVerification>(
+      `api/invitations/verify?id=${encodeURIComponent(invitationId)}&email=${encodeURIComponent(email)}`
+    );
+    return result;
+  } catch (error) {
+    console.error('[verifyInvitation] Error:', error);
+    const message = error instanceof ApiError ? error.message : 'Failed to validate invitation';
+    return {
+      valid: false,
+      error: message,
+    };
   }
 }

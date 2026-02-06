@@ -1,5 +1,13 @@
 import { relations } from 'drizzle-orm';
-import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -85,14 +93,18 @@ export const ssoProvider = pgTable('sso_provider', {
   domain: text('domain').notNull(),
 });
 
-export const organization = pgTable('organization', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  slug: text('slug').notNull().unique(),
-  logo: text('logo'),
-  createdAt: timestamp('created_at').notNull(),
-  metadata: text('metadata'),
-});
+export const organization = pgTable(
+  'organization',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull().unique(),
+    logo: text('logo'),
+    createdAt: timestamp('created_at').notNull(),
+    metadata: text('metadata'),
+  },
+  (table) => [uniqueIndex('organization_slug_uidx').on(table.slug)]
+);
 
 export const member = pgTable(
   'member',
@@ -128,6 +140,7 @@ export const invitation = pgTable(
     inviterId: text('inviter_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    authMethod: text('auth_method'),
   },
   (table) => [
     index('invitation_organizationId_idx').on(table.organizationId),

@@ -1,7 +1,8 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Copy, Info, MoreVertical, Plus, RotateCcwKey } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { ChangePasswordDialog } from '@/components/settings/change-password-dialog';
 import { InviteMemberDialog } from '@/components/settings/invite-member-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthClient } from '@/contexts/auth-client';
-import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { createPasswordResetLink } from '@/lib/actions/password-reset';
+import type { UserProvider } from '@/lib/actions/user-accounts';
 import { ProjectAccessDialog } from './project-access-dialog';
 
 type AuthClient = ReturnType<typeof useAuthClient>;
@@ -60,6 +63,7 @@ interface MembersTableProps {
   organizationId: string;
   onMemberUpdated?: () => void;
   isOrgAdmin: boolean;
+  memberProviders?: UserProvider[];
 }
 
 export function MembersTable({
@@ -69,12 +73,13 @@ export function MembersTable({
   organizationId,
   onMemberUpdated,
   isOrgAdmin,
+  memberProviders = [],
 }: MembersTableProps) {
   const authClient = useAuthClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
-
-  const { PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const [resettingMemberId, setResettingMemberId] = useState<string | null>(null);
 
   // State for the project access dialog
   const [projectAccessDialogOpen, setProjectAccessDialogOpen] = useState(false);
@@ -91,6 +96,11 @@ export function MembersTable({
       return nameA.localeCompare(nameB);
     });
   }, [members]);
+
+  const memberHasCredentialAuth = (userId: string): boolean => {
+    const userProviders = memberProviders.find((p) => p.userId === userId);
+    return userProviders?.providers.includes('credential') ?? false;
+  };
 
   const handleRoleChange = async (memberId: string, member: Member, newRole: OrgRole) => {
     if (!isOrgAdmin) return;
@@ -166,6 +176,31 @@ export function MembersTable({
     return true;
   };
 
+  const handleResetPassword = async (member: Member) => {
+    if (!isOrgAdmin) return;
+    if (!member.user?.email) return;
+    if (member.id === currentMember?.id) return;
+
+    setResettingMemberId(member.id);
+    try {
+      const result = await createPasswordResetLink({
+        tenantId: organizationId,
+        email: member.user.email,
+      });
+      await navigator.clipboard.writeText(result.url);
+      toast.success('Reset link copied to clipboard', {
+        description: 'Share the reset password link with the user.',
+        duration: 6000,
+      });
+    } catch (err) {
+      toast.error('Failed to create reset link', {
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
+    } finally {
+      setResettingMemberId(null);
+    }
+  };
+
   return (
     <div>
       <div className="rounded-lg border">
@@ -174,7 +209,7 @@ export function MembersTable({
             <h2 className="text-md font-medium text-gray-700 dark:text-white/70">Members</h2>
             <Badge variant="count">{members.length}</Badge>
           </div>
-          {PUBLIC_GOOGLE_CLIENT_ID && isOrgAdmin && (
+          {isOrgAdmin && (
             <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
               <Plus />
               Add
@@ -187,12 +222,13 @@ export function MembersTable({
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Project Access</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {members.length === 0 && pendingInvitations.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No members yet.
                 </TableCell>
               </TableRow>
@@ -278,6 +314,39 @@ export function MembersTable({
                           </Button>
                         )}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {isOrgAdmin && memberHasCredentialAuth(member.user.id) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                aria-label="Open actions menu"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {isCurrentUser ? (
+                                <DropdownMenuItem onClick={() => setChangePasswordDialogOpen(true)}>
+                                  <RotateCcwKey className="h-4 w-4" />
+                                  Change password
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => handleResetPassword(member)}
+                                  disabled={resettingMemberId === member.id}
+                                >
+                                  <RotateCcwKey className="h-4 w-4" />
+                                  Reset password
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -304,6 +373,53 @@ export function MembersTable({
                       </Badge>
                     </TableCell>
                     <TableCell />
+                    <TableCell className="text-right">
+                      {isOrgAdmin &&
+                        (invitation.authMethod === 'email-password' ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                aria-label="Open actions menu"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const link = `${window.location.origin}/accept-invitation/${invitation.id}?email=${encodeURIComponent(invitation.email)}`;
+                                  navigator.clipboard.writeText(link);
+                                  toast.success('Invite link copied');
+                                }}
+                              >
+                                <Copy className="h-4 w-4" />
+                                Copy invite link
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                              >
+                                <Info className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              User can sign in with{' '}
+                              {invitation.authMethod === 'google' ? 'Google' : 'Inkeep SSO'}
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                    </TableCell>
                   </TableRow>
                 ))}
               </>
@@ -317,6 +433,11 @@ export function MembersTable({
         onOpenChange={setInviteDialogOpen}
         isOrgAdmin={isOrgAdmin}
         onInvitationsSent={onMemberUpdated}
+      />
+
+      <ChangePasswordDialog
+        open={changePasswordDialogOpen}
+        onOpenChange={setChangePasswordDialogOpen}
       />
 
       {selectedUser && (
