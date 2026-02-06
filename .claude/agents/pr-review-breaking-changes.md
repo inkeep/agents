@@ -23,7 +23,7 @@ Breaking-changes review focuses on schema, migrations, env, and contracts—not 
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
@@ -31,6 +31,7 @@ skills:
   - data-model-changes
   - adding-env-variables
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: opus
 permissionMode: default
 ---
@@ -63,7 +64,8 @@ Review files for compliance with preloaded skill standards.
    - Env files: `adding-env-variables` checklist
    - API/type files: check for response shape changes, removed fields, stricter validation
 4. Create Finding objects per `pr-review-output-contract`
-5. Return raw JSON array (no prose, no code fences)
+5. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+6. Return raw JSON array (no prose, no code fences)
 
 # Tool Policy
 

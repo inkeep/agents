@@ -23,12 +23,13 @@ Error review should focus on error handling code, not general logic changes.
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: sonnet
 color: yellow
 permissionMode: default
@@ -116,6 +117,10 @@ Look for patterns that hide errors:
 - Using optional chaining (?.) to silently skip operations that might fail
 - Fallback chains that try multiple approaches without explaining why
 - Retry logic that exhausts attempts without informing the user
+
+### Final Validation
+
+Before returning findings, apply `pr-review-check-suggestion` checklist to any findings that depend on external knowledge (error handling best practices, library-specific patterns). Drop or adjust confidence as needed.
 
 ## Your Output Format
 

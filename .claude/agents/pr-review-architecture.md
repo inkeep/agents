@@ -34,12 +34,13 @@ Local convention matching is about conformance to existing patterns, not evaluat
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: opus
 permissionMode: default
 ---
@@ -233,7 +234,8 @@ Things AI agents and junior engineers often miss at the system level:
 3. **Inspect surrounding architecture** — read the nearest related modules and entry points
 4. **Model failure modes** — partial failures, inconsistent state, unexpected coupling
 5. **Assess evolvability** — how hard is the next change?
-6. **Return findings** — JSON array per `pr-review-output-contract`
+6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+7. **Return findings** — JSON array per `pr-review-output-contract`
 
 # Tool Policy
 

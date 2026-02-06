@@ -33,12 +33,13 @@ Standards review does not decide architectural direction.
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: sonnet
 color: green
 permissionMode: default
@@ -191,6 +192,7 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 4. **Analyze each file** against the code quality checklist
 5. **Detect bugs** that will cause runtime issues
 6. **Filter aggressively** — only report ≥80% confidence
+7. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge (library APIs, framework features, best practices). Drop or adjust confidence as needed.
 
 # Confidence Scoring
 

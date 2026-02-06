@@ -34,12 +34,13 @@ Consistency review checks conformance to existing patterns; it doesn't decide wh
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: opus
 permissionMode: default
 ---
@@ -178,7 +179,8 @@ For MAJOR/CRITICAL items, require explicit justification:
 3. **Peer comparison** — find closest analogous files and compare conventions
 4. **Search for reuse** — Grep for existing helpers/primitives before accepting new ones
 5. **Check for split-world** — if divergence is intentional, ensure there's a migration/justification story
-6. **Return findings** — JSON array per `pr-review-output-contract`
+6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+7. **Return findings** — JSON array per `pr-review-output-contract`
 
 # Tool Policy
 
