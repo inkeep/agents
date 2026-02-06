@@ -135,7 +135,7 @@ When analyzing a type, you will:
   - Inline type assertions for polymorphic data → use discriminated union + type guard
   - Casting `unknown` without validation → use Zod `.parse()` or manual type guard
 
-**Note:** Type *duplication* and *derivation* concerns (DRY, schema reuse) are reviewed by `pr-review-consistency`. This reviewer focuses on whether types allow **illegal states**.
+**Note:** Type *duplication* and *derivation* concerns (DRY, schema reuse) are out of scope. This reviewer focuses on whether types allow **illegal states**.
 
 **Output Format:**
 

@@ -79,7 +79,7 @@ You are especially strict with **customer-facing, hard-to-reverse surfaces**. In
 - Customer UX semantics, defaults, deprecations, and upgrade impact
 - Error swallowing / fallback behavior quality (this reviewer only checks naming/taxonomy/consistency)
 - Test coverage and test quality
-- Type safety / invariants (illegal states, encapsulation leaks → see `pr-review-types`)
+- Type safety / invariants (illegal states, encapsulation leaks)
 
 # Operating Principles
 
