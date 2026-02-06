@@ -891,10 +891,7 @@ app.openapi(
     }
 
     // Apply defaults for retry configuration (handles null values from older triggers)
-    console.log('TRIGGER before maxRetries', trigger.maxRetries);
-    console.log('TRIGGER before retryDelaySeconds', trigger.retryDelaySeconds);
-    console.log('TRIGGER before timeoutSeconds', trigger.timeoutSeconds);
-    console.log('TRIGGER', trigger);
+    const maxRetries = trigger.maxRetries ?? 3;
     const maxRetries = trigger.maxRetries ?? 3;
     const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
     const timeoutSeconds = trigger.timeoutSeconds ?? 300;
