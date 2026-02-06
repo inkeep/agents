@@ -1,6 +1,7 @@
 import { defineProject } from 'vitest/config';
+import vitestCIConfig from './vitest.config.ci';
 
-export default defineProject({
+const config = defineProject({
   test: {
     name: 'agents-cli',
     globals: true,
@@ -27,3 +28,5 @@ export default defineProject({
     fileParallelism: false,
   },
 });
+
+export default process.env.CI === 'true' ? vitestCIConfig : config;
