@@ -1073,19 +1073,32 @@ const getServer = async (toolId: string) => {
 };
 
 const SERVER_CACHE_TTL_MS = 5 * 60 * 1000;
-const serverCache = new Map<
-  string,
-  { server: Awaited<ReturnType<typeof getServer>>; expiresAt: number }
->();
+const SERVER_CACHE_MAX_SIZE = 100;
+
+type ServerCacheEntry = { server: Awaited<ReturnType<typeof getServer>>; expiresAt: number };
+const serverCache = new Map<string, ServerCacheEntry>();
 
 const getCachedServer = async (toolId: string) => {
   const cached = serverCache.get(toolId);
   if (cached && cached.expiresAt > Date.now()) {
+    // Move to end for LRU ordering
+    serverCache.delete(toolId);
+    serverCache.set(toolId, cached);
     return cached.server;
   }
   serverCache.delete(toolId);
+
   const server = await getServer(toolId);
   serverCache.set(toolId, { server, expiresAt: Date.now() + SERVER_CACHE_TTL_MS });
+
+  // Evict oldest entries if over capacity
+  if (serverCache.size > SERVER_CACHE_MAX_SIZE) {
+    const firstKey = serverCache.keys().next().value;
+    if (firstKey !== undefined) {
+      serverCache.delete(firstKey);
+    }
+  }
+
   return server;
 };
 
