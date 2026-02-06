@@ -242,6 +242,7 @@ Outline of format (in this order!):
 3. **Pending Recommendations** — Links to PRIOR unresolved comments (link + 1-sentence only)
 4. **Final Recommendation** — APPROVE / APPROVE WITH SUGGESTIONS / REQUEST CHANGES
 5. **Other Findings** — Filtered/rejected items (collapsed)
+6. **Reviewer Stats** — Per-reviewer breakdown of returned vs. placed findings (collapsed)
 
 **Remember:** If you posted an inline comment for something, it does NOT go in Main.
 
@@ -403,6 +404,38 @@ Format:
 Tip: This is your catch-all for findings that didn't meet the threshold for Main, were erroneous, or not applicable. 'Y' is the count.
 
 **Per No Duplication Principle:** Do NOT include items that appear in Main, New Inline Comments, or Pending Recommendations. Consolidate similar items.
+
+### Reviewer Stats
+
+Throughout Phases 4–6, track the **origin reviewer** for every finding (including dropped/merged ones). After producing all other sections, emit this collapsed stats table so readers can see reviewer coverage at a glance.
+
+````markdown
+<details>
+<summary>Reviewer Stats</summary>
+
+| Reviewer | Returned | Inline&nbsp;Comments | Main&nbsp;Findings | Pending&nbsp;Recs | Other&nbsp;Findings |
+|----------|----------|----------------------|--------------------|-------------------|---------------------|
+| `pr-review-standards` | 7 | 1 | 2 | 0 | 4 |
+| `pr-review-architecture` | 3 | 0 | 1 | 1 | 1 |
+| `pr-review-security-iam` | 2 | 1 | 0 | 0 | 1 |
+| ... | ... | ... | ... | ... | ... |
+| **Total** | **12** | **2** | **3** | **1** | **6** |
+
+</details>
+````
+
+**Column definitions:**
+- **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
+- **Inline Comments** — Findings from this reviewer that were posted as inline comments (Phase 5).
+- **Main Findings** — Findings from this reviewer that appear in the Main section.
+- **Pending Recs** — Findings from this reviewer matched to prior unresolved comments (Pending Recommendations).
+- **Other Findings** — Findings from this reviewer placed in Other Findings (filtered, rejected, low-confidence, etc.).
+
+**Notes:**
+- A finding that was **merged** with another during dedup counts toward the reviewer whose version was kept.
+- The sum of Inline Comments + Main Findings + Pending Recs + Other Findings may be less than Returned when findings are dropped entirely (e.g., already resolved, not attributable to this PR).
+- Include a **Total** row summing each column.
+- Order reviewers by **Returned** count descending.
 
 ---
 
