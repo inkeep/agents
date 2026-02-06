@@ -504,31 +504,15 @@ export const MetadataEditor: FC = () => {
                   </div>
                 )}
 
-                {statusUpdates && 'timeInSeconds' in statusUpdates && (
-                  <div className="space-y-2">
-                    <Label htmlFor="time-in-seconds">Time interval (seconds)</Label>
-                    <Input
-                      id="time-in-seconds"
-                      type="number"
-                      min="1"
-                      max="600"
-                      value={statusUpdates.timeInSeconds || ''}
-                      onChange={(e) => {
-                        const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                        updateMetadata('statusUpdates', {
-                          ...(statusUpdates || {}),
-                          timeInSeconds: value,
-                        });
-                      }}
-                      placeholder="30"
-                      className="bg-background"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Time interval in seconds between status updates (default: 30)
-                    </p>
-                  </div>
-                )}
-              </div>
+              <GenericInput
+                control={form.control}
+                label="Time interval (seconds)"
+                type="number"
+                name="statusUpdates.timeInSeconds"
+                placeholder="30"
+                description="Time interval in seconds between status updates (default: 30)"
+                isRequired={isRequired(schema, 'statusUpdates.timeInSeconds')}
+              />
 
               <GenericJsonEditor
                 control={form.control}
