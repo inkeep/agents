@@ -2034,25 +2034,22 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
 }).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
-  tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
-  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
-  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
-  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
-  functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
-  contextConfig: z.optional(ContextConfigApiInsertSchema),
-  statusUpdates: z.optional(StatusUpdateSchema),
-  models: ModelSchema.optional(),
-  stopWhen: AgentStopWhenSchema.optional(),
-  prompt: z
-    .string()
-    .max(
-      VALIDATION_AGENT_PROMPT_MAX_CHARS,
-      `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
-    )
-    .optional(),
-}).openapi('AgentWithinContextOfProject');
+  ...AgentWithinContextOfProjectExtendSchema,
+  contextConfig: z.strictObject(ContextConfigExtendSchema),
+  statusUpdates: StatusUpdateSchema,
+})
+  .extend({
+    subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
+    tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+    externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+    teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
+    functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
+    functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
+    triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+    models: ModelSchema.optional(),
+    stopWhen: AgentStopWhenSchema.optional(),
+  })
+  .openapi('AgentWithinContextOfProject');
 
 export const PaginationSchema = z
   .object({
