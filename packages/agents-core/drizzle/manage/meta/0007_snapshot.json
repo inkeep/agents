@@ -1,5 +1,5 @@
 {
-  "id": "4163869f-b5a7-40cb-99f1-c77fff5f4aa6",
+  "id": "1a636884-214c-48d4-b735-bdfed0dbd3d6",
   "prevId": "0ebbc28c-f5ec-4fe1-a61e-3e63beee6235",
   "version": "7",
   "dialect": "postgresql",
@@ -1996,6 +1996,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "cron_timezone": {
+          "name": "cron_timezone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'UTC'"
+        },
         "run_at": {
           "name": "run_at",
           "type": "timestamp with time zone",
@@ -2019,7 +2026,7 @@
           "type": "numeric",
           "primaryKey": false,
           "notNull": true,
-          "default": 3
+          "default": 1
         },
         "retry_delay_seconds": {
           "name": "retry_delay_seconds",
@@ -2033,7 +2040,7 @@
           "type": "numeric",
           "primaryKey": false,
           "notNull": true,
-          "default": 300
+          "default": 900
         },
         "created_at": {
           "name": "created_at",

@@ -1,1 +1,0 @@
-ALTER TABLE "scheduled_triggers" ADD COLUMN "cron_timezone" varchar(64) DEFAULT 'UTC';
