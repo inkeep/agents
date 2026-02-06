@@ -65,6 +65,7 @@ import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
@@ -90,7 +91,7 @@ type AiSdkContentPart = {
   type: string;
   text?: string;
   image?: string | URL;
-  experimental_providerMetadata?: { openai?: { imageDetail?: 'auto' | 'low' | 'high' } };
+  experimental_providerMetadata?: { openai?: { imageDetail?: ImageDetail } };
 };
 
 /**
