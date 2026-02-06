@@ -71,6 +71,7 @@ import {
 import {
   AgentWithinContextOfProjectExtendSchema,
   ArtifactComponentExtendSchema,
+  ContextConfigExtendSchema,
   DataComponentExtendSchema,
   ResourceIdSchema,
 } from './extend-schemas';

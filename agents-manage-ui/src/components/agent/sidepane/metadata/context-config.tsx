@@ -1,25 +1,12 @@
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
-import type { AgentMetadata, ContextConfig } from '../../configuration/agent-types';
-import { FieldLabel } from '../form-components/label';
+import { isRequired } from '@/lib/utils';
+import { FullAgentUpdateSchema as schema } from '@/lib/validation';
 import { SectionHeader } from '../section';
 
-export function ContextConfigForm({
-  contextConfig,
-  updateMetadata,
-}: {
-  contextConfig: ContextConfig;
-  updateMetadata: (field: keyof AgentMetadata, value: AgentMetadata[keyof AgentMetadata]) => void;
-}) {
-  const { contextVariables, headersSchema } = contextConfig;
-
-  const updateContextConfig = (field: keyof ContextConfig, value: string) => {
-    const updatedContextConfig = {
-      ...contextConfig,
-      [field]: value,
-    };
-    updateMetadata('contextConfig', updatedContextConfig);
-  };
+export function ContextConfigForm() {
+  const form = useFullAgentFormContext();
 
   return (
     <div className="space-y-8">
@@ -27,28 +14,22 @@ export function ContextConfigForm({
         title="Context configuration"
         description="Configure dynamic context for this agent."
       />
-      <div className="flex flex-col space-y-8">
-        <div className="space-y-2">
-          <FieldLabel id="contextVariables" label="Context variables (JSON)" />
-          <StandaloneJsonEditor
-            name="contextVariables"
-            value={contextVariables}
-            onChange={(value) => updateContextConfig('contextVariables', value)}
-            placeholder="{}"
-            customTemplate={contextVariablesTemplate}
-          />
-        </div>
-        <div className="space-y-2">
-          <FieldLabel id="headersSchema" label="Headers schema (JSON)" />
-          <StandaloneJsonEditor
-            name="headersSchema"
-            value={headersSchema}
-            onChange={(value) => updateContextConfig('headersSchema', value)}
-            placeholder="{}"
-            customTemplate={headersSchemaTemplate}
-          />
-        </div>
-      </div>
+      <GenericJsonEditor
+        control={form.control}
+        name="contextConfig.contextVariables"
+        label="Context variables (JSON)"
+        placeholder="{}"
+        customTemplate={contextVariablesTemplate}
+        isRequired={isRequired(schema, 'contextConfig.contextVariables')}
+      />
+      <GenericJsonEditor
+        control={form.control}
+        name="contextConfig.headersSchema"
+        label="Headers schema (JSON)"
+        placeholder="{}"
+        customTemplate={headersSchemaTemplate}
+        isRequired={isRequired(schema, 'contextConfig.headersSchema')}
+      />
     </div>
   );
 }

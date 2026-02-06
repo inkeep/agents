@@ -51,14 +51,17 @@ export const ArtifactComponentExtendSchema = {
 
 export const ContextConfigExtendSchema = {
   id: ResourceIdSchema,
-  headersSchema: z.record(z.string(), z.unknown()).optional().openapi({
+  headersSchema: z.record(z.string(), z.unknown(), 'Must be valid JSON object').optional().openapi({
     type: 'object',
     description: 'JSON Schema for validating request headers',
   }),
-  contextVariables: z.record(z.string(), z.unknown()).optional().openapi({
-    type: 'object',
-    description: 'Context variables configuration with fetch definitions',
-  }),
+  contextVariables: z
+    .record(z.string(), z.unknown(), 'Must be valid JSON object')
+    .optional()
+    .openapi({
+      type: 'object',
+      description: 'Context variables configuration with fetch definitions',
+    }),
 } satisfies ExtendSchema<typeof contextConfigs>;
 
 export const AgentWithinContextOfProjectExtendSchema = {
