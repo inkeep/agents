@@ -4,7 +4,7 @@ description: |
   PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, posts PR comment.
   Invoked via: `/pr-review` skill or `claude --agent pr-review`.
 tools: Task, Read, Grep, Glob, Bash
-skills: [pr-context, pr-review-output-contract]
+skills: [pr-context, product-surface-areas, pr-review-output-contract]
 model: opus
 ---
 
@@ -57,28 +57,46 @@ This step is about context gathering // "world model" building only, not about m
 
 Match changed files to the relevant sub-agent reviewers. Each reviewer has a specialized role and returns output as defined in the `pr-review-output-contract`.
 
-Here are the available reviewers:
+Reviewers are organized into three tiers. For any PR that touches a **product surface** (APIs, SDKs, CLI, UI, docs, config formats, protocols), select all Core reviewers plus applicable Strong Default and Conditional reviewers.
 
-| Reviewer | Type | Description | Protects against... |
-|----------|------|-------------|---------------------|
-| `pr-review-security-iam` | Problem-detection | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. |
-| `pr-review-breaking-changes` | Skill-based | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. |
-| `pr-review-architecture` | Problem-detection | System design, pattern consistency, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. |
-| `pr-review-devops` | Problem-detection | CI/CD workflows, dependencies, release engineering, build/container artifacts, self-hosting, devex infra, and AI artifact quality (AGENTS.md, skills, rules, agents). | Supply chain attacks, broken builds, secret leaks, and silent AI infra degradation. |
-| `pr-review-standards` | Problem-detection | Code quality, potential bugs, and AGENTS.md compliance (always run). | Shipped bugs, perf regressions, and steady quality debt across the codebase. |
-| `pr-review-consistency` | Problem-detection | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. |
-| `pr-review-docs` | Skill-based | Documentation quality, structure, and accuracy for markdown/MDX files. Thoroughness in documenting new or updated features. Should be called for **any product surface change.** | Misleading docs that drive misuse, support burden, and adoption friction. |
-| `pr-review-product` | Problem-detection | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. |
-| `pr-review-frontend` | Skill-based | React/Next.js patterns, component design, and frontend best practices. | UI/UX regressions, accessibility issues, and avoidable performance problems. |
-| `pr-review-errors` | Problem-detection | Error handling for silent failures and swallowed errors. | Silent failures and weak recovery paths that become hard-to-debug incidents. |
-| `pr-review-types` | Problem-detection | Type design, invariants, and type safety. | Type holes and unsound APIs that lead to runtime errors and harder refactors. |
-| `pr-review-tests` | Problem-detection | Test coverage, test quality, and testing patterns. | Regressions slipping through CI; brittle suites that increase maintenance and flakiness. |
-| `pr-review-comments` | Problem-detection | Comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. |
-| `pr-review-sre` | Problem-detection | Site reliability patterns: retries, timeouts, circuit breakers, queues, observability, and error handling. | Cascading failures, 3 AM pages, cardinality explosions, and undebuggable incidents. |
-| `pr-review-llm` | Problem-detection | AI/LLM integration: prompt construction, tool definitions, agent loops, streaming, context management, data handling. | Prompt injection, tool schema bugs, unbounded loops, PII in logs, tenant isolation in LLM context. |
+### Core — always select for product surface changes
 
-**Action**: Based on the scope and nature of the PR, select the relevant reviewers.
-**Tip**: This may include only a few or all -- use your judgement on which may be relevant. Typically, safer is better than sorry.
+These reviewers address risks that are inherent to *any* change to a user-facing contract. Skip only when the "Un-applicable when" condition is clearly true.
+
+| Reviewer | Description | Protects against... | Un-applicable when... |
+|----------|-------------|---------------------|-----------------------|
+| `pr-review-standards` | Code quality, potential bugs, and AGENTS.md compliance. | Shipped bugs, perf regressions, and steady quality debt. | Truly no code changed (pure markdown/image asset). |
+| `pr-review-product` | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. | Change is purely internal with zero user-visible behavioral difference (internal refactor, perf optimization with identical API). |
+| `pr-review-consistency` | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. | Change is isolated to a single surface with no analogs or shared conventions in other surfaces. |
+| `pr-review-breaking-changes` | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. | Change is purely additive (new endpoint, new optional field, new CLI command) with no modifications to existing contracts AND no schema/migration involved. |
+| `pr-review-docs` | Documentation quality, structure, and accuracy for markdown/MDX files. Thoroughness in documenting new or updated features. | Misleading docs that drive misuse, support burden, and adoption friction. | Change is internal-only with no user-visible behavioral difference. |
+
+### Strong Default — select unless clearly irrelevant
+
+These address risks that apply to *most* surface changes but have well-defined cases where they don't apply.
+
+| Reviewer | Description | Protects against... | Un-applicable when... |
+|----------|-------------|---------------------|-----------------------|
+| `pr-review-tests` | Test coverage, test quality, and testing patterns. | Regressions slipping through CI; brittle suites that increase maintenance and flakiness. | Docs-only, config-only, or pure markdown/asset changes. |
+| `pr-review-types` | Type design, invariants, and type safety. | Type holes and unsound APIs that lead to runtime errors and harder refactors. | No TypeScript type/interface/schema changes (docs-only, UI-only styling, copy changes). |
+
+### Conditional — select based on domain overlap
+
+These are domain-specific reviewers. Select when the PR touches their domain; confidently skip when it doesn't.
+
+| Reviewer | Description | Protects against... | Select when... |
+|----------|-------------|---------------------|----------------|
+| `pr-review-architecture` | System design, pattern consistency, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. | Structural decisions, new patterns, or significant refactoring — not small additive features to existing patterns. |
+| `pr-review-security-iam` | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. | Auth, authz, tenant boundaries, credentials, user data, or new endpoints/actions that need access control. |
+| `pr-review-frontend` | React/Next.js patterns, component design, and frontend best practices. | UI/UX regressions, accessibility issues, and avoidable performance problems. | React/Next.js UI code is changed. |
+| `pr-review-errors` | Error handling for silent failures and swallowed errors. | Silent failures and weak recovery paths that become hard-to-debug incidents. | Error handling paths added/modified, or new failure modes introduced. |
+| `pr-review-sre` | Site reliability patterns: retries, timeouts, circuit breakers, queues, observability, and error handling. | Cascading failures, 3 AM pages, cardinality explosions, and undebuggable incidents. | Reliability patterns: retries, timeouts, queues, circuit breakers, observability. |
+| `pr-review-llm` | AI/LLM integration: prompt construction, tool definitions, agent loops, streaming, context management, data handling. | Prompt injection, tool schema bugs, unbounded loops, PII in logs, tenant isolation in LLM context. | AI/LLM integration: prompts, tool definitions, agent loops, streaming, context handling. |
+| `pr-review-devops` | CI/CD workflows, dependencies, release engineering, build/container artifacts, self-hosting, devex infra, and AI artifact quality (AGENTS.md, skills, rules, agents). | Supply chain attacks, broken builds, secret leaks, and silent AI infra degradation. | CI/CD, dependencies, build configs, containers, or AI artifacts (AGENTS.md, skills, rules). |
+| `pr-review-comments` | Comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. | Code comments added/modified, or code semantics changed in a way that could make existing comments stale. |
+
+**Action**: Select reviewers using the tiers above. Start with all Core, add Strong Defaults unless their un-applicable condition is met, then add Conditional reviewers whose domain overlaps with the PR.
+**Tip**: When unsure whether a Conditional reviewer applies, include it — the cost of a false positive (extra reviewer) is lower than a false negative (missed issue).
 
 ## Phase 3: Dispatch Reviewers
 
@@ -116,6 +134,7 @@ For each finding, ask:
 2. **Is this issue actually addressed elsewhere?** (e.g., sanitization happens upstream and that's the better place) → If Yes, **DROP**
 3. **Are the plausible resolutions reasonably addressable within the scope of this PR?** → If No, **DROP**
 4. **Has this issue been raised in the PR already?** → If pending/unresolved, include in **Pending Recommendations** only (per No Duplication Principle). If resolved, **DROP**.
+   - *Pending* = user has not declined/closed it, no subsequent commits address it, and it remains relevant to the current PR state.
    
 ### 4.3 Conflict Resolution
 
@@ -155,6 +174,8 @@ Check `Existing Inline Comments` from pr-context before posting. Per the **No Du
 - **Skip** if same location (±2 lines) with similar issue already exists
 - **Skip** if unresolved thread already covers this issue → goes in Pending Recommendations instead
 - **Post** only if: no existing thread, or thread is outdated but issue persists, or issue is materially different
+
+**Tip:** Minimize noise — a few high-signal inline comments are better than many marginal ones. When in doubt, route to summary-only.
 
 ### 5.3 Post Inline-Comment Edits
 
