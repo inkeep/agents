@@ -27,7 +27,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
@@ -420,24 +419,14 @@ export const MetadataEditor: FC = () => {
 
           {isStatusUpdateEnabled && (
             <CollapsibleSettings title="Status updates configuration">
-              <div className="space-y-2">
-                <Label htmlFor="status-updates-prompt">Status updates prompt</Label>
-                <Textarea
-                  id="status-updates-prompt"
-                  value={statusUpdates?.prompt || ''}
-                  onChange={(e) => {
-                    updateMetadata('statusUpdates', {
-                      ...(statusUpdates || {}),
-                      prompt: e.target.value,
-                    });
-                  }}
-                  placeholder="Generate a status update describing the current progress..."
-                  className="max-h-32 bg-background"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Custom prompt for generating status updates (optional)
-                </p>
-              </div>
+              <GenericTextarea
+                control={form.control}
+                label="Status updates prompt"
+                name="statusUpdates.prompt"
+                placeholder="Generate a status update describing the current progress..."
+                description="Custom prompt for generating status updates"
+                isRequired={isRequired(schema, 'statusUpdates.prompt')}
+              />
 
               <div className="space-y-8">
                 <div className="space-y-4">
