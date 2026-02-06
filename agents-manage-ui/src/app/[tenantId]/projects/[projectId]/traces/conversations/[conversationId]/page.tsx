@@ -4,9 +4,7 @@ import {
   Activity,
   ArrowLeft,
   ExternalLink as ExternalLinkIcon,
-  Loader2,
   MessageSquare,
-  RotateCcw,
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
@@ -235,21 +233,6 @@ export default function ConversationDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {conversation.triggerId && conversation.agentId && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRerunTrigger}
-              disabled={isRerunning}
-            >
-              {isRerunning ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RotateCcw className="h-3.5 w-3.5" />
-              )}
-              {isRerunning ? 'Rerunning...' : 'Rerun Trigger'}
-            </Button>
-          )}
           {(conversation.agentId || conversation.agentName) && (
             <ExternalLink
               href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
@@ -450,6 +433,9 @@ export default function ConversationDetail({
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}
+            onRerunTrigger={handleRerunTrigger}
+            isRerunning={isRerunning}
+            showRerunTrigger={!!(conversation.triggerId && conversation.agentId)}
           />
         </ResizablePanelGroup>
       </div>
