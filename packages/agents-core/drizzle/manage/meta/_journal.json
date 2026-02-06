@@ -54,22 +54,8 @@
     {
       "idx": 7,
       "version": "7",
-      "when": 1770350000000,
-      "tag": "0007_wakeful_doctor_spectrum",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1770350100000,
-      "tag": "0008_polite_rattler",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1770408676179,
-      "tag": "0009_omniscient_zombie",
+      "when": 1770415596493,
+      "tag": "0007_dark_stone_men",
       "breakpoints": true
     }
   ]
