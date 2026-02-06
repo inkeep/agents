@@ -3,7 +3,10 @@
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import {
+  GenericJsonEditor,
+  StandaloneJsonEditor,
+} from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
@@ -527,26 +530,14 @@ export const MetadataEditor: FC = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <FieldLabel id="status-components" label="Status components configuration" />
-                <StandaloneJsonEditor
-                  name="status-components"
-                  onChange={(value) => {
-                    updateMetadata('statusUpdates', {
-                      ...(statusUpdates || {}),
-                      statusComponents: value,
-                    });
-                  }}
-                  value={statusUpdates?.statusComponents || ''}
-                  placeholder={statusUpdatesComponentsTemplate}
-                  customTemplate={statusUpdatesComponentsTemplate}
-                  className="bg-background"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Define structured components for status updates. Each component has a type
-                  (required), description, and detailsSchema.
-                </p>
-              </div>
+              <GenericJsonEditor
+                control={form.control}
+                label="Status components configuration"
+                name="statusUpdates.statusComponents"
+                placeholder={statusUpdatesComponentsTemplate}
+                customTemplate={statusUpdatesComponentsTemplate}
+                description="Define structured components for status updates. Each component has a type (required), description, and detailsSchema."
+              />
             </CollapsibleSettings>
           )}
         </div>
