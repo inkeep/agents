@@ -105,9 +105,9 @@ Every finding **must** include at least one reference. References ground your an
 |------|--------|---------|
 | **Code reference** | `[file:line](github-blob-url#Lline)` | `[src/api/client.ts:42](https://github.com/org/repo/blob/sha/src/api/client.ts#L42)` |
 | **Code range** | `[file:start-end](github-blob-url#Lstart-Lend)` | `[utils.ts:10-15](https://github.com/.../utils.ts#L10-L15)` |
-| **Skill/rule reference** | `[skill-name skill](github-blob-url)` | `[pr-review-security-iam skill](https://github.com/.../SKILL.md)` |
+| **Skill reference** | `[skill-name skill](github-blob-url)` | `[pr-review-security-iam skill](https://github.com/.../.agents/skills/.../SKILL.md)` |
 | **AGENTS.md rule** | `[AGENTS.md: rule](github-blob-url)` | `[AGENTS.md: tenant isolation](https://github.com/.../AGENTS.md)` |
-| **Reviewer instructions** | `per reviewer: <section>` (no URL needed) | `per reviewer: Checklist §2` |
+| **Reviewer instructions** | `[reviewer: section](github-blob-url)` | `[pr-review-security-iam: Checklist §2](https://github.com/.../.claude/agents/pr-review-security-iam.md)` |
 | **External URL** | `[descriptive text](url)` | `[React useMemo docs](https://react.dev/...)` |
 
 **Constructing GitHub URLs:**
@@ -123,7 +123,7 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 "references": [
   "[src/api/client.ts:42-48](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42-L48)",
   "[pr-review-security-iam skill](https://github.com/org/repo/blob/abc123/.agents/skills/pr-review-security-iam/SKILL.md)",
-  "per reviewer: Checklist item 2 - tenant isolation",
+  "[pr-review-security-iam: Checklist §2](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)",
   "[React useMemo docs](https://react.dev/reference/react/useMemo)"
 ]
 ```
@@ -131,8 +131,8 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 **Guidance:**
 - **Code issues** → link to the exact file and line(s) in GitHub
 - **Standards violations** → link to the skill or AGENTS.md that defines the standard
+- **Reviewer-defined rules** → link to your own agent file (`.claude/agents/pr-review-*.md`)
 - **Best practice claims** → link to official docs or authoritative sources
-- **Reviewer-defined rules** → plain text citation of your own prompt (no URL needed since it's not in repo)
 - **Multiple references** are encouraged when they strengthen the finding
 
 ---

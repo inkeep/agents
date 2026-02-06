@@ -243,8 +243,8 @@ when the problem is complex or context is needed.
 **Refs:** Ground the finding with clickable hyperlinks. Use the GitHub URL base from `pr-context` to construct links.
 - Code: `[src/api/client.ts:42](https://github.com/{repo}/blob/{sha}/src/api/client.ts#L42)`
 - Skills: `[pr-review-security-iam skill](https://github.com/{repo}/blob/{sha}/.agents/skills/.../SKILL.md)`
+- Reviewer rules: `[pr-review-security-iam: Checklist §2](https://github.com/{repo}/blob/{sha}/.claude/agents/pr-review-security-iam.md)`
 - External: `[React useMemo docs](https://react.dev/...)` · `[GitHub issue #1234](https://github.com/...)`
-- Reviewer rules (no URL): `per reviewer: Checklist §1`
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 // ...
