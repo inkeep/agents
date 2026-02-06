@@ -537,6 +537,7 @@ export const MetadataEditor: FC = () => {
                 placeholder={statusUpdatesComponentsTemplate}
                 customTemplate={statusUpdatesComponentsTemplate}
                 description="Define structured components for status updates. Each component has a type (required), description, and detailsSchema."
+                isRequired={isRequired(schema, 'statusUpdates.statusComponents')}
               />
             </CollapsibleSettings>
           )}

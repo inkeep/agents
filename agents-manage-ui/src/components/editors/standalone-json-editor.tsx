@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { basicSchemaTemplate, customHeadersTemplate } from '@/lib/templates';
+import { basicSchemaTemplate } from '@/lib/templates';
 
 type JsonEditorProps = ComponentProps<typeof JsonEditor>;
 
@@ -69,6 +69,7 @@ export function GenericJsonEditor<
   isRequired,
   label,
   placeholder,
+  customTemplate,
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   placeholder: string;
   customTemplate: string;
@@ -83,7 +84,7 @@ export function GenericJsonEditor<
           <FormControl>
             <StandaloneJsonEditor
               placeholder={placeholder}
-              customTemplate={customHeadersTemplate}
+              customTemplate={customTemplate}
               {...field}
             />
           </FormControl>
