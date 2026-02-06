@@ -571,3 +571,51 @@ export const listUpcomingInvocationsForAgentPaginated =
       pagination: { page, limit, total, pages },
     };
   };
+
+/**
+ * List all invocations across ALL triggers for a PROJECT with pagination
+ * Used for the project-level invocations dashboard
+ */
+export const listProjectScheduledTriggerInvocationsPaginated =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: Omit<AgentScopeConfig, 'agentId'>;
+    pagination?: PaginationConfig;
+    filters?: {
+      status?: ScheduledTriggerInvocationStatus;
+    };
+  }) => {
+    const page = params.pagination?.page || 1;
+    const limit = Math.min(params.pagination?.limit || 20, 100);
+    const offset = (page - 1) * limit;
+
+    const conditions = [
+      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+    ];
+
+    if (params.filters?.status) {
+      conditions.push(eq(scheduledTriggerInvocations.status, params.filters.status));
+    }
+
+    const whereClause = and(...conditions);
+
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(scheduledTriggerInvocations)
+        .where(whereClause)
+        .limit(limit)
+        .offset(offset)
+        .orderBy(desc(scheduledTriggerInvocations.createdAt)),
+      db.select({ count: count() }).from(scheduledTriggerInvocations).where(whereClause),
+    ]);
+
+    const total = totalResult[0]?.count || 0;
+    const pages = Math.ceil(total / limit);
+
+    return {
+      data,
+      pagination: { page, limit, total, pages },
+    };
+  };

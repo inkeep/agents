@@ -172,9 +172,9 @@ export const scheduledTriggers = pgTable(
     runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
     payload: jsonb('payload').$type<Record<string, unknown> | null>(),
     messageTemplate: text('message_template'),
-    maxRetries: numeric('max_retries', { mode: 'number' }).notNull().default(3),
+    maxRetries: numeric('max_retries', { mode: 'number' }).notNull().default(1),
     retryDelaySeconds: numeric('retry_delay_seconds', { mode: 'number' }).notNull().default(60),
-    timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(300),
+    timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(900),
     ...timestamps,
   },
   (table) => [

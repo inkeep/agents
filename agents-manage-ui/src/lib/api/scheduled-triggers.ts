@@ -199,6 +199,32 @@ export async function rerunScheduledTriggerInvocation(
 }
 
 /**
+ * Run a scheduled trigger now (manual trigger without needing existing invocation)
+ */
+export async function runScheduledTriggerNow(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string
+): Promise<{ success: boolean; invocationId: string }> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const { makeManagementApiRequest } = await import('./api-config');
+  const response = await makeManagementApiRequest<{
+    success: boolean;
+    invocationId: string;
+  }>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/run`,
+    {
+      method: 'POST',
+    }
+  );
+
+  return response;
+}
+
+/**
  * Fetch invocations for a scheduled trigger
  */
 export async function fetchScheduledTriggerInvocations(

@@ -1,6 +1,6 @@
 'use client';
 
-import { Filter, Plus, X } from 'lucide-react';
+import { Filter, History, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -142,7 +142,13 @@ export function TriggersTabs({
           </TabsTrigger>
         </TabsList>
         {activeTab === 'scheduled' && agents.length > 0 && (
-          <div className="flex items-center h-10 px-4">
+          <div className="flex items-center gap-2 h-10 px-4">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/${tenantId}/projects/${projectId}/triggers/invocations`}>
+                <History className="mr-1 h-4 w-4" />
+                All Invocations
+              </Link>
+            </Button>
             <NewTriggerDialog
               tenantId={tenantId}
               projectId={projectId}

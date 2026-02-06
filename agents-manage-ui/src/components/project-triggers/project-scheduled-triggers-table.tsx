@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Clock, History, MoreHorizontal, Pencil, Play, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -25,6 +25,7 @@ import {
 import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import {
   deleteScheduledTriggerAction,
+  runScheduledTriggerNowAction,
   updateScheduledTriggerEnabledAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
@@ -159,6 +160,29 @@ export function ProjectScheduledTriggersTable({
     }
   };
 
+  const runTrigger = async (triggerId: string, agentId: string, name: string) => {
+    setLoadingTriggers((prev) => new Set(prev).add(triggerId));
+
+    try {
+      const result = await runScheduledTriggerNowAction(tenantId, projectId, agentId, triggerId);
+      if (result.success) {
+        toast.success(`Scheduled trigger "${name}" started`);
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to run scheduled trigger:', error);
+      toast.error('Failed to run scheduled trigger');
+    } finally {
+      setLoadingTriggers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(triggerId);
+        return newSet;
+      });
+    }
+  };
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -249,18 +273,22 @@ export function ProjectScheduledTriggersTable({
                     <span className="text-sm text-muted-foreground">{formatNextRun(trigger)}</span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={trigger.enabled}
-                        onCheckedChange={() =>
-                          toggleEnabled(trigger.id, trigger.agentId, trigger.enabled)
-                        }
-                        disabled={isLoading}
-                      />
-                      <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
-                        {trigger.enabled ? 'Enabled' : 'Disabled'}
-                      </Badge>
-                    </div>
+                    {scheduleType === 'one-time' && trigger.lastRunAt ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={trigger.enabled}
+                          onCheckedChange={() =>
+                            toggleEnabled(trigger.id, trigger.agentId, trigger.enabled)
+                          }
+                          disabled={isLoading}
+                        />
+                        <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
+                          {trigger.enabled ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -270,6 +298,12 @@ export function ProjectScheduledTriggersTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => runTrigger(trigger.id, trigger.agentId, trigger.name)}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Run Now
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/invocations`}

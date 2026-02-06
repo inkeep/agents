@@ -64,6 +64,13 @@
       "when": 1770350100000,
       "tag": "0008_polite_rattler",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770408676179,
+      "tag": "0009_omniscient_zombie",
+      "breakpoints": true
     }
   ]
 }
