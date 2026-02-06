@@ -116,6 +116,7 @@ Check each change against these dimensions:
 - Overly complex conditionals that could be refactored
 
 ## 5. AGENTS.md Compliance
+- **Changeset requirement**: PRs modifying published packages require changeset files (per AGENTS.md)
 - Import patterns and module structure
 - Framework conventions (React, Next.js, etc.)
 - Language-specific style rules
@@ -187,10 +188,14 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 
 1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. **Read AGENTS.md first** — understand project-specific rules
-3. **Check scope** — are all changes necessary for the stated goal?
-4. **Analyze each file** against the code quality checklist
-5. **Detect bugs** that will cause runtime issues
-6. **Filter aggressively** — only report ≥80% confidence
+3. **Check for missing changeset** (MANDATORY):
+   - If PR modifies published packages (`agents-core`, `agents-api`, `agents-sdk`, `agents-manage-ui`, `agents-cli`, `create-agents`, `ai-sdk-provider`) BUT lacks changeset files in `.changeset/`, create a HIGH confidence CRITICAL finding
+   - Exclude internal-only changes: test files (`*.test.ts`, `*.spec.ts`, `__tests__/`), documentation files (`*.md`, `*.mdx`), comment-only changes
+   - If changeset IS present, proceed with normal review
+4. **Check scope** — are all changes necessary for the stated goal?
+5. **Analyze each file** against the code quality checklist
+6. **Detect bugs** that will cause runtime issues
+7. **Filter aggressively** — only report ≥80% confidence
 
 # Confidence Scoring
 
@@ -227,6 +232,18 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
 - Prefer `type: "inline"` with a concrete fix when the issue is localized.
 - Use `type: "file"` only when the issue is file-wide without a safe ≤10-line fix.
 - Do not report: confidence <80, style preferences not in AGENTS.md, or pre-existing issues not worsened by this PR.
+
+**SPECIAL CASE - Missing Changeset:**
+If PR modifies published packages but lacks changeset files, create this finding:
+- **file:** `".changeset/"` (general location)
+- **line:** `"n/a"`
+- **severity:** `CRITICAL`
+- **category:** `standards`
+- **reviewer:** `pr-review-standards`
+- **issue:** `"PR modifies published packages [list package names] but lacks a changeset. Per AGENTS.md: 'Create a changeset for any user-facing change to a published package.' Internal-only changes (tests, docs, comments) don't require changesets."`
+- **implications:** `"Version bumps won't be tracked. Package changes won't appear in changelog. This breaks semantic versioning workflow."`
+- **alternatives:** `"Run: pnpm bump <patch|minor|major> --pkg <package-name> \"<description of change>\". Example: pnpm bump patch --pkg agents-core \"Fix validation bug in schema conversion\""`
+- **confidence:** `HIGH`
 
 If no high-confidence issues exist, return `[]`.
 

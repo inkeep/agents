@@ -54,21 +54,31 @@ Review documentation files for compliance with **write-docs skill standards**.
 # Workflow
 
 1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
-2. **Read each file** using Read tool
-3. **Evaluate against write-docs skill** - use the skill's verification checklist as your rubric:
+2. **Check for missing documentation updates** (MANDATORY FIRST STEP):
+   - If PR modifies published packages or adds features BUT lacks documentation changes, create a HIGH confidence CRITICAL finding
+   - Trigger patterns that require documentation (per AGENTS.md):
+     - New UI components: `*.tsx` files in `agents-manage-ui/src/components/`
+     - New API routes: new files in `agents-api/src/domains/*/routes/`
+     - Schema changes: modifications to `*-schema.ts` files or files in `packages/agents-core/src/validation/`
+     - New package exports: changes to `package.json` `exports` field
+     - New SDK patterns: changes in `agents-sdk/src/`
+   - If documentation IS present, proceed to detailed review
+3. **Read each file** using Read tool
+4. **Evaluate against write-docs skill** - use the skill's verification checklist as your rubric:
    - Frontmatter (title, sidebarTitle, description)
    - Content patterns (reference/tutorial/integration/overview)
    - Component usage (Tabs, Steps, Cards, callouts)
    - Code examples (language tags, runnable, realistic values)
    - Links and navigation
    - Writing style
-4. **Create Finding objects** per pr-review-output-contract schema
-5. **Return JSON array** (raw JSON only, no prose, no code fences)
+5. **Create Finding objects** per pr-review-output-contract schema
+6. **Return JSON array** (raw JSON only, no prose, no code fences)
 
 # Review Priorities
 
 Order findings by impact (per write-docs standards):
 
+0. **Missing documentation** - CRITICAL: PR modifies user-facing code but lacks documentation updates (per AGENTS.md requirement)
 1. **Correctness** - Wrong information, outdated examples, misleading guidance
 2. **Completeness** - Missing required sections, incomplete examples, missing prerequisites
 3. **Usability** - Unclear writing, poor navigation, missing context
@@ -90,11 +100,25 @@ Return findings as a JSON array per pr-review-output-contract.
 
 **Quality bar:** Every finding MUST identify a specific documentation problem that would cause user confusion or failure. No "could be clearer" without showing what's wrong and what harm it causes.
 
+**SPECIAL CASE - Missing Documentation:**
+If PR modifies files matching the trigger patterns (see Workflow step 2) but lacks documentation changes, create this finding:
+- **file:** `"agents-docs/content/docs/"` (general location)
+- **line:** `"n/a"`
+- **severity:** `CRITICAL`
+- **category:** `docs`
+- **reviewer:** `pr-review-docs`
+- **issue:** `"PR modifies [describe what changed: UI components/API routes/schemas/etc.] but lacks documentation updates. Per AGENTS.md: 'ALL new work MUST include... Documentation - Create or update documentation in /agents-docs/content/docs/'."`
+- **implications:** `"Users will not know how to use this new feature/change. Increases support burden and reduces adoption."`
+- **alternatives:** `"Add documentation to /agents-docs/content/docs/ covering [what the feature does, how to use it, API reference if applicable]. Use write-docs skill for standards."`
+- **confidence:** `HIGH`
+
+**Standard Findings:**
+
 | Field | Requirement |
 |-------|-------------|
 | **file** | Repo-relative path |
 | **line** | Line number(s) or `"n/a"` |
-| **severity** | `CRITICAL` (wrong information), `MAJOR` (incomplete, misleading), `MINOR` (standards violation), `INFO` (improvement) |
+| **severity** | `CRITICAL` (wrong information OR missing required docs), `MAJOR` (incomplete, misleading), `MINOR` (standards violation), `INFO` (improvement) |
 | **category** | `docs` |
 | **reviewer** | `pr-review-docs` |
 | **issue** | Identify the specific documentation problem. For incorrect info: quote the wrong text and state what's actually true. For missing sections: identify what's missing per write-docs standards. For broken examples: show what fails when a user runs them. |
