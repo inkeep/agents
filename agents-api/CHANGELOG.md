@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+- 016d9dc: Fix internal A2A and self-referencing calls to use in-process fetch transport instead of network loopback, ensuring same-instance execution for features relying on process-local state like SSE stream registries
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-mcp@0.46.0
+  - @inkeep/agents-mcp@0.46.0
+  - @inkeep/agents-work-apps@0.46.0
+
 ## 0.45.3
 
 ### Patch Changes

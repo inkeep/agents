@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+
 ## 0.45.3
 
 ### Patch Changes
