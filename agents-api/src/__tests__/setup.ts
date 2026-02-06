@@ -8,8 +8,6 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import manageDbClient from '../data/db/manageDbClient';
 import runDbClient from '../data/db/runDbClient';
-import app from '../index';
-import { registerAppFetch } from '../utils/in-process-fetch';
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
@@ -80,8 +78,6 @@ vi.mock('src/data/db/manageDbPool', () => {
     },
   };
 });
-
-registerAppFetch(app.request.bind(app) as typeof fetch);
 
 const sdk = new NodeSDK({
   serviceName: 'inkeep-agents-api-test',

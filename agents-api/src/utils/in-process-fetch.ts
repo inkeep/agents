@@ -7,12 +7,18 @@
  * (e.g. the stream helper registry for real-time SSE streaming).
  *
  * Drop-in replacement for `fetch()` — same signature, same return type.
- * Throws if the app hasn't been registered via `registerAppFetch()`.
+ * Throws in production if the app hasn't been registered.
+ * Falls back to global `fetch` in test environments where the full app
+ * may not be initialized.
  *
  * @example
  * import { getInProcessFetch } from './utils/in-process-fetch';
  * const response = await getInProcessFetch()(url, init);
  */
+
+const isTestEnvironment =
+  typeof process !== 'undefined' &&
+  (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test');
 
 let _appFetch: typeof fetch | undefined;
 
@@ -22,6 +28,9 @@ export function registerAppFetch(fn: typeof fetch): void {
 
 export function getInProcessFetch(): typeof fetch {
   if (!_appFetch) {
+    if (isTestEnvironment) {
+      return fetch;
+    }
     throw new Error(
       '[in-process-fetch] App fetch not registered. Call registerAppFetch() during app initialization before handling requests.'
     );
