@@ -693,144 +693,154 @@ export const Agent: FC<AgentProps> = ({
 
   const form = useFullAgentFormContext();
 
-  const onSubmit = form.handleSubmit(async (data) => {
-    let serializedData: ReturnType<typeof serializeAgentData>;
-    try {
-      serializedData = serializeAgentData(
-        nodes,
-        edges,
-        metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        agentToolConfigLookup,
-        subAgentExternalAgentConfigLookup,
-        subAgentTeamAgentConfigLookup
-      );
-    } catch (error) {
-      if (isContextConfigParseError(error)) {
-        const errorObjects = [
-          {
-            message: error.message,
-            field: error.field,
-            code: 'invalid_json',
-            path: [error.field],
-          },
-        ];
+  const onSubmit = form.handleSubmit(
+    async (data) => {
+      let serializedData: ReturnType<typeof serializeAgentData>;
+      try {
+        serializedData = serializeAgentData(
+          nodes,
+          edges,
+          metadata,
+          dataComponentLookup,
+          artifactComponentLookup,
+          agentToolConfigLookup,
+          subAgentExternalAgentConfigLookup,
+          subAgentTeamAgentConfigLookup
+        );
+      } catch (error) {
+        if (isContextConfigParseError(error)) {
+          const errorObjects = [
+            {
+              message: error.message,
+              field: error.field,
+              code: 'invalid_json',
+              path: [error.field],
+            },
+          ];
+          const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
+          setErrors(errorSummary);
+          const summaryMessage = getErrorSummaryMessage(errorSummary);
+          toast.error(summaryMessage);
+          return false;
+        }
+        throw error;
+      }
+
+      const functionToolNodeMap = new Map<string, string>();
+      nodes.forEach((node) => {
+        if (node.type === NodeType.FunctionTool) {
+          const nodeData = node.data as any;
+          const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
+          functionToolNodeMap.set(toolId, node.id);
+        }
+      });
+
+      const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
+      if (validationErrors.length > 0) {
+        const errorObjects = validationErrors.map((error) => ({
+          message: error.message,
+          field: error.field,
+          code: error.code,
+          path: error.path,
+          functionToolId: error.functionToolId,
+        }));
+
         const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
         setErrors(errorSummary);
-        const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage);
+        toast.error(`Validation failed: ${validationErrors[0].message}`);
         return false;
       }
-      throw error;
-    }
 
-    const functionToolNodeMap = new Map<string, string>();
-    nodes.forEach((node) => {
-      if (node.type === NodeType.FunctionTool) {
-        const nodeData = node.data as any;
-        const toolId = nodeData.toolId || nodeData.functionToolId || node.id;
-        functionToolNodeMap.set(toolId, node.id);
-      }
-    });
+      console.log({ serializedData, data });
 
-    const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
-    if (validationErrors.length > 0) {
-      const errorObjects = validationErrors.map((error) => ({
-        message: error.message,
-        field: error.field,
-        code: error.code,
-        path: error.path,
-        functionToolId: error.functionToolId,
-      }));
+      const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+        ...serializedData,
+        ...data,
+      });
 
-      const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
-      setErrors(errorSummary);
-      toast.error(`Validation failed: ${validationErrors[0].message}`);
-      return false;
-    }
+      if (res.success) {
+        // Clear any existing errors on successful save
+        clearErrors();
+        toast.success('Agent saved', { closeButton: true });
+        markSaved();
 
-    const res = await updateFullAgentAction(tenantId, projectId, agentId, serializedData);
+        // Update MCP nodes with new relationshipIds from backend response
+        if (res.data) {
+          const processedRelationships = new Set<string>();
 
-    if (res.success) {
-      // Clear any existing errors on successful save
-      clearErrors();
-      toast.success('Agent saved', { closeButton: true });
-      markSaved();
+          setNodes((currentNodes) =>
+            currentNodes.map((node) => {
+              if (node.type === NodeType.MCP) {
+                const mcpNode = node as Node & { data: MCPNodeData };
+                if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
+                  // If node already has a relationshipId, keep it (it's an existing relationship)
+                  if (mcpNode.data.relationshipId) {
+                    return node;
+                  }
 
-      // Update MCP nodes with new relationshipIds from backend response
-      if (res.data) {
-        const processedRelationships = new Set<string>();
+                  // For new nodes (relationshipId is null), find the first unprocessed relationship
+                  // that matches this agent and tool
+                  const subAgentId = mcpNode.data.subAgentId;
+                  const toolId = mcpNode.data.toolId;
 
-        setNodes((currentNodes) =>
-          currentNodes.map((node) => {
-            if (node.type === NodeType.MCP) {
-              const mcpNode = node as Node & { data: MCPNodeData };
-              if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
-                // If node already has a relationshipId, keep it (it's an existing relationship)
-                if (mcpNode.data.relationshipId) {
-                  return node;
-                }
+                  if (res.data.subAgents[subAgentId]?.canUse) {
+                    const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
+                      (tool: any) =>
+                        tool.toolId === toolId &&
+                        tool.agentToolRelationId &&
+                        !processedRelationships.has(tool.agentToolRelationId)
+                    );
 
-                // For new nodes (relationshipId is null), find the first unprocessed relationship
-                // that matches this agent and tool
-                const subAgentId = mcpNode.data.subAgentId;
-                const toolId = mcpNode.data.toolId;
-
-                if (res.data.subAgents[subAgentId]?.canUse) {
-                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
-                    (tool: any) =>
-                      tool.toolId === toolId &&
-                      tool.agentToolRelationId &&
-                      !processedRelationships.has(tool.agentToolRelationId)
-                  );
-
-                  if (matchingRelationship?.agentToolRelationId) {
-                    processedRelationships.add(matchingRelationship.agentToolRelationId);
-                    return {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        relationshipId: matchingRelationship.agentToolRelationId,
-                      },
-                    };
+                    if (matchingRelationship?.agentToolRelationId) {
+                      processedRelationships.add(matchingRelationship.agentToolRelationId);
+                      return {
+                        ...node,
+                        data: {
+                          ...node.data,
+                          relationshipId: matchingRelationship.agentToolRelationId,
+                        },
+                      };
+                    }
                   }
                 }
               }
-            }
-            return node;
-          })
-        );
+              return node;
+            })
+          );
+        }
+        return true;
       }
-      return true;
-    }
 
-    if (res.code && nonValidationErrors.has(res.code)) {
-      toast.error(res.error || 'An error occurred while saving the agent', {
-        closeButton: true,
-      });
+      if (res.code && nonValidationErrors.has(res.code)) {
+        toast.error(res.error || 'An error occurred while saving the agent', {
+          closeButton: true,
+        });
+        return false;
+      }
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      function parseErrors(error: string) {
+        const errorSummary = parseAgentValidationErrors(error);
+        setErrors(errorSummary);
+
+        const summaryMessage = getErrorSummaryMessage(errorSummary);
+        toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
+      }
+
+      // Handle validation errors (422 status - unprocessable_entity)
+      try {
+        parseErrors(res.error);
+      } catch (parseError) {
+        // Fallback for unparseable errors
+        console.error('Failed to parse validation errors:', parseError);
+        toast.error('Failed to save agent', { closeButton: true });
+      }
       return false;
+    },
+    (error) => {
+      toast.error(JSON.stringify(error, null, 2));
     }
-    // Workaround for a React Compiler limitation.
-    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    function parseErrors(error: string) {
-      const errorSummary = parseAgentValidationErrors(error);
-      setErrors(errorSummary);
-
-      const summaryMessage = getErrorSummaryMessage(errorSummary);
-      toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
-    }
-
-    // Handle validation errors (422 status - unprocessable_entity)
-    try {
-      parseErrors(res.error);
-    } catch (parseError) {
-      // Fallback for unparseable errors
-      console.error('Failed to parse validation errors:', parseError);
-      toast.error('Failed to save agent', { closeButton: true });
-    }
-    return false;
-  });
+  );
 
   useEffect(() => {
     const onCompletion = () => {
