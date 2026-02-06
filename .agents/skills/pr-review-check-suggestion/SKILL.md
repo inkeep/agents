@@ -1,155 +1,147 @@
 ---
 name: pr-review-check-suggestion
 description: |
-  Pre-output validation checklist for PR review subagents. Helps verify findings against current best practices
-  before including them in output. Use when a finding depends on external knowledge (library APIs, framework
-  features, deprecated patterns) that could be outdated.
+  Pre-output confidence calibration for PR review subagents. Helps calibrate confidence levels when
+  findings depend on external knowledge (library APIs, framework features, best practices) that may
+  be version-specific or have evolved since training.
 user-invocable: false
 disable-model-invocation: true
 ---
 
-# PR Review: Check Suggestion
+# PR Review: Check Suggestion (Confidence Calibration)
 
 ## Intent
 
-This skill is a **pre-output validation step** for PR review subagents. Before returning your findings, use this checklist to catch cases where your knowledge may be outdated or incomplete.
+This skill is a **pre-output confidence calibration step** for PR review subagents. Before returning findings, use this checklist to ensure your confidence levels accurately reflect what you can prove from the code vs what depends on external knowledge.
 
-**What this does:**
-- Helps you avoid false positives from stale knowledge (APIs change, frameworks evolve, best practices shift)
-- Gives you a structured way to verify uncertain findings via web search
-- Increases confidence in findings that are confirmed by current sources
-
-**What this does NOT do:**
-- Change your output format (you still return the same JSON array)
-- Spawn subagents or invoke external tools beyond WebSearch
-- Apply to every finding (most findings don't need this)
+**Core principle:** Only claim HIGH confidence when you can prove the issue from the code diff alone. When findings depend on external facts (library behavior, framework features, best practices), acknowledge uncertainty.
 
 ---
 
-## When to Use This Checklist
+## Confidence Calibration Rules
 
-Apply this validation **only when BOTH conditions are true:**
+### HIGH Confidence — Use only when:
 
-1. **External knowledge dependency** — The finding's correctness depends on facts outside this codebase (library behavior, framework features, community best practices)
-2. **Plausible uncertainty** — There's a reasonable chance your knowledge is stale or incomplete
+- Issue is **provable from the code diff** (type errors, null checks, logic bugs)
+- Issue is a **clear code smell** (empty catch blocks, obvious XSS)
+- Issue involves **codebase-internal consistency** (naming within this repo)
+- You have **zero reliance on external knowledge** about library/framework behavior
 
-### Trigger Examples
+### MEDIUM Confidence — Use when:
 
-| Category | Example Finding | Why Verify |
-|----------|----------------|------------|
-| **Framework directives** | "'use memo' is not a valid directive" | New syntax may postdate training data |
-| **Library API claims** | "This zod method doesn't exist" | APIs change between versions |
-| **Deprecation claims** | "moment.js is deprecated, use date-fns" | Need to confirm current status |
-| **Version-specific behavior** | "This pattern doesn't work in React 18" | May work in newer versions |
-| **Security advisories** | "This package has known vulnerabilities" | May have been patched |
-| **Performance claims** | "This causes unnecessary re-renders" | Framework optimizations evolve |
-| **Best practice assertions** | "The recommended approach is X" | Community consensus shifts |
+- Finding depends on **library API behavior** you're confident about but can't prove
+- Finding involves **framework patterns** that may have version-specific nuances
+- Finding is a **best practice** that has general consensus but may have exceptions
+- You're **reasonably sure** but the claim depends on facts outside the diff
 
-### Skip This Checklist When
+### LOW Confidence — Use when:
 
-- **Pure logic bugs** — null checks, off-by-one errors, race conditions (determinable from code)
-- **Type mismatches** — visible in the code itself
-- **Codebase-internal consistency** — naming conventions, patterns within this repo
-- **Obvious security issues** — SQL injection with string concat, XSS with innerHTML
-- **HIGH confidence from code analysis** — you can prove it from the diff alone
-- **Architecture/design opinions** — judgment calls, not verifiable facts
+- Finding depends on **version-specific behavior** and version is unclear
+- Finding involves **evolving best practices** where consensus may have shifted
+- You're **uncertain** whether the pattern is correct in the current ecosystem
+- The claim is based on **general knowledge** that could be stale
 
 ---
 
-## Validation Workflow
+## Pre-Output Checklist
 
 For each finding before including it in your output:
 
-### Step 1: Trigger Check
+### Step 1: Source Check
 
-Ask: *"Does this finding depend on external knowledge that could be outdated?"*
+Ask: *"Can I prove this issue from the code diff alone?"*
 
-- **No** → Include finding as-is, move to next finding
-- **Yes** → Continue to Step 2
-
-### Step 2: Formulate Search Query
-
-Create a specific, time-bounded query:
-
-**Good queries:**
-- `"React 19 use memo directive 2024"`
-- `"Next.js 15 server actions best practices"`
-- `"zod v3 fromJSONSchema method"`
-- `"moment.js maintenance mode 2024"`
-
-**Bad queries:**
-- `"React hooks"` (too vague)
-- `"is moment.js bad"` (opinion-seeking)
-- `"best JavaScript library"` (not specific to the finding)
-
-### Step 3: Search and Evaluate
-
-Use WebSearch with 1-2 queries maximum per finding.
-
-**Source priority:**
-1. Official documentation (react.dev, nextjs.org, library GitHub)
-2. GitHub issues/discussions (often has version-specific details)
-3. Reputable tech blogs (Vercel blog, Kent C. Dodds, etc.)
-
-**Ignore:**
-- Random Medium posts without dates
-- Stack Overflow answers older than 2 years
-- Sources that don't cite versions
-
-### Step 4: Decision
-
-Based on research results:
-
-| Result | Action |
+| Answer | Action |
 |--------|--------|
-| **Research confirms issue** | Keep finding. Optionally add source to `implications` field. |
-| **Research contradicts finding** | **DROP the finding.** Do not include it in output. |
-| **Research is inconclusive** | Keep finding with `confidence: "MEDIUM"`. Add note about uncertainty in `issue` field. |
+| **Yes** — Logic bug, type error, null check, codebase convention | Use HIGH confidence (code is proof) |
+| **No** — Depends on library/framework/ecosystem knowledge | Continue to Step 2 |
+
+### Step 2: Knowledge Dependency Classification
+
+Classify the external knowledge your finding depends on:
+
+| Category | Confidence Ceiling | Notes |
+|----------|-------------------|-------|
+| **Library API claims** ("this method doesn't exist") | MEDIUM max | APIs change between versions |
+| **Framework directives** ("this isn't valid syntax") | MEDIUM max | New syntax may postdate training |
+| **Deprecation claims** ("this is deprecated") | MEDIUM max | Status may have changed |
+| **Version-specific behavior** ("doesn't work in v18") | LOW unless version confirmed | May work in other versions |
+| **Security advisories** ("has known vulnerabilities") | LOW | May have been patched |
+| **Best practice assertions** ("recommended approach is X") | MEDIUM max | Community consensus shifts |
+
+### Step 3: Acknowledge Uncertainty
+
+When confidence is MEDIUM or LOW due to external knowledge dependency, include a brief note in the `issue` or `implications` field:
+
+**Good uncertainty notes:**
+- "Assuming no external validation, this type constraint is too loose"
+- "This pattern may be correct in newer React versions — verify against project's React version"
+- "Based on general best practices; confirm against library's current recommendations"
+
+**Bad uncertainty notes:**
+- "I'm not sure about this" (too vague)
+- "This might be wrong" (undermines the finding)
+
+---
+
+## When to Skip This Checklist
+
+Apply normal confidence ratings without this process for:
+
+- **Pure logic bugs** — determinable from code (off-by-one, race conditions, null errors)
+- **Type mismatches** — visible in the code itself
+- **Codebase-internal consistency** — naming/patterns within this repo
+- **Obvious security issues** — SQL injection with string concat, XSS with innerHTML
+- **Architecture/design opinions** — judgment calls, not verifiable facts
 
 ---
 
 ## Examples
 
-### Example 1: Should verify → DROP
+### Example 1: Knowledge-dependent finding → Calibrate to MEDIUM
 
 ```
-Finding: "'use memo' is not a valid React directive"
-Trigger: Framework directive I'm uncertain about
+Original finding: "'use memo' is not a valid React directive" (confidence: HIGH)
 
-Step 2 query: "React compiler use memo directive 2024"
-Step 3 result: Official React docs confirm 'use memo' is valid with React Compiler
-Step 4: DROP finding (code is correct)
+Check: Can I prove this from the diff? No — depends on React version/compiler support.
+Classification: Framework directive → MEDIUM max
+
+Calibrated: confidence: MEDIUM
+            issue: "...(Note: may be valid with React Compiler — verify React version)"
 ```
 
-### Example 2: Should verify → KEEP with higher confidence
+### Example 2: Code-provable finding → Keep HIGH
 
 ```
-Finding: "Use date-fns instead of moment.js for better bundle size"
-Trigger: "Best practice" claim about library preference
+Finding: "user.profile accessed without null check when user can be undefined"
 
-Step 2 query: "moment.js vs date-fns 2024 recommendation"
-Step 3 result: moment.js in maintenance mode since 2020, date-fns recommended
-Step 4: KEEP finding, confidence: HIGH
+Check: Can I prove this from the diff? Yes — type shows `user: User | undefined`
+
+Action: Keep confidence: HIGH (code is proof)
 ```
 
-### Example 3: Should verify → KEEP with uncertainty noted
+### Example 3: Best practice claim → Calibrate to MEDIUM
 
 ```
-Finding: "This Next.js caching pattern may cause stale data"
-Trigger: Framework-specific behavior I'm unsure about
+Original finding: "Use date-fns instead of moment.js" (confidence: HIGH)
 
-Step 2 query: "Next.js 15 cache revalidation patterns"
-Step 3 result: Mixed signals, behavior depends on configuration
-Step 4: KEEP finding, confidence: MEDIUM, add note: "Behavior depends on cache configuration"
+Check: Can I prove this from the diff? No — depends on current ecosystem recommendations.
+Classification: Best practice assertion → MEDIUM max
+
+Calibrated: confidence: MEDIUM
+            implications: "...moment.js has been in maintenance mode; consider migration"
 ```
 
-### Example 4: Skip verification
+### Example 4: Version-specific claim → Calibrate to LOW
 
 ```
-Finding: "Possible null pointer: user.name accessed without null check"
-Trigger check: No — determinable from code analysis alone
+Original finding: "This caching pattern causes stale data in Next.js 15"
 
-Action: Include finding as-is (no web search needed)
+Check: Can I prove this from the diff? No — depends on Next.js version and cache config.
+Classification: Version-specific behavior → LOW unless version confirmed
+
+Calibrated: confidence: LOW
+            issue: "...(verify against project's Next.js version and cache configuration)"
 ```
 
 ---
@@ -161,16 +153,18 @@ This skill is preloaded into PR review subagents. It does NOT change:
 - Your role (still read-only reviewer)
 - Your scope (still your specific domain)
 
-Think of this as a mental checklist you run before finalizing your output — a quality gate that catches knowledge-dependent false positives.
+Think of this as a mental checklist that prevents over-confident claims about external facts. **Your findings are more valuable when confidence levels are honest.**
 
 ---
 
-## Failure Modes to Avoid
+## Why This Matters
 
-| Failure Mode | Why It's Bad | Instead |
-|--------------|--------------|---------|
-| Searching for every finding | Wastes time, most findings don't need it | Only search when trigger conditions met |
-| Vague queries | Returns unhelpful results | Be specific: library name + version + feature + year |
-| Trusting random blogs | May be outdated or wrong | Prioritize official docs and GitHub |
-| Dropping findings without research | May discard valid issues | Only drop if research contradicts |
-| Over-qualifying with uncertainty | Makes findings less actionable | Only add uncertainty notes when genuinely unsure |
+**Over-confident findings cause harm:**
+- Developers waste time investigating non-issues
+- Trust in the review system erodes
+- Real issues get dismissed along with false positives
+
+**Calibrated confidence builds trust:**
+- HIGH confidence means "definitely fix this"
+- MEDIUM confidence means "likely an issue, worth checking"
+- LOW confidence means "flagging for awareness, verify before acting"
