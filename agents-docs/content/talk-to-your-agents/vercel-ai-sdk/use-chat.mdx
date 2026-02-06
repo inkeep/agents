@@ -163,6 +163,32 @@ const { messages, sendMessage } = useChat({
    See [Headers](/typescript-sdk/headers) for details.
 </Note>
 
+## Sending Images
+
+The `sendMessage` function supports sending images alongside text. Images can be provided as HTTP URLs or base64 data URIs.
+
+```tsx
+// Send a message with an image URL
+sendMessage({
+  parts: [
+    { type: "text", text: "What's in this image?" },
+    { type: "image", text: "https://example.com/image.png" }
+  ]
+});
+
+// Or with a base64 data URI
+sendMessage({
+  parts: [
+    { type: "text", text: "Analyze this screenshot" },
+    { type: "image", text: "data:image/png;base64,iVBORw0KGgo..." }
+  ]
+});
+```
+
+<Note>
+  Supported image formats: PNG, JPEG, and WebP. GIF is not supported by all providers.
+</Note>
+
 ## Complete Example
 
 Here's a more complete example with conversation management and custom styling:
