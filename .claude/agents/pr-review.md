@@ -75,6 +75,7 @@ Here are the available reviewers:
 | `pr-review-tests` | Problem-detection | Test coverage, test quality, and testing patterns. | Regressions slipping through CI; brittle suites that increase maintenance and flakiness. |
 | `pr-review-comments` | Problem-detection | Comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. |
 | `pr-review-sre` | Problem-detection | Site reliability patterns: retries, timeouts, circuit breakers, queues, observability, and error handling. | Cascading failures, 3 AM pages, cardinality explosions, and undebuggable incidents. |
+| `pr-review-llm` | Problem-detection | AI/LLM integration: prompt construction, tool definitions, agent loops, streaming, context management, data handling. | Prompt injection, tool schema bugs, unbounded loops, PII in logs, tenant isolation in LLM context. |
 
 **Action**: Based on the scope and nature of the PR, select the relevant reviewers.
 **Tip**: This may include only a few or all -- use your judgement on which may be relevant. Typically, safer is better than sorry.
