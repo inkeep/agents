@@ -103,6 +103,8 @@ export const MetadataEditor: FC = () => {
   const form = useFullAgentFormContext();
 
   const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
+  const numEvents = useWatch({ control: form.control, name: 'statusUpdates.numEvents' });
+  const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
 
   return (
     <div className="space-y-8">
@@ -431,54 +433,32 @@ export const MetadataEditor: FC = () => {
                 isRequired={isRequired(schema, 'statusUpdates.prompt')}
               />
 
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  <Label>Update frequency type</Label>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="event-based-updates"
-                        className="bg-background"
-                        checked={statusUpdates && 'numEvents' in statusUpdates}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updateMetadata('statusUpdates', {
-                              ...(statusUpdates || {}),
-                              numEvents: statusUpdates?.numEvents || 10,
-                            });
-                          } else {
-                            const newConfig = { ...statusUpdates };
-                            delete newConfig.numEvents;
-                            updateMetadata('statusUpdates', newConfig);
-                          }
-                        }}
-                      />
-                      <Label htmlFor="event-based-updates">Event-based updates</Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="time-based-updates"
-                        className="bg-background"
-                        checked={statusUpdates && 'timeInSeconds' in statusUpdates}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updateMetadata('statusUpdates', {
-                              ...(statusUpdates || {}),
-                              timeInSeconds: statusUpdates?.timeInSeconds || 30,
-                            });
-                          } else {
-                            const newConfig = { ...statusUpdates };
-                            delete newConfig.timeInSeconds;
-                            updateMetadata('statusUpdates', newConfig);
-                          }
-                        }}
-                      />
-                      <Label htmlFor="time-based-updates">Time-based updates</Label>
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                <Label>Update frequency type</Label>
+                <div className="flex gap-2 items-center">
+                  <Checkbox
+                    id="event-based-updates"
+                    className="bg-background"
+                    checked={numEvents !== undefined}
+                    onCheckedChange={(checked) => {
+                      form.setValue('statusUpdates.numEvents', checked ? 10 : undefined);
+                    }}
+                  />
+                  <Label htmlFor="event-based-updates">Event-based updates</Label>
+                  <br />
+                  <Checkbox
+                    id="time-based-updates"
+                    className="bg-background"
+                    checked={timeInSeconds !== undefined}
+                    onCheckedChange={(checked) => {
+                      form.setValue('statusUpdates.timeInSeconds', checked ? 30 : undefined);
+                    }}
+                  />
+                  <Label htmlFor="time-based-updates">Time-based updates</Label>
                 </div>
+              </div>
 
+              {numEvents !== undefined && (
                 <GenericInput
                   control={form.control}
                   label="Number of events"
@@ -488,6 +468,8 @@ export const MetadataEditor: FC = () => {
                   description="Number of events/steps between status updates (default: 10)"
                   isRequired={isRequired(schema, 'statusUpdates.numEvents')}
                 />
+              )}
+              {timeInSeconds !== undefined && (
                 <GenericInput
                   control={form.control}
                   label="Time interval (seconds)"
@@ -497,7 +479,7 @@ export const MetadataEditor: FC = () => {
                   description="Time interval in seconds between status updates (default: 30)"
                   isRequired={isRequired(schema, 'statusUpdates.timeInSeconds')}
                 />
-              </div>
+              )}
 
               <GenericJsonEditor
                 control={form.control}
