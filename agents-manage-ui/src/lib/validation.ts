@@ -60,6 +60,7 @@ export function createCustomHeadersSchema(customHeaders: string) {
 }
 
 const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.shape;
+const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.shape;
 
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
@@ -80,6 +81,15 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       .trim()
       .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
       .pipe(ContextConfigSchema.contextVariables)
+      .optional(),
+  }),
+  statusUpdates: z.strictObject({
+    ...StatusUpdatesSchema,
+    statusComponents: z
+      .string()
+      .trim()
+      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
+      .pipe(StatusUpdatesSchema.statusComponents)
       .optional(),
   }),
 });

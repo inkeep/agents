@@ -11,6 +11,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
   getExecutionLimitInheritanceStatus,
   getModelInheritanceStatus,
   InheritanceIndicator,
@@ -38,6 +46,7 @@ import { FieldLabel } from '../form-components/label';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
+import { useWatch } from 'react-hook-form';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
@@ -90,6 +99,8 @@ export const MetadataEditor: FC = () => {
   };
 
   const form = useFullAgentFormContext();
+
+  const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
 
   return (
     <div className="space-y-8">
@@ -386,26 +397,28 @@ export const MetadataEditor: FC = () => {
           description="Configure structured status updates for conversation progress tracking."
         />
         <div className="space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="status-updates-enabled"
-                checked={statusUpdates?.enabled ?? true}
-                onCheckedChange={(checked) => {
-                  updateMetadata('statusUpdates', {
-                    ...(statusUpdates || {}),
-                    enabled: checked === true,
-                  });
-                }}
-              />
-              <Label htmlFor="status-updates-enabled">Enable status updates</Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Send structured status updates during conversation execution
-            </p>
-          </div>
+          <FormField
+            control={form.control}
+            name="statusUpdates.enabled"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel isRequired={isRequired(schema, 'statusUpdates.enabled')}>
+                    Enable status updates
+                  </FormLabel>
+                </div>
+                <FormDescription>
+                  Send structured status updates during conversation execution
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          {(statusUpdates?.enabled ?? true) && (
+          {isStatusUpdateEnabled && (
             <CollapsibleSettings title="Status updates configuration">
               <div className="space-y-2">
                 <Label htmlFor="status-updates-prompt">Status updates prompt</Label>
