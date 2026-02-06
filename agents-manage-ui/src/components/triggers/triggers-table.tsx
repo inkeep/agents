@@ -179,7 +179,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                           <Link
                             href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`}
                           >
-                            <History className="w-4 h-4 mr-2" />
+                            <History className="w-4 h-4" />
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
@@ -187,7 +187,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                           <Link
                             href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
                           >
-                            <Pencil className="w-4 h-4 mr-2" />
+                            <Pencil className="w-4 h-4" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
@@ -195,7 +195,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                           variant="destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.name)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                          <Trash2 className="w-4 h-4" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

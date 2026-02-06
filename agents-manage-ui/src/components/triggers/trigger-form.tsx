@@ -978,6 +978,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               control={form.control}
               name="signatureVerificationEnabled"
               render={({ field }) => (
+                // relative is needed b/c of the absolute positioning of the switch
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 relative">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Enable Signature Verification</FormLabel>
@@ -1442,7 +1443,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                       })
                     }
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4" />
                     Add Signed Component
                   </Button>
 
@@ -1547,7 +1548,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                           name="normalizeUnicode"
                           render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                              <div className="space-y-0.5 ">
+                              <div className="space-y-0.5">
                                 <FormLabel className="text-sm">Normalize Unicode</FormLabel>
                                 <FormDescription className="text-xs">
                                   If enabled, normalizes Unicode strings to NFC form before signing.
