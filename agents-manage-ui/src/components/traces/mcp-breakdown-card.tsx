@@ -105,7 +105,7 @@ export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
           {mcpStats.totalCalls === 0 ? (
             <div className="text-sm text-muted-foreground px-3 py-2">0 MCP tool calls</div>
           ) : (
-            <div className="space-y-3 max-h-[120px] overflow-y-auto pr-1">
+            <div className="space-y-3 h-full overflow-y-auto pr-1">
               {mcpStats.servers.map((server) => (
                 <div key={server.serverName} className="space-y-1">
                   {/* Server Name Header */}
