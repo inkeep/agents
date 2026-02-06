@@ -90,14 +90,14 @@ These fields are **required on all finding types**.
 | 1 | `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
 | 2 | `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
 | 3 | `issue` | string | What's wrong. Thorough description. |
-| 4 | `implications` | string | Why it matters. Consequence, risk, user impact. |
-| 5 | `references` | string[] | **Required.** Citations that ground the finding. See Reference Types below. |
-| 6 | `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? (classify AFTER describing + citing evidence) |
+| 4 | `references` | string[] | **Required.** Citations that ground the finding. See Reference Types below. |
+| 5 | `implications` | string | Why it matters. Consequence, risk, user impact. (write AFTER citing evidence) |
+| 6 | `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? (classify AFTER implications) |
 | 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
 | 8 | `fix` | string | Suggestion[s] for how to address it. If simple, give the full solution as a code block. If bigger-scoped, interweave brief code examples into the explanation. Don't over-engineer — give a starting point/direction. |
 | 9 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
 
-**Why this order?** LLMs generate tokens sequentially. By describing the issue, explaining implications, and citing evidence *before* severity/confidence, you ensure classifications are grounded in reasoning rather than premature commitment.
+**Why this order?** LLMs generate tokens sequentially. By describing the issue and citing evidence *before* implications/severity/confidence, you ensure the impact assessment and classifications are grounded in verifiable sources rather than premature commitment.
 
 ### Reference Types
 
@@ -145,7 +145,7 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 **Use when:** You found an issue at a specific line (or small range ≤10 lines) AND you can propose a concrete fix.
 
-**Field order:** `type` → `file` → `line` → common fields (category → issue → implications → references → severity → confidence → fix → fix_confidence)
+**Field order:** `type` → `file` → `line` → common fields (category → issue → references → implications → severity → confidence → fix → fix_confidence)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -294,12 +294,12 @@ Never use absolute paths. Always use paths relative to the repository root.
     "line": 42,
     "category": "security",
     "issue": "User input is passed directly to SQL query without sanitization, creating SQL injection vulnerability.",
-    "implications": "Attackers can extract, modify, or delete database contents. Could lead to full database compromise and data breach.",
     "references": [
       "[src/api/client.ts:42](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42)",
       "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)",
       "[pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)"
     ],
+    "implications": "Attackers can extract, modify, or delete database contents. Could lead to full database compromise and data breach.",
     "severity": "CRITICAL",
     "confidence": "HIGH",
     "fix": "Use parameterized queries:\n```typescript\nconst result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);\n```",
@@ -308,7 +308,7 @@ Never use absolute paths. Always use paths relative to the repository root.
 ]
 ```
 
-**Note the order:** type → location → category → issue → implications → references → severity → confidence → fix → fix_confidence
+**Note the order:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
 
 ---
 
@@ -318,7 +318,7 @@ Before returning, verify:
 
 - [ ] Output is valid JSON (no prose, no code fences, no markdown)
 - [ ] Output is an array of Finding objects
-- [ ] **Field order is correct:** type → location → category → issue → implications → references → severity → confidence → fix → fix_confidence
+- [ ] **Field order is correct:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
 - [ ] Every finding has a `type` field with valid value
 - [ ] Every finding has all required fields for its type
 - [ ] `severity`, `confidence`, and `fix_confidence` use allowed enum values
