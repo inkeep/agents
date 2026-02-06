@@ -63,6 +63,10 @@ const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfi
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.shape;
 
+const ModelsBaseSchema = ModelsSchema.base.unwrap();
+const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
+const ModelsSummarizerSchema = ModelsSchema.summarizer.unwrap();
+
 const StringToJsonSchema = z
   .string()
   .trim()
@@ -85,19 +89,17 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
   }),
   models: z.strictObject({
-    base: ModelsSchema.base.unwrap().extend({
+    base: ModelsBaseSchema.extend({
+      providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions).optional(),
+    }),
+    structuredOutput: ModelsStructuredOutputSchema.extend({
       providerOptions: StringToJsonSchema.pipe(
-        ModelsSchema.base.unwrap().shape.providerOptions
+        ModelsStructuredOutputSchema.shape.providerOptions
       ).optional(),
     }),
-    structuredOutput: ModelsSchema.structuredOutput.unwrap().extend({
+    summarizer: ModelsSummarizerSchema.extend({
       providerOptions: StringToJsonSchema.pipe(
-        ModelsSchema.structuredOutput.unwrap().shape.providerOptions
-      ).optional(),
-    }),
-    summarizer: ModelsSchema.summarizer.unwrap().extend({
-      providerOptions: StringToJsonSchema.pipe(
-        ModelsSchema.summarizer.unwrap().shape.providerOptions
+        ModelsSummarizerSchema.shape.providerOptions
       ).optional(),
     }),
   }),

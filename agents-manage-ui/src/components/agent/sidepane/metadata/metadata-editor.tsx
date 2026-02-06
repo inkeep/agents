@@ -27,7 +27,6 @@ import {
   getModelInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -80,11 +79,9 @@ export const MetadataEditor: FC = () => {
     projectId: string;
     agentId: string;
   }>();
-  const { models } = useAgentStore((state) => state.metadata);
+  const models = useAgentStore((state) => state.metadata.models);
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const { canUse } = useProjectPermissions();
-
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();
 
@@ -114,7 +111,7 @@ export const MetadataEditor: FC = () => {
           label="Chat URL"
           tooltip="Use this endpoint to chat with your agent or connect it to the Inkeep widget via the agentUrl prop. Supports streaming responses with the Vercel AI SDK data stream protocol."
         />
-        <CopyableSingleLineCode code={agentUrl} />
+        <CopyableSingleLineCode code={`${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`} />
         {canUse && (
           <ExternalLink href={`/${tenantId}/projects/${projectId}/api-keys`}>
             Create API key
