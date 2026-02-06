@@ -3,10 +3,7 @@
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
-import {
-  GenericJsonEditor,
-  StandaloneJsonEditor,
-} from '@/components/editors/standalone-json-editor';
+import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
@@ -172,7 +169,7 @@ export const MetadataEditor: FC = () => {
         />
 
         <CollapsibleSettings
-          defaultOpen={!!models.structuredOutput || !!models.summarizer}
+          defaultOpen={!!(models.structuredOutput.model || models.summarizer.model)}
           title="Advanced model options"
         >
           <div className="relative space-y-2">
@@ -210,21 +207,14 @@ export const MetadataEditor: FC = () => {
           </div>
           {/* Structured Output Model Provider Options */}
           {models.structuredOutput.model && (
-            <div className="space-y-2">
-              <FieldLabel
-                id="structured-provider-options"
-                label="Structured output model provider options"
-              />
-              <StandaloneJsonEditor
-                name="structured-provider-options"
-                onChange={(value) => {
-                  form.setValue('models.structuredOutput.providerOptions', value);
-                }}
-                value={models.structuredOutput.providerOptions || ''}
-                placeholder={structuredOutputModelProviderOptionsTemplate}
-                customTemplate={structuredOutputModelProviderOptionsTemplate}
-              />
-            </div>
+            <GenericJsonEditor
+              control={form.control}
+              label="Structured output model provider options"
+              name="models.structuredOutput.providerOptions"
+              placeholder={structuredOutputModelProviderOptionsTemplate}
+              customTemplate={structuredOutputModelProviderOptionsTemplate}
+              isRequired={isRequired(schema, 'models.structuredOutput.providerOptions')}
+            />
           )}
           <div className="relative space-y-2">
             <ModelSelector
@@ -261,21 +251,14 @@ export const MetadataEditor: FC = () => {
           </div>
           {/* Summarizer Model Provider Options */}
           {models.summarizer.model && (
-            <div className="space-y-2">
-              <FieldLabel
-                id="summarizer-provider-options"
-                label="Summarizer model provider options"
-              />
-              <StandaloneJsonEditor
-                name="summarizer-provider-options"
-                onChange={(value) => {
-                  form.setValue('models.summarizer.providerOptions', value);
-                }}
-                value={models.summarizer.providerOptions || ''}
-                placeholder={summarizerModelProviderOptionsTemplate}
-                customTemplate={summarizerModelProviderOptionsTemplate}
-              />
-            </div>
+            <GenericJsonEditor
+              control={form.control}
+              name="models.summarizer.providerOptions"
+              label="Summarizer model provider options"
+              placeholder={summarizerModelProviderOptionsTemplate}
+              customTemplate={summarizerModelProviderOptionsTemplate}
+              isRequired={isRequired(schema, 'models.summarizer.providerOptions')}
+            />
           )}
         </CollapsibleSettings>
       </div>
