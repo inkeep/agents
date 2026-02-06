@@ -8,6 +8,7 @@ import {
   deleteScheduledTrigger,
   fetchScheduledTriggerInvocations,
   rerunScheduledTriggerInvocation,
+  runScheduledTriggerNow,
   type ScheduledTrigger,
   type ScheduledTriggerInvocation,
   type UpdateScheduledTriggerInput,
@@ -244,6 +245,39 @@ export async function rerunScheduledTriggerInvocationAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to rerun invocation',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function runScheduledTriggerNowAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string
+): Promise<ActionResult<{ invocationId: string }>> {
+  try {
+    const result = await runScheduledTriggerNow(tenantId, projectId, agentId, scheduledTriggerId);
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
+    revalidatePath(
+      `/${tenantId}/projects/${projectId}/triggers/scheduled/${agentId}/${scheduledTriggerId}/invocations`
+    );
+    return {
+      success: result.success,
+      data: { invocationId: result.invocationId },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to run trigger',
       code: 'unknown_error',
     };
   }

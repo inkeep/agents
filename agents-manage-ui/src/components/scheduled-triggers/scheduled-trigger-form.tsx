@@ -49,9 +49,9 @@ const scheduledTriggerFormSchema = z
     runAt: z.string().default(''),
     payloadJson: z.string().default(''),
     messageTemplate: z.string().default(''),
-    maxRetries: z.coerce.number().int().min(0).max(10).default(3),
+    maxRetries: z.coerce.number().int().min(0).max(10).default(1),
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
-    timeoutSeconds: z.coerce.number().int().min(30).max(1800).default(300),
+    timeoutSeconds: z.coerce.number().int().min(30).max(900).default(900),
   })
   .refine(
     (data) => {
@@ -101,9 +101,9 @@ export function ScheduledTriggerForm({
         runAt: '',
         payloadJson: '',
         messageTemplate: '',
-        maxRetries: 3,
+        maxRetries: 1,
         retryDelaySeconds: 60,
-        timeoutSeconds: 300,
+        timeoutSeconds: 900,
       };
     }
 
@@ -118,9 +118,9 @@ export function ScheduledTriggerForm({
       runAt: trigger.runAt ? new Date(trigger.runAt).toISOString().slice(0, 16) : '',
       payloadJson: trigger.payload ? JSON.stringify(trigger.payload, null, 2) : '',
       messageTemplate: trigger.messageTemplate || '',
-      maxRetries: trigger.maxRetries ?? 3,
+      maxRetries: trigger.maxRetries ?? 1,
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
-      timeoutSeconds: trigger.timeoutSeconds ?? 300,
+      timeoutSeconds: trigger.timeoutSeconds ?? 900,
     };
   };
 
@@ -393,9 +393,9 @@ export function ScheduledTriggerForm({
                   <FormItem>
                     <FormLabel>Timeout (seconds)</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" min={30} max={1800} />
+                      <Input {...field} type="number" min={30} max={900} />
                     </FormControl>
-                    <FormDescription>Execution timeout (30-1800)</FormDescription>
+                    <FormDescription>Execution timeout (30-900)</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

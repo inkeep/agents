@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import {
+  fetchProjectScheduledTriggerInvocations,
   fetchProjectScheduledTriggers,
   fetchProjectTriggers,
+  type ScheduledTriggerInvocationWithContext,
   type ScheduledTriggerWithAgent,
   type TriggerWithAgent,
 } from '../api/project-triggers';
@@ -34,4 +36,20 @@ export async function getProjectScheduledTriggersAction(
 
 export async function revalidateProjectTriggers(tenantId: string, projectId: string) {
   revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
+}
+
+export async function getProjectScheduledTriggerInvocationsAction(
+  tenantId: string,
+  projectId: string,
+  options?: {
+    status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+    limit?: number;
+  }
+): Promise<ScheduledTriggerInvocationWithContext[]> {
+  try {
+    return await fetchProjectScheduledTriggerInvocations(tenantId, projectId, options);
+  } catch (error) {
+    console.error('Failed to fetch project scheduled trigger invocations:', error);
+    return [];
+  }
 }

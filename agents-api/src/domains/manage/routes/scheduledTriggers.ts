@@ -1081,4 +1081,235 @@ app.openapi(
   }
 );
 
+/**
+ * Run Scheduled Trigger Now
+ * Creates a new invocation and executes it immediately (manual trigger)
+ */
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/run',
+    summary: 'Run Scheduled Trigger Now',
+    operationId: 'run-scheduled-trigger-now',
+    tags: ['Scheduled Triggers'],
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Scheduled trigger run initiated successfully',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              invocationId: z.string(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
+
+    logger.debug(
+      { tenantId, projectId, agentId, scheduledTriggerId },
+      'Running scheduled trigger now'
+    );
+
+    // Get the trigger configuration
+    const trigger = await getScheduledTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Scheduled trigger not found',
+      });
+    }
+
+    // Apply defaults for retry configuration
+    const maxRetries = trigger.maxRetries ?? 1;
+    const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
+    const timeoutSeconds = trigger.timeoutSeconds ?? 900;
+
+    // Create a new invocation
+    const invocationId = generateId();
+    const now = new Date().toISOString();
+
+    await createScheduledTriggerInvocation(runDbClient)({
+      id: invocationId,
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      status: 'pending',
+      scheduledFor: now,
+      idempotencyKey: `manual-run-${scheduledTriggerId}-${Date.now()}`,
+      attemptNumber: 1,
+      createdAt: now,
+    });
+
+    logger.info(
+      {
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId,
+        maxRetries,
+        retryDelaySeconds,
+      },
+      'Created new invocation for manual run'
+    );
+
+    const scopes = { tenantId, projectId, agentId };
+
+    // Execute in background (fire-and-forget) with retry support
+    setImmediate(async () => {
+      try {
+        await markScheduledTriggerInvocationRunning(runDbClient)({
+          scopes,
+          scheduledTriggerId,
+          invocationId,
+        });
+
+        // Resolve project ref
+        const ref = getProjectScopedRef(tenantId, projectId, 'main');
+        const resolvedRef = await resolveRef(manageDbClient)(ref);
+        if (!resolvedRef) {
+          throw new Error(`Failed to resolve ref for project ${projectId}`);
+        }
+
+        // Build message from template
+        const effectivePayload = trigger.payload ?? {};
+        const userMessage = trigger.messageTemplate
+          ? interpolateTemplate(trigger.messageTemplate, effectivePayload)
+          : JSON.stringify(effectivePayload);
+
+        const messageParts: Part[] = [];
+        if (trigger.messageTemplate) {
+          messageParts.push({ kind: 'text', text: userMessage });
+        }
+        messageParts.push({
+          kind: 'data',
+          data: effectivePayload,
+          metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
+        });
+
+        // Execute with retries
+        const maxAttempts = maxRetries + 1;
+        let attemptNumber = 1;
+        let lastError: string | null = null;
+
+        // Helper to execute with timeout
+        const executeWithTimeout = async (conversationId: string): Promise<void> => {
+          const timeoutMs = timeoutSeconds * 1000;
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(
+              () => reject(new Error(`Execution timed out after ${timeoutSeconds}s`)),
+              timeoutMs
+            );
+          });
+
+          await Promise.race([
+            executeAgentAsync({
+              tenantId,
+              projectId,
+              agentId,
+              triggerId: scheduledTriggerId,
+              invocationId,
+              conversationId,
+              userMessage,
+              messageParts,
+              resolvedRef,
+            }),
+            timeoutPromise,
+          ]);
+        };
+
+        while (attemptNumber <= maxAttempts) {
+          const conversationId = generateId();
+          let success = false;
+
+          try {
+            await executeWithTimeout(conversationId);
+            success = true;
+          } catch (execErr) {
+            lastError = execErr instanceof Error ? execErr.message : String(execErr);
+            logger.error(
+              { invocationId, attemptNumber, error: lastError },
+              'Manual run failed with error'
+            );
+          }
+
+          // Always save conversation ID after each attempt
+          await addConversationIdToInvocation(runDbClient)({
+            scopes,
+            scheduledTriggerId,
+            invocationId,
+            conversationId,
+          }).catch(() => {});
+
+          if (success) {
+            await markScheduledTriggerInvocationCompleted(runDbClient)({
+              scopes,
+              scheduledTriggerId,
+              invocationId,
+            });
+            logger.info({ invocationId, conversationId, attemptNumber }, 'Manual run completed');
+            lastError = null;
+            break;
+          }
+
+          // Retry logic
+          if (attemptNumber < maxAttempts) {
+            await updateScheduledTriggerInvocationStatus(runDbClient)({
+              scopes,
+              scheduledTriggerId,
+              invocationId,
+              data: {
+                attemptNumber: attemptNumber + 1,
+                status: 'running',
+              },
+            }).catch(() => {});
+
+            attemptNumber++;
+            await new Promise((resolve) => setTimeout(resolve, retryDelaySeconds * 1000));
+          } else {
+            break;
+          }
+        }
+
+        // Mark as failed if all retries exhausted
+        if (lastError) {
+          await markScheduledTriggerInvocationFailed(runDbClient)({
+            scopes,
+            scheduledTriggerId,
+            invocationId,
+          }).catch(() => {});
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        logger.error({ invocationId, error }, 'Manual run setup failed');
+
+        await markScheduledTriggerInvocationFailed(runDbClient)({
+          scopes,
+          scheduledTriggerId,
+          invocationId,
+        }).catch(() => {});
+      }
+    });
+
+    return c.json({
+      success: true,
+      invocationId,
+    });
+  }
+);
+
 export default app;
