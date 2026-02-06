@@ -262,3 +262,12 @@ jobs:
             5. If no generalizable patterns: Output your analysis JSON and exit
 
             Be conservative: only HIGH generalizability patterns should become PRs.
+
+      - name: Upload Debug Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number }}-${{ github.run_id }}
+          path: ${{ steps.analyze.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: ignore
