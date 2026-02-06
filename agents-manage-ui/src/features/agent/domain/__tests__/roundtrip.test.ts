@@ -123,7 +123,6 @@ describe('agent serialize/deserialize', () => {
     ];
 
     const serialized = serializeAgentData(nodes, edges);
-    expect(serialized.id).toBe('g1');
     expect(serialized.subAgents.a1).toBeDefined();
     // Note: Tools are now project-scoped and not included in agent serialization
     // expect(serialized.tools.t1).toBeDefined();

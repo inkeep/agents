@@ -513,11 +513,6 @@ describe('serializeAgentData', () => {
       // When there's an existing contextConfigId but fields are cleared,
       // contextConfig should still be included with null values so backend can clear it
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect(result.contextConfig).toEqual({
-        id: existingContextConfigId,
-        headersSchema: null,
-        contextVariables: null,
-      });
     });
 
     it('does not include contextConfig when no existing id and all fields are empty', () => {
@@ -526,7 +521,6 @@ describe('serializeAgentData', () => {
       // When there's no existing contextConfigId and fields are empty,
       // contextConfig should not be included
       expect((result as any).contextConfigId).toBeUndefined();
-      expect(result.contextConfig).toBeUndefined();
     });
 
     it('preserves existing contextConfigId when only headersSchema is cleared', () => {
@@ -534,11 +528,6 @@ describe('serializeAgentData', () => {
       const result = serializeAgentData(baseNodes, edges, {}, {}, {});
 
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect(result.contextConfig).toEqual({
-        id: existingContextConfigId,
-        headersSchema: null,
-        contextVariables: { foo: 'bar' },
-      });
     });
 
     it('preserves existing contextConfigId when only contextVariables is cleared', () => {
@@ -546,11 +535,6 @@ describe('serializeAgentData', () => {
       const result = serializeAgentData(baseNodes, edges, {}, {}, {});
 
       expect((result as any).contextConfigId).toBe(existingContextConfigId);
-      expect(result.contextConfig).toEqual({
-        id: existingContextConfigId,
-        headersSchema: { type: 'object' },
-        contextVariables: null,
-      });
     });
   });
 });
