@@ -1,14 +1,42 @@
-import type { FC } from 'react';
+import { type FC, useEffect } from 'react';
 import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { getContextSuggestions } from '@/lib/context-suggestions';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
 import { FullAgentUpdateSchema as schema } from '@/lib/validation';
 import { SectionHeader } from '../section';
 
+function tryJsonParse(json = ''): Record<string, any> {
+  try {
+    if (json.trim()) {
+      return JSON.parse(json);
+    }
+  } catch {}
+  return {};
+}
+
 export const ContextConfigForm: FC = () => {
   'use memo';
   const form = useFullAgentFormContext();
+  const { setVariableSuggestions } = useAgentActions();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: -- only on mount
+  useEffect(() => {
+    // Generate suggestions from context config
+    form.subscribe({
+      name: ['contextConfig.contextVariables', 'contextConfig.headersSchema'],
+      formState: { values: true },
+      callback({ values }) {
+        const variables = getContextSuggestions({
+          headersSchema: tryJsonParse(values.contextConfig.contextVariables),
+          contextVariables: tryJsonParse(values.contextConfig.headersSchema),
+        });
+        setVariableSuggestions(variables);
+      },
+    });
+  }, []);
 
   return (
     <div className="space-y-8">

@@ -73,6 +73,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     : false;
 
   const { headersSchema, contextVariables } = agent.data.contextConfig;
+  const { statusComponents } = agent.data.statusUpdates;
 
   const defaultValues = {
     id: agent.data.id,
@@ -84,7 +85,10 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       headersSchema: headersSchema ? JSON.stringify(headersSchema, null, 2) : '',
       contextVariables: contextVariables ? JSON.stringify(contextVariables, null, 2) : '',
     },
-    statusUpdates: agent.data.statusUpdates,
+    statusUpdates: {
+      ...agent.data.statusUpdates,
+      statusComponents: statusComponents ? JSON.stringify(statusComponents, null, 2) : '',
+    },
   };
 
   console.log(defaultValues);

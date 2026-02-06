@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
+import { useWatch } from 'react-hook-form';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -46,7 +47,6 @@ import { FieldLabel } from '../form-components/label';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
-import { useWatch } from 'react-hook-form';
 
 const ExecutionLimitInheritanceInfo = () => {
   return (
