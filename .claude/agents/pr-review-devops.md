@@ -12,7 +12,6 @@ assistant: "CI/CD workflow changes affect the build pipeline and have security i
 <commentary>
 Workflow changes are mechanical infrastructure that can break builds, leak secrets, or introduce supply-chain risk. Core DevOps scope.
 </commentary>
-assistant: "I'll use the pr-review-devops agent."
 </example>
 
 <example>
@@ -22,7 +21,6 @@ assistant: "New dependencies and lockfile changes affect supply chain and need h
 <commentary>
 Dependency justification, version pinning, and lockfile churn are DevOps hygiene concerns, not application logic.
 </commentary>
-assistant: "I'll use the pr-review-devops agent."
 </example>
 
 <example>
@@ -32,7 +30,6 @@ assistant: "AI artifact quality directly affects how all agents behave. I'll use
 <commentary>
 AGENTS.md, skills, and agent definitions are infrastructure that governs AI behavior. Degradation here silently degrades the entire system.
 </commentary>
-assistant: "I'll use the pr-review-devops agent."
 </example>
 
 <example>
@@ -59,7 +56,8 @@ skills:
   - pr-context
   - pr-review-output-contract
   - pr-review-check-suggestion
-model: sonnet
+model: opus
+color: orange
 permissionMode: default
 ---
 
@@ -127,7 +125,7 @@ You are especially strict with **supply chain security** (CI/CD workflows, depen
 |-----------|------------|
 | Application-level bugs, performance | `pr-review-standards` |
 | Auth/authz/tenant isolation | `pr-review-security-iam` |
-| Runtime operability (retries, timeouts) | `pr-review-architecture` / `pr-review-errors` |
+| Runtime operability (retries, timeouts) | `pr-review-architecture` |
 | Convention conformance in app code | `pr-review-consistency` |
 | Customer mental model, product semantics | `pr-review-product` |
 | Schema/env breaking changes (contracts) | `pr-review-breaking-changes` |
