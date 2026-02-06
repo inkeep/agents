@@ -147,7 +147,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                         onCheckedChange={() => toggleEnabled(trigger.id, trigger.enabled)}
                         disabled={isLoading}
                       />
-                      <Badge variant={trigger.enabled ? 'default' : 'secondary'}>
+                      <Badge className="uppercase" variant={trigger.enabled ? 'primary' : 'code'}>
                         {trigger.enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
                     </div>
@@ -192,10 +192,10 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                          variant="destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.name)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-4 h-4 mr-2 text-destructive" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
