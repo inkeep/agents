@@ -4,7 +4,6 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
-import scheduledTriggerRoutes from './routes/scheduledTriggers';
 import webhookRoutes from './routes/webhooks';
 
 export function createRunRoutes() {
@@ -14,7 +13,6 @@ export function createRunRoutes() {
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);
   app.route('/agents', agentRoutes);
-  app.route('/', scheduledTriggerRoutes);
   app.route('/', webhookRoutes);
 
   return app;

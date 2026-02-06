@@ -4,12 +4,26 @@
  * This workflow:
  * 1. Gets or creates the next pending invocation
  * 2. Sleeps until its scheduled time
- * 3. Checks if cancelled (user can cancel during sleep)
  * 4. Executes the agent with retries
  * 5. For cron triggers, loops back to step 1
  *
  */
 import { getWorkflowMetadata, sleep } from 'workflow';
+import {
+  addConversationIdStep,
+  calculateNextExecutionStep,
+  checkInvocationCancelledStep,
+  checkTriggerEnabledStep,
+  computeSleepDurationStep,
+  createInvocationIdempotentStep,
+  executeScheduledTriggerStep,
+  getNextPendingInvocationStep,
+  incrementAttemptStep,
+  logStep,
+  markCompletedStep,
+  markFailedStep,
+  markRunningStep,
+} from '../steps/scheduledTriggerSteps';
 
 export type ScheduledTriggerRunnerPayload = {
   tenantId: string;
@@ -24,23 +38,6 @@ export type ScheduledTriggerRunnerPayload = {
 function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
   return `sched_${scheduledTriggerId}_${scheduledFor}`;
 }
-
-// Import step functions - these are in a separate file to isolate Node.js dependencies
-import {
-  calculateNextExecutionStep,
-  checkInvocationCancelledStep,
-  addConversationIdStep,
-  checkTriggerEnabledStep,
-  computeSleepDurationStep,
-  createInvocationIdempotentStep,
-  executeScheduledTriggerStep,
-  getNextPendingInvocationStep,
-  incrementAttemptStep,
-  logStep,
-  markCompletedStep,
-  markFailedStep,
-  markRunningStep,
-} from '../steps/scheduledTriggerSteps';
 
 /**
  * Main workflow function - runs a scheduled trigger.
@@ -86,8 +83,6 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
 
     const trigger = enabledCheck.trigger;
     const isOneTime = !!trigger.runAt;
-
-    // Get any existing pending invocation
     let invocation = await getNextPendingInvocationStep({
       tenantId,
       projectId,
@@ -196,23 +191,12 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
       continue;
     }
 
-    // Defaults for retry settings
-    const isValidNumber = (val: unknown): val is number => typeof val === 'number' && val === val;
-    const maxRetries = isValidNumber(currentTrigger.maxRetries) ? currentTrigger.maxRetries : 3;
-    const retryDelaySeconds = isValidNumber(currentTrigger.retryDelaySeconds)
-      ? currentTrigger.retryDelaySeconds
-      : 60;
-    const timeoutSeconds = isValidNumber(currentTrigger.timeoutSeconds)
-      ? currentTrigger.timeoutSeconds
-      : 300;
-
     // 7. Execute with retries
     let attemptNumber = invocation.attemptNumber;
     let lastError: string | null = null;
 
-    const maxAttempts = maxRetries + 1;
+    const maxAttempts = currentTrigger.maxRetries + 1;
     while (attemptNumber <= maxAttempts) {
-      // Re-check cancellation before each attempt
       const retryCancel = await checkInvocationCancelledStep({
         tenantId,
         projectId,
@@ -246,7 +230,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
         invocationId: invocation.id,
         messageTemplate: currentTrigger.messageTemplate,
         payload: currentTrigger.payload ?? null,
-        timeoutSeconds,
+        timeoutSeconds: currentTrigger.timeoutSeconds,
       });
 
       // Save conversation ID immediately after each attempt
@@ -278,31 +262,31 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
 
         lastError = null;
         break;
-      } else {
-        lastError = result.error || 'Unknown error';
+      }
 
-        await logStep('Scheduled trigger execution failed', {
+      lastError = result.error || 'Unknown error';
+
+      await logStep('Scheduled trigger execution failed', {
+        scheduledTriggerId,
+        invocationId: invocation.id,
+        attemptNumber,
+        error: lastError,
+      });
+
+      if (attemptNumber < maxAttempts) {
+        await incrementAttemptStep({
+          tenantId,
+          projectId,
+          agentId,
           scheduledTriggerId,
           invocationId: invocation.id,
-          attemptNumber,
-          error: lastError,
+          currentAttempt: attemptNumber,
         });
 
-        if (attemptNumber < maxAttempts) {
-          await incrementAttemptStep({
-            tenantId,
-            projectId,
-            agentId,
-            scheduledTriggerId,
-            invocationId: invocation.id,
-            currentAttempt: attemptNumber,
-          });
-
-          attemptNumber++;
-          await sleep(retryDelaySeconds * 1000);
-        } else {
-          break;
-        }
+        attemptNumber++;
+        await sleep(currentTrigger.retryDelaySeconds * 1000);
+      } else {
+        break;
       }
     }
 

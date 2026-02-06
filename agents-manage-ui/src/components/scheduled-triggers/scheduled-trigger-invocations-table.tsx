@@ -280,11 +280,10 @@ export function ScheduledTriggerInvocationsTable({
                             href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
                             className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
                           >
-                            {invocation.conversationIds && invocation.conversationIds.length > 1 && (
-                              <span className="text-muted-foreground text-xs">
-                                #{idx + 1}
-                              </span>
-                            )}
+                            {invocation.conversationIds &&
+                              invocation.conversationIds.length > 1 && (
+                                <span className="text-muted-foreground text-xs">#{idx + 1}</span>
+                              )}
                             View
                             <ExternalLink className="w-3 h-3" />
                           </Link>

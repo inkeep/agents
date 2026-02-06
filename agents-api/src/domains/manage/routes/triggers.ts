@@ -578,7 +578,6 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
@@ -598,7 +597,6 @@ app.openapi(
       },
     });
 
-    // Remove sensitive scope fields from invocations
     const dataWithoutScopes = result.data.map((invocation) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
@@ -640,7 +638,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    // Note: Using runtime DB client (runDbClient) for invocations, not manage DB (c.get('db'))
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
     logger.debug(

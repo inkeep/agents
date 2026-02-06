@@ -823,7 +823,6 @@ export async function executeAgentAsync(params: {
           emitOperations: false,
         });
 
-        // Check if execution failed (e.g., LLM errors like invalid model)
         if (!result.success) {
           throw new Error(result.error || 'Agent execution failed');
         }

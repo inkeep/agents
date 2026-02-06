@@ -919,7 +919,7 @@ export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema
 export const CronExpressionSchema = z
   .string()
   .regex(
-    /^(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-A-Za-z]+(?:\/\d+)?)$/,
+    /^(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,-]+(?:\/\d+)?)\s+(\*(?:\/\d+)?|[\d,\-A-Za-z]+(?:\/\d+)?)$/,
     'Invalid cron expression. Expected 5 fields: minute hour day month weekday'
   )
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
@@ -1027,10 +1027,6 @@ export type ScheduledWorkflow = z.infer<typeof ScheduledWorkflowSelectSchema>;
 export type ScheduledWorkflowInsert = z.infer<typeof ScheduledWorkflowInsertSchema>;
 export type ScheduledWorkflowUpdate = z.infer<typeof ScheduledWorkflowUpdateSchema>;
 
-// ============================================================================
-// Scheduled Trigger Invocation Schemas
-// ============================================================================
-//from vercel workflow
 export const ScheduledTriggerInvocationStatusEnum = z.enum([
   'pending',
   'running',
@@ -2710,9 +2706,13 @@ export const TriggerWithWebhookUrlListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('TriggerWithWebhookUrlListResponse');
-  
+
 export const ScheduledTriggerWithRunInfoSchema = ScheduledTriggerApiSelectSchema.extend({
-  lastRunAt: z.string().datetime().nullable().describe('Timestamp of the last completed or failed run'),
+  lastRunAt: z
+    .string()
+    .datetime()
+    .nullable()
+    .describe('Timestamp of the last completed or failed run'),
   lastRunStatus: z.enum(['completed', 'failed']).nullable().describe('Status of the last run'),
   lastRunConversationIds: z.array(z.string()).describe('Conversation IDs from the last run'),
   nextRunAt: z.string().datetime().nullable().describe('Timestamp of the next pending run'),

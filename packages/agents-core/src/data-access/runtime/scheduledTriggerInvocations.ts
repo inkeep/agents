@@ -104,35 +104,6 @@ export const listScheduledTriggerInvocationsPaginated =
   };
 
 /**
- * List latest invocations for a trigger (for history/monitoring)
- */
-export const listLatestScheduledTriggerInvocations =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    scheduledTriggerId: string;
-    limit?: number;
-  }): Promise<ScheduledTriggerInvocation[]> => {
-    const maxLimit = Math.min(params.limit || 10, 100);
-
-    const result = await db
-      .select()
-      .from(scheduledTriggerInvocations)
-      .where(
-        and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
-          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId)
-        )
-      )
-      .orderBy(desc(scheduledTriggerInvocations.scheduledFor))
-      .limit(maxLimit);
-
-    return result as ScheduledTriggerInvocation[];
-  };
-
-/**
  * List pending invocations for a trigger, ordered by scheduledFor (earliest first)
  * Used by workflow to get the next invocation to execute
  */
@@ -455,61 +426,6 @@ export const cancelPastPendingInvocationsForTrigger =
   };
 
 /**
- * Delete all invocations for a scheduled trigger
- * Used for cleanup when a trigger is deleted
- */
-export const deleteScheduledTriggerInvocations =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<void> => {
-    await db
-      .delete(scheduledTriggerInvocations)
-      .where(
-        and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
-          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId)
-        )
-      );
-  };
-
-/**
- * List upcoming invocations across ALL triggers for an agent
- * Used for the upcoming runs dashboard
- */
-export const listUpcomingInvocationsForAgent =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: Omit<AgentScopeConfig, 'agentId'> & { agentId: string };
-    limit?: number;
-    includeRunning?: boolean;
-  }): Promise<ScheduledTriggerInvocation[]> => {
-    const maxLimit = Math.min(params.limit || 20, 100);
-    const now = new Date().toISOString();
-
-    // Include running invocations if requested (for dashboard showing active + upcoming)
-    const statusCondition = params.includeRunning
-      ? inArray(scheduledTriggerInvocations.status, ['pending', 'running'])
-      : eq(scheduledTriggerInvocations.status, 'pending');
-
-    const result = await db
-      .select()
-      .from(scheduledTriggerInvocations)
-      .where(
-        and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
-          statusCondition
-        )
-      )
-      .orderBy(asc(scheduledTriggerInvocations.scheduledFor))
-      .limit(maxLimit);
-
-    return result as ScheduledTriggerInvocation[];
-  };
-
-/**
  * Get run info for multiple scheduled triggers in a single query
  * Returns last run (completed/failed) and next pending run for each trigger
  */
@@ -580,10 +496,7 @@ export const getScheduledTriggerRunInfoBatch =
       if (inv.status === 'pending' && !triggerInfo.nextRunAt) {
         triggerInfo.nextRunAt = inv.scheduledFor;
       }
-      if (
-        (inv.status === 'completed' || inv.status === 'failed') &&
-        !triggerInfo.lastRunAt
-      ) {
+      if ((inv.status === 'completed' || inv.status === 'failed') && !triggerInfo.lastRunAt) {
         triggerInfo.lastRunAt = inv.completedAt;
         triggerInfo.lastRunStatus = inv.status;
         triggerInfo.lastRunConversationIds = (inv.conversationIds as string[]) || [];

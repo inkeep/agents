@@ -22,7 +22,6 @@ interface FriendlyScheduleBuilderProps {
   className?: string;
 }
 
-
 const DAYS_OF_WEEK = [
   { value: '0', label: 'Sunday', short: 'Sun' },
   { value: '1', label: 'Monday', short: 'Mon' },
