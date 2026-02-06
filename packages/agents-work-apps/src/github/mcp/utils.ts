@@ -495,7 +495,7 @@ export function generatePrMarkdown(
   markdown += '<files>\n';
   if (fileDiffs.length > 0) {
     for (const fileDiff of fileDiffs) {
-      markdown += `${fileDiff.path} (+${fileDiff.additions})\n`;
+      markdown += `${fileDiff.path} (+${fileDiff.additions}/-${fileDiff.deletions})\n`;
       if (fileDiff.commit_messages.length > 0) {
         const uniqueMessages = [...new Set(fileDiff.commit_messages)];
         for (const message of uniqueMessages) {
