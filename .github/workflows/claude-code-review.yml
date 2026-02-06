@@ -241,3 +241,14 @@ jobs:
             ${{ steps.claude.outputs.execution_file }}
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Clean up on cancellation
+        if: cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # If this run was cancelled (e.g., by a force-push), clean up any
+          # "Starting..." or error comments left by this run
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | test("Claude encountered an error|Starting PR review|🔄"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/{} 2>/dev/null || true
