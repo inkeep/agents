@@ -9,10 +9,10 @@
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from './constants/schema-validation/defaults';
 import { CredentialStoreType } from './types';
+import { MAX_ID_LENGTH } from './validation/extend-schemas';
 import {
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
-  MAX_ID_LENGTH,
   type TriggerApiSelectSchema,
   type TriggerInvocationApiSelectSchema,
 } from './validation/schemas';

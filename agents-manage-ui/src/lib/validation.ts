@@ -64,6 +64,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
+  contextConfig: true,
 });
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];

@@ -72,6 +72,7 @@ import {
   AgentWithinContextOfProjectExtendSchema,
   ArtifactComponentExtendSchema,
   DataComponentExtendSchema,
+  ResourceIdSchema,
 } from './extend-schemas';
 
 // Destructure defaults for use in schemas
@@ -112,24 +113,6 @@ export const SubAgentStopWhenSchema = StopWhenSchema.pick({ stepCountIs: true })
 export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
-
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
-
-export const ResourceIdSchema = z
-  .string()
-  .trim()
-  .nonempty('Id is required')
-  .max(MAX_ID_LENGTH)
-  .regex(URL_SAFE_ID_PATTERN, {
-    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-  })
-  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
-  .openapi({
-    description: 'Resource identifier',
-    example: 'resource_789',
-  });
 
 const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
 const limitNumber = z.coerce

@@ -72,15 +72,22 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     ? Boolean(capabilities.data?.sandbox?.configured)
     : false;
 
+  const defaultValues = {
+    id: agent.data.id,
+    name: agent.data.name,
+    description: agent.data.description,
+    prompt: agent.data.prompt,
+    contextConfig: {
+      id: agent.data.contextConfig.id,
+      headersSchema: agent.data.contextConfig.headersSchema,
+      contextVariables: agent.data.contextConfig.contextVariables,
+    },
+  };
+
+  console.log(defaultValues);
+
   return (
-    <FullAgentFormProvider
-      defaultValues={{
-        id: agent.data.id,
-        name: agent.data.name,
-        description: agent.data.description,
-        prompt: agent.data.prompt,
-      }}
-    >
+    <FullAgentFormProvider defaultValues={defaultValues}>
       <Agent
         agent={agent.data}
         dataComponentLookup={dataComponentLookup}
