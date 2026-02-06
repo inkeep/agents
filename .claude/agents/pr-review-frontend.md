@@ -64,8 +64,71 @@ Do not re-explain rules that are documented in skills. Focus findings on specifi
 1. **Review the PR context** — The diff, changed files, and PR metadata are available via your loaded `pr-context` skill
 2. Read each file using Read tool
 3. Evaluate against skill standards
-4. Create Finding objects per `pr-review-output-contract` schema
-5. Return raw JSON array (no prose, no code fences)
+4. **Check for framework compiler features** (see section below)
+5. Create Finding objects per `pr-review-output-contract` schema
+6. Return raw JSON array (no prose, no code fences)
+
+## Framework Compiler and Emerging Feature Awareness
+
+Before flagging directives or unusual patterns as invalid, verify they aren't valid framework compiler features.
+
+**Common false positives:**
+- `'use memo'` - Valid React Compiler directive (not in React core)
+- `'use cache'` - Valid Next.js 15+ directive for cache optimization
+- Unusual component patterns that match new framework features
+
+**Validation process:**
+1. **Check package.json for compiler plugins:**
+   - `babel-plugin-react-compiler` → Enables React Compiler directives
+   - Check React version → React 19+ has Server Components
+   - Check Next.js version → Next.js 15+ has new directives
+
+2. **Known directives by framework:**
+
+   **React (standard):**
+   - `'use client'` - Mark component as Client Component (React 18+)
+   - `'use server'` - Mark function for Server Actions (React 19+)
+   - `'use strict'` - JavaScript strict mode
+
+   **React Compiler (requires babel-plugin-react-compiler):**
+   - `'use memo'` - Compiler optimization hint
+   - Reference: https://react.dev/learn/react-compiler#annotations
+
+   **Next.js:**
+   - `'use client'` - Client Component boundary
+   - `'use server'` - Server Actions
+   - `'use cache'` - Cache function results (Next.js 15+)
+
+3. **Before flagging as invalid:**
+   ```bash
+   # Check for React Compiler
+   grep -q "babel-plugin-react-compiler" package.json
+
+   # Check framework versions
+   grep "\"react\":" package.json
+   grep "\"next\":" package.json
+   ```
+
+4. **When uncertain:**
+   - Note the unusual pattern with lower confidence
+   - Suggest verification rather than asserting it's invalid
+   - Reference framework docs if available
+
+**Example: Handling 'use memo'**
+```typescript
+// DON'T flag as invalid if babel-plugin-react-compiler is present
+function MyComponent() {
+  'use memo';
+  // ... component code
+}
+
+// Before flagging, check:
+// 1. Is babel-plugin-react-compiler in package.json?
+// 2. If yes, this is valid - no finding needed
+// 3. If no, flag as potentially invalid with MEDIUM confidence
+```
+
+*Source: PR #1699 learning - bot incorrectly flagged valid React Compiler directive*
 
 # Tool Policy
 

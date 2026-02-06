@@ -143,6 +143,46 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 
 *Ask: "Could this be cleaner with a constant, loop, or simple helper?"*
 
+## Custom Implementations vs Standard Libraries
+- **Custom implementations of well-known standards or algorithms** (schema conversion, JWT parsing, date formatting, URL parsing)
+- Functions that replicate library functionality without documented justification
+- Incomplete implementations missing edge cases that libraries handle
+- Maintenance burden of custom code vs using battle-tested libraries
+
+**Detection heuristics:**
+- Function names matching common library functions: `parse`, `convert`, `transform`, `validate`, `serialize`, `jsonSchemaToZod`
+- Implementations of standards: JSON Schema, OpenAPI, JWT, OAuth, SAML
+- TODO/FIXME comments mentioning libraries or known limitations
+- Imports of types from libraries but not implementation functions
+
+**When to flag:**
+1. Custom implementation exists for standard functionality
+2. Well-maintained library available (check npm/package manager)
+3. No documented reason for custom approach (performance, bundle size, specific requirement)
+
+**Review questions:**
+- Does a standard library exist for this functionality?
+- Does the custom implementation handle all edge cases the library would?
+- Is there a documented reason (comment) explaining why the library wasn't used?
+- Are there TODO comments acknowledging library alternatives?
+
+**Example finding:**
+```
+This function implements JSON Schema to Zod conversion. Consider using:
+- zod's built-in z.fromJSONSchema() (requires zod v4+)
+- npm package 'zod-from-json-schema'
+
+Custom implementations often miss edge cases like:
+- required vs optional field semantics
+- additionalProperties handling
+- nested schema references
+- format validators (email, uri, date-time)
+
+Unless there's a specific requirement (documented in comments), prefer standard libraries.
+```
+
+*Source: PR #1699 learning - custom jsonSchemaToZod missed required field handling*
+
 ## Documentation Gaps
 - Complex logic without explanatory comments
 - Non-obvious code paths without context
