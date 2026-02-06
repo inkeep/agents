@@ -81,8 +81,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     prompt: agent.data.prompt,
     contextConfig: {
       id: agent.data.contextConfig.id,
-      headersSchema: JSON.stringify(headersSchema, null, 2),
-      contextVariables: JSON.stringify(contextVariables, null, 2),
+      headersSchema: headersSchema ? JSON.stringify(headersSchema, null, 2) : '',
+      contextVariables: contextVariables ? JSON.stringify(contextVariables, null, 2) : '',
     },
   };
 

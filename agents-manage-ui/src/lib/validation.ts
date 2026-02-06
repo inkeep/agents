@@ -72,13 +72,13 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     headersSchema: z
       .string()
       .trim()
-      .transform((value, ctx) => (value ? transformToJson(value, ctx) : undefined))
+      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
       .pipe(ContextConfigSchema.headersSchema)
       .optional(),
     contextVariables: z
       .string()
       .trim()
-      .transform((value, ctx) => (value ? transformToJson(value, ctx) : undefined))
+      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
       .pipe(ContextConfigSchema.contextVariables)
       .optional(),
   }),
