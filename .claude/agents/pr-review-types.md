@@ -23,12 +23,13 @@ Type review focuses on type design and invariants, not implementation logic with
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: sonnet
 color: pink
 permissionMode: default
@@ -95,6 +96,10 @@ When analyzing a type, you will:
 - Missing validation at construction boundaries
 - Inconsistent enforcement across mutation methods
 - Types that rely on external code to maintain invariants
+
+**Final Validation:**
+
+Before returning findings, apply `pr-review-check-suggestion` checklist to any findings that depend on external knowledge (TypeScript features, library type patterns). Drop or adjust confidence as needed.
 
 **Output Format:**
 

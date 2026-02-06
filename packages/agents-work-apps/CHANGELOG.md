@@ -1,5 +1,14 @@
 # @inkeep/agents-work-apps
 
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
 ## 0.45.3
 
 ### Patch Changes

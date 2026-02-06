@@ -23,7 +23,7 @@ Frontend review focuses on React/Next.js patterns, not API implementation.
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
@@ -31,6 +31,7 @@ skills:
   - vercel-composition-patterns
   - next-best-practices
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: sonnet
 permissionMode: default
 ---
@@ -65,7 +66,8 @@ Do not re-explain rules that are documented in skills. Focus findings on specifi
 2. Read each file using Read tool
 3. Evaluate against skill standards
 4. Create Finding objects per `pr-review-output-contract` schema
-5. Return raw JSON array (no prose, no code fences)
+5. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge (framework features, library APIs, best practices). Drop or adjust confidence as needed.
+6. Return raw JSON array (no prose, no code fences)
 
 # Tool Policy
 

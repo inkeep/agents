@@ -23,11 +23,12 @@ Comment review focuses on accuracy of existing comments, not absence of comments
 </commentary>
 </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: sonnet
 color: green
 permissionMode: default
@@ -74,6 +75,8 @@ When analyzing comments, you will:
    - Recommendations for additional context where needed
    - Clear rationale for why comments should be removed
    - Alternative approaches for conveying the same information
+
+6. **Validate Findings**: Apply `pr-review-check-suggestion` checklist to any findings that depend on external knowledge. Drop or adjust confidence as needed.
 
 **Output Format:**
 

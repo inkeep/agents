@@ -156,6 +156,8 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 
 [1-2 sentence concise explanation/justification of what's wrong and why it matters]
 
+[Refs as hyperlinks: code locations, skills, reviewer rules, external docs]
+
 ```suggestion
 [exact replacement code — this REPLACES the entire line or line range]
 ```
@@ -168,7 +170,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 {
   "path": "src/utils/validate.ts",
   "line": 42,
-  "body": "**MAJOR** Missing input validation\n\nUser input should be sanitized before processing.\n\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```"
+  "body": "**MAJOR** Missing input validation\n\nUser input should be sanitized before processing. See [OWASP Input Validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html) · [pr-review-security-iam: §3](https://github.com/org/repo/blob/sha/.claude/agents/pr-review-security-iam.md)\n\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```"
 }
 ```
 
@@ -178,7 +180,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
   "path": "src/api/handler.ts",
   "startLine": 15,
   "line": 17,
-  "body": "**MAJOR** Simplify error handling\n\nThis can be consolidated into a single try-catch.\n\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```"
+  "body": "**MAJOR** Simplify error handling\n\nThis can be consolidated into a single try-catch. See [pr-review-errors skill](https://github.com/org/repo/blob/sha/.agents/skills/pr-review-errors/SKILL.md)\n\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```"
 }
 ```
 
@@ -228,7 +230,7 @@ Outline of format (in this order!):
 ### 🔴❗ Critical (N) ❗🔴
 
 🔴 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
- 
+
 // if applicable and not single-filer:
 `files`: list all relevant files in `[file].ts` or `[file].ts[:line]` format (line number range optional). If long, list as sub-bullet points. // if applicable
 `system`: `scope` (no specific file) // if applicable
@@ -239,6 +241,12 @@ when the problem is complex or context is needed.
 **Why:** Consequences, risks, *justification*, and/or user impact. Scale 1-3 sentences based on severity — critical issues deserve thorough explanation.
 
 **Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
+
+**Refs:** Ground the finding with clickable hyperlinks. Use the GitHub URL base from `pr-context` to construct links.
+- Code: `[src/api/client.ts:42](https://github.com/{repo}/blob/{sha}/src/api/client.ts#L42)`
+- Skills: `[pr-review-security-iam skill](https://github.com/{repo}/blob/{sha}/.agents/skills/.../SKILL.md)`
+- Reviewer rules: `[pr-review-security-iam: Checklist §2](https://github.com/{repo}/blob/{sha}/.claude/agents/pr-review-security-iam.md)`
+- External: `[React useMemo docs](https://react.dev/...)` · `[GitHub issue #1234](https://github.com/...)`
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 // ...

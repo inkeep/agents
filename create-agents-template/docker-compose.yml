@@ -18,47 +18,23 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      inkeep-agents-manage-api:
+      inkeep-agents-agents-api:
         condition: service_started
-  inkeep-agents-manage-api:
+  inkeep-agents-agents-api:
     build:
       context: .
-      dockerfile: Dockerfile.manage-api
+      dockerfile: Dockerfile.agents-api
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
-      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
-      - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
-      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
-      - NANGO_SECRET_KEY
-    ports:
-      - "3002:3002"
-    depends_on:
-      inkeep-agents-doltgres-db:
-        condition: service_healthy
-      inkeep-agents-postgres-db:
-        condition: service_healthy
-      inkeep-agents-migrate:
-        condition: service_completed_successfully
-      inkeep-agents-spicedb:
-        condition: service_started
-  inkeep-agents-run-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.run-api
-    environment:
-      - ENVIRONMENT
-      - LOG_LEVEL
-      - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
       - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
       - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
       - ANTHROPIC_API_KEY
       - OPENAI_API_KEY
       - GOOGLE_GENERATIVE_AI_API_KEY
+      - AZURE_API_KEY
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://localhost:14318/v1/traces}
       - OTEL_EXPORTER_OTLP_TRACES_HEADERS
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
@@ -66,6 +42,8 @@ services:
     ports:
       - "3003:3003"
     depends_on:
+      inkeep-agents-doltgres-db:
+        condition: service_healthy
       inkeep-agents-postgres-db:
         condition: service_healthy
       inkeep-agents-migrate:
@@ -91,9 +69,9 @@ services:
     image: postgres:18
     restart: unless-stopped
     environment:
-      POSTGRES_DB: inkeep_agents
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: inkeep_agents
     volumes:
       - inkeep-agents-postgres-data:/var/lib/postgresql
     healthcheck:
@@ -137,12 +115,12 @@ services:
     restart: "no"
     environment:
       SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres:5432/spicedb?sslmode=disable"
+      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable"
     depends_on:
-      inkeep-agents-spicedb-postgres:
+      inkeep-agents-spicedb-postgres-db:
         condition: service_healthy
 
-  inkeep-agents-spicedb-postgres:
+  inkeep-agents-spicedb-postgres-db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
