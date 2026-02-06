@@ -240,10 +240,11 @@ when the problem is complex or context is needed.
 
 **Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
 
-**Refs:** Ground the finding with references. Use markdown hyperlinks `[text](url)` for any URLs. Code locations and internal rule citations can be plain text.
-- Code: `src/api/client.ts:42`
-- Rules: `per pr-review-security-iam: Checklist §1`
-- URLs: `[React useMemo docs](https://react.dev/reference/react/useMemo)` · `[Issue #1234](https://github.com/...)`
+**Refs:** Ground the finding with clickable hyperlinks. Use the GitHub URL base from `pr-context` to construct links.
+- Code: `[src/api/client.ts:42](https://github.com/{repo}/blob/{sha}/src/api/client.ts#L42)`
+- Skills: `[pr-review-security-iam skill](https://github.com/{repo}/blob/{sha}/.agents/skills/.../SKILL.md)`
+- External: `[React useMemo docs](https://react.dev/...)` · `[GitHub issue #1234](https://github.com/...)`
+- Reviewer rules (no URL): `per reviewer: Checklist §1`
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 // ...

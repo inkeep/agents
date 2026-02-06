@@ -158,6 +158,14 @@ jobs:
           **PR #${{ github.event.pull_request.number }}:** ${{ github.event.pull_request.title }}
           **Base:** ${{ github.event.pull_request.base.ref }}
           **Author:** ${{ github.event.pull_request.user.login }}
+          **Repo:** ${{ github.repository }}
+          **Head SHA:** ${{ github.event.pull_request.head.sha }}
+
+          ## GitHub URL Base (for hyperlinks)
+
+          Use these to construct clickable links in your findings:
+          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/{path}#L{line}` or `#L{start}-L{end}`
+          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}`
 
           ## Description
           Author-provided description (may not fully reflect actual scope):

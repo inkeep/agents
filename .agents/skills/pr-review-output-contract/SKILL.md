@@ -99,31 +99,40 @@ These fields are **required on all finding types**:
 
 Every finding **must** include at least one reference. References ground your analysis in verifiable sources and prevent hallucinated recommendations.
 
-**Use markdown hyperlinks** `[text](url)` for URLs. Keep code/rule citations as plain text.
+**Use markdown hyperlinks** `[text](url)` for ALL references. The `pr-context` skill provides the GitHub URL base pattern for constructing links.
 
-| Type | Format | When to Use |
-|------|--------|-------------|
-| **Code reference** | `"file:line"` or `"file:line-range"` | Point to code that exhibits the issue |
-| **Reviewer instructions** | `"per reviewer: <section/rule>"` | Cite your own agent prompt instructions |
-| **Skill/rule reference** | `"per <skill-name> skill"` or `"per AGENTS.md: <rule>"` | Cite loaded skills or repo rules that define the violation |
-| **URL reference** | `"[descriptive text](https://...)"` | Cite external docs, GitHub issues, or web search results — **always use markdown hyperlink format** |
+| Type | Format | Example |
+|------|--------|---------|
+| **Code reference** | `[file:line](github-blob-url#Lline)` | `[src/api/client.ts:42](https://github.com/org/repo/blob/sha/src/api/client.ts#L42)` |
+| **Code range** | `[file:start-end](github-blob-url#Lstart-Lend)` | `[utils.ts:10-15](https://github.com/.../utils.ts#L10-L15)` |
+| **Skill/rule reference** | `[skill-name skill](github-blob-url)` | `[pr-review-security-iam skill](https://github.com/.../SKILL.md)` |
+| **AGENTS.md rule** | `[AGENTS.md: rule](github-blob-url)` | `[AGENTS.md: tenant isolation](https://github.com/.../AGENTS.md)` |
+| **Reviewer instructions** | `per reviewer: <section>` (no URL needed) | `per reviewer: Checklist §2` |
+| **External URL** | `[descriptive text](url)` | `[React useMemo docs](https://react.dev/...)` |
+
+**Constructing GitHub URLs:**
+
+Use the pattern from `pr-context`:
+```
+https://github.com/{repo}/blob/{sha}/{path}#L{line}
+https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
+```
 
 **Examples:**
 ```json
 "references": [
-  "src/api/client.ts:42-48",
+  "[src/api/client.ts:42-48](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42-L48)",
+  "[pr-review-security-iam skill](https://github.com/org/repo/blob/abc123/.agents/skills/pr-review-security-iam/SKILL.md)",
   "per reviewer: Checklist item 2 - tenant isolation",
-  "per vercel-react-best-practices skill",
-  "[React useMemo docs](https://react.dev/reference/react/useMemo)",
-  "[GitHub issue #1234](https://github.com/org/repo/issues/1234)"
+  "[React useMemo docs](https://react.dev/reference/react/useMemo)"
 ]
 ```
 
 **Guidance:**
-- **Code issues** → always include the code location as a reference (e.g., `file.ts:42`)
-- **Reviewer-defined rules** → cite your own prompt instructions (e.g., checklist items, failure modes)
-- **Standards violations** → cite the skill or AGENTS.md rule that defines the standard
-- **Best practice claims** → cite official docs or authoritative sources as `[descriptive text](url)` hyperlinks (especially if verified via web search)
+- **Code issues** → link to the exact file and line(s) in GitHub
+- **Standards violations** → link to the skill or AGENTS.md that defines the standard
+- **Best practice claims** → link to official docs or authoritative sources
+- **Reviewer-defined rules** → plain text citation of your own prompt (no URL needed since it's not in repo)
 - **Multiple references** are encouraged when they strengthen the finding
 
 ---
