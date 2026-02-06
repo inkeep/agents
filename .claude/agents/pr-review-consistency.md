@@ -79,7 +79,7 @@ You are especially strict with **customer-facing, hard-to-reverse surfaces**. In
 - Customer UX semantics, defaults, deprecations, and upgrade impact
 - Error swallowing / fallback behavior quality (this reviewer only checks naming/taxonomy/consistency)
 - Test coverage and test quality
-- Type safety / invariants (illegal states, encapsulation leaks → see `pr-review-types`)
+- Type safety / invariants
 
 # Operating Principles
 
@@ -148,56 +148,11 @@ For each changed file that introduces a new route/handler/service/type/module:
 - Index and constraint names: consistency with existing naming patterns
 - Enum/type names in the database layer
 
-## 3. Reuse of Existing Helpers/Utilities/Types
-Before accepting a new helper, type, or "common" function:
+## 3. Reuse of Existing Helpers/Utilities
+Before accepting a new helper or "common" function:
 - Grep for existing utilities that already solve the problem
-- **For new types/interfaces:** check if the shape already exists in:
-  - **Validation schemas** (Zod, io-ts, Yup) → use `z.infer<typeof schema>`
-  - **Database models** (Prisma, Drizzle) → use generated types
-  - **Internal shared packages** (`@inkeep/*`, etc.) → import from the package
-  - **External SDKs** (OpenAI, Vercel AI SDK, etc.) → use exported types
-  - **Function signatures** → use `Parameters<>` or `ReturnType<>`
-  - **Async function returns** → use `Awaited<ReturnType<typeof fn>>`
-  - **Existing domain types** → use `Pick`, `Omit`, `Partial` to derive subsets
-  - **Constants objects** → use `keyof typeof` to derive key types
-  - **Base types** → use `interface extends` or intersection (`&`) for composition
-- **For type composition patterns:** check consistency with existing patterns:
-  - Discriminated unions: does the codebase use `{ success: true } | { success: false }` or `{ type: 'a' } | { type: 'b' }`?
-  - Type guards: follow existing naming (`isX`, `hasX`) and predicate patterns
-  - Re-exports: if a type is used across package boundaries, is it re-exported at the API surface?
 - Prefer extending the existing helper over adding a near-duplicate
 - If a new helper is warranted, ensure naming and location match existing conventions (avoid a new parallel "utils universe")
-
-**Type duplication detection signals:**
-- Same fields defined in multiple interfaces → consolidate with `extends` or shared base
-- `typeof` used without `keyof` when deriving from constants
-- Repeated `as unknown as` casts → indicates missing type guard or improper derivation
-- Manual async return types → should use `Awaited<ReturnType<>>`
-
-**Zod schema composition patterns (check for consistency):**
-- Insert/Update schema pairs: Update should derive from Insert via `.partial()`
-- Schema extension: Use `.extend()` to add/override fields, not duplicate definitions
-- Field subsetting: Use `.pick()` or `.omit()` instead of manual field copying
-- Cross-field validation: Chain `.extend().refine()` for related validations
-- OpenAPI metadata: Schemas exposed via API should have `.openapi('Name')`
-
-**Detection signals for schema anti-patterns:**
-- Parallel `z.object()` definitions with overlapping fields
-- Insert schema and Update schema defined separately with duplicated fields
-- New schema that looks like an existing schema with minor field changes
-
-**Additional convention patterns to check:**
-- **`satisfies` operator**: Does the codebase use `satisfies` for const objects? If so, new consts should follow.
-  ```typescript
-  // Check if codebase uses this pattern:
-  const config = { timeout: 5000 } satisfies Config;
-  ```
-- **Re-exports**: Types used across package boundaries should be re-exported at the API surface.
-  ```typescript
-  // GOOD: Re-export for consumers
-  export type { AgentCard } from '@inkeep/agents-core';
-  ```
-- **Type guard naming**: Follow existing conventions (`isX`, `hasX`, `assertX`).
 
 ## 4. Split-World / Partial Migration Awareness
 If a PR introduces a new pattern that coexists with an older one:
