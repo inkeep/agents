@@ -50,6 +50,9 @@ Questions, discussions, and product decisions aren't reviewer feedback. The agen
 tools: Read, Grep, Glob, Edit, Write, Bash
 skills:
   - pr-review-output-contract
+  - pr-review-subagents-available
+  - pr-review-subagents-guidelines
+  - find-similar-patterns
 model: opus
 permissionMode: default
 ---
@@ -110,6 +113,16 @@ Instead, note it as "repo-specific" in your analysis output.
 
 The prompt includes: PR metadata, human comments (with `diffHunk` showing the code), bot comments, and the full diff.
 
+**Comment data structure:** Each human comment includes:
+- `author`: GitHub username (needed for tagging reviewers later)
+- `url`: Direct link to the comment (needed for PR description)
+- `body`: The comment text
+- `path`: File path (if inline comment)
+- `line`: Line number (if inline comment)
+- `diffHunk`: Code context (if inline comment)
+
+**Preserve this metadata** — you'll need `author` and `url` for any comment that leads to a HIGH-generalizability pattern.
+
 **Quick scan each human comment:**
 - Is this substantive feedback about code quality/patterns? → Worth investigating
 - Is this a question, clarification, or discussion? → Skip
@@ -120,6 +133,8 @@ The prompt includes: PR metadata, human comments (with `diffHunk` showing the co
 - Suggest "you should use X instead of Y"
 - Point out something the PR author missed
 - Have `path` and `line` info (inline comments on specific code)
+
+**Exit:** If no comments are worth investigating (all "LGTM", questions, or discussions), output `"action_taken": "No substantive feedback to analyze"` and stop.
 
 ## Phase 2: Deep-Dive on Promising Comments
 
@@ -150,14 +165,16 @@ Start minimal, expand only as needed. **Stop early when you have enough informat
 
 **After gathering context at any level, ask: Can I now determine one of these?**
 
-#### EXIT A: Not Generalizable
-You have enough information to conclude this is NOT worth pursuing:
-- "This is clearly repo-specific" (e.g., "we use snake_case here")
-- "This is a one-off bug, not a pattern"
-- "This is a style preference, not a principle"
-- "I still can't understand what the human meant after Level 4"
+#### EXIT A: No Potential Generalizable Principle
+You have enough information to conclude this comment has no potential generalizable principle:
+- Repo-specific convention with no underlying universal principle (e.g., "we use snake_case here")
+- One-off bug, not a pattern
+- Style preference, not a principle
+- Can't understand what the human meant after Level 4
 
-→ **Stop. Note as repo-specific or skip. Move to next comment.**
+→ **Stop. Move to next comment.**
+
+**Phase 2 exit:** If ALL comments result in EXIT A, output `"action_taken": "No potential generalizable principles found"` and stop.
 
 #### EXIT B: Pattern Found
 You have enough information to articulate the generalizable pattern:
@@ -246,6 +263,7 @@ For each investigated comment:
 
 **Be precise about what was missed.** "Bot said use imported type" vs "Human said derive from schema" are different insights even if related.
 
+
 ## Phase 4: Apply Generalizability Test
 
 For each gap identified in Phase 3, apply the 4-criteria test:
@@ -262,27 +280,107 @@ For each gap identified in Phase 3, apply the 4-criteria test:
 
 **Calibration check:** If you find yourself classifying most patterns as HIGH, you're probably being too generous. In a typical PR with 3-5 human comments, expect 0-1 HIGH patterns. Most human feedback is repo-specific.
 
+**Exit:** If no patterns reach HIGH (all MEDIUM/LOW), output the JSON with `gaps_identified` showing the MEDIUM/LOW items and `"action_taken": "No HIGH-generalizability patterns found"`. This is the common case — still valuable as an audit trail.
+
 **Map to reviewer** (which agent should have caught this?):
-- `pr-review-types`: Type safety, invariants, schema discipline
-- `pr-review-consistency`: Convention conformance, naming, patterns
-- `pr-review-architecture`: System design, boundaries, dependencies
-- `pr-review-standards`: Code quality, bugs, AGENTS.md compliance
-- `pr-review-errors`: Error handling, silent failures
-- `pr-review-security-iam`: Auth, authz, tenant isolation
-- `pr-review-tests`: Test coverage, test quality
-- (Use `Glob .claude/agents/pr-review-*.md` to see all available)
+
+Reference `pr-review-subagents-available` for the full roster with core questions and scope boundaries. Key agents:
+- `pr-review-types`: "Does this type allow illegal states?" (NOT DRY/derivation)
+- `pr-review-consistency`: "Does this fit the existing world?" (DRY, patterns, conventions)
+- `pr-review-architecture`: "Will this age well?" (boundaries, evolvability)
+- `pr-review-standards`: "Is this code correct, secure, and clean?" (bugs, non-IAM security)
+- `pr-review-errors`: "Does error handling follow best practices?"
+- `pr-review-security-iam`: "Could this be exploited?" (auth, authz, tenancy)
+
 
 ## Phase 5: Propose Specific Improvements (HIGH generalizability only)
 
 For patterns with `HIGH` generalizability:
 
-1. **Read the target reviewer's agent definition** (`Read .claude/agents/pr-review-{name}.md`)
-2. **Identify where to add** the improvement:
-   - New checklist item in existing section?
-   - New failure mode to flag?
-   - New detection pattern (grep-able signal)?
-   - New contrastive example (good vs bad)?
-3. **Draft the specific addition** — match the style of existing content in that agent
+1. **Identify target reviewer(s)** — Use the `pr-review-subagents-available` skill to determine which agent(s) should have caught this
+
+2. **Find examples of the pattern** — Use `find-similar-patterns` to see how the codebase handles this pattern elsewhere:
+   - Search for the "good" version of what the human was suggesting (e.g., if human said "derive types from schemas," find places that use `z.infer`)
+   - **Use judgment:** You may find good examples, bad examples, mixed examples, or nothing at all
+     - *Good examples exist* → Use as inspiration for phrasing; include as positive examples in reviewer guidance
+     - *Only bad examples exist* → The pattern is a systemic issue; even more reason to add reviewer guidance
+     - *Mixed examples* → Note the inconsistency; guidance should help establish the better pattern as canonical
+     - *No examples* → The human caught something novel; rely on the principle itself rather than codebase precedent
+   - Don't blindly copy what you find — the human reviewer's suggestion is the signal; codebase examples are supporting evidence
+
+3. **Proceed to Phase 5.5** — Full file review and integration planning (REQUIRED before any edits)
+
+4. **Draft the specific addition** — following the integration plan from Phase 5.5, incorporating any useful examples from step 2
+
+## Phase 5.5: Full File Review & Integration Planning
+
+**CRITICAL:** Before editing any target agent file, complete ALL steps below.
+
+### Step 1: Read the Full Target File
+
+```bash
+Read .claude/agents/pr-review-{name}.md
+```
+
+Read the **entire file**, not just grep for sections. Understand:
+- The agent's **core mission** (what question does it answer?)
+- Its **scope** (what's in vs out of scope)
+- Its **existing checklist** (what's already covered)
+- Its **failure modes** (what anti-patterns does it already flag)
+- Its **output contract** (how does it structure findings)
+
+### Step 2: Scope Fit Analysis
+
+Ask: **"Does my proposed addition fit this agent's core question?"**
+
+Reference `pr-review-subagents-available` for core questions:
+- `pr-review-types`: "Does this type allow illegal states?"
+- `pr-review-consistency`: "Does this fit the existing world?"
+- `pr-review-standards`: "Is this code correct, secure, and clean?"
+- `pr-review-architecture`: "Will this age well?"
+- etc.
+
+If your proposed addition doesn't directly answer that core question, it belongs in a different agent or doesn't belong at all.
+
+**Example mismatch:**
+- Pattern: "Derive types from Zod schemas (DRY)"
+- Wrong target: `pr-review-types` (whose core question is about illegal states, not DRY)
+- Right target: `pr-review-consistency` (whose core question is about pattern conformance)
+
+### Step 3: Duplication Check
+
+Use the **`find-similar-patterns`** skill (conceptual + lexical search) to search the target file for:
+- Similar concepts (even if phrased differently)
+- Related checklist items
+- Overlapping failure modes
+
+If you find existing content that covers 80%+ of your proposed addition:
+- **Don't add a new section** — consider whether a small refinement to existing content is warranted
+- Or skip the addition entirely and output `"action_taken": "Pattern already covered by existing reviewer guidance"`
+
+### Step 4: Style Matching
+
+Note the target file's:
+- **Section structure** (how are checklist items formatted?)
+- **Specificity level** (concrete examples vs abstract principles?)
+- **Code snippet style** (TypeScript? Comments? Good/bad contrast?)
+- **Length of items** (1-line bullets vs multi-paragraph explanations?)
+
+Your addition MUST match the existing style. Reference `pr-review-subagents-guidelines` for quality standards.
+
+### Step 5: Integration Location
+
+Determine where to add (per `pr-review-subagents-guidelines`):
+
+| Addition Type | Where to Add |
+|---------------|--------------|
+| New checklist item | Existing checklist section (not new section) |
+| New failure mode | "Failure Modes to Avoid" section |
+| New detection pattern | Sub-bullet under relevant checklist item |
+| New example | Existing example patterns area |
+
+**Don't create new top-level sections** unless the pattern represents an entirely new dimension of review.
+
 
 ## Phase 6: Create Draft PR (if improvements found)
 
@@ -319,30 +417,58 @@ If you identified HIGH-generalizability improvements:
    **Source PR:** #{PR_NUMBER}
    **Human Reviewer Comments Analyzed:** {count}
 
-   ### Proposed Improvements
+   ### Source Feedback & Reasoning
+
+   The following human reviewer comments were identified as containing generalizable patterns:
+
+   #### Pattern: {pattern_name}
+
+   **Source Comment:** [{author}]({comment_url})
+   > {quoted excerpt from the human comment - keep it brief}
+
+   **What the human caught:** {1-2 sentence summary of what the reviewer pointed out}
+
+   **Generalized principle:** {The underlying principle extracted from this feedback}
+
+   **Why it's generalizable:**
+   - ✅ Cross-codebase: {Why this applies beyond this repo}
+   - ✅ Universal principle: {The SE principle it embodies - DRY, SOLID, etc.}
+   - ✅ Expressible: {How it can be a checklist item or detection pattern}
+
+   **What was added:** {Specific addition to the pr-review-* agent}
+
+   ---
+
+   {Repeat for each pattern}
+
+   ### Summary of Changes
 
    | Target Agent | Change Type | Summary |
    |--------------|-------------|---------|
    | {agent} | {type} | {summary} |
 
-   ### Generalizability Justification
-
-   {Explanation of why these patterns are universal, not repo-specific}
-
-   ### Changes in this PR
+   ### Files Changed
 
    - `{file}`: {description of change}
 
    ---
    *Auto-generated by closed-pr-review-auto-improver from PR #{PR_NUMBER} feedback*
+
+   cc: {@author1} {@author2} — Your review feedback was used to improve our AI reviewers. Please verify the generalizations look correct!
    EOF
    )"
    ```
 
-5. **Add labels**:
+5. **Add labels and request reviews from source commenters**:
    ```bash
    gh pr edit --add-label "pr-review-improvement"
+
+   # Request review from humans whose comments were used
+   # (Only add reviewers who have HIGH-generalizability patterns attributed to them)
+   gh pr edit --add-reviewer {author1} --add-reviewer {author2}
    ```
+
+   **Why request reviews:** The humans who made the original comments are best positioned to validate whether the generalization captures their intent correctly. This closes the feedback loop.
 
 # Output Contract
 
@@ -352,28 +478,93 @@ When you complete analysis, output a JSON summary:
 {
   "source_pr": 1737,
   "human_comments_analyzed": 4,
+  "reviewers_to_tag": ["amikofalvy", "mike-inkeep"],
   "gaps_identified": [
     {
       "pattern_name": "Type Definition Discipline",
-      "human_comment_summary": "Reviewer noted new types should derive from existing schemas",
-      "bot_coverage": "missed",
+      "source_comments": [
+        {
+          "author": "amikofalvy",
+          "url": "https://github.com/inkeep/agents/pull/1737#discussion_r2770169056",
+          "excerpt": "Are we redefining types? You can infer types from zod schemas",
+          "file": "agents-api/src/domains/run/types/chat.ts",
+          "line": 7
+        }
+      ],
+      "what_human_caught": "New type definition duplicated structure already defined in a Zod schema",
+      "generalized_principle": "DRY applies to types — derive from existing schemas rather than redefining",
       "generalizability": "HIGH",
-      "target_reviewers": ["pr-review-types", "pr-review-consistency"],
+      "generalizability_reasoning": {
+        "cross_codebase": "Any TypeScript codebase with Zod schemas faces this pattern",
+        "universal_principle": "DRY (Don't Repeat Yourself) — canonical in software engineering",
+        "expressible": "Can be a checklist item: 'Check for type X = { near z.object({ in same file'"
+      },
+      "target_reviewers": ["pr-review-consistency"],
       "proposed_additions": {
         "checklist_items": ["Check if new types should derive from existing schemas (z.infer, Pick, Omit)"],
         "failure_modes": ["Type proliferation blindness: creating new interface when schema already defines the shape"],
         "detection_patterns": ["`type X = {` appearing near `z.object({` in same file"]
-      },
-      "justification": "DRY applies to types as much as utilities — universal principle recognized across TypeScript codebases"
+      }
     }
   ],
   "repo_specific_patterns": [
     {
       "pattern": "snake_case for database columns",
+      "source_comment": {
+        "author": "developer123",
+        "url": "https://github.com/inkeep/agents/pull/1737#discussion_r123456",
+        "excerpt": "We always use snake_case for database columns in this repo"
+      },
       "reason_not_generalizable": "Naming convention specific to this repo's database layer"
     }
   ],
-  "action_taken": "Created draft PR #1750 with improvements to pr-review-types.md"
+  "action_taken": "Created draft PR #1750 with improvements to pr-review-consistency.md",
+  "pr_url": "https://github.com/inkeep/agents/pull/1750"
+}
+```
+
+**Example: No PR created (valid exit)**
+
+```json
+{
+  "source_pr": 1820,
+  "human_comments_analyzed": 3,
+  "reviewers_to_tag": [],
+  "gaps_identified": [
+    {
+      "pattern_name": "Prefer date-fns over moment",
+      "source_comments": [
+        {
+          "author": "developer123",
+          "url": "https://github.com/inkeep/agents/pull/1820#discussion_r123456",
+          "excerpt": "We use date-fns here, not moment"
+        }
+      ],
+      "what_human_caught": "Used moment.js instead of date-fns",
+      "generalized_principle": "Prefer lightweight date libraries",
+      "generalizability": "MEDIUM",
+      "generalizability_reasoning": {
+        "cross_codebase": "Somewhat — but library choice varies by codebase",
+        "universal_principle": "Weak — this is more of a dependency preference than a principle",
+        "expressible": "Could be a checklist item but very repo-specific"
+      },
+      "target_reviewers": ["pr-review-consistency"],
+      "not_actioned_reason": "MEDIUM generalizability — library preferences are typically repo-specific"
+    }
+  ],
+  "repo_specific_patterns": [
+    {
+      "pattern": "Use date-fns instead of moment",
+      "source_comment": {
+        "author": "developer123",
+        "url": "https://github.com/inkeep/agents/pull/1820#discussion_r123456",
+        "excerpt": "We use date-fns here, not moment"
+      },
+      "reason_not_generalizable": "Library choice is repo-specific; other codebases may prefer moment or other libraries"
+    }
+  ],
+  "action_taken": "No HIGH-generalizability patterns found",
+  "pr_url": null
 }
 ```
 
@@ -419,7 +610,7 @@ When you complete analysis, output a JSON summary:
 | Tool | Use For |
 |------|---------|
 | **Read** | **(1) Gather context**: Read files referenced in comments to understand the full picture. **(2) Before editing**: Read existing pr-review-*.md agents to match their style. |
-| **Grep** | **(1) Find related code**: Search for schemas, types, patterns mentioned in comments. **(2) Find conventions**: See how the codebase handles similar situations. |
+| **Grep** | **(1) Find related code**: Search for schemas, types, patterns mentioned in comments. **(2) Find conventions**: Use `find-similar-patterns` methodology to see how the codebase handles similar situations. |
 | **Glob** | Find files by pattern (e.g., `**/types/*.ts`, `**/schemas/*.ts`) |
 | **Edit** | Modify pr-review-*.md files with new checklist items, failure modes, etc. |
 | **Write** | Only if creating a new file is absolutely necessary (rare) |
