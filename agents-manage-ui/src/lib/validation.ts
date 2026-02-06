@@ -61,6 +61,12 @@ export function createCustomHeadersSchema(customHeaders: string) {
 
 const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.shape;
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.shape;
+const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.shape;
+
+const StringToJsonSchema = z
+  .string()
+  .trim()
+  .transform((value, ctx) => (value ? transformToJson(value, ctx) : null));
 
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
@@ -71,27 +77,29 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
 }).extend({
   contextConfig: z.strictObject({
     id: ContextConfigSchema.id,
-    headersSchema: z
-      .string()
-      .trim()
-      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
-      .pipe(ContextConfigSchema.headersSchema)
-      .optional(),
-    contextVariables: z
-      .string()
-      .trim()
-      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
-      .pipe(ContextConfigSchema.contextVariables)
-      .optional(),
+    headersSchema: StringToJsonSchema.pipe(ContextConfigSchema.headersSchema).optional(),
+    contextVariables: StringToJsonSchema.pipe(ContextConfigSchema.contextVariables).optional(),
   }),
   statusUpdates: z.strictObject({
     ...StatusUpdatesSchema,
-    statusComponents: z
-      .string()
-      .trim()
-      .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
-      .pipe(StatusUpdatesSchema.statusComponents)
-      .optional(),
+    statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
+  }),
+  models: z.strictObject({
+    base: ModelsSchema.base.unwrap().extend({
+      providerOptions: StringToJsonSchema.pipe(
+        ModelsSchema.base.unwrap().shape.providerOptions
+      ).optional(),
+    }),
+    structuredOutput: ModelsSchema.structuredOutput.unwrap().extend({
+      providerOptions: StringToJsonSchema.pipe(
+        ModelsSchema.structuredOutput.unwrap().shape.providerOptions
+      ).optional(),
+    }),
+    summarizer: ModelsSchema.summarizer.unwrap().extend({
+      providerOptions: StringToJsonSchema.pipe(
+        ModelsSchema.summarizer.unwrap().shape.providerOptions
+      ).optional(),
+    }),
   }),
 });
 

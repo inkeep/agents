@@ -72,24 +72,47 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     ? Boolean(capabilities.data?.sandbox?.configured)
     : false;
 
-  const { headersSchema, contextVariables } = agent.data.contextConfig;
-  const { statusComponents } = agent.data.statusUpdates;
+  const {
+    //
+    id,
+    name,
+    description,
+    prompt,
+    contextConfig,
+    statusUpdates,
+    stopWhen,
+    models,
+  } = agent.data;
 
   const defaultValues = {
-    id: agent.data.id,
-    name: agent.data.name,
-    description: agent.data.description,
-    prompt: agent.data.prompt,
+    id,
+    name,
+    description,
+    prompt,
     contextConfig: {
-      id: agent.data.contextConfig.id,
-      headersSchema: headersSchema ? JSON.stringify(headersSchema, null, 2) : '',
-      contextVariables: contextVariables ? JSON.stringify(contextVariables, null, 2) : '',
+      id: contextConfig.id,
+      headersSchema: jsonToString(contextConfig.headersSchema),
+      contextVariables: jsonToString(contextConfig.contextVariables),
     },
     statusUpdates: {
-      ...agent.data.statusUpdates,
-      statusComponents: statusComponents ? JSON.stringify(statusComponents, null, 2) : '',
+      ...statusUpdates,
+      statusComponents: jsonToString(statusUpdates.statusComponents),
     },
-    stopWhen: agent.data.stopWhen,
+    stopWhen,
+    models: {
+      base: {
+        ...models.base,
+        providerOptions: jsonToString(models.base?.providerOptions),
+      },
+      structuredOutput: {
+        ...models.structuredOutput,
+        providerOptions: jsonToString(models.structuredOutput?.providerOptions),
+      },
+      summarizer: {
+        ...models.summarizer,
+        providerOptions: jsonToString(models.summarizer?.providerOptions),
+      },
+    },
   };
 
   console.log(defaultValues);
@@ -107,5 +130,9 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     </FullAgentFormProvider>
   );
 };
+
+function jsonToString(value?: null | Record<string, unknown> | unknown[]): string {
+  return value ? JSON.stringify(value, null, 2) : '';
+}
 
 export default AgentPage;
