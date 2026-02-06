@@ -521,14 +521,7 @@ export const listUpcomingInvocationsForAgentPaginated =
     const limit = Math.min(params.pagination?.limit || 20, 100);
     const offset = (page - 1) * limit;
 
-    console.log('[listUpcomingInvocationsForAgentPaginated] Query params:', {
-      tenantId: params.scopes.tenantId,
-      projectId: params.scopes.projectId,
-      agentId: params.scopes.agentId,
-      includeRunning: params.includeRunning,
-      page,
-      limit,
-    });
+    // Include running invocations if requested (for dashboard showing active + upcoming)
 
     // Include running invocations if requested (for dashboard showing active + upcoming)
     const statusCondition = params.includeRunning
