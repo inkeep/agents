@@ -1939,18 +1939,18 @@ export const StatusComponentSchema = z
   .openapi('StatusComponent');
 
 export const StatusUpdateSchema = z
-  .object({
+  .strictObject({
     enabled: z.boolean().optional(),
-    numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
-    timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+    numEvents: z.int().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).nullish(),
+    timeInSeconds: z.int().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).nullish(),
     prompt: z
       .string()
+      .trim()
       .max(
         VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
         `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
-      )
-      .optional(),
-    statusComponents: z.array(StatusComponentSchema).optional(),
+      ),
+    statusComponents: z.array(StatusComponentSchema).nullable(),
   })
   .openapi('StatusUpdate');
 
