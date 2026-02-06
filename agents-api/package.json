@@ -84,6 +84,7 @@
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
     "llm-info": "^1.0.69",
+    "lru-cache": "^11.2.5",
     "openid-client": "^6.8.1",
     "pg": "^8.16.3",
     "workflow": "4.0.1-beta.33"
