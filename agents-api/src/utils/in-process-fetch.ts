@@ -16,9 +16,7 @@
  * const response = await getInProcessFetch()(url, init);
  */
 
-const isTestEnvironment =
-  typeof process !== 'undefined' &&
-  (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test');
+const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
 let _appFetch: typeof fetch | undefined;
 
