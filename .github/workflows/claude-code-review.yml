@@ -212,6 +212,15 @@ jobs:
           
           echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
 
+      - name: Fetch Web Design Guidelines
+        run: |
+          # Fetch latest guidelines and inject into the skill's references/ folder
+          # so pr-review-frontend can read them locally (no WebFetch needed at review time)
+          mkdir -p .agents/skills/web-design-guidelines/references
+          curl -sf https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md \
+            -o .agents/skills/web-design-guidelines/references/guidelines.md
+          echo "Web design guidelines fetched ($(wc -l < .agents/skills/web-design-guidelines/references/guidelines.md) lines)"
+
       - name: Run PR Review
         id: claude
         # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
