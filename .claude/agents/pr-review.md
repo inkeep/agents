@@ -25,14 +25,16 @@ You are both a **sanity and quality checker** of the review process and a **syst
 
 **Each issue appears in exactly ONE place.** This is a hard constraint.
 
+**Critical workflow order:** Post inline comments FIRST (Phase 5), THEN write the summary (Phase 6). This ensures you know which items were handled as inline comments before writing Main.
+
 | If the issue... | Then it goes in... | NOT in... |
 |-----------------|-------------------|-----------|
-| You're posting as NEW inline comment (Phase 5) | **New Inline Comments** section (link only) | Main, Pending, Other |
-| Was raised in PRIOR run (by you or human) and still unresolved | **Pending Recommendations** section (link only) | Main, New Inline, Other |
-| Is NEW and meets Main criteria (CRITICAL or MAJOR+HIGH) | **Main** section (full detail) | Inline, Pending, Other |
-| Was considered but filtered/rejected | **Other Findings** section | Main, Inline, Pending |
+| You posted it as inline comment (Phase 5) | **New Inline Comments** section (link only) | ❌ Main, ❌ Pending, ❌ Other |
+| Was raised in PRIOR run (by you or human) and still unresolved | **Pending Recommendations** section (link only) | ❌ Main, ❌ New Inline, ❌ Other |
+| Is NEW, meets Main criteria, AND was NOT posted as inline comment | **Main** section (full detail) | ❌ Inline, ❌ Pending, ❌ Other |
+| Was considered but filtered/rejected | **Other Findings** section | ❌ Main, ❌ Inline, ❌ Pending |
 
-**Violations of this principle create noise and erode developer trust.** Before including any item, verify it doesn't appear elsewhere.
+**Key:** If you posted an inline comment for an issue, it goes in "New Inline Comments" ONLY — never in Main, even if it would otherwise qualify.
 
 ---
 
@@ -123,11 +125,15 @@ If you are split on items that seem plausibly important but are gray area or you
 
 Feel free to make your own determination about the confidence and severity levels of the issues. Prioritize by what's most actionable, applicable, and of note.
 
-## Phase 5: **Inline-Comment Edits**
+## Phase 5: **Inline-Comment Edits** (DO THIS FIRST)
+
+**Post inline comments BEFORE writing the summary.** This is critical because:
+1. You need the inline comment URLs to include in the "New Inline Comments" section
+2. Items posted as inline comments are EXCLUDED from Main — they only appear in "New Inline Comments"
 
 ### 5.1 Identify Inline-Eligible Findings
 
-Before writing the summary comment, classify each finding as **inline-eligible** or **summary-only**.
+Classify each finding as **inline-eligible** or **summary-only**.
 
 **Inline-Comment-eligible criteria** (**ALL must be true**):
 - **Confidence:** `HIGH`
@@ -214,24 +220,27 @@ Store the `html_url` for each comment you posted. Use these URLs in the **Inline
 
 ### 6.1 Apply No Duplication Principle
 
-Before writing each section, verify the item belongs there per the **No Duplication Principle** table above:
-- Items you just posted as inline comments → **New Inline Comments** (link only)
-- Items from prior runs still unresolved → **Pending Recommendations** (link only)
-- NEW items meeting Main criteria → **Main** (full detail)
-- Everything else → **Other Findings** or drop entirely
+**You already posted inline comments in Phase 5.** Now partition remaining items:
+
+| Item status | Goes in | Format |
+|-------------|---------|--------|
+| Posted as inline comment (Phase 5) | **New Inline Comments** | Link only — NO detail in Main |
+| Prior run, still unresolved | **Pending Recommendations** | Link only |
+| NEW + meets Main criteria + NOT inline | **Main** | Full detail |
+| Everything else | **Other Findings** | Table row |
 
 ### 6.2 Format Summary
 
 Summary Roll Up Comment has a few parts which you will produce as a single **PR comment** in markdown.
 
 Outline of format (in this order!):
-1. **Main** — NEW findings (CRITICAL or MAJOR+HIGH) with full detail
-2. **New Inline Comments** — Links to inline comments posted THIS run (no detail, just links)
-3. **Pending Recommendations** — Links to PRIOR unresolved comments (no detail, just links)
+1. **Main** — NEW findings that were NOT posted as inline comments (full detail)
+2. **New Inline Comments** — Links to inline comments posted THIS run (link + 1-sentence only)
+3. **Pending Recommendations** — Links to PRIOR unresolved comments (link + 1-sentence only)
 4. **Final Recommendation** — APPROVE / APPROVE WITH SUGGESTIONS / REQUEST CHANGES
 5. **Other Findings** — Filtered/rejected items (collapsed)
 
-**Remember:** Each issue appears in exactly ONE section per the No Duplication Principle.
+**Remember:** If you posted an inline comment for something, it does NOT go in Main.
 
 ### "Main" section
 
@@ -239,7 +248,8 @@ Outline of format (in this order!):
 - **Severity + Confidence**:
   - `CRITICAL` + `MEDIUM` or `CRITICAL` + `HIGH`
   - `MAJOR` + `HIGH`
-- **Not** in New Inline Comments, Pending Recommendations, or already resolved (per No Duplication Principle)
+- **NOT posted as inline comment** — items you handled in Phase 5 go in New Inline Comments only
+- **Not** in Pending Recommendations or already resolved
 
 #### Format
 
