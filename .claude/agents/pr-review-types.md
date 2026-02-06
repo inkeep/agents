@@ -76,17 +76,33 @@ When analyzing a type, you will:
    - Is it impossible to create invalid instances?
    - Are runtime checks appropriate and comprehensive?
 
-6. **Check Schema-Type Derivation**: When new types are introduced:
-   - Does a Zod schema (or similar validation schema) already define this shape? → Use `z.infer<typeof schema>`
-   - Does a canonical domain/protocol type already exist in a shared package? → Use `Pick`, `Omit`, or `Partial` to derive
-   - Are string literal unions or enums being redefined inline? → Extract to a shared schema/const or reference existing ones
+6. **Check Schema-Type Derivation**: When new types are introduced, check if they should derive from an existing source:
 
-   **Why this matters:** Manual type definitions that duplicate schema shapes will silently drift as schemas evolve, creating subtle bugs where validation passes but runtime types don't match the TypeScript type.
+   | Source | Derivation Pattern | Example |
+   |--------|-------------------|---------|
+   | **Zod/validation schemas** | `z.infer<typeof schema>` | `type User = z.infer<typeof userSchema>` |
+   | **Database schemas** (Prisma, Drizzle, etc.) | Use generated types | `import { User } from '@prisma/client'` |
+   | **Internal packages** | Import from shared packages | `import { MessagePart } from '@inkeep/agents-core'` |
+   | **External packages/SDKs** | Use exported types | `import { CompletionChoice } from 'openai'` |
+   | **Function signatures** | Use `Parameters<>` or `ReturnType<>` | `type Options = Parameters<typeof createAgent>[0]` |
+   | **Existing domain types** | Use `Pick`, `Omit`, `Partial` | `type CreateUserInput = Omit<User, 'id' | 'createdAt'>` |
+   | **Shared enums/unions** | Reference existing definitions | `import { ContentType } from '../schemas'` |
+
+   **Questions to ask:**
+   - Does a Zod schema (or similar validation schema) already define this shape?
+   - Does a database model or ORM already generate this type?
+   - Does an internal shared package export this type or a superset?
+   - Does an external SDK/package export this type?
+   - Is this a subset/variant of an existing type that could use `Pick`/`Omit`/`Partial`?
+   - Is this duplicating a function's parameter or return type?
+
+   **Why this matters:** Manual type definitions that duplicate existing sources will silently drift as those sources evolve, creating subtle bugs where types don't match runtime behavior.
 
    **Detection patterns:**
-   - New `type X = {` or `interface X {` appearing in a file that also imports from Zod or a schema package
-   - New type with fields that mirror an existing `z.object()` schema in the same package
-   - String literal union types (e.g., `'text' | 'image'`) that duplicate values from an existing `z.enum()` or `z.union()`
+   - New `type X = {` or `interface X {` appearing in a file that also imports from Zod, Prisma, or a schema package
+   - New type with fields that mirror an existing schema, database model, or package export
+   - String literal unions (e.g., `'text' | 'image'`) that duplicate values from an existing enum or union
+   - Types that look like function parameter shapes when that function is imported nearby
 
 **Key Principles:**
 
@@ -107,10 +123,14 @@ When analyzing a type, you will:
 - Missing validation at construction boundaries
 - Inconsistent enforcement across mutation methods
 - Types that rely on external code to maintain invariants
-- Types manually duplicating schema shapes:
-  - New `type` or `interface` that mirrors an existing Zod schema (`z.infer<typeof schema>` should be used instead)
-  - String literal unions or inline enums that duplicate values from existing `z.enum()` or `z.union()` schemas
-  - Types that subset or reshape an existing domain/protocol type (should use `Pick<T, K>`, `Omit<T, K>`, or `Partial<T>`)
+- Types manually duplicating existing definitions:
+  - New `type`/`interface` mirroring a Zod schema → use `z.infer<typeof schema>`
+  - New `type`/`interface` mirroring a database model → use Prisma/Drizzle generated types
+  - New `type`/`interface` mirroring an SDK type → import from the SDK package
+  - New `type`/`interface` mirroring an internal package type → import from the shared package
+  - Inline string literal unions duplicating existing enums → reference the existing enum/union
+  - Types subsetting existing types → use `Pick<T, K>`, `Omit<T, K>`, or `Partial<T>`
+  - Types duplicating function parameter shapes → use `Parameters<typeof fn>[0]`
 
 **Output Format:**
 
