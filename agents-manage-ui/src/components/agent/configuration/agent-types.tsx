@@ -20,13 +20,13 @@ type StatusUpdateSettings = {
 };
 
 export type AgentMetadata = {
-  id?: string;
-  name: string;
-  description: string;
-  contextConfig: ContextConfig;
+  // id?: string;
+  // name: string;
+  // description: string;
+  // contextConfig: ContextConfig;
   models?: AgentModels;
   stopWhen?: AgentStopWhen;
-  prompt?: string;
+  // prompt?: string;
   statusUpdates?: StatusUpdateSettings;
 };
 

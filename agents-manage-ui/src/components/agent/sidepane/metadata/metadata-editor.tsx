@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import type { FC } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -22,7 +23,6 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import {
   statusUpdatesComponentsTemplate,
@@ -62,15 +62,14 @@ const ExecutionLimitInheritanceInfo = () => {
   );
 };
 
-export function MetadataEditor() {
+export const MetadataEditor: FC = () => {
   'use memo';
   const { agentId, tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
     agentId: string;
   }>();
-  const metadata = useAgentStore((state) => state.metadata);
-  const { id, name, contextConfig, models, stopWhen, statusUpdates } = metadata;
+  const { models, stopWhen, statusUpdates } = useAgentStore((state) => state.metadata);
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`;
   const { canUse } = useProjectPermissions();
@@ -89,18 +88,6 @@ export function MetadataEditor() {
   const getCurrentModels = () => {
     return agentStore.getState().metadata.models;
   };
-
-  const handleIdChange = (generatedId: string) => {
-    updateMetadata('id', generatedId);
-  };
-
-  // Auto-prefill ID based on name field (only for new agent)
-  useAutoPrefillIdZustand({
-    nameValue: name,
-    idValue: id,
-    onIdChange: handleIdChange,
-    isEditing: true,
-  });
 
   const form = useFullAgentFormContext();
 
@@ -564,7 +551,7 @@ export function MetadataEditor() {
       </div>
 
       <Separator />
-      <ContextConfigForm contextConfig={contextConfig} updateMetadata={updateMetadata} />
+      <ContextConfigForm />
     </div>
   );
-}
+};
