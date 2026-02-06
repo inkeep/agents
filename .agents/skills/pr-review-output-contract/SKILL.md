@@ -93,8 +93,32 @@ These fields are **required on all finding types**:
 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? |
 | `fix` | string | Suggestion[s] (aka "fix" or "fixes") for how to address it. If a simple fix, then just give the full solution as a code block. If a bigger-scoped resolution is needed, but brief code example[s] would be helpful to illustrate, incorporate them as full code block[s] (still minimum viable short) interweaved into the explanation. Otherwise, describe the alternative approaches to consider qualitatively/from a technical perspective. Note: Don't go into over-engineering a solution if wide-scoped or you're unsure, this is more about giving a starting point/direction as to what a resolution may look like. |
 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
-| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
-| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+| `references` | string[] | **Required.** Citations that ground the finding. See Reference Types below. |
+
+### Reference Types
+
+Every finding **must** include at least one reference. References ground your analysis in verifiable sources and prevent hallucinated recommendations.
+
+| Type | Format | When to Use |
+|------|--------|-------------|
+| **Code reference** | `"file:line"` or `"file:line-range"` | Point to specific code that exhibits the issue |
+| **Skill/rule reference** | `"per <skill-name> skill"` or `"per AGENTS.md: <rule>"` | Cite internal standards/rules that define the violation |
+| **URL reference** | `"https://..."` | Cite external docs, GitHub issues, or web search results |
+
+**Examples:**
+```json
+"references": [
+  "src/api/client.ts:42-48",
+  "per vercel-react-best-practices skill",
+  "https://react.dev/reference/react/memo"
+]
+```
+
+**Guidance:**
+- **Code issues** → always include the code location as a reference
+- **Standards violations** → cite the skill or AGENTS.md rule that defines the standard
+- **Best practice claims** → cite official docs or authoritative sources (especially if verified via web search)
+- **Multiple references** are encouraged when they strengthen the finding
 
 ---
 
@@ -265,3 +289,4 @@ Before returning, verify:
 - [ ] `multi-file` findings have at least 2 files in the array
 - [ ] `system` findings have a descriptive `scope` string
 - [ ] No duplicate findings for the same issue
+- [ ] Every finding has at least one reference (code location, skill/rule, or URL)
