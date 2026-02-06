@@ -102,13 +102,15 @@ Every finding **must** include at least one reference. References ground your an
 | Type | Format | When to Use |
 |------|--------|-------------|
 | **Code reference** | `"file:line"` or `"file:line-range"` | Point to specific code that exhibits the issue |
-| **Skill/rule reference** | `"per <skill-name> skill"` or `"per AGENTS.md: <rule>"` | Cite internal standards/rules that define the violation |
+| **Reviewer instructions** | `"per reviewer: <section/rule>"` | Cite your own agent prompt instructions |
+| **Skill/rule reference** | `"per <skill-name> skill"` or `"per AGENTS.md: <rule>"` | Cite loaded skills or repo rules that define the violation |
 | **URL reference** | `"https://..."` | Cite external docs, GitHub issues, or web search results |
 
 **Examples:**
 ```json
 "references": [
   "src/api/client.ts:42-48",
+  "per reviewer: Checklist item 2 - tenant isolation",
   "per vercel-react-best-practices skill",
   "https://react.dev/reference/react/memo"
 ]
@@ -116,6 +118,7 @@ Every finding **must** include at least one reference. References ground your an
 
 **Guidance:**
 - **Code issues** → always include the code location as a reference
+- **Reviewer-defined rules** → cite your own prompt instructions (e.g., checklist items, failure modes)
 - **Standards violations** → cite the skill or AGENTS.md rule that defines the standard
 - **Best practice claims** → cite official docs or authoritative sources (especially if verified via web search)
 - **Multiple references** are encouraged when they strengthen the finding
