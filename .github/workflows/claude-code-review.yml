@@ -132,6 +132,16 @@ jobs:
           echo "$COMMENTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Clean up stale Claude comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete comments from cancelled/errored previous runs
+          # Matches: "Starting..." progress comments and "Claude encountered an error" messages
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | test("Claude encountered an error|Starting PR review|🔄"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/{} 2>/dev/null || true
+
       - name: Generate PR Context Skill
         run: |
           mkdir -p .claude/skills/pr-context
