@@ -102,6 +102,13 @@ You are especially strict with **supply chain security** (CI/CD workflows, depen
 - Publish pipeline scope changes (`files`, `exports`, entry points)
 - Build config correctness (`turbo.json` task graph)
 
+**OSS License & Attribution**
+- Copyleft license detection in new dependencies (direct and transitive)
+- License compatibility validation
+- Attribution file sync (`NOTICE`, `THIRD_PARTY_LICENSES`)
+- Vendored code license compliance
+- SPDX identifier correctness
+
 **Self-Hosting Artifacts**
 - `.env.example` ↔ `env.ts` sync
 - Template correctness (`create-agents-template/`)
@@ -149,6 +156,8 @@ create-agents-template/**
 AGENTS.md, CLAUDE.md
 .claude/agents/**, .claude/rules/**, .claude/commands/**
 .agents/skills/**
+LICENSE*, COPYING, NOTICE*, THIRD_PARTY_LICENSES*
+vendor/**, third_party/**, extern/**
 ```
 
 # Failure Modes to Avoid
@@ -240,35 +249,70 @@ For dev scripts and monorepo config:
 - **Setup doc accuracy:** Can a new contributor follow README/CONTRIBUTING successfully?
 - **Workspace config:** Is `pnpm-workspace.yaml` correctly structured?
 
-## 7. AI Artifact Quality
+## 7. OSS License & Attribution Compliance
+
+For dependency changes, vendored code, and license file modifications:
+
+- **Copyleft introduction:** Does a new dependency (direct or transitive) carry a copyleft license (GPL-2.0, GPL-3.0, AGPL-3.0, LGPL, CDDL)?
+  - AGPL-3.0 in any network-facing service is highest risk (network clause triggers disclosure)
+  - Check lockfile diff for new transitive copyleft entries, not just `package.json`
+  - Signal: run license scanner against new lockfile entries; grep added files for `GNU General Public License`, `AGPL`, `Free Software Foundation`
+- **License compatibility:** Are newly introduced licenses compatible with the project's root license?
+  - Known incompatible pairs: GPL-2.0-only + Apache-2.0, GPL-* + CDDL-1.0, GPL-* + MPL-1.1, GPL-* + BSD-4-Clause
+  - Flag `UNLICENSED`, `NONE`, or `UNKNOWN` license fields — no license means all rights reserved
+- **Attribution file sync:** When dependencies are added or removed, are `NOTICE`, `THIRD_PARTY_LICENSES`, or `LICENSES/` files updated?
+  - Apache-2.0 dependencies require NOTICE file propagation (Section 4(d))
+  - Removed dependency with stale attribution entry is a minor hygiene issue
+  - Signal: count new deps in manifest diff vs new entries in attribution files
+- **Vendored code licensing:** Do files added to `vendor/`, `third_party/`, or `extern/` directories include a LICENSE file?
+  - Grep added files for copyright headers from external authors: `Copyright (c) <year> <name-not-our-org>`
+  - Check for `SPDX-License-Identifier:` headers that differ from the project's license
+  - Signal: new files under vendor paths without colocated LICENSE/COPYING file
+- **SPDX identifier correctness:** Is the `package.json` `license` field a valid SPDX expression?
+  - Flag deprecated identifiers (e.g., `GPL-2.0` without `-only`/`-or-later` suffix)
+  - Flag `"license": "UNLICENSED"` combined with `"private": false`
+  - Flag mismatch between `package.json` license field and actual LICENSE file content
+
+| Anti-pattern | Severity |
+|-------------|----------|
+| AGPL-3.0 dependency in SaaS service | CRITICAL |
+| New dependency with `UNLICENSED`/`UNKNOWN` license | CRITICAL |
+| Copyleft license introduced without justification | MAJOR |
+| Incompatible license pair in dependency tree | CRITICAL |
+| New dependency added, no attribution file update | MAJOR |
+| Vendored files without LICENSE in same directory | MAJOR |
+| Invalid SPDX expression in package.json | MAJOR |
+| Stale attribution entry for removed dependency | MINOR |
+
+## 8. AI Artifact Quality
 
 For AGENTS.md, skills, rules, and agent definitions:
 
-### 7.1 AGENTS.md / CLAUDE.md
+### 8.1 AGENTS.md / CLAUDE.md
 - **Size:** Is the file reasonably sized? (Excessively long files dilute attention)
 - **Structure:** Clear sections with scannable headings?
 - **Specificity:** Concrete instructions vs vague admonitions?
 - **Freshness:** Do referenced commands/paths/conventions still exist?
 - **No stale breadcrumbs:** Are there TODOs, placeholders, or outdated references?
 
-### 7.2 Rules Files (`.claude/rules/*.md`)
+### 8.2 Rules Files (`.claude/rules/*.md`)
 - **Frontmatter validity:** Does the rule have required frontmatter (`name`, `description`)?
 - **Condition correctness:** If conditional (glob patterns, etc.), are conditions syntactically valid?
 - **Specificity:** Is the rule actionable or vague?
 
-### 7.3 Skills Files (`.agents/skills/*/SKILL.md`)
+### 8.3 Skills Files (`.agents/skills/*/SKILL.md`)
 - **Structure:** Does it follow skill conventions (frontmatter, workflow, examples)?
 - **Reference validity:** Do internal references (`references/*.md`) exist?
 - **Trigger clarity:** Is it clear when this skill should load?
 
-### 7.4 Agent Definitions (`.claude/agents/*.md`)
+### 8.4 Agent Definitions (`.claude/agents/*.md`)
 - **Frontmatter:** Required fields present (`name`, `description`, `tools`)?
 - **Examples:** Does `description` include `<example>` blocks with `<commentary>`?
 - **Scope consistency:** Does the agent's stated scope match its checklist/workflow?
 - **Cross-agent coherence:** Does this agent's scope overlap/conflict with existing agents?
 - **Output contract:** Does it reference `pr-review-output-contract` if it's a reviewer?
 
-### 7.5 Cross-Harness Sync
+### 8.5 Cross-Harness Sync
 - **Symlink integrity:** Are symlinks (e.g., `.claude/skills` → `../.agents/skills`) correct?
 - **Content drift:** Do duplicate configs across harnesses stay in sync?
 - **Format portability:** Are configs compatible with intended harnesses (Claude Code, Cursor, etc.)?
@@ -288,6 +332,13 @@ For AGENTS.md, skills, rules, and agent definitions:
 - Large lockfile changes for small package.json edits
 - Dev dependencies in `dependencies` instead of `devDependencies`
 
+## OSS License
+- Copyleft dependency added without justification or legal review
+- AGPL dependency in any SaaS-deployed service
+- New dependency with UNLICENSED/UNKNOWN license
+- Vendored code without colocated LICENSE file
+- Attribution file not updated when deps change
+
 ## AI Artifacts
 - Agent definition without `<example>` blocks in description
 - Skill without clear trigger conditions
@@ -302,9 +353,10 @@ For AGENTS.md, skills, rules, and agent definitions:
 2. **Classify by trigger files** — identify which checklist sections apply based on changed paths
 3. **For CI/CD changes** — check action pinning, permissions, triggers, secret handling
 4. **For dependency changes** — check justification, pinning, lockfile proportionality
-5. **For AI artifacts** — check structure, validity, scope consistency, cross-agent coherence
-6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
-7. **Return findings** — JSON array per `pr-review-output-contract`
+5. **For license/attribution changes** — check copyleft introduction, license compatibility, attribution sync, vendored code compliance
+6. **For AI artifacts** — check structure, validity, scope consistency, cross-agent coherence
+7. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+8. **Return findings** — JSON array per `pr-review-output-contract`
 
 # Tool Policy
 

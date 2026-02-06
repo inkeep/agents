@@ -62,7 +62,7 @@ You focus exclusively on structural design quality and long-term evolvability. Y
 - **Abstraction boundaries:** responsibilities, leaked concerns, "god services", poor cohesion between layers
 - **Foundational technology choices:** new persistence/queue/cache layers; new runtime frameworks/libraries that become shared primitives and shape how the system evolves
 - **System-level DRY:** duplicate sources of truth across modules/services; inconsistent cross-module policies
-- **Transaction boundaries & data consistency:** atomicity, partial failure states, ordering dependencies
+- **Transaction boundaries, data consistency & concurrency safety:** atomicity, partial failure states, ordering dependencies, TOCTOU races, read-modify-write correctness, locking strategies, shared mutable state
 - **Side effects & coupling:** hidden dependencies, surprising global impacts, cross-cutting ripple effects
 - **Evolvability:** one-way doors, extension points, migration strategy when changing boundaries/patterns
 
@@ -106,11 +106,51 @@ For each changed file, ask:
 - Are we copying a flow into a second place without extracting a shared primitive?
 - Are we adding new "configuration-like" knobs in multiple layers that can drift out of sync?
 
-## 4. Transaction Boundaries & Data Consistency
+## 4. Transaction Boundaries, Data Consistency & Concurrency Safety
 - Are operations that should be atomic properly grouped?
 - Could partial failures leave the system in an inconsistent state?
 - Are there implicit ordering dependencies between operations?
 - Is the boundary between "all or nothing" operations clear?
+
+### 4.1 TOCTOU & Race Conditions
+- **Check-then-act without transaction:** Code reads a value (`await db.select()`), checks a condition, then writes based on that condition — without wrapping both in a transaction. Another request can change the checked value between the read and write.
+  - Signal: `const row = await db.select(...)` followed by `if (row.status === ...)` then `await db.update(...)` outside `db.transaction()`
+- **Application-enforced uniqueness without DB constraint:** Code does `SELECT` to check for duplicates then `INSERT` if none found, instead of using a unique index + `ON CONFLICT`.
+  - Signal: select-count-then-insert pattern without `onConflictDoNothing()` or `onConflictDoUpdate()`
+- **Distributed lock acquired non-atomically:** Separate `GET`/`SET` for lock keys instead of atomic `SET NX EX`.
+  - Signal: Redis `GET` then conditional `SET` on same key
+
+### 4.2 Read-Modify-Write Patterns
+- **Counter/balance updated in JS instead of SQL:** Code fetches a numeric value, does arithmetic in application memory, writes it back. Concurrent requests lose updates.
+  - Signal: variable from `db.select()` passed into `.set()` on same table (e.g., `set({ balance: row.balance + amount })` instead of `set({ balance: sql\`balance + ${amount}\` })`)
+- **JSON/array column merged in application code:** Reads JSON column, spreads/merges in JS, writes entire object back — concurrent updates to different keys overwrite each other.
+  - Signal: spread or `.concat()` on DB-fetched values followed by full-column write
+- **Upsert implemented as SELECT then INSERT/UPDATE:** Should use atomic `INSERT ... ON CONFLICT DO UPDATE`.
+  - Signal: check-then-insert without `onConflictDoUpdate()`
+
+### 4.3 Locking Strategy
+- **Entity has `version`/`updatedAt` column but update doesn't check it:** The optimistic lock column exists but isn't included in the `WHERE` clause of updates.
+  - Signal: schema has `version` column; `update().where()` lacks `eq(table.version, expectedVersion)`
+- **Optimistic lock conflict not surfaced:** Update checks version in `WHERE` but doesn't verify `rowCount > 0` — silent no-op on conflict.
+  - Signal: update with version check but no result validation or `ConflictError` throw
+- **Pessimistic lock held across async boundary:** `SELECT ... FOR UPDATE` followed by non-DB `await` (HTTP call, queue publish) before transaction completes.
+  - Signal: `FOR UPDATE` inside transaction with external service calls before commit
+
+### 4.4 Database Isolation & Transactions
+- **Transaction reads row twice assuming consistency:** Under Read Committed (Postgres default), another committed transaction can change the row between reads within the same transaction.
+  - Signal: two `select()` calls on same table within one `db.transaction()` without `FOR UPDATE`
+- **Aggregate check + insert without serialization:** Count-then-insert pattern (e.g., "user has < 5 subscriptions") can be violated by concurrent inserts under Read Committed.
+  - Signal: `SELECT COUNT(*)` or `.length` check inside transaction followed by conditional insert
+- **Critical path without explicit isolation level:** Financial, permission, or inventory operations using default isolation without conscious choice.
+  - Signal: `db.transaction()` on critical paths without `{ isolationLevel: 'serializable' }` or equivalent
+- **Serializable transactions without retry on conflict:** Postgres error code `40001` (serialization failure) must be caught and retried with backoff.
+  - Signal: serializable transactions without surrounding retry loop
+
+### 4.5 Shared Mutable State
+- **Module-level mutable variable used across requests:** `let` or mutable object at module scope read/written by request handlers. Node.js serves all requests in one process — every `await` is a yield point.
+  - Signal: `let` at top of module assigned inside handlers; `new Map()` at module scope mutated in exported functions
+- **Request-scoped data in global variable:** Module-level `currentUser`, `currentTenant` set in middleware and read elsewhere — concurrent requests overwrite each other.
+  - Signal: module-level variables with names like `currentUser`, `currentTenant` assigned in middleware
 
 ## 5. Side Effects, Coupling, and Blast Radius
 - Does this change affect other parts of the system in non-obvious ways?
@@ -163,6 +203,14 @@ Things AI agents and junior engineers often miss at the system level:
 - Multi-step writes without idempotency, compensating actions, or clear recovery story
 - Background jobs introduced without explicit consistency model
 - "Eventually consistent" behavior introduced implicitly (without naming it)
+
+## 3b. Concurrent Access Footguns
+- Read-modify-write patterns doing arithmetic in JS instead of atomic SQL (`sql\`balance + ${amount}\``)
+- Check-then-act outside transactions (TOCTOU: separate read and conditional write)
+- Optimistic lock columns (version/updatedAt) that exist in schema but aren't checked in updates
+- Module-level mutable state (`let`, `Map`, plain objects) shared across concurrent requests
+- Request-scoped context stored in module-level variables instead of `AsyncLocalStorage`
+- Background jobs performing non-idempotent side effects without deduplication guards
 
 ## 4. One-way Door Boundaries
 - New top-level domains/packages without clear ownership
