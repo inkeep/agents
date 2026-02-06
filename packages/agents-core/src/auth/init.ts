@@ -130,8 +130,8 @@ async function init() {
       action: 'add',
     });
     console.log('   ✅ Synced to SpiceDB');
-  } catch {
-    console.log('   ℹ️  SpiceDB sync failed');
+  } catch (error) {
+    console.error('❌ SpiceDB sync failed:', error);
   }
 
   console.log('\n================================================');
