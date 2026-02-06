@@ -228,7 +228,7 @@ Outline of format (in this order!):
 ### 🔴❗ Critical (N) ❗🔴
 
 🔴 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
- 
+
 // if applicable and not single-filer:
 `files`: list all relevant files in `[file].ts` or `[file].ts[:line]` format (line number range optional). If long, list as sub-bullet points. // if applicable
 `system`: `scope` (no specific file) // if applicable
@@ -239,6 +239,8 @@ when the problem is complex or context is needed.
 **Why:** Consequences, risks, *justification*, and/or user impact. Scale 1-3 sentences based on severity — critical issues deserve thorough explanation.
 
 **Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like.
+
+**Refs:** Interweave or list references that ground this finding: code locations (`file:line`), skills/rules (`per <skill>`), reviewer instructions (`per reviewer: <rule>`), or URLs (official docs, GitHub issues). Example: `src/api/client.ts:42` · `per pr-review-security-iam: Checklist §1` · [React docs](https://react.dev/...)
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
 // ...
