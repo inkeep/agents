@@ -7,13 +7,6 @@ import { Fragment, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -22,6 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { TriggerInvocation } from '@/lib/api/triggers';
+import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
+import { Combobox } from '../ui/combobox';
 
 interface InvocationsTableProps {
   invocations: TriggerInvocation[];
@@ -105,21 +100,40 @@ export function InvocationsTable({
       {/* Filter Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by status:</span>
-          <Select value={currentStatus || 'all'} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
+          <Combobox
+            defaultValue={currentStatus || 'all'}
+            notFoundMessage={'No status found.'}
+            onSelect={(value) => {
+              handleStatusChange(value);
+            }}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'success', label: 'Success' },
+              { value: 'failed', label: 'Failed' },
+              { value: 'pending', label: 'Pending' },
+            ]}
+            TriggerComponent={
+              <FilterTriggerComponent
+                disabled={false}
+                filterLabel={currentStatus ? 'Status' : 'All statuses'}
+                isRemovable={true}
+                onDeleteFilter={() => {
+                  handleStatusChange('all');
+                }}
+                multipleCheckboxValues={currentStatus ? [currentStatus] : []}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'success', label: 'Success' },
+                  { value: 'failed', label: 'Failed' },
+                  { value: 'pending', label: 'Pending' },
+                ]}
+              />
+            }
+          />
         </div>
-        <div className="text-sm text-muted-foreground">
-          Total: {metadata.total} invocation{metadata.total !== 1 ? 's' : ''}
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          Total: <Badge variant="count">{metadata.total}</Badge> invocation
+          {metadata.total !== 1 ? 's' : ''}
         </div>
       </div>
 

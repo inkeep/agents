@@ -791,6 +791,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                     onChange={field.onChange}
                     placeholder={`{\n  "type": "object",\n  "properties": {\n    "event": { "type": "string" }\n  }\n}`}
                     error={fieldState.error?.message}
+                    className="min-w-0"
                   />
                   <FormMessage />
                 </FormItem>
@@ -816,6 +817,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               label="Transform Type"
               options={transformTypeOptions}
               placeholder="Select transform type"
+              selectTriggerClassName="w-full"
             />
 
             {transformType === 'object_transformation' && (
@@ -926,7 +928,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                         variant="ghost"
                         size="icon"
                         onClick={() => remove(index)}
-                        className={index === 0 ? 'mt-8' : ''}
+                        className={index === 0 ? 'mt-[22px]' : ''}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -955,7 +957,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               size="sm"
               onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4" />
               Add Required Header
             </Button>
           </CardContent>
@@ -976,7 +978,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               control={form.control}
               name="signatureVerificationEnabled"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                // relative is needed b/c of the absolute positioning of the switch
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 relative">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Enable Signature Verification</FormLabel>
                     <FormDescription>
@@ -1440,7 +1443,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                       })
                     }
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4" />
                     Add Signed Component
                   </Button>
 
