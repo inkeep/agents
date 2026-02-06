@@ -23,6 +23,7 @@ jobs:
       contents: write      # For creating branches and commits
       pull-requests: write # For creating draft PRs
       issues: read         # For reading PR comments
+      id-token: write      # For OIDC token (required by claude-code-action)
 
     steps:
       - name: Checkout
