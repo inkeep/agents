@@ -21,6 +21,12 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Clone internal plugins
+        run: |
+          gh repo clone inkeep/internal-cc-plugins /tmp/internal-cc-plugins
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_PLUGINS }}
+
       - name: Extract Comments
         id: extract
         env:
@@ -151,6 +157,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
+            --plugin-dir /tmp/internal-cc-plugins/closed-pr-review-auto-improver
             --agent closed-pr-review-auto-improver
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout -b:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git rev-list:*),Bash(git show:*)"
           prompt: |
