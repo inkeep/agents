@@ -157,9 +157,22 @@ Before accepting a new helper, type, or "common" function:
   - **Internal shared packages** (`@inkeep/*`, etc.) → import from the package
   - **External SDKs** (OpenAI, Vercel AI SDK, etc.) → use exported types
   - **Function signatures** → use `Parameters<>` or `ReturnType<>`
+  - **Async function returns** → use `Awaited<ReturnType<typeof fn>>`
   - **Existing domain types** → use `Pick`, `Omit`, `Partial` to derive subsets
+  - **Constants objects** → use `keyof typeof` to derive key types
+  - **Base types** → use `interface extends` or intersection (`&`) for composition
+- **For type composition patterns:** check consistency with existing patterns:
+  - Discriminated unions: does the codebase use `{ success: true } | { success: false }` or `{ type: 'a' } | { type: 'b' }`?
+  - Type guards: follow existing naming (`isX`, `hasX`) and predicate patterns
+  - Re-exports: if a type is used across package boundaries, is it re-exported at the API surface?
 - Prefer extending the existing helper over adding a near-duplicate
 - If a new helper is warranted, ensure naming and location match existing conventions (avoid a new parallel "utils universe")
+
+**Type duplication detection signals:**
+- Same fields defined in multiple interfaces → consolidate with `extends` or shared base
+- `typeof` used without `keyof` when deriving from constants
+- Repeated `as unknown as` casts → indicates missing type guard or improper derivation
+- Manual async return types → should use `Awaited<ReturnType<>>`
 
 ## 4. Split-World / Partial Migration Awareness
 If a PR introduces a new pattern that coexists with an older one:

@@ -85,8 +85,12 @@ When analyzing a type, you will:
    | **Internal packages** | Import from shared packages | `import { MessagePart } from '@inkeep/agents-core'` |
    | **External packages/SDKs** | Use exported types | `import { CompletionChoice } from 'openai'` |
    | **Function signatures** | Use `Parameters<>` or `ReturnType<>` | `type Options = Parameters<typeof createAgent>[0]` |
+   | **Async function returns** | Use `Awaited<ReturnType<>>` | `type Result = Awaited<ReturnType<typeof fetchData>>` |
    | **Existing domain types** | Use `Pick`, `Omit`, `Partial` | `type CreateUserInput = Omit<User, 'id' | 'createdAt'>` |
    | **Shared enums/unions** | Reference existing definitions | `import { ContentType } from '../schemas'` |
+   | **Constants objects** | Use `keyof typeof` | `type ConfigKey = keyof typeof configDefaults` |
+   | **Base types** | Use `interface extends` | `interface AdminUser extends User { permissions: string[] }` |
+   | **Type composition** | Use intersection (`&`) | `type FullContext = BaseContext & AuthContext` |
 
    **Questions to ask:**
    - Does a Zod schema (or similar validation schema) already define this shape?
@@ -95,6 +99,8 @@ When analyzing a type, you will:
    - Does an external SDK/package export this type?
    - Is this a subset/variant of an existing type that could use `Pick`/`Omit`/`Partial`?
    - Is this duplicating a function's parameter or return type?
+   - Is there a base type this should extend rather than duplicating fields?
+   - Is there a constants object whose keys define the valid values?
 
    **Why this matters:** Manual type definitions that duplicate existing sources will silently drift as those sources evolve, creating subtle bugs where types don't match runtime behavior.
 
@@ -103,6 +109,54 @@ When analyzing a type, you will:
    - New type with fields that mirror an existing schema, database model, or package export
    - String literal unions (e.g., `'text' | 'image'`) that duplicate values from an existing enum or union
    - Types that look like function parameter shapes when that function is imported nearby
+   - Repeated field definitions across multiple interfaces → should use `extends` or intersection
+   - `typeof` used without `keyof` when deriving from constants
+   - Manual async return types when `Awaited<ReturnType<>>` would work
+
+7. **Check Type Composition Patterns**: When reviewing type structure, verify proper use of composition:
+
+   **Discriminated Unions (prefer for polymorphic types):**
+   ```typescript
+   // GOOD: Type-safe with discriminant
+   type Result =
+     | { success: true; data: T }
+     | { success: false; error: string };
+
+   // BAD: Optional fields that should be mutually exclusive
+   type Result = { success: boolean; data?: T; error?: string };
+   ```
+
+   **Type Guards (require for complex narrowing):**
+   ```typescript
+   // GOOD: Type predicate enables narrowing
+   function isAdminUser(user: User): user is AdminUser {
+     return 'permissions' in user;
+   }
+
+   // BAD: Inline type assertions without validation
+   const admin = user as AdminUser;
+   ```
+
+   **`satisfies` operator (prefer for const objects):**
+   ```typescript
+   // GOOD: Type-safe constant with inferred literal types
+   const config = {
+     timeout: 5000,
+     retries: 3,
+   } satisfies Config;
+
+   // BAD: Type assertion loses literal type information
+   const config: Config = { timeout: 5000, retries: 3 };
+   ```
+
+   **Re-exports (use for public API surfaces):**
+   ```typescript
+   // GOOD: Explicit re-export for API boundary
+   export type { AgentCard } from '@inkeep/agents-core';
+
+   // BAD: Forcing consumers to know internal package structure
+   // (consumers must import from @inkeep/agents-core directly)
+   ```
 
 **Key Principles:**
 
@@ -131,6 +185,13 @@ When analyzing a type, you will:
   - Inline string literal unions duplicating existing enums → reference the existing enum/union
   - Types subsetting existing types → use `Pick<T, K>`, `Omit<T, K>`, or `Partial<T>`
   - Types duplicating function parameter shapes → use `Parameters<typeof fn>[0]`
+  - Types duplicating async function returns → use `Awaited<ReturnType<typeof fn>>`
+  - Repeated interface fields → use `extends` or intersection (`&`)
+  - Optional fields for mutually exclusive states → use discriminated unions
+  - Manual key extraction from constants → use `keyof typeof constObj`
+- Unsafe type narrowing:
+  - Using `as` assertions without runtime validation → add type guard
+  - Inline type assertions for polymorphic data → use discriminated union + type guard
 
 **Output Format:**
 
