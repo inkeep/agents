@@ -21,11 +21,19 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+          owner: inkeep
+          repositories: internal-cc-plugins
+
       - name: Clone internal plugins
-        run: |
-          gh repo clone inkeep/internal-cc-plugins /tmp/internal-cc-plugins
+        run: gh repo clone inkeep/internal-cc-plugins /tmp/internal-cc-plugins
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT_PLUGINS }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Extract Comments
         id: extract
