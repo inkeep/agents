@@ -368,6 +368,8 @@ Note the target file's:
 
 Your addition MUST match the existing style. Reference `pr-review-subagents-guidelines` for quality standards.
 
+**Keep agents standalone:** Never reference other agents by name (e.g., "see `pr-review-types`" or "reviewed by `pr-review-consistency`"). Each agent should be self-contained — define its own scope boundaries without assuming the reader knows what other agents exist or do. Instead of "X is handled by agent Y," say "X is out of scope."
+
 ### Step 5: Integration Location
 
 Determine where to add (per `pr-review-subagents-guidelines`):
