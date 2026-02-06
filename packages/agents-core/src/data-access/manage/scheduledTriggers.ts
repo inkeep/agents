@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { scheduledTriggers } from '../../db/manage/manage-schema';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
@@ -29,22 +29,6 @@ export const getScheduledTriggerById =
     });
 
     return result as ScheduledTrigger | undefined;
-  };
-
-/**
- * List all scheduled triggers for an agent
- */
-export const listScheduledTriggers =
-  (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<ScheduledTrigger[]> => {
-    const result = await db.query.scheduledTriggers.findMany({
-      where: and(
-        eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-        eq(scheduledTriggers.projectId, params.scopes.projectId),
-        eq(scheduledTriggers.agentId, params.scopes.agentId)
-      ),
-    });
-    return result as ScheduledTrigger[];
   };
 
 /**
@@ -81,30 +65,6 @@ export const listScheduledTriggersPaginated =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
-
-/**
- * List enabled cron scheduled triggers (for workflow bootstrap)
- * Returns triggers with enabled=true and a cronExpression
- */
-export const listEnabledCronTriggers =
-  (db: AgentsManageDatabaseClient) => async (): Promise<ScheduledTrigger[]> => {
-    const result = await db.query.scheduledTriggers.findMany({
-      where: and(eq(scheduledTriggers.enabled, true), isNotNull(scheduledTriggers.cronExpression)),
-    });
-    return result as ScheduledTrigger[];
-  };
-
-/**
- * List enabled one-time scheduled triggers (for workflow bootstrap)
- * Returns triggers with enabled=true and a runAt timestamp
- */
-export const listEnabledOneTimeTriggers =
-  (db: AgentsManageDatabaseClient) => async (): Promise<ScheduledTrigger[]> => {
-    const result = await db.query.scheduledTriggers.findMany({
-      where: and(eq(scheduledTriggers.enabled, true), isNotNull(scheduledTriggers.runAt)),
-    });
-    return result as ScheduledTrigger[];
   };
 
 /**
@@ -167,59 +127,4 @@ export const deleteScheduledTrigger =
           eq(scheduledTriggers.id, params.scheduledTriggerId)
         )
       );
-  };
-
-/**
- * Upsert a scheduled trigger (create or update based on existence)
- */
-export const upsertScheduledTrigger =
-  (db: AgentsManageDatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    data: ScheduledTriggerInsert;
-  }): Promise<ScheduledTrigger> => {
-    const { scopes, data } = params;
-
-    // Check if trigger exists
-    const existing = await db.query.scheduledTriggers.findFirst({
-      where: and(
-        eq(scheduledTriggers.tenantId, scopes.tenantId),
-        eq(scheduledTriggers.projectId, scopes.projectId),
-        eq(scheduledTriggers.agentId, scopes.agentId),
-        eq(scheduledTriggers.id, data.id)
-      ),
-    });
-
-    if (existing) {
-      // Update existing trigger
-      const updateData = {
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      const result = await db
-        .update(scheduledTriggers)
-        .set(updateData as any)
-        .where(
-          and(
-            eq(scheduledTriggers.tenantId, scopes.tenantId),
-            eq(scheduledTriggers.projectId, scopes.projectId),
-            eq(scheduledTriggers.agentId, scopes.agentId),
-            eq(scheduledTriggers.id, data.id)
-          )
-        )
-        .returning();
-      return result[0] as ScheduledTrigger;
-    }
-
-    // Create new trigger
-    const result = await db
-      .insert(scheduledTriggers)
-      .values({
-        ...data,
-        tenantId: scopes.tenantId,
-        projectId: scopes.projectId,
-        agentId: scopes.agentId,
-      } as any)
-      .returning();
-    return result[0] as ScheduledTrigger;
   };

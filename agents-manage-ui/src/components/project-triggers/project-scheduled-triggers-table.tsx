@@ -22,11 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import {
   deleteScheduledTriggerAction,
   updateScheduledTriggerEnabledAction,
 } from '@/lib/actions/scheduled-triggers';
-import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
 
 const POLLING_INTERVAL_MS = 3000; // Poll every 3 seconds

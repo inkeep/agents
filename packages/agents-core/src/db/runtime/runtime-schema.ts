@@ -191,9 +191,7 @@ export const triggerInvocations = pgTable(
 export const scheduledTriggerInvocations = pgTable(
   'scheduled_trigger_invocations',
   {
-    ...tenantScoped,
-    projectId: varchar('project_id', { length: 256 }).notNull(),
-    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    ...agentScoped,
     scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
     status: varchar('status', { length: 50 })
       .notNull()

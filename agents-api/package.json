@@ -33,7 +33,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies --files",
-    "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
+    "workflow:build": "tsx scripts/build-workflow.ts",
     "well-known:copy": "tsx scripts/copy-well-known.ts",
     "dev": "pnpm workflow:build && vite",
     "build": "pnpm workflow:build && tsdown && pnpm well-known:copy",

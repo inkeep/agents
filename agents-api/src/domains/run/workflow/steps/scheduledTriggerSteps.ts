@@ -14,10 +14,12 @@ import {
   getScheduledTriggerInvocationById,
   getScheduledTriggerInvocationByIdempotencyKey,
   getScheduledWorkflowByTriggerId,
+  interpolateTemplate,
   listPendingScheduledTriggerInvocations,
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
+  type Part,
   resolveRef,
   type ScheduledTriggerInvocation,
   updateScheduledTriggerInvocationStatus,
@@ -28,6 +30,7 @@ import { manageDbClient } from 'src/data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { executeAgentAsync } from '../../services/TriggerService';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
 
@@ -41,8 +44,6 @@ export async function logStep(message: string, data: Record<string, unknown>) {
 
 /**
  * Step: Calculate the next execution time relative to a base time.
- * For cron, uses lastScheduledFor as base to prevent drift.
- * Timezone is used to interpret the cron expression in the user's local time.
  */
 export async function calculateNextExecutionStep(params: {
   cronExpression?: string | null;
@@ -60,8 +61,6 @@ export async function calculateNextExecutionStep(params: {
   }
 
   if (cronExpression) {
-    // Cron trigger - calculate next occurrence relative to last execution
-    // This prevents drift when workflow wakes late or runs long
     const baseDate = lastScheduledFor ? new Date(lastScheduledFor) : new Date();
     const interval = CronExpressionParser.parse(cronExpression, {
       currentDate: baseDate,
@@ -79,7 +78,7 @@ export async function calculateNextExecutionStep(params: {
 }
 
 /**
- * Step: Compute sleep duration right before sleeping (minimizes drift).
+ * Step: Compute sleep duration
  * Returns milliseconds to sleep.
  */
 export async function computeSleepDurationStep(targetTime: string): Promise<number> {
@@ -149,7 +148,6 @@ export async function deletePendingInvocationsStep(params: {
 
 /**
  * Step: Check if trigger is still enabled and this runner is authoritative.
- * Uses branch-scoped database queries for DoltgreS compatibility.
  */
 export async function checkTriggerEnabledStep(params: {
   tenantId: string;
@@ -210,43 +208,9 @@ export async function checkTriggerEnabledStep(params: {
     return { shouldContinue: false, reason: 'superseded', trigger: null };
   }
 
-  // Apply defaults for fields that DoltgreS doesn't honor defaults for
-  // Use explicit validation to handle null, undefined, AND NaN values
-  // (NaN can occur due to workflow serialization issues)
-  const safeMaxRetries =
-    typeof trigger.maxRetries === 'number' && !Number.isNaN(trigger.maxRetries)
-      ? trigger.maxRetries
-      : 3;
-  const safeRetryDelaySeconds =
-    typeof trigger.retryDelaySeconds === 'number' && !Number.isNaN(trigger.retryDelaySeconds)
-      ? trigger.retryDelaySeconds
-      : 60;
-  const safeTimeoutSeconds =
-    typeof trigger.timeoutSeconds === 'number' && !Number.isNaN(trigger.timeoutSeconds)
-      ? trigger.timeoutSeconds
-      : 300;
-
-  logger.debug(
-    {
-      scheduledTriggerId: params.scheduledTriggerId,
-      'trigger.maxRetries': trigger.maxRetries,
-      'typeof trigger.maxRetries': typeof trigger.maxRetries,
-      'isNaN trigger.maxRetries': Number.isNaN(trigger.maxRetries),
-      safeMaxRetries,
-      safeRetryDelaySeconds,
-      safeTimeoutSeconds,
-    },
-    'Applying defaults in checkTriggerEnabledStep'
-  );
-
   return {
     shouldContinue: true,
-    trigger: {
-      ...trigger,
-      maxRetries: safeMaxRetries,
-      retryDelaySeconds: safeRetryDelaySeconds,
-      timeoutSeconds: safeTimeoutSeconds,
-    },
+    trigger,
   };
 }
 
@@ -478,13 +442,10 @@ export async function incrementAttemptStep(params: {
 }
 
 /**
- * Step: Execute the scheduled trigger via HTTP call to main server.
+ * Step: Execute the scheduled trigger using executeAgentAsync.
  *
- * This step makes an HTTP call to the internal execution endpoint instead of
- * executing directly. This is necessary because workflow steps run in a bundled
- * context with their own module instances (including agentSessionManager).
- * By calling the main server via HTTP, execution happens in the correct context
- * where all singletons are shared and event recording works properly.
+ * Uses the shared executeAgentAsync from TriggerService which includes
+ * proper tracing, error handling, and conversation management.
  */
 export async function executeScheduledTriggerStep(params: {
   tenantId: string;
@@ -498,77 +459,100 @@ export async function executeScheduledTriggerStep(params: {
 }): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   'use step';
 
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    invocationId,
+    messageTemplate,
+    payload,
+    timeoutSeconds,
+  } = params;
+
   logger.info(
-    { scheduledTriggerId: params.scheduledTriggerId, invocationId: params.invocationId },
-    'Executing scheduled trigger via HTTP'
+    { scheduledTriggerId, invocationId },
+    'Executing scheduled trigger via executeAgentAsync'
   );
 
+  // Generate conversation ID upfront so we can return it even on failure
+  const conversationId = generateId();
+
   try {
-    const baseUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
-    const apiKey = process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '';
-    const url = `${baseUrl}/run/tenants/${params.tenantId}/projects/${params.projectId}/agents/${params.agentId}/scheduled-triggers/internal/execute`;
+    // Resolve the project ref
+    const ref = getProjectScopedRef(tenantId, projectId, 'main');
+    const resolvedRef = await resolveRef(manageDbClient)(ref);
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'x-inkeep-tenant-id': params.tenantId,
-        'x-inkeep-project-id': params.projectId,
-        'x-inkeep-agent-id': params.agentId,
-      },
-      body: JSON.stringify({
-        scheduledTriggerId: params.scheduledTriggerId,
-        invocationId: params.invocationId,
-        messageTemplate: params.messageTemplate,
-        payload: params.payload,
-        timeoutSeconds: params.timeoutSeconds,
-      }),
-    });
-
-    const result = (await response.json()) as {
-      success: boolean;
-      conversationId?: string;
-      error?: string;
-    };
-
-    // Return conversationId even on failure - it's generated before execution starts
-    // and we want to link the conversation to the invocation for debugging
-    if (!response.ok || !result.success) {
-      logger.error(
-        {
-          scheduledTriggerId: params.scheduledTriggerId,
-          invocationId: params.invocationId,
-          conversationId: result.conversationId,
-          error: result.error,
-        },
-        'Scheduled trigger execution failed via HTTP'
-      );
+    if (!resolvedRef) {
       return {
         success: false,
-        conversationId: result.conversationId,
-        error: result.error || `HTTP ${response.status}: Execution failed`,
+        conversationId,
+        error: `Failed to resolve ref for project ${projectId}`,
       };
     }
 
+    // Build user message from template
+    const effectivePayload = payload ?? {};
+    let userMessage: string;
+    if (messageTemplate) {
+      userMessage = interpolateTemplate(messageTemplate, effectivePayload);
+    } else {
+      userMessage = JSON.stringify(effectivePayload);
+    }
+
+    // Create message parts
+    const messageParts: Part[] = [];
+    if (messageTemplate) {
+      messageParts.push({ kind: 'text', text: userMessage });
+    }
+    messageParts.push({
+      kind: 'data',
+      data: effectivePayload,
+      metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
+    });
+
+    // Execute with timeout
+    const timeoutMs = timeoutSeconds * 1000;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`Execution timed out after ${timeoutSeconds}s`)),
+        timeoutMs
+      );
+    });
+
+    await Promise.race([
+      executeAgentAsync({
+        tenantId,
+        projectId,
+        agentId,
+        triggerId: scheduledTriggerId,
+        invocationId,
+        conversationId,
+        userMessage,
+        messageParts,
+        resolvedRef,
+      }),
+      timeoutPromise,
+    ]);
+
     logger.info(
-      {
-        scheduledTriggerId: params.scheduledTriggerId,
-        invocationId: params.invocationId,
-        conversationId: result.conversationId,
-      },
-      'Scheduled trigger execution completed via HTTP'
+      { scheduledTriggerId, invocationId, conversationId },
+      'Scheduled trigger execution completed'
     );
 
     return {
       success: true,
-      conversationId: result.conversationId,
+      conversationId,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({ ...params, error: errorMessage }, 'Execute scheduled trigger step failed');
+    logger.error(
+      { scheduledTriggerId, invocationId, conversationId, error: errorMessage },
+      'Execute scheduled trigger step failed'
+    );
     return {
       success: false,
+      conversationId,
       error: errorMessage,
     };
   }

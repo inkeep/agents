@@ -1,2 +1,2 @@
-export { world } from '../../evals/workflow/world';
+export { world } from '../../../workflow/world';
 export { scheduledTriggerRunnerWorkflow } from './functions/scheduledTriggerRunner';

@@ -6,17 +6,20 @@
  */
 
 import {
-  type AgentsManageDatabaseClient,
   cancelPastPendingInvocationsForTrigger,
   cancelPendingInvocationsForTrigger,
   createScheduledWorkflow,
   generateId,
+  getProjectScopedRef,
   getScheduledWorkflowByTriggerId,
+  resolveRef,
   type ScheduledTrigger,
   type ScheduledWorkflow,
   updateScheduledWorkflowRunId,
+  withRef,
 } from '@inkeep/agents-core';
 import { manageDbClient } from 'src/data/db';
+import manageDbPool from 'src/data/db/manageDbPool';
 import runDbClient from 'src/data/db/runDbClient';
 import { start } from 'workflow/api';
 import { getLogger } from '../../../logger';
@@ -29,64 +32,64 @@ const logger = getLogger('ScheduledTriggerService');
 
 /**
  * Get or create a scheduled workflow for a trigger.
- * Returns the workflow.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
+ * Uses branch-scoped database connection for DoltgreSQL compatibility.
  */
-async function getOrCreateScheduledWorkflow(
-  params: {
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    scheduledTriggerId: string;
-    triggerName: string;
-  },
-  db?: AgentsManageDatabaseClient
-): Promise<ScheduledWorkflow> {
+async function getOrCreateScheduledWorkflow(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  triggerName: string;
+}): Promise<ScheduledWorkflow> {
   const { tenantId, projectId, agentId, scheduledTriggerId, triggerName } = params;
   const scopes = { tenantId, projectId, agentId };
-  const dbClient = db ?? manageDbClient;
 
-  // Check if workflow already exists for this trigger
-  const existingWorkflow = await getScheduledWorkflowByTriggerId(dbClient)({
-    scopes,
-    scheduledTriggerId,
-  });
+  // Get branch-scoped ref for proper DoltgreSQL query context
+  const ref = getProjectScopedRef(tenantId, projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
 
-  if (existingWorkflow) {
-    return existingWorkflow;
+  if (!resolvedRef) {
+    throw new Error(`Failed to resolve ref for project ${projectId}`);
   }
 
-  // Create new workflow for this trigger
-  const workflow = await createScheduledWorkflow(dbClient)({
-    tenantId,
-    projectId,
-    agentId,
-    id: generateId(),
-    name: `Workflow for ${triggerName}`,
-    scheduledTriggerId,
-  });
+  return withRef(manageDbPool, resolvedRef, async (db) => {
+    // Check if workflow already exists for this trigger
+    const existingWorkflow = await getScheduledWorkflowByTriggerId(db)({
+      scopes,
+      scheduledTriggerId,
+    });
 
-  return workflow;
+    if (existingWorkflow) {
+      return existingWorkflow;
+    }
+
+    // Create new workflow for this trigger
+    const workflow = await createScheduledWorkflow(db)({
+      tenantId,
+      projectId,
+      agentId,
+      id: generateId(),
+      name: `Workflow for ${triggerName}`,
+      scheduledTriggerId,
+    });
+
+    return workflow;
+  });
 }
 
 /**
  * Start a workflow runner for a scheduled trigger.
  * Returns the runner ID.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
  */
-export async function startScheduledTriggerWorkflow(
-  params: {
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    scheduledTriggerId: string;
-    triggerName: string;
-  },
-  db?: AgentsManageDatabaseClient
-): Promise<string> {
+export async function startScheduledTriggerWorkflow(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  triggerName: string;
+}): Promise<string> {
   const { tenantId, projectId, agentId, scheduledTriggerId, triggerName } = params;
   const scopes = { tenantId, projectId, agentId };
-  const dbClient = db ?? manageDbClient;
 
   const payload: ScheduledTriggerRunnerPayload = {
     tenantId,
@@ -101,28 +104,30 @@ export async function startScheduledTriggerWorkflow(
   );
 
   // Get or create the scheduled workflow for this trigger
-  const workflow = await getOrCreateScheduledWorkflow(
-    {
-      tenantId,
-      projectId,
-      agentId,
-      scheduledTriggerId,
-      triggerName,
-    },
-    dbClient
-  );
-
-  // Start the workflow and capture the actual run ID
-  // The start() function returns a Run object with a runId property (e.g., wrun_XXXXX)
+  const workflow = await getOrCreateScheduledWorkflow({
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    triggerName,
+  });
   const run = await start(scheduledTriggerRunnerWorkflow, [payload]);
   const workflowRunId = run.runId;
 
-  // Store the actual workflow run ID and set status to running
-  await (updateScheduledWorkflowRunId(dbClient) as any)({
-    scopes,
-    scheduledWorkflowId: workflow.id,
-    workflowRunId,
-    status: 'running',
+  // Get branch-scoped ref for proper DoltgreSQL query context
+  const ref = getProjectScopedRef(tenantId, projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+  if (!resolvedRef) {
+    throw new Error(`Failed to resolve ref for project ${projectId}`);
+  }
+
+  await withRef(manageDbPool, resolvedRef, async (db) => {
+    await (updateScheduledWorkflowRunId(db) as any)({
+      scopes,
+      scheduledWorkflowId: workflow.id,
+      workflowRunId,
+      status: 'running',
+    });
   });
 
   logger.info(
@@ -142,42 +147,47 @@ export async function startScheduledTriggerWorkflow(
 
 /**
  * Signal a workflow runner to stop by clearing its runner ID.
- * The workflow checks the workflowRunId before each execution,
- * so setting it to null effectively signals the workflow to stop.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
  */
-export async function signalStopScheduledTriggerWorkflow(
-  params: {
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    scheduledTriggerId: string;
-  },
-  db?: AgentsManageDatabaseClient
-): Promise<void> {
+export async function signalStopScheduledTriggerWorkflow(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+}): Promise<void> {
   const { tenantId, projectId, agentId, scheduledTriggerId } = params;
   const scopes = { tenantId, projectId, agentId };
-  const dbClient = db ?? manageDbClient;
 
   logger.info(
     { tenantId, projectId, agentId, scheduledTriggerId },
     'Signaling scheduled trigger workflow to stop'
   );
 
-  // Find the workflow for this trigger
-  const workflow = await getScheduledWorkflowByTriggerId(dbClient)({
-    scopes,
-    scheduledTriggerId,
-  });
-
-  if (workflow) {
-    // Clear the workflow run ID - this signals the workflow to stop
-    await updateScheduledWorkflowRunId(dbClient)({
-      scopes,
-      scheduledWorkflowId: workflow.id,
-      workflowRunId: null,
-    });
+  // Get branch-scoped ref for proper DoltgreSQL query context
+  const ref = getProjectScopedRef(tenantId, projectId, 'main');
+  const resolvedRef = await resolveRef(manageDbClient)(ref);
+  if (!resolvedRef) {
+    logger.warn(
+      { tenantId, projectId, agentId, scheduledTriggerId },
+      'Failed to resolve ref, cannot signal workflow stop'
+    );
+    return;
   }
+
+  await withRef(manageDbPool, resolvedRef, async (db) => {
+    // Find the workflow for this trigger
+    const workflow = await getScheduledWorkflowByTriggerId(db)({
+      scopes,
+      scheduledTriggerId,
+    });
+
+    if (workflow) {
+      await updateScheduledWorkflowRunId(db)({
+        scopes,
+        scheduledWorkflowId: workflow.id,
+        workflowRunId: null,
+      });
+    }
+  });
 
   logger.info(
     { tenantId, projectId, agentId, scheduledTriggerId },
@@ -188,18 +198,14 @@ export async function signalStopScheduledTriggerWorkflow(
 /**
  * Restart a workflow runner (signal old to stop and start new).
  * Used when trigger configuration changes.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
  */
-export async function restartScheduledTriggerWorkflow(
-  params: {
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-    scheduledTriggerId: string;
-    triggerName: string;
-  },
-  db?: AgentsManageDatabaseClient
-): Promise<string> {
+export async function restartScheduledTriggerWorkflow(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  scheduledTriggerId: string;
+  triggerName: string;
+}): Promise<string> {
   const { tenantId, projectId, agentId, scheduledTriggerId, triggerName } = params;
 
   logger.info(
@@ -207,28 +213,20 @@ export async function restartScheduledTriggerWorkflow(
     'Restarting scheduled trigger workflow'
   );
 
-  // Starting a new workflow automatically supersedes the old one
-  // because the workflowRunId will change
-  return startScheduledTriggerWorkflow(
-    {
-      tenantId,
-      projectId,
-      agentId,
-      scheduledTriggerId,
-      triggerName,
-    },
-    db
-  );
+  // Starting a new workflow automatically supersedes the old one bc of new workflow runId
+  return startScheduledTriggerWorkflow({
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    triggerName,
+  });
 }
 
 /**
  * Handle trigger creation - start workflow if enabled.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
  */
-export async function onTriggerCreated(
-  trigger: ScheduledTrigger,
-  db?: AgentsManageDatabaseClient
-): Promise<void> {
+export async function onTriggerCreated(trigger: ScheduledTrigger): Promise<void> {
   if (!trigger.enabled) {
     logger.info(
       { scheduledTriggerId: trigger.id },
@@ -237,30 +235,23 @@ export async function onTriggerCreated(
     return;
   }
 
-  await startScheduledTriggerWorkflow(
-    {
-      tenantId: trigger.tenantId,
-      projectId: trigger.projectId,
-      agentId: trigger.agentId,
-      scheduledTriggerId: trigger.id,
-      triggerName: trigger.name,
-    },
-    db
-  );
+  await startScheduledTriggerWorkflow({
+    tenantId: trigger.tenantId,
+    projectId: trigger.projectId,
+    agentId: trigger.agentId,
+    scheduledTriggerId: trigger.id,
+    triggerName: trigger.name,
+  });
 }
 
 /**
  * Handle trigger update - restart workflow if needed.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
  */
-export async function onTriggerUpdated(
-  params: {
-    trigger: ScheduledTrigger;
-    previousEnabled: boolean;
-    scheduleChanged: boolean;
-  },
-  db?: AgentsManageDatabaseClient
-): Promise<void> {
+export async function onTriggerUpdated(params: {
+  trigger: ScheduledTrigger;
+  previousEnabled: boolean;
+  scheduleChanged: boolean;
+}): Promise<void> {
   const { trigger, previousEnabled, scheduleChanged } = params;
 
   // Case 1: Disabled -> still disabled = no action
@@ -271,15 +262,12 @@ export async function onTriggerUpdated(
   // Case 2: Enabled -> disabled = signal workflow to stop
   // (past invocations will be cleaned up when re-enabled)
   if (previousEnabled && !trigger.enabled) {
-    await signalStopScheduledTriggerWorkflow(
-      {
-        tenantId: trigger.tenantId,
-        projectId: trigger.projectId,
-        agentId: trigger.agentId,
-        scheduledTriggerId: trigger.id,
-      },
-      db
-    );
+    await signalStopScheduledTriggerWorkflow({
+      tenantId: trigger.tenantId,
+      projectId: trigger.projectId,
+      agentId: trigger.agentId,
+      scheduledTriggerId: trigger.id,
+    });
     return;
   }
 
@@ -302,22 +290,18 @@ export async function onTriggerUpdated(
       );
     }
 
-    await startScheduledTriggerWorkflow(
-      {
-        tenantId: trigger.tenantId,
-        projectId: trigger.projectId,
-        agentId: trigger.agentId,
-        scheduledTriggerId: trigger.id,
-        triggerName: trigger.name,
-      },
-      db
-    );
+    await startScheduledTriggerWorkflow({
+      tenantId: trigger.tenantId,
+      projectId: trigger.projectId,
+      agentId: trigger.agentId,
+      scheduledTriggerId: trigger.id,
+      triggerName: trigger.name,
+    });
     return;
   }
 
   // Case 4: Still enabled but schedule changed = cancel pending and restart workflow
   if (scheduleChanged) {
-    // Cancel pending invocations so the new workflow creates fresh ones with the new schedule
     const cancelledCount = await cancelPendingInvocationsForTrigger(runDbClient)({
       scopes: {
         tenantId: trigger.tenantId,
@@ -334,36 +318,25 @@ export async function onTriggerUpdated(
       );
     }
 
-    await restartScheduledTriggerWorkflow(
-      {
-        tenantId: trigger.tenantId,
-        projectId: trigger.projectId,
-        agentId: trigger.agentId,
-        scheduledTriggerId: trigger.id,
-        triggerName: trigger.name,
-      },
-      db
-    );
+    await restartScheduledTriggerWorkflow({
+      tenantId: trigger.tenantId,
+      projectId: trigger.projectId,
+      agentId: trigger.agentId,
+      scheduledTriggerId: trigger.id,
+      triggerName: trigger.name,
+    });
   }
 }
 
 /**
  * Handle trigger deletion - signal workflow to stop.
  * The workflow will be automatically deleted via cascade when the trigger is deleted.
- * @param db - Optional branch-scoped database client. If not provided, uses manageDbClient.
  */
-export async function onTriggerDeleted(
-  trigger: ScheduledTrigger,
-  db?: AgentsManageDatabaseClient
-): Promise<void> {
-  // Signal the workflow to stop - it will be cascade deleted with the trigger
-  await signalStopScheduledTriggerWorkflow(
-    {
-      tenantId: trigger.tenantId,
-      projectId: trigger.projectId,
-      agentId: trigger.agentId,
-      scheduledTriggerId: trigger.id,
-    },
-    db
-  );
+export async function onTriggerDeleted(trigger: ScheduledTrigger): Promise<void> {
+  await signalStopScheduledTriggerWorkflow({
+    tenantId: trigger.tenantId,
+    projectId: trigger.projectId,
+    agentId: trigger.agentId,
+    scheduledTriggerId: trigger.id,
+  });
 }

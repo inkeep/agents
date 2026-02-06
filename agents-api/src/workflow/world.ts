@@ -10,8 +10,8 @@
 import { createLocalWorld } from '@workflow/world-local';
 import { createWorld as createPostgresWorld } from '@workflow/world-postgres';
 import { createVercelWorld } from '@workflow/world-vercel';
-import { env } from '../../../env';
-import { getLogger } from '../../../logger';
+import { env } from '../env';
+import { getLogger } from '../logger';
 
 const logger = getLogger('workflow-world');
 
@@ -79,8 +79,6 @@ export async function reenqueueRun(runId: string): Promise<void> {
 
     // Queue the workflow again
     await world.queue(queueName, { runId }, { deploymentId });
-
-    logger.info({ runId }, 'Successfully re-enqueued workflow run');
   } catch (error) {
     logger.error(
       { runId, error: error instanceof Error ? error.message : String(error) },
@@ -100,19 +98,12 @@ async function reenqueueRunDirect(
   deploymentId?: string
 ): Promise<void> {
   const queueName = `__wkf_workflow_${workflowName}`;
-
-  logger.info({ runId, workflowName, queueName, deploymentId }, 'Re-enqueueing workflow run');
-
   // Queue the workflow again
   await world.queue(queueName, { runId }, { deploymentId });
-
-  logger.info({ runId }, 'Successfully re-enqueued workflow run');
 }
 
 /**
  * Recover all orphaned workflow runs.
- * Lists all runs with status "running" and re-enqueues them.
- * Works with both postgres world and local world.
  *
  * For postgres world: Jobs are stored in pg-boss, lost on restart without recovery.
  * For local world: Jobs are in-memory setTimeouts, lost on restart.
@@ -120,6 +111,25 @@ async function reenqueueRunDirect(
  *
  * Returns the count of recovered workflows.
  */
+interface WorkflowRun {
+  runId: string;
+  name: string;
+  deploymentId?: string;
+}
+
+async function recoverRun(run: WorkflowRun): Promise<boolean> {
+  try {
+    await reenqueueRunDirect(run.runId, run.name, run.deploymentId);
+    return true;
+  } catch (error) {
+    logger.warn(
+      { runId: run.runId, error: error instanceof Error ? error.message : String(error) },
+      'Failed to recover workflow run'
+    );
+    return false;
+  }
+}
+
 export async function recoverOrphanedWorkflows(): Promise<number> {
   if (!supportsOrphanRecovery()) {
     logger.info({ targetWorld }, 'Orphan recovery skipped - not supported for this world');
@@ -129,59 +139,33 @@ export async function recoverOrphanedWorkflows(): Promise<number> {
   try {
     logger.info({ targetWorld }, 'Checking for orphaned workflow runs...');
 
-    // List all running workflows
-    const result = await world.runs.list({
-      status: 'running',
-      pagination: { limit: 100 },
-      resolveData: 'none',
-    });
+    let recoveredCount = 0;
+    let cursor: string | undefined;
 
-    if (!result.data || result.data.length === 0) {
-      logger.info({}, 'No orphaned workflows found');
-      return 0;
-    }
+    do {
+      const result = await world.runs.list({
+        status: 'running',
+        pagination: { limit: 100, cursor },
+        resolveData: 'none',
+      });
 
-    // Log the structure of the first run for debugging
-    logger.debug(
-      { firstRun: JSON.stringify(result.data[0]), keys: Object.keys(result.data[0] || {}) },
-      'Run object structure'
-    );
+      if (!result.data?.length) {
+        break;
+      }
+
+      for (const run of result.data) {
+        if (await recoverRun(run)) {
+          recoveredCount++;
+        }
+      }
+
+      cursor = result.cursor;
+    } while (cursor);
 
     logger.info(
-      { count: result.data.length },
-      'Found potentially orphaned workflows, re-enqueueing...'
+      { recoveredCount },
+      recoveredCount > 0 ? 'Finished recovering orphaned workflows' : 'No orphaned workflows found'
     );
-
-    let recoveredCount = 0;
-    for (const run of result.data) {
-      // The run object from list may have different property names
-      // Try common property names for ID and workflow name
-      const runId = run.id || run.runId;
-      const workflowName = run.name || run.workflowName;
-      const deploymentId = run.deploymentId || run.deployment_id;
-
-      if (!runId) {
-        logger.warn({ run: JSON.stringify(run) }, 'Skipping run with missing ID');
-        continue;
-      }
-
-      if (!workflowName) {
-        logger.warn({ runId }, 'Skipping run with missing workflow name');
-        continue;
-      }
-
-      try {
-        await reenqueueRunDirect(runId, workflowName, deploymentId);
-        recoveredCount++;
-      } catch (error) {
-        logger.warn(
-          { runId, error: error instanceof Error ? error.message : String(error) },
-          'Failed to recover workflow run'
-        );
-      }
-    }
-
-    logger.info({ recoveredCount }, 'Finished recovering orphaned workflows');
     return recoveredCount;
   } catch (error) {
     logger.error(

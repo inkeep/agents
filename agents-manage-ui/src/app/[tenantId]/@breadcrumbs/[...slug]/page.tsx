@@ -100,8 +100,7 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
     async runs(_id) {
       return 'Run';
     },
-    // Project-level triggers - use static label
-    // Project-level trigger routes: /triggers/webhooks/[agentId]/[triggerId]
+
     async webhooks(agentId: string) {
       const result = await getFullAgentAction(tenantId, projectId, agentId);
       if (result.success) {
@@ -128,13 +127,12 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
   function addCrumb({ segment, label }: { segment: string; label: string }) {
     href += `/${segment}`;
 
-    // These routes don't exist so we don't add them to crumbs list
+    // These routes aren't exist so we don't add it to crumbs list
     const routesWithoutBreadcrumbs = new Set([
       `/${tenantId}/projects/${projectId}/traces/conversations`,
       `/${tenantId}/projects/${projectId}/evaluations/jobs`,
       `/${tenantId}/projects/${projectId}/evaluations/run-configs`,
       `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
-      // Project-level triggers intermediate routes
       `/${tenantId}/projects/${projectId}/triggers/webhooks`,
       `/${tenantId}/projects/${projectId}/triggers/scheduled`,
     ]);

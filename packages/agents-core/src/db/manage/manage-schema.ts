@@ -3,7 +3,6 @@ import {
   boolean,
   doublePrecision,
   foreignKey,
-  integer,
   jsonb,
   numeric,
   pgTable,
