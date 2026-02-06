@@ -41,10 +41,45 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 }
 ```
 
+### Sending Images
+
+Messages can include images alongside text using the `image_url` content type:
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "What's in this image?" },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "https://example.com/image.png",
+            "detail": "auto"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Image URL formats:**
+- HTTP/HTTPS URLs: `https://example.com/image.png`
+- Base64 data URIs: `data:image/png;base64,iVBORw0KGgo...`
+
+**Supported formats:** PNG, JPEG, WebP (GIF is not supported by all providers)
+
+<Note>
+  Images are processed for the current request but are not persisted to conversation history.
+</Note>
+
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — Can be a string or an object with `parts` for multi-part content
+- **`content`** — Can be a string or an array of content items (text and images)
+- **`image_url.detail`** — Optional; controls image processing detail (`"auto"`, `"low"`, or `"high"`)
 - **`conversationId`** — Optional; server generates one if omitted
 
 ### Optional Headers
