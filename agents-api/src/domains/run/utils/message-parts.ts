@@ -1,23 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import type { ContentItem, ImageContentItem } from '../types/chat';
+import { type ContentItem, type ImageContentItem, imageUrlSchema } from '../types/chat';
 
 const logger = getLogger('message-parts');
-
-export const imageUrlSchema = z.union([
-  z.httpUrl(),
-  z
-    .string()
-    .regex(
-      /^data:image\/(png|jpeg|jpg|webp);base64,/,
-      'Image must be PNG, JPEG, or WebP format (GIF not supported by all providers)'
-    )
-    .refine((val) => {
-      const base64Part = val.split(',')[1];
-      return /^[A-Za-z0-9+/]+={0,2}$/.test(base64Part);
-    }, 'Invalid base64 data in image data URI'),
-]);
 
 const isTextContentItem = (
   item: ContentItem

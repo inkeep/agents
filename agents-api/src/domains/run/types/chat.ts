@@ -1,15 +1,37 @@
+import { z } from '@hono/zod-openapi';
+
 export type TextContentItem = {
   type: 'text';
   text: string;
 };
 
-export type ImageContentItem = {
-  type: 'image_url';
-  image_url: {
-    url: string;
-    detail?: 'auto' | 'low' | 'high';
-  };
-};
+export const imageUrlSchema = z.union([
+  z.httpUrl(),
+  z
+    .string()
+    .regex(
+      /^data:image\/(png|jpeg|jpg|webp);base64,/,
+      'Image must be PNG, JPEG, or WebP format (GIF not supported by all providers)'
+    )
+    .refine((val) => {
+      const base64Part = val.split(',')[1];
+      return /^[A-Za-z0-9+/]+={0,2}$/.test(base64Part ?? '');
+    }, 'Invalid base64 data in image data URI'),
+]);
+
+export const imageDetailEnum = ['auto', 'low', 'high'] as const;
+export const imageDetailSchema = z.enum(imageDetailEnum);
+export type ImageDetail = z.infer<typeof imageDetailSchema>;
+
+export const imageContentItemSchema = z.object({
+  type: z.literal('image_url'),
+  image_url: z.object({
+    url: imageUrlSchema,
+    detail: imageDetailSchema.optional(),
+  }),
+});
+
+export type ImageContentItem = z.infer<typeof imageContentItemSchema>;
 
 export type ContentItem = TextContentItem | ImageContentItem;
 

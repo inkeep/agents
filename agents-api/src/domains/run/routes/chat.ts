@@ -18,12 +18,9 @@ import { contextValidationMiddleware, handleContextResolution } from '../context
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { Message } from '../types/chat';
+import { imageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
-import {
-  extractTextFromParts,
-  getMessagePartsFromOpenAIContent,
-  imageUrlSchema,
-} from '../utils/message-parts';
+import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
@@ -64,13 +61,7 @@ const chatCompletionsRoute = createRoute({
                             type: z.literal('text'),
                             text: z.string(),
                           }),
-                          z.object({
-                            type: z.literal('image_url'),
-                            image_url: z.object({
-                              url: imageUrlSchema,
-                              detail: z.enum(['auto', 'low', 'high']).optional(),
-                            }),
-                          }),
+                          imageContentItemSchema,
                         ])
                       ),
                     ])

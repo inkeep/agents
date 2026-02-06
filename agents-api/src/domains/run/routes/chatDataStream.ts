@@ -22,12 +22,9 @@ import { contextValidationMiddleware, handleContextResolution } from '../context
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
+import { imageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
-import {
-  extractTextFromParts,
-  getMessagePartsFromVercelContent,
-  imageUrlSchema,
-} from '../utils/message-parts';
+import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
