@@ -76,6 +76,37 @@ When analyzing a type, you will:
    - Is it impossible to create invalid instances?
    - Are runtime checks appropriate and comprehensive?
 
+6. **Check Type Composition for Illegal States**: Focus on type patterns that allow invalid data:
+
+   **Discriminated Unions (prefer for mutually exclusive states):**
+   ```typescript
+   // GOOD: Type-safe — impossible to have both data and error
+   type Result =
+     | { success: true; data: T }
+     | { success: false; error: string };
+
+   // BAD: Allows illegal state { success: true, data: undefined, error: "oops" }
+   type Result = { success: boolean; data?: T; error?: string };
+   ```
+   **Why it matters:** Optional fields for mutually exclusive states allow illegal combinations at runtime.
+
+   **Type Guards (require for safe narrowing):**
+   ```typescript
+   // GOOD: Type predicate enables safe narrowing
+   function isAdminUser(user: User): user is AdminUser {
+     return 'permissions' in user;
+   }
+
+   // BAD: Assertion without validation — allows invalid data through
+   const admin = user as AdminUser;  // No runtime check!
+   ```
+   **Why it matters:** `as` assertions bypass type checking entirely — if the assertion is wrong, invalid data flows through the system.
+
+   **Detection patterns for type safety issues:**
+   - Optional fields that represent mutually exclusive states → discriminated union
+   - `as` type assertions without accompanying runtime validation → type guard
+   - Union types without a discriminant field → add discriminant or use type guard
+
 **Key Principles:**
 
 - Prefer compile-time guarantees over runtime checks when feasible
@@ -95,6 +126,16 @@ When analyzing a type, you will:
 - Missing validation at construction boundaries
 - Inconsistent enforcement across mutation methods
 - Types that rely on external code to maintain invariants
+- Type designs that allow illegal states:
+  - Optional fields for mutually exclusive states → use discriminated unions
+  - Boolean + optional data/error fields → use `{ success: true; data: T } | { success: false; error: E }`
+  - Union types without discriminant → add a `type` or `kind` field for safe narrowing
+- Unsafe type narrowing:
+  - Using `as` assertions without runtime validation → add type guard with `is` predicate
+  - Inline type assertions for polymorphic data → use discriminated union + type guard
+  - Casting `unknown` without validation → use Zod `.parse()` or manual type guard
+
+**Note:** Type *duplication* and *derivation* concerns (DRY, schema reuse) are reviewed by `pr-review-consistency`. This reviewer focuses on whether types allow **illegal states**.
 
 **Output Format:**
 
