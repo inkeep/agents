@@ -76,120 +76,36 @@ When analyzing a type, you will:
    - Is it impossible to create invalid instances?
    - Are runtime checks appropriate and comprehensive?
 
-6. **Check Schema-Type Derivation**: When new types are introduced, check if they should derive from an existing source:
+6. **Check Type Composition for Illegal States**: Focus on type patterns that allow invalid data:
 
-   | Source | Derivation Pattern | Example |
-   |--------|-------------------|---------|
-   | **Zod/validation schemas** | `z.infer<typeof schema>` | `type User = z.infer<typeof userSchema>` |
-   | **Zod schema extension** | `.extend()`, `.pick()`, `.omit()`, `.partial()` | `InsertSchema.extend({ id: StrictIdSchema })` |
-   | **Database schemas** (Prisma, Drizzle, etc.) | Use generated types | `import { User } from '@prisma/client'` |
-   | **Internal packages** | Import from shared packages | `import { MessagePart } from '@inkeep/agents-core'` |
-   | **External packages/SDKs** | Use exported types | `import { CompletionChoice } from 'openai'` |
-   | **Function signatures** | Use `Parameters<>` or `ReturnType<>` | `type Options = Parameters<typeof createAgent>[0]` |
-   | **Async function returns** | Use `Awaited<ReturnType<>>` | `type Result = Awaited<ReturnType<typeof fetchData>>` |
-   | **Existing domain types** | Use `Pick`, `Omit`, `Partial` | `type CreateUserInput = Omit<User, 'id' | 'createdAt'>` |
-   | **Shared enums/unions** | Reference existing definitions | `import { ContentType } from '../schemas'` |
-   | **Constants objects** | Use `keyof typeof` | `type ConfigKey = keyof typeof configDefaults` |
-   | **Base types** | Use `interface extends` | `interface AdminUser extends User { permissions: string[] }` |
-   | **Type composition** | Use intersection (`&`) | `type FullContext = BaseContext & AuthContext` |
-
-   **Questions to ask:**
-   - Does a Zod schema (or similar validation schema) already define this shape?
-   - Does a database model or ORM already generate this type?
-   - Does an internal shared package export this type or a superset?
-   - Does an external SDK/package export this type?
-   - Is this a subset/variant of an existing type that could use `Pick`/`Omit`/`Partial`?
-   - Is this duplicating a function's parameter or return type?
-   - Is there a base type this should extend rather than duplicating fields?
-   - Is there a constants object whose keys define the valid values?
-
-   **Why this matters:** Manual type definitions that duplicate existing sources will silently drift as those sources evolve, creating subtle bugs where types don't match runtime behavior.
-
-   **Detection patterns:**
-   - New `type X = {` or `interface X {` appearing in a file that also imports from Zod, Prisma, or a schema package
-   - New type with fields that mirror an existing schema, database model, or package export
-   - String literal unions (e.g., `'text' | 'image'`) that duplicate values from an existing enum or union
-   - Types that look like function parameter shapes when that function is imported nearby
-   - Repeated field definitions across multiple interfaces → should use `extends` or intersection
-   - `typeof` used without `keyof` when deriving from constants
-   - Manual async return types when `Awaited<ReturnType<>>` would work
-
-7. **Check Zod Schema Composition**: When new Zod schemas are introduced, verify proper extension patterns:
-
-   **Prefer schema derivation over duplication:**
+   **Discriminated Unions (prefer for mutually exclusive states):**
    ```typescript
-   // GOOD: Extend base schema with stricter/additional fields
-   const InsertSchema = createInsertSchema(table).extend({
-     id: ResourceIdSchema,  // Override with stricter validation
-     metadata: MetadataSchema.optional(),  // Add new field
-   });
-   const UpdateSchema = InsertSchema.partial();  // Derive update from insert
-
-   // BAD: Duplicate schema definition
-   const InsertSchema = z.object({ id: z.string(), name: z.string() });
-   const UpdateSchema = z.object({ id: z.string().optional(), name: z.string().optional() });
-   ```
-
-   **Schema derivation methods:**
-   | Method | Use Case | Example |
-   |--------|----------|---------|
-   | `.extend()` | Add or override fields | `BaseSchema.extend({ newField: z.string() })` |
-   | `.pick()` | Extract subset of fields | `UserSchema.pick({ id: true, name: true })` |
-   | `.omit()` | Remove fields | `UserSchema.omit({ password: true })` |
-   | `.partial()` | Make all fields optional | `InsertSchema.partial()` for Update schemas |
-   | `.merge()` | Combine two schemas | `SchemaA.merge(SchemaB)` |
-   | `.extend().refine()` | Add fields + cross-field validation | `Schema.extend({...}).refine(validator)` |
-
-   **Anti-patterns to flag:**
-   - Parallel Insert/Update schemas with manually duplicated fields
-   - New schema that mirrors an existing schema with minor changes
-   - Using `z.object()` when `.extend()` from a base would work
-   - Repeated field definitions across related schemas
-
-8. **Check Type Composition Patterns**: When reviewing type structure, verify proper use of composition:
-
-   **Discriminated Unions (prefer for polymorphic types):**
-   ```typescript
-   // GOOD: Type-safe with discriminant
+   // GOOD: Type-safe — impossible to have both data and error
    type Result =
      | { success: true; data: T }
      | { success: false; error: string };
 
-   // BAD: Optional fields that should be mutually exclusive
+   // BAD: Allows illegal state { success: true, data: undefined, error: "oops" }
    type Result = { success: boolean; data?: T; error?: string };
    ```
+   **Why it matters:** Optional fields for mutually exclusive states allow illegal combinations at runtime.
 
-   **Type Guards (require for complex narrowing):**
+   **Type Guards (require for safe narrowing):**
    ```typescript
-   // GOOD: Type predicate enables narrowing
+   // GOOD: Type predicate enables safe narrowing
    function isAdminUser(user: User): user is AdminUser {
      return 'permissions' in user;
    }
 
-   // BAD: Inline type assertions without validation
-   const admin = user as AdminUser;
+   // BAD: Assertion without validation — allows invalid data through
+   const admin = user as AdminUser;  // No runtime check!
    ```
+   **Why it matters:** `as` assertions bypass type checking entirely — if the assertion is wrong, invalid data flows through the system.
 
-   **`satisfies` operator (prefer for const objects):**
-   ```typescript
-   // GOOD: Type-safe constant with inferred literal types
-   const config = {
-     timeout: 5000,
-     retries: 3,
-   } satisfies Config;
-
-   // BAD: Type assertion loses literal type information
-   const config: Config = { timeout: 5000, retries: 3 };
-   ```
-
-   **Re-exports (use for public API surfaces):**
-   ```typescript
-   // GOOD: Explicit re-export for API boundary
-   export type { AgentCard } from '@inkeep/agents-core';
-
-   // BAD: Forcing consumers to know internal package structure
-   // (consumers must import from @inkeep/agents-core directly)
-   ```
+   **Detection patterns for type safety issues:**
+   - Optional fields that represent mutually exclusive states → discriminated union
+   - `as` type assertions without accompanying runtime validation → type guard
+   - Union types without a discriminant field → add discriminant or use type guard
 
 **Key Principles:**
 
@@ -210,25 +126,16 @@ When analyzing a type, you will:
 - Missing validation at construction boundaries
 - Inconsistent enforcement across mutation methods
 - Types that rely on external code to maintain invariants
-- Types manually duplicating existing definitions:
-  - New `type`/`interface` mirroring a Zod schema → use `z.infer<typeof schema>`
-  - New `type`/`interface` mirroring a database model → use Prisma/Drizzle generated types
-  - New `type`/`interface` mirroring an SDK type → import from the SDK package
-  - New `type`/`interface` mirroring an internal package type → import from the shared package
-  - Inline string literal unions duplicating existing enums → reference the existing enum/union
-  - Types subsetting existing types → use `Pick<T, K>`, `Omit<T, K>`, or `Partial<T>`
-  - Types duplicating function parameter shapes → use `Parameters<typeof fn>[0]`
-  - Types duplicating async function returns → use `Awaited<ReturnType<typeof fn>>`
-  - Repeated interface fields → use `extends` or intersection (`&`)
+- Type designs that allow illegal states:
   - Optional fields for mutually exclusive states → use discriminated unions
-  - Manual key extraction from constants → use `keyof typeof constObj`
+  - Boolean + optional data/error fields → use `{ success: true; data: T } | { success: false; error: E }`
+  - Union types without discriminant → add a `type` or `kind` field for safe narrowing
 - Unsafe type narrowing:
-  - Using `as` assertions without runtime validation → add type guard
+  - Using `as` assertions without runtime validation → add type guard with `is` predicate
   - Inline type assertions for polymorphic data → use discriminated union + type guard
-- Zod schema duplication:
-  - Parallel Insert/Update schemas with same fields → use `.partial()` derivation
-  - New schema duplicating existing schema fields → use `.extend()`, `.pick()`, or `.omit()`
-  - Inline `z.object()` when a base schema exists → extend the base schema
+  - Casting `unknown` without validation → use Zod `.parse()` or manual type guard
+
+**Note:** Type *duplication* and *derivation* concerns (DRY, schema reuse) are reviewed by `pr-review-consistency`. This reviewer focuses on whether types allow **illegal states**.
 
 **Output Format:**
 

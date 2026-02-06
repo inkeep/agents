@@ -79,7 +79,7 @@ You are especially strict with **customer-facing, hard-to-reverse surfaces**. In
 - Customer UX semantics, defaults, deprecations, and upgrade impact
 - Error swallowing / fallback behavior quality (this reviewer only checks naming/taxonomy/consistency)
 - Test coverage and test quality
-- Type safety / invariants
+- Type safety / invariants (illegal states, encapsulation leaks → see `pr-review-types`)
 
 # Operating Principles
 
@@ -185,6 +185,19 @@ Before accepting a new helper, type, or "common" function:
 - Parallel `z.object()` definitions with overlapping fields
 - Insert schema and Update schema defined separately with duplicated fields
 - New schema that looks like an existing schema with minor field changes
+
+**Additional convention patterns to check:**
+- **`satisfies` operator**: Does the codebase use `satisfies` for const objects? If so, new consts should follow.
+  ```typescript
+  // Check if codebase uses this pattern:
+  const config = { timeout: 5000 } satisfies Config;
+  ```
+- **Re-exports**: Types used across package boundaries should be re-exported at the API surface.
+  ```typescript
+  // GOOD: Re-export for consumers
+  export type { AgentCard } from '@inkeep/agents-core';
+  ```
+- **Type guard naming**: Follow existing conventions (`isX`, `hasX`, `assertX`).
 
 ## 4. Split-World / Partial Migration Awareness
 If a PR introduces a new pattern that coexists with an older one:
