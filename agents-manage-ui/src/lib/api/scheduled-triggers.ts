@@ -8,20 +8,19 @@
 'use server';
 
 import type {
-  ScheduledTriggerApiSelectSchema,
-  ScheduledTriggerInvocationApiSelectSchema,
-  ScheduledTriggerWithRunInfoSchema,
+  ScheduledTriggerApiSelect,
+  ScheduledTriggerInvocationApiSelect,
+  ScheduledTriggerWithRunInfo as ScheduledTriggerWithRunInfoType,
 } from '@inkeep/agents-core/client-exports';
 import { cache } from 'react';
-import type { z } from 'zod';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Type definitions
-export type ScheduledTrigger = z.infer<typeof ScheduledTriggerApiSelectSchema>;
-export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationApiSelectSchema>;
-export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
+export type ScheduledTrigger = ScheduledTriggerApiSelect;
+export type ScheduledTriggerInvocation = ScheduledTriggerInvocationApiSelect;
+export type ScheduledTriggerWithRunInfo = ScheduledTriggerWithRunInfoType;
 
 export type CreateScheduledTriggerInput = {
   id?: string;

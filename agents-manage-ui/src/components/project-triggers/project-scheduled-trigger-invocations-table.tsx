@@ -390,7 +390,7 @@ export function ProjectScheduledTriggerInvocationsTable({
                     <TableCell>
                       {invocation.conversationIds && invocation.conversationIds.length > 0 ? (
                         <div className="flex flex-col gap-1">
-                          {invocation.conversationIds.map((convId, idx) => (
+                          {invocation.conversationIds.map((convId: string, idx: number) => (
                             <Link
                               key={convId}
                               href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}

@@ -1,5 +1,4 @@
 import { Play, Settings } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -20,12 +19,6 @@ interface ToolbarProps {
 export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
-  const { tenantId, projectId, agentId } = useParams<{
-    tenantId: string;
-    projectId: string;
-    agentId: string;
-  }>();
-
   const { canView, canUse, canEdit } = useProjectPermissions();
 
   const commonProps = {
