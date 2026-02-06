@@ -3,6 +3,8 @@
  */
 
 export const ANTHROPIC_MODELS = {
+  CLAUDE_OPUS_4_6: 'anthropic/claude-opus-4-6',
+  CLAUDE_OPUS_4_6_20260205: 'anthropic/claude-opus-4-6-20260205',
   CLAUDE_OPUS_4_5: 'anthropic/claude-opus-4-5',
   CLAUDE_OPUS_4_5_20251101: 'anthropic/claude-opus-4-5-20251101',
   CLAUDE_OPUS_4_1: 'anthropic/claude-opus-4-1',
