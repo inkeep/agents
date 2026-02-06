@@ -383,7 +383,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             return {
               nodes: updateNodeStatus((node) => {
                 // this prevents the node from highlighting if the copilot triggers this event
-                if (data?.details?.agentId !== state.metadata.id) {
+                if (data?.details?.agentId !== /* agentId */ location.pathname.split('/')[5]) {
                   return;
                 }
                 if (node.data.isDefault) {
