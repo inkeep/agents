@@ -14,7 +14,7 @@ import { useAgentStore } from '@/features/agent/state/use-agent-store';
 type PendingNavigation = () => void;
 
 interface UnsavedChangesDialogProps {
-  onSubmit: () => Promise<boolean>;
+  onSubmit: () => Promise<void>;
 }
 
 export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {

@@ -81,7 +81,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     contextConfig,
     statusUpdates,
     stopWhen,
-    models,
+    models = {},
   } = agent.data;
 
   const defaultValues = {

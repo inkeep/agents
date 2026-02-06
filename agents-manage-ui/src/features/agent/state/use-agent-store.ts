@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import {
   type AnimatedNode,

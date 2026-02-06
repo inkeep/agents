@@ -27,7 +27,7 @@ function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
   });
 }
 
-export function createCustomHeadersSchema(customHeaders: string) {
+export function createCustomHeadersSchema(customHeaders?: string) {
   const zodSchema = z
     .string()
     .trim()
