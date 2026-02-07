@@ -86,6 +86,7 @@ export const StopWhenSchema = z
     transferCountIs: z
       .int()
       .positive()
+      // cc @sarah in front end max was set as 100
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
