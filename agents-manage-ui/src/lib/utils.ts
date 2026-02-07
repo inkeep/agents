@@ -1,5 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
+import type { FieldPath } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
+import { z } from 'zod';
 
 export const css = String.raw;
 
@@ -66,11 +68,19 @@ export function createLookup<T extends { id: string }>(
 ): Record<string, T> {
   if (!components) return {};
 
-  return components.reduce(
-    (map, component) => {
-      map[component.id] = component;
-      return map;
-    },
-    {} as Record<string, T>
-  );
+  return components.reduce<Record<string, T>>((map, component) => {
+    map[component.id] = component;
+    return map;
+  }, {});
+}
+
+export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.infer<T>>) {
+  const [firstKey, ...rest] = key.split('.');
+
+  const nestedSchema = schema instanceof z.ZodObject ? schema.shape[firstKey] : schema;
+
+  if (rest.length) {
+    return isRequired(nestedSchema, rest.join('.'));
+  }
+  return !nestedSchema.isOptional();
 }
