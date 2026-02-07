@@ -2,7 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-- improve typing for form elements based on zod transformed values
-- remove unused `FormFieldWrapper.rules` prop
-- add `GenericTextarea.description` prop
-- add `isRequired` and `serializeJson` utils
+Improve form component type inference from Zod schemas with transformed values. This ensures proper TypeScript types flow through form fields when using Zod's `.transform()` methods. Also adds `isRequired` and `serializeJson` utility functions for form validation.
