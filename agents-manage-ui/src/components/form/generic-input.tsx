@@ -1,6 +1,6 @@
 'use client';
 
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { FormFieldWrapper } from './form-field-wrapper';
@@ -14,7 +14,7 @@ interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
   min?: string;
   max?: string;
   disabled?: boolean;
-  description?: string | JSX.Element;
+  description?: ReactNode;
   isRequired?: boolean;
 }
 
