@@ -109,3 +109,4 @@ progress.txt
 *-actual-chromium.png
 
 .pnpm-store/
+.vercel
