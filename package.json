@@ -100,6 +100,9 @@
     ],
     "agents-api/**/*.{ts,tsx}": [
       "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
+    ],
+    ".claude/agents/*.md": [
+      "bash -c './scripts/validate-agents.sh'"
     ]
   },
   "packageManager": "pnpm@10.10.0"

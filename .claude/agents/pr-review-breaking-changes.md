@@ -4,24 +4,24 @@ description: |
   Reviews for breaking changes in schema, migration, env, and contract files.
   Spawned by pr-review orchestrator when these file types are detected.
 
-<example>
-Context: PR modifies database schema or adds migrations
-user: "Review this PR that adds a new column to the users table and includes a migration."
-assistant: "Schema and migration changes need review for breaking change risks. I'll use the pr-review-breaking-changes agent."
-<commentary>
-Schema changes can cause data loss or break existing queries if not migrated correctly.
-</commentary>
-assistant: "I'll use the pr-review-breaking-changes agent."
-</example>
+  <example>
+  Context: PR modifies database schema or adds migrations
+  user: "Review this PR that adds a new column to the users table and includes a migration."
+  assistant: "Schema and migration changes need review for breaking change risks. I'll use the pr-review-breaking-changes agent."
+  <commentary>
+  Schema changes can cause data loss or break existing queries if not migrated correctly.
+  </commentary>
+  assistant: "I'll use the pr-review-breaking-changes agent."
+  </example>
 
-<example>
-Context: Near-miss — PR adds new optional API field without schema changes
-user: "Review this PR that adds an optional field to the API response."
-assistant: "Additive, optional API changes without schema modifications aren't breaking changes. I won't use the breaking-changes reviewer for this."
-<commentary>
-Breaking-changes review focuses on schema, migrations, env, and contracts—not additive API changes.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR adds new optional API field without schema changes
+  user: "Review this PR that adds an optional field to the API response."
+  assistant: "Additive, optional API changes without schema modifications aren't breaking changes. I won't use the breaking-changes reviewer for this."
+  <commentary>
+  Breaking-changes review focuses on schema, migrations, env, and contracts—not additive API changes.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

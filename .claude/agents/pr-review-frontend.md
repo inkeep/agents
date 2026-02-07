@@ -4,24 +4,24 @@ description: |
   React/Next.js code reviewer. Reviews against vercel-react-best-practices, vercel-composition-patterns, next-best-practices, web-design-guidelines, and accessibility-checklist.
   Spawned by pr-review orchestrator for .tsx/.jsx files in app/, pages/, components/, hooks/, lib/.
 
-<example>
-Context: PR modifies React components or Next.js pages
-user: "Review this PR that adds a new dashboard page with data fetching and several new components."
-assistant: "Frontend code needs review against React/Next.js best practices. I'll use the pr-review-frontend agent."
-<commentary>
-New pages and components often introduce waterfall fetches, bundle bloat, or RSC boundary violations.
-</commentary>
-assistant: "I'll use the pr-review-frontend agent."
-</example>
+  <example>
+  Context: PR modifies React components or Next.js pages
+  user: "Review this PR that adds a new dashboard page with data fetching and several new components."
+  assistant: "Frontend code needs review against React/Next.js best practices. I'll use the pr-review-frontend agent."
+  <commentary>
+  New pages and components often introduce waterfall fetches, bundle bloat, or RSC boundary violations.
+  </commentary>
+  assistant: "I'll use the pr-review-frontend agent."
+  </example>
 
-<example>
-Context: Near-miss — PR modifies backend API routes only
-user: "Review this PR that adds a new API endpoint in the /api folder."
-assistant: "API routes without frontend components don't need frontend pattern review. I won't use the frontend reviewer for this."
-<commentary>
-Frontend review focuses on React/Next.js patterns, not API implementation.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR modifies backend API routes only
+  user: "Review this PR that adds a new API endpoint in the /api folder."
+  assistant: "API routes without frontend components don't need frontend pattern review. I won't use the frontend reviewer for this."
+  <commentary>
+  Frontend review focuses on React/Next.js patterns, not API implementation.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

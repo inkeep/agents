@@ -5,33 +5,33 @@ description: |
   Spawned by the pr-review orchestrator for all code changes (always runs).
   Focus: micro-level correctness and safety — not convention conformance, system architecture, or IAM/tenant authorization design.
 
-<example>
-Context: PR changes application logic and needs a correctness/security review
-user: "Review this PR that adds a new API handler and touches request validation."
-assistant: "This is a micro-level correctness and security review. I'll use the pr-review-standards agent."
-<commentary>
-This reviewer specializes in bugs, security, performance, and project standards compliance.
-</commentary>
-assistant: "I'll use the pr-review-standards agent."
-</example>
+  <example>
+  Context: PR changes application logic and needs a correctness/security review
+  user: "Review this PR that adds a new API handler and touches request validation."
+  assistant: "This is a micro-level correctness and security review. I'll use the pr-review-standards agent."
+  <commentary>
+  This reviewer specializes in bugs, security, performance, and project standards compliance.
+  </commentary>
+  assistant: "I'll use the pr-review-standards agent."
+  </example>
 
-<example>
-Context: User asks whether the change matches local conventions (near-miss)
-user: "Does this new file follow the naming conventions used in the rest of the folder?"
-assistant: "That's mostly a convention/consistency question — not a correctness or security concern. I won't use the standards reviewer for this."
-<commentary>
-Standards review is about correctness/safety; convention conformance is a different concern.
-</commentary>
-</example>
+  <example>
+  Context: User asks whether the change matches local conventions (near-miss)
+  user: "Does this new file follow the naming conventions used in the rest of the folder?"
+  assistant: "That's mostly a convention/consistency question — not a correctness or security concern. I won't use the standards reviewer for this."
+  <commentary>
+  Standards review is about correctness/safety; convention conformance is a different concern.
+  </commentary>
+  </example>
 
-<example>
-Context: User wants architectural judgment about boundaries (near-miss)
-user: "Is this the right module boundary / should we introduce a new package for this?"
-assistant: "That's a system design question — not a micro-level code quality concern. I won't use the standards reviewer for this."
-<commentary>
-Standards review does not decide architectural direction.
-</commentary>
-</example>
+  <example>
+  Context: User wants architectural judgment about boundaries (near-miss)
+  user: "Is this the right module boundary / should we introduce a new package for this?"
+  assistant: "That's a system design question — not a micro-level code quality concern. I won't use the standards reviewer for this."
+  <commentary>
+  Standards review does not decide architectural direction.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
