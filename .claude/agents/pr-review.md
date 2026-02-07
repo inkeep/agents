@@ -159,10 +159,10 @@ Cluster findings describing the same issue:
 ### 4.2 Relevancy Check
 
 For each finding, ask:
-1. **Is this applicable and attributable to changes in this PR?** (not a pre-existing issue) → If No, **DROP**
-2. **Is this issue actually addressed elsewhere?** (e.g., sanitization happens upstream and that's the better place) → If Yes, **DROP**
-3. **Are the plausible resolutions reasonably addressable within the scope of this PR?** → If No, **DROP**
-4. **Has this issue been raised in the PR already?** → If pending/unresolved, include in **Pending Recommendations** only (per No Duplication Principle). If resolved, **DROP**.
+1. **Is this applicable and attributable to changes in this PR?** (not a pre-existing issue) → If No, **DISCARD**
+2. **Is this issue actually addressed elsewhere?** (e.g., sanitization happens upstream and that's the better place) → If Yes, **DISCARD**
+3. **Are the plausible resolutions reasonably addressable within the scope of this PR?** → If No, **DISCARD**
+4. **Has this issue been raised in the PR already?** → If pending/unresolved, include in **Pending Recommendations** only (per No Duplication Principle). If resolved, **DISCARD**.
    - Check **both** `Existing Review Threads` (inline comments on diff lines) AND `Previous Reviews` (findings in prior review bodies).
    - *Pending* = user has not declined/closed it, no subsequent commits address it, and it remains relevant to the current PR state.
    
@@ -424,7 +424,7 @@ If you added Inline Comments to the pending review in Phase 5, include a brief l
 - 🟠 `utils.ts:88` Issue summary
 ````
 
-**Rule** - Any issues listed here SHOULD BE **ONLY** here and **NOT** in the "Main" section (Critical / Major / Minor)
+**Rule** - Any issues listed here SHOULD BE **ONLY** here and **NOT** in the Main section (Critical / Major / Minor / Consider)
 
 **Format:** `- {severity_emoji} \`{file}:{line}\` {paraphrased issue <1 sentence}`
 
