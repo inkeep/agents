@@ -47,7 +47,6 @@ import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
   deserializeAgentData,
-  isContextConfigParseError,
   serializeAgentData,
   validateSerializedData,
 } from '@/features/agent/domain';
@@ -729,35 +728,15 @@ export const Agent: FC<AgentProps> = ({
   const form = useFullAgentFormContext();
 
   const onFormSubmit: HandleSubmitParams[0] = async (data): Promise<void> => {
-    let serializedData: ReturnType<typeof serializeAgentData>;
-    try {
-      serializedData = serializeAgentData(
-        nodes,
-        edges,
-        dataComponentLookup,
-        artifactComponentLookup,
-        agentToolConfigLookup,
-        subAgentExternalAgentConfigLookup,
-        subAgentTeamAgentConfigLookup
-      );
-    } catch (error) {
-      if (isContextConfigParseError(error)) {
-        const errorObjects = [
-          {
-            message: error.message,
-            field: error.field,
-            code: 'invalid_json',
-            path: [error.field],
-          },
-        ];
-        const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
-        setErrors(errorSummary);
-        const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage);
-        return;
-      }
-      throw error;
-    }
+    const serializedData = serializeAgentData(
+      nodes,
+      edges,
+      dataComponentLookup,
+      artifactComponentLookup,
+      agentToolConfigLookup,
+      subAgentExternalAgentConfigLookup,
+      subAgentTeamAgentConfigLookup
+    );
 
     const functionToolNodeMap = new Map<string, string>();
     nodes.forEach((node) => {

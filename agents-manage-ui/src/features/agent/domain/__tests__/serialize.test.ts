@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { isContextConfigParseError, serializeAgentData } from '../serialize';
+import { serializeAgentData } from '../serialize';
 
 describe('serializeAgentData', () => {
   describe('models object processing', () => {
@@ -470,71 +470,6 @@ describe('serializeAgentData', () => {
           tool2: { needsApproval: false },
         },
       });
-    });
-  });
-
-  describe('`contextConfig` parsing', () => {
-    const baseNodes: Node<AgentNodeData>[] = [];
-    const edges: Edge[] = [];
-
-    it('throws when `contextVariables` contains invalid JSON', () => {
-      try {
-        serializeAgentData(baseNodes, edges, {}, {}, {});
-        throw new Error('Expected `serializeAgentData` to throw');
-      } catch (error) {
-        expect(isContextConfigParseError(error)).toBe(true);
-        if (isContextConfigParseError(error)) {
-          expect(error.field).toBe('contextVariables');
-        }
-      }
-    });
-
-    it('throws when `headersSchema` contains invalid JSON', () => {
-      try {
-        serializeAgentData(baseNodes, edges, {}, {}, {});
-        throw new Error('Expected `serializeAgentData` to throw');
-      } catch (error) {
-        expect(isContextConfigParseError(error)).toBe(true);
-        if (isContextConfigParseError(error)) {
-          expect(error.field).toBe('headersSchema');
-        }
-      }
-    });
-
-    it('allows valid JSON payloads', () => {
-      const result = serializeAgentData(baseNodes, edges, {}, {}, {});
-      expect(result).toBeTruthy();
-    });
-
-    it('preserves contextConfigId with null values when clearing existing contextConfig fields', () => {
-      const existingContextConfigId = 'existing-context-config-id';
-      const result = serializeAgentData(baseNodes, edges, {}, {}, {});
-
-      // When there's an existing contextConfigId but fields are cleared,
-      // contextConfig should still be included with null values so backend can clear it
-      expect((result as any).contextConfigId).toBe(existingContextConfigId);
-    });
-
-    it('does not include contextConfig when no existing id and all fields are empty', () => {
-      const result = serializeAgentData(baseNodes, edges, {}, {}, {});
-
-      // When there's no existing contextConfigId and fields are empty,
-      // contextConfig should not be included
-      expect((result as any).contextConfigId).toBeUndefined();
-    });
-
-    it('preserves existing contextConfigId when only headersSchema is cleared', () => {
-      const existingContextConfigId = 'existing-context-config-id';
-      const result = serializeAgentData(baseNodes, edges, {}, {}, {});
-
-      expect((result as any).contextConfigId).toBe(existingContextConfigId);
-    });
-
-    it('preserves existing contextConfigId when only contextVariables is cleared', () => {
-      const existingContextConfigId = 'existing-context-config-id';
-      const result = serializeAgentData(baseNodes, edges, {}, {}, {});
-
-      expect((result as any).contextConfigId).toBe(existingContextConfigId);
     });
   });
 });

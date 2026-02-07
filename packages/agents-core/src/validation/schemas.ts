@@ -88,14 +88,14 @@ export const StopWhenSchema = z
   .object({
     transferCountIs: z
       .int()
-      .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+      .positive()
       // cc @sarah in front end max was set as 100
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
     stepCountIs: z
       .int()
-      .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
+      .positive()
       .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
       .optional()
       .describe('The maximum number of steps to trigger the stop condition.'),
@@ -1838,7 +1838,7 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
-    id: ResourceIdSchema,
+    id: ResourceIdSchema.optional(),
     // TODO use HeadersSchema
     headersSchema: z
       .record(z.string(), z.unknown(), 'Must be valid JSON object')

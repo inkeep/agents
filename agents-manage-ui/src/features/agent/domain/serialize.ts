@@ -22,18 +22,6 @@ type ExtendedAgent = InternalAgentDefinition & {
   type: 'internal';
 };
 
-type ContextConfigParseError = Error & {
-  field: 'contextVariables' | 'headersSchema';
-};
-
-export function isContextConfigParseError(error: unknown): error is ContextConfigParseError {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const candidate = error as Record<string, unknown>;
-  return candidate.name === 'ContextConfigParseError' && typeof candidate.field === 'string';
-}
-
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
 
 /**
