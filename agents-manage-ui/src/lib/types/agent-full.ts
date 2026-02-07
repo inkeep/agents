@@ -33,7 +33,7 @@ const StringToJsonSchema = z
 const NullToUndefinedSchema = z
   // Normalize number input: <input type="number"> produce `null` for empty value,
   // but this schema expects `undefined` (optional field), not `null`.
-  .transform((value) => (value === null ? undefined : value));
+  .transform((value: number) => (value === null ? undefined : value));
 
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
@@ -42,7 +42,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   prompt: true,
 }).extend({
   stopWhen: StopWhenSchema.extend({
-    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs),
+    transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
   }).optional(),
   contextConfig: z
     .strictObject({
@@ -53,8 +53,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
     .optional(),
   statusUpdates: z.strictObject({
     ...StatusUpdatesSchema,
-    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents),
-    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds),
+    numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),
+    timeInSeconds: NullToUndefinedSchema.pipe(StatusUpdatesSchema.timeInSeconds).optional(),
     statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),
   }),
   models: z.strictObject({
