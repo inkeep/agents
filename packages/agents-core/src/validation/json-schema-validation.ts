@@ -1,6 +1,7 @@
 import { Type } from '@sinclair/typebox';
 import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { z } from 'zod';
+import type { JSONSchema } from 'zod/v4/core';
 
 // TypeBox schema for valid JSON Schema Draft 7
 const JsonSchemaPropertySchema = Type.Object({
@@ -163,7 +164,7 @@ function validateLlmRequirements(schema: Record<string, unknown>): ValidationErr
 /**
  * Comprehensive JSON Schema validation for LLM usage
  */
-export function validateJsonSchemaForLlm(parsed: Record<string, unknown>): ValidationResult {
+export function validateJsonSchemaForLlm(parsed: JSONSchema.BaseSchema): ValidationResult {
   const warnings: string[] = [];
 
   const schemaErrors = validateJsonSchema(parsed);
