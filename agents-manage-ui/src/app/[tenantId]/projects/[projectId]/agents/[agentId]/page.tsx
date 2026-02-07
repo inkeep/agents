@@ -114,8 +114,6 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     },
   };
 
-  console.log(defaultValues);
-
   return (
     <FullAgentFormProvider defaultValues={defaultValues}>
       <Agent
