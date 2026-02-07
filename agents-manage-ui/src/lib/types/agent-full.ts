@@ -12,7 +12,7 @@ import {
   AgentWithinContextOfProjectSchema,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { transformToJson } from '@/lib/json-schema-validation';
+import { transformToJson } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
 
 const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;

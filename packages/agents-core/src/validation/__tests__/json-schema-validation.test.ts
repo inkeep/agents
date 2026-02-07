@@ -1,0 +1,176 @@
+import { JsonSchemaForLlmSchema } from '../json-schema-validation';
+import type { JSONSchema } from 'zod/v4/core';
+
+function createValidSchema(): JSONSchema.BaseSchema {
+  return {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        description: 'A name',
+      },
+    },
+    required: ['name'],
+  };
+}
+
+describe('JsonSchemaForLlmSchema', () => {
+  test('returns invalid when top-level type is not object', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      ...createValidSchema(),
+      type: 'array',
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'invalid_value',
+        path: ['type'],
+        message: 'Schema must have type: "object" for LLM compatibility',
+        values: ['object'],
+      },
+    ]);
+  });
+
+  test('returns invalid when properties is missing', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      type: 'object',
+      required: ['name'],
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'record',
+        path: ['properties'],
+        message: 'Schema must have a "properties" object',
+      },
+    ]);
+  });
+
+  test('returns invalid when required is not an array', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      ...createValidSchema(),
+      required: 'name',
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'array',
+        path: ['required'],
+        message: 'Schema must have a "required" array',
+      },
+    ]);
+  });
+
+  test('returns custom property description error when property description is missing', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+      required: ['name'],
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'string',
+        path: ['properties', 'name', 'description'],
+        message: 'Each property must have a "description" for LLM compatibility',
+      },
+    ]);
+  });
+
+  test('returns custom property type error when property type is invalid', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'unsupported-type',
+          description: 'A name',
+        },
+      },
+      required: ['name'],
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'invalid_value',
+        path: ['properties', 'name', 'type'],
+        message: 'Each property must have a valid "type"',
+        values: ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'],
+      },
+    ]);
+  });
+
+  test('returns schema error for other invalid property fields', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'A name',
+          minimum: '0',
+        },
+      },
+      required: ['name'],
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'number',
+        path: ['properties', 'name', 'minimum'],
+        message: 'Invalid input: expected number, received string',
+      },
+    ]);
+  });
+
+  test('returns error when required property is not present in properties', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'A name',
+        },
+      },
+      required: ['missing'],
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'custom',
+        path: ['required'],
+        message: 'Required property "missing" must exist in properties',
+      },
+    ]);
+  });
+
+  test('returns error when property description is blank after trimming', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: '   ',
+        },
+      },
+      required: ['name'],
+    });
+
+    expect((result as any).error.issues).toEqual([
+      {
+        code: 'too_small',
+        minimum: 1,
+        inclusive: true,
+        origin: 'string',
+        path: ['properties', 'name', 'description'],
+        message: 'Each property must have a non-empty description for LLM compatibility',
+      },
+    ]);
+  });
+});

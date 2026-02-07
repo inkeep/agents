@@ -139,7 +139,7 @@ describe('validation', () => {
     it('should disallow null as input for json editors', () => {
       const result = FullAgentUpdateSchema.safeParse(createSchema('null'));
       expect(result.success).toBe(false);
-      expect(JSON.parse((result.error as any).message)).toStrictEqual([
+      expect((result as any).error.issues).toStrictEqual([
         {
           code: 'custom',
           path: ['contextConfig', 'headersSchema'],
@@ -193,5 +193,5 @@ function getErrorObject({
   if (result.success) {
     throw new Error('Must throw zod error');
   }
-  return JSON.parse(result.error.message);
+  return result.error.issues;
 }
