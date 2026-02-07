@@ -27,7 +27,7 @@ function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
   });
 }
 
-export function createCustomHeadersSchema(customHeaders: string) {
+export function createCustomHeadersSchema(customHeaders?: string) {
   const zodSchema = z
     .string()
     .trim()
@@ -35,7 +35,7 @@ export function createCustomHeadersSchema(customHeaders: string) {
     // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
     .superRefine((value, ctx) => {
       // First validate default schema
-      const result = DefaultHeadersSchema.safeParse(value);
+      const result = HeadersSchema.safeParse(value);
       if (!result.success) {
         addIssue(ctx, result.error);
         return;

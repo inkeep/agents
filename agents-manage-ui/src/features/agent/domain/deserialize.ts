@@ -10,9 +10,9 @@ import {
   NodeType,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
+import type { PartialFullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
-import type { PartialFullAgentDefinition } from '@/lib/validation';
 
 interface TransformResult {
   nodes: Node[];

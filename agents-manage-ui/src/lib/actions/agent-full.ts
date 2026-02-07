@@ -9,7 +9,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
-import type { AgentInput, FullAgentDefinition, FullAgentResponse } from '@/lib/validation';
+import type { FullAgentDefinition, FullAgentResponse } from '@/lib/types/agent-full';
+import type { AgentInput } from '@/lib/validation';
 import {
   ApiError,
   createAgent as apiCreateAgent,

@@ -68,6 +68,7 @@ import type { ExternalAgent } from '@/lib/api/external-agents';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
+  FullAgentResponse,
   SubAgentExternalAgentConfig,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfig,
@@ -78,7 +79,6 @@ import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import type { FullAgentResponse } from '@/lib/validation';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(

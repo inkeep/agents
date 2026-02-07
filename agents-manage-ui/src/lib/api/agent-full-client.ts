@@ -5,7 +5,8 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
-import type { AgentInput, FullAgentDefinition } from '@/lib/validation';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
+import type { AgentInput } from '@/lib/validation';
 import type {
   Agent,
   CreateAgentResponse,
