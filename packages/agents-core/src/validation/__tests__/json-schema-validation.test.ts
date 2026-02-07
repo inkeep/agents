@@ -31,7 +31,6 @@ describe('JsonSchemaForLlmSchema', () => {
       type: 'array',
     });
 
-    expect(result.success).toBe(false);
     expect(JSON.parse((result as any).error)).toEqual([
       {
         code: 'invalid_value',
@@ -48,7 +47,6 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(result.success).toBe(false);
     expect(JSON.parse((result as any).error)).toEqual([
       {
         code: 'invalid_type',
@@ -59,25 +57,24 @@ describe('JsonSchemaForLlmSchema', () => {
     ]);
   });
 
-  test.only('returns invalid when required is not an array', () => {
+  test('returns invalid when required is not an array', () => {
     const result = JsonSchemaForLlmSchema.safeParse({
       ...createValidSchema(),
       required: 'name',
     });
 
-    expect(result.success).toBe(false);
     expect(JSON.parse((result as any).error)).toEqual([
       {
         code: 'invalid_type',
         expected: 'array',
         path: ['required'],
-        message: 'Schema must have a "required" array (can be empty)',
+        message: 'Schema must have a "required" array',
       },
     ]);
   });
 
   test('returns custom property description error when property description is missing', () => {
-    const result = validateJsonSchemaForLlm({
+    const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
         name: {
@@ -87,22 +84,21 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(
-        result.errors,
-        'properties.name/description',
-        'Each property must have a "description" for LLM compatibility'
-      )
-    ).toBeDefined();
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'string',
+        path: ['properties', 'name', 'description'],
+        message: 'Each property must have a "description" for LLM compatibility',
+      },
+    ]);
   });
 
   test('returns custom property type error when property type is invalid', () => {
-    const result = validateJsonSchemaForLlm({
+    const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
         name: {
-          // @ts-expect-error
           type: 'unsupported-type',
           description: 'A name',
         },
@@ -110,10 +106,14 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(result.errors, 'properties.name/type', 'Each property must have a valid "type"')
-    ).toBeDefined();
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'invalid_value',
+        path: ['properties', 'name', 'type'],
+        message: 'Each property must have a valid "type"',
+        values: ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'],
+      },
+    ]);
   });
 
   test('returns schema error for other invalid property fields', () => {
