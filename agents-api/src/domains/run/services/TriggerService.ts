@@ -581,7 +581,7 @@ async function dispatchExecution(params: {
  * Execute the agent asynchronously.
  * This runs after the webhook response is sent.
  */
-async function executeAgentAsync(params: {
+export async function executeAgentAsync(params: {
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -754,7 +754,7 @@ async function executeAgentAsync(params: {
 
         // Execute the agent
         const executionHandler = new ExecutionHandler();
-        await executionHandler.execute({
+        const result = await executionHandler.execute({
           executionContext,
           conversationId,
           userMessage,
@@ -764,6 +764,10 @@ async function executeAgentAsync(params: {
           sseHelper: noOpStreamHelper,
           emitOperations: false,
         });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Agent execution failed');
+        }
 
         // Update status to success
         await updateTriggerInvocationStatus(runDbClient)({

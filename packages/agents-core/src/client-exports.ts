@@ -31,6 +31,11 @@ import {
   MAX_ID_LENGTH,
   type ModelSettings,
   ModelSettingsSchema,
+  type ScheduledTriggerApiInsertSchema,
+  type ScheduledTriggerApiSelectSchema,
+  type ScheduledTriggerApiUpdateSchema,
+  type ScheduledTriggerInvocationApiSelectSchema,
+  type ScheduledTriggerWithRunInfoSchema,
   type SignatureSource,
   type SignatureVerificationConfig,
   type SignedComponent,
@@ -58,10 +63,22 @@ export {
 };
 
 export {
+  CronExpressionSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
   ResourceIdSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInvocationApiSelectSchema,
+  ScheduledTriggerInvocationListResponse,
+  ScheduledTriggerInvocationResponse,
+  ScheduledTriggerInvocationStatusEnum,
+  ScheduledTriggerListResponse,
+  ScheduledTriggerResponse,
+  ScheduledTriggerWithRunInfoListResponse,
+  ScheduledTriggerWithRunInfoSchema,
   SignatureVerificationConfigSchema,
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
@@ -289,6 +306,13 @@ export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
 export type TriggerApiUpdate = z.infer<typeof TriggerApiUpdateSchema>;
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+export type ScheduledTriggerInvocationApiSelect = z.infer<
+  typeof ScheduledTriggerInvocationApiSelectSchema
+>;
+export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;

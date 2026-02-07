@@ -23,16 +23,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { deleteTriggerAction, updateTriggerEnabledAction } from '@/lib/actions/triggers';
-import type { Trigger } from '@/lib/api/triggers';
+import type { TriggerWithAgent } from '@/lib/api/project-triggers';
 
-interface TriggersTableProps {
-  triggers: Trigger[];
+interface ProjectTriggersTableProps {
+  triggers: TriggerWithAgent[];
   tenantId: string;
   projectId: string;
-  agentId: string;
 }
 
-export function TriggersTable({ triggers, tenantId, projectId, agentId }: TriggersTableProps) {
+export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectTriggersTableProps) {
   const router = useRouter();
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
 
@@ -46,7 +45,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
     }
   };
 
-  const toggleEnabled = async (triggerId: string, currentEnabled: boolean) => {
+  const toggleEnabled = async (triggerId: string, agentId: string, currentEnabled: boolean) => {
     const newEnabled = !currentEnabled;
     setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
@@ -76,7 +75,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
     }
   };
 
-  const deleteTrigger = async (triggerId: string, name: string) => {
+  const deleteTrigger = async (triggerId: string, agentId: string, name: string) => {
     if (!confirm(`Are you sure you want to delete the trigger "${name}"?`)) {
       return;
     }
@@ -113,6 +112,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
         <TableHeader>
           <TableRow noHover>
             <TableHead>Name</TableHead>
+            <TableHead>Agent</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Webhook URL</TableHead>
@@ -122,8 +122,8 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
         <TableBody>
           {triggers.length === 0 ? (
             <TableRow noHover>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No triggers configured yet. Create a trigger to enable webhook-based agent
+              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                No webhook triggers configured yet. Create a trigger to enable webhook-based agent
                 invocation.
               </TableCell>
             </TableRow>
@@ -136,6 +136,14 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                     <div className="font-medium text-foreground">{trigger.name}</div>
                   </TableCell>
                   <TableCell>
+                    <Link
+                      href={`/${tenantId}/projects/${projectId}/agents/${trigger.agentId}`}
+                      className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      {trigger.agentName}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm text-muted-foreground max-w-md truncate">
                       {trigger.description || '—'}
                     </div>
@@ -144,7 +152,9 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={trigger.enabled}
-                        onCheckedChange={() => toggleEnabled(trigger.id, trigger.enabled)}
+                        onCheckedChange={() =>
+                          toggleEnabled(trigger.id, trigger.agentId, trigger.enabled)
+                        }
                         disabled={isLoading}
                       />
                       <Badge className="uppercase" variant={trigger.enabled ? 'primary' : 'code'}>
@@ -177,7 +187,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`}
+                            href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/${trigger.id}/invocations`}
                           >
                             <History className="w-4 h-4" />
                             View Invocations
@@ -185,15 +195,15 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
+                            href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${trigger.agentId}/${trigger.id}/edit`}
                           >
                             <Pencil className="w-4 h-4" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => deleteTrigger(trigger.id, trigger.name)}
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => deleteTrigger(trigger.id, trigger.agentId, trigger.name)}
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete

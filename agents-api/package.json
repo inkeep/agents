@@ -33,7 +33,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies --files",
-    "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
+    "workflow:build": "tsx scripts/build-workflow.ts",
     "well-known:copy": "tsx scripts/copy-well-known.ts",
     "dev": "pnpm workflow:build && vite",
     "build": "pnpm workflow:build && tsdown && pnpm well-known:copy",
@@ -77,6 +77,7 @@
     "ai": "6.0.14",
     "ajv": "^8.17.1",
     "axios": "^1.13.2",
+    "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
     "hono": "^4.11.7",
