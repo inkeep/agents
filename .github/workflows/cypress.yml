@@ -104,7 +104,7 @@ jobs:
       - name: Start SpiceDB
         run: |
           docker run -d --name spicedb \
-            -p 50051:50051 \
+            --network host \
             -e SPICEDB_GRPC_PRESHARED_KEY=dev-secret-key \
             -e SPICEDB_DATASTORE_ENGINE=memory \
             -e SPICEDB_HTTP_ENABLED=true \
@@ -133,5 +133,4 @@ jobs:
           INKEEP_AGENTS_MANAGE_UI_USERNAME: admin@example.com
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
           BETTER_AUTH_SECRET: test-secret-key-for-ci
-          SPICEDB_ENDPOINT: 127.0.0.1:50051
           SPICEDB_PRESHARED_KEY: dev-secret-key
