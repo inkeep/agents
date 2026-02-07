@@ -201,6 +201,7 @@ export const Playground = ({
             <>
               <ResizableHandle />
               <TimelineWrapper
+                key={conversationId}
                 isPolling={isPolling}
                 conversation={chatActivities}
                 enableAutoScroll
