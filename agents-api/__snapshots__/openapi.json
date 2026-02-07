@@ -6137,7 +6137,6 @@
             "description": "Trigger after N events",
             "maximum": 100,
             "minimum": 1,
-            "nullable": true,
             "type": "integer"
           },
           "prompt": {
@@ -6154,7 +6153,6 @@
             "description": "Trigger after N seconds",
             "maximum": 600,
             "minimum": 1,
-            "nullable": true,
             "type": "integer"
           }
         },

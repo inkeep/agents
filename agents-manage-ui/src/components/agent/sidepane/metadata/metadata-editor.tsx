@@ -353,7 +353,9 @@ export const MetadataEditor: FC = () => {
                     className="bg-background"
                     checked={numEvents !== undefined}
                     onCheckedChange={(checked) => {
-                      form.setValue('statusUpdates.numEvents', checked ? 10 : undefined);
+                      form.setValue('statusUpdates.numEvents', checked ? 10 : undefined, {
+                        shouldDirty: true,
+                      });
                     }}
                   />
                   <Label htmlFor="event-based-updates">Event-based updates</Label>
@@ -363,13 +365,14 @@ export const MetadataEditor: FC = () => {
                     className="bg-background"
                     checked={timeInSeconds !== undefined}
                     onCheckedChange={(checked) => {
-                      form.setValue('statusUpdates.timeInSeconds', checked ? 30 : undefined);
+                      form.setValue('statusUpdates.timeInSeconds', checked ? 30 : undefined, {
+                        shouldDirty: true,
+                      });
                     }}
                   />
                   <Label htmlFor="time-based-updates">Time-based updates</Label>
                 </div>
               </div>
-
               {numEvents !== undefined && (
                 <GenericInput
                   control={form.control}

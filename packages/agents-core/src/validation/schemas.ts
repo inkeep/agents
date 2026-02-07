@@ -1978,10 +1978,10 @@ export const StatusComponentSchema = z
 export const StatusUpdateSchema = z
   .strictObject({
     enabled: z.boolean().optional(),
-    numEvents: z.int().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).nullish().openapi({
+    numEvents: z.int().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional().openapi({
       description: 'Trigger after N events',
     }),
-    timeInSeconds: z.int().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).nullish().openapi({
+    timeInSeconds: z.int().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional().openapi({
       description: 'Trigger after N seconds',
     }),
     prompt: z
