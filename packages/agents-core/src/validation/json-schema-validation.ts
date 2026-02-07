@@ -1,32 +1,22 @@
-import { Type } from '@sinclair/typebox';
-import { TypeCompiler } from '@sinclair/typebox/compiler';
 import { z } from 'zod';
 import type { JSONSchema } from 'zod/v4/core';
 
-// TypeBox schema for valid JSON Schema Draft 7
-const JsonSchemaPropertySchema = Type.Object({
-  type: Type.Union([
-    Type.Literal('string'),
-    Type.Literal('number'),
-    Type.Literal('integer'),
-    Type.Literal('boolean'),
-    Type.Literal('array'),
-    Type.Literal('object'),
-    Type.Literal('null'),
-  ]),
-  description: Type.String({ minLength: 1 }),
+// Zod schema for valid JSON Schema Draft 7
+const JsonSchemaPropertySchema = z.object({
+  type: z.enum(['string', 'number', 'integer', 'boolean', 'array', 'object', 'null']),
+  description: z.string().trim().nonempty(),
   // Optional properties that can be present in JSON Schema
-  format: Type.Optional(Type.String()),
-  pattern: Type.Optional(Type.String()),
-  minimum: Type.Optional(Type.Number()),
-  maximum: Type.Optional(Type.Number()),
-  minLength: Type.Optional(Type.Number()),
-  maxLength: Type.Optional(Type.Number()),
-  items: Type.Optional(Type.Any()),
-  properties: Type.Optional(Type.Any()),
-  enum: Type.Optional(Type.Array(Type.Any())),
-  const: Type.Optional(Type.Any()),
-  default: Type.Optional(Type.Any()),
+  format: z.string().optional(),
+  pattern: z.string().optional(),
+  minimum: z.number().optional(),
+  maximum: z.number().optional(),
+  minLength: z.number().optional(),
+  maxLength: z.number().optional(),
+  items: z.unknown().optional(),
+  properties: z.unknown().optional(),
+  enum: z.array(z.unknown()).optional(),
+  const: z.unknown().optional(),
+  default: z.unknown().optional(),
 });
 
 const JsonSchemaObjectSchema = Type.Object({
