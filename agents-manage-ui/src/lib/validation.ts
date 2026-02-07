@@ -1,6 +1,6 @@
 import { HeadersSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { transformToJson } from '@/lib/json-schema-validation';
+import { transformToJson } from '@inkeep/agents-core/client-exports';
 
 /**
  * Reusable ID validation schema for database primary keys.
