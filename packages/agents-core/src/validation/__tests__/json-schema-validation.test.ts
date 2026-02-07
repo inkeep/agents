@@ -14,16 +14,6 @@ function createValidSchema(): JSONSchema.BaseSchema {
   };
 }
 
-function findError(
-  errors: { path: string; message: string; type: 'syntax' | 'schema' | 'llm_requirement' }[],
-  path: string,
-  message?: string
-) {
-  return errors.find(
-    (error) => error.path === path && (message ? error.message === message : true)
-  );
-}
-
 describe('JsonSchemaForLlmSchema', () => {
   test('returns invalid when top-level type is not object', () => {
     const result = JsonSchemaForLlmSchema.safeParse({
@@ -117,28 +107,29 @@ describe('JsonSchemaForLlmSchema', () => {
   });
 
   test('returns schema error for other invalid property fields', () => {
-    const result = validateJsonSchemaForLlm({
+    const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
         name: {
           type: 'string',
           description: 'A name',
-          // @ts-expect-error
           minimum: '0',
         },
       },
       required: ['name'],
     });
 
-    const minimumError = findError(result.errors, 'properties.name/minimum');
-
-    expect(result.isValid).toBe(false);
-    expect(minimumError).toBeDefined();
-    expect(minimumError?.type).toBe('schema');
-    expect(minimumError?.message.length).toBeGreaterThan(0);
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'number',
+        path: ['properties', 'name', 'minimum'],
+        message: 'Invalid input: expected number, received string',
+      },
+    ]);
   });
 
-  test.only('returns error when required property is not present in properties', () => {
+  test('returns error when required property is not present in properties', () => {
     const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
