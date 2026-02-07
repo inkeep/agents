@@ -16,7 +16,7 @@ import { useAgentStore } from '@/features/agent/state/use-agent-store';
 type PendingNavigation = () => void;
 
 interface UnsavedChangesDialogProps {
-  onSubmit: () => Promise<boolean>;
+  onSubmit: () => Promise<void>;
 }
 
 export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {
@@ -25,7 +25,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
 
   const form = useFullAgentFormContext();
   const agentDirtyState = useAgentStore((state) => state.dirty);
-  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const { isDirty, isSubmitting, isValid } = useFormState({ control: form.control });
   const dirty = agentDirtyState || isDirty;
 
   const pendingNavigationRef = useRef<PendingNavigation>(null);
@@ -52,8 +52,8 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     if (isSubmitting) {
       return;
     }
-    const saved = await onSubmit();
-    if (saved) {
+    await onSubmit();
+    if (isValid) {
       proceedWithNavigation();
     }
     setShowUnsavedDialog(false);
