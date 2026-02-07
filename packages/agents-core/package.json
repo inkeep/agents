@@ -62,6 +62,10 @@
       "types": "./dist/db/test-client.d.ts",
       "import": "./dist/db/test-client.js"
     },
+    "./utils/schema-conversion": {
+      "types": "./dist/utils/schema-conversion.d.ts",
+      "import": "./dist/utils/schema-conversion.js"
+    },
     "./utils/signature-validation": {
       "types": "./dist/utils/signature-validation.d.ts",
       "import": "./dist/utils/signature-validation.js"
