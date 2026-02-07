@@ -11,7 +11,7 @@ import {
   resolveRef,
 } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
-import { manageDbClient } from 'src/data/db';
+import { manageDbClient } from '../data/db';
 
 const logger = getLogger('ref-middleware');
 

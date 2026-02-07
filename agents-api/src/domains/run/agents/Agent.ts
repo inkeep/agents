@@ -39,8 +39,8 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
-import manageDbPool from 'src/data/db/manageDbPool';
-import { env } from 'src/env';
+import manageDbPool from '../../../data/db/manageDbPool';
+import { env } from '../../../env';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {

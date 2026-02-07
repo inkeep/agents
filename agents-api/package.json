@@ -42,7 +42,7 @@
     "test:integration": "vitest --run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
-    "openapi:update-snapshot": "UPDATE_OPENAPI_SNAPSHOT=true vitest --run src/__tests__/openapi.test.ts",
+    "openapi:update-snapshot": "vitest --run src/__tests__/openapi.test.ts -u",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "lint": "biome lint --error-on-warnings",
@@ -99,12 +99,12 @@
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@types/pg": "^8.15.6",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.18"
   },
   "packageManager": "pnpm@10.11.0",
   "publishConfig": {
