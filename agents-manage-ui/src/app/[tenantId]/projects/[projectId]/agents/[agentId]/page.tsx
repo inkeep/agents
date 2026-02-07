@@ -8,7 +8,7 @@ import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
-import { createLookup } from '@/lib/utils';
+import { createLookup, serializeJson } from '@/lib/utils';
 import { Agent } from './page.client';
 
 export const dynamic = 'force-dynamic';
@@ -90,26 +90,26 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     prompt,
     contextConfig: contextConfig && {
       id: contextConfig.id,
-      headersSchema: jsonToString(contextConfig.headersSchema),
-      contextVariables: jsonToString(contextConfig.contextVariables),
+      headersSchema: serializeJson(contextConfig.headersSchema),
+      contextVariables: serializeJson(contextConfig.contextVariables),
     },
     statusUpdates: {
       ...statusUpdates,
-      statusComponents: jsonToString(statusUpdates.statusComponents),
+      statusComponents: serializeJson(statusUpdates.statusComponents),
     },
     stopWhen,
     models: {
       base: {
         ...models.base,
-        providerOptions: jsonToString(models.base?.providerOptions),
+        providerOptions: serializeJson(models.base?.providerOptions),
       },
       structuredOutput: {
         ...models.structuredOutput,
-        providerOptions: jsonToString(models.structuredOutput?.providerOptions),
+        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
       },
       summarizer: {
         ...models.summarizer,
-        providerOptions: jsonToString(models.summarizer?.providerOptions),
+        providerOptions: serializeJson(models.summarizer?.providerOptions),
       },
     },
   };
@@ -127,9 +127,5 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     </FullAgentFormProvider>
   );
 };
-
-function jsonToString(value?: null | Record<string, unknown> | unknown[]): string {
-  return value ? JSON.stringify(value, null, 2) : '';
-}
 
 export default AgentPage;

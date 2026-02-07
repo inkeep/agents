@@ -84,3 +84,7 @@ export function isRequired<T extends z.ZodObject>(schema: T, key: FieldPath<z.in
   }
   return !nestedSchema.isOptional();
 }
+
+export function serializeJson(value?: null | Record<string, unknown> | unknown[]): string {
+  return value ? JSON.stringify(value, null, 2) : '';
+}
