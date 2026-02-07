@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import type { artifactComponents, dataComponents } from '../db/manage/manage-schema';
-import { validateJsonSchemaForLlm } from './json-schema-validation';
+import { JsonSchemaForLlmSchema } from './json-schema-validation';
 
 type ExtendSchema<T> = Partial<Record<keyof T, z.ZodTypeAny>>;
 
@@ -24,12 +24,11 @@ export const ArtifactComponentExtendSchema = {
 } satisfies ExtendSchema<typeof artifactComponents>;
 
 function transformProps<T extends Record<string, unknown>>(parsed: T, ctx: z.RefinementCtx<T>) {
-  const validationResult = validateJsonSchemaForLlm(parsed);
-  if (!validationResult.isValid) {
-    const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
+  const validationResult = JsonSchemaForLlmSchema.safeParse(parsed);
+  if (!validationResult.success) {
     ctx.addIssue({
       code: 'custom',
-      message: errorMessage,
+      message: validationResult.error.issues[0].message,
     });
     return z.NEVER;
   }
