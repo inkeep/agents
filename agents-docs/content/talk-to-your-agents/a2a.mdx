@@ -56,6 +56,43 @@ Notes:
 }
 ```
 
+### Message Parts
+
+Message `parts` can include text and file content. File parts support images via URL or base64-encoded data.
+
+**Text part:**
+```json
+{ "kind": "text", "text": "Analyze this image" }
+```
+
+**File part (URL):**
+```json
+{
+  "kind": "file",
+  "file": {
+    "uri": "https://example.com/image.png",
+    "mimeType": "image/*"
+  }
+}
+```
+
+**File part (base64):**
+```json
+{
+  "kind": "file",
+  "file": {
+    "bytes": "iVBORw0KGgo...",
+    "mimeType": "image/png"
+  }
+}
+```
+
+Supported image formats: PNG, JPEG, WebP.
+
+<Note>
+  Images are processed by the agent but not persisted to conversation history.
+</Note>
+
 - **Success Response (Message):**
 
 ```json
