@@ -2804,8 +2804,20 @@ ${output}`;
           );
 
           if (response.steps) {
-            const resolvedSteps = await response.steps;
-            response = { ...response, steps: resolvedSteps };
+            const [resolvedSteps, resolvedText, resolvedFinishReason, resolvedOutput] =
+              await Promise.all([
+                Promise.resolve(response.steps),
+                Promise.resolve(response.text),
+                Promise.resolve(response.finishReason),
+                Promise.resolve(response.output),
+              ]);
+            response = {
+              ...response,
+              steps: resolvedSteps,
+              text: resolvedText,
+              finishReason: resolvedFinishReason,
+              output: resolvedOutput,
+            };
           }
 
           // Process response based on whether it has structured output
@@ -3576,7 +3588,5 @@ ${output}`;
         }
       }
     }
-
-    await parser.finalize();
   }
 }
