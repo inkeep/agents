@@ -78,7 +78,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     description,
     prompt,
     contextConfig,
-    statusUpdates,
+    statusUpdates = {},
     stopWhen,
     models = {},
   } = agent.data;
@@ -88,7 +88,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     name,
     description,
     prompt,
-    contextConfig: {
+    contextConfig: contextConfig && {
       id: contextConfig.id,
       headersSchema: jsonToString(contextConfig.headersSchema),
       contextVariables: jsonToString(contextConfig.contextVariables),
@@ -129,12 +129,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
 };
 
 function jsonToString(value?: null | Record<string, unknown> | unknown[]): string {
-  try {
-    if (value) {
-      return JSON.stringify(value, null, 2);
-    }
-  } catch {}
-  return '';
+  return value ? JSON.stringify(value, null, 2) : '';
 }
 
 export default AgentPage;

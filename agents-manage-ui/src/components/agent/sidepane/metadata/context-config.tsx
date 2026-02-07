@@ -31,8 +31,8 @@ export const ContextConfigForm: FC = () => {
       callback({ values }) {
         // Generate suggestions from context config
         const variables = getContextSuggestions({
-          headersSchema: tryJsonParse(values.contextConfig.contextVariables),
-          contextVariables: tryJsonParse(values.contextConfig.headersSchema),
+          headersSchema: tryJsonParse(values.contextConfig?.contextVariables),
+          contextVariables: tryJsonParse(values.contextConfig?.headersSchema),
         });
         setVariableSuggestions(variables);
       },

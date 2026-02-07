@@ -71,7 +71,7 @@ export async function updateAgent(
 /**
  * Create a new full agent
  */
-export async function createFullAgent(
+async function createFullAgent(
   tenantId: string,
   projectId: string,
   agentData: FullAgentDefinition

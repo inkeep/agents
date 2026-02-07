@@ -75,11 +75,13 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   prompt: true,
   stopWhen: true,
 }).extend({
-  contextConfig: z.strictObject({
-    id: ContextConfigSchema.id,
-    headersSchema: StringToJsonSchema.pipe(ContextConfigSchema.headersSchema).optional(),
-    contextVariables: StringToJsonSchema.pipe(ContextConfigSchema.contextVariables).optional(),
-  }),
+  contextConfig: z
+    .strictObject({
+      id: ContextConfigSchema.id,
+      headersSchema: StringToJsonSchema.pipe(ContextConfigSchema.headersSchema).optional(),
+      contextVariables: StringToJsonSchema.pipe(ContextConfigSchema.contextVariables).optional(),
+    })
+    .optional(),
   statusUpdates: z.strictObject({
     ...StatusUpdatesSchema,
     statusComponents: StringToJsonSchema.pipe(StatusUpdatesSchema.statusComponents).optional(),

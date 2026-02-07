@@ -9,7 +9,7 @@ export type AgentModels = {
   summarizer?: ModelSettings;
 };
 
-export type ContextConfig = {
+type ContextConfig = {
   id?: string;
   contextVariables: string; // JSON string
   headersSchema: string; // JSON string

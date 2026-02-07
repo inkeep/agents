@@ -1821,7 +1821,8 @@ export const HeadersSchema = z.record(
 );
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
-  headersSchema: HeadersSchema.optional().openapi({
+  // TODO use HeadersSchema
+  headersSchema: z.any().optional().openapi({
     type: 'object',
     description: 'JSON Schema for validating request headers',
   }),
@@ -1829,10 +1830,14 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: ResourceIdSchema,
-    headersSchema: HeadersSchema.nullish().openapi({
-      type: 'object',
-      description: 'JSON Schema for validating request headers',
-    }),
+    // TODO use HeadersSchema
+    headersSchema: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .nullish()
+      .openapi({
+        type: 'object',
+        description: 'JSON Schema for validating request headers',
+      }),
     contextVariables: z
       .record(z.string(), z.unknown(), 'Must be valid JSON object')
       .nullish()
