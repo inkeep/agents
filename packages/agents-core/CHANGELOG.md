@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.46.1
+
+### Patch Changes
+
+- f6010a1: Add `HeadersSchema` export for HTTP header validation and remove unused client exports.
+- 07a027d: Add Claude Opus 4.6 to available model constants
+
 ## 0.46.0
 
 ### Patch Changes
