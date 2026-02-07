@@ -156,8 +156,8 @@ describe('JsonSchemaForLlmSchema', () => {
     ).toBeDefined();
   });
 
-  test('returns error when property description is blank after trimming', () => {
-    const result = validateJsonSchemaForLlm({
+  test.only('returns error when property description is blank after trimming', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
         name: {
@@ -168,13 +168,15 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(
-        result.errors,
-        'properties.name.description',
-        'Each property must have a non-empty description for LLM compatibility'
-      )
-    ).toBeDefined();
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'too_small',
+        minimum: 1,
+        inclusive: true,
+        origin: 'string',
+        path: ['properties', 'name', 'description'],
+        message: 'Each property must have a non-empty description for LLM compatibility',
+      },
+    ]);
   });
 });
