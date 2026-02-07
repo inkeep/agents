@@ -3040,6 +3040,39 @@
         },
         "type": "object"
       },
+      "DuplicateAgentRequest": {
+        "properties": {
+          "newAgentId": {
+            "description": "Unique identifier for the new duplicated agent",
+            "example": "resource_789",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
+          },
+          "newAgentName": {
+            "description": "Name for the duplicated agent.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "newAgentId",
+          "newAgentName"
+        ],
+        "type": "object"
+      },
+      "DuplicateAgentResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Agent"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "ErrorResponse": {
         "properties": {
           "details": {
@@ -13369,6 +13402,105 @@
         "summary": "Update Context Configuration",
         "tags": [
           "Context Configs"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/duplicate": {
+      "post": {
+        "operationId": "duplicate-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateAgentResponse"
+                }
+              }
+            },
+            "description": "Agent duplicated successfully"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request body"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Agent not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Agent with new ID already exists"
+          }
+        },
+        "summary": "Duplicate Agent",
+        "tags": [
+          "Agents"
         ]
       }
     },

@@ -2219,6 +2219,20 @@ export const AgentWithinContextOfProjectSelectSchemaWithRelationIds =
     subAgents: z.record(z.string(), FullAgentSubAgentSelectSchemaWithRelationIds),
   }).openapi('AgentWithinContextOfProjectSelectWithRelationIds');
 
+// Agent duplication schemas
+export const DuplicateAgentRequestSchema = z
+  .object({
+    newAgentId: AgentInsertSchema.shape.id.describe(
+      'Unique identifier for the new duplicated agent'
+    ),
+    newAgentName: AgentInsertSchema.shape.name.describe('Name for the duplicated agent.'),
+  })
+  .openapi('DuplicateAgentRequest');
+
+export const DuplicateAgentResponseSchema = z
+  .object({ data: AgentApiSelectSchema })
+  .openapi('DuplicateAgentResponse');
+
 export const FullProjectSelectSchema = ProjectApiSelectSchema.extend({
   agents: z.record(z.string(), AgentWithinContextOfProjectSelectSchema),
   tools: z.record(z.string(), ToolApiSelectSchema),

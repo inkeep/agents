@@ -1,4 +1,4 @@
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Copy, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Agent } from '@/lib/types/agent-full';
 import { DeleteAgentConfirmation } from './delete-agent-confirmation';
+import { DuplicateAgentModal } from './duplicate-agent-modal';
 import { EditAgentDialog } from './edit-agent-dialog';
 
 interface AgentItemMenuProps extends Pick<Agent, 'id' | 'name' | 'description'> {
@@ -20,6 +21,7 @@ interface AgentItemMenuProps extends Pick<Agent, 'id' | 'name' | 'description'> 
 export function AgentItemMenu({ id, name, description, projectId, tenantId }: AgentItemMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
 
   return (
     <>
@@ -40,6 +42,10 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsEditOpen(true)}>
             <Pencil className="size-4" />
             Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsDuplicateOpen(true)}>
+            <Copy className="size-4" />
+            Duplicate agent
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
@@ -62,6 +68,16 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           agentData={{ id, name, description: description || '' }}
           isOpen={isEditOpen}
           setIsOpen={setIsEditOpen}
+        />
+      )}
+      {isDuplicateOpen && (
+        <DuplicateAgentModal
+          tenantId={tenantId}
+          projectId={projectId}
+          agentId={id}
+          agentName={name}
+          isOpen={isDuplicateOpen}
+          setIsOpen={setIsDuplicateOpen}
         />
       )}
     </>

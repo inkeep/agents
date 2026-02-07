@@ -15,6 +15,7 @@ import {
   createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
+  duplicateAgent as apiDuplicateAgent,
   fetchAgents as apiFetchAgents,
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
@@ -267,6 +268,43 @@ export async function deleteFullAgentAction(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete agent',
       code: 'unknown_error',
+    };
+  }
+}
+
+/**
+ * Duplicate an existing agent with a new ID and name
+ */
+export async function duplicateAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  data: { newAgentId: string; newAgentName: string }
+): Promise<ActionResult<AgentApiInsert>> {
+  try {
+    const response = await apiDuplicateAgent(tenantId, projectId, agentId, data);
+
+    // Revalidate relevant pages
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to duplicate agent',
+      code: 'validation_error',
     };
   }
 }

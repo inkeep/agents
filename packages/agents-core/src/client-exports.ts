@@ -58,6 +58,7 @@ export {
 };
 
 export {
+  DuplicateAgentRequestSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
