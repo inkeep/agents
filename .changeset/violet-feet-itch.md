@@ -1,6 +1,5 @@
 ---
 "@inkeep/agents-api": patch
-"@inkeep/agents-docs": patch
 ---
 
 Refactor: Consolidate to single-phase generation
