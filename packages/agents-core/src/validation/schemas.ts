@@ -88,14 +88,14 @@ export const StopWhenSchema = z
   .object({
     transferCountIs: z
       .int()
-      .positive()
+      .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
       // cc @sarah in front end max was set as 100
       .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
       .optional()
       .describe('The maximum number of transfers to trigger the stop condition.'),
     stepCountIs: z
       .int()
-      .positive()
+      .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
       .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
       .optional()
       .describe('The maximum number of steps to trigger the stop condition.'),
