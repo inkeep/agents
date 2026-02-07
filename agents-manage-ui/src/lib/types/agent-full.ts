@@ -41,7 +41,8 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
       // Normalize number input: <input type="number"> produce `null` for empty value,
       // but this schema expects `undefined` (optional field), not `null`.
       .transform((value) => (value === null ? undefined : value))
-      .pipe(StopWhenSchema.shape.transferCountIs),
+      .pipe(StopWhenSchema.shape.transferCountIs)
+      .optional(),
   }).optional(),
   contextConfig: z
     .strictObject({
