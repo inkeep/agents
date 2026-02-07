@@ -1005,14 +1005,15 @@ export const Agent: FC<AgentProps> = ({
               // width of NodeLibrary
               className="left-40"
             >
-              <Toolbar
-                onSubmit={onSubmit}
-                toggleSidePane={isOpen ? backToAgent : openAgentPane}
-                setShowPlayground={() => {
-                  closeSidePane();
-                  setShowPlayground(true);
-                }}
-              />
+              <form onSubmit={onSubmit}>
+                <Toolbar
+                  toggleSidePane={isOpen ? backToAgent : openAgentPane}
+                  setShowPlayground={() => {
+                    closeSidePane();
+                    setShowPlayground(true);
+                  }}
+                />
+              </form>
             </Panel>
           )}
           {errors && showErrors && (
