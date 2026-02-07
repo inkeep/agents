@@ -844,9 +844,6 @@ importers:
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
-      '@sinclair/typebox':
-        specifier: ^0.34.40
-        version: 0.34.41
       ai:
         specifier: 6.0.14
         version: 6.0.14(zod@4.3.6)

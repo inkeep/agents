@@ -1,4 +1,4 @@
-import { validateJsonSchemaForLlm } from '../json-schema-validation';
+import { JsonSchemaForLlmSchema } from '../json-schema-validation';
 import type { JSONSchema } from 'zod/v4/core';
 
 function createValidSchema(): JSONSchema.BaseSchema {
@@ -24,42 +24,56 @@ function findError(
   );
 }
 
-describe('validateJsonSchemaForLlm', () => {
+describe('JsonSchemaForLlmSchema', () => {
   test('returns invalid when top-level type is not object', () => {
-    const result = validateJsonSchemaForLlm({
+    const result = JsonSchemaForLlmSchema.safeParse({
       ...createValidSchema(),
       type: 'array',
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(result.errors, 'type', 'Schema must have type: "object" for LLM compatibility')
-    ).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'invalid_value',
+        path: ['type'],
+        message: 'Schema must have type: "object" for LLM compatibility',
+        values: ['object'],
+      },
+    ]);
   });
 
   test('returns invalid when properties is missing', () => {
-    const result = validateJsonSchemaForLlm({
+    const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       required: ['name'],
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(result.errors, 'properties', 'Schema must have a "properties" object')
-    ).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'record',
+        path: ['properties'],
+        message: 'Schema must have a "properties" object',
+      },
+    ]);
   });
 
-  test('returns invalid when required is not an array', () => {
-    const result = validateJsonSchemaForLlm({
+  test.only('returns invalid when required is not an array', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
       ...createValidSchema(),
-      // @ts-expect-error
       required: 'name',
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(result.errors, 'required', 'Schema must have a "required" array (can be empty)')
-    ).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'invalid_type',
+        expected: 'array',
+        path: ['required'],
+        message: 'Schema must have a "required" array (can be empty)',
+      },
+    ]);
   });
 
   test('returns custom property description error when property description is missing', () => {
