@@ -71,6 +71,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
           <div className="space-y-2">
             <ExpandableJsonEditor
               name="simulationAgent"
+              // @ts-expect-error -- ts complain that field.value is a union that can be an object, fix it
               value={field.value || ''}
               onChange={field.onChange}
               placeholder={`{
