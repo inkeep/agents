@@ -32,6 +32,7 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  HeadersSchema,
   type ModelSettings,
   ModelSettingsSchema,
   ProjectApiInsertSchema,

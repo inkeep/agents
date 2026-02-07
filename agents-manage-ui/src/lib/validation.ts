@@ -2,6 +2,7 @@ import {
   AgentApiInsertSchema,
   type AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
+  HeadersSchema,
   transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
@@ -13,12 +14,6 @@ export const AgentSchema = AgentApiInsertSchema.pick({
 });
 
 export type AgentInput = z.input<typeof AgentSchema>;
-
-export const DefaultHeadersSchema = z.record(
-  z.string(),
-  z.string('All header values must be strings'),
-  'Must be valid JSON object'
-);
 
 function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
   ctx.addIssue({
@@ -35,7 +30,7 @@ export function createCustomHeadersSchema(customHeaders?: string) {
     // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
     .superRefine((value, ctx) => {
       // First validate default schema
-      const result = DefaultHeadersSchema.safeParse(value);
+      const result = HeadersSchema.safeParse(value);
       if (!result.success) {
         addIssue(ctx, result.error);
         return;

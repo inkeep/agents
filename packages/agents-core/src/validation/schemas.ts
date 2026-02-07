@@ -1814,8 +1814,14 @@ export const FetchDefinitionSchema = z
   })
   .openapi('FetchDefinition');
 
+export const HeadersSchema = z.record(
+  z.string(),
+  z.string('All header values must be strings'),
+  'Must be valid JSON object'
+);
+
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
-  headersSchema: z.any().optional().openapi({
+  headersSchema: HeadersSchema.optional().openapi({
     type: 'object',
     description: 'JSON Schema for validating request headers',
   }),
@@ -1823,16 +1829,13 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: ResourceIdSchema,
-    headersSchema: z
-      .record(z.string(), z.unknown(), 'Must be valid JSON object')
-      .optional()
-      .openapi({
-        type: 'object',
-        description: 'JSON Schema for validating request headers',
-      }),
+    headersSchema: HeadersSchema.nullish().openapi({
+      type: 'object',
+      description: 'JSON Schema for validating request headers',
+    }),
     contextVariables: z
       .record(z.string(), z.unknown(), 'Must be valid JSON object')
-      .optional()
+      .nullish()
       .openapi({
         type: 'object',
         description: 'Context variables configuration with fetch definitions',

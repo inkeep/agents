@@ -1,3 +1,4 @@
+import type { HeadersSchema } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
 import { type FC, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
@@ -16,9 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { customHeadersTemplate } from '@/lib/templates';
-import type { DefaultHeadersSchema } from '@/lib/validation';
 
-type DefaultHeaders = z.infer<typeof DefaultHeadersSchema>;
+type DefaultHeaders = z.infer<typeof HeadersSchema>;
 
 interface CustomHeadersDialogProps {
   customHeaders?: DefaultHeaders;
