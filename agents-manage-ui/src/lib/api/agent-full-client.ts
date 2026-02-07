@@ -6,10 +6,10 @@
  */
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
-import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import type {
   Agent,
   CreateAgentResponse,
+  FullAgentDefinition,
   GetAgentResponse,
   UpdateAgentResponse,
   UpdateFullAgentResponse,

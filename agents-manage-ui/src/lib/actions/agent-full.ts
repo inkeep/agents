@@ -10,7 +10,6 @@
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
-import type { FullAgentDefinition, FullAgentResponse } from '@/lib/types/agent-full';
 import {
   ApiError,
   createAgent as apiCreateAgent,
@@ -20,7 +19,7 @@ import {
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import type { Agent } from '../types/agent-full';
+import type { Agent, FullAgentDefinition, FullAgentResponse } from '../types/agent-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
