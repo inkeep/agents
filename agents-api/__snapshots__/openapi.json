@@ -328,7 +328,7 @@
             "description": "The maximum number of transfers to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "number"
+            "type": "integer"
           }
         },
         "type": "object"
@@ -6128,14 +6128,17 @@
         "type": "object"
       },
       "StatusUpdate": {
+        "additionalProperties": false,
         "properties": {
           "enabled": {
             "type": "boolean"
           },
           "numEvents": {
+            "description": "Trigger after N events",
             "maximum": 100,
             "minimum": 1,
-            "type": "number"
+            "nullable": true,
+            "type": "integer"
           },
           "prompt": {
             "maxLength": 2000,
@@ -6148,9 +6151,11 @@
             "type": "array"
           },
           "timeInSeconds": {
+            "description": "Trigger after N seconds",
             "maximum": 600,
             "minimum": 1,
-            "type": "number"
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object"
@@ -6162,13 +6167,13 @@
             "description": "The maximum number of steps to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "number"
+            "type": "integer"
           },
           "transferCountIs": {
             "description": "The maximum number of transfers to trigger the stop condition.",
             "maximum": 1000,
             "minimum": 1,
-            "type": "number"
+            "type": "integer"
           }
         },
         "type": "object"
