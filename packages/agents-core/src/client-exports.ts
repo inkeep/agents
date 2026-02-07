@@ -8,8 +8,8 @@
 
 import { z } from '@hono/zod-openapi';
 import { CredentialStoreType } from './types';
-import { MAX_ID_LENGTH } from './validation/extend-schemas';
 import {
+  MAX_ID_LENGTH,
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
   type TriggerApiSelectSchema,

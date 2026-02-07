@@ -68,13 +68,7 @@ import {
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
-import {
-  AgentWithinContextOfProjectExtendSchema,
-  ArtifactComponentExtendSchema,
-  ContextConfigExtendSchema,
-  DataComponentExtendSchema,
-  ResourceIdSchema,
-} from './extend-schemas';
+import { ArtifactComponentExtendSchema, DataComponentExtendSchema } from './extend-schemas';
 
 // Destructure defaults for use in schemas
 const {
@@ -116,6 +110,24 @@ export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
+export const MIN_ID_LENGTH = 1;
+export const MAX_ID_LENGTH = 255;
+export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+
+export const ResourceIdSchema = z
+  .string()
+  .trim()
+  .nonempty('Id is required')
+  .max(MAX_ID_LENGTH)
+  .regex(URL_SAFE_ID_PATTERN, {
+    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
+  })
+  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
+  .openapi({
+    description: 'Resource identifier',
+    example: 'resource_789',
+  });
+
 const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
 const limitNumber = z.coerce
   .number()
@@ -129,7 +141,7 @@ export const ModelSettingsSchema = z
     model: z.string().trim().optional().openapi({
       description: 'The model to use for the project.',
     }),
-    providerOptions: z.record(z.string(), z.unknown()).nullable().openapi({
+    providerOptions: z.record(z.string(), z.unknown()).optional().openapi({
       description: 'The provider options to use for the project.',
     }),
   })
@@ -1809,15 +1821,21 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 });
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
-    id: ResourceIdSchema.optional(),
-    headersSchema: z.any().nullable().optional().openapi({
-      type: 'object',
-      description: 'JSON Schema for validating request headers',
-    }),
-    contextVariables: z.any().nullable().optional().openapi({
-      type: 'object',
-      description: 'Context variables configuration with fetch definitions',
-    }),
+    id: ResourceIdSchema,
+    headersSchema: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .optional()
+      .openapi({
+        type: 'object',
+        description: 'JSON Schema for validating request headers',
+      }),
+    contextVariables: z
+      .record(z.string(), z.unknown(), 'Must be valid JSON object')
+      .optional()
+      .openapi({
+        type: 'object',
+        description: 'Context variables configuration with fetch definitions',
+      }),
   })
   .omit({
     createdAt: true,
@@ -1956,7 +1974,7 @@ export const StatusUpdateSchema = z
         `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
       )
       .optional(),
-    statusComponents: z.array(StatusComponentSchema).nullable(),
+    statusComponents: z.array(StatusComponentSchema).optional(),
   })
   .openapi('StatusUpdate');
 
@@ -2040,7 +2058,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
 }).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  contextConfig: z.strictObject(ContextConfigExtendSchema),
+  contextConfig: ContextConfigApiInsertSchema.optional(),
   statusUpdates: StatusUpdateSchema.optional(),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),

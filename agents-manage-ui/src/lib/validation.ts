@@ -59,9 +59,9 @@ export function createCustomHeadersSchema(customHeaders?: string) {
   return zodSchema;
 }
 
-const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.shape;
-const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.shape;
-const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.shape;
+const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
+const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
+const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
@@ -70,7 +70,8 @@ const ModelsSummarizerSchema = ModelsSchema.summarizer.unwrap();
 const StringToJsonSchema = z
   .string()
   .trim()
-  .transform((value, ctx) => (value ? transformToJson(value, ctx) : null));
+  .transform((value, ctx) => (value === '' ? undefined : transformToJson(value, ctx)))
+  .refine((v) => v !== null, 'Cannot be null');
 
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,

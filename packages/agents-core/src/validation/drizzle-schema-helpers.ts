@@ -4,7 +4,7 @@ import {
   createInsertSchema as drizzleCreateInsertSchema,
   createSelectSchema as drizzleCreateSelectSchema,
 } from 'drizzle-zod';
-import { MAX_ID_LENGTH, MIN_ID_LENGTH, URL_SAFE_ID_PATTERN } from './extend-schemas';
+import { MAX_ID_LENGTH, MIN_ID_LENGTH, URL_SAFE_ID_PATTERN } from './schemas';
 
 function createSelectSchemaWithModifiers<T extends AnySQLiteTable>(
   table: T,

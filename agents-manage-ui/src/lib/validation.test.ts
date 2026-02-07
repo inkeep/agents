@@ -108,33 +108,73 @@ describe('validation', () => {
     });
   });
 
-  describe('FullAgentUpdateSchema', () => {
-    it.only('should disallow null as input for json editors', () => {
-      const result = FullAgentUpdateSchema.safeParse({
+  describe.only('FullAgentUpdateSchema', () => {
+    function createSchema(value: string) {
+      return {
         id: 'test',
         name: 'test',
         contextConfig: {
           id: 'test',
-          headersSchema: 'null',
-          contextVariables: 'null',
+          headersSchema: value,
+          contextVariables: value,
         },
         statusUpdates: {
-          statusComponents: 'null',
+          statusComponents: value,
         },
         models: {
           base: {
-            providerOptions: 'null',
+            providerOptions: value,
           },
           structuredOutput: {
-            providerOptions: 'null',
+            providerOptions: value,
           },
           summarizer: {
-            providerOptions: 'null',
+            providerOptions: value,
           },
         },
-      });
+      };
+    }
+
+    it('should disallow null as input for json editors', () => {
+      const result = FullAgentUpdateSchema.safeParse(createSchema('null'));
       expect(result.success).toBe(false);
-      console.log(result);
+      expect(JSON.parse((result.error as any).message)).toStrictEqual([
+        {
+          code: 'custom',
+          path: ['contextConfig', 'headersSchema'],
+          message: 'Cannot be null',
+        },
+        {
+          code: 'custom',
+          path: ['contextConfig', 'contextVariables'],
+          message: 'Cannot be null',
+        },
+        {
+          code: 'custom',
+          path: ['statusUpdates', 'statusComponents'],
+          message: 'Cannot be null',
+        },
+        {
+          code: 'custom',
+          path: ['models', 'base', 'providerOptions'],
+          message: 'Cannot be null',
+        },
+        {
+          code: 'custom',
+          path: ['models', 'structuredOutput', 'providerOptions'],
+          message: 'Cannot be null',
+        },
+        {
+          code: 'custom',
+          path: ['models', 'summarizer', 'providerOptions'],
+          message: 'Cannot be null',
+        },
+      ]);
+    });
+
+    it('should allow empty string', () => {
+      const result = FullAgentUpdateSchema.safeParse(createSchema(''));
+      expect(result.error).toBeUndefined();
     });
   });
 });
