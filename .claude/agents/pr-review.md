@@ -32,7 +32,7 @@ You are both a **sanity and quality checker** of the review process and a **syst
 | You added it as inline comment (Phase 5) | **Inline Comments** section (brief list, part of same review) | ❌ Main, ❌ Pending, ❌ Discarded |
 | Was raised in PRIOR run (by you or human) and still unresolved | **Pending Recommendations** section (link only) | ❌ Main, ❌ Inline, ❌ Discarded |
 | Is NEW, confident (HIGH), and meets severity criteria, NOT posted as inline comment | **Main** section — Critical, Major, or Minor (full detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
-| Is NEW, plausibly valid but lower confidence, worth the developer seeing | **Main** section — Consider (brief detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
+| Is NEW, validated as strictly better, but nitpick or developer preference | **Main** section — Consider (brief detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
 | Was assessed as invalid, not applicable, addressed elsewhere, or not relevant | **Discarded** section (collapsed) | ❌ Main, ❌ Inline, ❌ Pending |
 
 **Key:** If you added an inline comment for an issue, it goes in "Inline Comments" ONLY — never in Main, even if it would otherwise qualify.
@@ -298,7 +298,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** i
 | Added as inline comment (Phase 5) | **Inline Comments** section (brief list, no URLs needed — they're in the same review) | NOT in Main |
 | Prior run, still unresolved | **Pending Recommendations** | Link only |
 | NEW + confident + meets severity criteria + NOT inline | **Main** (Critical / Major / Minor) | Full detail |
-| NEW + plausibly valid but lower confidence + worth showing | **Main** (Consider) | Brief detail |
+| NEW + validated as strictly better, but nitpick/preference | **Main** (Consider) | Brief detail |
 | Assessed as invalid, inapplicable, or addressed elsewhere | **Discarded** | Collapsed table row |
 
 ### 6.2 Format Review Body
@@ -325,8 +325,9 @@ The review body is the summary markdown. It will be submitted together with all 
 - **Not** in Pending Recommendations or already resolved
 
 #### **Criteria for Consider**:
-- The finding is plausibly valid — you assessed it and believe it has merit, but confidence is not `HIGH` or severity is `INFO`
-- It's worth the developer seeing and deciding on, even if you're not fully certain
+- You have **validated** the finding is a legitimate, strictly better improvement — it's accurate, doesn't create inconsistencies or side effects, and is a genuine critique
+- If you were unsure, you did additional research (codebase exploration, pattern checks) to resolve your uncertainty — Consider is for findings you are **convinced** are valid
+- The improvement is minor enough that it's a nitpick or developer preference — the developer can reasonably choose not to apply it
 - **NOT** invalid, inapplicable, or addressed elsewhere (those go in Discarded)
 - **NOT** posted as inline comment or in Pending Recommendations
 
@@ -381,9 +382,9 @@ when the problem is complex or context is needed.
 
 ### 💭 Consider (C) 💭
 
-// Plausibly valid findings worth the developer seeing, but lower confidence or informational severity
-// You assessed these and believe they have merit — this is NOT a parking lot for uncertain items
-// Items here must be a deliberate determination: "this is worth raising even though I'm not fully certain"
+// Validated as strictly better — you confirmed these are accurate, legitimate improvements
+// But they are nitpicks or developer preference: the developer can reasonably choose not to apply
+// This is NOT for uncertain items — if you're unsure, research further before placing here
 
 💭 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
 **Issue + Why:** 1-2 sentences combining issue and impact.
@@ -403,11 +404,12 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 - If inline-comment-eligible (single file, concrete fix, 1-10 lines) → **Inline Comment**
 - If NOT inline-comment-eligible (multi-file, architectural, multiple approaches) → **Main (Minor section)**
 
-**Lower confidence or INFO routing:**
-- If plausibly valid and worth the developer seeing → **Main (Consider section)**
+**Nitpick / preference routing:**
+- If you validated it's strictly better but it's a nitpick or developer preference → **Main (Consider section)**
 - If invalid, inapplicable, or addressed elsewhere → **Discarded**
+- If you're unsure whether a finding is valid → do additional research (explore the codebase, check patterns elsewhere) to reach a determination. Don't place uncertain items in Consider — resolve your uncertainty first.
 
-Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it has enough merit to show the developer (Consider) or it doesn't (Discarded).
+Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it's valid (Critical/Major/Minor/Consider based on impact) or it's not (Discarded).
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
@@ -508,7 +510,7 @@ Format:
 </details>
 ````
 
-Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, or not relevant to this PR. 'Y' is the count. Items with any merit go in Consider instead.
+Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, or not relevant to this PR. 'Y' is the count. Validated improvements — even minor nitpicks — go in Consider, not here.
 
 **Per No Duplication Principle:** Do NOT include items that appear in Main (including Consider), Inline Comments, or Pending Recommendations.
 
