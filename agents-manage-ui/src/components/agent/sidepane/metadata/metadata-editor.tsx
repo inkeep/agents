@@ -157,7 +157,7 @@ export const MetadataEditor: FC = () => {
           description="Primary model for general agent responses"
           onModelChange={(value) => {
             if (value) {
-              form.setValue('models.base.model', value);
+              form.setValue('models.base.model', value, { shouldDirty: true });
             } else {
               form.setValue('models.base', {});
             }
@@ -182,7 +182,7 @@ export const MetadataEditor: FC = () => {
               }
               onValueChange={(value) => {
                 if (value) {
-                  form.setValue('models.structuredOutput.model', value);
+                  form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
                 } else {
                   form.setValue('models.structuredOutput', {});
                 }
@@ -226,7 +226,7 @@ export const MetadataEditor: FC = () => {
               }
               onValueChange={(value) => {
                 if (value) {
-                  form.setValue('models.summarizer.model', value);
+                  form.setValue('models.summarizer.model', value, { shouldDirty: true });
                 } else {
                   form.setValue('models.summarizer', {});
                 }
@@ -353,9 +353,8 @@ export const MetadataEditor: FC = () => {
                     className="bg-background"
                     checked={numEvents !== undefined}
                     onCheckedChange={(checked) => {
-                      form.setValue('statusUpdates.numEvents', checked ? 10 : undefined, {
-                        shouldDirty: true,
-                      });
+                      const value = checked ? 10 : undefined;
+                      form.setValue('statusUpdates.numEvents', value, { shouldDirty: true });
                     }}
                   />
                   <Label htmlFor="event-based-updates">Event-based updates</Label>
@@ -365,9 +364,8 @@ export const MetadataEditor: FC = () => {
                     className="bg-background"
                     checked={timeInSeconds !== undefined}
                     onCheckedChange={(checked) => {
-                      form.setValue('statusUpdates.timeInSeconds', checked ? 30 : undefined, {
-                        shouldDirty: true,
-                      });
+                      const value = checked ? 30 : undefined;
+                      form.setValue('statusUpdates.timeInSeconds', value, { shouldDirty: true });
                     }}
                   />
                   <Label htmlFor="time-based-updates">Time-based updates</Label>
