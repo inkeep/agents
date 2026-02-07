@@ -21,7 +21,7 @@ describe('JsonSchemaForLlmSchema', () => {
       type: 'array',
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'invalid_value',
         path: ['type'],
@@ -37,7 +37,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'invalid_type',
         expected: 'record',
@@ -53,7 +53,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: 'name',
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'invalid_type',
         expected: 'array',
@@ -74,7 +74,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'invalid_type',
         expected: 'string',
@@ -96,7 +96,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'invalid_value',
         path: ['properties', 'name', 'type'],
@@ -119,7 +119,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'invalid_type',
         expected: 'number',
@@ -141,7 +141,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['missing'],
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'custom',
         path: ['required'],
@@ -162,7 +162,7 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['name'],
     });
 
-    expect(JSON.parse((result as any).error)).toEqual([
+    expect((result as any).error.issues).toEqual([
       {
         code: 'too_small',
         minimum: 1,
