@@ -18,7 +18,12 @@ export default defineProject({
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     isolate: true, // Ensure test isolation to prevent state leakage
-    maxWorkers: 10, // Increase for GitHub Actions runners (have more cores)
+    poolOptions: {
+      threads: {
+        maxThreads: 10, // Increase for GitHub Actions runners (have more cores)
+        minThreads: 4,
+      },
+    },
     env: {
       ENVIRONMENT: 'test',
       ANTHROPIC_API_KEY: 'test-api-key',
