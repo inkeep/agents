@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
+import availableModelsRoutes from './availableModels';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
 import branchesRoutes from './branches';
@@ -101,6 +102,9 @@ app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
 
 // Evaluation routes (datasets, evaluators, etc.)
 app.route('/projects/:projectId/evals', evalsRoutes);
+
+// Tenant-level routes (not project-scoped)
+app.route('/available-models', availableModelsRoutes);
 
 // User-level routes (not project-scoped)
 app.route('/users/:userId/project-memberships', userProjectMembershipsRoutes);
