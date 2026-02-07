@@ -157,7 +157,7 @@ function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
 
   walk(errors, []);
   if (!lines.length) {
-    lines.push('Validation failed')
+    lines.push('Validation failed');
   }
   return lines;
 }

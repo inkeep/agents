@@ -83,6 +83,7 @@ const {
   STATUS_UPDATE_MAX_INTERVAL_SECONDS,
   STATUS_UPDATE_MAX_NUM_EVENTS,
   SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
@@ -2039,11 +2040,18 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
 }).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  ...AgentWithinContextOfProjectExtendSchema,
   contextConfig: z.strictObject(ContextConfigExtendSchema),
-  statusUpdates: StatusUpdateSchema,
-  stopWhen: AgentStopWhenSchema,
-  models: ModelSchema,
+  statusUpdates: StatusUpdateSchema.optional(),
+  models: ModelSchema.optional(),
+  stopWhen: AgentStopWhenSchema.optional(),
+  prompt: z
+    .string()
+    .trim()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .optional(),
 })
   .extend({
     subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
