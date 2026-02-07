@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ResourceIdSchema } from '../../validation/extend-schemas';
 import {
   ConversationInsertSchema,
   MessageInsertSchema,
   PaginationQueryParamsSchema,
   PaginationSchema,
+  ResourceIdSchema,
   SubAgentApiInsertSchema,
   SubAgentApiUpdateSchema,
   SubAgentInsertSchema,

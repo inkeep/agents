@@ -131,7 +131,12 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
 };
 
 function jsonToString(value?: null | Record<string, unknown> | unknown[]): string {
-  return value ? JSON.stringify(value, null, 2) : '';
+  try {
+    if (value) {
+      return JSON.stringify(value, null, 2);
+    }
+  } catch {}
+  return '';
 }
 
 export default AgentPage;

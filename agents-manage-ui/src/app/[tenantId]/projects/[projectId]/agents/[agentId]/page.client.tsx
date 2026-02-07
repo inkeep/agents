@@ -728,7 +728,7 @@ export const Agent: FC<AgentProps> = ({
 
   const form = useFullAgentFormContext();
 
-  const onFormSubmit: HandleSubmitParams[0] = async (data) => {
+  const onFormSubmit: HandleSubmitParams[0] = async (data): Promise<void> => {
     let serializedData: ReturnType<typeof serializeAgentData>;
     try {
       serializedData = serializeAgentData(
@@ -754,7 +754,7 @@ export const Agent: FC<AgentProps> = ({
         setErrors(errorSummary);
         const summaryMessage = getErrorSummaryMessage(errorSummary);
         toast.error(summaryMessage);
-        return false;
+        return;
       }
       throw error;
     }
@@ -781,7 +781,7 @@ export const Agent: FC<AgentProps> = ({
       const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
       setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
-      return false;
+      return;
     }
 
     console.log({ serializedData, data });
@@ -841,14 +841,14 @@ export const Agent: FC<AgentProps> = ({
           })
         );
       }
-      return true;
+      return;
     }
 
     if (res.code && nonValidationErrors.has(res.code)) {
       toast.error(res.error || 'An error occurred while saving the agent', {
         closeButton: true,
       });
-      return false;
+      return;
     }
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
@@ -868,7 +868,7 @@ export const Agent: FC<AgentProps> = ({
       console.error('Failed to parse validation errors:', parseError);
       toast.error('Failed to save agent', { closeButton: true });
     }
-    return false;
+    return;
   };
 
   const onFormError: HandleSubmitParams[1] = (errors) => {
