@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Zod schema for valid JSON Schema Draft 7
-const JsonSchemaPropertySchema = z.object({
+const JsonSchemaPropertySchema = z.strictObject({
   type: z.enum(
     ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'],
     'Each property must have a valid "type"'
@@ -25,19 +25,22 @@ const JsonSchemaPropertySchema = z.object({
 });
 
 export const JsonSchemaForLlmSchema = z
-  .object({
-    type: z.literal('object', 'Schema must have type: "object" for LLM compatibility'),
-    properties: z.record(
-      z.string(),
-      JsonSchemaPropertySchema,
-      'Schema must have a "properties" object'
-    ),
-    // TODO check if required can be empty array
-    required: z.array(z.string(), 'Schema must have a "required" array').nonempty(),
-    // Optional object properties
-    additionalProperties: z.boolean().optional(),
-    description: z.string().trim().optional(),
-  })
+  .strictObject(
+    {
+      type: z.literal('object', 'Schema must have type: "object" for LLM compatibility'),
+      properties: z.record(
+        z.string(),
+        JsonSchemaPropertySchema,
+        'Schema must have a "properties" object'
+      ),
+      // TODO check if required can be empty array
+      required: z.array(z.string(), 'Schema must have a "required" array').default([]),
+      // Optional object properties
+      additionalProperties: z.boolean().optional(),
+      description: z.string().trim().optional(),
+    },
+    'Schema must be an object'
+  )
   .superRefine((schema, ctx) => {
     for (const requiredProp of schema.required) {
       if (schema.properties[requiredProp]) continue;
