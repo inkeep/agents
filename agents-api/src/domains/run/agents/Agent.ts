@@ -118,7 +118,7 @@ export type AgentConfig = {
   apiKey?: string;
   apiKeyId?: string;
   name: string;
-  description?: string;
+  description?: string | null;
   prompt?: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];

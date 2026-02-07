@@ -7,12 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AgentForm, type AgentFormData } from './agent-form';
+import type { AgentInput } from '@/lib/validation';
+import { AgentForm } from './agent-form';
 
 interface EditAgentDialogProps {
   tenantId: string;
   projectId: string;
-  agentData: AgentFormData;
+  agentData: AgentInput;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }

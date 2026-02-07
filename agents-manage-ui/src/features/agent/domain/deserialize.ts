@@ -10,9 +10,9 @@ import {
   NodeType,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
+import type { PartialFullAgentDefinition } from '@/lib/validation';
 
 interface TransformResult {
   nodes: Node[];
@@ -98,7 +98,7 @@ function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-export function deserializeAgentData(data: FullAgentDefinition): TransformResult {
+export function deserializeAgentData(data: PartialFullAgentDefinition): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const createdExternalAgentNodes = new Set<string>();

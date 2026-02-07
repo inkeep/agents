@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import {
   ItemCardContent,
   ItemCardDescription,
@@ -11,7 +12,6 @@ import {
 } from '@/components/ui/item-card';
 import type { Project } from '@/lib/types/project';
 import { formatDate } from '@/lib/utils/format-date';
-import type { ProjectFormData } from './form/validation';
 import { ProjectItemMenu } from './project-item-menu';
 
 interface ProjectItemProps extends Project {

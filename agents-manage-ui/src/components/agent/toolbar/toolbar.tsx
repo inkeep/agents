@@ -1,25 +1,29 @@
 import { Play, Settings, Webhook } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
+import { type ComponentProps, useEffect, useRef } from 'react';
+import { useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
-type MaybePromise<T> = T | Promise<T>;
-
 interface ToolbarProps {
-  onSubmit: () => MaybePromise<boolean>;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
 }
 
-export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
-  const dirty = useAgentStore((state) => state.dirty);
+export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
+  'use memo';
+  const form = useFullAgentFormContext();
+  const agentDirtyState = useAgentStore((state) => state.dirty);
+  const { isDirty, isSubmitting } = useFormState({ control: form.control });
+  const dirty = agentDirtyState || isDirty;
+
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
@@ -57,13 +61,6 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
     };
   }, []);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const saveAgent = useCallback(async () => {
-    setIsSubmitting(true);
-    await onSubmit();
-    setIsSubmitting(false);
-  }, [onSubmit]);
-
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
       {canUse && <ShipModal buttonClassName={commonProps.className} />}
@@ -88,7 +85,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
       {canEdit && (
         <Button
           {...commonProps}
-          onClick={saveAgent}
+          type="submit"
           variant={dirty ? 'default' : 'outline'}
           disabled={isSubmitting || !dirty}
           ref={saveButtonRef}

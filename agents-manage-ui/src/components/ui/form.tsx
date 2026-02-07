@@ -29,9 +29,10 @@ const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldCon
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
+  TV = FieldValues,
+>(
+  props: ControllerProps<TFieldValues, TName, TV>
+) => {
   return (
     <FormFieldContext value={{ name: props.name }}>
       <Controller {...props} />
@@ -91,12 +92,15 @@ function FormLabel({
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn('data-[error=true]:text-destructive gap-1', className)}
+      className={cn(
+        'data-[error=true]:text-destructive gap-1',
+        isRequired && 'after:content-["*"] after:text-red-500',
+        className
+      )}
       htmlFor={formItemId}
       {...props}
     >
       {children}
-      {isRequired && <span className="text-red-500">*</span>}
     </Label>
   );
 }

@@ -1,10 +1,10 @@
+import type { HeadersSchema } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
 import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
-import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { customHeadersTemplate } from '@/lib/templates';
-import type { DefaultHeadersSchema } from '@/lib/validation';
 
-type DefaultHeaders = z.infer<typeof DefaultHeadersSchema>;
+type DefaultHeaders = z.infer<typeof HeadersSchema>;
 
 interface CustomHeadersDialogProps {
   customHeaders?: DefaultHeaders;
@@ -73,17 +72,13 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-8">
-            <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
-              {(field) => (
-                <StandaloneJsonEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder={customHeadersTemplate}
-                  {...field}
-                  customTemplate={customHeadersTemplate}
-                />
-              )}
-            </FormFieldWrapper>
+            <GenericJsonEditor
+              control={form.control}
+              name="headers"
+              label="Custom headers"
+              placeholder={customHeadersTemplate}
+              customTemplate={customHeadersTemplate}
+            />
             <div className="flex justify-end gap-2">
               {numHeaders > 0 && (
                 <Button type="button" variant="outline" onClick={onRemoveHeaders}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ProjectFormData } from '@/components/projects/form/validation';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { ProjectForm } from './form/project-form';
-import type { ProjectFormData } from './form/validation';
 
 interface EditProjectDialogProps {
   tenantId: string;

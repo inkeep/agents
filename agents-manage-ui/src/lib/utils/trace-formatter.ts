@@ -11,7 +11,7 @@ import {
 } from '@/components/traces/timeline/types';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
-import type { FullAgentDefinition } from '@/lib/types/agent-full';
+import type { FullAgentDefinition } from '@/lib/validation';
 
 interface PrettifiedTrace {
   metadata: {

@@ -195,7 +195,7 @@ export function getModelInheritanceStatus(
 }
 
 export function getExecutionLimitInheritanceStatus(
-  currentLevel: 'project' | 'agent' | 'agent',
+  currentLevel: 'project' | 'agent',
   limitType: 'transferCountIs' | 'stepCountIs',
   currentValue: any,
   parentValue: any

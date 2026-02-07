@@ -165,6 +165,7 @@
             "type": "string"
           },
           "description": {
+            "description": "Agent description",
             "nullable": true,
             "type": "string"
           },
@@ -326,9 +327,10 @@
         "properties": {
           "transferCountIs": {
             "description": "The maximum number of transfers to trigger the stop condition.",
+            "exclusiveMinimum": true,
             "maximum": 1000,
-            "minimum": 1,
-            "type": "number"
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "type": "object"
@@ -353,6 +355,7 @@
             "type": "string"
           },
           "description": {
+            "description": "Agent description",
             "nullable": true,
             "type": "string"
           },
@@ -758,8 +761,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -767,7 +769,8 @@
           }
         },
         "required": [
-          "agentId"
+          "agentId",
+          "name"
         ],
         "type": "object"
       },
@@ -819,8 +822,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
-            "nullable": true,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -940,7 +942,6 @@
       "ArtifactComponentCreate": {
         "properties": {
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
@@ -952,39 +953,15 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
           },
           "render": {
             "anyOf": [
@@ -1020,7 +997,8 @@
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "props"
         ],
         "type": "object"
       },
@@ -2337,7 +2315,6 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
@@ -2349,39 +2326,14 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
           },
           "render": {
             "anyOf": [
@@ -2420,7 +2372,8 @@
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "props"
         ],
         "type": "object"
       },
@@ -2459,7 +2412,6 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
@@ -2471,39 +2423,14 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
           },
           "render": {
             "anyOf": [
@@ -2540,6 +2467,10 @@
             "type": "string"
           }
         },
+        "required": [
+          "name",
+          "props"
+        ],
         "type": "object"
       },
       "Dataset": {
@@ -4073,18 +4004,18 @@
       "ExternalAgentCreate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
             "type": "string"
           },
           "credentialReferenceId": {
-            "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
@@ -4096,7 +4027,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -4142,18 +4073,18 @@
       "ExternalAgentUpdate": {
         "properties": {
           "baseUrl": {
+            "format": "uri",
             "type": "string"
           },
           "createdAt": {
             "type": "string"
           },
           "credentialReferenceId": {
-            "maxLength": 256,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "description": {
-            "nullable": true,
             "type": "string"
           },
           "id": {
@@ -4165,7 +4096,7 @@
             "type": "string"
           },
           "name": {
-            "maxLength": 256,
+            "minLength": 1,
             "type": "string"
           },
           "updatedAt": {
@@ -5692,18 +5623,23 @@
       "ProjectCreate": {
         "properties": {
           "description": {
-            "nullable": true,
+            "maxLength": 500,
             "type": "string"
           },
           "id": {
-            "maxLength": 256,
+            "description": "Resource identifier",
+            "example": "resource_789",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
           },
           "name": {
-            "maxLength": 256,
+            "maxLength": 100,
+            "minLength": 1,
             "type": "string"
           },
           "stopWhen": {
@@ -5744,7 +5680,23 @@
         "nullable": true,
         "properties": {
           "base": {
-            "$ref": "#/components/schemas/ModelSettings"
+            "properties": {
+              "model": {
+                "description": "The model to use for the project.",
+                "type": "string"
+              },
+              "providerOptions": {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "description": "The provider options to use for the project.",
+                "type": "object"
+              }
+            },
+            "required": [
+              "model"
+            ],
+            "type": "object"
           },
           "structuredOutput": {
             "$ref": "#/components/schemas/ModelSettings"
@@ -5772,14 +5724,15 @@
       "ProjectUpdate": {
         "properties": {
           "description": {
-            "nullable": true,
+            "maxLength": 500,
             "type": "string"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
           },
           "name": {
-            "maxLength": 256,
+            "maxLength": 100,
+            "minLength": 1,
             "type": "string"
           },
           "stopWhen": {
@@ -6160,15 +6113,17 @@
         "properties": {
           "stepCountIs": {
             "description": "The maximum number of steps to trigger the stop condition.",
+            "exclusiveMinimum": true,
             "maximum": 1000,
-            "minimum": 1,
-            "type": "number"
+            "minimum": 0,
+            "type": "integer"
           },
           "transferCountIs": {
             "description": "The maximum number of transfers to trigger the stop condition.",
+            "exclusiveMinimum": true,
             "maximum": 1000,
-            "minimum": 1,
-            "type": "number"
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "type": "object"
