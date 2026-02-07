@@ -108,7 +108,7 @@ describe('validation', () => {
     });
   });
 
-  describe.only('FullAgentUpdateSchema', () => {
+  describe('FullAgentUpdateSchema', () => {
     function createSchema(value: string) {
       return {
         id: 'test',
