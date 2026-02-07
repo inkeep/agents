@@ -42,7 +42,7 @@
     "test:integration": "vitest --run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
-    "openapi:update-snapshot": "UPDATE_OPENAPI_SNAPSHOT=true vitest --run src/__tests__/openapi.test.ts",
+    "openapi:update-snapshot": "vitest --run src/__tests__/openapi.test.ts -u",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "lint": "biome lint --error-on-warnings",

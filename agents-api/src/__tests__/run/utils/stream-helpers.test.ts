@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, type Mock, test, vi } from 'vitest';
 
 // Hoist the mock function - must use vi.hoisted to access in vi.mock
 const { mockParsePartialJson } = vi.hoisted(() => {
@@ -21,9 +21,7 @@ import {
 
 describe('VercelDataStreamHelper Memory Management', () => {
   let mockWriter: VercelUIWriter & {
-    write: ReturnType<typeof vi.fn>;
-    merge: ReturnType<typeof vi.fn>;
-    onError: ReturnType<typeof vi.fn>;
+    write: Mock<VercelUIWriter['write']>;
   };
   let helper: VercelDataStreamHelper;
 
