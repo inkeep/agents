@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import type { JSONSchema } from 'zod/v4/core';
+
+function toIssuePath(path: PropertyKey[]): string {
+  return path.length > 0 ? `/${path.map(String).join('/')}` : '';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
 // Zod schema for valid JSON Schema Draft 7
 const JsonSchemaPropertySchema = z.object({
@@ -19,30 +26,15 @@ const JsonSchemaPropertySchema = z.object({
   default: z.unknown().optional(),
 });
 
-const JsonSchemaObjectSchema = z.object({
-  type: z.literal('object'),
-  properties: z.record(z.string(), JsonSchemaPropertySchema),
-  required: z.array(z.string()).min(1),
-  // Optional object properties
-  additionalProperties: z.boolean().optional(),
-  description: z.string().optional(),
-});
-
-// Compile validators for better performance
-const propertyValidator = TypeCompiler.Compile(JsonSchemaPropertySchema);
-const objectValidator = TypeCompiler.Compile(JsonSchemaObjectSchema);
-
-interface ValidationError {
-  path: string;
-  message: string;
-  type: 'syntax' | 'schema' | 'llm_requirement';
-}
-
-interface ValidationResult {
-  isValid: boolean;
-  errors: ValidationError[];
-  warnings: string[];
-}
+export const JsonSchemaForLlmSchema = z
+  .object({
+    type: z.literal('object', 'Schema must have type: "object" for LLM compatibility'),
+    properties: z.record(z.string(), JsonSchemaPropertySchema, 'Schema must have a "properties" object'),
+    required: z.array(z.string(), 'Schema must have a "required" array (can be empty)'),
+    // Optional object properties
+    additionalProperties: z.boolean().optional(),
+    description: z.string().optional(),
+  })
 
 /**
  * Validates that the JSON represents a valid JSON Schema for LLM usage
