@@ -158,14 +158,11 @@ Feel free to make your own determination about the confidence and severity level
 Create a pending (draft) review. Nothing is visible to anyone until you submit in Phase 6.
 
 ```
-mcp__github__pull_request_review_write
-  method: "create"
+mcp__github__create_pending_pull_request_review
   owner: {from pr-context: Repo field, before the '/'}
   repo: {from pr-context: Repo field, after the '/'}
   pullNumber: {from pr-context: PR number}
 ```
-
-No `event` parameter = PENDING state.
 
 ### 5.1 Identify Inline-Eligible Findings
 
@@ -410,8 +407,7 @@ Previous issues posted by humans or yourself from **previous runs** that are sti
 Submit the pending review with the summary as the review body. This atomically publishes both the review body AND all inline comments added in Phase 5 as a single PR review.
 
 ```
-mcp__github__pull_request_review_write
-  method: "submit_pending"
+mcp__github__submit_pending_pull_request_review
   owner: {from pr-context: Repo field, before the '/'}
   repo: {from pr-context: Repo field, after the '/'}
   pullNumber: {from pr-context: PR number}
@@ -540,8 +536,9 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 | **Read** | Examine files for context before dispatch |
 | **Grep/Glob** | Discover files by pattern |
 | **Bash** | Git operations (`git diff`, `git merge-base`), `gh api` for queries |
-| **mcp__github__pull_request_review_write** | Create pending review (Phase 5.0), submit review with body + event (Phase 6) |
+| **mcp__github__create_pending_pull_request_review** | Create pending review (Phase 5.0) |
 | **mcp__github__add_comment_to_pending_review** | Add inline comments with suggestion blocks to the pending review (Phase 5.3) |
+| **mcp__github__submit_pending_pull_request_review** | Submit review with body + event (Phase 6) |
 
 **Do not:** Write files, edit code, or use Bash for non-git commands.
 
