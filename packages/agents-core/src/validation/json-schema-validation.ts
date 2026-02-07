@@ -19,13 +19,13 @@ const JsonSchemaPropertySchema = z.object({
   default: z.unknown().optional(),
 });
 
-const JsonSchemaObjectSchema = Type.Object({
-  type: Type.Literal('object'),
-  properties: Type.Record(Type.String(), JsonSchemaPropertySchema),
-  required: Type.Array(Type.String(), { minItems: 1 }),
+const JsonSchemaObjectSchema = z.object({
+  type: z.literal('object'),
+  properties: z.record(z.string(), JsonSchemaPropertySchema),
+  required: z.array(z.string()).min(1),
   // Optional object properties
-  additionalProperties: Type.Optional(Type.Boolean()),
-  description: Type.Optional(Type.String()),
+  additionalProperties: z.boolean().optional(),
+  description: z.string().optional(),
 });
 
 // Compile validators for better performance
