@@ -138,26 +138,41 @@ export interface ResolvedGenerationResponse {
 export async function resolveGenerationResponse(
   response: Record<string, unknown>
 ): Promise<ResolvedGenerationResponse> {
-  if (!response.steps) {
+  const stepsValue = response.steps;
+
+  if (!stepsValue) {
     return response as unknown as ResolvedGenerationResponse;
   }
 
-  const [steps, text, finishReason, output] = await Promise.all([
-    Promise.resolve(
-      response.steps as PromiseLike<Array<StepResult<ToolSet>>> | Array<StepResult<ToolSet>>
-    ),
-    Promise.resolve(response.text as PromiseLike<string> | string),
-    Promise.resolve(response.finishReason as PromiseLike<FinishReason> | FinishReason),
-    Promise.resolve(response.output),
-  ]);
+  try {
+    const [steps, text, finishReason, output] = await Promise.all([
+      Promise.resolve(
+        stepsValue as PromiseLike<Array<StepResult<ToolSet>>> | Array<StepResult<ToolSet>>
+      ),
+      Promise.resolve(response.text as PromiseLike<string> | string),
+      Promise.resolve(response.finishReason as PromiseLike<FinishReason> | FinishReason),
+      Promise.resolve(response.output),
+    ]);
 
-  return {
-    ...response,
-    steps,
-    text,
-    finishReason,
-    output,
-  } as ResolvedGenerationResponse;
+    return {
+      ...response,
+      steps,
+      text,
+      finishReason,
+      output,
+    } as ResolvedGenerationResponse;
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        responseKeys: Object.keys(response),
+      },
+      'Failed to resolve generation response properties - AI SDK response may be malformed'
+    );
+    throw new Error(
+      `Failed to resolve generation response: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 function validateModel(modelString: string | undefined, modelType: string): string {

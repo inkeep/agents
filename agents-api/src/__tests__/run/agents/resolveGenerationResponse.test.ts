@@ -280,6 +280,31 @@ describe('resolveGenerationResponse', () => {
       expect(resolved.output?.dataComponents).toHaveLength(1);
     });
 
+    it('should throw a descriptive error when a getter rejects', async () => {
+      class MockRejectingGetter {
+        get steps() {
+          return Promise.reject(new Error('Stream terminated unexpectedly'));
+        }
+
+        get text() {
+          return Promise.resolve('some text');
+        }
+
+        get finishReason() {
+          return Promise.resolve('stop' as const);
+        }
+
+        get output() {
+          return Promise.resolve(undefined);
+        }
+      }
+
+      const result = new MockRejectingGetter();
+      await expect(resolveGenerationResponse(result as any)).rejects.toThrow(
+        'Failed to resolve generation response: Stream terminated unexpectedly'
+      );
+    });
+
     it('should not lose text when it is an empty string', async () => {
       class MockEmptyText {
         private _steps = [{ text: '', toolCalls: [{ toolName: 'lookup' }] }];
