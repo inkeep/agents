@@ -28,10 +28,10 @@ export {
   type StopWhen,
 } from './validation/schemas';
 
+export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
-export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;
 export type InternalAgentDefinition = z.infer<typeof FullAgentAgentInsertSchema>;
