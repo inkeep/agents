@@ -7,12 +7,9 @@
 
 'use server';
 
-import type {
-  ArtifactComponentApiInsert,
-  ArtifactComponentApiSelect,
-  ArtifactComponentApiUpdate,
-} from '@inkeep/agents-core';
+import type { ArtifactComponentApiSelect, ArtifactComponentApiUpdate } from '@inkeep/agents-core';
 import { cache } from 'react';
+import type { ArtifactComponentOutput } from '@/components/artifact-components/form/validation';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
@@ -65,7 +62,7 @@ export const fetchArtifactComponent = cache($fetchArtifactComponent);
 export async function createArtifactComponent(
   tenantId: string,
   projectId: string,
-  artifactComponent: ArtifactComponentApiInsert
+  artifactComponent: ArtifactComponentOutput
 ): Promise<ArtifactComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);

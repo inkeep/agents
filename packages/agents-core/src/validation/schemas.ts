@@ -1356,37 +1356,21 @@ export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(
 export const DatasetRunConfigAgentRelationUpdateSchema =
   DatasetRunConfigAgentRelationInsertSchema.partial();
 
-export const DatasetRunConfigAgentRelationApiSelectSchema = createApiSchema(
-  DatasetRunConfigAgentRelationSelectSchema
-).openapi('DatasetRunConfigAgentRelation');
-export const DatasetRunConfigAgentRelationApiInsertSchema = createApiInsertSchema(
-  DatasetRunConfigAgentRelationInsertSchema
-)
-  .omit({ id: true })
-  .openapi('DatasetRunConfigAgentRelationCreate');
-export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchema(
-  DatasetRunConfigAgentRelationUpdateSchema
-)
-  .omit({ id: true })
-  .openapi('DatasetRunConfigAgentRelationUpdate');
-
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: ResourceIdSchema,
-});
-export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
-  createdAt: true,
-  updatedAt: true,
 });
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
 export const DataComponentApiSelectSchema =
   createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
-export const DataComponentApiInsertSchema =
-  createApiInsertSchema(DataComponentInsertSchema).openapi('DataComponentCreate');
-export const DataComponentApiUpdateSchema =
-  createApiUpdateSchema(DataComponentUpdateSchema).openapi('DataComponentUpdate');
+export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentInsertSchema)
+  .extend(DataComponentExtendSchema)
+  .openapi('DataComponentCreate');
+export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentUpdateSchema)
+  .extend(DataComponentExtendSchema)
+  .openapi('DataComponentUpdate');
 
 export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
 export const SubAgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
@@ -1419,7 +1403,9 @@ export const ArtifactComponentApiInsertSchema = ArtifactComponentInsertSchema.om
   projectId: true,
   createdAt: true,
   updatedAt: true,
-}).openapi('ArtifactComponentCreate');
+})
+  .extend(ArtifactComponentExtendSchema)
+  .openapi('ArtifactComponentCreate');
 export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 ).openapi('ArtifactComponentUpdate');
