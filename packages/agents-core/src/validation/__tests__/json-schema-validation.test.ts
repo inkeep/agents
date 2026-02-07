@@ -138,8 +138,8 @@ describe('JsonSchemaForLlmSchema', () => {
     expect(minimumError?.message.length).toBeGreaterThan(0);
   });
 
-  test('returns error when required property is not present in properties', () => {
-    const result = validateJsonSchemaForLlm({
+  test.only('returns error when required property is not present in properties', () => {
+    const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
         name: {
@@ -150,13 +150,16 @@ describe('JsonSchemaForLlmSchema', () => {
       required: ['missing'],
     });
 
-    expect(result.isValid).toBe(false);
-    expect(
-      findError(result.errors, 'required', 'Required property "missing" must exist in properties')
-    ).toBeDefined();
+    expect(JSON.parse((result as any).error)).toEqual([
+      {
+        code: 'custom',
+        path: ['required'],
+        message: 'Required property "missing" must exist in properties',
+      },
+    ]);
   });
 
-  test.only('returns error when property description is blank after trimming', () => {
+  test('returns error when property description is blank after trimming', () => {
     const result = JsonSchemaForLlmSchema.safeParse({
       type: 'object',
       properties: {
