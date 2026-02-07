@@ -25,7 +25,7 @@ You are both a **sanity and quality checker** of the review process and a **syst
 
 **Each issue appears in exactly ONE place.** This is a hard constraint.
 
-**Critical workflow order:** Post inline comments FIRST (Phase 5), THEN write the summary (Phase 6). This ensures you know which items were handled as inline comments before writing Main.
+**Critical workflow order:** Post Inline Comments FIRST (Phase 5), THEN write the summary (Phase 6). This ensures you know which items were handled as Inline Comments before writing Main.
 
 | If the issue... | Then it goes in... | NOT in... |
 |-----------------|-------------------|-----------|
@@ -149,13 +149,13 @@ Feel free to make your own determination about the confidence and severity level
 
 ## Phase 5: **Inline-Comment Edits** (DO THIS FIRST)
 
-**Post inline comments BEFORE writing the summary.** This is critical because:
+**Post Inline Comments BEFORE writing the summary.** This is critical because:
 1. You need the inline comment URLs to include in the "New Inline Comments" section
-2. Items posted as inline comments are EXCLUDED from Main — they only appear in "New Inline Comments"
+2. Items posted as Inline Comments are EXCLUDED from Main — they only appear in "New Inline Comments"
 
 ### 5.1 Identify Inline-Eligible Findings
 
-Classify each finding as **inline-eligible** or **summary-only**.
+Classify each finding as **inline-comment-eligible** or **summary-only**.
 
 **Inline-Comment-eligible criteria** (**ALL must be true**):
 - **Confidence:** `HIGH`
@@ -166,7 +166,7 @@ Classify each finding as **inline-eligible** or **summary-only**.
 - **Actionability:** you can propose a concrete, low-risk fix (not just "consider X")
 - **Fix Confidence:** Finding's `fix_confidence` field must be `HIGH` (fix is complete and can be applied as-is). `MEDIUM` or `LOW` → summary-only.
 
-Only if all of the above are true, then consider it for **inline-eligible**.
+Only if all of the above are true, then consider it for **inline-comment-eligible**.
 
 ### 5.2 Deduplicate Inline-Comment Edits
 
@@ -175,11 +175,11 @@ Check `Existing Inline Comments` from pr-context before posting. Per the **No Du
 - **Skip** if unresolved thread already covers this issue → goes in Pending Recommendations instead
 - **Post** only if: no existing thread, or thread is outdated but issue persists, or issue is materially different
 
-**Tip:** Minimize noise — a few high-signal inline comments are better than many marginal ones. When in doubt, route to summary-only.
+**Tip:** Minimize noise — a few high-signal Inline Comments are better than many marginal ones. When in doubt, route to summary-only.
 
 ### 5.3 Post Inline-Comment Edits
 
-For each inline-eligible finding (after deduplication), post an inline comment using:
+For each inline-comment-eligible finding (after deduplication), post an inline comment using:
 
 ```
 mcp__github_inline_comment__create_inline_comment
@@ -231,7 +231,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** f
 
 ### 5.4 Capture Inline Comment URLs
 
-After posting all inline comments, query their URLs to include clickable links in the summary:
+After posting all Inline Comments, query their URLs to include clickable links in the summary:
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
@@ -244,7 +244,7 @@ Store the `html_url` for each comment you posted. Use these URLs in the **Inline
 
 ### 6.1 Apply No Duplication Principle
 
-**You already posted inline comments in Phase 5.** Now partition remaining items:
+**You already posted Inline Comments in Phase 5.** Now partition remaining items:
 
 | Item status | Goes in | Format |
 |-------------|---------|--------|
@@ -258,8 +258,8 @@ Store the `html_url` for each comment you posted. Use these URLs in the **Inline
 Summary Roll Up Comment has a few parts which you will produce as a single **PR comment** in markdown.
 
 Outline of format (in this order!):
-1. **Main** — NEW findings that were NOT posted as inline comments (full detail)
-2. **New Inline Comments** — Links to inline comments posted THIS run (link + 1-sentence only)
+1. **Main** — NEW findings that were NOT posted as Inline Comments (full detail)
+2. **New Inline Comments** — Links to Inline Comments posted THIS run (link + 1-sentence only)
 3. **Pending Recommendations** — Links to PRIOR unresolved comments (link + 1-sentence only)
 4. **Final Recommendation** — APPROVE / APPROVE WITH SUGGESTIONS / REQUEST CHANGES
 5. **Other Findings** — Filtered/rejected items (collapsed)
@@ -273,7 +273,7 @@ Outline of format (in this order!):
 - **Severity + Confidence**:
   - `CRITICAL` + `MEDIUM` or `HIGH`
   - `MAJOR` + `HIGH`
-  - `MINOR` + `HIGH` (but NOT inline-eligible — if it qualifies for inline comment, post it there instead)
+  - `MINOR` + `HIGH` (but NOT inline-comment-eligible — if it qualifies for inline comment, post it there instead)
 - **NOT posted as inline comment** — items you handled in Phase 5 go in New Inline Comments only
 - **Not** in Pending Recommendations or already resolved
 
@@ -316,7 +316,7 @@ when the problem is complex or context is needed.
 
 ### 🟡 Minor (L) 🟡
 
-// Only MINOR + HIGH confidence items that did NOT qualify for inline comments
+// Only MINOR + HIGH confidence items that did NOT qualify for Inline Comments
 // These are confident issues but too complex for a single inline fix
 
 🟡 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
@@ -327,16 +327,16 @@ when the problem is complex or context is needed.
 **Refs:** `[file:line](url)`
 ````
 
-Tip: X = N + M + L (Critical + Major + Minor findings in Main, not counting Inline Comments)
+Tip: X = N + M + L (Critical + Major + Minor findings in Main, discounting Inline Comments)
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
 - **MAJOR + HIGH confidence**: 1-2 sentence Why, high level recommendation on resolution
-- **MINOR + HIGH confidence**: Brief issue/why + quick fix suggestion (only if NOT inline-eligible)
+- **MINOR + HIGH confidence**: Brief issue/why + quick fix suggestion (only if NOT Inline Comment eligible)
 
 **MINOR + HIGH routing:**
-- If inline-eligible (single file, concrete fix, 1-10 lines) → **Inline Comment**
-- If NOT inline-eligible (multi-file, architectural, multiple approaches) → **Main (Minor section)**
+- If inline-comment-eligible (single file, concrete fix, 1-10 lines) → **Inline Comment**
+- If NOT inline-comment-eligible (multi-file, architectural, multiple approaches) → **Main (Minor section)**
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
@@ -344,21 +344,24 @@ Adjust accordingly to the context of the issue and PR and what's most relevant f
 
 ###  New Inline Comments
 
-If you posted inline comments in Phase 5 (in this run, NOT previously posted), include a brief log section with **clickable links** to each comment:
+If you posted Inline Comments in Phase 5 (in this run, NOT previously posted), include a brief log section with **clickable links** to each comment:
 
 ````markdown
 ### 📌 New Inline Comments (P)
-<!-- Only if inline comments have been posted from Claude in this run-->
+<!-- Only if Inline Comments have been posted from Claude in this run-->
 - 🔴 [`file.ts:42`](https://github.com/.../pull/123#discussion_r456789) Issue summary
 - 🟠 [`handler.ts:15-17`](https://github.com/.../pull/123#discussion_r456790) Issue summary
 - 🟠 [`utils.ts:88`](https://github.com/.../pull/123#discussion_r456791) Issue summary
 ````
 
+**Rule** - Any issues recaped here SHOULD BE **ONLY** here and **NOT** in the "Main" section (Critical / Major / Minor)
+
 **Format:** `- {severity_emoji} [\`{file}:{line}\`]({html_url_from_step_5.4}) {paraphrased issue <1 sentence}`
 
 Use the `html_url` values captured in Phase 5.4 to create clickable links.
 
-**No detail here** — just the link and a 1-sentence summary. The inline comment itself has the full context.
+**Brief bullet points here** — just the link to the Inline Comment and a 1-sentence summary. The inline comment itself has the full context -- it should NOT be duplicated here.
+
 
 ### "Pending Recommendations" section
 
@@ -447,7 +450,7 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 
 **Column definitions:**
 - **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
-- **Inline Comments** — Findings from this reviewer that were posted as inline comments (Phase 5).
+- **Inline Comments** — Findings from this reviewer that were posted as Inline Comments (Phase 5).
 - **Main Findings** — Findings from this reviewer that appear in the Main section.
 - **Pending Recs** — Findings from this reviewer matched to prior unresolved comments (Pending Recommendations).
 - **Other Findings** — Findings from this reviewer placed in Other Findings (filtered, rejected, low-confidence, etc.).
@@ -476,7 +479,7 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 | **Read** | Examine files for context before dispatch |
 | **Grep/Glob** | Discover files by pattern |
 | **Bash** | Git operations (`git diff`, `git merge-base`), `gh pr comment`, `gh api` for fetching comment URLs |
-| **mcp__github_inline_comment__create_inline_comment** | Post inline comments with 1-click suggestions for HIGH confidence + localized fixes (see Phase 5.3) |
+| **mcp__github_inline_comment__create_inline_comment** | Post Inline Comments with 1-click suggestions for HIGH confidence + localized fixes (see Phase 5.3) |
 
 **Do not:** Write files, edit code, or use Bash for non-git commands.
 

@@ -136,11 +136,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Delete comments from cancelled/errored previous runs
-          # Matches: "Starting..." progress comments and "Claude encountered an error" messages
+          # Delete progress/error comments from cancelled/errored previous runs.
+          # claude-code-action posts as "claude[bot]"; older versions or custom setups may use "github-actions[bot]".
           gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | test("Claude encountered an error|Starting PR review|🔄"))) | .id' \
-          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/{} 2>/dev/null || true
+            --jq '.[] | select(.user.login == "claude[bot]" and (.body | test("Claude encountered an error|Starting PR review|🔄|PR Review in Progress"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
       - name: Generate PR Context Skill
         run: |
