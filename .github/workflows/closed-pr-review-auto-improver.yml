@@ -103,6 +103,8 @@ jobs:
                   }
                   reviewThreads(first: 100) {
                     nodes {
+                      isResolved
+                      isOutdated
                       comments(first: 20) {
                         nodes {
                           author { login __typename }
@@ -148,12 +150,11 @@ jobs:
             | map({author: .author.login, body: .body, url: .url, path: .path, line: .line, diffHunk: .diffHunk, createdAt: .createdAt})
           ')
 
-          # Extract bot comments (truncate body to 1000 chars)
+          # Extract bot inline/issue comments (truncate body to 1000 chars)
           BOT_COMMENTS=$(echo "$COMMENTS" | jq '
             [
               .data.repository.pullRequest.comments.nodes[],
-              (.data.repository.pullRequest.reviewThreads.nodes[].comments.nodes[] // empty),
-              .data.repository.pullRequest.reviews.nodes[]
+              (.data.repository.pullRequest.reviewThreads.nodes[].comments.nodes[] // empty)
             ]
             | map(select(
                 .author.__typename == "Bot" or
@@ -161,6 +162,19 @@ jobs:
               ))
             | map({author: .author.login, body: .body[0:1000], url: .url, path: .path, line: .line})
           ')
+
+          # Extract bot review summaries separately (higher limit since these contain structured findings)
+          BOT_REVIEWS=$(echo "$COMMENTS" | jq '
+            [.data.repository.pullRequest.reviews.nodes[]]
+            | map(select(
+                .author.__typename == "Bot" or
+                (.author.login | test("\\[bot\\]$"))
+              ))
+            | map({author: .author.login, body: .body[0:10000], state: .state, url: .url})
+          ')
+
+          # Merge bot comments and reviews for output
+          BOT_COMMENTS=$(echo "$BOT_COMMENTS" "$BOT_REVIEWS" | jq -s 'add')
 
           COMMENT_COUNT=$(echo "$HUMAN_COMMENTS" | jq 'length')
 
