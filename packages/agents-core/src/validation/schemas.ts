@@ -83,6 +83,7 @@ import {
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
+import { ArtifactComponentExtendSchema, DataComponentExtendSchema } from './extend-schemas';
 
 export const StopWhenSchema = z
   .object({
