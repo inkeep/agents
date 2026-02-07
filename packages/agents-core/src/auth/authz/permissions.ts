@@ -74,6 +74,11 @@ export async function canUseProjectStrict(params: {
   userId: string;
   projectId: string;
 }): Promise<boolean> {
+  // System users and API key users bypass project access checks
+  const bypassCheck = params.userId === 'system' || params.userId.startsWith('apikey:');
+  if (bypassCheck) {
+    return true;
+  }
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,

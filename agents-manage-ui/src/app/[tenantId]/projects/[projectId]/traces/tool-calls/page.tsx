@@ -113,7 +113,7 @@ export default function ToolCallsBreakdown({
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId);
         const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
 
         const [toolData, uniqueServers, uniqueTools] = await Promise.all([
@@ -134,7 +134,7 @@ export default function ToolCallsBreakdown({
     };
 
     fetchData();
-  }, [selectedServer, startTime, endTime, projectId]);
+  }, [tenantId, selectedServer, startTime, endTime, projectId]);
 
   const filteredToolCalls = useMemo(() => {
     return toolCalls.filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool);

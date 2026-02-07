@@ -117,14 +117,14 @@ export type AvailableAgentInfo = {
 const agentsLogger = getLogger('agents-data-access');
 
 /**
- * List agents across multiple project branches for a tenant.
+ * List agents across multiple project main branches for a tenant.
  *
- * Use this when you need to query agents across projects without middleware-provided db.
+ * Uses Dolt AS OF queries against each project's main branch without checkout.
  *
  * @param db - Database client
  * @param params - Tenant and project IDs
  */
-export async function listAgentsAcrossProjectBranches(
+export async function listAgentsAcrossProjectMainBranches(
   db: AgentsManageDatabaseClient,
   params: { tenantId: string; projectIds: string[] }
 ): Promise<AvailableAgentInfo[]> {
@@ -135,7 +135,6 @@ export async function listAgentsAcrossProjectBranches(
     try {
       const branchName = getProjectMainBranchName(tenantId, projectId);
 
-      // Use Dolt's AS OF syntax to query at a specific branch without checkout
       const result = await db.execute(
         sql`
           SELECT id as "agentId", name as "agentName", project_id as "projectId"

@@ -30,7 +30,7 @@ export default async function EditTriggerPage({
   }
 
   return (
-    <>
+    <div className="max-w-2xl mx-auto">
       <PageHeader title={`Edit ${trigger.name}`} description={metadata.description} />
       <TriggerForm
         tenantId={tenantId}
@@ -39,6 +39,6 @@ export default async function EditTriggerPage({
         trigger={trigger}
         mode="edit"
       />
-    </>
+    </div>
   );
 }

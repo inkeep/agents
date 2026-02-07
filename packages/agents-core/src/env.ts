@@ -94,6 +94,12 @@ const envSchema = z.object({
     .string()
     .optional()
     .describe('URL where the agents management API is running'),
+  AUTH_COOKIE_DOMAIN: z
+    .string()
+    .optional()
+    .describe(
+      'Explicit cookie domain for cross-subdomain auth (e.g., .inkeep.com). Required when the API and UI do not share a common 3-part parent domain.'
+    ),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 });
 

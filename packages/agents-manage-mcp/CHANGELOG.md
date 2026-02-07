@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-mcp
 
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+
+## 0.45.3
+
 ## 0.45.2
 
 ## 0.45.1

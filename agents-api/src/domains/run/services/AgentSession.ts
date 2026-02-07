@@ -994,7 +994,7 @@ export class AgentSession {
                   type: z.literal('no_relevant_updates'),
                   data: z
                     .object({
-                      no_updates: z.boolean().default(true),
+                      no_updates: z.boolean(),
                     })
                     .describe(
                       'Use when nothing substantially new to report. Should only use on its own.'

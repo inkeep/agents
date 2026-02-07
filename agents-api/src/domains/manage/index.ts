@@ -8,26 +8,28 @@ import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
 import oauthRoutes from './routes/oauth';
+import passwordResetLinksRoutes from './routes/passwordResetLinks';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
-import userOrganizationsRoutes from './routes/userOrganizations';
+import usersRoutes from './routes/users';
 
 export function createManageRoutes() {
   const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-  // Mount user-organizations routes - global user endpoint
-  app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
+  // Mount users routes - organizations and providers endpoints
+  app.route('/api/users', usersRoutes);
 
   // Mount CLI auth routes - for CLI login flow
   app.route('/api/cli', cliAuthRoutes);
 
-  // Mount invitations routes - global invitations endpoint
+  // Mount invitations routes - includes /verify (unauthenticated) and /pending (authenticated)
   app.route('/api/invitations', invitationsRoutes);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
+  app.route('/tenants/:tenantId/password-reset-links', passwordResetLinksRoutes);
 
   // Mount playground token routes under tenant (uses requireTenantAccess middleware)
   app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);

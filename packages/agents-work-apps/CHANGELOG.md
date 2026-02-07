@@ -1,5 +1,26 @@
 # @inkeep/agents-work-apps
 
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- 37248c6: visualize update from feature branch
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
 ## 0.45.2
 
 ### Patch Changes

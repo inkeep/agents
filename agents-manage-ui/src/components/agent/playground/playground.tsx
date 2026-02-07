@@ -49,7 +49,7 @@ export const Playground = ({
     control: fullAgentForm.control,
     name: 'contextConfig.headersSchema',
   });
-
+  const [isCustomHeadersModalOpen, setIsCustomHeadersModalOpen] = useState(false);
   const resolver = useMemo(
     () =>
       zodResolver(
@@ -70,7 +70,11 @@ export const Playground = ({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: validate on mount
   useEffect(() => {
-    form.trigger();
+    form.trigger().then(() => {
+      const state = form.getFieldState('headers');
+      if (!state.invalid) return;
+      setIsCustomHeadersModalOpen(true);
+    });
   }, []);
 
   const [isCopying, setIsCopying] = useState(false);
@@ -147,6 +151,8 @@ export const Playground = ({
           customHeaders={customHeaders}
           setCustomHeaders={setCustomHeaders}
           form={form}
+          isOpen={isCustomHeadersModalOpen}
+          setIsOpen={setIsCustomHeadersModalOpen}
         />
         <div className="flex items-center gap-2">
           <Button

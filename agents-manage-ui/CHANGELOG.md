@@ -1,5 +1,30 @@
 # @inkeep/agents-manage-ui
 
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 99388e9: Fix script to keep both original and hashed dependencies in package.json for Turbopack server-only packages
+- 12ad286: - Temp fix for chat to edit
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- 14a2e6f: bump `next` to `^16.1.6` to fix pnpm audit vulnerabilities
+- 4d291f1: Fix custom headers modal to automatically open when validation errors are present on mount
+- 4a83260: Add custom headers validation in playground chat. Users are now notified when custom headers are invalid or required based on the agent's headers schema configuration.
+- fd323b4: Fix `ModelSelector` layout where custom model inputs were cut off and improve `ModelSelector` architecture with new shadcn `ButtonGroup` component
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
 ## 0.45.2
 
 ### Patch Changes

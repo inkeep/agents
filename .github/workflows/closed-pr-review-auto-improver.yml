@@ -1,0 +1,288 @@
+name: Closed PR Review Auto-Improver
+
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to analyze (for testing against historical PRs)'
+        required: true
+        type: number
+
+concurrency:
+  group: closed-pr-review-auto-improver-${{ inputs.pr_number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  analyze-reviewer-feedback:
+    # Run on merged PRs (auto) or manual dispatch (testing)
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # For creating branches and commits
+      pull-requests: write # For creating draft PRs
+      issues: read         # For reading PR comments
+      id-token: write      # For OIDC token (required by claude-code-action)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate PR is merged (for workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          STATE=$(gh pr view ${{ inputs.pr_number }} --json state --jq '.state')
+          if [ "$STATE" != "MERGED" ]; then
+            echo "::error::PR #${{ inputs.pr_number }} is not merged (state: $STATE). Only merged PRs can be analyzed."
+            exit 1
+          fi
+          echo "✓ PR #${{ inputs.pr_number }} is merged"
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+          owner: inkeep
+          repositories: internal-cc-plugins
+
+      - name: Clone internal plugins
+        run: gh repo clone inkeep/internal-cc-plugins /tmp/internal-cc-plugins
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Get PR Metadata
+        id: pr-meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          PR_NUMBER=${{ inputs.pr_number || github.event.pull_request.number }}
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Fetch PR metadata via API (works for both auto and manual triggers)
+          PR_DATA=$(gh pr view $PR_NUMBER --json title,author,baseRefName,mergedBy,body)
+          echo "title=$(echo "$PR_DATA" | jq -r '.title')" >> $GITHUB_OUTPUT
+          echo "author=$(echo "$PR_DATA" | jq -r '.author.login')" >> $GITHUB_OUTPUT
+          echo "base=$(echo "$PR_DATA" | jq -r '.baseRefName')" >> $GITHUB_OUTPUT
+          echo "merged_by=$(echo "$PR_DATA" | jq -r '.mergedBy.login')" >> $GITHUB_OUTPUT
+
+          # Store body with HEREDOC (unique delimiter to avoid collision)
+          echo "body<<__BODY_DELIM_7f3a9b2c__" >> $GITHUB_OUTPUT
+          echo "$PR_DATA" | jq -r '.body' >> $GITHUB_OUTPUT
+          echo "__BODY_DELIM_7f3a9b2c__" >> $GITHUB_OUTPUT
+
+      - name: Extract Comments
+        id: extract
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          PR_NUMBER=${{ steps.pr-meta.outputs.pr_number }}
+
+          # Fetch all comment types via GraphQL
+          COMMENTS=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  comments(first: 100) {
+                    nodes {
+                      author { login __typename }
+                      body
+                      url
+                      createdAt
+                    }
+                  }
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      isOutdated
+                      comments(first: 20) {
+                        nodes {
+                          author { login __typename }
+                          body
+                          url
+                          path
+                          line
+                          diffHunk
+                          createdAt
+                        }
+                      }
+                    }
+                  }
+                  reviews(first: 50) {
+                    nodes {
+                      author { login __typename }
+                      body
+                      state
+                      url
+                      createdAt
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" \
+            -f repo="${{ github.event.repository.name }}" \
+            -F pr=$PR_NUMBER)
+
+          # Extract human comments (not Bot, no [bot] suffix, substantive >15 chars, not trivial)
+          HUMAN_COMMENTS=$(echo "$COMMENTS" | jq '
+            [
+              .data.repository.pullRequest.comments.nodes[],
+              (.data.repository.pullRequest.reviewThreads.nodes[].comments.nodes[] // empty),
+              .data.repository.pullRequest.reviews.nodes[]
+            ]
+            | map(select(
+                .author.__typename != "Bot" and
+                (.author.login | test("\\[bot\\]$") | not) and
+                (.body | length) >= 15 and
+                (.body | test("^(lgtm|looks good|thanks|thank you|approved|shipit|ship it|👍|🚀|✅)\\s*$"; "i") | not)
+              ))
+            | map({author: .author.login, body: .body, url: .url, path: .path, line: .line, diffHunk: .diffHunk, createdAt: .createdAt})
+          ')
+
+          # Extract bot inline/issue comments (truncate body to 1000 chars)
+          BOT_COMMENTS=$(echo "$COMMENTS" | jq '
+            [
+              .data.repository.pullRequest.comments.nodes[],
+              (.data.repository.pullRequest.reviewThreads.nodes[].comments.nodes[] // empty)
+            ]
+            | map(select(
+                .author.__typename == "Bot" or
+                (.author.login | test("\\[bot\\]$"))
+              ))
+            | map({author: .author.login, body: .body[0:1000], url: .url, path: .path, line: .line})
+          ')
+
+          # Extract bot review summaries separately (higher limit since these contain structured findings)
+          BOT_REVIEWS=$(echo "$COMMENTS" | jq '
+            [.data.repository.pullRequest.reviews.nodes[]]
+            | map(select(
+                .author.__typename == "Bot" or
+                (.author.login | test("\\[bot\\]$"))
+              ))
+            | map({author: .author.login, body: .body[0:10000], state: .state, url: .url})
+          ')
+
+          # Merge bot comments and reviews for output
+          BOT_COMMENTS=$(echo "$BOT_COMMENTS" "$BOT_REVIEWS" | jq -s 'add')
+
+          COMMENT_COUNT=$(echo "$HUMAN_COMMENTS" | jq 'length')
+
+          if [ "$COMMENT_COUNT" -gt 0 ]; then
+            echo "has_human_comments=true" >> $GITHUB_OUTPUT
+            echo "comment_count=$COMMENT_COUNT" >> $GITHUB_OUTPUT
+
+            # Store in outputs using HEREDOC (unique delimiters to avoid collision)
+            echo "human_comments<<__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> $GITHUB_OUTPUT
+            echo "$HUMAN_COMMENTS" >> $GITHUB_OUTPUT
+            echo "__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> $GITHUB_OUTPUT
+
+            echo "bot_comments<<__BOT_COMMENTS_DELIM_9f5c2e4a__" >> $GITHUB_OUTPUT
+            echo "$BOT_COMMENTS" >> $GITHUB_OUTPUT
+            echo "__BOT_COMMENTS_DELIM_9f5c2e4a__" >> $GITHUB_OUTPUT
+
+            echo "Extracted $COMMENT_COUNT substantive human comments"
+          else
+            echo "has_human_comments=false" >> $GITHUB_OUTPUT
+            echo "No substantive human comments found - skipping analysis"
+          fi
+
+      - name: Get PR Diff
+        if: steps.extract.outputs.has_human_comments == 'true'
+        id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          # Get diff, cap at 200KB to stay under prompt limits
+          PR_NUM=${{ steps.pr-meta.outputs.pr_number }}
+          DIFF=$(gh pr diff $PR_NUM)
+          DIFF_SIZE=${#DIFF}
+          MAX_SIZE=200000
+
+          echo "diff_content<<__DIFF_DELIM_a6d3f8c1__" >> $GITHUB_OUTPUT
+          if [ $DIFF_SIZE -gt $MAX_SIZE ]; then
+            echo "${DIFF:0:$MAX_SIZE}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "[TRUNCATED - diff exceeded ${MAX_SIZE} bytes]" >> $GITHUB_OUTPUT
+          else
+            echo "$DIFF" >> $GITHUB_OUTPUT
+          fi
+          echo "__DIFF_DELIM_a6d3f8c1__" >> $GITHUB_OUTPUT
+
+      - name: Run Meta-Analyzer Agent
+        if: steps.extract.outputs.has_human_comments == 'true'
+        id: analyze
+        # Tracking: https://github.com/anthropics/claude-code-action/issues/892
+        # Remove pin when issue is resolved and @v1 is stable again
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --plugin-dir /tmp/internal-cc-plugins/closed-pr-review-auto-improver
+            --agent closed-pr-review-auto-improver
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(git checkout -b:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh pr edit:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(git rev-list:*),Bash(git show:*)"
+          prompt: |
+            Analyze merged PR #${{ steps.pr-meta.outputs.pr_number }} to identify generalizable patterns from human reviewer feedback.
+
+            # PR Metadata
+            - **Title:** ${{ steps.pr-meta.outputs.title }}
+            - **Author:** ${{ steps.pr-meta.outputs.author }}
+            - **Base:** ${{ steps.pr-meta.outputs.base }}
+            - **Merged By:** ${{ steps.pr-meta.outputs.merged_by }}
+
+            ## Description
+            ${{ steps.pr-meta.outputs.body }}
+
+            ---
+
+            # Human Comments (${{ steps.extract.outputs.comment_count }} substantive)
+            Filtered to exclude bots and trivial comments (LGTM, thanks, etc).
+            ```json
+            ${{ steps.extract.outputs.human_comments }}
+            ```
+
+            # Bot Comments (for comparison)
+            What automated reviewers (Claude, etc.) flagged:
+            ```json
+            ${{ steps.extract.outputs.bot_comments }}
+            ```
+
+            # PR Diff
+            ```diff
+            ${{ steps.diff.outputs.diff_content }}
+            ```
+
+            ---
+
+            # Your Task
+            1. Analyze what patterns/issues humans identified
+            2. Compare against bot comments to find gaps (what humans caught that bots missed)
+            3. Apply the generalizability test (all 4 criteria must pass)
+            4. If HIGH-generalizability patterns found:
+               - Create branch: `closed-pr-review-auto-improver/pr-${{ steps.pr-meta.outputs.pr_number }}-learnings`
+               - Edit relevant `.claude/agents/pr-review-*.md` files
+               - Create draft PR with changes
+               - Add label: `pr-review-improvement`
+            5. If no generalizable patterns: Output your analysis JSON and exit
+
+            Be conservative: only HIGH generalizability patterns should become PRs.
+
+      - name: Upload Debug Artifacts
+        if: always() && steps.analyze.outputs.execution_file
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number || inputs.pr_number || github.event.pull_request.number }}-${{ github.run_id }}
+          path: ${{ steps.analyze.outputs.execution_file }}
+          retention-days: 7
+          if-no-files-found: ignore

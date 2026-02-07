@@ -81,20 +81,61 @@ The `type` field determines which other fields are required. Do not mix schemas.
 
 ### Common Fields (All Types)
 
-These fields are **required on all finding types**:
+These fields are **required on all finding types**.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
-| `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? |
-| `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
-| `issue` | string | What's wrong. Thorough description. |
-| `implications` | string | Why it matters. Consequence, risk, user impact. |
-| `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? |
-| `fix` | string | Suggestion[s] (aka "fix" or "fixes") for how to address it. If a simple fix, then just give the full solution as a code block. If a bigger-scoped resolution is needed, but brief code example[s] would be helpful to illustrate, incorporate them as full code block[s] (still minimum viable short) interweaved into the explanation. Otherwise, describe the alternative approaches to consider qualitatively/from a technical perspective. Note: Don't go into over-engineering a solution if wide-scoped or you're unsure, this is more about giving a starting point/direction as to what a resolution may look like. |
-| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
-| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
-| `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+| # | Field | Type | Description |
+|---|-------|------|-------------|
+| 1 | `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
+| 2 | `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
+| 3 | `issue` | string | What's wrong. Thorough description. |
+| 4 | `references` | string[] | **Required.** Citations that justify the finding. See Reference Types below. |
+| 5 | `implications` | string | Why it matters. Consequence, risk, user impact. (write AFTER citing evidence) |
+| 6 | `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? (classify AFTER implications) |
+| 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
+| 8 | `fix` | string | Suggestion[s] for how to address it. If simple, give the full solution as a code block. If bigger-scoped, interweave brief code examples into the explanation. Don't over-engineer — give a starting point/direction. |
+| 9 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+
+### Reference Types
+
+Every finding **must** include at least one reference. References ground and justify your analysis in verifiable sources and prevent hallucinated recommendations.
+
+**Important:** References are **not** for pointing to the file or lines where the finding is located — the finding's own `file` and `line` fields already capture that. Instead, references cite **other sources** that justify *why* the finding is valid: related code elsewhere in the codebase, project standards (skills, AGENTS.md), reviewer-defined rules, or external documentation.
+
+**Use markdown hyperlinks** `[text](url)` for ALL references. The `pr-context` skill provides the GitHub URL base pattern for constructing links.
+
+| Type | Format | Example |
+|------|--------|---------|
+| **Related code** | `[file:line](github-blob-url#Lline)` | `[src/api/client.ts:42](https://github.com/org/repo/blob/sha/src/api/client.ts#L42)` |
+| **Related code range** | `[file:start-end](github-blob-url#Lstart-Lend)` | `[utils.ts:10-15](https://github.com/.../utils.ts#L10-L15)` |
+| **Skill reference** | `[skill-name skill](github-blob-url)` | `[pr-review-security-iam skill](https://github.com/.../.agents/skills/.../SKILL.md)` |
+| **AGENTS.md rule** | `[AGENTS.md: rule](github-blob-url)` | `[AGENTS.md: tenant isolation](https://github.com/.../AGENTS.md)` |
+| **Reviewer instructions** | `[reviewer: section](github-blob-url)` | `[pr-review-security-iam: Checklist §2](https://github.com/.../.claude/agents/pr-review-security-iam.md)` |
+| **External URL** | `[descriptive text](url)` | `[React useMemo docs](https://react.dev/...)` |
+
+**Constructing GitHub URLs:**
+
+Use the pattern from `pr-context`:
+```
+https://github.com/{repo}/blob/{sha}/{path}#L{line}
+https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
+```
+
+**Examples:**
+```json
+"references": [
+  "[src/api/client.ts:42-48](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42-L48)",
+  "[pr-review-security-iam skill](https://github.com/org/repo/blob/abc123/.agents/skills/pr-review-security-iam/SKILL.md)",
+  "[pr-review-security-iam: Checklist §2](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)",
+  "[React useMemo docs](https://react.dev/reference/react/useMemo)"
+]
+```
+
+**Guidance:**
+- **Code issues** → link to *related* code elsewhere that demonstrates the pattern, contract, or prior art that justifies the finding (do NOT re-link the finding's own file/line — that is already in the finding's `file`/`line` fields)
+- **Standards violations** → link to the skill or AGENTS.md that defines the standard
+- **Reviewer-defined rules** → link to your own agent file (`.claude/agents/pr-review-*.md`)
+- **Best practice claims** → link to official docs or authoritative sources
+- **Multiple references** are encouraged when they strengthen the finding
 
 ---
 
@@ -102,20 +143,14 @@ These fields are **required on all finding types**:
 
 **Use when:** You found an issue at a specific line (or small range ≤10 lines) AND you can propose a concrete fix.
 
-**Required fields:**
+**Field order:** `type` → `file` → `line` → common fields (category → issue → references → implications → severity → confidence → fix → fix_confidence)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"inline"` | Literal string. |
 | `file` | string | Repo-relative path (e.g., `"src/api/client.ts"`). |
 | `line` | number \| string | Line number (`42`) or range (`"42-48"`). |
-| + common fields | | See above. |
-
-**Optional fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `line_end` | number | Explicit end line (alternative to range string). |
+| `line_end` | number | (Optional) Explicit end line (alternative to range string). |
 
 ---
 
@@ -123,13 +158,12 @@ These fields are **required on all finding types**:
 
 **Use when:** The issue concerns a whole file, a large section, or you have guidance but not a concrete line-level fix.
 
-**Required fields:**
+**Field order:** `type` → `file` → common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"file"` | Literal string. |
 | `file` | string | Repo-relative path. |
-| + common fields | | See above. |
 
 ---
 
@@ -137,13 +171,12 @@ These fields are **required on all finding types**:
 
 **Use when:** The issue spans multiple files — e.g., inconsistency between API and SDK, type definitions out of sync, or a pattern that appears across several files.
 
-**Required fields:**
+**Field order:** `type` → `files` → common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"multi-file"` | Literal string. |
 | `files` | string[] | Array of repo-relative paths (at least 2). |
-| + common fields | | See above. |
 
 ---
 
@@ -151,13 +184,12 @@ These fields are **required on all finding types**:
 
 **Use when:** The issue is architectural or pattern-related, not tied to specific files — e.g., inconsistent patterns across the codebase, precedent-setting concerns, or design decisions that affect evolvability.
 
-**Required fields:**
+**Field order:** `type` → `scope` → common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `"system"` | Literal string. |
 | `scope` | string | Brief description of what area/pattern this concerns. |
-| + common fields | | See above. |
 
 ---
 
@@ -211,6 +243,8 @@ Use **your primary domain**. This is a freeform string.
 | `errors` | error handling, silent failures |
 | `comments` | comment accuracy, staleness |
 | `frontend` | React/Next.js patterns, components |
+| `sre` | reliability, retries, timeouts, circuit breakers, observability |
+| `llm` | AI/LLM integration: tools, templates, streaming, context management |
 
 **Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category relevant to you.
 
@@ -250,12 +284,41 @@ Never use absolute paths. Always use paths relative to the repository root.
 
 ---
 
+## Complete Example (with correct field order)
+
+```json
+[
+  {
+    "type": "inline",
+    "file": "src/api/client.ts",
+    "line": 42,
+    "category": "security",
+    "issue": "User input is passed directly to SQL query without sanitization, creating SQL injection vulnerability.",
+    "references": [
+      "[src/api/client.ts:42](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42)",
+      "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)",
+      "[pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)"
+    ],
+    "implications": "Attackers can extract, modify, or delete database contents. Could lead to full database compromise and data breach.",
+    "severity": "CRITICAL",
+    "confidence": "HIGH",
+    "fix": "Use parameterized queries:\n```typescript\nconst result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);\n```",
+    "fix_confidence": "HIGH"
+  }
+]
+```
+
+**Note the order:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
+
+---
+
 ## Validation Checklist
 
 Before returning, verify:
 
 - [ ] Output is valid JSON (no prose, no code fences, no markdown)
 - [ ] Output is an array of Finding objects
+- [ ] **Field order is correct:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
 - [ ] Every finding has a `type` field with valid value
 - [ ] Every finding has all required fields for its type
 - [ ] `severity`, `confidence`, and `fix_confidence` use allowed enum values
@@ -265,3 +328,4 @@ Before returning, verify:
 - [ ] `multi-file` findings have at least 2 files in the array
 - [ ] `system` findings have a descriptive `scope` string
 - [ ] No duplicate findings for the same issue
+- [ ] Every finding has at least one reference as markdown hyperlink `[text](url)`

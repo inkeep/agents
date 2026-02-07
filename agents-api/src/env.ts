@@ -39,6 +39,12 @@ const envSchema = z.object({
     .optional()
     .default('http://localhost:3002')
     .describe('URL where the agents management API is running'),
+  AUTH_COOKIE_DOMAIN: z
+    .string()
+    .optional()
+    .describe(
+      'Explicit cookie domain for cross-subdomain auth (e.g., .inkeep.com). Required when the API and UI do not share a common 3-part parent domain.'
+    ),
 
   // Authentication
   BETTER_AUTH_SECRET: z

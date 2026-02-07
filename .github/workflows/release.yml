@@ -82,36 +82,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
 
-      - name: Create Draft Release from PR
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
-          RELEASE_DATE=$(date +%Y-%m-%d)
-
-          # Get the most recently merged PR's body
-          PR_BODY=$(gh pr list --state merged --base main --json body,mergedAt --jq 'sort_by(.mergedAt) | last | .body')
-
-          # Extract everything from "# Releases" onward and replace with "# Changelog"
-          CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
-
-          # Create release notes with Highlights section above Changelog
-          RELEASE_NOTES="# Highlights
-
-          <!-- Add release highlights here before publishing -->
-
-          ${CHANGELOG}"
-
-          # Create draft release
-          gh release create "v${VERSION}" \
-            --title "${RELEASE_DATE}" \
-            --notes "$RELEASE_NOTES" \
-            --draft
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # This is an experimental step to create a draft release from PR with AI-generated Highlights
-      # If this works, we can remove the previous step
-      - name: Create Draft Release from PR with AI-generated Highlights
+      - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'
         shell: bash
         run: |
@@ -140,19 +111,15 @@ jobs:
                 }]
               }')" | jq -r '.content[0].text')
 
-            # Create release notes with AI-generated Highlights
-
             RELEASE_NOTES="# Highlights
 
             ${HIGHLIGHTS}
 
             ${CHANGELOG}"
 
-            # Create draft release
-            gh release create "v${VERSION}-AI" \
-              --title "${RELEASE_DATE}-AI" \
-              --notes "$RELEASE_NOTES" \
-              --draft
+            gh release create "v${VERSION}" \
+              --title "${RELEASE_DATE}" \
+              --notes "$RELEASE_NOTES"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

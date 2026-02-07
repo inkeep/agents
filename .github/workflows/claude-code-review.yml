@@ -2,7 +2,7 @@ name: Claude PR Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review]
 
 concurrency:
   group: pr-review-${{ github.event.pull_request.number }}
@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   pr-review:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,12 +64,12 @@ jobs:
             echo "truncated=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get Existing Review Threads
-        id: threads
+      - name: Get Review Context
+        id: review_context
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          THREADS=$(gh api graphql -f query='
+          RESULT=$(gh api graphql -f query='
             query($owner: String!, $repo: String!, $pr: Int!) {
               repository(owner: $owner, name: $repo) {
                 pullRequest(number: $pr) {
@@ -79,23 +80,41 @@ jobs:
                       path
                       line
                       diffSide
-                      comments(first: 1) {
+                      comments(first: 10) {
                         nodes {
                           author { login }
                           body
                           diffHunk
                           url
+                          createdAt
                         }
+                        totalCount
                       }
+                    }
+                  }
+                  reviews(last: 20) {
+                    nodes {
+                      author { login }
+                      body
+                      state
+                      submittedAt
+                      url
                     }
                   }
                 }
               }
             }
-          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr=${{ github.event.pull_request.number }} --jq '.data.repository.pullRequest.reviewThreads.nodes // []')
-          
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr=${{ github.event.pull_request.number }})
+
+          THREADS=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviewThreads.nodes // []')
+          REVIEWS=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviews.nodes // []')
+
           echo "review_threads<<EOF" >> $GITHUB_OUTPUT
           echo "$THREADS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "previous_reviews<<EOF" >> $GITHUB_OUTPUT
+          echo "$REVIEWS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Get PR Comments
@@ -108,7 +127,7 @@ jobs:
             query($owner: String!, $repo: String!, $pr: Int!) {
               repository(owner: $owner, name: $repo) {
                 pullRequest(number: $pr) {
-                  comments(first: 50) {
+                  comments(last: 50) {
                     nodes {
                       author {
                         __typename
@@ -130,6 +149,17 @@ jobs:
           echo "pr_comments<<EOF" >> $GITHUB_OUTPUT
           echo "$COMMENTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Clean up stale Claude comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete progress/error/output comments from cancelled/errored previous runs.
+          # "Claude finished" covers completed runs where the review submission failed.
+          # claude-code-action posts as "claude[bot]"; older versions or custom setups may use "github-actions[bot]".
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --jq '.[] | select(.user.login == "claude[bot]" and (.body | test("Claude encountered an error|Claude finished|Starting PR review|🔄|PR Review in Progress"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
       - name: Generate PR Context Skill
         run: |
@@ -157,6 +187,14 @@ jobs:
           **PR #${{ github.event.pull_request.number }}:** ${{ github.event.pull_request.title }}
           **Base:** ${{ github.event.pull_request.base.ref }}
           **Author:** ${{ github.event.pull_request.user.login }}
+          **Repo:** ${{ github.repository }}
+          **Head SHA:** ${{ github.event.pull_request.head.sha }}
+
+          ## GitHub URL Base (for hyperlinks)
+
+          Use these to construct clickable links in your findings:
+          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/{path}#L{line}` or `#L{start}-L{end}`
+          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}`
 
           ## Description
           Author-provided description (may not fully reflect actual scope):
@@ -175,23 +213,49 @@ jobs:
           ${{ steps.diff.outputs.diff_content }}
           ```
 
-          ## Existing Inline Comments
-          Prior review threads on specific lines. Each object has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and first comment with `body`, `author`, `diffHunk` context, and `url` (permalink). Use to avoid posting duplicate inline comments and to link to existing comments in the summary.
+          ## Existing Review Threads
+          Prior review threads on specific lines. Each thread has: `isResolved`, `isOutdated`, `path`, `line`, `diffSide`, and up to 5 comments with `body`, `author`, `diffHunk`, `url` (permalink), and `createdAt`. `totalCount` indicates the total number of replies in the thread.
+
+          Use to:
+          - Avoid posting duplicate inline comments (same location +/-2 lines with similar issue)
+          - Route unresolved threads to Pending Recommendations (with `url` link)
+          - Understand author responses (reply chain) before re-raising an issue
+          - Skip resolved threads entirely
           ```json
-          ${{ steps.threads.outputs.review_threads }}
+          ${{ steps.review_context.outputs.review_threads }}
+          ```
+
+          ## Previous Reviews
+          Prior review submissions with summary body, state, and author. Each has `author`, `body` (the review summary text), `state` (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED), `submittedAt`, and `url` (permalink).
+
+          Use to:
+          - Avoid re-raising findings already covered in a previous review summary
+          - Understand the review trajectory (was it APPROVED last time? CHANGES_REQUESTED?)
+          - Link back to previous reviews when relevant
+          ```json
+          ${{ steps.review_context.outputs.previous_reviews }}
           ```
 
           ## PR Discussion
-          General comments from humans and previous review summaries. Each has `author`, `body`, `createdAt`, and `url` (permalink). Use to avoid re-raising addressed issues.
+          General issue comments from humans and bots. Each has `author`, `body`, `createdAt`, and `url` (permalink). Use for human discussion context and decisions.
           ```json
           ${{ steps.pr_comments.outputs.pr_comments }}
           ```
 
-          > **IMPORTANT:** Do NOT re-raise issues that have already been flagged, dismissed, or addressed in prior comments. You may allude to unresolved important items briefly, but do not restate details already covered.
+          > **IMPORTANT:** Do NOT re-raise issues that have already been flagged, dismissed, or addressed in prior review threads, previous reviews, or discussion comments.
 
           SKILL_EOF
           
           echo "PR context skill generated at .claude/skills/pr-context/SKILL.md ($(wc -c < .claude/skills/pr-context/SKILL.md) bytes)"
+
+      - name: Fetch Web Design Guidelines
+        run: |
+          # Fetch latest guidelines and inject into the skill's references/ folder
+          # so pr-review-frontend can read them locally (no WebFetch needed at review time)
+          mkdir -p .agents/skills/web-design-guidelines/references
+          curl -sf https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md \
+            -o .agents/skills/web-design-guidelines/references/guidelines.md
+          echo "Web design guidelines fetched ($(wc -l < .agents/skills/web-design-guidelines/references/guidelines.md) lines)"
 
       - name: Run PR Review
         id: claude
@@ -204,12 +268,23 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           track_progress: true
-          include_fix_links: true
           claude_args: |
             --agent pr-review
-            --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*)"
+            --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'
+            --allowedTools "Task,Read,Grep,Glob,mcp__exa__web_search_exa,mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*)"
           prompt: |
             Review PR #${{ github.event.pull_request.number }}.
+
+      - name: Clean up progress comment
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete the progress/output comment posted by claude-code-action for THIS run.
+          # Scoped by run ID embedded in the "View job" link so other Claude automations are untouched.
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --jq '.[] | select(.user.login == "claude[bot]" and (.body | contains("actions/runs/${{ github.run_id }}"))) | .id' \
+          | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
       - name: Upload Debug Artifacts
         if: always()
