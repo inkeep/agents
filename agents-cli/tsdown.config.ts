@@ -13,4 +13,9 @@ export default defineConfig({
   outExtensions() {
     return { js: '.js', dts: '.d.ts' };
   },
+  outputOptions: {
+    // Add Node.js shebang to the CLI entry point so that `npm install -g`
+    // creates an executable binary (npm symlinks the file directly).
+    banner: (chunk) => (chunk.fileName === 'index.js' ? '#!/usr/bin/env node' : ''),
+  },
 });
