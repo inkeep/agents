@@ -8,9 +8,3 @@ export type AgentModels = {
   structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 };
-
-type ContextConfig = {
-  id?: string;
-  contextVariables: string; // JSON string
-  headersSchema: string; // JSON string
-};
