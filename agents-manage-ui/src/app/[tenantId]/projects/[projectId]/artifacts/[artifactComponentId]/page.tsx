@@ -2,6 +2,7 @@ import { ArtifactComponentForm } from '@/components/artifact-components/form/art
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchProjectPermissions } from '@/lib/api/projects';
+import { serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,7 @@ export default async function ArtifactComponentPage({
           id: artifactComponentId,
           name,
           description: description ?? '',
-          props,
+          props: serializeJson(props),
           render,
         }}
       />

@@ -54,46 +54,10 @@ interface ValidationResult {
 }
 
 /**
- * Validates JSON string for syntax errors
- */
-function validateJsonSyntax(jsonString: string): {
-  parsed: any;
-  errors: ValidationError[];
-} {
-  const errors: ValidationError[] = [];
-  let parsed: any = null;
-
-  if (!jsonString?.trim()) {
-    return { parsed: null, errors };
-  }
-
-  try {
-    parsed = JSON.parse(jsonString);
-  } catch (error) {
-    errors.push({
-      path: 'root',
-      message: error instanceof Error ? error.message : 'Invalid JSON syntax',
-      type: 'syntax',
-    });
-  }
-
-  return { parsed, errors };
-}
-
-/**
  * Validates that the JSON represents a valid JSON Schema for LLM usage
  */
-function validateJsonSchema(schema: any): ValidationError[] {
+function validateJsonSchema(schema: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
-
-  if (!schema || typeof schema !== 'object') {
-    errors.push({
-      path: 'root',
-      message: 'Schema must be an object',
-      type: 'schema',
-    });
-    return errors;
-  }
 
   if (!objectValidator.Check(schema)) {
     // Check individual properties for better error messages
@@ -155,7 +119,7 @@ function validateJsonSchema(schema: any): ValidationError[] {
 /**
  * Validates additional LLM-specific requirements
  */
-function validateLlmRequirements(schema: any): ValidationError[] {
+function validateLlmRequirements(schema: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (!schema || typeof schema !== 'object') {
@@ -165,6 +129,7 @@ function validateLlmRequirements(schema: any): ValidationError[] {
   // Ensure all properties in required array exist in properties
   if (schema.required && Array.isArray(schema.required) && schema.properties) {
     schema.required.forEach((requiredProp: string) => {
+      // @ts-expect-error -- fixme
       if (!schema.properties[requiredProp]) {
         errors.push({
           path: `required`,
@@ -198,26 +163,8 @@ function validateLlmRequirements(schema: any): ValidationError[] {
 /**
  * Comprehensive JSON Schema validation for LLM usage
  */
-export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
+export function validateJsonSchemaForLlm(parsed: Record<string, unknown>): ValidationResult {
   const warnings: string[] = [];
-
-  const { parsed, errors: syntaxErrors } = validateJsonSyntax(jsonString);
-
-  if (syntaxErrors.length > 0) {
-    return {
-      isValid: false,
-      errors: syntaxErrors,
-      warnings,
-    };
-  }
-
-  if (!parsed) {
-    return {
-      isValid: true,
-      errors: [],
-      warnings: ['Empty schema provided'],
-    };
-  }
 
   const schemaErrors = validateJsonSchema(parsed);
 
@@ -232,29 +179,6 @@ export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
     errors: allErrors,
     warnings,
   };
-}
-
-export function getJsonParseError(error: unknown): string {
-  if (error instanceof SyntaxError) {
-    const message = error.message.toLowerCase();
-    if (message.includes('unexpected end of json input')) {
-      return 'Incomplete JSON - missing closing brackets or quotes';
-    }
-    if (message.includes('unexpected token')) {
-      return 'Invalid character in JSON - check for missing commas, quotes, or brackets';
-    }
-    if (
-      message.includes('expected property name') ||
-      message.includes("expected ':' after property name")
-    ) {
-      return 'Property names must be in double quotes';
-    }
-    if (message.includes('duplicate keys')) {
-      return 'Duplicate property names are not allowed';
-    }
-    return 'Invalid JSON syntax - check structure and formatting';
-  }
-  return 'Unable to parse JSON';
 }
 
 /**
