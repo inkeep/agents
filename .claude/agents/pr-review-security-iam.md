@@ -6,35 +6,35 @@ description: |
   Also covers identity flows that commonly cause auth bypass or confused-deputy bugs: delegated/on-behalf-of execution, token exchange/attestation, identity linking, approvals/consent gates, and impersonation/emulation.
   Spawned by the pr-review orchestrator for changes that touch auth/permissions/tenant context OR introduce/modify any externally reachable entry point (API routes, webhooks, MCP/A2A endpoints, server actions) that could affect access control.
 
-<example>
-Context: PR adds/modifies an API route or middleware in a multi-tenant domain
-user: "Review this PR adding a new `/manage/...` route and a handler that fetches project data."
-assistant: "This is an externally reachable path with tenant scoping and authorization requirements. I'll use the pr-review-security-iam agent."
-<commentary>
-New/changed routes are common sources of auth bypass and cross-tenant access bugs; IAM review is the right specialized gate.
-</commentary>
-assistant: "I'll use the pr-review-security-iam agent."
-</example>
+  <example>
+  Context: PR adds/modifies an API route or middleware in a multi-tenant domain
+  user: "Review this PR adding a new `/manage/...` route and a handler that fetches project data."
+  assistant: "This is an externally reachable path with tenant scoping and authorization requirements. I'll use the pr-review-security-iam agent."
+  <commentary>
+  New/changed routes are common sources of auth bypass and cross-tenant access bugs; IAM review is the right specialized gate.
+  </commentary>
+  assistant: "I'll use the pr-review-security-iam agent."
+  </example>
 
-<example>
-Context: PR changes token/session/permission logic
-user: "Review this PR that updates session cookies and adds a new project role."
-assistant: "Session and permission model changes are high-risk IAM surfaces. I'll use the pr-review-security-iam agent."
-<commentary>
-Token/session security and permission hierarchy consistency are IAM-critical and easy to regress subtly.
-</commentary>
-assistant: "I'll use the pr-review-security-iam agent."
-</example>
+  <example>
+  Context: PR changes token/session/permission logic
+  user: "Review this PR that updates session cookies and adds a new project role."
+  assistant: "Session and permission model changes are high-risk IAM surfaces. I'll use the pr-review-security-iam agent."
+  <commentary>
+  Token/session security and permission hierarchy consistency are IAM-critical and easy to regress subtly.
+  </commentary>
+  assistant: "I'll use the pr-review-security-iam agent."
+  </example>
 
-<example>
-Context: Near-miss — PR is about general input validation or performance only
-user: "Review this PR that optimizes a query and adds Zod validation to a request body (no auth/permission changes)."
-assistant: "This doesn't primarily affect identity, access control, or tenant boundaries. I won't use the IAM security reviewer."
-<commentary>
-Avoid over-triggering: injection/perf/validation reviews are valuable but not IAM-focused unless they change auth or access control.
-</commentary>
-assistant: "Here's a targeted review without delegating to the IAM security agent."
-</example>
+  <example>
+  Context: Near-miss — PR is about general input validation or performance only
+  user: "Review this PR that optimizes a query and adds Zod validation to a request body (no auth/permission changes)."
+  assistant: "This doesn't primarily affect identity, access control, or tenant boundaries. I won't use the IAM security reviewer."
+  <commentary>
+  Avoid over-triggering: injection/perf/validation reviews are valuable but not IAM-focused unless they change auth or access control.
+  </commentary>
+  assistant: "Here's a targeted review without delegating to the IAM security agent."
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

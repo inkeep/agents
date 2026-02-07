@@ -5,50 +5,50 @@ description: |
   Spawned by the pr-review orchestrator for changes to: CI/CD workflows, dependencies, release engineering (changesets), build/container artifacts, self-hosting templates, local devex infrastructure, and AI artifact quality (AGENTS.md, skills, rules, agent definitions).
   Focus: "Will this build, ship, and run correctly across deployment contexts?" and "Will the AI infra still govern agent behavior reliably?"
 
-<example>
-Context: PR modifies a GitHub Actions workflow
-user: "Review this PR that updates the deploy workflow to add a new job step and changes action versions."
-assistant: "CI/CD workflow changes affect the build pipeline and have security implications (action pinning, permissions). I'll use the pr-review-devops agent."
-<commentary>
-Workflow changes are mechanical infrastructure that can break builds, leak secrets, or introduce supply-chain risk. Core DevOps scope.
-</commentary>
-</example>
+  <example>
+  Context: PR modifies a GitHub Actions workflow
+  user: "Review this PR that updates the deploy workflow to add a new job step and changes action versions."
+  assistant: "CI/CD workflow changes affect the build pipeline and have security implications (action pinning, permissions). I'll use the pr-review-devops agent."
+  <commentary>
+  Workflow changes are mechanical infrastructure that can break builds, leak secrets, or introduce supply-chain risk. Core DevOps scope.
+  </commentary>
+  </example>
 
-<example>
-Context: PR adds a new dependency or updates lockfile
-user: "Review this PR that adds `lodash` as a dependency and updates pnpm-lock.yaml."
-assistant: "New dependencies and lockfile changes affect supply chain and need hygiene review. I'll use the pr-review-devops agent."
-<commentary>
-Dependency justification, version pinning, and lockfile churn are DevOps hygiene concerns, not application logic.
-</commentary>
-</example>
+  <example>
+  Context: PR adds a new dependency or updates lockfile
+  user: "Review this PR that adds `lodash` as a dependency and updates pnpm-lock.yaml."
+  assistant: "New dependencies and lockfile changes affect supply chain and need hygiene review. I'll use the pr-review-devops agent."
+  <commentary>
+  Dependency justification, version pinning, and lockfile churn are DevOps hygiene concerns, not application logic.
+  </commentary>
+  </example>
 
-<example>
-Context: PR adds or modifies AGENTS.md, skills, or agent definitions
-user: "Review this PR that updates `.claude/agents/pr-review-types.md` and adds a new skill under `.agents/skills/`."
-assistant: "AI artifact quality directly affects how all agents behave. I'll use the pr-review-devops agent to check structure, freshness, and cross-artifact coherence."
-<commentary>
-AGENTS.md, skills, and agent definitions are infrastructure that governs AI behavior. Degradation here silently degrades the entire system.
-</commentary>
-</example>
+  <example>
+  Context: PR adds or modifies AGENTS.md, skills, or agent definitions
+  user: "Review this PR that updates `.claude/agents/pr-review-types.md` and adds a new skill under `.agents/skills/`."
+  assistant: "AI artifact quality directly affects how all agents behave. I'll use the pr-review-devops agent to check structure, freshness, and cross-artifact coherence."
+  <commentary>
+  AGENTS.md, skills, and agent definitions are infrastructure that governs AI behavior. Degradation here silently degrades the entire system.
+  </commentary>
+  </example>
 
-<example>
-Context: Near-miss — PR changes application code with auth/permission logic
-user: "Review this PR that adds a new API endpoint with authorization middleware."
-assistant: "Auth/permission logic is IAM security scope, not DevOps infrastructure. I won't use the DevOps reviewer for this."
-<commentary>
-Application-level security is out of scope. DevOps focuses on build/ship/configure infrastructure.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR changes application code with auth/permission logic
+  user: "Review this PR that adds a new API endpoint with authorization middleware."
+  assistant: "Auth/permission logic is IAM security scope, not DevOps infrastructure. I won't use the DevOps reviewer for this."
+  <commentary>
+  Application-level security is out of scope. DevOps focuses on build/ship/configure infrastructure.
+  </commentary>
+  </example>
 
-<example>
-Context: Near-miss — PR changes system architecture or module boundaries
-user: "Review this PR that introduces a new package and refactors the domain structure."
-assistant: "Module boundaries and architectural layering are system design questions. I won't use the DevOps reviewer for this."
-<commentary>
-Architecture decisions are out of scope. DevOps covers the infra that builds and ships, not the app structure itself.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR changes system architecture or module boundaries
+  user: "Review this PR that introduces a new package and refactors the domain structure."
+  assistant: "Module boundaries and architectural layering are system design questions. I won't use the DevOps reviewer for this."
+  <commentary>
+  Architecture decisions are out of scope. DevOps covers the infra that builds and ships, not the app structure itself.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

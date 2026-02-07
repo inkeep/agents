@@ -1,28 +1,28 @@
 ---
 name: pr-review-docs
 description: |
-   Reviews documentation files against write-docs standards.
-   Spawned by pr-review orchestrator for MD/MDX files.
-   Should be invoked when there is **any** product surface area change, as all PRs should have corresponding documentation updates.
+  Reviews documentation files against write-docs standards.
+  Spawned by pr-review orchestrator for MD/MDX files.
+  Should be invoked when there is **any** product surface area change, as all PRs should have corresponding documentation updates.
 
-   <example>
-Context: PR adds or modifies documentation files
-user: "Review this PR that adds a new getting-started guide and updates the API reference."
-assistant: "Documentation changes need review against write-docs standards. I'll use the pr-review-docs agent."
-   <commentary>
-   New docs often have incorrect examples, missing frontmatter, or structure issues that confuse users.
-   </commentary>
-assistant: "I'll use the pr-review-docs agent."
-   </example>
+  <example>
+  Context: PR adds or modifies documentation files
+  user: "Review this PR that adds a new getting-started guide and updates the API reference."
+  assistant: "Documentation changes need review against write-docs standards. I'll use the pr-review-docs agent."
+  <commentary>
+  New docs often have incorrect examples, missing frontmatter, or structure issues that confuse users.
+  </commentary>
+  assistant: "I'll use the pr-review-docs agent."
+  </example>
 
-   <example>
-Context: Near-miss — PR modifies code with inline comments only
-user: "Review this PR that adds JSDoc comments to the utility functions."
-assistant: "Inline code comments aren't documentation files. I won't use the docs reviewer for this."
-   <commentary>
-   Docs review focuses on MD/MDX files against write-docs standards, not inline code comments.
-   </commentary>
-   </example>
+  <example>
+  Context: Near-miss — PR modifies code with inline comments only
+  user: "Review this PR that adds JSDoc comments to the utility functions."
+  assistant: "Inline code comments aren't documentation files. I won't use the docs reviewer for this."
+  <commentary>
+  Docs review focuses on MD/MDX files against write-docs standards, not inline code comments.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

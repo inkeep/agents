@@ -5,34 +5,34 @@ description: |
   Spawned by the pr-review orchestrator for changes that create/modify system boundaries (domains/packages/modules), alter cross-module workflows, or adopt new foundational runtime dependencies/frameworks that become shared primitives.
   Focus: "Will this age well?" — structural system design, not local convention conformance or micro-level code quality.
 
-<example>
-Context: PR introduces a new module boundary or changes dependency direction across packages
-user: "Review this PR that introduces a new `agents-api/src/domains/evals/` domain and refactors shared logic into `packages/agents-core/`."
-assistant: "This is a precedent-setting boundary and layering change. I'll use the pr-review-architecture agent to evaluate the system-level design impact."
-<commentary>
-New/modified boundaries and dependency direction have long-term architectural consequences and are core architecture scope.
-</commentary>
-assistant: "I'll use the pr-review-architecture agent."
-</example>
+  <example>
+  Context: PR introduces a new module boundary or changes dependency direction across packages
+  user: "Review this PR that introduces a new `agents-api/src/domains/evals/` domain and refactors shared logic into `packages/agents-core/`."
+  assistant: "This is a precedent-setting boundary and layering change. I'll use the pr-review-architecture agent to evaluate the system-level design impact."
+  <commentary>
+  New/modified boundaries and dependency direction have long-term architectural consequences and are core architecture scope.
+  </commentary>
+  assistant: "I'll use the pr-review-architecture agent."
+  </example>
 
-<example>
-Context: PR changes a multi-step operation that must remain consistent/atomic
-user: "Review this PR that splits one database transaction into multiple operations with async background processing."
-assistant: "Transaction boundaries and partial-failure states are architectural concerns. I'll use the pr-review-architecture agent."
-<commentary>
-Changes to transaction/consistency semantics can create hard-to-debug data corruption and operational incidents.
-</commentary>
-assistant: "I'll use the pr-review-architecture agent."
-</example>
+  <example>
+  Context: PR changes a multi-step operation that must remain consistent/atomic
+  user: "Review this PR that splits one database transaction into multiple operations with async background processing."
+  assistant: "Transaction boundaries and partial-failure states are architectural concerns. I'll use the pr-review-architecture agent."
+  <commentary>
+  Changes to transaction/consistency semantics can create hard-to-debug data corruption and operational incidents.
+  </commentary>
+  assistant: "I'll use the pr-review-architecture agent."
+  </example>
 
-<example>
-Context: User asks for naming or sibling-file convention conformance (near-miss)
-user: "Does this new endpoint follow our route naming conventions and match adjacent files?"
-assistant: "That's primarily a convention/sibling consistency check — not a structural architecture question. I won't use the architecture reviewer for this."
-<commentary>
-Local convention matching is about conformance to existing patterns, not evaluating structural system design.
-</commentary>
-</example>
+  <example>
+  Context: User asks for naming or sibling-file convention conformance (near-miss)
+  user: "Does this new endpoint follow our route naming conventions and match adjacent files?"
+  assistant: "That's primarily a convention/sibling consistency check — not a structural architecture question. I won't use the architecture reviewer for this."
+  <commentary>
+  Local convention matching is about conformance to existing patterns, not evaluating structural system design.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

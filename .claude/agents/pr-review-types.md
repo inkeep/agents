@@ -4,24 +4,24 @@ description: |
   Reviews type design for encapsulation, invariant expression, and type safety.
   Spawned by pr-review orchestrator for files in types/, models/, or containing new interfaces/types.
 
-<example>
-Context: PR introduces new types or modifies existing type definitions
-user: "Review this PR that adds a new `UserSession` type and updates the `Permission` enum."
-assistant: "Type definitions need review for invariant strength and encapsulation. I'll use the pr-review-types agent."
-<commentary>
-New types can allow illegal states if invariants aren't properly expressed or enforced.
-</commentary>
-assistant: "I'll use the pr-review-types agent."
-</example>
+  <example>
+  Context: PR introduces new types or modifies existing type definitions
+  user: "Review this PR that adds a new `UserSession` type and updates the `Permission` enum."
+  assistant: "Type definitions need review for invariant strength and encapsulation. I'll use the pr-review-types agent."
+  <commentary>
+  New types can allow illegal states if invariants aren't properly expressed or enforced.
+  </commentary>
+  assistant: "I'll use the pr-review-types agent."
+  </example>
 
-<example>
-Context: Near-miss — PR changes function logic without modifying type signatures
-user: "Review this PR that optimizes the caching logic in the session handler."
-assistant: "This doesn't change type definitions or introduce new types. I won't use the types reviewer for this."
-<commentary>
-Type review focuses on type design and invariants, not implementation logic within existing types.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR changes function logic without modifying type signatures
+  user: "Review this PR that optimizes the caching logic in the session handler."
+  assistant: "This doesn't change type definitions or introduce new types. I won't use the types reviewer for this."
+  <commentary>
+  Type review focuses on type design and invariants, not implementation logic within existing types.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
