@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createCustomHeadersSchema } from '@/lib/validation';
+import { createCustomHeadersSchema, FullAgentUpdateSchema } from '@/lib/validation';
 
 describe('validation', () => {
   describe('createCustomHeadersSchema', () => {
@@ -105,6 +105,36 @@ describe('validation', () => {
             "Error during parsing JSON schema headers: Cannot read properties of null (reading 'const')",
         },
       ]);
+    });
+  });
+
+  describe('FullAgentUpdateSchema', () => {
+    it.only('should disallow null as input for json editors', () => {
+      const result = FullAgentUpdateSchema.safeParse({
+        id: 'test',
+        name: 'test',
+        contextConfig: {
+          id: 'test',
+          headersSchema: 'null',
+          contextVariables: 'null',
+        },
+        statusUpdates: {
+          statusComponents: 'null',
+        },
+        models: {
+          base: {
+            providerOptions: 'null',
+          },
+          structuredOutput: {
+            providerOptions: 'null',
+          },
+          summarizer: {
+            providerOptions: 'null',
+          },
+        },
+      });
+      expect(result.success).toBe(false);
+      console.log(result);
     });
   });
 });
