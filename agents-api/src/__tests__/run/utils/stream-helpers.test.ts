@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, type Mock, test, vi } from 'vitest';
 
 // Hoist the mock function - must use vi.hoisted to access in vi.mock
 const { mockParsePartialJson } = vi.hoisted(() => {
@@ -20,7 +20,9 @@ import {
 } from '../../../domains/run/utils/stream-helpers';
 
 describe('VercelDataStreamHelper Memory Management', () => {
-  let mockWriter: VercelUIWriter;
+  let mockWriter: VercelUIWriter & {
+    write: Mock<VercelUIWriter['write']>;
+  };
   let helper: VercelDataStreamHelper;
 
   beforeEach(() => {
