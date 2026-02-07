@@ -1821,6 +1821,12 @@ export const FetchDefinitionSchema = z
   })
   .openapi('FetchDefinition');
 
+export const HeadersSchema = z.record(
+  z.string(),
+  z.string('All header values must be strings'),
+  'Must be valid JSON object'
+);
+
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
   headersSchema: z.any().optional().openapi({
     type: 'object',

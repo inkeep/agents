@@ -4,24 +4,24 @@ description: |
   Reviews test coverage quality and completeness. Identifies untested critical paths, edge cases, and error conditions.
   Spawned by pr-review orchestrator for test files or files with missing test coverage.
 
-<example>
-Context: PR adds new functionality with accompanying tests
-user: "Review this PR that adds a new payment processor with unit tests."
-assistant: "New functionality needs test coverage review for critical paths and edge cases. I'll use the pr-review-tests agent."
-<commentary>
-New features often have gaps in error path and edge case coverage that only surface in production.
-</commentary>
-assistant: "I'll use the pr-review-tests agent."
-</example>
+  <example>
+  Context: PR adds new functionality with accompanying tests
+  user: "Review this PR that adds a new payment processor with unit tests."
+  assistant: "New functionality needs test coverage review for critical paths and edge cases. I'll use the pr-review-tests agent."
+  <commentary>
+  New features often have gaps in error path and edge case coverage that only surface in production.
+  </commentary>
+  assistant: "I'll use the pr-review-tests agent."
+  </example>
 
-<example>
-Context: Near-miss — PR only updates documentation
-user: "Review this PR that updates the README and adds JSDoc comments."
-assistant: "Documentation changes don't require test coverage review. I won't use the tests reviewer for this."
-<commentary>
-Test review focuses on code behavior coverage, not documentation.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR only updates documentation
+  user: "Review this PR that updates the README and adds JSDoc comments."
+  assistant: "Documentation changes don't require test coverage review. I won't use the tests reviewer for this."
+  <commentary>
+  Test review focuses on code behavior coverage, not documentation.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

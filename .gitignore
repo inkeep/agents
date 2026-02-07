@@ -39,6 +39,8 @@ yarn-error.log*
 .env.local
 .env.*.local
 .env.docker
+.env.production
+.env.staging
 
 # Keep providers.yaml for Nango integrations
 !providers.yaml
@@ -107,3 +109,4 @@ progress.txt
 *-actual-chromium.png
 
 .pnpm-store/
+.vercel

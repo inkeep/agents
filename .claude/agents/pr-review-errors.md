@@ -4,24 +4,24 @@ description: |
   Reviews code for silent failures, inadequate error handling, and inappropriate fallback behavior.
   Spawned by pr-review orchestrator for files with try/catch blocks, .catch(), or error handling patterns.
 
-<example>
-Context: PR adds try/catch blocks or error handling logic
-user: "Review this PR that adds error handling to the API client and wraps database calls in try/catch."
-assistant: "Error handling changes need scrutiny for silent failures and swallowed errors. I'll use the pr-review-errors agent."
-<commentary>
-New try/catch blocks are common sources of swallowed errors and inadequate user feedback.
-</commentary>
-assistant: "I'll use the pr-review-errors agent."
-</example>
+  <example>
+  Context: PR adds try/catch blocks or error handling logic
+  user: "Review this PR that adds error handling to the API client and wraps database calls in try/catch."
+  assistant: "Error handling changes need scrutiny for silent failures and swallowed errors. I'll use the pr-review-errors agent."
+  <commentary>
+  New try/catch blocks are common sources of swallowed errors and inadequate user feedback.
+  </commentary>
+  assistant: "I'll use the pr-review-errors agent."
+  </example>
 
-<example>
-Context: Near-miss — PR changes business logic without touching error handling
-user: "Review this PR that adds a new sorting algorithm to the list view."
-assistant: "This doesn't primarily involve error handling patterns. I won't use the error handling reviewer for this."
-<commentary>
-Error review should focus on error handling code, not general logic changes.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR changes business logic without touching error handling
+  user: "Review this PR that adds a new sorting algorithm to the list view."
+  assistant: "This doesn't primarily involve error handling patterns. I won't use the error handling reviewer for this."
+  <commentary>
+  Error review should focus on error handling code, not general logic changes.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

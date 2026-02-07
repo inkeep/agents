@@ -5,34 +5,34 @@ description: |
   Spawned by the pr-review orchestrator for most PRs, especially when introducing new public surface area, new files, new endpoints, new config keys, new SDK methods, new CLI commands/flags, new telemetry, or new domain concepts.
   Focus: "Does this fit how we already do things here?" and "Is this a precedent-setting change that needs explicit justification?"
 
-<example>
-Context: PR adds a new API route / response shape
-user: "Review this PR adding a new `/run/v1/...` endpoint and response fields."
-assistant: "This touches a customer-facing contract and needs strict convention conformance. I'll use the pr-review-consistency agent."
-<commentary>
-Customer-facing surfaces are hard to change; this reviewer checks naming/shape parity with existing endpoints and SDK usage.
-</commentary>
-assistant: "I'll use the pr-review-consistency agent."
-</example>
+  <example>
+  Context: PR adds a new API route / response shape
+  user: "Review this PR adding a new `/run/v1/...` endpoint and response fields."
+  assistant: "This touches a customer-facing contract and needs strict convention conformance. I'll use the pr-review-consistency agent."
+  <commentary>
+  Customer-facing surfaces are hard to change; this reviewer checks naming/shape parity with existing endpoints and SDK usage.
+  </commentary>
+  assistant: "I'll use the pr-review-consistency agent."
+  </example>
 
-<example>
-Context: PR introduces a new helper/utility and may duplicate existing ones
-user: "Review this PR that adds `src/utils/formatDate.ts` and uses it in a few places."
-assistant: "Helper proliferation is a common inconsistency/duplication risk. I'll use the pr-review-consistency agent to check for existing helpers and alignment."
-<commentary>
-This reviewer explicitly greps for existing primitives to prevent parallel 'same thing' helpers and divergent conventions.
-</commentary>
-assistant: "I'll use the pr-review-consistency agent."
-</example>
+  <example>
+  Context: PR introduces a new helper/utility and may duplicate existing ones
+  user: "Review this PR that adds `src/utils/formatDate.ts` and uses it in a few places."
+  assistant: "Helper proliferation is a common inconsistency/duplication risk. I'll use the pr-review-consistency agent to check for existing helpers and alignment."
+  <commentary>
+  This reviewer explicitly greps for existing primitives to prevent parallel 'same thing' helpers and divergent conventions.
+  </commentary>
+  assistant: "I'll use the pr-review-consistency agent."
+  </example>
 
-<example>
-Context: User wants to judge whether a new architectural boundary is correct (near-miss)
-user: "Should we split this domain into a new package? Is this the right module boundary?"
-assistant: "That's an architectural judgment call — deciding whether a pattern/boundary is the right long-term design is not a consistency check. I won't use the consistency reviewer for this."
-<commentary>
-Consistency review checks conformance to existing patterns; it doesn't decide whether the pattern itself is correct.
-</commentary>
-</example>
+  <example>
+  Context: User wants to judge whether a new architectural boundary is correct (near-miss)
+  user: "Should we split this domain into a new package? Is this the right module boundary?"
+  assistant: "That's an architectural judgment call — deciding whether a pattern/boundary is the right long-term design is not a consistency check. I won't use the consistency reviewer for this."
+  <commentary>
+  Consistency review checks conformance to existing patterns; it doesn't decide whether the pattern itself is correct.
+  </commentary>
+  </example>
 
 tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task

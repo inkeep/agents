@@ -1,5 +1,14 @@
 # @inkeep/agents-work-apps
 
+## 0.46.1
+
+### Patch Changes
+
+- 6139d11: Github mcp efficiency improvements
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
 ## 0.46.0
 
 ### Patch Changes
