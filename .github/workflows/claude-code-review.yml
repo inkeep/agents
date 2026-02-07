@@ -80,7 +80,7 @@ jobs:
                       path
                       line
                       diffSide
-                      comments(first: 5) {
+                      comments(first: 10) {
                         nodes {
                           author { login }
                           body
@@ -92,7 +92,7 @@ jobs:
                       }
                     }
                   }
-                  reviews(last: 10) {
+                  reviews(last: 20) {
                     nodes {
                       author { login }
                       body
@@ -127,7 +127,7 @@ jobs:
             query($owner: String!, $repo: String!, $pr: Int!) {
               repository(owner: $owner, name: $repo) {
                 pullRequest(number: $pr) {
-                  comments(first: 50) {
+                  comments(last: 50) {
                     nodes {
                       author {
                         __typename
