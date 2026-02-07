@@ -18,6 +18,7 @@ import type { SingleResponse } from './response';
 const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
+const StopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
 
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
@@ -34,8 +35,14 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   name: true,
   description: true,
   prompt: true,
-  stopWhen: true,
 }).extend({
+  stopWhen: StopWhenSchema.extend({
+    transferCountIs: z
+      // Normalize number input: <input type="number"> produce `null` for empty value,
+      // but this schema expects `undefined` (optional field), not `null`.
+      .transform((value) => (value === null ? undefined : value))
+      .pipe(StopWhenSchema.shape.transferCountIs),
+  }).optional(),
   contextConfig: z
     .strictObject({
       id: ContextConfigSchema.id,
