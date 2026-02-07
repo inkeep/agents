@@ -40,8 +40,8 @@ import {
   tool,
 } from 'ai';
 import manageDbPool from '../../../data/db/manageDbPool';
-import { env } from '../../../env';
 import runDbClient from '../../../data/db/runDbClient';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
