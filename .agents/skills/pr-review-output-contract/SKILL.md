@@ -83,32 +83,30 @@ The `type` field determines which other fields are required. Do not mix schemas.
 
 These fields are **required on all finding types**.
 
-**Field order matters.** Output fields in this exact order — it ensures you reason through the issue and cite evidence *before* committing to severity/confidence classifications.
-
 | # | Field | Type | Description |
 |---|-------|------|-------------|
 | 1 | `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
 | 2 | `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
 | 3 | `issue` | string | What's wrong. Thorough description. |
-| 4 | `references` | string[] | **Required.** Citations that ground the finding. See Reference Types below. |
+| 4 | `references` | string[] | **Required.** Citations that justify the finding. See Reference Types below. |
 | 5 | `implications` | string | Why it matters. Consequence, risk, user impact. (write AFTER citing evidence) |
 | 6 | `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? (classify AFTER implications) |
 | 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
 | 8 | `fix` | string | Suggestion[s] for how to address it. If simple, give the full solution as a code block. If bigger-scoped, interweave brief code examples into the explanation. Don't over-engineer — give a starting point/direction. |
 | 9 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
 
-**Why this order?** LLMs generate tokens sequentially. By describing the issue and citing evidence *before* implications/severity/confidence, you ensure the impact assessment and classifications are grounded in verifiable sources rather than premature commitment.
-
 ### Reference Types
 
-Every finding **must** include at least one reference. References ground your analysis in verifiable sources and prevent hallucinated recommendations.
+Every finding **must** include at least one reference. References ground and justify your analysis in verifiable sources and prevent hallucinated recommendations.
+
+**Important:** References are **not** for pointing to the file or lines where the finding is located — the finding's own `file` and `line` fields already capture that. Instead, references cite **other sources** that justify *why* the finding is valid: related code elsewhere in the codebase, project standards (skills, AGENTS.md), reviewer-defined rules, or external documentation.
 
 **Use markdown hyperlinks** `[text](url)` for ALL references. The `pr-context` skill provides the GitHub URL base pattern for constructing links.
 
 | Type | Format | Example |
 |------|--------|---------|
-| **Code reference** | `[file:line](github-blob-url#Lline)` | `[src/api/client.ts:42](https://github.com/org/repo/blob/sha/src/api/client.ts#L42)` |
-| **Code range** | `[file:start-end](github-blob-url#Lstart-Lend)` | `[utils.ts:10-15](https://github.com/.../utils.ts#L10-L15)` |
+| **Related code** | `[file:line](github-blob-url#Lline)` | `[src/api/client.ts:42](https://github.com/org/repo/blob/sha/src/api/client.ts#L42)` |
+| **Related code range** | `[file:start-end](github-blob-url#Lstart-Lend)` | `[utils.ts:10-15](https://github.com/.../utils.ts#L10-L15)` |
 | **Skill reference** | `[skill-name skill](github-blob-url)` | `[pr-review-security-iam skill](https://github.com/.../.agents/skills/.../SKILL.md)` |
 | **AGENTS.md rule** | `[AGENTS.md: rule](github-blob-url)` | `[AGENTS.md: tenant isolation](https://github.com/.../AGENTS.md)` |
 | **Reviewer instructions** | `[reviewer: section](github-blob-url)` | `[pr-review-security-iam: Checklist §2](https://github.com/.../.claude/agents/pr-review-security-iam.md)` |
@@ -133,7 +131,7 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 ```
 
 **Guidance:**
-- **Code issues** → link to the exact file and line(s) in GitHub
+- **Code issues** → link to *related* code elsewhere that demonstrates the pattern, contract, or prior art that justifies the finding (do NOT re-link the finding's own file/line — that is already in the finding's `file`/`line` fields)
 - **Standards violations** → link to the skill or AGENTS.md that defines the standard
 - **Reviewer-defined rules** → link to your own agent file (`.claude/agents/pr-review-*.md`)
 - **Best practice claims** → link to official docs or authoritative sources

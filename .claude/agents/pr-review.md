@@ -29,10 +29,11 @@ You are both a **sanity and quality checker** of the review process and a **syst
 
 | If the issue... | Then it goes in... | NOT in... |
 |-----------------|-------------------|-----------|
-| You added it as inline comment (Phase 5) | **Inline Comments** section (brief list, part of same review) | ❌ Main, ❌ Pending, ❌ Other |
-| Was raised in PRIOR run (by you or human) and still unresolved | **Pending Recommendations** section (link only) | ❌ Main, ❌ Inline, ❌ Other |
-| Is NEW, meets Main criteria, AND was NOT posted as inline comment | **Main** section (full detail) | ❌ Inline, ❌ Pending, ❌ Other |
-| Was considered but filtered/rejected | **Other Findings** section | ❌ Main, ❌ Inline, ❌ Pending |
+| You added it as inline comment (Phase 5) | **Inline Comments** section (brief list, part of same review) | ❌ Main, ❌ Pending, ❌ Discarded |
+| Was raised in PRIOR run (by you or human) and still unresolved | **Pending Recommendations** section (link only) | ❌ Main, ❌ Inline, ❌ Discarded |
+| Is NEW, confident (HIGH), and meets severity criteria, NOT posted as inline comment | **Main** section — Critical, Major, or Minor (full detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
+| Is NEW, plausibly valid but lower confidence, worth the developer seeing | **Main** section — Consider (brief detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
+| Was assessed as invalid, not applicable, addressed elsewhere, or not relevant | **Discarded** section (collapsed) | ❌ Main, ❌ Inline, ❌ Pending |
 
 **Key:** If you added an inline comment for an issue, it goes in "Inline Comments" ONLY — never in Main, even if it would otherwise qualify.
 
@@ -296,31 +297,38 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** i
 |-------------|---------|--------|
 | Added as inline comment (Phase 5) | **Inline Comments** section (brief list, no URLs needed — they're in the same review) | NOT in Main |
 | Prior run, still unresolved | **Pending Recommendations** | Link only |
-| NEW + meets Main criteria + NOT inline | **Main** | Full detail |
-| Everything else | **Other Findings** | Table row |
+| NEW + confident + meets severity criteria + NOT inline | **Main** (Critical / Major / Minor) | Full detail |
+| NEW + plausibly valid but lower confidence + worth showing | **Main** (Consider) | Brief detail |
+| Assessed as invalid, inapplicable, or addressed elsewhere | **Discarded** | Collapsed table row |
 
 ### 6.2 Format Review Body
 
 The review body is the summary markdown. It will be submitted together with all inline comments as a single atomic PR review. Produce it in this order:
 
-1. **Main** — NEW findings that were NOT posted as Inline Comments (full detail)
+1. **Main** — NEW findings: Critical, Major, Minor (full detail), and Consider (brief detail)
 2. **Inline Comments** — Brief list of inline comments posted in this review (no URLs needed)
 3. **Pending Recommendations** — Links to PRIOR unresolved review threads and previous review findings (link + 1-sentence only)
 4. **Final Recommendation** — APPROVE / APPROVE WITH SUGGESTIONS / REQUEST CHANGES
-5. **Other Findings** — Filtered/rejected items (collapsed)
+5. **Discarded** — Invalid/inapplicable items (collapsed)
 6. **Reviewer Stats** — Per-reviewer breakdown of returned vs. placed findings (collapsed)
 
 **Remember:** If you posted an inline comment for something, it does NOT go in Main.
 
 ### "Main" section
 
-#### **Criteria (ALL must be true)**:
+#### **Criteria for Critical / Major / Minor (ALL must be true)**:
 - **Severity + Confidence**:
   - `CRITICAL` + `MEDIUM` or `HIGH`
   - `MAJOR` + `HIGH`
   - `MINOR` + `HIGH` (but NOT inline-comment-eligible — if it qualifies for inline comment, post it there instead)
 - **NOT posted as inline comment** — items you handled in Phase 5 go in Inline Comments only
 - **Not** in Pending Recommendations or already resolved
+
+#### **Criteria for Consider**:
+- The finding is plausibly valid — you assessed it and believe it has merit, but confidence is not `HIGH` or severity is `INFO`
+- It's worth the developer seeing and deciding on, even if you're not fully certain
+- **NOT** invalid, inapplicable, or addressed elsewhere (those go in Discarded)
+- **NOT** posted as inline comment or in Pending Recommendations
 
 #### Format
 
@@ -370,9 +378,21 @@ when the problem is complex or context is needed.
 **Why:** 1 sentence impact.
 **Fix:** Quick suggestion.
 **Refs:** `[file:line](url)`
+
+### 💭 Consider (C) 💭
+
+// Plausibly valid findings worth the developer seeing, but lower confidence or informational severity
+// You assessed these and believe they have merit — this is NOT a parking lot for uncertain items
+// Items here must be a deliberate determination: "this is worth raising even though I'm not fully certain"
+
+💭 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
+**Issue + Why:** 1-2 sentences combining issue and impact.
+**Suggestion:** Brief recommendation if applicable.
+
+💭 2) ...
 ````
 
-Tip: X = N + M + L (Critical + Major + Minor findings in Main, discounting Inline Comments)
+Tip: X = N + M + L (Critical + Major + Minor in the "Key Findings" count). Consider items are shown separately and don't count toward the Key Findings total.
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
@@ -382,6 +402,12 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 **MINOR + HIGH routing:**
 - If inline-comment-eligible (single file, concrete fix, 1-10 lines) → **Inline Comment**
 - If NOT inline-comment-eligible (multi-file, architectural, multiple approaches) → **Main (Minor section)**
+
+**Lower confidence or INFO routing:**
+- If plausibly valid and worth the developer seeing → **Main (Consider section)**
+- If invalid, inapplicable, or addressed elsewhere → **Discarded**
+
+Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it has enough merit to show the developer (Consider) or it doesn't (Discarded).
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
@@ -468,34 +494,23 @@ mcp__github__submit_pending_pull_request_review
 
 **Result:** A single PR review appears in the timeline with the review badge (Approved / Changes Requested / Commented), the summary as the review body, and all inline comments grouped under "View changes". One notification to the PR author.
 
-### Other Findings
+### Discarded
 
 Format:
 ````markdown
 <details>
-<summary>Other Findings (Y)</summary> 
+<summary>Discarded (Y)</summary> 
 
-### Potentially valid 
-(these are low criticality or informational and not confident)
-
-| Location | Issue | Reason Excluded |
-|----------|-------|-----------------|
-| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Reason why not applied/suggested |
-- ...
-
-### Discarded as invalid or not applicable
-(these were wrong, not applicable, addressed elsewhere, or not relevant)
-
-| Location | Issue | Reason Excluded |
-|----------|-------|-----------------|
-| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Reason why not applied/suggested |
+| Location | Issue | Reason Discarded |
+|----------|-------|------------------|
+| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Why it was assessed as invalid, inapplicable, addressed elsewhere, or not relevant |
 
 </details>
 ````
 
-Tip: This is your catch-all for findings that didn't meet the threshold for Main, were erroneous, or not applicable. 'Y' is the count.
+Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, or not relevant to this PR. 'Y' is the count. Items with any merit go in Consider instead.
 
-**Per No Duplication Principle:** Do NOT include items that appear in Main, Inline Comments, or Pending Recommendations. Consolidate similar items.
+**Per No Duplication Principle:** Do NOT include items that appear in Main (including Consider), Inline Comments, or Pending Recommendations.
 
 ### Reviewer Stats
 
@@ -505,8 +520,8 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 <details>
 <summary>Reviewer Stats</summary>
 
-| Reviewer | Returned | Inline&nbsp;Comments | Main&nbsp;Findings | Pending&nbsp;Recs | Other&nbsp;Findings |
-|----------|----------|----------------------|--------------------|-------------------|---------------------|
+| Reviewer | Returned | Inline&nbsp;Comments | Main&nbsp;Findings | Pending&nbsp;Recs | Discarded |
+|----------|----------|----------------------|--------------------|-------------------|-----------|
 | `pr-review-standards` | 7 | 1 | 2 | 0 | 4 |
 | `pr-review-architecture` | 3 | 0 | 1 | 1 | 1 |
 | `pr-review-security-iam` | 2 | 1 | 0 | 0 | 1 |
@@ -519,13 +534,13 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 **Column definitions:**
 - **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
 - **Inline Comments** — Findings from this reviewer that were posted as Inline Comments (Phase 5).
-- **Main Findings** — Findings from this reviewer that appear in the Main section.
+- **Main Findings** — Findings from this reviewer that appear in the Main section (Critical, Major, Minor, or Consider).
 - **Pending Recs** — Findings from this reviewer matched to prior unresolved review threads or previous review findings (Pending Recommendations).
-- **Other Findings** — Findings from this reviewer placed in Other Findings (filtered, rejected, low-confidence, etc.).
+- **Discarded** — Findings from this reviewer assessed as invalid, inapplicable, or not relevant.
 
 **Notes:**
 - A finding that was **merged** with another during dedup counts toward the reviewer whose version was kept.
-- The sum of Inline Comments + Main Findings + Pending Recs + Other Findings may be less than Returned when findings are dropped entirely (e.g., already resolved, not attributable to this PR).
+- The sum of Inline Comments + Main Findings + Pending Recs + Discarded may be less than Returned when findings are dropped entirely (e.g., already resolved, not attributable to this PR).
 - Include a **Total** row summing each column.
 - Order reviewers by **Returned** count descending.
 
