@@ -35,8 +35,8 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import { FullAgentUpdateSchema as schema } from '@/lib/types/agent-full';
 import { isRequired } from '@/lib/utils';
-import { FullAgentUpdateSchema as schema } from '@/lib/validation';
 import { GenericPromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';

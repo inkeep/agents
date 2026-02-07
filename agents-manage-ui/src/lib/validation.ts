@@ -1,3 +1,4 @@
+import { HeadersSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { transformToJson } from '@/lib/json-schema-validation';
 
@@ -13,12 +14,6 @@ export const idSchema = z
     /^[a-zA-Z0-9_-]+$/,
     'Id must contain only alphanumeric characters, underscores, and dashes. No spaces allowed.'
   );
-
-export const DefaultHeadersSchema = z.record(
-  z.string(),
-  z.string('All header values must be strings'),
-  'Must be valid JSON object'
-);
 
 function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
   ctx.addIssue({

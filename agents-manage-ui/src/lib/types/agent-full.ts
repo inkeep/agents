@@ -7,12 +7,12 @@
 
 // Import core types and schemas
 import {
+  type AgentApiInsert,
   type AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
-  transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import type { AgentInput } from '@/lib/validation';
+import { transformToJson } from '@/lib/json-schema-validation';
 import type { SingleResponse } from './response';
 
 const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
@@ -90,10 +90,10 @@ export interface Agent {
 }
 
 // API Response Types
-export type CreateAgentResponse = SingleResponse<AgentInput>;
+export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentResponse>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentResponse>;
-export type UpdateAgentResponse = SingleResponse<AgentInput>;
+export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;
 
 export type SubAgentTeamAgentConfig = {
   agentId: string;

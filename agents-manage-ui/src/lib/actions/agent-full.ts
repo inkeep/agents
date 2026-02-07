@@ -7,10 +7,10 @@
  * type-safe functions that can be called from React components.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
 import type { FullAgentDefinition, FullAgentResponse } from '@/lib/types/agent-full';
-import type { AgentInput } from '@/lib/validation';
 import {
   ApiError,
   createAgent as apiCreateAgent,
@@ -58,8 +58,8 @@ export async function getAllAgentsAction(
 export async function createAgentAction(
   tenantId: string,
   projectId: string,
-  agentData: AgentInput
-): Promise<ActionResult<AgentInput>> {
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
   try {
     const response = await apiCreateAgent(tenantId, projectId, agentData);
     // Revalidate relevant pages
@@ -91,8 +91,8 @@ export async function updateAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: AgentInput
-): Promise<ActionResult<AgentInput>> {
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
   try {
     const response = await apiUpdateAgent(tenantId, projectId, agentId, agentData);
     // Revalidate relevant pages

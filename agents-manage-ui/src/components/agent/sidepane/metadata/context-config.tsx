@@ -4,8 +4,8 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
+import { FullAgentUpdateSchema as schema } from '@/lib/types/agent-full';
 import { isRequired } from '@/lib/utils';
-import { FullAgentUpdateSchema as schema } from '@/lib/validation';
 import { SectionHeader } from '../section';
 
 function tryJsonParse(json = ''): Record<string, any> {

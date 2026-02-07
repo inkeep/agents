@@ -5,8 +5,8 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import type { FullAgentDefinition } from '@/lib/types/agent-full';
-import type { AgentInput } from '@/lib/validation';
 import type {
   Agent,
   CreateAgentResponse,
@@ -14,7 +14,6 @@ import type {
   UpdateAgentResponse,
   UpdateFullAgentResponse,
 } from '../types/agent-full';
-import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -34,7 +33,7 @@ export async function fetchAgents(
 export async function createAgent(
   tenantId: string,
   projectId: string,
-  agentData: AgentInput
+  agentData: AgentApiInsert
 ): Promise<CreateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -55,7 +54,7 @@ export async function updateAgent(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: AgentInput
+  agentData: AgentApiInsert
 ): Promise<UpdateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -125,4 +124,4 @@ export async function deleteFullAgent(
 }
 
 // Export the error class for use in server actions
-export { ApiError };
+export { ApiError } from '../types/errors';
