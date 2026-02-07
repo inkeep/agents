@@ -19,6 +19,7 @@ import { tool } from 'ai';
 import manageDbPool from 'src/data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { getInProcessFetch } from '../../../utils/in-process-fetch';
 import { A2AClient } from '../a2a/client';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
@@ -383,6 +384,7 @@ export function createDelegateToAgentTool({
             maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
+        ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
       });
 
       const messageToSend = {
