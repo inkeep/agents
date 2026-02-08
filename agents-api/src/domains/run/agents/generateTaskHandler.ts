@@ -70,12 +70,6 @@ export const createTaskHandler = (
         (part): part is DataPart => part.kind === 'data' && part.data != null
       );
 
-      // Extract image file parts
-      const imageFileParts = task.input.parts.filter(
-        (part): part is FilePart =>
-          part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
-      );
-
       // Build user message: combine text with any structured data
       let userMessage = textParts;
 
@@ -373,18 +367,19 @@ export const createTaskHandler = (
           inputPartsCount: task.input.parts.length,
           textPartsCount: task.input.parts.filter((p) => p.kind === 'text').length,
           dataPartsCount: task.input.parts.filter((p) => p.kind === 'data').length,
-          imagePartsCount: imageFileParts.length,
+          imagePartsCount: task.input.parts.filter(
+            (part): part is FilePart =>
+              part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
+          ).length,
           hasDataParts: task.input.parts.some((p) => p.kind === 'data'),
-          hasImages: imageFileParts.length > 0,
+          hasImages: task.input.parts.some(
+            (part) => part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
+          ),
         },
         'User Message with parts breakdown'
       );
 
-      // Build user input - use object form if images are present
-      const userInput =
-        imageFileParts.length > 0 ? { text: userMessage, imageParts: imageFileParts } : userMessage;
-
-      const response = await agent.generate(userInput, {
+      const response = await agent.generate(task.input.parts, {
         contextId,
         metadata: {
           conversationId: contextId,

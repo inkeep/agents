@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
+const toParts = (text: string) => [{ kind: 'text' as const, text }];
+
 // Mock the AI SDK functions
 vi.mock('ai', () => ({
   generateText: vi.fn().mockImplementation(async (options: any) => {
@@ -866,7 +868,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithNoneMode, mockExecutionContext);
-    await agent.generate('Test prompt', mockRuntimeContext);
+    await agent.generate(toParts('Test prompt'), mockRuntimeContext);
 
     expect(getFormattedConversationHistory).not.toHaveBeenCalled();
   });
@@ -884,7 +886,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithFullMode, mockExecutionContext);
-    await agent.generate('Test prompt', mockRuntimeContext);
+    await agent.generate(toParts('Test prompt'), mockRuntimeContext);
     expect(getConversationHistoryWithCompression).toHaveBeenCalled();
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
@@ -919,7 +921,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithScopedMode, mockExecutionContext);
-    await agent.generate('Test prompt', mockRuntimeContext);
+    await agent.generate(toParts('Test prompt'), mockRuntimeContext);
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
       tenantId: 'test-tenant',
@@ -1369,7 +1371,7 @@ describe('Two-Pass Generation System', () => {
 
   test('should return text response when no data components', async () => {
     const agent = new Agent({ ...mockAgentConfig, dataComponents: [] }, mockExecutionContext);
-    const result = await agent.generate('Test prompt');
+    const result = await agent.generate(toParts('Test prompt'));
 
     expect(result.text).toBe('Mocked response');
     expect(result.object).toBeUndefined();
@@ -1377,7 +1379,7 @@ describe('Two-Pass Generation System', () => {
 
   test('should return object response when data components configured', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const result = await agent.generate('Test prompt');
+    const result = await agent.generate(toParts('Test prompt'));
 
     expect(result.object).toBeDefined();
     expect(result.object.dataComponents).toHaveLength(1);
@@ -1415,7 +1417,7 @@ describe('Agent Model Settings', () => {
 
   test('should use ModelFactory.prepareGenerationConfig with base model configuration', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1442,7 +1444,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithModel, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1473,7 +1475,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithModel, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
@@ -1491,7 +1493,7 @@ describe('Agent Model Settings', () => {
 
   test('should pass generation parameters to generateText', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     // Get the mocked generateText function
     const { generateText } = await import('ai');
@@ -1531,7 +1533,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithDataComponents, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     // Single-phase generation: uses structuredOutput model when data components are present
@@ -1555,7 +1557,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithDataComponents, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     // Single-phase generation: falls back to base model when no structuredOutput model configured
@@ -1577,7 +1579,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithOpenAI, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1597,7 +1599,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithPlainModel, mockExecutionContext);
-    await agent.generate('Test prompt');
+    await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1795,11 +1797,11 @@ describe('Agent Image Support', () => {
     };
   });
 
-  test('passes text-only input to generateText (string or message object)', async () => {
+  test('passes text-only input to generateText', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const { generateText } = await import('ai');
 
-    await agent.generate('Simple text prompt');
+    await agent.generate(toParts('Simple text prompt'));
     expect(generateText).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -1812,7 +1814,7 @@ describe('Agent Image Support', () => {
       })
     );
 
-    await agent.generate({ text: 'Just text, no images' });
+    await agent.generate(toParts('Just text, no images'));
     expect(generateText).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
@@ -1829,26 +1831,24 @@ describe('Agent Image Support', () => {
   test('passes image URL(s) to generateText in AI SDK format with optional detail metadata', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
 
-    await agent.generate({
-      text: 'Compare these two screenshots',
-      imageParts: [
-        {
-          kind: 'file',
-          file: {
-            uri: 'https://example.com/before.png',
-            mimeType: 'image/png',
-          },
+    await agent.generate([
+      { kind: 'text', text: 'Compare these two screenshots' },
+      {
+        kind: 'file',
+        file: {
+          uri: 'https://example.com/before.png',
+          mimeType: 'image/png',
         },
-        {
-          kind: 'file',
-          file: {
-            uri: 'https://example.com/after.png',
-            mimeType: 'image/png',
-          },
-          metadata: { detail: 'high' },
+      },
+      {
+        kind: 'file',
+        file: {
+          uri: 'https://example.com/after.png',
+          mimeType: 'image/png',
         },
-      ],
-    });
+        metadata: { detail: 'high' },
+      },
+    ]);
 
     const { generateText } = await import('ai');
     expect(generateText).toHaveBeenCalledWith(
@@ -1880,18 +1880,16 @@ describe('Agent Image Support', () => {
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     const expectedDataUrl = `data:image/png;base64,${base64Data}`;
 
-    await agent.generate({
-      text: 'Describe this screenshot',
-      imageParts: [
-        {
-          kind: 'file',
-          file: {
-            bytes: base64Data,
-            mimeType: 'image/png',
-          },
+    await agent.generate([
+      { kind: 'text', text: 'Describe this screenshot' },
+      {
+        kind: 'file',
+        file: {
+          bytes: base64Data,
+          mimeType: 'image/png',
         },
-      ],
-    });
+      },
+    ]);
 
     const { generateText } = await import('ai');
     expect(generateText).toHaveBeenCalledWith(

@@ -8,6 +8,7 @@ import {
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type DataPart,
   type FilePart,
   type FullExecutionContext,
   generateId,
@@ -24,6 +25,7 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
+  type Part,
   parseEmbeddedJson,
   type ResolvedRef,
   type SubAgentStopWhen,
@@ -70,6 +72,7 @@ import type { SandboxConfig } from '../types/executionContext';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
+import { extractTextFromParts } from '../utils/message-parts';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
@@ -158,20 +161,6 @@ export async function resolveGenerationResponse(
       `Failed to resolve generation response: ${error instanceof Error ? error.message : String(error)}`
     );
   }
-}
-
-export type UserInput =
-  | string
-  | {
-      text: string;
-      imageParts?: FilePart[];
-    };
-
-function normalizeUserInput(input: UserInput): { text: string; imageParts?: FilePart[] } {
-  if (typeof input === 'string') {
-    return { text: input };
-  }
-  return input;
 }
 
 function validateModel(modelString: string | undefined, modelType: string): string {
@@ -2713,7 +2702,7 @@ ${output}`;
   }
 
   async generate(
-    userInput: UserInput,
+    userParts: Part[],
     runtimeContext?: {
       contextId: string;
       metadata: {
@@ -2725,7 +2714,25 @@ ${output}`;
       };
     }
   ) {
-    const { text: userMessage, imageParts } = normalizeUserInput(userInput);
+    const textParts = extractTextFromParts(userParts);
+    const dataParts = userParts.filter(
+      (part): part is DataPart => part.kind === 'data' && part.data != null
+    );
+    const dataContext =
+      dataParts.length > 0
+        ? dataParts
+            .map((part) => {
+              const metadata = part.metadata as Record<string, unknown> | undefined;
+              const source = metadata?.source ? ` (source: ${metadata.source})` : '';
+              return `\n\n<structured_data${source}>\n${JSON.stringify(part.data, null, 2)}\n</structured_data>`;
+            })
+            .join('')
+        : '';
+    const userMessage = `${textParts}${dataContext}`;
+    const imageParts = userParts.filter(
+      (part): part is FilePart =>
+        part.kind === 'file' && part.file.mimeType?.startsWith('image/') === true
+    );
     // Extract conversation ID early for span attributes
     const conversationIdForSpan = runtimeContext?.metadata?.conversationId;
 
