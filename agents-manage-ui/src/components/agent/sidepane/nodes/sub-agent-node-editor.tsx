@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -11,8 +11,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useProjectPermissions } from '@/contexts/project';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
@@ -63,6 +63,7 @@ export function SubAgentNodeEditor({
   artifactComponentLookup,
   errorHelpers,
 }: SubAgentNodeEditorProps) {
+  'use memo';
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -72,7 +73,8 @@ export function SubAgentNodeEditor({
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
   const isDefaultSubAgent = selectedNode.data?.isDefault || false;
   const { project } = useProjectData();
-  const metadata = useAgentStore((state) => state.metadata);
+  const form = useFullAgentFormContext();
+  const models = useWatch({ control: form.control, name: 'models' });
 
   const {
     updatePath,
@@ -86,19 +88,13 @@ export function SubAgentNodeEditor({
     errorHelpers,
   });
 
-  const updateModelPath = useCallback(
-    (path: string, value: any) => {
-      updateNestedPath(path, value, selectedNode.data);
-    },
-    [updateNestedPath, selectedNode.data]
-  );
+  const updateModelPath = (path: string, value: any) => {
+    updateNestedPath(path, value, selectedNode.data);
+  };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updatePath('id', generatedId);
-    },
-    [updatePath]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updatePath('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -173,7 +169,7 @@ export function SubAgentNodeEditor({
         models={selectedNode.data.models}
         updatePath={updateModelPath}
         projectModels={project?.models}
-        agentModels={metadata?.models}
+        agentModels={models}
       />
       <Separator />
       {/* Agent Execution Limits */}

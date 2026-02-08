@@ -47,16 +47,7 @@ describe('agent serialize/deserialize', () => {
       },
     ];
 
-    const serialized = serializeAgentData(nodes, edges, {
-      id: 'test-agent',
-      name: 'Test Agent',
-      description: 'Agent with self-referencing agent',
-      contextConfig: {
-        id: '',
-        contextVariables: '',
-        headersSchema: '',
-      },
-    });
+    const serialized = serializeAgentData(nodes, edges);
 
     expect(serialized.subAgents['goodbye-agent']).toBeDefined();
     const goodbyeAgent = serialized.subAgents['goodbye-agent'];
@@ -131,16 +122,7 @@ describe('agent serialize/deserialize', () => {
       },
     ];
 
-    const serialized = serializeAgentData(nodes, edges, {
-      id: 'g1',
-      name: 'G',
-      description: 'D',
-      contextConfig: {
-        contextVariables: '{}',
-        headersSchema: '{}',
-      },
-    });
-    expect(serialized.id).toBe('g1');
+    const serialized = serializeAgentData(nodes, edges);
     expect(serialized.subAgents.a1).toBeDefined();
     // Note: Tools are now project-scoped and not included in agent serialization
     // expect(serialized.tools.t1).toBeDefined();

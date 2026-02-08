@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
+import { FullAgentFormProvider } from '@/contexts/full-agent-form';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { getCapabilitiesAction } from '@/lib/actions/capabilities';
@@ -7,7 +8,7 @@ import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
-import { createLookup } from '@/lib/utils';
+import { createLookup, serializeJson } from '@/lib/utils';
 import { Agent } from './page.client';
 
 export const dynamic = 'force-dynamic';
@@ -71,15 +72,59 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     ? Boolean(capabilities.data?.sandbox?.configured)
     : false;
 
+  const {
+    id,
+    name,
+    description,
+    prompt,
+    contextConfig,
+    statusUpdates = {},
+    stopWhen,
+    models = {},
+  } = agent.data;
+
+  const defaultValues = {
+    id,
+    name,
+    description,
+    prompt,
+    contextConfig: contextConfig && {
+      id: contextConfig.id,
+      headersSchema: serializeJson(contextConfig.headersSchema),
+      contextVariables: serializeJson(contextConfig.contextVariables),
+    },
+    statusUpdates: {
+      ...statusUpdates,
+      statusComponents: serializeJson(statusUpdates.statusComponents),
+    },
+    stopWhen,
+    models: {
+      base: {
+        ...models.base,
+        providerOptions: serializeJson(models.base?.providerOptions),
+      },
+      structuredOutput: {
+        ...models.structuredOutput,
+        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
+      },
+      summarizer: {
+        ...models.summarizer,
+        providerOptions: serializeJson(models.summarizer?.providerOptions),
+      },
+    },
+  };
+
   return (
-    <Agent
-      agent={agent.data}
-      dataComponentLookup={dataComponentLookup}
-      artifactComponentLookup={artifactComponentLookup}
-      toolLookup={toolLookup}
-      credentialLookup={credentialLookup}
-      sandboxEnabled={sandboxEnabled}
-    />
+    <FullAgentFormProvider defaultValues={defaultValues}>
+      <Agent
+        agent={agent.data}
+        dataComponentLookup={dataComponentLookup}
+        artifactComponentLookup={artifactComponentLookup}
+        toolLookup={toolLookup}
+        credentialLookup={credentialLookup}
+        sandboxEnabled={sandboxEnabled}
+      />
+    </FullAgentFormProvider>
   );
 };
 
