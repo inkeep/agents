@@ -102,8 +102,18 @@ Detect fault classes and anti-patterns using domain expertise. No external skill
 | [`claude-code-review.yml`](../../../.github/workflows/claude-code-review.yml) | CI workflow |
 | [`pr-review-output-contract`](../../skills/pr-review-output-contract/SKILL.md) | Output schema |
 | [`product-surface-areas`](../../skills/product-surface-areas/SKILL.md) | Surface dependency graph |
+| [`find-similar`](../../../.agents/skills/find-similar/SKILL.md) | Peer/pattern discovery |
 
 ## Shared Skills
+
+### find-similar
+
+`find-similar` provides a systematic framework for finding analogous code patterns in the codebase — peer implementations, sibling modules, existing helpers, and convention precedents.
+
+**Loaded by:**
+- `pr-review` (orchestrator) — general-purpose pattern lookup
+- `pr-review-architecture` — locate related modules and peer implementations before assessing consistency
+- `pr-review-consistency` — sibling discovery and convention comparison across surfaces
 
 ### product-surface-areas
 
@@ -163,7 +173,8 @@ At startup, Claude Code only reads the **frontmatter metadata** (~100 tokens per
 | Subagent agents | 15 | 0 | No — spawned by orchestrator only |
 | `pr-review-output-contract` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
 | `pr-review-check-suggestion` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
-| **Total** | **18 files** | **~200 tokens** | **No** |
+| `find-similar` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
+| **Total** | **19 files** | **~300 tokens** | **No** |
 
 For comparison, `AGENTS.md` alone is ~12,000+ tokens and is always loaded. The PR review system's ~200 token metadata footprint is negligible.
 
