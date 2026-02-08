@@ -4,7 +4,7 @@ description: |
   PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, submits batched PR review.
   Invoked via: `/pr-review` skill or `claude --agent pr-review`.
 tools: Task, Read, Grep, Glob, Bash
-skills: [pr-context, product-surface-areas, pr-review-output-contract]
+skills: [pr-context, product-surface-areas, find-similar, pr-review-output-contract]
 model: opus
 ---
 
@@ -53,8 +53,9 @@ The PR context (diff, changed files, metadata, existing comments) is available v
 
 | pr-context section | GitHub concept | URL pattern | Contains |
 |---|---|---|---|
-| `Existing Review Threads` | Review threads (`reviewThreads`) | `#discussion_rXXX` | Line-specific inline comments on the diff, with resolution status and reply chains |
-| `Previous Reviews` | Review submissions (`reviews`) | `#pullrequestreview-XXXXX` | The review body (summary text), state (APPROVED/CHANGES_REQUESTED/COMMENTED), and author |
+| `Automated Review Comments` | Review threads by `claude[bot]` | `#discussion_rXXX` | Prior automated review comments with status (Active/Outdated/Resolved) |
+| `Human Review Comments` | Review threads by humans | `#discussion_rXXX` | Unresolved human review comments on the diff |
+| `Previous Review Summaries` | Review submissions (`reviews`) | `#pullrequestreview-XXXXX` | All prior review bodies with state, author, and summary |
 | `PR Discussion` | Issue comments | `#issuecomment-XXXXX` | General PR-level discussion (not attached to diff lines) |
 
 Use these terms consistently when referencing prior feedback throughout the workflow.
@@ -163,7 +164,7 @@ For each finding, ask:
 2. **Is this issue actually addressed elsewhere?** (e.g., sanitization happens upstream and that's the better place) → If Yes, **DISCARD**
 3. **Are the plausible resolutions reasonably addressable within the scope of this PR?** → If No, **DISCARD**
 4. **Has this issue been raised in the PR already?** → If pending/unresolved, include in **Pending Recommendations** only (per No Duplication Principle). If resolved, **DISCARD**.
-   - Check **both** `Existing Review Threads` (inline comments on diff lines) AND `Previous Reviews` (findings in prior review bodies).
+   - Check `Prior Feedback` in pr-context: `Automated Review Comments`, `Human Review Comments`, and `Previous Review Summaries`.
    - *Pending* = user has not declined/closed it, no subsequent commits address it, and it remains relevant to the current PR state.
    
 ### 4.3 Conflict Resolution
@@ -211,9 +212,15 @@ Only if all of the above are true, then consider it for **inline-comment-eligibl
 
 ### 5.2 Deduplicate Inline-Comment Edits
 
-Check **both** `Existing Review Threads` (inline comments on diff lines) and `Previous Reviews` (findings in prior review bodies) from pr-context before posting. Per the **No Duplication Principle**:
-- **Skip** if same location (±2 lines) with similar issue already exists in a review thread or prior review body
-- **Skip** if an unresolved review thread or prior review body finding already covers this issue → goes in Pending Recommendations instead
+**Pre-flight check (MANDATORY):** Before posting ANY inline comment:
+1. Read the `Automated Review Comments` table in pr-context under `Prior Feedback`
+2. For each proposed inline comment, verify its file:line does NOT match any **ACTIVE** entry (±2 lines) with a similar issue
+3. If it matches → route to **Pending Recommendations** instead (link to existing thread)
+4. Also check `Human Review Comments` and `Previous Review Summaries` for coverage of the same issue
+
+Per the **No Duplication Principle**:
+- **Skip** if same location (±2 lines) with similar issue already exists in any prior thread or review body
+- **Skip** if an unresolved thread or prior review finding already covers this issue → goes in Pending Recommendations instead
 - **Post** only if: no existing thread/finding, or thread is outdated but issue persists, or issue is materially different
 
 **Tip:** Minimize noise — a few high-signal inline comments are better than many marginal ones. When in doubt, route to summary-only.
@@ -439,8 +446,9 @@ Previous issues raised by humans or yourself from **previous runs** that are sti
 
 | Source | pr-context section | URL pattern |
 |--------|-------------------|-------------|
-| Review threads (inline comments on diff lines) | `Existing Review Threads` | `#discussion_rXXX` |
-| Review body findings (Main section items from prior review submissions) | `Previous Reviews` | `#pullrequestreview-XXXXX` |
+| Automated review comments | `Automated Review Comments` | `#discussion_rXXX` |
+| Human review comments | `Human Review Comments` | `#discussion_rXXX` |
+| Review body findings (Main section items from prior review submissions) | `Previous Review Summaries` | `#pullrequestreview-XXXXX` |
 
 Link to the original source using the `url` field from pr-context. For review body findings, link to the review submission itself.
 
