@@ -4,7 +4,7 @@ description: |
   PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, submits batched PR review.
   Invoked via: `/pr-review` skill or `claude --agent pr-review`.
 tools: Task, Read, Grep, Glob, Bash
-skills: [pr-context, product-surface-areas, pr-review-output-contract]
+skills: [pr-context, product-surface-areas, find-similar, pr-review-output-contract]
 model: opus
 ---
 

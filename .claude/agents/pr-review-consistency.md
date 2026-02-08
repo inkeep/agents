@@ -39,6 +39,7 @@ disallowedTools: Write, Edit, Task
 skills:
   - pr-context
   - product-surface-areas
+  - find-similar
   - pr-review-output-contract
   - pr-review-check-suggestion
 model: opus
@@ -221,8 +222,8 @@ For MAJOR/CRITICAL items, require explicit justification:
 
 1. **Review the PR context** — diff, changed files, and metadata are available via `pr-context`
 2. **Classify surfaces** — use `product-surface-areas` to spot customer-facing/one-way-door changes
-3. **Peer comparison** — find closest analogous files and compare conventions
-4. **Search for reuse** — Grep for existing helpers/primitives before accepting new ones
+3. **Peer comparison** — use `find-similar` to systematically find closest analogous files (sibling discovery, reference tracing) and compare conventions
+4. **Search for reuse** — use `find-similar` (direct search + conceptual expansion) to find existing helpers/primitives before accepting new ones
 5. **Check for split-world** — if divergence is intentional, ensure there's a migration/justification story
 6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
 7. **Return findings** — JSON array per `pr-review-output-contract`

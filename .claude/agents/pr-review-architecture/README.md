@@ -2,6 +2,27 @@
 
 Multi-agent PR review system powered by Claude Code.
 
+## Agent Roster
+
+```
+pr-review (orchestrator, opus)
+├── pr-review-architecture        (opus)   — System design, boundaries, layering, evolvability
+├── pr-review-breaking-changes    (opus)   — Backward compatibility, data contracts, migrations
+├── pr-review-comments            (sonnet) — Comment quality and inline code documentation
+├── pr-review-consistency         (opus)   — Cross-codebase pattern consistency, naming, conventions
+├── pr-review-devops              (opus)   — CI/CD, deployment, infrastructure changes
+├── pr-review-docs                (sonnet) — Documentation coverage and accuracy
+├── pr-review-errors              (sonnet) — Error handling, logging, observability
+├── pr-review-frontend            (sonnet) — React/Next.js patterns, UX, accessibility
+├── pr-review-llm                 (sonnet) — LLM integration patterns, prompting, streaming
+├── pr-review-product             (opus)   — Product-level thinking, user impact, surface areas
+├── pr-review-security-iam        (opus)   — Auth, tenant isolation, IAM, credential handling
+├── pr-review-sre                 (opus)   — Reliability, performance, scaling, monitoring
+├── pr-review-standards           (sonnet) — Code style, linting, Biome conventions
+├── pr-review-tests               (sonnet) — Test coverage, quality, patterns
+└── pr-review-types               (sonnet) — TypeScript types, Zod schemas, type safety
+```
+
 ## Quick Start
 
 ```bash
@@ -111,6 +132,40 @@ PR context is auto-injected via a generated skill (no Read tool calls needed):
 1. CI generates `.claude/skills/pr-context/SKILL.md` with PR metadata, diff, comments
 2. All agents declare `skills: [pr-context, ...]` in frontmatter
 3. Context loads into system prompt at spawn
+
+## Context Window Impact During Normal Development
+
+**TL;DR: These files have zero meaningful impact on the context window when using Claude Code for regular development.**
+
+### Agents (`.claude/agents/pr-review*.md`)
+
+Agents are **only loaded when explicitly invoked** — either via `/pr-review` in a Claude Code conversation or via `claude --agent pr-review` in CI. During normal development sessions, these 16 files consume **zero tokens** in the context window. They are never auto-loaded, auto-discovered, or auto-triggered.
+
+### Skills (`.agents/skills/pr-review-*/SKILL.md`)
+
+Both PR-review skills use **progressive disclosure** and are configured to prevent any automatic loading:
+
+```yaml
+user-invocable: false
+disable-model-invocation: true
+```
+
+- `user-invocable: false` — the skill cannot be triggered by the user typing a command
+- `disable-model-invocation: true` — the model will never autonomously decide to load this skill
+
+At startup, Claude Code only reads the **frontmatter metadata** (~100 tokens per skill) to build its skill index. The full skill content is **never loaded** unless another agent explicitly reads it via the `Read` tool during a PR review session.
+
+### Summary
+
+| Component | Files | Tokens at startup | Auto-triggered? |
+|---|---|---|---|
+| Orchestrator agent | 1 | 0 | No — explicit invocation only |
+| Subagent agents | 15 | 0 | No — spawned by orchestrator only |
+| `pr-review-output-contract` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
+| `pr-review-check-suggestion` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
+| **Total** | **18 files** | **~200 tokens** | **No** |
+
+For comparison, `AGENTS.md` alone is ~12,000+ tokens and is always loaded. The PR review system's ~200 token metadata footprint is negligible.
 
 ## Adding a Reviewer
 
