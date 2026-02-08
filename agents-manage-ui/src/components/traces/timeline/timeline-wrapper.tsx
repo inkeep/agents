@@ -6,6 +6,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -89,6 +90,9 @@ interface TimelineWrapperProps {
   onCopyFullTrace?: () => void;
   onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
+  onRerunTrigger?: () => void;
+  isRerunning?: boolean;
+  showRerunTrigger?: boolean;
 }
 
 function EmptyTimeline({
@@ -183,6 +187,9 @@ export function TimelineWrapper({
   onCopyFullTrace,
   onCopySummarizedTrace,
   isCopying = false,
+  onRerunTrigger,
+  isRerunning = false,
+  showRerunTrigger = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -450,6 +457,23 @@ export function TimelineWrapper({
                 <div className="text-foreground text-md font-medium">Activity timeline</div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Rerun Trigger Button */}
+                {showRerunTrigger && onRerunTrigger && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRerunTrigger}
+                    disabled={isRerunning}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {isRerunning ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                    )}
+                    {isRerunning ? 'Rerunning...' : 'Rerun Trigger'}
+                  </Button>
+                )}
                 {/* Copy Trace Dropdown */}
                 {(onCopyFullTrace || onCopySummarizedTrace) && (
                   <DropdownMenu onOpenChange={(open) => open && calculateTokenEstimates()}>

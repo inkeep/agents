@@ -216,6 +216,9 @@ export interface ConversationDetail {
     failureReason: string;
     timestamp: string;
   }>;
+  invocationType?: string | null;
+  triggerId?: string | null;
+  triggerInvocationId?: string | null;
 }
 
 export const TOOL_TYPES = {

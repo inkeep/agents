@@ -24,6 +24,7 @@ import {
   updateTrigger,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
+import { dispatchExecution } from '../../run/services/TriggerService';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -669,6 +670,101 @@ app.openapi(
     return c.json({
       data: invocationWithoutScopes,
     });
+  }
+);
+
+/**
+ * Rerun Trigger
+ * Re-executes a trigger with the provided user message (from a previous trace).
+ */
+app.use('/:id/rerun', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('use')(c, next);
+  }
+  return next();
+});
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/rerun',
+    summary: 'Rerun Trigger',
+    operationId: 'rerun-trigger',
+    tags: ['Triggers'],
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              userMessage: z.string().describe('The user message to send to the agent'),
+              messageParts: z
+                .array(z.record(z.string(), z.unknown()))
+                .optional()
+                .describe('Optional structured message parts (from original trace)'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: 'Trigger rerun accepted and dispatched',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              invocationId: z.string(),
+              conversationId: z.string(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
+    const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
+    const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
+
+    logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
+
+    const trigger = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger not found',
+      });
+    }
+
+    const messageParts = rawMessageParts
+      ? (rawMessageParts as Array<Record<string, unknown>>)
+      : [{ kind: 'text', text: userMessage }];
+
+    const { invocationId, conversationId } = await dispatchExecution({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      resolvedRef,
+      payload: { _rerun: true },
+      transformedPayload: undefined,
+      messageParts: messageParts as any,
+      userMessageText: userMessage,
+    });
+
+    logger.info(
+      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+      'Trigger rerun dispatched'
+    );
+
+    return c.json({ success: true, invocationId, conversationId }, 202);
   }
 );
 
