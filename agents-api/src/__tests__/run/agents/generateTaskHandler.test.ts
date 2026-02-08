@@ -131,7 +131,11 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       // Mock implementation
     }
 
-    async generate(message: string, _options: any) {
+    async generate(parts: any[], _options: any) {
+      const message = parts
+        .filter((p: any) => p.kind === 'text')
+        .map((p: any) => p.text)
+        .join(' ');
       // Mock different response types based on message content
       if (message.includes('transfer')) {
         return {
