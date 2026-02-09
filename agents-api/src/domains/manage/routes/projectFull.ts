@@ -20,6 +20,7 @@ import {
   getProjectMainBranchName,
   getProjectMetadata,
   type ResolvedRef,
+  syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
@@ -161,6 +162,19 @@ app.openapi(
         scopes: { tenantId, projectId: validatedProjectData.id },
         projectData: validatedProjectData,
       });
+
+      // 4. Sync to SpiceDB: link project to org and grant creator admin role
+      if (userId) {
+        try {
+          await syncProjectToSpiceDb({
+            tenantId,
+            projectId: validatedProjectData.id,
+            creatorUserId: userId,
+          });
+        } catch (syncError) {
+          logger.warn({ syncError }, 'Failed to sync project to SpiceDB');
+        }
+      }
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -386,6 +400,19 @@ app.openapi(
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           });
+
+      // Sync to SpiceDB when creating a new project
+      if (isCreate && userId) {
+        try {
+          await syncProjectToSpiceDb({
+            tenantId,
+            projectId,
+            creatorUserId: userId,
+          });
+        } catch (syncError) {
+          logger.warn({ syncError }, 'Failed to sync project to SpiceDB');
+        }
+      }
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
     } catch (error) {

@@ -224,6 +224,53 @@ export class SchemaProcessor {
   }
 
   /**
+   * Normalize JSON schema for structured output compatibility
+   * Makes all properties required - this ensures compatibility across all LLM providers
+   * (OpenAI/Azure require it, Anthropic accepts it)
+   */
+  static normalizeForStructuredOutput(schema: any): any {
+    if (!schema || typeof schema !== 'object') {
+      return schema;
+    }
+
+    const normalized = { ...schema };
+
+    if (normalized.properties && typeof normalized.properties === 'object') {
+      // Mark all properties as required
+      normalized.required = Object.keys(normalized.properties);
+
+      // Recursively normalize nested properties
+      const normalizedProperties: any = {};
+      for (const [key, value] of Object.entries(normalized.properties)) {
+        normalizedProperties[key] = SchemaProcessor.normalizeForStructuredOutput(value);
+      }
+      normalized.properties = normalizedProperties;
+    }
+
+    // Handle arrays and unions
+    if (normalized.items) {
+      normalized.items = SchemaProcessor.normalizeForStructuredOutput(normalized.items);
+    }
+    if (normalized.anyOf) {
+      normalized.anyOf = normalized.anyOf.map((s: any) =>
+        SchemaProcessor.normalizeForStructuredOutput(s)
+      );
+    }
+    if (normalized.oneOf) {
+      normalized.oneOf = normalized.oneOf.map((s: any) =>
+        SchemaProcessor.normalizeForStructuredOutput(s)
+      );
+    }
+    if (normalized.allOf) {
+      normalized.allOf = normalized.allOf.map((s: any) =>
+        SchemaProcessor.normalizeForStructuredOutput(s)
+      );
+    }
+
+    return normalized;
+  }
+
+  /**
    * Enhance schema with JMESPath guidance for artifact component schemas
    * Transforms all schema types to string selectors with helpful descriptions
    */
