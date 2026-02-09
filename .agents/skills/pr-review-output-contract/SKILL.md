@@ -89,7 +89,7 @@ These fields are **required on all finding types**.
 | 1 | `type` | `"inline"` \| `"file"` \| `"multi-file"` \| `"system"` | Discriminator. Determines schema shape. |
 | 2 | `category` | string | Your domain (e.g., `"standards"`, `"architecture"`). |
 | 3 | `issue` | string | What's wrong. Thorough description. |
-| 4 | `references` | string[] | **Required.** Citations that justify the finding. See Reference Types below. |
+| 4 | `references` | string[] | **Required.** Citations that justify both the finding and the proposed fix. See Reference Types below. |
 | 5 | `implications` | string | Why it matters. Consequence, risk, user impact. (write AFTER citing evidence) |
 | 6 | `severity` | `"CRITICAL"` \| `"MAJOR"` \| `"MINOR"` \| `"INFO"` | How serious is this issue? (classify AFTER implications) |
 | 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
@@ -98,19 +98,21 @@ These fields are **required on all finding types**.
 
 ### Reference Types
 
-Every finding **must** include at least one reference (outside of the line numbers a suggestion applies to). References ground and justify your analysis in verifiable sources and prevent hallucinated recommendations.
+Every finding **must** include at least one reference (outside of the line numbers a suggestion applies to). References ground and justify both the issue and the proposed fix in verifiable sources, and prevent hallucinated recommendations.
 
-**Important:** References are **not** for pointing to the file or lines where the finding is located — the finding's own `file` and `line` fields already capture that. Instead, references cite **other sources** that justify *why* the finding is valid: related code elsewhere in the codebase, project standards (skills, AGENTS.md), reviewer-defined rules, or external documentation.
+**Important:** References are **not** for pointing to the file or lines where the finding is located — the finding's own `file` and `line` fields already capture that. Instead, references cite **other sources** that justify *why* the finding is valid and *why* the fix is appropriate: related code elsewhere in the codebase, project standards (skills, AGENTS.md), reviewer-defined rules, or external documentation.
+
+**In-repo reference rule:** All references to files within this repo (code, skills, AGENTS.md, reviewer agents, etc.) **must** include specific line number(s) and a brief (<1 sentence) description of what's at those lines that relates to the issue or fix. This makes the reasoning traceable — a reader should be able to click through and immediately see the justification.
 
 **Use markdown hyperlinks** `[text](url)` for ALL references. The `pr-context` skill provides the GitHub URL base pattern for constructing links.
 
 | Type | Format | Example |
 |------|--------|---------|
-| **Related code** | `[file:line](github-blob-url#Lline)` | `[src/api/client.ts:42](https://github.com/org/repo/blob/sha/src/api/client.ts#L42)` |
-| **Related code range** | `[file:start-end](github-blob-url#Lstart-Lend)` | `[utils.ts:10-15](https://github.com/.../utils.ts#L10-L15)` |
-| **Skill reference** | `[skill-name skill](github-blob-url)` | `[pr-review-security-iam skill](https://github.com/.../.agents/skills/.../SKILL.md)` |
-| **AGENTS.md rule** | `[AGENTS.md: rule](github-blob-url)` | `[AGENTS.md: tenant isolation](https://github.com/.../AGENTS.md)` |
-| **Reviewer instructions** | `[reviewer: section](github-blob-url)` | `[pr-review-security-iam: Checklist §2](https://github.com/.../.claude/agents/pr-review-security-iam.md)` |
+| **Related code** | `[file:line — what's there](url#Lline)` | `[src/api/users.ts:28 — parameterized query pattern](https://github.com/.../src/api/users.ts#L28)` |
+| **Related code range** | `[file:start-end — what's there](url#Lstart-Lend)` | `[utils.ts:10-15 — shared validation helpers](https://github.com/.../utils.ts#L10-L15)` |
+| **Skill reference** | `[skill:Lstart-Lend — what's there](url#Lstart-Lend)` | `[pr-review-security-iam skill:L45-L52 — credential rotation checklist](https://github.com/.../.agents/skills/.../SKILL.md#L45-L52)` |
+| **AGENTS.md rule** | `[AGENTS.md:Lline — what's there](url#Lline)` | `[AGENTS.md:L142 — tenant isolation rule](https://github.com/.../AGENTS.md#L142)` |
+| **Reviewer instructions** | `[reviewer:Lstart-Lend — what's there](url#Lstart-Lend)` | `[pr-review-security-iam:L28-L35 — auth bypass checklist](https://github.com/.../.claude/agents/pr-review-security-iam.md#L28-L35)` |
 | **External URL** | `[descriptive text](url)` | `[React useMemo docs](https://react.dev/...)` |
 
 **Constructing GitHub URLs:**
@@ -123,20 +125,23 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 **Examples:**
 ```json
-"references": [
-  "[src/api/client.ts:42-48](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42-L48)",
-  "[pr-review-security-iam skill](https://github.com/org/repo/blob/abc123/.agents/skills/pr-review-security-iam/SKILL.md)",
-  "[pr-review-security-iam: Checklist §2](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)",
-  "[React useMemo docs](https://react.dev/reference/react/useMemo)"
-]
+{
+  "references": [
+    "[src/api/users.ts:28-35 — parameterized query pattern](https://github.com/org/repo/blob/abc123/src/api/users.ts#L28-L35)",
+    "[pr-review-security-iam skill:L45-L52 — credential rotation checklist](https://github.com/org/repo/blob/abc123/.agents/skills/pr-review-security-iam/SKILL.md#L45-L52)",
+    "[pr-review-security-iam:L28-L35 — auth bypass checklist](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md#L28-L35)",
+    "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)"
+  ]
+}
 ```
 
 **Guidance:**
-- **Code issues** → link to *related* code elsewhere ...
-- **Standards violations** → link to the AGENTS.md rule that defines the standard
-- **Skill-backed findings** → link to the skill that defines the pattern or checklist (`.agents/skills/*/SKILL.md`)
-- **Reviewer-defined rules** → link to your own agent file (`.claude/agents/pr-review-*.md`)
-- **Best practice claims** → link to official docs or authoritative sources
+- **Code issues** → link to *related* code elsewhere that demonstrates the correct pattern or exposes the inconsistency (with line(s) + description)
+- **Standards violations** → link to the AGENTS.md rule at the specific line(s) that define the standard (with description)
+- **Skill-backed findings** → link to the skill at the specific line(s) that define the pattern or checklist (with description)
+- **Reviewer-defined rules** → link to your own agent file at the specific line(s) of the relevant checklist item (with description)
+- **Best practice claims** → link to official docs or authoritative sources (external URLs don't need line numbers)
+- **Justify both issue and fix** → include references that support *why* the issue matters AND *why* the proposed fix is appropriate. E.g., link to an existing pattern that the fix follows, or to docs that prescribe the recommended approach.
 - **Multiple references** are encouraged when they strengthen the finding
 ---
 
@@ -296,9 +301,9 @@ Never use absolute paths. Always use paths relative to the repository root.
     "category": "security",
     "issue": "User input is passed directly to SQL query without sanitization, creating SQL injection vulnerability.",
     "references": [
-      "[src/api/users.ts:28 — parameterized query pattern](https://github.com/org/repo/blob/abc123/src/api/users.ts#L28)",
-      "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)",
-      "[pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)"
+      "[src/api/users.ts:28 — parameterized query pattern used elsewhere](https://github.com/org/repo/blob/abc123/src/api/users.ts#L28)",
+      "[pr-review-security-iam:L40-L42 — SQL injection checklist item](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md#L40-L42)",
+      "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)"
     ],
     "implications": "Attackers can extract, modify, or delete database contents. Could lead to full database compromise and data breach.",
     "severity": "CRITICAL",
@@ -330,3 +335,4 @@ Before returning, verify:
 - [ ] `system` findings have a descriptive `scope` string
 - [ ] No duplicate findings for the same issue
 - [ ] Every finding has at least one reference as markdown hyperlink `[text](url)`
+- [ ] In-repo references (code, skills, AGENTS.md, agents) include specific line number(s) and a brief description of what's there
