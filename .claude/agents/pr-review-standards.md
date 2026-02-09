@@ -41,7 +41,7 @@ skills:
   - product-surface-areas
   - pr-review-output-contract
   - pr-review-check-suggestion
-model: sonnet
+model: opus
 color: green
 permissionMode: default
 ---

@@ -12,31 +12,15 @@ Create clear, consistent documentation for the Inkeep docs site following establ
 
 ## Use when
 
-- Needing to document any new feature or product surface area that affects customers in any way
-- Creating a new documentation page in `agents-docs/content/`
-- Updating or improving existing documentation
-- A new feature needs documentation
+- Any customer-facing feature, API, SDK, CLI, UI, config, or behavior change needs documenting
+- Creating or updating pages in `agents-docs/content/`, snippets, or public-facing READMEs or reference artifacts (like .env.example files)
 - Restructuring or reorganizing docs (moves, renames, redirects)
 
 ## Do NOT use when
 
 - Writing code comments or inline documentation (not MDX docs)
-- Working on engineering/code improvements that are internal-facing only (no product surface area touched)
-
-## Customer-facing docs artifacts
-
-When a product or engineering change affects customers, check whether these documentation surfaces need creating or updating:
-
-| Artifact | Example | Update when |
-|----------|------|-------------|
-| Docs site pages | `**/content/**`, `**/docs/**`| Any customer-facing feature, API, SDK, CLI, UI, config, or behavior change |
-| Docs snippets | `agents-docs/_snippets/**` | Shared content referenced across multiple pages changes |
-| Package, or template READMEs | `packages/*/README.md`, `*/README.md`, ` | Public API, installation, templates, or quick-start instructions change |
-| `.env.example` | `/.env.example`, `/.env.docker.example` | Environment variables added/removed (self-hosting docs) |
-
-The above are **examples**, there may be more or different content surface areas.
-
-**Out of scope for this skill:** Internal contributor or internal AI development tooling docs like `AGENTS.md`, `.agents/skills/`, `.agents/agents/`, `.agents/rules/`, `.github/workflows/`, `CONTRIBUTING.md`, or `README.md`s that are internal documentation only.
+- Working on internal-only changes with no customer-facing surface area
+- Updating internal tooling docs (e.g. `AGENTS.md`, `.agents/skills/`, `.agents/rules/`, `CONTRIBUTING.md`, `.github/workflows/`)
 
 ---
 
@@ -59,14 +43,14 @@ The above are **examples**, there may be more or different content surface areas
 
 ## Workflow
 
-0. **Understand context** - Fully map out the scope of what needs to be changed 
-1. **Identify documentation type** — Determine if this is reference, tutorial, integration, or overview content (see Step 1)
-2. **Write frontmatter** — Add required `title` and optional fields like `sidebarTitle`, `description`, `keywords` (see Step 2)
-3. **Structure content** — Use the appropriate pattern template for your doc type (see Step 3)
-4. **Use components correctly** — Apply `<Steps>`, `<Tabs>`, `<Cards>`, callouts as needed (see Step 4)
-5. **Write code examples** — Ensure examples are runnable with language tags and realistic values (see Step 5)
-6. **Handle navigation** — Update `meta.json` if needed; add redirects for moves/renames (see File Organization)
-7. **Verify** — Check against the verification checklist before completing
+1. **Understand context** - Fully map out the scope of what needs to be changed. **Consider all procuct surface areas plausibly affected**, and identify existing documentation or documentation sections that may need updating or new articles.
+2. **Identify documentation type** — Determine if this is reference, tutorial, integration, or overview content (see Step 1)
+3. **Write frontmatter** — Add required `title` and optional fields like `sidebarTitle`, `description`, `keywords` (see Step 2)
+4. **Structure content** — Use the appropriate pattern template for your doc type (see Step 3)
+5. **Use components correctly** — Apply `<Steps>`, `<Tabs>`, `<Cards>`, callouts as needed (see Step 4)
+6. **Write code examples** — Ensure examples are runnable with language tags and realistic values (see Step 5)
+7. **Handle navigation** — Update `meta.json` if needed; add redirects for moves/renames (see File Organization)
+8. **Verify** — Check against the verification checklist before completing
 
 
 ## Step 0: Identify Relevant Surface Areas

@@ -211,9 +211,8 @@ For `.github/workflows/**` changes:
 - **Determinism & reliability:**
   - Prefer reproducible installs (`pnpm install --frozen-lockfile`, `npm ci`) in CI jobs
   - Add `timeout-minutes` on jobs/steps that can hang (tests, e2e, deploys)
-  - Use `concurrency:` where duplicate runs waste resources (especially schedules and `workflow_dispatch`)
+  - `concurrency:` can prevent wasted runner minutes on PR/push workflows; be cautious with schedules and `workflow_dispatch` where cancelling in-progress runs may drop legitimate work
   - Caching: keys should include lockfiles + tool versions; avoid caching anything that could contain secrets
-  - For multi-line `run:` scripts, use `set -eo pipefail` (and quote variables/paths defensively)
 
 ## 2. Dependency Hygiene
 
@@ -340,25 +339,9 @@ For AGENTS.md, skills, rules, and agent definitions:
 - **Format portability:** Are configs compatible with intended harnesses (Claude Code, Cursor, etc.)?
 
 ### 8.6 Internal Artifact Freshness (Reverse Check)
-
-When internal tooling or infrastructure surfaces change, verify that the corresponding internal documentation and AI artifacts are still accurate — or were updated in the same PR.
-
-**Trigger:** Any change to internal surfaces (build configs, CI/CD, DB tooling, env schemas, scripts, Docker, authorization, dev workflows).
-
-**Check each:**
-
-| Changed surface | Artifacts that may need updating |
-|---|---|
-| Build / bundler configs (`turbo.json`, `tsdown`, `tsconfig`) | `AGENTS.md` (commands, build instructions) |
-| CI/CD workflows (`.github/workflows/`) | `AGENTS.md` (commands), `CONTRIBUTING.md` (workflow descriptions) |
-| Environment schemas (`env.ts`, `.env.example`) | `AGENTS.md` (env config section), `.env.docker.example` |
-| Database schema / migrations | `AGENTS.md` (migration workflow, schema locations) |
-| Scripts (`scripts/`, `setup.sh`) | `AGENTS.md` (commands), `CONTRIBUTING.md` |
-| AI artifacts (skills, agents, rules) | `AGENTS.md` (file locations), other skills/agents referencing the changed artifact |
-| Authorization (`spicedb/`, `authz/`) | `AGENTS.md` (architecture overview) |
-| Docker / compose configs | `AGENTS.md` (debugging commands), `.env.docker.example` |
-
-**Emit one `type: "system"` finding per stale artifact group** (avoid line-level findings for freshness issues that span whole sections). Use `category: "ai-infra"`, `severity: "MAJOR"` for stale instructions that would mislead contributors, `severity: "MINOR"` for cosmetic drift.
+- When infra surfaces change (build configs, CI/CD, env schemas, scripts, Docker), check whether `AGENTS.md`, `CONTRIBUTING.md`, or related AI artifacts (skills, readmes, agents, etc.) reference stale commands/paths/conventions
+- Cross-reference the `internal-surface-areas` skill for ripple effects when unsure what else may need updating -- any internal updates to devops **must always be fully reflected in any internal-facing documentation, artifacts, or surface areas** that touch them or may be dependent on them.
+- Flag stale instructions that would mislead contributors; cosmetic drift is lower priority
 
 # Common Anti-Patterns to Flag
 

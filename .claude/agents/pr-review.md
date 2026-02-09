@@ -99,7 +99,7 @@ These reviewers address risks that are inherent to *any* change to a user-facing
 | `pr-review-product` | Customer mental-model quality, concept economy, multi-surface coherence, and product debt. | Confusing mental models and bloated surfaces that become permanent product/API debt. |
 | `pr-review-consistency` | Convention conformance across APIs, SDKs, CLI, config, telemetry, and error taxonomy. | Cross-surface drift that breaks expectations and creates long-lived developer pain. |
 | `pr-review-breaking-changes` | Schema changes, env contracts, and migrations for breaking change risks. | Data loss, failed migrations, and broken deploy/runtime contracts. |
-| `pr-review-docs` | Documentation quality, structure, and accuracy for markdown/MDX files. Thoroughness in documenting new or updated features. | Misleading docs that drive misuse, support burden, and adoption friction. |
+| `pr-review-docs` | Documentation quality, structure, and accuracy for customer-facing docs. Also fires when customer-facing surfaces change without accompanying docs updates. | Misleading docs that drive misuse, support burden, and adoption friction. |
 
 Skip or reduce the above based on these conditions:
 
@@ -107,7 +107,7 @@ Skip or reduce the above based on these conditions:
 |---|---|
 | Pure assets (images, fonts, etc. — no markdown, no code) | Skip all Core |
 | Docs-only (markdown/MDX, no code changes) | `pr-review-docs`, `pr-review-product`, `pr-review-consistency` only |
-| Purely internal (no user-visible behavioral difference — internal refactor, perf optimization, internal-only logging, etc.) | Skip all Core (but still consider `pr-review-devops` per ownership routing below) |
+| Purely internal (no user-visible behavioral difference — internal refactor, perf optimization, internal-only logging, etc.) | Skip all Core (but still consider `pr-review-devops` for internal artifact freshness) |
 
 Otherwise, assume all Core reviewers apply.
 
@@ -129,6 +129,7 @@ These catch **irreversible or catastrophic risks**. When their domain is touched
 | `pr-review-architecture` | System design, technology choices, new patterns of doing things, and architectural decisions. | One-way-door mistakes and structural debt that compounds over months. | Structural decisions, new patterns, or significant refactoring — not small additive features to existing patterns. |
 | `pr-review-security-iam` | Auth, tenant isolation, authorization, token/session security, and credential handling. | Authz bypass, tenant data leakage, and credential exposure/security incidents. | Auth, authz, tenant boundaries, credentials, user data, or new endpoints/actions that need access control. |
 | `pr-review-sre` | Site reliability patterns: retries, timeouts, circuit breakers, queues, observability, and error handling. | Cascading failures, 3 AM pages, cardinality explosions, and undebuggable incidents. | Reliability patterns: retries, timeouts, queues, circuit breakers, observability. |
+| `pr-review-devops` | CI/CD workflows, dependencies, release engineering, build/container artifacts, self-hosting, devex infra, and AI artifact quality (AGENTS.md, skills, rules, agents). Also fires when internal tooling changes without accompanying artifact updates. | Supply chain attacks, broken builds, secret leaks, and silent AI infra degradation. | CI/CD, dependencies, build configs, containers, or AI artifacts (AGENTS.md, skills, rules). |
 
 ### Domain-Specific — select based on domain overlap
 
@@ -139,25 +140,12 @@ These provide domain expertise. Select when the PR touches their domain; skip wh
 | `pr-review-frontend` | React/Next.js patterns, component design, and frontend best practices. | UI/UX regressions, accessibility issues, and avoidable performance problems. | React/Next.js UI code is changed. |
 | `pr-review-errors` | Error handling for silent failures and swallowed errors. | Silent failures and weak recovery paths that become hard-to-debug incidents. | Error handling paths added/modified, or new failure modes introduced. |
 | `pr-review-llm` | AI/LLM integration: prompt construction, tool definitions, agent loops, streaming, context management, data handling. | Prompt injection, tool schema bugs, unbounded loops, PII in logs, tenant isolation in LLM context. | AI/LLM integration: prompts, tool definitions, agent loops, streaming, context handling. |
-| `pr-review-devops` | CI/CD workflows, dependencies, release engineering, build/container artifacts, self-hosting, devex infra, and AI artifact quality (AGENTS.md, skills, rules, agents). | Supply chain attacks, broken builds, secret leaks, and silent AI infra degradation. | CI/CD, dependencies, build configs, containers, or AI artifacts (AGENTS.md, skills, rules). |
 | `pr-review-comments` | Code-level comment accuracy and detects stale/misleading documentation. | Mismatched comments that mislead future changes and create correctness drift. | Code comments added/modified, or code semantics changed in a way that could make existing comments stale. |
 
 **Action**: Trigger all reviewers that plausibly fit to the scope of the PR. 
 
 **Rule**: When unsure whether a Critical Domain or Domain-Specific reviewer applies, include it — the cost of a false positive (extra reviewer) is lower than a false negative (missed issue). This is especially true for Critical Domain reviewers where misses have irreversible consequences.
 
-### Ownership routing — docs vs internal artifacts
-
-Two reviewers have adjacent but non-overlapping documentation responsibilities. The orchestrator must route correctly to avoid duplicated or missed coverage:
-
-| PR characteristic | Reviewer to include | Reason |
-|---|---|---|
-| Customer-facing surface changes (APIs, SDKs, CLI, UI, config, protocols) — even if no docs files changed | `pr-review-docs` | Enforces docs accompaniment: detects when customer-facing docs should have been updated |
-| Customer-facing docs files in diff (`agents-docs/`, customer-facing READMEs) | `pr-review-docs` | Reviews docs quality against `write-docs` standards |
-| Internal tooling/infra changes (CI/CD, build, DB, scripts, env, Docker, authz) — even if no internal artifact files changed | `pr-review-devops` | Enforces internal artifact freshness: detects when `AGENTS.md`, skills, workflows, `.env.example`, etc. should have been updated |
-| Internal AI artifacts in diff (`AGENTS.md`, `.agents/skills/`, `.claude/agents/`, `.claude/rules/`) | `pr-review-devops` | Reviews AI artifact quality (section 8 of its checklist) |
-
-When a PR touches **both** product surfaces and internal tooling, include **both** reviewers — their scopes do not overlap.
 
 ## Phase 3: Dispatch Reviewers
 
@@ -167,9 +155,9 @@ Spawn each selected reviewer via the Task tool, spawning all relevant agents **i
 ```
 Review PR #[PR_NUMBER]: [Title].
 
-<<Description of the intent and scope of the change[s] framed as may be plausably relevant to the subagent. Keep to 2-8 sentences max -- concise. Be mindful of mis-representing intent if not clear. Inter-weave specific files that may be worth reviewing or good entry points for it to review, but don't pre-emptively underscope or limit what it reviews -- just give it enough context to kick off without being limiting to what it's reviewing for.>>
+<<brief 1-3 sentences on why this subagent was selected without being overly prescriptive on what it should limit its scope to — just describe what you believe about the PR intersects its domain at a high elvel. Mention specific files or areas worth starting from, but don't limit scope. Keep farily general, be wary of biasing the reviewer.>>
 
-The PR context (diff, changed files, metadata) is loaded via your pr-context skill. A pre-computed context brief (surface impact analysis, review state) is available via your pr-tldr skill — treat it as a starting point that may contain inaccuracies, not as authoritative.
+The PR context (diff, changed files, metadata) is loaded via your pr-context skill. A pre-computed context brief (intent, surface impact, review state) is available via your pr-tldr skill — treat it as a starting point that may contain inaccuracies, not as authoritative.
 
 Return findings as JSON array per pr-review-output-contract.
 ```
@@ -371,6 +359,8 @@ The review body is the summary markdown. It will be submitted together with all 
 
 #### Format
 
+> ⚠️ **NO DUPLICATION**: Items in Inline Comments or Pending Recommendations MUST NOT appear here. See No Duplication Principle.
+
 ````markdown
 ## PR Review Summary
 
@@ -450,8 +440,6 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it's valid (Critical/Major/Minor/Consider based on impact) or it's not (Discarded).
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
-
-> ⚠️ **NO DUPLICATION**: Items in Inline Comments or Pending Recommendations MUST NOT appear here. See No Duplication Principle.
 
 ### Inline Comments
 
@@ -559,7 +547,7 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 
 ````markdown
 <details>
-<summary>Reviewer Stats</summary>
+<summary>Reviewers (R)</summary>
 
 | Reviewer | Returned | Inline&nbsp;Comments | Main&nbsp;Findings | Pending&nbsp;Recs | Discarded |
 |----------|----------|----------------------|--------------------|-------------------|-----------|
@@ -571,6 +559,7 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 
 </details>
 ````
+R =  # of reviewers dispatched
 
 **Column definitions:**
 - **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
