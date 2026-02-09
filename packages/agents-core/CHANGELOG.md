@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.47.0
+
+### Minor Changes
+
+- 77a45c9: Implements SPICEDB_TLS_ENABLED
+- cfee934: fixes the spicedb type exports
+
 ## 0.46.1
 
 ### Patch Changes
