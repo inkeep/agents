@@ -743,6 +743,13 @@ app.openapi(
       });
     }
 
+    if (!trigger.enabled) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger is disabled',
+      });
+    }
+
     const messageParts = rawMessageParts
       ? (rawMessageParts as Array<Record<string, unknown>>)
       : [{ kind: 'text', text: userMessage }];
