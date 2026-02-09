@@ -1,0 +1,1 @@
+ALTER TABLE "data_components" ALTER COLUMN "props" SET NOT NULL;
