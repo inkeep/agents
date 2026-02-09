@@ -3,4 +3,4 @@
 "@inkeep/agents-core": patch
 ---
 
-Consolidate ResourceIdSchema as reusable OpenAPI component to reduce spec size
+Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size

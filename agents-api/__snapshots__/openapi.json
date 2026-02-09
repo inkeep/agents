@@ -169,7 +169,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -352,7 +352,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -733,7 +733,7 @@
       "ApiKeyCreate": {
         "properties": {
           "agentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "createdAt": {
             "type": "string"
@@ -788,7 +788,7 @@
       "ApiKeyUpdate": {
         "properties": {
           "agentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "expiresAt": {
             "nullable": true,
@@ -924,7 +924,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -1038,7 +1038,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -1516,7 +1516,7 @@
             "type": "object"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           }
         },
         "type": "object"
@@ -1561,7 +1561,7 @@
             "type": "object"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           }
         },
         "type": "object"
@@ -1990,10 +1990,10 @@
             "type": "string"
           },
           "credentialStoreId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2076,10 +2076,10 @@
             "type": "string"
           },
           "credentialStoreId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2281,7 +2281,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2398,7 +2398,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4018,7 +4018,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4082,7 +4082,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4667,7 +4667,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "anyOf": [
@@ -4796,7 +4796,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4860,7 +4860,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4912,7 +4912,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "anyOf": [
@@ -5295,7 +5295,7 @@
             ]
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -5846,7 +5846,7 @@
         ],
         "type": "object"
       },
-      "ResourceIdSchema": {
+      "ResourceId": {
         "description": "Resource identifier",
         "example": "resource_789",
         "maxLength": 255,
@@ -6282,7 +6282,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/Model"
@@ -6438,7 +6438,7 @@
             "type": "string"
           },
           "externalAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "headers": {
             "additionalProperties": {
@@ -6491,7 +6491,7 @@
             "type": "string"
           },
           "externalAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "headers": {
             "additionalProperties": {
@@ -6501,10 +6501,10 @@
             "type": "object"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6577,10 +6577,10 @@
       "SubAgentFunctionToolRelationCreate": {
         "properties": {
           "functionToolId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "anyOf": [
@@ -6697,10 +6697,10 @@
             "type": "string"
           },
           "externalSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "relationType": {
             "enum": [
@@ -6710,13 +6710,13 @@
             "type": "string"
           },
           "sourceSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "teamSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6764,10 +6764,10 @@
             "type": "string"
           },
           "externalSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "relationType": {
             "enum": [
@@ -6777,13 +6777,13 @@
             "type": "string"
           },
           "sourceSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "teamSubAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6877,7 +6877,7 @@
             "type": "object"
           },
           "targetAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6930,13 +6930,13 @@
             "type": "object"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7083,7 +7083,7 @@
             "type": "object"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "selectedTools": {
             "items": {
@@ -7093,10 +7093,10 @@
             "type": "array"
           },
           "subAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "additionalProperties": {
@@ -7163,7 +7163,7 @@
             "type": "object"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "selectedTools": {
             "items": {
@@ -7173,10 +7173,10 @@
             "type": "array"
           },
           "subAgentId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolId": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "additionalProperties": {
@@ -7237,7 +7237,7 @@
             "type": "string"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/Model"
@@ -7714,7 +7714,7 @@
             ]
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -7930,7 +7930,7 @@
             ]
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -8142,7 +8142,7 @@
             "type": "boolean"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "additionalProperties": {
@@ -8448,7 +8448,7 @@
             "type": "boolean"
           },
           "id": {
-            "$ref": "#/components/schemas/ResourceIdSchema"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "additionalProperties": {
@@ -11470,7 +11470,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -11573,7 +11573,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -11673,7 +11673,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -12767,7 +12767,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -12877,7 +12877,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -12994,7 +12994,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13493,7 +13493,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13603,7 +13603,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13720,7 +13720,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13853,10 +13853,10 @@
                     "type": "string"
                   },
                   "artifactComponentId": {
-                    "$ref": "#/components/schemas/ResourceIdSchema"
+                    "$ref": "#/components/schemas/ResourceId"
                   },
                   "subAgentId": {
-                    "$ref": "#/components/schemas/ResourceIdSchema"
+                    "$ref": "#/components/schemas/ResourceId"
                   }
                 },
                 "required": [
@@ -16052,7 +16052,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16112,7 +16112,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16229,7 +16229,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16771,7 +16771,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16832,7 +16832,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16950,7 +16950,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17340,7 +17340,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17410,7 +17410,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17527,7 +17527,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17945,7 +17945,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18015,7 +18015,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18142,7 +18142,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18678,7 +18678,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18747,7 +18747,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18873,7 +18873,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19262,7 +19262,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19372,7 +19372,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19489,7 +19489,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19617,7 +19617,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -19807,7 +19807,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -19927,7 +19927,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19978,7 +19978,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20086,7 +20086,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20482,7 +20482,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20534,7 +20534,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20643,7 +20643,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21005,7 +21005,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21056,7 +21056,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21164,7 +21164,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21822,7 +21822,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -22054,7 +22054,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22416,7 +22416,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22467,7 +22467,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22575,7 +22575,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22937,7 +22937,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22988,7 +22988,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23096,7 +23096,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -28464,7 +28464,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -28515,7 +28515,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -28623,7 +28623,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -28998,7 +28998,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29099,7 +29099,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29207,7 +29207,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31073,7 +31073,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31174,7 +31174,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31282,7 +31282,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31401,7 +31401,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/ResourceIdSchema"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
