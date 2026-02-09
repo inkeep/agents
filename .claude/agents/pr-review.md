@@ -296,7 +296,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
 
 **Why:** [Concise impact/justification]
 
-**Fix:** [Directional guidance and what to verify; include a normal code block only if helpful]
+**Fix:** [Directional guidance on options to consider; include a non-suggestion code block only if helpful in illustrating]
 
 **Refs:**
 - [Clickable link](https://...)
@@ -410,8 +410,8 @@ when the problem is complex or context is needed.
 // ...
 
 **Inline comments:**
-- 🔴 `file.ts:42` Issue summary
-- 🔴 `handler.ts:15-17` Issue summary
+- 🔴 Critical: `file.ts:42` Issue summary
+- 🔴 Critical: `handler.ts:15-17` Issue summary
 
 ### 🟠⚠️ Major (M) 🟠⚠️
 
@@ -420,7 +420,7 @@ when the problem is complex or context is needed.
 // 🟠 2) ...same format as "Critical" findings
 
 **Inline comments:**
-- 🟠 `utils.ts:88` Issue summary
+- 🟠 Major: `utils.ts:88` Issue summary
 
 ### 🟡 Minor (L) 🟡
 
@@ -436,7 +436,7 @@ when the problem is complex or context is needed.
 **Refs:** `[file:line](url)`
 
 **Inline comments:**
-- 🟡 `file.ts:42` Issue summary
+- 🟡 Minor: `file.ts:42` Issue summary
 
 ### 💭 Consider (C) 💭
 
@@ -453,7 +453,7 @@ when the problem is complex or context is needed.
 💭 2) ...
 
 **Inline comments:**
-- 💭 `file.ts:42` Issue summary
+- 💭 Consider: `file.ts:42` Issue summary
 ````
 
 Tip: X = N + M + L (Critical + Major + Minor in the "Key Findings" count, including both full writeups and 1-line inline logs). Consider items are shown separately and don't count toward the Key Findings total.
@@ -483,7 +483,7 @@ If you added inline comments to the pending review in Phase 5, log them as brief
 
 **Rule:** Any issues posted as inline comments should appear only as 1-line log entries (not as full Main writeups).
 
-**Format:** `- {bucket_emoji} \`{file}:{line}\` {paraphrased issue <1 sentence}`
+**Format:** `- {severity_emoji} {Severity}: \`{file}:{line}\` {paraphrased issue <1 sentence}`
 
 **Brief bullet points** — just the file location and a 1-sentence summary. The inline comment itself (visible via "View changes") has the full context.
 
