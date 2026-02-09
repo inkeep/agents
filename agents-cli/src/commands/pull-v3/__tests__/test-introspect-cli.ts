@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { introspectGenerate } from '../introspect-generator';
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 // Create a comprehensive test project
 const testProject: FullProjectDefinition = {
@@ -195,7 +196,7 @@ const testProject: FullProjectDefinition = {
           satisfactionScore: { type: 'number' },
         },
         required: ['customerId', 'name', 'email'],
-      },
+      } as JsonSchemaForLlmSchemaType,
     },
     'ticket-context': {
       id: 'ticket-context',
@@ -214,7 +215,7 @@ const testProject: FullProjectDefinition = {
           attachments: { type: 'array' },
           conversationHistory: { type: 'array' },
         },
-      },
+      } as JsonSchemaForLlmSchemaType,
     },
     'resolution-data': {
       id: 'resolution-data',
@@ -229,7 +230,7 @@ const testProject: FullProjectDefinition = {
           escalationCount: { type: 'number' },
           followUpRequired: { type: 'boolean' },
         },
-      },
+      } as JsonSchemaForLlmSchemaType,
     },
   },
 
@@ -251,7 +252,7 @@ const testProject: FullProjectDefinition = {
           followUpItems: { type: 'array' },
           satisfactionScore: { type: 'number' },
         },
-      },
+      } as JsonSchemaForLlmSchemaType,
     },
     'escalation-report': {
       id: 'escalation-report',
@@ -268,7 +269,7 @@ const testProject: FullProjectDefinition = {
           previousAttempts: { type: 'array' },
           recommendedActions: { type: 'array' },
         },
-      },
+      } as JsonSchemaForLlmSchemaType,
     },
   },
 
