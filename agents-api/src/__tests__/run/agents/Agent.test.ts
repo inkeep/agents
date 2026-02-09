@@ -1526,7 +1526,10 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
