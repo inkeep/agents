@@ -11,7 +11,7 @@ import {
   readRelationships,
   writeRelationship,
 } from './client';
-import { type OrgRole, type ProjectRole, SpiceDbRelations, SpiceDbResourceTypes } from './config';
+import { type OrgRole, type ProjectRole, SpiceDbRelations, SpiceDbResourceTypes } from './types';
 
 /**
  * Sync a user's org membership to SpiceDB.

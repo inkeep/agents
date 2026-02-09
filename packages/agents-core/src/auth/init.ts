@@ -27,7 +27,7 @@ import { getUserByEmail } from '../data-access/runtime/users';
 import { createAgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { createAuth } from './auth';
 import { syncOrgMemberToSpiceDb } from './authz';
-import { OrgRoles } from './authz/config';
+import { OrgRoles } from './authz/types';
 import { writeSpiceDbSchema } from './spicedb-schema';
 
 const TENANT_ID = process.env.TENANT_ID || 'default';
