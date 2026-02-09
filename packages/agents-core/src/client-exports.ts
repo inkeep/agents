@@ -40,7 +40,9 @@ export {
   AgentWithinContextOfProjectSchema,
   HeadersSchema,
   type ModelSettings,
+  SkillFrontmatterSchema,
   type StopWhen,
+  type SubAgentStopWhen,
 } from './validation/schemas';
 
 const ContextConfigApiInsertSchema = z.object({

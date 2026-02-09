@@ -209,7 +209,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         skills: [
           {
             ...baseSkill,
@@ -243,7 +242,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         skills: [
           {
             id: 'always-loaded-skill',

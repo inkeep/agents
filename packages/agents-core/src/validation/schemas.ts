@@ -1491,9 +1491,9 @@ export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).exte
   index: SkillIndexSchema,
 });
 export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
-  id: resourceIdSchema,
-  subAgentId: resourceIdSchema,
-  skillId: resourceIdSchema,
+  id: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
+  skillId: ResourceIdSchema,
   index: SkillIndexSchema,
   alwaysLoaded: z.boolean().optional().default(false),
 });
@@ -1512,8 +1512,8 @@ export const SubAgentSkillApiUpdateSchema =
   createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
 
 export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
-  subAgentSkillId: resourceIdSchema,
-  subAgentId: resourceIdSchema,
+  subAgentSkillId: ResourceIdSchema,
+  subAgentId: ResourceIdSchema,
   index: SkillIndexSchema,
   alwaysLoaded: z.boolean(),
 }).openapi('SubAgentSkillWithIndex');
@@ -2123,7 +2123,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   skills: z
     .array(
       z.strictObject({
-        id: resourceIdSchema,
+        id: ResourceIdSchema,
         index: SkillIndexSchema,
         alwaysLoaded: z.boolean().optional(),
       })
