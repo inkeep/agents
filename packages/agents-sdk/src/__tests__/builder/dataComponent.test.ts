@@ -1,8 +1,8 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { DataComponent } from '../../data-component';
 import { createTestTenantId } from '../utils/testTenant';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
-import type { JSONSchema } from 'zod/v4/core';
 
 describe('DataComponent Class', () => {
   const tenantId = createTestTenantId('data-component-class');

@@ -1,8 +1,8 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { SubAgentConfig } from '../../types';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {

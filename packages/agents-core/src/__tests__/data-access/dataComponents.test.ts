@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import {
   associateDataComponentWithAgent,
   countDataComponents,
@@ -16,8 +18,6 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { DataComponentInsert } from '../../types/index';
 import { testManageDbClient } from '../setup';
-import type { JSONSchema } from 'zod/v4/core';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 describe('Data Components Data Access', () => {
   let db: AgentsManageDatabaseClient;

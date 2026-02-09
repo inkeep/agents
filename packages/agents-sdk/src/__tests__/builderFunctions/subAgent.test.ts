@@ -1,7 +1,7 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { subAgent } from '../../builderFunctions';
 import type { SubAgentConfig } from '../../types';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 describe('agent builder function', () => {
   it('should create an agent with required config', () => {

@@ -1,11 +1,11 @@
 import { CredentialStoreType, type JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { AgentConfig, GenerateOptions, MessageInput } from '../../types';
-import type { JSONSchema } from 'zod/v4/core';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {

@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import {
   agentHasArtifactComponents,
   associateArtifactComponentWithAgent,
@@ -17,8 +19,6 @@ import {
 } from '../../data-access/manage/artifactComponents';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
-import type { JSONSchema } from 'zod/v4/core';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 describe('Artifact Components Data Access', () => {
   let db: AgentsManageDatabaseClient;

@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import {
   createFullProjectServerSide,
   deleteFullProject,
@@ -11,8 +13,6 @@ import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { testManageDbClient, testRunDbClient } from '../setup';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
-import type { JSONSchema } from 'zod/v4/core';
 
 // Mock runtime database and cascade delete functions used by deleteTool
 vi.mock('../../db/runtime/runtime-client', async (importOriginal) => {

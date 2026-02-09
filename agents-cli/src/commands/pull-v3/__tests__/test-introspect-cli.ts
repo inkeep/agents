@@ -11,10 +11,9 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
+import type { FullProjectDefinition, JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { introspectGenerate } from '../introspect-generator';
-import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 // Create a comprehensive test project
 const testProject: FullProjectDefinition = {
