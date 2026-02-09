@@ -3490,7 +3490,7 @@ ${output}`;
     const componentSchemas: z.ZodType<any>[] = [];
 
     this.config.dataComponents?.forEach((dc) => {
-      const propsSchema = dc.props ? z.fromJSONSchema(dc.props) : z.string();
+      const propsSchema = z.fromJSONSchema(dc.props);
       componentSchemas.push(
         z.object({
           id: z.string(),
