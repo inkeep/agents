@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
+  errorSchemaFactory,
   createTrigger,
   deleteTrigger,
   generateId,
@@ -721,6 +722,7 @@ app.openapi(
           },
         },
       },
+      409: errorSchemaFactory('conflict', 'Trigger is disabled'),
       ...commonGetErrorResponses,
     },
   }),
