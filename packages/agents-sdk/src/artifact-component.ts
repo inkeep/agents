@@ -14,7 +14,7 @@ type ArtifactComponentConfigWithZod = Omit<
   ArtifactComponentType,
   'tenantId' | 'projectId' | 'props'
 > & {
-  props?: Record<string, unknown> | z.ZodObject<any> | null;
+  props: ArtifactComponentType['props'] | z.ZodObject<any>;
 };
 
 export interface ArtifactComponentInterface {
@@ -39,12 +39,9 @@ export class ArtifactComponent implements ArtifactComponentInterface {
     this.id = config.id || generateIdFromName(config.name);
 
     // Convert Zod schema to JSON Schema if needed
-    let processedProps: Record<string, unknown> | null | undefined;
-    if (config.props && isZodSchema(config.props)) {
-      processedProps = convertZodToJsonSchemaWithPreview(config.props) as Record<string, unknown>;
-    } else {
-      processedProps = config.props as Record<string, unknown> | null | undefined;
-    }
+    const processedProps = isZodSchema(config.props)
+      ? (convertZodToJsonSchemaWithPreview(config.props) as ArtifactComponentType['props'])
+      : config.props;
 
     this.config = {
       ...config,
