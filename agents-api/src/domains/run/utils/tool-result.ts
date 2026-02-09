@@ -10,8 +10,8 @@ export function isToolResultDenied(result: unknown): result is DeniedToolResult 
   return (
     !!result &&
     typeof result === 'object' &&
-    INKEEP_TOOL_DENIED_KEY in (result as object) &&
-    (result as Record<string, unknown>)[INKEEP_TOOL_DENIED_KEY] === true
+    INKEEP_TOOL_DENIED_KEY in result &&
+    result[INKEEP_TOOL_DENIED_KEY] === true
   );
 }
 
