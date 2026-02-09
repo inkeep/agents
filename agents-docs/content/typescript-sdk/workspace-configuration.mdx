@@ -26,7 +26,7 @@ export default defineConfig({
     apiKey: process.env.MANAGE_API_KEY, // Optional
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: 'http://localhost:3002',
     apiKey: process.env.RUN_API_KEY, // Optional
   },
   outputDirectory: './output',
@@ -109,7 +109,7 @@ export default defineConfig({
     url: 'http://localhost:3002',
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: 'http://localhost:3002',
   },
 });
 ```
@@ -121,7 +121,7 @@ Default values used when not specified elsewhere:
 ```typescript
 const defaults = {
   agentsManageApiUrl: 'http://localhost:3002',
-  agentsRunApiUrl: 'http://localhost:3003',
+  agentsRunApiUrl: 'http://localhost:3002',
 };
 ```
 
