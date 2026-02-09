@@ -1,11 +1,12 @@
 import {
   type DataComponentSelect,
+  type JsonSchemaForLlmSchemaType,
   MCPServerType,
   MCPTransportType,
   type McpTool,
   type MessageType,
-  type JsonSchemaForLlmSchemaType,
 } from '@inkeep/agents-core';
+import type { JSONSchema } from 'zod/v4/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
@@ -359,12 +360,12 @@ vi.mock('../../../domains/run/data/conversations.js', () => ({
     .mockResolvedValue('Mock conversation history as string'),
 }));
 
+
 // Import the mocked module - these will automatically be mocked
 import {
   getConversationHistoryWithCompression,
   getFormattedConversationHistory,
 } from '../../../domains/run/data/conversations';
-import type { JSONSchema } from 'zod/v4/core';
 
 function createMockExecutionContext(
   overrides: {

@@ -9,11 +9,11 @@
  */
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import type { JSONSchema } from 'zod/v4/core';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FullProjectDefinition, JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import chalk from 'chalk';
+import type { JSONSchema } from 'zod/v4/core';
 import { introspectGenerate } from '../introspect-generator';
 
 // Create a comprehensive test project
