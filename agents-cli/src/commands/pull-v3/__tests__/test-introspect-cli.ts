@@ -9,6 +9,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import type { JSONSchema } from 'zod/v4/core';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FullProjectDefinition, JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
@@ -195,7 +196,7 @@ const testProject: FullProjectDefinition = {
           satisfactionScore: { type: 'number' },
         },
         required: ['customerId', 'name', 'email'],
-      } as JsonSchemaForLlmSchemaType,
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
     'ticket-context': {
       id: 'ticket-context',
@@ -214,7 +215,7 @@ const testProject: FullProjectDefinition = {
           attachments: { type: 'array' },
           conversationHistory: { type: 'array' },
         },
-      } as JsonSchemaForLlmSchemaType,
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
     'resolution-data': {
       id: 'resolution-data',
@@ -229,7 +230,7 @@ const testProject: FullProjectDefinition = {
           escalationCount: { type: 'number' },
           followUpRequired: { type: 'boolean' },
         },
-      } as JsonSchemaForLlmSchemaType,
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
   },
 
@@ -251,7 +252,7 @@ const testProject: FullProjectDefinition = {
           followUpItems: { type: 'array' },
           satisfactionScore: { type: 'number' },
         },
-      } as JsonSchemaForLlmSchemaType,
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
     'escalation-report': {
       id: 'escalation-report',
@@ -268,7 +269,7 @@ const testProject: FullProjectDefinition = {
           previousAttempts: { type: 'array' },
           recommendedActions: { type: 'array' },
         },
-      } as JsonSchemaForLlmSchemaType,
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
   },
 
