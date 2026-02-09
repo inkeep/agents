@@ -2,9 +2,9 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
-  errorSchemaFactory,
   createTrigger,
   deleteTrigger,
+  errorSchemaFactory,
   generateId,
   getCredentialReference,
   getTriggerById,
@@ -13,6 +13,7 @@ import {
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
   PaginationQueryParamsSchema,
+  PartSchema,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   TriggerApiInsertSchema,
@@ -23,7 +24,6 @@ import {
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   updateTrigger,
-  PartSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
