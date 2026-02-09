@@ -128,7 +128,7 @@ services:
       - SPICEDB_DATASTORE_ENGINE=postgres
       - SPICEDB_DATASTORE_CONN_URI=postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
     depends_on:
-      inkeep-agents-spicedb-postgres:
+      inkeep-agents-spicedb-postgres-db:
         condition: service_healthy
   inkeep-agents-spicedb-postgres-db:
     image: postgres:16-alpine
