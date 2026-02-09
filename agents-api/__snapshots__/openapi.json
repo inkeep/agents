@@ -165,7 +165,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "description": "Resource identifier",
@@ -207,7 +208,9 @@
             ]
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "description": "Agent name",
+            "minLength": 1,
+            "type": "string"
           },
           "prompt": {
             "nullable": true,
@@ -350,7 +353,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "description": "Resource identifier",
@@ -392,7 +396,9 @@
             ]
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "description": "Agent name",
+            "minLength": 1,
+            "type": "string"
           },
           "prompt": {
             "nullable": true,
@@ -934,7 +940,8 @@
       "ArtifactComponentCreate": {
         "properties": {
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "description": "Resource identifier",
@@ -945,10 +952,39 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           },
           "props": {
-            "$ref": "#/components/schemas/JsonSchemaForLlmSchema"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "render": {
             "anyOf": [
@@ -984,9 +1020,7 @@
         },
         "required": [
           "id",
-          "name",
-          "description",
-          "props"
+          "name"
         ],
         "type": "object"
       },
@@ -2303,7 +2337,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "description": "Resource identifier",
@@ -2314,10 +2349,39 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           },
           "props": {
-            "$ref": "#/components/schemas/JsonSchemaForLlmSchema"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "render": {
             "anyOf": [
@@ -2357,7 +2421,6 @@
         "required": [
           "id",
           "name",
-          "description",
           "props"
         ],
         "type": "object"
@@ -2397,7 +2460,8 @@
             "type": "string"
           },
           "description": {
-            "$ref": "#/components/schemas/DescriptionSchema"
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "description": "Resource identifier",
@@ -2408,10 +2472,39 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/NameSchema"
+            "maxLength": 256,
+            "type": "string"
           },
           "props": {
-            "$ref": "#/components/schemas/JsonSchemaForLlmSchema"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           },
           "render": {
             "anyOf": [
@@ -2448,11 +2541,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "name",
-          "description",
-          "props"
-        ],
         "type": "object"
       },
       "Dataset": {
@@ -2952,10 +3040,6 @@
           }
         },
         "type": "object"
-      },
-      "DescriptionSchema": {
-        "nullable": true,
-        "type": "string"
       },
       "ErrorResponse": {
         "properties": {
@@ -4968,13 +5052,6 @@
         },
         "type": "object"
       },
-      "HeadersSchema": {
-        "additionalProperties": {
-          "type": "string"
-        },
-        "nullable": true,
-        "type": "object"
-      },
       "InternalServerError": {
         "allOf": [
           {
@@ -5031,141 +5108,6 @@
             },
             "required": [
               "error"
-            ],
-            "type": "object"
-          }
-        ]
-      },
-      "JsonSchemaForLlmSchema": {
-        "additionalProperties": {
-          "nullable": true
-        },
-        "nullable": true,
-        "properties": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
-          "description": {
-            "type": "string"
-          },
-          "properties": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonSchemaPropertySchema"
-            },
-            "type": "object"
-          },
-          "required": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "type": {
-            "enum": [
-              "object"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "properties"
-        ],
-        "type": "object"
-      },
-      "JsonSchemaPropertyDescription": {
-        "minLength": 1,
-        "type": "string"
-      },
-      "JsonSchemaPropertySchema": {
-        "oneOf": [
-          {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "properties": {
-              "description": {
-                "$ref": "#/components/schemas/JsonSchemaPropertyDescription"
-              },
-              "type": {
-                "enum": [
-                  "string",
-                  "number",
-                  "integer",
-                  "boolean",
-                  "null"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "description"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "properties": {
-              "description": {
-                "$ref": "#/components/schemas/JsonSchemaPropertyDescription"
-              },
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/JsonSchemaPropertySchema",
-                    "type": "object"
-                  },
-                  {
-                    "items": {
-                      "$ref": "#/components/schemas/JsonSchemaPropertySchema",
-                      "type": "object"
-                    },
-                    "type": "array"
-                  }
-                ]
-              },
-              "type": {
-                "enum": [
-                  "array"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "description"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": {
-              "nullable": true
-            },
-            "properties": {
-              "description": {
-                "$ref": "#/components/schemas/JsonSchemaPropertyDescription"
-              },
-              "properties": {
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/JsonSchemaPropertySchema",
-                  "type": "object"
-                },
-                "type": "object"
-              },
-              "type": {
-                "enum": [
-                  "object"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "type",
-              "description"
             ],
             "type": "object"
           }
@@ -5571,11 +5513,6 @@
           }
         },
         "type": "object"
-      },
-      "NameSchema": {
-        "maxLength": 256,
-        "minLength": 1,
-        "type": "string"
       },
       "NotFound": {
         "allOf": [
@@ -7342,7 +7279,11 @@
             "type": "string"
           },
           "headers": {
-            "$ref": "#/components/schemas/HeadersSchema"
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "description": "Resource identifier",
@@ -7433,7 +7374,11 @@
             "type": "string"
           },
           "headers": {
-            "$ref": "#/components/schemas/HeadersSchema"
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "description": "Resource identifier",
