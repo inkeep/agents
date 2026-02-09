@@ -89,13 +89,6 @@
     {
       "idx": 12,
       "version": "7",
-      "when": 1770415611472,
-      "tag": "0012_quick_pretty_boy",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
       "when": 1770856190894,
       "tag": "0012_greedy_hulk",
       "breakpoints": true
