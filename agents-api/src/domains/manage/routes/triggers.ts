@@ -754,17 +754,31 @@ app.openapi(
       ? (rawMessageParts as Array<Record<string, unknown>>)
       : [{ kind: 'text', text: userMessage }];
 
-    const { invocationId, conversationId } = await dispatchExecution({
-      tenantId,
-      projectId,
-      agentId,
-      triggerId,
-      resolvedRef,
-      payload: { _rerun: true },
-      transformedPayload: undefined,
-      messageParts: messageParts as any,
-      userMessageText: userMessage,
-    });
+    let invocationId: string;
+    let conversationId: string;
+    try {
+      ({ invocationId, conversationId } = await dispatchExecution({
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        resolvedRef,
+        payload: { _rerun: true },
+        transformedPayload: undefined,
+        messageParts: messageParts as any,
+        userMessageText: userMessage,
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        { err: errorMessage, tenantId, projectId, agentId, triggerId },
+        'Failed to dispatch trigger rerun execution'
+      );
+      throw createApiError({
+        code: 'internal_server_error',
+        message: `Failed to dispatch rerun: ${errorMessage}`,
+      });
+    }
 
     logger.info(
       { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
