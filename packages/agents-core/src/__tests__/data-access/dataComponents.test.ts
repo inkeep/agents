@@ -16,6 +16,8 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { DataComponentInsert } from '../../types/index';
 import { testManageDbClient } from '../setup';
+import type { JSONSchema } from 'zod/v4/core';
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 describe('Data Components Data Access', () => {
   let db: AgentsManageDatabaseClient;
@@ -348,19 +350,20 @@ describe('Data Components Data Access', () => {
     });
 
     it('should create a data component with generated ID when not provided', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+        },
+        required: ['key'],
+      };
       const componentData: DataComponentInsert = {
         id: 'generated-id',
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'New Component',
         description: 'A new test component',
-        props: {
-          type: 'object',
-          properties: {
-            key: { type: 'string' },
-          },
-          required: ['key'],
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {

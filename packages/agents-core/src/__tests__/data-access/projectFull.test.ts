@@ -11,6 +11,8 @@ import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { testManageDbClient, testRunDbClient } from '../setup';
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
+import type { JSONSchema } from 'zod/v4/core';
 
 // Mock runtime database and cascade delete functions used by deleteTool
 vi.mock('../../db/runtime/runtime-client', async (importOriginal) => {
@@ -579,7 +581,12 @@ describe('projectFull data access', () => {
       const projectId = `project-${generateId()}`;
       const data1Id = `data-${generateId()}`;
       const data2Id = `data-${generateId()}`;
-
+      const propsData1: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          content: { type: 'string' },
+        },
+      };
       const projectWithDataComponents: FullProjectDefinition = {
         ...createTestProjectDefinition(projectId),
         dataComponents: {
@@ -587,12 +594,7 @@ describe('projectFull data access', () => {
             id: data1Id,
             name: 'Data Component 1',
             description: 'Test data component 1',
-            props: {
-              type: 'object',
-              properties: {
-                content: { type: 'string' },
-              },
-            },
+            props: propsData1 as JsonSchemaForLlmSchemaType,
           },
           [data2Id]: {
             id: data2Id,

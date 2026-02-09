@@ -17,6 +17,8 @@ import {
 } from '../../data-access/manage/artifactComponents';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
+import type { JSONSchema } from 'zod/v4/core';
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 describe('Artifact Components Data Access', () => {
   let db: AgentsManageDatabaseClient;
@@ -293,19 +295,20 @@ describe('Artifact Components Data Access', () => {
     });
 
     it('should create an artifact component with custom id', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          title: { type: 'string', inPreview: true },
+          description: { type: 'string', inPreview: false },
+        },
+      };
       const componentData = {
         id: 'custom-id',
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        props: {
-          type: 'object',
-          properties: {
-            title: { type: 'string', inPreview: true },
-            description: { type: 'string', inPreview: false },
-          },
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {
