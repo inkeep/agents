@@ -12,7 +12,6 @@ const baseModelSettingsSchema = z.object({
 
 const projectModelsSchema = z.object({
   base: baseModelSettingsSchema,
-  structuredOutput: modelSettingsSchema.optional(),
   summarizer: modelSettingsSchema.optional(),
 });
 

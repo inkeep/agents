@@ -387,7 +387,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
           name: 'Test name',
           description: 'Test description',
           models: {
-            structuredOutput: {
+            base: {
               model: 'claude-sonnet-4',
               providerOptions: {},
             },

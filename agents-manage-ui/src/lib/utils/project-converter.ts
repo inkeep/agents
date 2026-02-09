@@ -15,9 +15,6 @@ export function convertFullProjectToProject(
   if (fullProject.models?.base) {
     models = {
       base: fullProject.models.base,
-      ...(fullProject.models.structuredOutput && {
-        structuredOutput: fullProject.models.structuredOutput,
-      }),
       ...(fullProject.models.summarizer && {
         summarizer: fullProject.models.summarizer,
       }),

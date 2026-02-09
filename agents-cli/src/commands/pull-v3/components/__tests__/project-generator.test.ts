@@ -29,7 +29,6 @@ describe('Project Generator', () => {
     description: 'Multi-agent customer support system with escalation capabilities',
     models: {
       base: { model: 'gpt-4o-mini' },
-      structuredOutput: { model: 'gpt-4o' },
       summarizer: { model: 'gpt-4o-mini' },
     },
     agents: ['supportAgent', 'escalationAgent'],
@@ -41,7 +40,6 @@ describe('Project Generator', () => {
       'Comprehensive enterprise AI platform with multiple specialized agents and shared resources',
     models: {
       base: { model: 'gpt-4o', temperature: 0.7 },
-      structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
       summarizer: { model: 'gpt-4o-mini', temperature: 0.5 },
     },
     stopWhen: {
@@ -283,7 +281,6 @@ describe('Project Generator', () => {
         name: 'Complex Models Project',
         models: {
           base: { model: 'gpt-4o', temperature: 0.7, maxTokens: 4096 },
-          structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
           summarizer: { model: 'gpt-4o-mini' },
         },
       };
@@ -295,7 +292,6 @@ describe('Project Generator', () => {
       expect(definition).toContain("model: 'gpt-4o',");
       expect(definition).toContain('temperature: 0.7,');
       expect(definition).toContain('maxTokens: 4096');
-      expect(definition).toContain('structuredOutput: {');
       expect(definition).toContain('temperature: 0.3');
     });
   });
@@ -526,7 +522,6 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinition('missing-base', {
           name: 'Test Project',
-          models: { structuredOutput: { model: 'gpt-4o' } },
         });
       }).toThrow("Missing required fields for project 'missing-base': models.base");
     });

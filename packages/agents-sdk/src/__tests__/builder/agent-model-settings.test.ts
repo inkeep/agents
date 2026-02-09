@@ -20,11 +20,8 @@ describe('Agent Model Settings', () => {
             },
           },
         },
-        structuredOutput: {
-          model: 'gpt-4o-mini',
-        },
         summarizer: {
-          model: 'anthropic/claude-3.5-haiku-20240307',
+          model: 'gpt-4o-mini',
         },
       },
       defaultSubAgent: subAgent({
@@ -45,11 +42,8 @@ describe('Agent Model Settings', () => {
           },
         },
       },
-      structuredOutput: {
-        model: 'gpt-4o-mini',
-      },
       summarizer: {
-        model: 'anthropic/claude-3.5-haiku-20240307',
+        model: 'gpt-4o-mini',
       },
     });
   });
@@ -215,7 +209,7 @@ describe('Agent Model Settings', () => {
         base: {
           model: 'anthropic/claude-3-5-sonnet-20241022',
         },
-        structuredOutput: {
+        summarizer: {
           model: 'gpt-4o-mini',
         },
       },
@@ -231,7 +225,7 @@ describe('Agent Model Settings', () => {
       base: {
         model: 'anthropic/claude-3-5-sonnet-20241022',
       },
-      structuredOutput: {
+      summarizer: {
         model: 'gpt-4o-mini',
       },
     });

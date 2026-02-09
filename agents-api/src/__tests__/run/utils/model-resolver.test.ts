@@ -95,7 +95,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4' },
         summarizer: { model: 'gpt-4' },
       });
     });
@@ -105,7 +104,6 @@ describe('resolveModelConfig', () => {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
-          structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
       } as any;
@@ -117,7 +115,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4-turbo' },
         summarizer: { model: 'gpt-4' },
       });
     });
@@ -127,7 +124,6 @@ describe('resolveModelConfig', () => {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
-          structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: { model: 'claude-3.5-haiku' },
         },
       } as any;
@@ -139,7 +135,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4-turbo' },
         summarizer: { model: 'claude-3.5-haiku' },
       });
     });
@@ -157,7 +152,6 @@ describe('resolveModelConfig', () => {
           agentId: mockAgentId,
           agentModels: {
             base: { model: 'claude-3-sonnet' },
-            structuredOutput: { model: 'claude-3.5-haiku' },
             summarizer: undefined,
           },
         }),
@@ -166,7 +160,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
       });
     });
@@ -176,7 +169,6 @@ describe('resolveModelConfig', () => {
         ...baseAgent,
         models: {
           base: undefined,
-          structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
       } as any;
@@ -186,7 +178,6 @@ describe('resolveModelConfig', () => {
           agentId: mockAgentId,
           agentModels: {
             base: { model: 'claude-3-sonnet' },
-            structuredOutput: { model: 'claude-3.5-haiku' },
             summarizer: { model: 'claude-3-opus' },
           },
         }),
@@ -195,7 +186,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
         summarizer: { model: 'claude-3-opus' }, // Falls back to agent
       });
     });
@@ -212,7 +202,6 @@ describe('resolveModelConfig', () => {
           agentModels: null,
           projectModels: {
             base: { model: 'gpt-3.5-turbo' },
-            structuredOutput: undefined,
             summarizer: { model: 'gpt-4' },
           },
         }),
@@ -221,7 +210,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'gpt-3.5-turbo' },
-        structuredOutput: { model: 'gpt-3.5-turbo' }, // Falls back to base
         summarizer: { model: 'gpt-4' },
       });
     });
@@ -231,7 +219,6 @@ describe('resolveModelConfig', () => {
         ...baseAgent,
         models: {
           base: undefined,
-          structuredOutput: undefined,
           summarizer: { model: 'claude-3.5-haiku' },
         },
       } as any;
@@ -242,7 +229,6 @@ describe('resolveModelConfig', () => {
           agentModels: null,
           projectModels: {
             base: { model: 'gpt-4' },
-            structuredOutput: { model: 'gpt-4-turbo' },
             summarizer: { model: 'gpt-3.5-turbo' },
           },
         }),
@@ -251,7 +237,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4-turbo' }, // Falls back to project
         summarizer: { model: 'claude-3.5-haiku' }, // Agent-specific takes precedence
       });
     });
@@ -291,7 +276,6 @@ describe('resolveModelConfig', () => {
             agentModels: null,
             projectModels: {
               base: undefined,
-              structuredOutput: { model: 'gpt-4' },
               summarizer: { model: 'claude-3.5-haiku' },
             } as any,
           }),
@@ -313,7 +297,6 @@ describe('resolveModelConfig', () => {
         agentModels: null,
         projectModels: {
           base: { model: 'gpt-4' },
-          structuredOutput: undefined,
           summarizer: undefined,
         },
       });
@@ -323,7 +306,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4' },
         summarizer: { model: 'gpt-4' },
       });
     });
@@ -353,7 +335,6 @@ describe('resolveModelConfig', () => {
         ...baseAgent,
         models: {
           base: null as any,
-          structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
       } as any;
@@ -363,7 +344,6 @@ describe('resolveModelConfig', () => {
           agentId: mockAgentId,
           agentModels: {
             base: { model: 'claude-3-sonnet' },
-            structuredOutput: undefined,
             summarizer: { model: 'claude-3.5-haiku' },
           } as any,
         }),
@@ -372,7 +352,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
         summarizer: { model: 'claude-3.5-haiku' }, // Falls back to agent
       });
     });
@@ -382,7 +361,6 @@ describe('resolveModelConfig', () => {
         ...baseAgent,
         models: {
           base: undefined,
-          structuredOutput: null as any,
           summarizer: { model: 'custom-summarizer' },
         },
       } as any;
@@ -392,7 +370,6 @@ describe('resolveModelConfig', () => {
         agentModels: null,
         projectModels: {
           base: { model: 'base-model' },
-          structuredOutput: { model: 'structured-model' },
           summarizer: null as any,
         } as any,
       });
@@ -402,7 +379,6 @@ describe('resolveModelConfig', () => {
 
       expect(result).toEqual({
         base: { model: 'base-model' },
-        structuredOutput: { model: 'structured-model' }, // Falls back to project
         summarizer: { model: 'custom-summarizer' }, // Agent-specific takes precedence
       });
     });

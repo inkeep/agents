@@ -163,7 +163,6 @@ export type SimulationAgent = z.infer<typeof SimulationAgentSchema>;
 export const ModelSchema = z
   .object({
     base: ModelSettingsSchema.optional(),
-    structuredOutput: ModelSettingsSchema.optional(),
     summarizer: ModelSettingsSchema.optional(),
   })
   .openapi('Model');
@@ -171,7 +170,6 @@ export const ModelSchema = z
 export const ProjectModelSchema = z
   .object({
     base: ModelSettingsSchema,
-    structuredOutput: ModelSettingsSchema.optional(),
     summarizer: ModelSettingsSchema.optional(),
   })
   .openapi('ProjectModel');

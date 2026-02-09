@@ -7,7 +7,6 @@ import type { AgentStopWhen } from '@inkeep/agents-core/client-exports';
 
 export type AgentModels = {
   base?: ModelSettings;
-  structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 };
 

@@ -13,7 +13,6 @@ async function resolveModelConfig(
   if (subAgent.models?.base?.model) {
     return {
       base: subAgent.models.base,
-      structuredOutput: subAgent.models.structuredOutput || subAgent.models.base,
       summarizer: subAgent.models.summarizer || subAgent.models.base,
     };
   }
@@ -25,8 +24,6 @@ async function resolveModelConfig(
   if (agent?.models?.base?.model) {
     return {
       base: agent.models.base,
-      structuredOutput:
-        subAgent.models?.structuredOutput || agent.models.structuredOutput || agent.models.base,
       summarizer: subAgent.models?.summarizer || agent.models.summarizer || agent.models.base,
     };
   }
@@ -34,8 +31,6 @@ async function resolveModelConfig(
   if (project?.models?.base?.model) {
     return {
       base: project.models.base,
-      structuredOutput:
-        subAgent.models?.structuredOutput || project.models.structuredOutput || project.models.base,
       summarizer: subAgent.models?.summarizer || project.models.summarizer || project.models.base,
     };
   }

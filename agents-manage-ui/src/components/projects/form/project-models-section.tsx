@@ -12,10 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
-import {
-  structuredOutputModelProviderOptionsTemplate,
-  summarizerModelProviderOptionsTemplate,
-} from '@/lib/templates';
+import { summarizerModelProviderOptionsTemplate } from '@/lib/templates';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 import type { ProjectFormData } from './validation';
 
@@ -73,68 +70,6 @@ function BaseModelSection({
           />
         )}
       </FormFieldWrapper>
-    </div>
-  );
-}
-
-function StructuredOutputModelSection({
-  control,
-  disabled,
-}: {
-  control: Control<ProjectFormData>;
-  disabled?: boolean;
-}) {
-  const { field: providerOptionsField } = useController({
-    control,
-    name: 'models.structuredOutput.providerOptions',
-  });
-
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-
-  return (
-    <div className="space-y-4">
-      <FormFieldWrapper
-        control={control}
-        name="models.structuredOutput.model"
-        label="Structured output model"
-        description="Model for structured outputs and components (defaults to base model)"
-      >
-        {(field) => (
-          <ModelSelector
-            label=""
-            placeholder="Select structured output model (optional)"
-            value={field.value || ''}
-            onValueChange={field.onChange}
-            inheritedValue={baseModel}
-            canClear={!disabled}
-            disabled={disabled}
-          />
-        )}
-      </FormFieldWrapper>
-      <div className="space-y-2">
-        <FieldLabel id="models.structuredOutput.providerOptions" label="Provider options" />
-        <StandaloneJsonEditor
-          name="models.structuredOutput.providerOptions"
-          value={
-            providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-          }
-          onChange={(value) => {
-            if (!value?.trim()) {
-              providerOptionsField.onChange(undefined);
-              return;
-            }
-            try {
-              const parsed = JSON.parse(value);
-              providerOptionsField.onChange(parsed);
-            } catch {
-              // Invalid JSON - don't update the field value
-            }
-          }}
-          placeholder={structuredOutputModelProviderOptionsTemplate}
-          customTemplate={structuredOutputModelProviderOptionsTemplate}
-          readOnly={disabled}
-        />
-      </div>
     </div>
   );
 }
@@ -208,8 +143,6 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
   const hasModelsErrors = !!(
     errors.models?.base?.model ||
     errors.models?.base?.providerOptions ||
-    errors.models?.structuredOutput?.model ||
-    errors.models?.structuredOutput?.providerOptions ||
     errors.models?.summarizer?.model ||
     errors.models?.summarizer?.providerOptions
   );
@@ -249,9 +182,6 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
         <CollapsibleContent className="space-y-6  mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
           {/* Base Model */}
           <BaseModelSection control={control} disabled={disabled} />
-
-          {/* Structured Output Model */}
-          <StructuredOutputModelSection control={control} disabled={disabled} />
 
           {/* Summarizer Model */}
           <SummarizerModelSection control={control} disabled={disabled} />

@@ -1162,7 +1162,7 @@ export const updateFullAgentServerSide =
             const subAgentModels = existingSubAgent.models as any;
             const agentModels = typedAgentDefinition.models;
 
-            const modelTypes = ['base', 'structuredOutput', 'summarizer'] as const;
+            const modelTypes = ['base', 'summarizer'] as const;
             const cascadedModels: any = { ...finalModelSettings };
 
             for (const modelType of modelTypes) {

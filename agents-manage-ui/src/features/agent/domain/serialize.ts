@@ -85,12 +85,6 @@ function processModels(modelsData: AgentMetadata['models']): AgentMetadata['mode
               providerOptions: safeJsonParse(modelsData.base.providerOptions),
             }
           : undefined,
-        structuredOutput: modelsData.structuredOutput
-          ? {
-              model: modelsData.structuredOutput.model,
-              providerOptions: safeJsonParse(modelsData.structuredOutput.providerOptions),
-            }
-          : undefined,
         summarizer: modelsData.summarizer
           ? {
               model: modelsData.summarizer.model,
@@ -642,12 +636,6 @@ export function serializeAgentData(
         ? {
             model: metadata.models.base.model,
             providerOptions: safeJsonParse(metadata.models.base.providerOptions),
-          }
-        : undefined,
-      structuredOutput: metadata.models.structuredOutput
-        ? {
-            model: metadata.models.structuredOutput.model,
-            providerOptions: safeJsonParse(metadata.models.structuredOutput.providerOptions),
           }
         : undefined,
       summarizer: metadata.models.summarizer

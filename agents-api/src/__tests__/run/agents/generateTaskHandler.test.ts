@@ -233,7 +233,6 @@ function createMockExecutionContext(
     overrides.agentModels ??
     ({
       base: { model: 'openai/gpt-4' },
-      structuredOutput: { model: 'openai/gpt-4' },
       summarizer: { model: 'openai/gpt-3.5-turbo' },
     } as any);
 
@@ -861,7 +860,6 @@ describe('generateTaskHandler', () => {
       expect(config.agentSchema.id).toBe('test-agent');
       expect(config.agentSchema.models).toEqual({
         base: { model: 'openai/gpt-4' },
-        structuredOutput: { model: 'openai/gpt-4' },
         summarizer: { model: 'openai/gpt-3.5-turbo' },
       });
     });
@@ -897,10 +895,6 @@ describe('generateTaskHandler', () => {
           model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
         },
-        structuredOutput: {
-          model: 'anthropic/claude-sonnet-4-20250514',
-          providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
-        },
         summarizer: {
           model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
@@ -918,7 +912,6 @@ describe('generateTaskHandler', () => {
 
       expect(config.agentSchema.models).toEqual({
         base: { model: 'openai/gpt-4' },
-        structuredOutput: { model: 'openai/gpt-4' },
         summarizer: { model: 'openai/gpt-3.5-turbo' },
       });
     });
@@ -942,12 +935,6 @@ describe('generateTaskHandler', () => {
 
       expect(config.agentSchema.models).toEqual({
         base: {
-          model: 'openai/gpt-4o',
-          providerOptions: {
-            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
-          },
-        },
-        structuredOutput: {
           model: 'openai/gpt-4o',
           providerOptions: {
             openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },

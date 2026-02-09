@@ -256,9 +256,9 @@ export const myProject = project({
     base: {
       model: 'gpt-4o-mini',
     },
-    structuredOutput: {
-      model: 'gpt-4o-mini',
-    },
+          summarizer: {
+            model: 'gpt-4o-mini',
+          },
     summarizer: {
       model: 'gpt-4o-mini',
     }
@@ -267,9 +267,6 @@ export const myProject = project({
 
       const newModels = {
         base: {
-          model: 'anthropic/claude-3-5-haiku-20241022',
-        },
-        structuredOutput: {
           model: 'anthropic/claude-3-5-haiku-20241022',
         },
         summarizer: {
@@ -292,7 +289,6 @@ export const myProject = project({
 
       // Should maintain proper structure
       expect(result).toContain("'base': {");
-      expect(result).toContain("'structuredOutput': {");
       expect(result).toContain("'summarizer': {");
     });
 
@@ -333,7 +329,6 @@ export const myProject = project({
 
       const replacement = {
         base: { model: 'anthropic/claude-3-5-haiku-20241022' },
-        structuredOutput: { model: 'anthropic/claude-3-5-haiku-20241022' },
       };
 
       const result = await replaceObjectProperties(content, { models: replacement });
@@ -341,7 +336,6 @@ export const myProject = project({
       expect(result).toContain('models:');
       expect(result).toContain("'base': {");
       expect(result).toContain("'model': 'anthropic/claude-3-5-haiku-20241022'");
-      expect(result).toContain("'structuredOutput': {");
       expect(result).toContain("id: 'test-project'");
       expect(result).toContain('agent: () => []');
     });

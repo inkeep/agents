@@ -25,9 +25,6 @@ export const defaultGoogleModelConfigurations: ModelSettings = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
-  structuredOutput: {
-    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
-  },
   summarizer: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
@@ -37,9 +34,6 @@ export const defaultOpenaiModelConfigurations: ModelSettings = {
   base: {
     model: OPENAI_MODELS.GPT_5_2,
   },
-  structuredOutput: {
-    model: OPENAI_MODELS.GPT_4_1_MINI,
-  },
   summarizer: {
     model: OPENAI_MODELS.GPT_4_1_NANO,
   },
@@ -47,9 +41,6 @@ export const defaultOpenaiModelConfigurations: ModelSettings = {
 
 export const defaultAnthropicModelConfigurations: ModelSettings = {
   base: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
-  },
-  structuredOutput: {
     model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   summarizer: {

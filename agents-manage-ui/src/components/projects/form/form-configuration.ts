@@ -1,6 +1,5 @@
 import {
   DEFAULT_ANTHROPIC_BASE_MODEL,
-  DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
   DEFAULT_ANTHROPIC_SUMMARIZER_MODEL,
 } from '@/components/agent/configuration/model-options';
 import type { ProjectFormData } from './validation';
@@ -12,10 +11,6 @@ export const defaultValues: ProjectFormData = {
   models: {
     base: {
       model: DEFAULT_ANTHROPIC_BASE_MODEL,
-      providerOptions: undefined,
-    },
-    structuredOutput: {
-      model: DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
       providerOptions: undefined,
     },
     summarizer: {

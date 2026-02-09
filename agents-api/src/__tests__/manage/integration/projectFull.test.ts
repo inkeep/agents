@@ -60,7 +60,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         base: {
           model: 'gpt-4o-mini',
         },
-        structuredOutput: {
+        summarizer: {
           model: 'gpt-4o',
         },
       },
@@ -519,7 +519,6 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
         description: 'Project with multiple interconnected agents',
         models: {
           base: { model: 'gpt-4o-mini' },
-          structuredOutput: { model: 'gpt-4o' },
         },
         stopWhen: {
           transferCountIs: 15,

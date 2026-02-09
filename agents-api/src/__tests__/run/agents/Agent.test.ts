@@ -507,11 +507,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
         base: {
           model: 'anthropic/claude-sonnet-4-5',
         },
-        structuredOutput: {
-          model: 'openai/gpt-4.1-mini',
-        },
         summarizer: {
-          model: 'openai/gpt-4.1-nano',
+          model: 'openai/gpt-4.1-mini',
         },
       },
     };
@@ -1512,7 +1509,7 @@ describe('Agent Model Settings', () => {
             },
           },
         },
-        structuredOutput: {
+        summarizer: {
           model: 'openai/gpt-4.1-mini',
         },
       },
@@ -1530,7 +1527,6 @@ describe('Agent Model Settings', () => {
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Single-phase generation: uses structuredOutput model when data components are present
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'openai/gpt-4.1-mini',
@@ -1554,7 +1550,6 @@ describe('Agent Model Settings', () => {
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Single-phase generation: falls back to base model when no structuredOutput model configured
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'anthropic/claude-sonnet-4-5',

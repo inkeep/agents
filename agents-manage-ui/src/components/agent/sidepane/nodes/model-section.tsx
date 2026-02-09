@@ -26,9 +26,6 @@ export function ModelSection({
   projectModels,
   agentModels,
 }: ModelSectionProps) {
-  const hasAdvancedOptions = models?.structuredOutput || models?.summarizer;
-  const _hasAnyModel = models?.base || models?.structuredOutput || models?.summarizer;
-
   return (
     <div className="space-y-8">
       <SectionHeader
@@ -69,39 +66,7 @@ export function ModelSection({
         editorNamePrefix="base"
       />
 
-      <CollapsibleSettings defaultOpen={!!hasAdvancedOptions} title="Advanced Model Options">
-        <ModelConfiguration
-          value={models?.structuredOutput?.model}
-          providerOptions={models?.structuredOutput?.providerOptions}
-          inheritedValue={
-            agentModels?.structuredOutput?.model ||
-            projectModels?.structuredOutput?.model ||
-            models?.base?.model ||
-            agentModels?.base?.model ||
-            projectModels?.base?.model
-          }
-          label={
-            <div className="flex items-center gap-2">
-              Structured output model
-              <InheritanceIndicator
-                {...getModelInheritanceStatus(
-                  'agent',
-                  models?.structuredOutput?.model,
-                  agentModels?.structuredOutput?.model,
-                  projectModels?.structuredOutput?.model
-                )}
-                size="sm"
-              />
-            </div>
-          }
-          description="The model used for structured output and components (defaults to base model)"
-          onModelChange={(value) => updatePath('models.structuredOutput.model', value || undefined)}
-          onProviderOptionsChange={createProviderOptionsHandler((options) =>
-            updatePath('models.structuredOutput.providerOptions', options)
-          )}
-          editorNamePrefix="structured"
-        />
-
+      <CollapsibleSettings defaultOpen={!!models?.summarizer?.model} title="Advanced Model Options">
         <ModelConfiguration
           value={models?.summarizer?.model}
           providerOptions={models?.summarizer?.providerOptions}

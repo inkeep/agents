@@ -66,7 +66,6 @@ describe('Project', () => {
       description: 'A test project',
       models: {
         base: { model: 'gpt-4o-mini' },
-        structuredOutput: { model: 'gpt-4o' },
         summarizer: { model: 'gpt-3.5-turbo' },
       },
       stopWhen: {
@@ -330,7 +329,6 @@ describe('Project', () => {
     it('should set and get models', () => {
       const newModels = {
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4-turbo' },
       };
 
       project.setModels(newModels);

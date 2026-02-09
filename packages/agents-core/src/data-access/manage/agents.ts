@@ -187,10 +187,8 @@ export const updateAgent =
       if (
         !data.models ||
         (!data.models.base?.model &&
-          !data.models.structuredOutput?.model &&
           !data.models.summarizer?.model &&
           !data.models.base?.providerOptions &&
-          !data.models.structuredOutput?.providerOptions &&
           !data.models.summarizer?.providerOptions)
       ) {
         updateData.models = null;
