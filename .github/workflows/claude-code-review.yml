@@ -134,6 +134,7 @@ jobs:
                       state
                       submittedAt
                       url
+                      commit { oid }
                     }
                   }
                 }
@@ -259,6 +260,59 @@ jobs:
             echo "ENDCTX"
           } >> $GITHUB_OUTPUT
 
+          # ── Changes since last Claude review ──
+          # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
+          # the last automated review was made against, then computes the delta.
+          PR_HEAD="${{ github.event.pull_request.head.sha }}"
+          LAST_REVIEW_SHA=$(echo "$REVIEWS" | jq -r '
+            [.[] | select(
+              (.author.login == "claude" or .author.login == "claude[bot]") and
+              ((.body // "") | test("^## PR Review Summary"))
+            )] |
+            sort_by(.submittedAt) | last | .commit.oid // ""
+          ')
+
+          if [ -n "$LAST_REVIEW_SHA" ] && [ "$LAST_REVIEW_SHA" != "null" ] && git cat-file -e "$LAST_REVIEW_SHA" 2>/dev/null; then
+            SINCE_REVIEW_COUNT=$(git rev-list --count "$LAST_REVIEW_SHA".."$PR_HEAD")
+            if [ "$SINCE_REVIEW_COUNT" = "0" ]; then
+              SINCE_REVIEW_SECTION="_Re-review — no new commits since last automated review (commit \`${LAST_REVIEW_SHA:0:12}\`)._"
+            else
+              DIFF_EXCLUDE=(
+                ':!pnpm-lock.yaml'
+                ':!package-lock.json'
+                ':!yarn.lock'
+                ':!agents-api/__snapshots__/openapi.json'
+                ':!**/drizzle/*/meta/*_snapshot.json'
+                ':!**/drizzle/*/meta/_journal.json'
+                ':!**/CHANGELOG.md'
+              )
+              SINCE_REVIEW_LOG=$(git log --oneline "$LAST_REVIEW_SHA".."$PR_HEAD")
+              SINCE_REVIEW_STATS=$(git diff --stat "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              SINCE_REVIEW_SECTION="| Field | Value |
+          |---|---|
+          | **Last review commit** | \`${LAST_REVIEW_SHA:0:12}\` |
+          | **Commits since** | $SINCE_REVIEW_COUNT |
+
+          ### Commits since last review
+          \`\`\`
+          $SINCE_REVIEW_LOG
+          \`\`\`
+
+          ### Diff stats since last review
+          \`\`\`
+          $SINCE_REVIEW_STATS
+          \`\`\`"
+            fi
+          else
+            SINCE_REVIEW_SECTION="_First automated review — no prior review to compare against._"
+          fi
+
+          {
+            echo "since_review_section<<ENDREVIEW"
+            echo "$SINCE_REVIEW_SECTION"
+            echo "ENDREVIEW"
+          } >> $GITHUB_OUTPUT
+
       - name: Get PR Comments
         id: pr_comments
         env:
@@ -352,12 +406,6 @@ jobs:
           | **Review state** | ${{ steps.review_context.outputs.review_decision }} |
           | **Trigger** | `${{ github.event.action }}` |
 
-          ## GitHub URL Base (for hyperlinks)
-
-          Use these to construct clickable links in your findings:
-          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/{path}#L{line}` or `#L{start}-L{end}`
-          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}`
-
           ## Description
           Author-provided description (may not fully reflect actual scope):
 
@@ -387,6 +435,10 @@ jobs:
           ```diff
           ${{ steps.diff.outputs.diff_content }}
           ```
+
+          ## Changes Since Last Review
+
+          ${{ steps.review_context.outputs.since_review_section }}
 
           ## Prior Feedback
 
@@ -418,6 +470,12 @@ jobs:
           General comments on the PR (not attached to specific lines).
 
           ${{ steps.pr_comments.outputs.pr_comments }}
+
+          ## GitHub URL Base (for hyperlinks)
+
+          Use these to construct clickable links in your findings:
+          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/{path}#L{line}` or `#L{start}-L{end}`
+          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}`
 
           SKILL_EOF
           

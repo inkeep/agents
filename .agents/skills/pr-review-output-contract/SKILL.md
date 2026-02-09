@@ -223,7 +223,7 @@ How confident you are in the proposed fix. Distinct from `confidence` (issue cer
 
 | Fix Confidence | Meaning |
 |----------------|---------|
-| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. Default to `MEDIUM` until substantiated via research (web search, codebase patterns). |
+| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. **Requires web search verification when the fix changes third-party library/framework usage** (see `pr-review-check-suggestion` Step F2). Default to `MEDIUM` until substantiated — except for self-evident fixes (null checks, typos, simple refactors) that don't touch third-party APIs. |
 | `MEDIUM` | Fix is directionally correct but may need adjustment. |
 | `LOW` | Fix is a starting point; human should verify approach. |
 
