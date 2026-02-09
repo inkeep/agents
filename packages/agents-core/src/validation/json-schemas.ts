@@ -41,9 +41,9 @@ const JsonSchemaDescription = z
 /**
  * Zod schema representing a valid JSON Schema Draft 7 property.
  *
- * Getters are used for recursive fields (`items`, `properties`) so the schema
+ * `z.lazy` are used for recursive fields (`items`, `properties`) so the schema
  * can reference itself without causing an infinite loop at definition time.
- * Without getters, Zod would hit an infinite loop at definition time, not at runtime.
+ * Without `z.lazy`, Zod would hit an infinite loop at definition time, not at runtime.
  */
 const JsonSchemaPropertySchema: z.ZodType<JsonSchemaProperty> = z
   .discriminatedUnion(
