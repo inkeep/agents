@@ -139,7 +139,7 @@ export default function ConversationDetail({
             label: 'View',
             onClick: () => {
               router.push(
-                `/${tenantId}/projects/${projectId}/traces/conversations/${result.data!.conversationId}`
+                `/${tenantId}/projects/${projectId}/traces/conversations/${result.data?.conversationId}`
               );
             },
           },

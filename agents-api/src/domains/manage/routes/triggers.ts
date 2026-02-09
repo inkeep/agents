@@ -24,12 +24,12 @@ import {
   updateTrigger,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
-import { dispatchExecution } from '../../run/services/TriggerService';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
+import { dispatchExecution } from '../../run/services/TriggerService';
 
 const logger = getLogger('triggers');
 
