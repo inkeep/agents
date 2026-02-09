@@ -13,8 +13,13 @@ icon: LuBlocks
 
 1. Go to the Data Components tab in the left sidebar. Then select "New data component".
 2. Add in an id, name, and description. These are required fields.
-3. Enter a JSON schema defining the structure of your data component.
+3. Enter a JSON schema defining the structure of your data component. **Every property must include a `"description"` field for LLM compatibility.**
 4. Click "Submit".
+
+
+<Callout type="warning">
+  **Required**: The props schema is mandatory for data components. Your JSON schema must have `type: "object"` at the root level and every property must include a non-empty `"description"` field for LLM compatibility.
+</Callout>
 
 To visually add the data component to the Agent, see the [Sub Agents](/visual-builder/sub-agents#adding-data-components) page for details.
 
