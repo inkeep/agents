@@ -20,6 +20,7 @@ import {
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
+  DateTimeFilterQueryParamsSchema,
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
@@ -30,7 +31,6 @@ import {
   ScheduledTriggerInvocationStatusEnum,
   ScheduledTriggerResponse,
   ScheduledTriggerWithRunInfoListResponse,
-  TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateScheduledTrigger,
   updateScheduledTriggerInvocationStatus,
@@ -51,6 +51,10 @@ import { executeAgentAsync } from '../../run/services/TriggerService';
 const logger = getLogger('scheduled-triggers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+const ScheduledTriggerIdParamsSchema = TenantProjectAgentParamsSchema.extend({
+  id: z.string().describe('Scheduled Trigger ID'),
+});
 
 // Apply permission middleware by HTTP method
 app.use('/', async (c, next) => {
@@ -145,9 +149,7 @@ const UpcomingRunsQueryParamsSchema = PaginationQueryParamsSchema.extend({
     .enum(['true', 'false'])
     .optional()
     .transform((val) => val === 'true')
-    .openapi({
-      description: 'Include currently running invocations in results',
-    }),
+    .describe('Include currently running invocations in results'),
 }).openapi('UpcomingRunsQueryParams');
 
 /**
@@ -221,7 +223,7 @@ app.openapi(
     operationId: 'get-scheduled-trigger-by-id',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: ScheduledTriggerIdParamsSchema,
     },
     responses: {
       200: {
@@ -303,8 +305,6 @@ app.openapi(
       'Creating scheduled trigger'
     );
 
-    const now = new Date().toISOString();
-
     const trigger = await createScheduledTrigger(db)({
       id,
       tenantId,
@@ -321,8 +321,6 @@ app.openapi(
       maxRetries: body.maxRetries,
       retryDelaySeconds: body.retryDelaySeconds,
       timeoutSeconds: body.timeoutSeconds,
-      createdAt: now,
-      updatedAt: now,
     });
 
     // Start workflow for enabled triggers
@@ -357,7 +355,7 @@ app.openapi(
     operationId: 'update-scheduled-trigger',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: ScheduledTriggerIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -508,7 +506,7 @@ app.openapi(
     operationId: 'delete-scheduled-trigger',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: ScheduledTriggerIdParamsSchema,
     },
     responses: {
       204: {
@@ -573,17 +571,15 @@ app.openapi(
 );
 
 // Query params for invocation filtering (extends base pagination with status/date filters)
-const ScheduledTriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: ScheduledTriggerInvocationStatusEnum.optional().openapi({
-    description: 'Filter by invocation status',
-  }),
-  from: z.string().datetime().optional().openapi({
-    description: 'Start date for filtering (ISO8601)',
-  }),
-  to: z.string().datetime().optional().openapi({
-    description: 'End date for filtering (ISO8601)',
-  }),
-}).openapi('ScheduledTriggerInvocationQueryParams');
+const ScheduledTriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.merge(
+  DateTimeFilterQueryParamsSchema
+)
+  .extend({
+    status: ScheduledTriggerInvocationStatusEnum.optional().describe(
+      'Filter by invocation status'
+    ),
+  })
+  .openapi('ScheduledTriggerInvocationQueryParams');
 
 /**
  * List Scheduled Trigger Invocations
@@ -596,7 +592,7 @@ app.openapi(
     operationId: 'list-scheduled-trigger-invocations',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: ScheduledTriggerIdParamsSchema,
       query: ScheduledTriggerInvocationQueryParamsSchema,
     },
     responses: {
@@ -621,7 +617,7 @@ app.openapi(
       'Listing scheduled trigger invocations'
     );
 
-    const result = await listScheduledTriggerInvocationsPaginated(runDbClient)({
+    const { data, pagination } = await listScheduledTriggerInvocationsPaginated(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
       pagination: { page, limit },
@@ -632,14 +628,14 @@ app.openapi(
       },
     });
 
-    const dataWithoutScopes = result.data.map((invocation) => {
+    const dataWithoutScopes = data.map((invocation) => {
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
       return rest;
     });
 
     return c.json({
       data: dataWithoutScopes,
-      pagination: result.pagination,
+      pagination,
     });
   }
 );
@@ -655,7 +651,7 @@ app.openapi(
     operationId: 'get-scheduled-trigger-invocation-by-id',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema.extend({
+      params: ScheduledTriggerIdParamsSchema.extend({
         invocationId: z.string().describe('Scheduled Trigger Invocation ID'),
       }),
     },
@@ -722,7 +718,7 @@ app.openapi(
     operationId: 'cancel-scheduled-trigger-invocation',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema.extend({
+      params: ScheduledTriggerIdParamsSchema.extend({
         invocationId: z.string().describe('Scheduled Trigger Invocation ID'),
       }),
     },
@@ -820,7 +816,7 @@ app.openapi(
     operationId: 'rerun-scheduled-trigger-invocation',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema.extend({
+      params: ScheduledTriggerIdParamsSchema.extend({
         invocationId: z.string().describe('Scheduled Trigger Invocation ID to rerun'),
       }),
     },
@@ -1089,7 +1085,7 @@ app.openapi(
     operationId: 'run-scheduled-trigger-now',
     tags: ['Scheduled Triggers'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: ScheduledTriggerIdParamsSchema,
     },
     responses: {
       200: {

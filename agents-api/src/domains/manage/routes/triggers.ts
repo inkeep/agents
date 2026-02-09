@@ -12,6 +12,7 @@ import {
   hashAuthenticationHeaders,
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
+  DateTimeFilterQueryParamsSchema,
   PaginationQueryParamsSchema,
   PartSchema,
   TenantProjectAgentIdParamsSchema,
@@ -538,17 +539,13 @@ app.openapi(
  */
 
 // Query params for invocation filtering (extends base pagination with status/date filters)
-const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
-  status: TriggerInvocationStatusEnum.optional().openapi({
-    description: 'Filter by invocation status',
-  }),
-  from: z.string().datetime().optional().openapi({
-    description: 'Start date for filtering (ISO8601)',
-  }),
-  to: z.string().datetime().optional().openapi({
-    description: 'End date for filtering (ISO8601)',
-  }),
-}).openapi('TriggerInvocationQueryParams');
+const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.merge(
+  DateTimeFilterQueryParamsSchema
+)
+  .extend({
+    status: TriggerInvocationStatusEnum.optional().describe('Filter by invocation status'),
+  })
+  .openapi('TriggerInvocationQueryParams');
 
 /**
  * List Trigger Invocations

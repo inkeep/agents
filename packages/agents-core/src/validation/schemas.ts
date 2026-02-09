@@ -2934,6 +2934,11 @@ export const PaginationQueryParamsSchema = z
   })
   .openapi('PaginationQueryParams');
 
+export const DateTimeFilterQueryParamsSchema = z.object({
+  from: z.string().datetime().optional().describe('Start date for filtering (ISO8601)'),
+  to: z.string().datetime().optional().describe('End date for filtering (ISO8601)'),
+});
+
 export const PrebuiltMCPServerSchema = z.object({
   id: z.string().describe('Unique identifier for the MCP server'),
   name: z.string().describe('Display name of the MCP server'),
