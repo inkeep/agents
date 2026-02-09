@@ -42,7 +42,7 @@ services:
       - INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY
       - INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
     ports:
-      - "3003:3003"
+      - "3002:3002"
     depends_on:
       inkeep-agents-doltgres-db:
         condition: service_healthy
