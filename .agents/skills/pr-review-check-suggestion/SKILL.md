@@ -137,19 +137,25 @@ After validating the issue, verify your proposed fix is current best practice.
 
 | Answer | Action |
 |--------|--------|
-| **No** — Obvious fix (null check, typo, simple refactor) | HIGH fix_confidence |
-| **Yes** — Requires knowing current patterns/APIs | Continue below |
+| **No** — Obvious fix (null check, typo, simple refactor) AND does not change how a third-party library/framework/SDK is called or configured | HIGH fix_confidence |
+| **Yes** — Requires knowing current patterns/APIs, OR changes how a third-party library/framework/SDK is used (imports, method calls, configuration, hook usage, etc.) | Continue below |
 
-**Before external search:** Look for existing patterns, utilities, or conventions in the codebase that address the same concern. If you find prior art, cite it as a "related code elsewhere" reference and align your fix with the existing approach. Only proceed to Step F2 if the codebase lacks a relevant pattern or you need to verify the pattern is current best practice.
+**Rule: any fix that changes third-party library/framework usage MUST go through Step F2 (web search) before the finding can claim `fix_confidence: HIGH`.** Codebase prior art alone is insufficient — the existing code may itself use outdated patterns. Check the codebase first to understand context and existing conventions, then verify against current upstream documentation.
 
-### Step F2: Web Search for Best Practice (if available)
+**Before external search:** Look for existing patterns, utilities, or conventions in the codebase that address the same concern. Cite any prior art as a "related code elsewhere" reference. Then proceed to Step F2 to verify the pattern is current best practice — even if you found codebase prior art.
 
-**Formulate a query for the solution:**
+### Step F2: Web Search for Best Practice (REQUIRED for third-party code)
+
+**This step is mandatory** when the fix changes how any third-party library, framework, or SDK is used — regardless of whether codebase prior art exists. If no web search tool is available, cap `fix_confidence` at MEDIUM (see Step F3).
+
+**Version check:** Before formulating your query, confirm the relevant package version(s) from the repo (e.g., `package.json`, lockfile, framework config). Use the actual version in your search queries — APIs, patterns, and recommended practices vary between versions. If the version you confirmed differs from what you assumed, re-evaluate your fix before searching.
+
+**Formulate a version-specific query for the solution:**
 ```
 Good: "React 19 recommended way to memoize components 2024"
 Good: "Next.js 15 server actions error handling pattern"
-Good: "TypeScript zod schema validation best practice"
-Bad:  "how to fix React" (too vague)
+Good: "drizzle-orm 0.35 query builder best practice"
+Bad:  "how to fix React" (too vague, no version)
 Bad:  "best library for X" (opinion-seeking)
 ```
 
@@ -157,6 +163,7 @@ Bad:  "best library for X" (opinion-seeking)
 1. Official documentation (canonical patterns)
 2. Library maintainer blogs/guides (authoritative)
 3. GitHub examples from the library itself (real usage)
+4. Source code for open source libraries
 
 **Take action based on results:**
 
@@ -168,12 +175,12 @@ Bad:  "best library for X" (opinion-seeking)
 
 ### Step F3: Fix Confidence Calibration (no web search, or inconclusive)
 
-When you cannot verify the fix approach:
+When you cannot verify the fix approach via web search, **you cannot claim HIGH fix_confidence for any fix that changes third-party library/framework usage**:
 
 | Category | Fix Confidence Ceiling |
 |----------|------------------------|
+| Third-party library/framework API usage | MEDIUM max (HIGH requires Step F2 verification) |
 | Framework-specific patterns | MEDIUM max |
-| Library API usage | MEDIUM max |
 | Security remediation | LOW (unless verified) |
 | Performance optimization | MEDIUM max |
 | Migration/upgrade paths | LOW (version-specific) |

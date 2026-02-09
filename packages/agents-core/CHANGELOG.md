@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
 ## 0.47.1
 
 ### Patch Changes

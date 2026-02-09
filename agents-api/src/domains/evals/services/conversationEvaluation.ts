@@ -24,23 +24,6 @@ export const triggerConversationEvaluation = async (params: {
 }): Promise<{ success: boolean; message: string; evaluationsTriggered: number }> => {
   const { tenantId, projectId, conversationId, resolvedRef } = params;
   try {
-    logger.info(
-      { tenantId, projectId, conversationId },
-      'Triggering conversation evaluation (eval-api handling all logic)'
-    );
-
-    // Get the conversation
-    const conversation = await getConversation(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-    });
-
-    if (!conversation) {
-      throw new Error(`Conversation not found: ${conversationId}`);
-    }
-
-    // Get all active evaluation run configs
-    // const allRunConfigs = await client.listEvaluationRunConfigs();
     const configs = await withRef(manageDbPool, resolvedRef, (db) =>
       listEvaluationRunConfigsWithSuiteConfigs(db)({
         scopes: { tenantId, projectId },
@@ -50,7 +33,29 @@ export const triggerConversationEvaluation = async (params: {
     const runConfigs = configs.filter((config) => config.isActive);
 
     if (runConfigs.length === 0) {
-      throw new Error('No active evaluation run configs found');
+      logger.debug(
+        { tenantId, projectId, conversationId },
+        'No active evaluation run configs found, skipping evaluation'
+      );
+      return {
+        success: true,
+        message: 'No active evaluation run configs found',
+        evaluationsTriggered: 0,
+      };
+    }
+
+    logger.info(
+      { tenantId, projectId, conversationId, runConfigCount: runConfigs.length },
+      'Triggering conversation evaluation'
+    );
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+
+    if (!conversation) {
+      throw new Error(`Conversation not found: ${conversationId}`);
     }
 
     let evaluationsTriggered = 0;
@@ -143,11 +148,15 @@ export const triggerConversationEvaluation = async (params: {
     };
   } catch (error) {
     logger.error(
-      { error, tenantId, projectId, conversationId },
+      {
+        error: (error as Error)?.message,
+        errorStack: (error as Error)?.stack,
+        tenantId,
+        projectId,
+        conversationId,
+      },
       'Failed to trigger conversation evaluation'
     );
-    logger.error({ error: (error as Error)?.stack }, 'Failed to trigger conversation evaluation');
-    logger.error({ error: (error as Error)?.message }, 'Failed to trigger conversation evaluation');
     throw error;
   }
 };

@@ -17,7 +17,7 @@ export const envSchema: z.ZodType<Env> = z.object({
   INKEEPAGENTS_COOKIE_AUTH: z.string().optional(),
   INKEEPAGENTS_BEARER_AUTH: z.string().optional(),
 
-  INKEEPAGENTS_DEBUG: z.coerce.boolean().optional(),
+  INKEEPAGENTS_DEBUG: z.stringbool().optional(),
 });
 
 let envMemo: Env | undefined = undefined;
