@@ -653,11 +653,13 @@ describe('projectFull data access', () => {
             id: artifact1Id,
             name: 'Artifact Component 1',
             description: 'Test artifact component 1',
+            props: null,
           },
           [artifact2Id]: {
             id: artifact2Id,
             name: 'Artifact Component 2',
             description: 'Test artifact component 2',
+            props: null,
           },
         },
       };
