@@ -66,19 +66,23 @@ export const citation = artifactComponent({
   system uses JMESPath selectors on JSON - it **cannot extract from free text**.
 </Callout>
 
+<Callout>
+  **Note**: When providing a `props` schema, every property must include a non-empty `description` for LLM compatibility.
+</Callout>
+
 ```typescript
 // ❌ WRONG: Tool returns text, schema expects structured data
 // Tool output: { result: { content: [{ text: "Weather: Sunny, 75°F" }] } }
 props: z.object({
-  temperature: z.number(), // ❌ Cannot extract number from text
-  condition: z.string(), // ❌ Cannot extract condition from text
+  temperature: z.number().describe("Current temperature"), // ❌ Cannot extract number from text
+  condition: z.string().describe("Weather condition"), // ❌ Cannot extract condition from text
 });
 
 // ✅ CORRECT: Tool returns structured data matching schema
 // Tool output: { result: { temperature: 75, condition: "Sunny" } }
 props: z.object({
-  temperature: z.number(),
-  condition: z.string(),
+  temperature: z.number().describe("Current temperature in Fahrenheit"),
+  condition: z.string().describe("Current weather condition"),
 });
 ```
 
@@ -97,7 +101,7 @@ Use `preview()` to mark fields for immediate availability. The `preview()` helpe
 
 **Non-preview fields** require explicitly fetching the full artifact.
 
-**No schema?** Omit `props` to save the entire tool result without filtering.
+**No schema?** For artifact components, you can omit `props` to save the entire tool result without filtering.
 
 ## Artifact Creation
 
