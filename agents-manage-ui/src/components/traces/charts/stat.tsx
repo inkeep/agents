@@ -23,7 +23,8 @@ export function Stat({ stat, statDescription, isLoading, unit }: StatProps) {
             isLoading ? 'opacity-50' : ''
           )}
         >
-          {formattedStat} {unit}
+          {formattedStat}
+          {unit}
         </div>
       )}
       <div className="flex flex-wrap gap-2 items-center justify-between">
