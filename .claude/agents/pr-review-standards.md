@@ -228,7 +228,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
   - 91–100 → `severity: "CRITICAL"`, `confidence: "HIGH"`
   - 80–90 → `severity: "MAJOR"`, `confidence: "MEDIUM"`
 - Prefer `type: "inline"` with a concrete fix when the issue is localized.
-- Use `type: "file"` only when the issue is file-wide without a safe ≤10-line fix.
+- Use `type: "file"` only when the issue is file-wide without a safe ≤20-line fix.
 - Do not report: confidence <80, style preferences not in AGENTS.md, or pre-existing issues not worsened by this PR.
 
 If no high-confidence issues exist, return `[]`.

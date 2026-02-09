@@ -401,7 +401,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
 - Use `category: "devops"` for CI/CD, dependencies, build, release, devex findings.
 - Use `category: "ai-infra"` for AGENTS.md, skills, rules, agent definition findings.
 - Choose the appropriate `type`:
-  - `inline`: localized ≤10-line issue with a concrete fix (e.g., pin this action to SHA)
+  - `inline`: localized ≤20-line issue with a concrete fix (e.g., pin this action to SHA)
   - `file`: file-level issue (e.g., missing permissions block)
   - `multi-file`: cross-file issue (e.g., env.example doesn't match env.ts)
   - `system`: broad pattern issue (e.g., all workflows missing permissions)

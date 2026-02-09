@@ -78,6 +78,7 @@ If no meaningful mappings: "No clear file-to-surface mappings identified."}}
 ## Review State
 
 - **Review iteration:** {{FILL: First review / Re-review — N commits since last automated review}}
+- **Delta since last review:** {{FILL: Brief characterization of what changed since the last automated review, derived from the "Changes Since Last Review" section in pr-context. Summarize which files changed and the nature of the commits to orient reviewers on where to focus. If first review, state "N/A — first review." If re-review with 0 new commits, state "No new commits since last review."}}
 - **Active unresolved threads:** {{FILL: count and brief characterization, or "None"}}
 - **Prior feedback status:** {{FILL: No prior feedback / Appears addressed / Partially addressed / Not visibly addressed}}
 

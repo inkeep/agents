@@ -32,7 +32,7 @@ Findings are a **discriminated union** based on the `type` field. Choose the typ
 
 | Type | When to Use |
 |------|-------------|
-| `inline` | Specific line(s), concrete fix, small scope |
+| `inline` | Specific line(s), proposed fix, small scope |
 | `file` | Whole-file concern, no specific line |
 | `multi-file` | Cross-cutting issue spanning multiple files |
 | `system` | Architectural/pattern concern, no specific files |
@@ -40,10 +40,11 @@ Findings are a **discriminated union** based on the `type` field. Choose the typ
 ### Decision Tree
 
 ```
-Is this about a specific line or small line range (≤10 lines)?
-├─ YES → Is there a concrete, unambiguous fix?
-│        ├─ YES → type: "inline"
-│        └─ NO  → type: "file" (guidance, not fix)
+Is this about a specific line or small line range (≤20 lines)?
+├─ YES → Can you propose a fix?
+│        ├─ YES, unambiguous   → type: "inline" (fix_confidence: HIGH)
+│        ├─ YES, but uncertain → type: "inline" (fix_confidence: MEDIUM/LOW)
+│        └─ NO fix, just guidance → type: "file"
 └─ NO  → Does this involve specific files?
          ├─ YES → How many files?
          │        ├─ ONE  → type: "file"
@@ -141,7 +142,7 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 
 ### Type: `inline`
 
-**Use when:** You found an issue at a specific line (or small range ≤10 lines) AND you can propose a concrete fix.
+**Use when:** You found an issue at a specific line (or small range ≤20 lines) AND you can propose a fix. Set `fix_confidence` to reflect certainty — `HIGH` for drop-in fixes, `MEDIUM`/`LOW` when the fix needs adjustment or verification.
 
 **Field order:** `type` → `file` → `line` → common fields (category → issue → references → implications → severity → confidence → fix → fix_confidence)
 
@@ -222,7 +223,7 @@ How confident you are in the proposed fix. Distinct from `confidence` (issue cer
 
 | Fix Confidence | Meaning |
 |----------------|---------|
-| `HIGH` | Fix is complete and correct. Can be applied as-is. |
+| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. **Requires web search verification when the fix changes third-party library/framework usage** (see `pr-review-check-suggestion` Step F2). Default to `MEDIUM` until substantiated — except for self-evident fixes (null checks, typos, simple refactors) that don't touch third-party APIs. |
 | `MEDIUM` | Fix is directionally correct but may need adjustment. |
 | `LOW` | Fix is a starting point; human should verify approach. |
 
@@ -270,7 +271,7 @@ Do not bundle multiple unrelated issues. Split them into separate findings.
 ### N2. Choose the right type
 
 If you're unsure between types:
-- `inline` vs `file`: If you can't point to a specific line with a concrete fix, use `file`.
+- `inline` vs `file`: Use `inline` when you can point to a specific line and propose a fix (even with `fix_confidence: MEDIUM/LOW`). Use `file` when the issue is whole-file or you have guidance but no specific line to anchor to.
 - `file` vs `multi-file`: If only one file is affected, use `file`. If the issue is the *relationship* between files, use `multi-file`.
 - `multi-file` vs `system`: If you can enumerate the specific files, use `multi-file`. If it's about a pattern that could affect *any* file, use `system`.
 
@@ -295,7 +296,7 @@ Never use absolute paths. Always use paths relative to the repository root.
     "category": "security",
     "issue": "User input is passed directly to SQL query without sanitization, creating SQL injection vulnerability.",
     "references": [
-      "[src/api/client.ts:42](https://github.com/org/repo/blob/abc123/src/api/client.ts#L42)",
+      "[src/api/users.ts:28 — parameterized query pattern](https://github.com/org/repo/blob/abc123/src/api/users.ts#L28)",
       "[OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)",
       "[pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/abc123/.claude/agents/pr-review-security-iam.md)"
     ],
