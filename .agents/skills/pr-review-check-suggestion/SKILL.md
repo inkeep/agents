@@ -76,6 +76,9 @@ Ask: *"Can I prove this issue from the code diff alone?"*
 
 If you have access to a web search tool, verify the finding:
 
+**Version check (for library/package-specific searches):**
+Before formulating your query, confirm the relevant package version(s) from the repo (e.g., `package.json`, lockfile, framework config). Use the actual version in your search queries and reasoning — not assumed versions from training data. Not all searches require this; skip for general patterns, language-level issues, or non-versioned concerns.
+
 **Formulate a specific query:**
 ```
 Good: "React 19 use memo directive 2024"
@@ -94,7 +97,7 @@ Bad:  "is moment.js bad" (opinion-seeking)
 
 | Result | Action |
 |--------|--------|
-| **Confirms issue** | Keep finding, HIGH confidence. Optionally cite source. |
+| **Confirms issue** | Keep finding, HIGH confidence. Cite the authoritative source in `references`. |
 | **Contradicts finding** | **DROP the finding.** Do not include in output. |
 | **Inconclusive** | Keep finding, MEDIUM confidence. Note uncertainty. |
 
@@ -135,7 +138,9 @@ After validating the issue, verify your proposed fix is current best practice.
 | Answer | Action |
 |--------|--------|
 | **No** — Obvious fix (null check, typo, simple refactor) | HIGH fix_confidence |
-| **Yes** — Requires knowing current patterns/APIs | Continue to Step F2 |
+| **Yes** — Requires knowing current patterns/APIs | Continue below |
+
+**Before external search:** Look for existing patterns, utilities, or conventions in the codebase that address the same concern. If you find prior art, cite it as a "related code elsewhere" reference and align your fix with the existing approach. Only proceed to Step F2 if the codebase lacks a relevant pattern or you need to verify the pattern is current best practice.
 
 ### Step F2: Web Search for Best Practice (if available)
 

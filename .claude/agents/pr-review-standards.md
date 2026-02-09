@@ -37,10 +37,11 @@ tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
   - pr-review-output-contract
   - pr-review-check-suggestion
-model: sonnet
+model: opus
 color: green
 permissionMode: default
 ---
