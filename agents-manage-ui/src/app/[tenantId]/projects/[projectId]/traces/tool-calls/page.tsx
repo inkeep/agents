@@ -158,7 +158,7 @@ export default function ToolCallsBreakdown({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6">
         <Button asChild variant="ghost" size="icon-sm">
           <NextLink href={backLink}>
             <ArrowLeft className="h-4 w-4" />
