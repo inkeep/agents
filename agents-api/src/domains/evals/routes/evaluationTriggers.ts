@@ -69,10 +69,7 @@ app.openapi(
     const { conversationId } = body;
 
     try {
-      logger.info(
-        { tenantId, projectId, conversationId },
-        'Triggering conversation evaluation (eval-api handling all logic)'
-      );
+      logger.info({ tenantId, projectId, conversationId }, 'Triggering conversation evaluation');
 
       // Get the conversation
       const conversation = await getConversation(runDbClient)({
