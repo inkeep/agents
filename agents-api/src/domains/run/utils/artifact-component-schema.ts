@@ -3,6 +3,7 @@ import type {
   ArtifactComponentApiInsert,
   ArtifactComponentApiSelect,
   DataComponentInsert,
+  JsonSchemaForLlmSchemaType,
 } from '@inkeep/agents-core';
 import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from './SchemaProcessor';
@@ -42,7 +43,7 @@ export class ArtifactReferenceSchema {
   /**
    * Get complete DataComponent by adding missing fields to base definition
    */
-  static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
+  static getDataComponent(tenantId: string, projectId = ''): DataComponentInsert {
     return {
       id: 'The artifact_id from your artifact:create tag. Must match exactly.',
       tenantId: tenantId,
@@ -69,7 +70,7 @@ export class ArtifactCreateSchema {
   ): z.ZodType<any>[] {
     return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
@@ -120,7 +121,7 @@ export class ArtifactCreateSchema {
   ): DataComponentInsert[] {
     return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
@@ -157,7 +158,7 @@ export class ArtifactCreateSchema {
         projectId: projectId,
         name: `ArtifactCreate_${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
-        props: propsSchema,
+        props: propsSchema as JsonSchemaForLlmSchemaType,
       };
     });
   }
