@@ -1,0 +1,85 @@
+---
+title: Slack Integration
+sidebarTitle: Slack
+description: Connect your Inkeep Agents to Slack for real-time conversations via slash commands and @mentions.
+icon: brand/Slack
+---
+
+Enable your team to interact with Inkeep Agents directly from Slack using slash commands and @mentions.
+
+## Features
+
+- **Slash commands** - `/inkeep [question]` for private, ephemeral responses
+- **@mentions** - `@Inkeep [question]` for public, threaded responses
+- **Multi-turn conversations** - Continue conversations with the Follow Up button
+- **Agent configuration** - Set default agents per workspace or channel
+- **Account linking** - Connect Slack identities to Inkeep for personalized responses
+
+## Setup
+
+<Steps>
+  <Step>
+    ### Install the Slack app
+
+    Navigate to **Work Apps → Slack** in the dashboard and click **Install to Slack**. Complete the OAuth flow to authorize the app in your workspace.
+  </Step>
+  <Step>
+    ### Configure the default agent
+
+    After installation, select a default agent for your workspace. This agent handles all requests unless overridden at the channel level.
+  </Step>
+  <Step>
+    ### Link user accounts (optional)
+
+    Users can link their Slack account to Inkeep by running `/inkeep link` in Slack and clicking the generated link. This enables personalized responses.
+  </Step>
+</Steps>
+
+## Slash commands
+
+| Command | Description |
+|---------|-------------|
+| `/inkeep [question]` | Ask the default agent (ephemeral response) |
+| `/inkeep` | Open the agent picker modal |
+| `/inkeep help` | Show available commands |
+| `/inkeep link` | Link your Slack account to Inkeep |
+| `/inkeep status` | Check your link status and active agent |
+| `/inkeep run "agent" [question]` | Ask a specific agent by name |
+
+Slash command responses are **ephemeral** - only visible to you.
+
+## @Mentions
+
+Mention `@Inkeep` in any channel to get a public response in a thread:
+
+```
+@Inkeep How do I configure authentication?
+```
+
+The response streams in real-time and is visible to everyone in the channel. Reply in the thread to continue the conversation.
+
+## Agent configuration
+
+### Workspace default
+
+Set a default agent for the entire workspace in the dashboard. This agent handles all requests unless a channel-specific default is configured.
+
+### Channel defaults
+
+Override the workspace default for specific channels. Navigate to **Work Apps → Slack → Channels** in the dashboard to configure channel-level agents.
+
+Agent resolution priority: **Channel default → Workspace default**
+
+## Troubleshooting
+
+<Accordions>
+  <Accordion title="'User not linked' error">
+    Run `/inkeep link` in Slack and click the generated link to complete account linking.
+  </Accordion>
+  <Accordion title="'No agent configured' error">
+    An admin needs to set a workspace or channel default agent in the dashboard.
+  </Accordion>
+  <Accordion title="'Link token expired' error">
+    Link tokens expire after 10 minutes. Run `/inkeep link` again to generate a new link.
+  </Accordion>
+</Accordions>
