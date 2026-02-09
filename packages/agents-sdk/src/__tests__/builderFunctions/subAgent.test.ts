@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { subAgent } from '../../builderFunctions';
 import type { SubAgentConfig } from '../../types';
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 describe('agent builder function', () => {
   it('should create an agent with required config', () => {
@@ -50,6 +51,7 @@ describe('agent builder function', () => {
       id: 'test-component',
       name: 'Test Component',
       description: 'A test data component',
+      props: undefined as unknown as JsonSchemaForLlmSchemaType,
     };
 
     const config: SubAgentConfig = {
@@ -57,7 +59,6 @@ describe('agent builder function', () => {
       name: 'Component Agent',
       description: 'Agent with data components',
       prompt: 'Agent that uses data components',
-      // @ts-expect-error `props` are explicitly missing
       dataComponents: () => [mockDataComponent],
     };
 

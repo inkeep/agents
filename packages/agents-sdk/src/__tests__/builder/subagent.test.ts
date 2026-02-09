@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { SubAgentConfig } from '../../types';
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -287,6 +288,7 @@ describe('Agent Builder', () => {
             id: 'test-data-component',
             name: 'Test Data Component',
             description: 'Test description',
+            props: undefined as unknown as JsonSchemaForLlmSchemaType,
           },
         ],
       });
