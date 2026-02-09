@@ -23,7 +23,7 @@ export async function writeSpiceDbSchema(options?: {
   const client = v1.NewClient(
     token,
     endpoint,
-    config.tlsEnabled ? v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED : v1.ClientSecurity.SECURE
+    config.tlsEnabled ? v1.ClientSecurity.SECURE : v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
   );
 
   let lastError: Error | undefined;
