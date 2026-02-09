@@ -44,12 +44,12 @@ services:
     ports:
       - "3003:3003"
     depends_on:
+      inkeep-agents-doltgres-db:
+        condition: service_healthy
       inkeep-agents-postgres-db:
         condition: service_healthy
-      inkeep-agents-migrate:
-        condition: service_completed_successfully
       inkeep-agents-spicedb:
-        condition: service_started
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-doltgres-db:
@@ -108,10 +108,11 @@ services:
     command: serve
     restart: unless-stopped
     environment:
-      - SPICEDB_GRPC_PRESHARED_KEY
+      - SPICEDB_GRPC_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
       - SPICEDB_DATASTORE_ENGINE=postgres
       - SPICEDB_DATASTORE_CONN_URI=postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
       - SPICEDB_HTTP_ENABLED=true
+      - SPICEDB_TELEMETRY_ENDPOINT=""
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=:50051"]
       interval: 5s
