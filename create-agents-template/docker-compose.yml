@@ -90,7 +90,7 @@ services:
       - LOG_LEVEL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - SPICEDB_ENDPOINT=inkeep-agents-spicedb:50051
+      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
       - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
       - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
       - INKEEP_AGENTS_MANAGE_UI_USERNAME
@@ -107,15 +107,15 @@ services:
 
   # SpiceDB for authorization
   inkeep-agents-spicedb:
-    image: authzed/spicedb:v1.49.1
+    image: authzed/spicedb:latest
     command: serve
     restart: unless-stopped
     environment:
-      SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_PRESHARED_KEY:-dev-secret-key}
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
-      SPICEDB_HTTP_ENABLED: true
-      SPICEDB_TELEMETRY_ENDPOINT: ""
+      - SPICEDB_GRPC_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
+      - SPICEDB_HTTP_ENABLED=true
+      - SPICEDB_TELEMETRY_ENDPOINT=""
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=:50051"]
       interval: 5s
@@ -126,12 +126,12 @@ services:
         condition: service_completed_successfully
 
   inkeep-agents-spicedb-migrate:
-    image: authzed/spicedb:v1.49.1
+    image: authzed/spicedb:latest
     command: migrate head
     restart: "no"
     environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
     depends_on:
       inkeep-agents-spicedb-postgres-db:
         condition: service_healthy
@@ -140,9 +140,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: spicedb
-      POSTGRES_PASSWORD: spicedb
-      POSTGRES_DB: spicedb
+      - POSTGRES_USER=spicedb
+      - POSTGRES_PASSWORD=spicedb
+      - POSTGRES_DB=spicedb
     volumes:
       - inkeep-agents-spicedb-postgres-data:/var/lib/postgresql/data
     healthcheck:
