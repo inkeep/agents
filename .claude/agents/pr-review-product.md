@@ -242,7 +242,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
 - Use `category: "product"`.
 - Prefer these `type` choices:
   - `inline`: only when there is a concrete, low-risk, localized improvement (e.g., rename a confusing flag, improve an error message)
-  - `file`: when the issue is localized to one surface/file but not a ≤10-line fix
+  - `file`: when the issue is localized to one surface/file but not a ≤20-line fix
   - `multi-file`: when coherence/docs/templates span multiple files/surfaces
   - `system`: when the concern is about overall product shape/mental model rather than specific lines
 
