@@ -48,8 +48,10 @@ services:
         condition: service_healthy
       inkeep-agents-postgres-db:
         condition: service_healthy
+      inkeep-agents-migrate:
+        condition: service_completed_successfully
       inkeep-agents-spicedb:
-        condition: service_healthy
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-doltgres-db:
