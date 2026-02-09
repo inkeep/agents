@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-manage-mcp@0.47.2
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-mcp@0.47.2
+  - @inkeep/agents-work-apps@0.47.2
+
 ## 0.47.1
 
 ### Patch Changes
