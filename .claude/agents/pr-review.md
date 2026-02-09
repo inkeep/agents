@@ -412,7 +412,7 @@ when the problem is complex or context is needed.
 
 // Validated as strictly better — you confirmed these are accurate, legitimate improvements
 // But they are nitpicks or developer preference: the developer can reasonably choose not to apply
-// This is NOT for uncertain items — if you're unsure, research further before placing here
+// This is NOT for uncertain items — if you're unsure, research (web or code) further before placing here
 
 💭 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
 **Issue + Why:** 1-2 sentences combining issue and impact.
