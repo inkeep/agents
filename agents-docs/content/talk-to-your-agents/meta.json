@@ -5,6 +5,7 @@
     "mcp-server",
     "chat-api",
     "triggers",
+    "(work-apps)",
     "(chat-components)",
     "vercel-ai-sdk",
     "a2a",
