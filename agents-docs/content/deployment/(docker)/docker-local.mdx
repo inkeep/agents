@@ -77,9 +77,16 @@ NANGO_SECRET_KEY=
 # SigNoz
 SIGNOZ_API_KEY=
 
-# Default username and password for Manage UI (http://localhost:3000)
-# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+# Better Auth secret (paste your generated secret)
+BETTER_AUTH_SECRET=<your-generated-secret>
+
+# Initial admin credentials
+INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-8-chars-min>
+
+# SpiceDB connection, localhost. Can replace with cloud endpoint and preshared key
+SPICEDB_ENDPOINT=localhost:50051
+SPICEDB_PRESHARED_KEY=dev-secret-key
 ```
 
 <Snippet file="self-hosting/runtime-limits-note.mdx" />

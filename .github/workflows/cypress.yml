@@ -34,18 +34,18 @@ jobs:
           --health-retries 5
           --health-start-period 20s
       postgres:
-          image: postgres:18
-          env:
-            POSTGRES_DB: inkeep_agents
-            POSTGRES_USER: appuser
-            POSTGRES_PASSWORD: password
-          options: >-
-            --health-cmd "pg_isready -U appuser"
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
-          ports:
-            - 5433:5432
+        image: postgres:18
+        env:
+          POSTGRES_DB: inkeep_agents
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U appuser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
 
     steps:
       - name: Checkout code
@@ -100,6 +100,25 @@ jobs:
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
+      # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
+      - name: Start SpiceDB
+        run: |
+          docker run -d --name spicedb \
+            --network host \
+            -e SPICEDB_GRPC_PRESHARED_KEY=dev-secret-key \
+            -e SPICEDB_DATASTORE_ENGINE=memory \
+            -e SPICEDB_HTTP_ENABLED=true \
+            authzed/spicedb serve
+          echo "Waiting for SpiceDB to be ready..."
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 50051 2>/dev/null; then
+              echo "SpiceDB is ready!"
+              break
+            fi
+            echo "  Attempt $i/30..."
+            sleep 1
+          done
+
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests
         uses: ./.github/composite-actions/cypress-e2e
@@ -107,6 +126,11 @@ jobs:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: test-bypass-secret-for-ci
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: admin@example.com
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
+          BETTER_AUTH_SECRET: test-secret-key-for-ci
+          SPICEDB_PRESHARED_KEY: dev-secret-key

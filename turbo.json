@@ -59,6 +59,11 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
     },
+    "@inkeep/agents-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
+    },
     "test:watch": {
       "cache": false,
       "persistent": true
@@ -157,6 +162,11 @@
     },
     "check:husky": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
+      "cache": false,
+      "outputs": []
+    },
+    "check:prepush": {
+      "dependsOn": ["lint", "typecheck", "test"],
       "cache": false,
       "outputs": []
     }

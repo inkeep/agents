@@ -61,7 +61,7 @@ const ExecutionLimitInheritanceInfo = () => {
   );
 };
 
-function MetadataEditor() {
+export function MetadataEditor() {
   const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
@@ -75,13 +75,10 @@ function MetadataEditor() {
 
   const { markUnsaved, setMetadata } = useAgentActions();
 
-  const updateMetadata: typeof setMetadata = useCallback(
-    (...attrs) => {
-      setMetadata(...attrs);
-      markUnsaved();
-    },
-    [setMetadata, markUnsaved]
-  );
+  const updateMetadata: typeof setMetadata = useCallback((...attrs) => {
+    setMetadata(...attrs);
+    markUnsaved();
+  }, []);
 
   // Helper to get the latest models from the store to avoid stale closure race conditions
   const getCurrentModels = useCallback(() => {
@@ -602,5 +599,3 @@ function MetadataEditor() {
     </div>
   );
 }
-
-export default MetadataEditor;

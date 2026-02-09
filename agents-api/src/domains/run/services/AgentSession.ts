@@ -162,6 +162,7 @@ export interface ToolCallData {
   relationshipId?: string;
   needsApproval?: boolean;
   conversationId?: string;
+  inDelegatedAgent?: boolean;
 }
 
 export interface ToolResultData {
@@ -172,6 +173,7 @@ export interface ToolResultData {
   error?: string;
   relationshipId?: string;
   needsApproval?: boolean;
+  inDelegatedAgent?: boolean;
 }
 
 export interface CompressionEventData {
@@ -992,7 +994,7 @@ export class AgentSession {
                   type: z.literal('no_relevant_updates'),
                   data: z
                     .object({
-                      no_updates: z.boolean().default(true),
+                      no_updates: z.boolean(),
                     })
                     .describe(
                       'Use when nothing substantially new to report. Should only use on its own.'
@@ -1919,7 +1921,10 @@ export class AgentSessionManager {
   ): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      logger.warn({ sessionId }, 'Attempted to record event in non-existent session');
+      logger.warn(
+        { sessionId, eventType, subAgentId },
+        'Attempted to record event in non-existent session (likely session already ended)'
+      );
       return;
     }
 

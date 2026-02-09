@@ -3,7 +3,6 @@
 # SpiceDB Migration Script
 #
 # One-time migration to sync existing organizations and projects to SpiceDB.
-# Run this when first enabling ENABLE_AUTHZ=true in production.
 #
 # Prerequisites:
 #   - zed CLI installed (brew install authzed/tap/zed)

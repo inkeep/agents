@@ -17,7 +17,13 @@ const rawQueryPlugin: InlineConfig['plugins'] = {
 
 export default defineConfig({
   ...rootConfig,
-  entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
+  entry: [
+    'src/**/*.ts',
+    // tsdown’s entry glob uses tinyglobby with dot: false, so *.ts won’t match dot‑dirs
+    'src/**/.*/**/*.ts',
+    '!**/__tests__',
+    '!**/*.test.ts',
+  ],
   unbundle: true,
   format: 'esm',
   plugins: [rawQueryPlugin],

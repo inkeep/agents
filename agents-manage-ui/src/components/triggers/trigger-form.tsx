@@ -1,9 +1,13 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowDown, ArrowUp, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import {
+  validateJMESPath as coreValidateJMESPath,
+  validateRegex as coreValidateRegex,
+} from '@inkeep/agents-core/utils/signature-validation';
+import { ArrowDown, ArrowUp, Check, ChevronDown, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -12,6 +16,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { ProviderIcon } from '@/components/icons/provider-icon';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +36,19 @@ import { Switch } from '@/components/ui/switch';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
+
+// Adapter functions that convert ValidationResult to string | undefined for form validation
+const validateJMESPath = (value: string): string | undefined => {
+  if (!value.trim()) return undefined;
+  const result = coreValidateJMESPath(value);
+  return result.valid ? undefined : result.error;
+};
+
+const validateRegex = (value: string): string | undefined => {
+  if (!value.trim()) return undefined;
+  const result = coreValidateRegex(value);
+  return result.valid ? undefined : result.error;
+};
 
 // Transform type options
 const transformTypeOptions: SelectOption[] = [
@@ -200,6 +218,8 @@ const triggerFormSchema = z.object({
       })
     )
     .default([]),
+  // Signature verification toggle
+  signatureVerificationEnabled: z.boolean().default(false),
   // Credential reference for signing secret
   signingSecretCredentialReferenceId: z.string().optional(),
   // Signature verification algorithm and encoding
@@ -243,12 +263,12 @@ interface TriggerFormProps {
 
 export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: TriggerFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const showAuth = searchParams.get('showAuth') === 'true';
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState(true);
   const [signatureKeyError, setSignatureKeyError] = useState<string | undefined>();
   const [signatureRegexError, setSignatureRegexError] = useState<string | undefined>();
+  const [appliedPreset, setAppliedPreset] = useState<string | null>(null);
+  const [presetsExpanded, setPresetsExpanded] = useState(true);
 
   // Fetch available credentials (only project-scoped credentials are allowed for triggers)
   useEffect(() => {
@@ -291,6 +311,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         jmespath: '',
         objectTransformationJson: '',
         authHeaders: [],
+        signatureVerificationEnabled: false,
         signingSecretCredentialReferenceId: undefined,
         signatureAlgorithm: 'sha256',
         signatureEncoding: 'hex',
@@ -342,6 +363,10 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
 
     // Extract signature verification config from trigger
     const signatureVerification = (trigger as any).signatureVerification;
+    const hasSigningCredential = !!(trigger as any).signingSecretCredentialReferenceId;
+
+    // Signature verification is enabled if there's a signing credential configured
+    const signatureVerificationEnabled = hasSigningCredential || !!signatureVerification;
 
     return {
       id: trigger.id,
@@ -356,6 +381,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         ? JSON.stringify(outputTransform.objectTransformation, null, 2)
         : '',
       authHeaders,
+      signatureVerificationEnabled,
       signingSecretCredentialReferenceId:
         (trigger as any).signingSecretCredentialReferenceId || undefined,
       signatureAlgorithm: signatureVerification?.algorithm || 'sha256',
@@ -399,33 +425,6 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
   const transformType = form.watch('transformType');
   const signatureSource = form.watch('signatureSource');
 
-  // Validation functions for JMESPath and regex
-  const validateJMESPath = (value: string): string | undefined => {
-    if (!value.trim()) return undefined;
-
-    try {
-      // Simple JMESPath validation - check for basic syntax issues
-      // Full validation happens on the backend
-      if (value.includes('..') || value.includes('[[')) {
-        return 'Invalid JMESPath syntax';
-      }
-      return undefined;
-    } catch {
-      return 'Invalid JMESPath expression';
-    }
-  };
-
-  const validateRegex = (value: string): string | undefined => {
-    if (!value.trim()) return undefined;
-
-    try {
-      new RegExp(value);
-      return undefined;
-    } catch {
-      return 'Invalid regular expression';
-    }
-  };
-
   // Apply provider preset to form fields
   const applyPreset = (presetKey: string) => {
     const preset = providerPresets[presetKey];
@@ -455,8 +454,95 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
     form.setValue('joinStrategy', preset.joinStrategy);
     form.setValue('joinSeparator', preset.joinSeparator);
 
+    // Track applied preset and collapse presets section
+    setAppliedPreset(presetKey);
+    setPresetsExpanded(false);
+
     toast.success(`Applied ${preset.name} preset`);
   };
+
+  // Watch specific fields for request preview and conditional rendering
+  const watchedAuthHeaders = form.watch('authHeaders');
+  const watchedSignatureVerificationEnabled = form.watch('signatureVerificationEnabled');
+  const watchedSigningCredential = form.watch('signingSecretCredentialReferenceId');
+  const watchedSignatureKey = form.watch('signatureKey');
+  const watchedSignaturePrefix = form.watch('signaturePrefix');
+  const watchedSignatureAlgorithm = form.watch('signatureAlgorithm');
+  const watchedSignatureEncoding = form.watch('signatureEncoding');
+  const watchedSignedComponents = form.watch('signedComponents');
+  const watchedJoinSeparator = form.watch('joinSeparator');
+
+  // Generate request preview based on current form values
+  const generateRequestPreview = useMemo(() => {
+    const authHeaders = watchedAuthHeaders || [];
+    const signatureVerificationEnabled = watchedSignatureVerificationEnabled;
+    const signingCredential = watchedSigningCredential;
+    const signatureKey = watchedSignatureKey;
+    const signaturePrefix = watchedSignaturePrefix || '';
+    const signatureAlgorithm = watchedSignatureAlgorithm || 'sha256';
+    const signatureEncoding = watchedSignatureEncoding || 'hex';
+    const signedComponents = watchedSignedComponents || [];
+    const joinSeparator = watchedJoinSeparator || '';
+
+    const lines: string[] = [];
+
+    // HTTP method and path
+    lines.push('POST /api/v1/webhooks/trigger/{trigger-id}');
+    lines.push('Content-Type: application/json');
+
+    // Auth headers
+    for (const header of authHeaders) {
+      if (header.name) {
+        lines.push(`${header.name}: ••••••••`);
+      }
+    }
+
+    // Signature header if configured and enabled
+    if (signatureVerificationEnabled && signingCredential && signatureKey) {
+      lines.push(`${signatureKey}: ${signaturePrefix}<${signatureAlgorithm}-hmac>`);
+
+      // Add any timestamp headers from signed components
+      for (const comp of signedComponents) {
+        if (comp.source === 'header' && comp.key && comp.key !== signatureKey) {
+          lines.push(`${comp.key}: <timestamp-or-value>`);
+        }
+      }
+    }
+
+    lines.push('');
+    lines.push('{');
+    lines.push('  "event": "example.event",');
+    lines.push('  "data": { ... }');
+    lines.push('}');
+
+    // Add signature computation explanation if configured and enabled
+    if (signatureVerificationEnabled && signingCredential && signedComponents.length > 0) {
+      lines.push('');
+      lines.push('---');
+      lines.push('Signature computed from:');
+      const componentDescriptions = signedComponents.map((comp) => {
+        if (comp.source === 'body') return '<request-body>';
+        if (comp.source === 'literal') return `"${comp.value || ''}"`;
+        if (comp.source === 'header') return `<${comp.key || 'header'}-value>`;
+        return '<component>';
+      });
+      lines.push(`  ${componentDescriptions.join(` ${joinSeparator || '+'} `)}`);
+      lines.push(`  Algorithm: HMAC-${signatureAlgorithm.toUpperCase()}`);
+      lines.push(`  Encoding: ${signatureEncoding}`);
+    }
+
+    return lines.join('\n');
+  }, [
+    watchedAuthHeaders,
+    watchedSignatureVerificationEnabled,
+    watchedSigningCredential,
+    watchedSignatureKey,
+    watchedSignaturePrefix,
+    watchedSignatureAlgorithm,
+    watchedSignatureEncoding,
+    watchedSignedComponents,
+    watchedJoinSeparator,
+  ]);
 
   const onSubmit = async (data: TriggerFormData) => {
     try {
@@ -524,9 +610,10 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
       // Trim messageTemplate to match backend validation behavior
       const trimmedMessageTemplate = data.messageTemplate?.trim() || '';
 
-      // Build signature verification config
+      // Build signature verification config (only if enabled)
       let signatureVerification: any;
       if (
+        data.signatureVerificationEnabled &&
         data.signingSecretCredentialReferenceId &&
         data.signatureAlgorithm &&
         data.signatureEncoding &&
@@ -589,9 +676,11 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         outputTransform,
         // Only include auth-related fields when they have actual values
         ...(headersToSend.length > 0 && { authentication }),
-        ...(data.signingSecretCredentialReferenceId && {
-          signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId,
-        }),
+        // Only include signing credential and verification when enabled
+        ...(data.signatureVerificationEnabled &&
+          data.signingSecretCredentialReferenceId && {
+            signingSecretCredentialReferenceId: data.signingSecretCredentialReferenceId,
+          }),
         ...(signatureVerification && { signatureVerification }),
       };
 
@@ -702,6 +791,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                     onChange={field.onChange}
                     placeholder={`{\n  "type": "object",\n  "properties": {\n    "event": { "type": "string" }\n  }\n}`}
                     error={fieldState.error?.message}
+                    className="min-w-0"
                   />
                   <FormMessage />
                 </FormItem>
@@ -727,6 +817,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               label="Transform Type"
               options={transformTypeOptions}
               placeholder="Select transform type"
+              selectTriggerClassName="w-full"
             />
 
             {transformType === 'object_transformation' && (
@@ -779,103 +870,215 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           </CardContent>
         </Card>
 
-        {/* Authentication - hidden by default, add ?showAuth=true to URL to show */}
-        {showAuth && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Authentication</CardTitle>
-              <CardDescription>
-                Configure header-based authentication for incoming webhook requests. Add one or more
-                headers that must be present and match the expected values.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Header list */}
-              <div className="space-y-3">
-                {fields.map((field, index) => {
-                  const existingPrefix = form.getValues(`authHeaders.${index}.existingValuePrefix`);
-                  const hasExistingValue = Boolean(existingPrefix);
+        {/* Authentication Headers */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Headers (Optional)</CardTitle>
+            <CardDescription>
+              Configure header-based authentication for incoming webhook requests. Add one or more
+              headers that must be present and match the expected values.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Header list */}
+            <div className="space-y-3">
+              {fields.map((field, index) => {
+                const existingPrefix = form.getValues(`authHeaders.${index}.existingValuePrefix`);
+                const hasExistingValue = Boolean(existingPrefix);
 
-                  return (
-                    <div key={field.id} className="space-y-2">
-                      <div className="flex gap-3 items-start">
-                        <FormField
-                          control={form.control}
-                          name={`authHeaders.${index}.name`}
-                          render={({ field: inputField }) => (
-                            <FormItem className="flex-1">
-                              {index === 0 && <FormLabel>Header Name</FormLabel>}
-                              <FormControl>
-                                <Input {...inputField} placeholder="e.g., X-API-Key" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`authHeaders.${index}.value`}
-                          render={({ field: inputField }) => (
-                            <FormItem className="flex-1">
-                              {index === 0 && <FormLabel>Header Value</FormLabel>}
-                              <FormControl>
-                                <Input
-                                  {...inputField}
-                                  type="password"
-                                  placeholder={
-                                    hasExistingValue
-                                      ? 'Enter new value to update'
-                                      : 'Enter expected value'
-                                  }
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => remove(index)}
-                          className={index === 0 ? 'mt-8' : ''}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      {hasExistingValue && (
-                        <div className="flex items-center gap-2 ml-1">
-                          <Badge variant="secondary" className="text-xs font-normal gap-1.5">
-                            <KeyRound className="h-3 w-3" />
-                            <span>
-                              Configured: <code className="font-mono">{existingPrefix}••••</code>
-                            </span>
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            Leave blank to keep existing value
+                return (
+                  <div key={field.id} className="space-y-2">
+                    <div className="flex gap-3 items-start">
+                      <FormField
+                        control={form.control}
+                        name={`authHeaders.${index}.name`}
+                        render={({ field: inputField }) => (
+                          <FormItem className="flex-1">
+                            {index === 0 && <FormLabel>Header Name</FormLabel>}
+                            <FormControl>
+                              <Input {...inputField} placeholder="e.g., X-API-Key" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`authHeaders.${index}.value`}
+                        render={({ field: inputField }) => (
+                          <FormItem className="flex-1">
+                            {index === 0 && <FormLabel>Header Value</FormLabel>}
+                            <FormControl>
+                              <Input
+                                {...inputField}
+                                type="password"
+                                placeholder={
+                                  hasExistingValue
+                                    ? 'Enter new value to update'
+                                    : 'Enter expected value'
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(index)}
+                        className={index === 0 ? 'mt-[22px]' : ''}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {hasExistingValue && (
+                      <div className="flex items-center gap-2 ml-1">
+                        <Badge variant="secondary" className="text-xs font-normal gap-1.5">
+                          <KeyRound className="h-3 w-3" />
+                          <span>
+                            Configured: <code className="font-mono">{existingPrefix}••••</code>
                           </span>
-                        </div>
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Leave blank to keep existing value
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
+            >
+              <Plus className="h-4 w-4" />
+              Add Required Header
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Signature Verification */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Signature Verification</CardTitle>
+            <CardDescription>
+              Enable HMAC signature verification to ensure webhook requests are authentic and
+              haven't been tampered with.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Enable/Disable Toggle */}
+            <FormField
+              control={form.control}
+              name="signatureVerificationEnabled"
+              render={({ field }) => (
+                // relative is needed b/c of the absolute positioning of the switch
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 relative">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Enable Signature Verification</FormLabel>
+                    <FormDescription>
+                      When enabled, incoming webhook requests must include a valid HMAC signature.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Signature Verification Configuration - only shown when enabled */}
+            {watchedSignatureVerificationEnabled && (
+              <div className="space-y-4 pt-4 border-t">
+                {/* Provider Presets */}
+                <Collapsible
+                  open={presetsExpanded}
+                  onOpenChange={setPresetsExpanded}
+                  className="rounded-lg border p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium">Quick Setup Presets</h4>
+                      {appliedPreset && (
+                        <Badge variant="secondary" className="text-xs gap-1">
+                          <Check className="h-3 w-3" />
+                          {providerPresets[appliedPreset]?.name}
+                        </Badge>
                       )}
                     </div>
-                  );
-                })}
-              </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${presetsExpanded ? '' : '-rotate-90'}`}
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent className="pt-3 space-y-3">
+                    <FormDescription>
+                      Apply a preset configuration for common webhook providers. This will auto-fill
+                      all signature verification fields.
+                    </FormDescription>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={appliedPreset === 'github' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => applyPreset('github')}
+                        className="justify-start gap-2"
+                      >
+                        <ProviderIcon provider="github" size={16} />
+                        GitHub
+                        {appliedPreset === 'github' && <Check className="h-3 w-3 ml-auto" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={appliedPreset === 'slack' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => applyPreset('slack')}
+                        className="justify-start gap-2"
+                      >
+                        <ProviderIcon provider="slack" size={16} />
+                        Slack
+                        {appliedPreset === 'slack' && <Check className="h-3 w-3 ml-auto" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={appliedPreset === 'zendesk' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => applyPreset('zendesk')}
+                        className="justify-start gap-2"
+                      >
+                        <ProviderIcon provider="zendesk" size={16} />
+                        Zendesk
+                        {appliedPreset === 'zendesk' && <Check className="h-3 w-3 ml-auto" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={appliedPreset === 'stripe' ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => applyPreset('stripe')}
+                        className="justify-start gap-2"
+                      >
+                        <ProviderIcon provider="stripe" size={16} />
+                        Stripe
+                        {appliedPreset === 'stripe' && <Check className="h-3 w-3 ml-auto" />}
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ name: '', value: '', existingValuePrefix: undefined })}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Required Header
-              </Button>
-
-              <div className="pt-4 border-t space-y-3">
+                {/* Signing Secret Credential */}
                 <GenericSelect
                   control={form.control}
                   name="signingSecretCredentialReferenceId"
-                  label="Signing Secret Credential (Optional)"
+                  label="Signing Secret Credential"
                   options={credentials}
                   placeholder={
                     loadingCredentials
@@ -885,59 +1088,12 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                         : 'Select a credential'
                   }
                   disabled={loadingCredentials}
+                  isRequired
+                  description="Select a project-scoped credential that contains the HMAC signing secret for webhook signature verification."
                 />
-                <FormDescription>
-                  Select a project-scoped credential that contains the HMAC signing secret for
-                  webhook signature verification. If provided, webhook requests must include a valid
-                  signature header. Only project-scoped credentials can be used with triggers;
-                  user-scoped credentials are not supported.
-                </FormDescription>
-
-                {/* Provider Presets */}
-                <div className="pt-4 border-t space-y-3">
-                  <h4 className="text-sm font-medium">Quick Setup Presets</h4>
-                  <FormDescription>
-                    Apply a preset configuration for common webhook providers. This will auto-fill
-                    all signature verification fields.
-                  </FormDescription>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyPreset('github')}
-                    >
-                      GitHub
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyPreset('slack')}
-                    >
-                      Slack
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyPreset('zendesk')}
-                    >
-                      Zendesk
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyPreset('stripe')}
-                    >
-                      Stripe
-                    </Button>
-                  </div>
-                </div>
 
                 {/* Algorithm and Encoding selectors */}
-                <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="signatureAlgorithm"
@@ -1287,7 +1443,7 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                       })
                     }
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4" />
                     Add Signed Component
                   </Button>
 
@@ -1411,6 +1567,25 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   </div>
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Request Preview */}
+        {((watchedAuthHeaders && watchedAuthHeaders.length > 0) ||
+          (watchedSignatureVerificationEnabled && watchedSigningCredential)) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Request Preview</CardTitle>
+              <CardDescription>
+                Example of what an incoming webhook request should look like based on your
+                configuration. Secrets are not shown.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="bg-muted p-4 rounded-md overflow-x-auto text-sm font-mono whitespace-pre">
+                {generateRequestPreview}
+              </pre>
             </CardContent>
           </Card>
         )}

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-api",
-  "version": "0.42.0",
+  "version": "0.47.2",
   "description": "Unified Inkeep Agents API - combines management, runtime, and evaluation capabilities",
   "types": "dist/index.d.ts",
   "exports": {
@@ -32,6 +32,7 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
+    "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies --files",
     "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
     "well-known:copy": "tsx scripts/copy-well-known.ts",
     "dev": "pnpm workflow:build && vite",
@@ -41,26 +42,22 @@
     "test:integration": "vitest --run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
-    "openapi:update-snapshot": "UPDATE_OPENAPI_SNAPSHOT=true vitest --run src/__tests__/openapi.test.ts",
+    "openapi:update-snapshot": "vitest --run src/__tests__/openapi.test.ts -u",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.7",
-    "@ai-sdk/gateway": "3.0.9",
     "@ai-sdk/google": "3.0.4",
-    "@ai-sdk/openai": "3.0.7",
-    "@ai-sdk/openai-compatible": "2.0.4",
     "@hono/mcp": "^0.1.5",
-    "@hono/otel": "^0.4.0",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.1.5",
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-mcp": "workspace:^",
+    "@inkeep/agents-mcp": "workspace:^",
+    "@inkeep/agents-work-apps": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.25.2",
-    "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.64.1",
     "@opentelemetry/baggage-span-processor": "^0.4.0",
@@ -82,9 +79,10 @@
     "axios": "^1.13.2",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.10.4",
+    "hono": "^4.11.7",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
+    "jose": "^6.1.0",
     "llm-info": "^1.0.69",
     "openid-client": "^6.8.1",
     "pg": "^8.16.3",
@@ -92,7 +90,7 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.20.1",

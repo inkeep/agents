@@ -510,11 +510,12 @@ export const createTaskHandler = (
         }
       }
 
-      const parts: Part[] = (response.formattedContent?.parts || []).map((part: any) => ({
-        kind: part.kind as 'text' | 'data',
-        ...(part.kind === 'text' && { text: part.text }),
-        ...(part.kind === 'data' && { data: part.data }),
-      }));
+      const parts: Part[] = (response.formattedContent?.parts || []).map((part: any): Part => {
+        if (part.kind === 'data') {
+          return { kind: 'data' as const, data: part.data };
+        }
+        return { kind: 'text' as const, text: part.text };
+      });
 
       return {
         status: { state: TaskState.Completed },

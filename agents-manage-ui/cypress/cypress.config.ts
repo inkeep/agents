@@ -1,9 +1,18 @@
 import fs from 'node:fs/promises';
 import { defineConfig } from 'cypress';
 
+process.loadEnvFile('../../.env');
+
 export default defineConfig({
+  // Fix: We detected that the Chrome Renderer process just crashed.
+  experimentalFastVisibility: true,
+  numTestsKeptInMemory: 40,
   // Default is Electron, we choose Chrome instead
   defaultBrowser: 'chrome',
+  env: {
+    TEST_USER_EMAIL: process.env.INKEEP_AGENTS_MANAGE_UI_USERNAME,
+    TEST_USER_PASSWORD: process.env.INKEEP_AGENTS_MANAGE_UI_PASSWORD,
+  },
   e2e: {
     video: true,
     baseUrl: 'http://localhost:3000',

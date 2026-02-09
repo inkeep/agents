@@ -64,7 +64,7 @@ Navigate to the **Activities Planner** agent at http://localhost:3000 and ask ab
 
 ### Next steps
 
+- Set up [AI coding for Inkeep](https://docs.inkeep.com/get-started/ai-coding-setup-for-ide) with skills and MCP.
 - Learn about [inkeep push / pull](https://docs.inkeep.com/get-started/push-pull) so you can go from `SDK -> Visual Builder` and `Visual Builder -> SDK`.
 - Follow our [meeting prep agent tutorial](https://docs.inkeep.com/tutorials/agents/meeting-prep-assistant) to create an agent using the Visual Builder.
 - Follow our [fact finder agent tutorial](https://docs.inkeep.com/tutorials/agents/fact-finder) to create an agent using the TypeScript SDK.
-- Install the [Inkeep MCP](https://docs.inkeep.com/get-started/inkeep-mcp) in your IDE to enable AI coding assistants to "vibe code" your Inkeep agents.

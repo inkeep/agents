@@ -1,5 +1,9 @@
-// Provider icons - update this list to match exactly what you get from `ls` in the provider-icons directory
-const COMMON_PROVIDER_ICONS = new Set([
+/**
+ * Provider icons - update this list to match exactly what you get from `ls` in the provider-icons directory
+ *
+ * Export for tests
+ */
+export const ICONS_NAMES = [
   '1password',
   '1password-scim',
   'accelo',
@@ -564,7 +568,9 @@ const COMMON_PROVIDER_ICONS = new Set([
   'zoom',
   'zoominfo',
   'zuora',
-]);
+];
+
+const COMMON_PROVIDER_ICONS = new Set(ICONS_NAMES);
 
 /**
  * Get the best matching icon for a provider string
@@ -600,11 +606,4 @@ export function getProviderIcon(provider: string): string | null {
 
   // 4. No match found
   return null;
-}
-
-/**
- * Get all available provider icons (for debugging/admin purposes)
- */
-export function getAllProviderIcons(): string[] {
-  return Array.from(COMMON_PROVIDER_ICONS).sort();
 }

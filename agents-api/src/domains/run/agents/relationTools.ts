@@ -289,6 +289,7 @@ export function createDelegateToAgentTool({
           [SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID]: callingAgentId,
           [SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID]: delegateConfig.config.id ?? 'unknown',
           [SPAN_KEYS.DELEGATION_ID]: delegationId,
+          [SPAN_KEYS.DELEGATION_TYPE]: delegateConfig.type,
         });
       }
 

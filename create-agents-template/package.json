@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "mprocs",
-    "dev:all": "concurrently \"turbo dev --filter manage-api-quickstart --filter run-api-quickstart --filter mcp-quickstart\" \"inkeep dev\" \"wait-on http://localhost:3000 && node scripts/show-services.js\" --names \"APIs,Dashboard,Info\" --prefix-colors \"blue,green,magenta\" --success first",
-    "dev:apis": "turbo dev --filter manage-api-quickstart --filter run-api-quickstart",
+    "dev:all": "concurrently \"turbo dev --filter agents-api-quickstart --filter mcp-quickstart\" \"inkeep dev\" \"wait-on http://localhost:3000 && node scripts/show-services.js\" --names \"API,Dashboard,Info\" --prefix-colors \"blue,green,magenta\" --success first",
+    "dev:api": "turbo dev --filter agents-api-quickstart",
     "dev:ui": "inkeep dev",
     "dev:mcp": "turbo dev --filter mcp-quickstart",
     "db:migrate": "pnpm db:manage:migrate && pnpm db:run:migrate",
@@ -18,19 +18,20 @@
     "postinstall": "node scripts/postinstall.ts --experimental-strip-types",
     "setup-dev": "node scripts/setup.js",
     "setup-dev:cloud": "node scripts/setup.js --cloud",
-    "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh"
+    "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh",
+    "db:auth:init": "node node_modules/@inkeep/agents-core/dist/auth/init.js"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.42.0",
-    "@inkeep/agents-manage-ui": "^0.42.0",
-    "@inkeep/agents-sdk": "^0.42.0",
+    "@inkeep/agents-core": "^0.47.2",
+    "@inkeep/agents-manage-ui": "^0.47.2",
+    "@inkeep/agents-sdk": "^0.47.2",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
     "tailwindcss": "^4.1.14",
-    "zod": "^4.1.5"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@inkeep/agents-cli": "^0.42.0",
+    "@inkeep/agents-cli": "^0.47.2",
     "@types/node": "^22.13.14",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",

@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { AuthClientProvider } from '@/contexts/auth-client';
 import { PostHogProvider } from '@/contexts/posthog';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config';
@@ -37,31 +38,33 @@ export const metadata: Metadata = {
   },
   description:
     "Inkeep's multi-agent framework enables multiple specialized AI agents to collaborate and solve complex problems through an agent-based architecture. You can define networks of agents, each with unique instructions, tools, and purposes.",
-  metadataBase: new URL('https://pilot.inkeep.com'),
   keywords: ['agents', 'ai', 'framework', 'sdk', 'inkeep'],
   generator: 'Next.js',
   applicationName: APP_NAME,
   appleWebApp: {
     title: APP_NAME,
   },
-  openGraph: {
-    // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
-    url: './',
-    siteName: APP_NAME,
-    locale: 'en_US',
-    type: 'website',
-  },
   other: {
-    'msapplication-TileColor': '#69a3ff',
+    'msapplication-TileColor': INKEEP_BRAND_COLOR,
   },
   twitter: {
-    creator: '@inkeep',
-    site: 'https://inkeep.com',
+    creator: process.env.METADATA_TWITTER_CREATOR || '@inkeep',
+    site: process.env.METADATA_TWITTER_SITE || 'https://inkeep.com',
   },
-  alternates: {
-    // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
-    canonical: './',
-  },
+  ...(process.env.METADATA_BASE_URL && {
+    metadataBase: new URL(process.env.METADATA_BASE_URL),
+    openGraph: {
+      // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
+      url: './',
+      siteName: APP_NAME,
+      locale: 'en_US',
+      type: 'website',
+    },
+    alternates: {
+      // https://github.com/vercel/next.js/discussions/50189#discussioncomment-10826632
+      canonical: './',
+    },
+  }),
 };
 
 const runtimeConfig: RuntimeConfig = {
@@ -92,8 +95,6 @@ const runtimeConfig: RuntimeConfig = {
   PUBLIC_AUTH0_DOMAIN: process.env.PUBLIC_AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
   PUBLIC_GOOGLE_CLIENT_ID:
     process.env.PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-  PUBLIC_DISABLE_AUTH:
-    process.env.PUBLIC_DISABLE_AUTH || process.env.NEXT_PUBLIC_DISABLE_AUTH || 'true',
   PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT:
     process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
     process.env.NEXT_PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||

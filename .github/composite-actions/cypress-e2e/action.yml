@@ -28,17 +28,11 @@ runs:
     - run: pnpm setup-dev
       shell: bash
 
-    - name: Seed default organization for CI
-      shell: bash
-      run: |
-        PGPASSWORD=password psql -h localhost -p 5433 -U appuser -d inkeep_agents -c "
-          INSERT INTO organization (id, name, slug, created_at)
-          VALUES ('default', 'Default Organization', 'default', NOW())
-          ON CONFLICT (id) DO NOTHING;
-        "
-
     - name: Start backend API server
       shell: bash
+      env:
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
+        BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
       run: pnpm dev --filter='@inkeep/agents-api' & # & means run job in background
 
     - name: Wait for API server to be ready
@@ -68,6 +62,8 @@ runs:
 
     - name: Push Weather Example Project
       shell: bash
+      env:
+        INKEEP_API_KEY: ${{ env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET }}
       run: cd agents-cookbook/template-projects && npx inkeep push --project weather-project
 
     - name: Run Cypress E2E Tests

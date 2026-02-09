@@ -1,5 +1,186 @@
 # @inkeep/agents-api
 
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-manage-mcp@0.47.2
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-mcp@0.47.2
+  - @inkeep/agents-work-apps@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-work-apps@0.47.1
+  - @inkeep/agents-manage-mcp@0.47.1
+  - @inkeep/agents-mcp@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-work-apps@0.47.0
+  - @inkeep/agents-manage-mcp@0.47.0
+  - @inkeep/agents-mcp@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 7fd85b6: Refactor: Consolidate to single-phase generation
+
+  - Removed Phase 2 infrastructure (Phase2Config.ts, phase2/ template directories, thinking-preparation.xml)
+  - Moved data component templates from phase2/ to shared/ for single-phase use
+  - Updated Phase1Config to handle data components inline
+  - Added model recommendations docs for data components (recommend Sonnet 4+, Opus 4+, GPT-4.1/5.1/5.2, Gemini 3.0 Pro)
+
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+- Updated dependencies [6139d11]
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-work-apps@0.46.1
+  - @inkeep/agents-manage-mcp@0.46.1
+  - @inkeep/agents-mcp@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+- 016d9dc: Fix internal A2A and self-referencing calls to use in-process fetch transport instead of network loopback, ensuring same-instance execution for features relying on process-local state like SSE stream registries
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-mcp@0.46.0
+  - @inkeep/agents-mcp@0.46.0
+  - @inkeep/agents-work-apps@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+- Updated dependencies [4a83260]
+- Updated dependencies [37248c6]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-work-apps@0.45.3
+  - @inkeep/agents-manage-mcp@0.45.3
+  - @inkeep/agents-mcp@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+  - @inkeep/agents-work-apps@0.45.2
+  - @inkeep/agents-manage-mcp@0.45.2
+  - @inkeep/agents-mcp@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- Updated dependencies [54b2d4c]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-work-apps@0.45.1
+  - @inkeep/agents-manage-mcp@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-mcp@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- 0626128: adjust manage api routes
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- Updated dependencies [0ef70dd]
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-work-apps@0.45.0
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-mcp@0.45.0
+  - @inkeep/agents-mcp@0.45.0
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+  - @inkeep/agents-work-apps@0.44.0
+  - @inkeep/agents-manage-mcp@0.44.0
+  - @inkeep/agents-mcp@0.44.0
+
+## 0.43.0
+
+### Patch Changes
+
+- 57c5da1: Fix trigger HMAC signature verification to support Nango credential references for cloud deployments
+- e4077a0: Remove duplicate route
+- 5f432f9: stats page
+- eef0a3f: new OAuth callback route
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 5ffbf6b: trigger traces
+- 05a8a12: adding authorization checks and spicedb setup
+- c7fa88a: Fix trigger invocation flow: correct agent lookup from Record structure, fix database client usage for conversations/messages, and improve error serialization in logs. Default workflow world to 'local' for development when WORKFLOW_TARGET_WORLD is not set.
+- caad379: Add github token exchange endpoint
+- 800cba5: chore(agents-api): reduce OpenAPI tags
+- c145cb3: fix(agents-api): remove unused files with knip
+- caefccc: improve mcp servers page loading
+- 720d42f: trigger fix for vercel
+- 4b3eb21: fix(agents-api): compile directories which starts with dots
+- 0fff69c: Updated openapi snapshot
+- 5f66967: triggers for vercel
+- 8160ded: improve loading mcps in agent page
+- Updated dependencies [de9bed1]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [05a8a12]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [31b3310]
+- Updated dependencies [5f66967]
+- Updated dependencies [de5f12c]
+- Updated dependencies [8160ded]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+  - @inkeep/agents-manage-mcp@0.43.0
+  - @inkeep/agents-mcp@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

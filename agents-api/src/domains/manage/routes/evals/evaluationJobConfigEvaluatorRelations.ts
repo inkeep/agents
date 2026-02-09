@@ -9,10 +9,19 @@ import {
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigEvaluatorRelations');
+
+// Require edit permission for write operations
+app.use('/:configId/evaluators/:evaluatorId', async (c, next) => {
+  if (['POST', 'DELETE'].includes(c.req.method)) {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

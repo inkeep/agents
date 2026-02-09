@@ -11,6 +11,13 @@ Function tools allow you to create custom JavaScript functions that agents can e
   [Tool approvals](/typescript-sdk/tools/tool-approvals).
 </Tip>
 
+<SkillRule
+  id="function-tools-overview"
+  skills="typescript-sdk"
+  title="Function Tools Overview"
+  description="Use cases and how to create function tools"
+>
+
 ## Overview
 
 Function tools are perfect for:
@@ -154,6 +161,15 @@ Function tools use JSON Schema to validate input parameters. This ensures your f
 }
 ```
 
+</SkillRule>
+
+<SkillRule
+  id="function-tools-execution"
+  skills="typescript-sdk"
+  title="Function Tools Execution Environment"
+  description="Sandbox providers, runtime configuration, and security guarantees"
+>
+
 ## Execution Environment
 
 Function tools run in secure, isolated sandboxes that provide a safe execution environment for your code.
@@ -201,3 +217,5 @@ Function tools execute with strong security guarantees:
 - **Handle errors gracefully** - Always catch and return meaningful errors
 - **Test independently** - Functions should be testable in isolation
 - **Document thoroughly** - Clear descriptions help agents use tools effectively
+
+</SkillRule>

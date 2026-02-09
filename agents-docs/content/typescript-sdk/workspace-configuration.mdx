@@ -4,6 +4,13 @@ description: Learn how to configure your workspace
 icon: LuSettings
 ---
 
+<SkillRule
+  id="workspace-config-overview"
+  skills="typescript-sdk"
+  title="Workspace Configuration File"
+  description="Structure and options for inkeep.config.ts"
+>
+
 ## Overview
 
 The `inkeep.config.ts` file at the workspace root defines settings for all projects in this workspace. See [Project Management](/typescript-sdk/project-management) for where this file should be placed.
@@ -26,15 +33,18 @@ export default defineConfig({
 });
 ```
 
-<AutoTypeTable
-  path="./content/typescript-sdk/types.ts"
-  name="NestedInkeepConfig"
-/>
+<AutoTypeTable name="default" type="export { NestedInkeepConfig as default } from '@inkeep/agents-cli/config'" />
 
-<AutoTypeTable
-  path="./content/typescript-sdk/types.ts"
-  name="ApiConfig"
-/>
+<AutoTypeTable name="default" type="export { ApiConfig as default } from '@inkeep/agents-cli/config'" />
+
+</SkillRule>
+
+<SkillRule
+  id="config-hierarchy"
+  skills="typescript-sdk"
+  title="Configuration Priority Hierarchy"
+  description="How CLI flags, env vars, and config file values are resolved"
+>
 
 ## Configuration hierarchy
 
@@ -85,6 +95,8 @@ inkeep push
 | `INKEEP_TENANT_ID` | `tenantId` | Tenant identifier |
 | `INKEEP_AGENTS_MANAGE_API_URL` | `agentsManageApiUrl` | Management API URL |
 | `INKEEP_AGENTS_RUN_API_URL` | `agentsRunApiUrl` | Runtime API URL |
+
+</SkillRule>
 
 ### 3. Config File Values
 

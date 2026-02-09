@@ -15,8 +15,10 @@ import type {
 import {
   createKeyChainStore,
   createMessage,
+  createNangoCredentialStore,
   createOrGetConversation,
   createTriggerInvocation,
+  DEFAULT_NANGO_STORE_ID,
   generateId,
   getConversationId,
   getCredentialReference,
@@ -31,15 +33,28 @@ import {
   verifyTriggerAuth,
   withRef,
 } from '@inkeep/agents-core';
-import { propagation, ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, SpanStatusCode } from '@opentelemetry/api';
 import Ajv from 'ajv';
 import type { Context } from 'hono';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { tracer } from '../utils/tracer';
+
+// Import waitUntil synchronously (only available on Vercel)
+let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+if (process.env.VERCEL) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    ({ waitUntil } = require('@vercel/functions'));
+  } catch {
+    // Not on Vercel or package not available
+  }
+}
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
@@ -232,7 +247,6 @@ async function resolveSigningSecret(params: {
   }
 
   // Create the credential store and fetch the secret
-  // For now we support keychain store - the credential store registry should be used for more flexibility
   let secret: string | null = null;
 
   if (
@@ -243,6 +257,41 @@ async function resolveSigningSecret(params: {
       credentialRef.credentialStoreId ?? 'keychain-default'
     );
     secret = await keychainStore.get(lookupKey);
+  } else if (
+    credentialRef.type === 'nango' ||
+    credentialRef.credentialStoreId?.startsWith('nango')
+  ) {
+    // Nango store support for cloud deployments
+    const nangoSecretKey = process.env.NANGO_SECRET_KEY;
+    if (!nangoSecretKey) {
+      logger.warn(
+        { tenantId, projectId, credentialReferenceId },
+        'NANGO_SECRET_KEY not configured, cannot resolve Nango credential'
+      );
+      return null;
+    }
+
+    try {
+      const nangoStore = createNangoCredentialStore(
+        credentialRef.credentialStoreId ?? DEFAULT_NANGO_STORE_ID,
+        {
+          secretKey: nangoSecretKey,
+          apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
+        }
+      );
+      secret = await nangoStore.get(lookupKey);
+    } catch (error) {
+      logger.error(
+        {
+          tenantId,
+          projectId,
+          credentialReferenceId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        'Failed to create or fetch from Nango credential store'
+      );
+      return null;
+    }
   } else {
     logger.warn(
       {
@@ -471,26 +520,6 @@ async function dispatchExecution(params: {
   const conversationId = getConversationId();
   const invocationId = generateId();
 
-  // Set trigger-related attributes on the HTTP request span
-  // These attributes are used by the trace UI to identify trigger invocations
-  const activeSpan = trace.getActiveSpan();
-  if (activeSpan) {
-    activeSpan.setAttributes({
-      'conversation.id': conversationId,
-      'tenant.id': tenantId,
-      'project.id': projectId,
-      'agent.id': agentId,
-      // Trigger-specific attributes used by the trace UI
-      'invocation.type': 'trigger',
-      'trigger.id': triggerId,
-      'trigger.invocation.id': invocationId,
-      // Message attributes for display in traces
-      'message.content': userMessageText,
-      'message.timestamp': new Date().toISOString(),
-      'message.parts': JSON.stringify(messageParts),
-    });
-  }
-
   // Create invocation record (status: pending)
   // Note: transformedPayload can be any JSON value (object, array, primitive) from JMESPath transforms
   await createTriggerInvocation(runDbClient)({
@@ -510,7 +539,8 @@ async function dispatchExecution(params: {
     'Trigger invocation created'
   );
 
-  // Create the execution promise
+  // Wrap agent execution in a single promise protected by waitUntil
+  // The trigger.message_received span is created inside executeAgentAsync
   const executionPromise = executeAgentAsync({
     tenantId,
     projectId,
@@ -525,14 +555,8 @@ async function dispatchExecution(params: {
 
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
-  if (process.env.VERCEL) {
-    import('@vercel/functions')
-      .then(({ waitUntil }) => {
-        waitUntil(executionPromise);
-      })
-      .catch((err) => {
-        logger.error({ err }, 'Failed to import @vercel/functions');
-      });
+  if (waitUntil) {
+    waitUntil(executionPromise);
   } else {
     // For local/non-Vercel: fire-and-forget with error logging
     executionPromise.catch((error) => {
@@ -580,61 +604,87 @@ async function executeAgentAsync(params: {
     resolvedRef,
   } = params;
 
-  const tracer = trace.getTracer('trigger-service');
+  // Load project FIRST to get agent name
+  const project = await withRef(manageDbPool, resolvedRef, async (db) => {
+    return await getFullProjectWithRelationIds(db)({
+      scopes: { tenantId, projectId },
+    });
+  });
 
-  // Create baggage for context propagation to child spans
+  if (!project) {
+    throw new Error(`Project ${projectId} not found`);
+  }
+
+  // Find the agent's default sub-agent
+  const agent = project.agents?.[agentId];
+  if (!agent) {
+    throw new Error(`Agent ${agentId} not found in project`);
+  }
+  const defaultSubAgentId = agent.defaultSubAgentId;
+  if (!defaultSubAgentId) {
+    throw new Error(`Agent ${agentId} has no default sub-agent configured`);
+  }
+
+  const agentName = agent.name;
+
+  // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
     .createBaggage()
+    .setEntry('conversation.id', { value: conversationId })
     .setEntry('tenant.id', { value: tenantId })
     .setEntry('project.id', { value: projectId })
     .setEntry('agent.id', { value: agentId })
-    .setEntry('conversation.id', { value: conversationId });
+    .setEntry('agent.name', { value: agentName });
+  const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
 
-  // Start with ROOT_CONTEXT (fresh trace) but add baggage for child span propagation
-  const contextWithBaggage = propagation.setBaggage(ROOT_CONTEXT, baggage);
-
+  // Execute the agent in a new trace root with baggage
   return tracer.startActiveSpan(
     'trigger.execute_async',
     {
+      root: true,
       attributes: {
         'tenant.id': tenantId,
         'project.id': projectId,
         'agent.id': agentId,
+        'agent.name': agentName,
         'trigger.id': triggerId,
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
         'invocation.type': 'trigger',
       },
     },
-    contextWithBaggage,
+    ctxWithBaggage,
     async (span) => {
+      // Create trigger.message_received as a child span, explicitly using active context
+      // This ensures it attaches to trigger.execute_async as its parent
+      const messageSpan = tracer.startSpan(
+        'trigger.message_received',
+        {
+          attributes: {
+            'tenant.id': tenantId,
+            'project.id': projectId,
+            'agent.id': agentId,
+            'agent.name': agentName,
+            'trigger.id': triggerId,
+            'trigger.invocation.id': invocationId,
+            'conversation.id': conversationId,
+            'invocation.type': 'trigger',
+            'message.content': userMessage,
+            'message.timestamp': new Date().toISOString(),
+            'message.parts': JSON.stringify(messageParts),
+          },
+        },
+        otelContext.active() // Explicitly use current context with execute_async as parent
+      );
+      messageSpan.end();
+      await flushBatchProcessor();
+
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
         'Starting async trigger execution'
       );
 
       try {
-        // Load project
-        const project = await withRef(manageDbPool, resolvedRef, async (db) => {
-          return await getFullProjectWithRelationIds(db)({
-            scopes: { tenantId, projectId },
-          });
-        });
-
-        if (!project) {
-          throw new Error(`Project ${projectId} not found`);
-        }
-
-        // Find the agent's default sub-agent
-        const agent = project.agents?.[agentId];
-        if (!agent) {
-          throw new Error(`Agent ${agentId} not found in project`);
-        }
-        const defaultSubAgentId = agent.defaultSubAgentId;
-        if (!defaultSubAgentId) {
-          throw new Error(`Agent ${agentId} has no default sub-agent configured`);
-        }
-
         // Create conversation and set active agent
         await createOrGetConversation(runDbClient)({
           id: conversationId,
@@ -769,6 +819,7 @@ async function executeAgentAsync(params: {
         throw error;
       } finally {
         span.end();
+        await flushBatchProcessor();
       }
     }
   );

@@ -24,6 +24,7 @@ const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
   '7d': { label: 'Last 7 days', hours: 24 * 7 },
   '15d': { label: 'Last 15 days', hours: 24 * 15 },
+  '30d': { label: 'Last 30 days', hours: 24 * 30 },
   custom: { label: 'Custom range', hours: 0 },
 } as const;
 
@@ -92,14 +93,14 @@ export default function ToolCallsBreakdown({
           endTime: clampedEndMs,
         };
       }
-      const hoursBack = TIME_RANGES['15d'].hours;
+      const hoursBack = TIME_RANGES['30d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
       };
     }
 
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 15;
+    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
     return {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
@@ -112,7 +113,7 @@ export default function ToolCallsBreakdown({
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId);
         const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
 
         const [toolData, uniqueServers, uniqueTools] = await Promise.all([
@@ -133,7 +134,7 @@ export default function ToolCallsBreakdown({
     };
 
     fetchData();
-  }, [selectedServer, startTime, endTime, projectId]);
+  }, [tenantId, selectedServer, startTime, endTime, projectId]);
 
   const filteredToolCalls = useMemo(() => {
     return toolCalls.filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool);
@@ -227,7 +228,7 @@ export default function ToolCallsBreakdown({
               </Label>
               <DatePickerWithPresets
                 label="Time range"
-                onRemove={() => setTimeRange('15d')}
+                onRemove={() => setTimeRange('30d')}
                 value={
                   timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
                 }

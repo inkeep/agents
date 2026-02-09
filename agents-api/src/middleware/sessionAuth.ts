@@ -1,7 +1,6 @@
 import { createApiError } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { env } from '../env';
 
 /**
  * Middleware to enforce session-based authentication.
@@ -43,7 +42,7 @@ export const sessionAuth = () =>
 export const sessionContext = () =>
   createMiddleware(async (c, next) => {
     const auth = c.get('auth');
-    if (env.DISABLE_AUTH || !auth) {
+    if (!auth) {
       c.set('user', null);
       c.set('session', null);
       await next();

@@ -67,6 +67,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects`,
           icon: Layers,
         },
+        {
+          title: STATIC_LABELS.stats,
+          url: `/${tenantId}/stats`,
+          icon: BarChart3,
+        },
       ];
 
   const orgNavItems: NavItemProps[] = [
@@ -99,15 +104,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
         },
-        ...(tenantId === 'default'
-          ? [
-              {
-                title: 'Members',
-                url: `/${tenantId}/projects/${projectId}/members`,
-                icon: Users,
-              },
-            ]
-          : []),
+        {
+          title: 'Members',
+          url: `/${tenantId}/projects/${projectId}/members`,
+          icon: Users,
+        },
       ]
     : [];
 

@@ -1,5 +1,119 @@
 # @inkeep/create-agents
 
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-core@0.45.0
+
+## 0.44.0
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+
+## 0.43.0
+
+### Patch Changes
+
+- 5f432f9: stats page
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 5ffbf6b: trigger traces
+- 720d42f: trigger fix for vercel
+- 5f66967: triggers for vercel
+- Updated dependencies [de9bed1]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [05a8a12]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [31b3310]
+- Updated dependencies [5f66967]
+- Updated dependencies [8160ded]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

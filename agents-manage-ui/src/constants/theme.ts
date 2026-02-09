@@ -2,6 +2,7 @@ export const MONACO_THEME_NAME = Object.freeze({
   light: 'inkeep-light',
   dark: 'inkeep-dark',
 });
+export const INKEEP_BRAND_COLOR = '#3784ff';
 export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';
@@ -14,6 +15,7 @@ export const TEMPLATE_VARIABLE_REGEX = /\{\{(?!\{)(?<variableName>[^{}]+)}}/g;
  */
 export const STATIC_LABELS = Object.freeze({
   projects: 'Projects',
+  stats: 'Statistics',
   agents: 'Agents',
   'api-keys': 'API Keys',
   artifacts: 'Artifacts',

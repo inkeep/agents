@@ -4,70 +4,15 @@ import type {
   ArtifactComponentApiSelect,
   DataComponentInsert,
 } from '@inkeep/agents-core';
-import { getLogger } from '../../../logger';
-import { jsonSchemaToZod } from './data-component-schema';
+import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from './SchemaProcessor';
-import type { ExtendedJsonSchema } from './schema-validation';
-
-const _logger = getLogger('ArtifactComponentSchema');
-
-/**
- * Converts artifact component configurations to Zod schema for structured generation
- */
-export function createArtifactComponentsSchema(artifactComponents?: ArtifactComponentApiSelect[]) {
-  // Convert artifact component configs to a union schema
-  const componentSchemas =
-    artifactComponents?.map((component) => {
-      // Use the unified props schema directly - remove inPreview flags for LLM
-      const cleanSchema = component.props
-        ? removePreviewFlags(component.props as ExtendedJsonSchema)
-        : {};
-      const propsSchema = jsonSchemaToZod(cleanSchema);
-
-      return z
-        .object({
-          id: z.string().describe(component.id),
-          name: z.literal(component.name).describe(component.name),
-          props: propsSchema,
-        })
-        .describe(`${component.name}: ${component.description}`);
-    }) || [];
-
-  // Return union of all component schemas - z.union requires at least 2 schemas
-  if (componentSchemas.length === 0) {
-    return z.object({}); // Empty object for no components
-  }
-  if (componentSchemas.length === 1) {
-    return componentSchemas[0]; // Single schema doesn't need union
-  }
-  return z.union(componentSchemas as any); // Safe union with 2+ schemas
-}
-
-/**
- * Remove inPreview flags from schema properties (for LLM consumption)
- */
-function removePreviewFlags(schema: ExtendedJsonSchema): Record<string, any> {
-  const cleanSchema = { ...schema };
-
-  if (cleanSchema.properties) {
-    const cleanProperties: Record<string, any> = {};
-    for (const [key, prop] of Object.entries(cleanSchema.properties)) {
-      const cleanProp = { ...prop };
-      delete cleanProp.inPreview;
-      cleanProperties[key] = cleanProp;
-    }
-    cleanSchema.properties = cleanProperties;
-  }
-
-  return cleanSchema;
-}
 
 /**
  * Standard artifact reference component schema for tool responses
  */
 export class ArtifactReferenceSchema {
   // Standard artifact props schema - single source of truth
-  private static readonly ARTIFACT_PROPS_SCHEMA = {
+  private static readonly ARTIFACT_PROPS_SCHEMA: JSONSchema.BaseSchema = {
     type: 'object',
     properties: {
       artifact_id: {
@@ -90,7 +35,7 @@ export class ArtifactReferenceSchema {
     return z.object({
       id: z.string(),
       name: z.literal('Artifact'),
-      props: jsonSchemaToZod(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
+      props: z.fromJSONSchema(ArtifactReferenceSchema.ARTIFACT_PROPS_SCHEMA),
     });
   }
 
@@ -128,7 +73,7 @@ export class ArtifactCreateSchema {
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
-      const propsSchema = {
+      const propsSchema: JSONSchema.BaseSchema = {
         type: 'object',
         properties: {
           id: {
@@ -158,7 +103,7 @@ export class ArtifactCreateSchema {
       return z.object({
         id: z.string(),
         name: z.literal(`ArtifactCreate_${component.name}`),
-        props: jsonSchemaToZod(propsSchema),
+        props: z.fromJSONSchema(propsSchema),
       });
     });
   }
@@ -170,7 +115,7 @@ export class ArtifactCreateSchema {
    */
   static getDataComponents(
     tenantId: string,
-    projectId: string = '',
+    projectId = '',
     artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
   ): DataComponentInsert[] {
     return artifactComponents.map((component) => {
@@ -179,7 +124,7 @@ export class ArtifactCreateSchema {
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
-      const propsSchema = {
+      const propsSchema: JSONSchema.BaseSchema = {
         type: 'object',
         properties: {
           id: {

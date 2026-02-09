@@ -496,7 +496,20 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/FunctionCreate"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/FunctionCreate"
+                    },
+                    {
+                      "properties": {
+                        "executeCode": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
                 },
                 "type": "object"
               },
@@ -1931,6 +1944,9 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "isWorkApp": {
+                  "type": "boolean"
+                },
                 "lastError": {
                   "nullable": true,
                   "type": "string"
@@ -1964,6 +1980,7 @@
                 "imageUrl",
                 "capabilities",
                 "lastError",
+                "isWorkApp",
                 "createdAt",
                 "updatedAt"
               ],
@@ -2574,6 +2591,7 @@
             "type": "string"
           },
           "datasetId": {
+            "maxLength": 256,
             "type": "string"
           },
           "expectedOutput": {
@@ -4436,7 +4454,20 @@
               },
               "functions": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/FunctionCreate"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/FunctionCreate"
+                    },
+                    {
+                      "properties": {
+                        "executeCode": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
                 },
                 "type": "object"
               },
@@ -5374,6 +5405,9 @@
           "imageUrl": {
             "type": "string"
           },
+          "isWorkApp": {
+            "type": "boolean"
+          },
           "lastError": {
             "nullable": true,
             "type": "string"
@@ -5395,7 +5429,8 @@
               "healthy",
               "unhealthy",
               "unknown",
-              "needs_auth"
+              "needs_auth",
+              "unavailable"
             ],
             "type": "string"
           },
@@ -5751,6 +5786,78 @@
             "$ref": "#/components/schemas/StopWhen"
           }
         },
+        "type": "object"
+      },
+      "ReadyErrorChecks": {
+        "properties": {
+          "manageDb": {
+            "description": "Whether the manage database check passed",
+            "type": "boolean"
+          },
+          "runDb": {
+            "description": "Whether the run database check passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "manageDb",
+          "runDb"
+        ],
+        "type": "object"
+      },
+      "ReadyErrorResponse": {
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/ReadyErrorChecks"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence",
+            "type": "string"
+          },
+          "status": {
+            "description": "The HTTP status code",
+            "type": "number"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference that identifies the problem type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "ReadyResponse": {
+        "properties": {
+          "manageDb": {
+            "description": "Whether the manage database is reachable",
+            "type": "boolean"
+          },
+          "runDb": {
+            "description": "Whether the run database is reachable",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "manageDb",
+          "runDb"
+        ],
         "type": "object"
       },
       "RelatedAgentInfo": {
@@ -6544,6 +6651,37 @@
             "maxLength": 256,
             "type": "string"
           },
+          "toolPolicies": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "updatedAt": {
             "type": "string"
           }
@@ -6552,6 +6690,7 @@
           "id",
           "subAgentId",
           "functionToolId",
+          "toolPolicies",
           "createdAt",
           "updatedAt"
         ],
@@ -6574,6 +6713,37 @@
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
+          },
+          "toolPolicies": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
           }
         },
         "required": [
@@ -7560,6 +7730,9 @@
             "nullable": true,
             "type": "string"
           },
+          "isWorkApp": {
+            "type": "boolean"
+          },
           "lastError": {
             "nullable": true,
             "type": "string"
@@ -7583,6 +7756,7 @@
           "imageUrl",
           "capabilities",
           "lastError",
+          "isWorkApp",
           "createdAt",
           "updatedAt"
         ],
@@ -7786,6 +7960,9 @@
           },
           "imageUrl": {
             "type": "string"
+          },
+          "isWorkApp": {
+            "type": "boolean"
           },
           "lastError": {
             "nullable": true,
@@ -8004,6 +8181,9 @@
           },
           "imageUrl": {
             "type": "string"
+          },
+          "isWorkApp": {
+            "type": "boolean"
           },
           "lastError": {
             "nullable": true,
@@ -8484,7 +8664,8 @@
         "nullable": true,
         "properties": {
           "jmespath": {
-            "description": "JMESPath expression for payload transformation",
+            "description": "JMESPath expression (max 1000 chars). Valid: \"data.items[0].name\", \"results[?status=='active']\", \"keys(@)\". Invalid: \"${...}\" (template injection), \"eval\" calls, \"constructor\", \"__proto__\".",
+            "maxLength": 1000,
             "type": "string"
           },
           "objectTransformation": {
@@ -8820,7 +9001,7 @@
         },
         "summary": "Process workflow jobs",
         "tags": [
-          "workflow"
+          "Workflows"
         ]
       }
     },
@@ -9273,7 +9454,10 @@
             "description": "Service is healthy"
           }
         },
-        "summary": "Health check"
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/manage/api/cli/me": {
@@ -9348,233 +9532,67 @@
         },
         "summary": "Get CLI user info",
         "tags": [
-          "cli"
+          "CLI"
         ]
       }
     },
-    "/manage/api/invitations/pending": {
+    "/manage/available-agents": {
       "get": {
-        "description": "Get all pending (non-expired) invitations for a given email address",
-        "parameters": [
-          {
-            "description": "Email address to check for invitations",
-            "in": "query",
-            "name": "email",
-            "required": true,
-            "schema": {
-              "description": "Email address to check for invitations",
-              "format": "email",
-              "type": "string"
-            }
-          }
-        ],
+        "description": "List all agents the user can invoke. Requires a valid JWT token.",
+        "operationId": "list-available-agents",
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      },
-                      "expiresAt": {
-                        "type": "number"
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "inviterId": {
-                        "type": "string"
-                      },
-                      "organizationId": {
-                        "type": "string"
-                      },
-                      "organizationName": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "organizationSlug": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "role": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "email",
-                      "organizationId",
-                      "organizationName",
-                      "organizationSlug",
-                      "role",
-                      "status",
-                      "expiresAt",
-                      "inviterId"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "List of pending invitations"
-          }
-        },
-        "summary": "Get pending invitations",
-        "tags": [
-          "invitations"
-        ]
-      }
-    },
-    "/manage/api/users/{userId}/organizations": {
-      "get": {
-        "description": "Get all organizations associated with a user",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "path",
-            "name": "userId",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "properties": {
-                      "createdAt": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "format": "date",
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "organizationId": {
-                        "type": "string"
-                      },
-                      "organizationName": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "organizationSlug": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "role": {
-                        "type": "string"
-                      },
-                      "userId": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "userId",
-                      "organizationId",
-                      "role",
-                      "createdAt",
-                      "organizationName",
-                      "organizationSlug"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "List of user organizations"
-          }
-        },
-        "summary": "List user organizations",
-        "tags": [
-          "user-organizations"
-        ]
-      },
-      "post": {
-        "description": "Associate a user with an organization",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "path",
-            "name": "userId",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "organizationId": {
-                    "type": "string"
-                  },
-                  "role": {
-                    "default": "member",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "organizationId"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "organizationId": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "agentId": {
+                            "type": "string"
+                          },
+                          "agentName": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "agentId",
+                          "agentName",
+                          "projectId"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     }
                   },
                   "required": [
-                    "organizationId",
-                    "role",
-                    "createdAt"
+                    "data"
                   ],
                   "type": "object"
                 }
               }
             },
-            "description": "User added to organization"
+            "description": "List of available agents"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing JWT token"
+          },
+          "500": {
+            "description": "Internal server error"
           }
         },
-        "summary": "Add user to organization",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List available agents",
         "tags": [
-          "user-organizations"
+          "Agents"
         ]
       }
     },
@@ -9742,6 +9760,1105 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/github/install-url": {
+      "get": {
+        "description": "Generates a URL to install the GitHub App on an organization or user account. The URL includes a signed state parameter that encodes the tenant ID and expires after 10 minutes. After installation, GitHub will redirect back to our callback endpoint with this state.",
+        "operationId": "get-github-install-url",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "url": {
+                      "description": "GitHub App installation URL with signed state parameter",
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub App installation URL generated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get GitHub App installation URL",
+        "tags": [
+          "GitHub"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/github/installations": {
+      "get": {
+        "description": "Returns a list of GitHub App installations connected to this tenant. By default, deleted installations are filtered out. Use the includeDisconnected query parameter to include them.",
+        "operationId": "list-github-installations",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Include disconnected installations in the response",
+            "in": "query",
+            "name": "includeDisconnected",
+            "required": false,
+            "schema": {
+              "description": "Include disconnected installations in the response",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "installations": {
+                      "description": "List of GitHub App installations",
+                      "items": {
+                        "properties": {
+                          "accountId": {
+                            "type": "string"
+                          },
+                          "accountLogin": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "accountType": {
+                            "maxLength": 20,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "installationId": {
+                            "type": "string"
+                          },
+                          "repositoryCount": {
+                            "description": "Number of repositories accessible to this installation",
+                            "type": "number"
+                          },
+                          "status": {
+                            "maxLength": 20,
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "installationId",
+                          "accountLogin",
+                          "accountId",
+                          "accountType",
+                          "status",
+                          "createdAt",
+                          "updatedAt",
+                          "repositoryCount"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "installations"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of GitHub App installations"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List GitHub App installations",
+        "tags": [
+          "GitHub"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/github/installations/:installationId": {
+      "delete": {
+        "description": "Permanently deletes a GitHub App installation from the tenant. This hard deletes the installation record, all associated repositories, and project repository access entries. This action cannot be undone. Use POST /disconnect for soft delete instead. Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.",
+        "operationId": "delete-github-installation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "The internal installation ID",
+            "in": "path",
+            "name": "installationId",
+            "required": true,
+            "schema": {
+              "description": "The internal installation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "description": "Whether the deletion was successful",
+                      "enum": [
+                        true
+                      ],
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Installation deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete a GitHub App installation permanently",
+        "tags": [
+          "GitHub"
+        ]
+      },
+      "get": {
+        "description": "Returns detailed information about a specific GitHub App installation, including the full list of repositories.",
+        "operationId": "get-github-installation-details",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "The internal installation ID",
+            "in": "path",
+            "name": "installationId",
+            "required": true,
+            "schema": {
+              "description": "The internal installation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "installation": {
+                      "description": "Installation details",
+                      "properties": {
+                        "accountId": {
+                          "type": "string"
+                        },
+                        "accountLogin": {
+                          "maxLength": 256,
+                          "type": "string"
+                        },
+                        "accountType": {
+                          "maxLength": 20,
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "maxLength": 256,
+                          "type": "string"
+                        },
+                        "installationId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "maxLength": 20,
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "installationId",
+                        "accountLogin",
+                        "accountId",
+                        "accountType",
+                        "status",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "type": "object"
+                    },
+                    "repositories": {
+                      "description": "List of repositories",
+                      "items": {
+                        "properties": {
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "installationDbId": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "private": {
+                            "type": "boolean"
+                          },
+                          "repositoryFullName": {
+                            "maxLength": 512,
+                            "type": "string"
+                          },
+                          "repositoryId": {
+                            "type": "string"
+                          },
+                          "repositoryName": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "installationDbId",
+                          "repositoryId",
+                          "repositoryName",
+                          "repositoryFullName",
+                          "private",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "installation",
+                    "repositories"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Installation details retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get GitHub App installation details",
+        "tags": [
+          "GitHub"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/github/installations/:installationId/disconnect": {
+      "post": {
+        "description": "Disconnects a GitHub App installation from the tenant. This soft deletes the installation (sets status to \"disconnected\") and removes all project repository access entries. The installation record is preserved for audit purposes. Note: This does NOT uninstall the GitHub App from GitHub - the user can do that separately from GitHub settings.",
+        "operationId": "disconnect-github-installation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "The internal installation ID",
+            "in": "path",
+            "name": "installationId",
+            "required": true,
+            "schema": {
+              "description": "The internal installation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "description": "Whether the disconnection was successful",
+                      "enum": [
+                        true
+                      ],
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Installation disconnected successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Disconnect a GitHub App installation",
+        "tags": [
+          "GitHub"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/github/installations/:installationId/reconnect": {
+      "post": {
+        "description": "Reconnects a previously disconnected GitHub App installation by setting its status back to \"active\" and syncing the available repositories from GitHub. This can only be used on installations with \"disconnected\" status.",
+        "operationId": "reconnect-github-installation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "The internal installation ID",
+            "in": "path",
+            "name": "installationId",
+            "required": true,
+            "schema": {
+              "description": "The internal installation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "description": "Whether the reconnection was successful",
+                      "enum": [
+                        true
+                      ],
+                      "type": "boolean"
+                    },
+                    "syncResult": {
+                      "description": "Repository sync results (if sync was performed)",
+                      "properties": {
+                        "added": {
+                          "description": "Number of repositories added",
+                          "type": "number"
+                        },
+                        "removed": {
+                          "description": "Number of repositories removed",
+                          "type": "number"
+                        },
+                        "updated": {
+                          "description": "Number of repositories updated",
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "added",
+                        "removed",
+                        "updated"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Installation reconnected successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "service_unavailable"
+                      ],
+                      "example": "service_unavailable",
+                      "type": "string"
+                    },
+                    "detail": {
+                      "example": "Failed to connect to GitHub API",
+                      "type": "string"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "service_unavailable"
+                          ],
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "example": 503,
+                      "type": "number"
+                    },
+                    "title": {
+                      "example": "Service Unavailable",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Service Unavailable - GitHub API is not accessible"
+          }
+        },
+        "summary": "Reconnect a disconnected GitHub App installation",
+        "tags": [
+          "GitHub"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/github/installations/:installationId/sync": {
+      "post": {
+        "description": "Manually refreshes the repository list for a GitHub App installation by fetching the current list from GitHub API. This is useful if webhooks were missed or to ensure the local data is in sync with GitHub.",
+        "operationId": "sync-github-installation-repositories",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "The internal installation ID",
+            "in": "path",
+            "name": "installationId",
+            "required": true,
+            "schema": {
+              "description": "The internal installation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "repositories": {
+                      "description": "Updated list of repositories",
+                      "items": {
+                        "properties": {
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "installationDbId": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "private": {
+                            "type": "boolean"
+                          },
+                          "repositoryFullName": {
+                            "maxLength": 512,
+                            "type": "string"
+                          },
+                          "repositoryId": {
+                            "type": "string"
+                          },
+                          "repositoryName": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "installationDbId",
+                          "repositoryId",
+                          "repositoryName",
+                          "repositoryFullName",
+                          "private",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "syncResult": {
+                      "properties": {
+                        "added": {
+                          "description": "Number of repositories added",
+                          "type": "number"
+                        },
+                        "removed": {
+                          "description": "Number of repositories removed",
+                          "type": "number"
+                        },
+                        "updated": {
+                          "description": "Number of repositories updated",
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "added",
+                        "removed",
+                        "updated"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "repositories",
+                    "syncResult"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Repositories synced successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "service_unavailable"
+                      ],
+                      "example": "service_unavailable",
+                      "type": "string"
+                    },
+                    "detail": {
+                      "example": "Failed to connect to GitHub API",
+                      "type": "string"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "service_unavailable"
+                          ],
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "example": 503,
+                      "type": "number"
+                    },
+                    "title": {
+                      "example": "Service Unavailable",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "detail",
+                    "code",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Service Unavailable - GitHub API is not accessible"
+          }
+        },
+        "summary": "Sync repositories for a GitHub App installation",
+        "tags": [
+          "GitHub"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/playground/token": {
       "post": {
         "description": "Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground",
@@ -9821,7 +10938,7 @@
         ],
         "summary": "Generate temporary API key for playground",
         "tags": [
-          "Playground"
+          "API Keys"
         ]
       }
     },
@@ -9933,7 +11050,7 @@
         },
         "summary": "Create Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       }
     },
@@ -10028,7 +11145,7 @@
         },
         "summary": "Delete Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       },
       "get": {
@@ -10128,7 +11245,7 @@
         },
         "summary": "Get Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       },
       "put": {
@@ -10247,7 +11364,7 @@
         },
         "summary": "Update Full Project",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       }
     },
@@ -10349,7 +11466,7 @@
         },
         "summary": "Get Full Project with Relation IDs",
         "tags": [
-          "Full Project"
+          "Projects"
         ]
       }
     },
@@ -11036,7 +12153,7 @@
         },
         "summary": "Create Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       }
     },
@@ -11140,7 +12257,7 @@
         },
         "summary": "Delete Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       },
       "get": {
@@ -11249,7 +12366,7 @@
         },
         "summary": "Get Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       },
       "put": {
@@ -11377,7 +12494,7 @@
         },
         "summary": "Update Full Agent",
         "tags": [
-          "Full Agent"
+          "Agents"
         ]
       }
     },
@@ -11746,7 +12863,7 @@
         },
         "summary": "List Context Configurations",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -11881,7 +12998,7 @@
         },
         "summary": "Create Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       }
     },
@@ -11998,7 +13115,7 @@
         },
         "summary": "Delete Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       },
       "get": {
@@ -12120,7 +13237,7 @@
         },
         "summary": "Get Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       },
       "put": {
@@ -12251,7 +13368,7 @@
         },
         "summary": "Update Context Configuration",
         "tags": [
-          "Context Config"
+          "Context Configs"
         ]
       }
     },
@@ -12361,7 +13478,7 @@
         },
         "summary": "Get Full Agent Definition",
         "tags": [
-          "Agent"
+          "Agents"
         ]
       }
     },
@@ -13148,7 +14265,8 @@
         },
         "summary": "Associate Artifact Component with Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13267,7 +14385,8 @@
         },
         "summary": "Get Artifact Components for Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13394,7 +14513,8 @@
         },
         "summary": "Remove Artifact Component from Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13521,7 +14641,8 @@
         },
         "summary": "Check if Artifact Component is Associated with Agent",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13639,7 +14760,8 @@
         },
         "summary": "Get Agents Using Artifact Component",
         "tags": [
-          "Agent Artifact Component Relations"
+          "Agents",
+          "Artifact Components"
         ]
       }
     },
@@ -13787,7 +14909,8 @@
         },
         "summary": "Associate Data Component with Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -13906,7 +15029,8 @@
         },
         "summary": "Get Data Components for Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14033,7 +15157,8 @@
         },
         "summary": "Remove Data Component from Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14160,7 +15285,8 @@
         },
         "summary": "Check if Data Component is Associated with Agent",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14278,7 +15404,8 @@
         },
         "summary": "Get Agents Using Data Component",
         "tags": [
-          "Agent Data Component Relations"
+          "Agents",
+          "Data Components"
         ]
       }
     },
@@ -14407,7 +15534,8 @@
         },
         "summary": "Associate Function Tool with SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14525,7 +15653,8 @@
         },
         "summary": "Get SubAgents Using Function Tool",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14644,7 +15773,8 @@
         },
         "summary": "Get Function Tools for SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14771,7 +15901,8 @@
         },
         "summary": "Remove Function Tool from SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -14898,7 +16029,8 @@
         },
         "summary": "Check if Function Tool is Associated with SubAgent",
         "tags": [
-          "SubAgent Function Tool Relations"
+          "SubAgents",
+          "Function Tools"
         ]
       }
     },
@@ -15056,7 +16188,7 @@
         },
         "summary": "List Sub Agent Relations",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15191,7 +16323,7 @@
         },
         "summary": "Create Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -15258,7 +16390,7 @@
         },
         "summary": "Delete Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgents"
         ]
       },
       "get": {
@@ -15380,7 +16512,7 @@
         },
         "summary": "Get Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgents"
         ]
       },
       "put": {
@@ -15511,7 +16643,7 @@
         },
         "summary": "Update Sub Agent Relation",
         "tags": [
-          "Sub Agent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -15653,7 +16785,8 @@
         },
         "summary": "List SubAgent Tool Relations",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -15788,7 +16921,8 @@
         },
         "summary": "Create SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       }
     },
@@ -15922,7 +17056,8 @@
         },
         "summary": "Get SubAgents for Tool",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       }
     },
@@ -15989,7 +17124,8 @@
         },
         "summary": "Delete SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       },
       "get": {
@@ -16111,7 +17247,8 @@
         },
         "summary": "Get SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       },
       "put": {
@@ -16242,7 +17379,8 @@
         },
         "summary": "Update SubAgent Tool Relation",
         "tags": [
-          "SubAgent Tool Relations"
+          "SubAgents",
+          "Tools"
         ]
       }
     },
@@ -16368,7 +17506,7 @@
         },
         "summary": "List SubAgents",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -16503,7 +17641,7 @@
         },
         "summary": "Create SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       }
     },
@@ -16580,7 +17718,7 @@
         },
         "summary": "Delete SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       },
       "get": {
@@ -16702,7 +17840,7 @@
         },
         "summary": "Get SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       },
       "put": {
@@ -16833,7 +17971,7 @@
         },
         "summary": "Update SubAgent",
         "tags": [
-          "SubAgent"
+          "SubAgents"
         ]
       }
     },
@@ -16968,7 +18106,8 @@
         },
         "summary": "List Sub Agent External Agent Relations",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17112,7 +18251,8 @@
         },
         "summary": "Create Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       }
     },
@@ -17188,7 +18328,8 @@
         },
         "summary": "Delete Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       },
       "get": {
@@ -17319,7 +18460,8 @@
         },
         "summary": "Get Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       },
       "put": {
@@ -17459,7 +18601,8 @@
         },
         "summary": "Update Sub Agent External Agent Relation",
         "tags": [
-          "Sub Agent External Agent Relations"
+          "SubAgents",
+          "External Agents"
         ]
       }
     },
@@ -17578,7 +18721,7 @@
         },
         "summary": "Get Related Agent Infos",
         "tags": [
-          "Agent"
+          "Agents"
         ]
       }
     },
@@ -17713,7 +18856,7 @@
         },
         "summary": "List Sub Agent Team Agent Relations",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgents"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -17857,7 +19000,7 @@
         },
         "summary": "Create Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -17933,7 +19076,7 @@
         },
         "summary": "Delete Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgents"
         ]
       },
       "get": {
@@ -18064,7 +19207,7 @@
         },
         "summary": "Get Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgents"
         ]
       },
       "put": {
@@ -18204,7 +19347,7 @@
         },
         "summary": "Update Sub Agent Team Agent Relation",
         "tags": [
-          "Sub Agent Team Agent Relations"
+          "SubAgents"
         ]
       }
     },
@@ -20146,7 +21289,7 @@
         },
         "summary": "List Artifact Components",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -20272,7 +21415,7 @@
         },
         "summary": "Create Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       }
     },
@@ -20330,7 +21473,7 @@
         },
         "summary": "Delete Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       },
       "get": {
@@ -20443,7 +21586,7 @@
         },
         "summary": "Get Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       },
       "put": {
@@ -20565,7 +21708,7 @@
         },
         "summary": "Update Artifact Component",
         "tags": [
-          "Artifact Component"
+          "Artifact Components"
         ]
       }
     },
@@ -21341,7 +22484,7 @@
         },
         "summary": "List Credential Stores",
         "tags": [
-          "Credential Store"
+          "Credential Stores"
         ]
       }
     },
@@ -21465,7 +22608,7 @@
         },
         "summary": "Create Credential in Store",
         "tags": [
-          "Credential Store"
+          "Credential Stores"
         ]
       }
     },
@@ -21582,7 +22725,7 @@
         },
         "summary": "List Credentials",
         "tags": [
-          "Credential"
+          "Credentials"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -21708,7 +22851,7 @@
         },
         "summary": "Create Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       }
     },
@@ -21766,7 +22909,7 @@
         },
         "summary": "Delete Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       },
       "get": {
@@ -21879,7 +23022,7 @@
         },
         "summary": "Get Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       },
       "put": {
@@ -22001,7 +23144,7 @@
         },
         "summary": "Update Credential",
         "tags": [
-          "Credential"
+          "Credentials"
         ]
       }
     },
@@ -22118,7 +23261,7 @@
         },
         "summary": "List Data Components",
         "tags": [
-          "Data Component"
+          "Data Components"
         ],
         "x-speakeasy-pagination": {
           "inputs": [
@@ -22244,7 +23387,7 @@
         },
         "summary": "Create Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       }
     },
@@ -22302,7 +23445,7 @@
         },
         "summary": "Delete Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       },
       "get": {
@@ -22415,7 +23558,7 @@
         },
         "summary": "Get Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       },
       "put": {
@@ -22537,7 +23680,7 @@
         },
         "summary": "Update Data Component",
         "tags": [
-          "Data Component"
+          "Data Components"
         ]
       }
     },
@@ -28243,7 +29386,20 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FunctionCreate"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/FunctionCreate"
+                  },
+                  {
+                    "properties": {
+                      "executeCode": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
               }
             }
           }
@@ -28666,6 +29822,316 @@
         "summary": "Update Function",
         "tags": [
           "Functions"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/github-access": {
+      "get": {
+        "description": "Returns the current GitHub repository access configuration for a project. If mode is \"all\", the project has access to all repositories from tenant GitHub installations. If mode is \"selected\", the project is scoped to specific repositories.",
+        "operationId": "get-project-github-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "GitHub access configuration for a project",
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositories": {
+                      "items": {
+                        "properties": {
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "installationDbId": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "private": {
+                            "type": "boolean"
+                          },
+                          "repositoryFullName": {
+                            "maxLength": 512,
+                            "type": "string"
+                          },
+                          "repositoryId": {
+                            "type": "string"
+                          },
+                          "repositoryName": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "installationDbId",
+                          "repositoryId",
+                          "repositoryName",
+                          "repositoryFullName",
+                          "private",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositories"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get project GitHub repository access",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "put": {
+        "description": "Configures which GitHub repositories a project can access. When mode is \"all\", the project has access to all repositories from tenant GitHub installations. When mode is \"selected\", the project is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration.",
+        "operationId": "set-project-github-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the project now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set project GitHub repository access",
+        "tags": [
+          "Projects"
         ]
       }
     },
@@ -29881,7 +31347,22 @@
                 "healthy",
                 "unhealthy",
                 "unknown",
-                "needs_auth"
+                "needs_auth",
+                "unavailable"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+            "in": "query",
+            "name": "skipDiscovery",
+            "required": false,
+            "schema": {
+              "description": "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+              "enum": [
+                "true",
+                "false"
               ],
               "type": "string"
             }
@@ -30549,6 +32030,343 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/tools/{toolId}/github-access": {
+      "get": {
+        "description": "Returns the current GitHub repository access configuration for an MCP tool. If mode is \"all\", the tool has access to all repositories the project can access. If mode is \"selected\", the tool is scoped to specific repositories. ",
+        "operationId": "get-mcp-tool-github-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositories": {
+                      "description": "List of repositories the MCP tool has access to (only populated when mode=\"selected\")",
+                      "items": {
+                        "properties": {
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "installationAccountLogin": {
+                            "description": "The GitHub account login for the installation",
+                            "type": "string"
+                          },
+                          "installationDbId": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "private": {
+                            "type": "boolean"
+                          },
+                          "repositoryFullName": {
+                            "maxLength": 512,
+                            "type": "string"
+                          },
+                          "repositoryId": {
+                            "type": "string"
+                          },
+                          "repositoryName": {
+                            "maxLength": 256,
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "installationDbId",
+                          "repositoryId",
+                          "repositoryName",
+                          "repositoryFullName",
+                          "private",
+                          "createdAt",
+                          "updatedAt",
+                          "installationAccountLogin"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositories"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get MCP tool GitHub repository access",
+        "tags": [
+          "Tools"
+        ]
+      },
+      "put": {
+        "description": "Configures which GitHub repositories an MCP tool can access. When mode is \"all\", the tool has access to all repositories the project can access. When mode is \"selected\", the tool is scoped to specific repositories (repositoryIds required). This replaces any existing access configuration. This endpoint only works for GitHub workapp MCP tools (isWorkApp=true and URL contains /github).",
+        "operationId": "set-mcp-tool-github-access",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "The tool ID",
+            "in": "path",
+            "name": "toolId",
+            "required": true,
+            "schema": {
+              "description": "The tool ID",
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                    "enum": [
+                      "all",
+                      "selected"
+                    ],
+                    "type": "string"
+                  },
+                  "repositoryIds": {
+                    "description": "Internal repository IDs (required when mode=\"selected\")",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "mode": {
+                      "description": "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+                      "enum": [
+                        "all",
+                        "selected"
+                      ],
+                      "type": "string"
+                    },
+                    "repositoryCount": {
+                      "description": "Number of repositories the MCP tool now has access to (0 when mode=\"all\")",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "repositoryCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "GitHub access configuration updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set MCP tool GitHub repository access",
+        "tags": [
+          "Tools"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/users/{userId}/project-memberships": {
       "get": {
         "description": "List all projects a user has explicit access to and their role in each. Requires authz to be enabled.",
@@ -30677,6 +32495,38 @@
         ]
       }
     },
+    "/ready": {
+      "get": {
+        "description": "Check if the service is ready to serve traffic by verifying database connectivity",
+        "operationId": "ready",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            },
+            "description": "Service is ready - all health checks passed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyErrorResponse"
+                }
+              }
+            },
+            "description": "Service is not ready - one or more health checks failed"
+          }
+        },
+        "summary": "Readiness check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
     "/run/agents/.well-known/agent.json": {
       "get": {
         "parameters": [
@@ -30775,7 +32625,7 @@
           }
         ],
         "tags": [
-          "a2a"
+          "A2A"
         ]
       }
     },
@@ -31032,7 +32882,7 @@
         ],
         "summary": "Chat (Vercel Streaming Protocol)",
         "tags": [
-          "chat"
+          "Chat"
         ]
       }
     },
@@ -31159,7 +33009,7 @@
         ],
         "summary": "Approve or deny tool execution",
         "tags": [
-          "chat"
+          "Chat"
         ]
       }
     },
@@ -31365,7 +33215,7 @@
         },
         "summary": "Invoke agent via trigger webhook",
         "tags": [
-          "webhooks"
+          "Webhooks"
         ]
       }
     },
@@ -31631,7 +33481,7 @@
         ],
         "summary": "Create chat completion",
         "tags": [
-          "chat"
+          "Chat"
         ]
       }
     },
@@ -31713,56 +33563,60 @@
   ],
   "tags": [
     {
-      "description": "Operations for managing individual agents",
-      "name": "Agent"
-    },
-    {
-      "description": "Operations for managing agent artifact component relationships",
-      "name": "Agent Artifact Component Relations"
-    },
-    {
-      "description": "Operations for managing agent data component relationships",
-      "name": "Agent Data Component Relations"
-    },
-    {
-      "description": "Operations for managing agents",
-      "name": "Agents"
+      "description": "Agent-to-Agent communication endpoints",
+      "name": "A2A"
     },
     {
       "description": "Operations for managing API keys",
       "name": "API Keys"
     },
     {
+      "description": "Operations for managing agents",
+      "name": "Agents"
+    },
+    {
       "description": "Operations for managing artifact components",
-      "name": "Artifact Component"
+      "name": "Artifact Components"
+    },
+    {
+      "description": "Operations for managing branches",
+      "name": "Branches"
+    },
+    {
+      "description": "CLI authentication endpoints",
+      "name": "CLI"
+    },
+    {
+      "description": "Chat completions endpoints",
+      "name": "Chat"
     },
     {
       "description": "Operations for managing context configurations",
-      "name": "Context Config"
+      "name": "Context Configs"
+    },
+    {
+      "description": "Operations for managing conversations",
+      "name": "Conversations"
     },
     {
       "description": "Operations for managing credentials",
-      "name": "Credential"
+      "name": "Credentials"
     },
     {
       "description": "Operations for managing credential stores",
-      "name": "Credential Store"
+      "name": "Credential Stores"
     },
     {
       "description": "Operations for managing data components",
-      "name": "Data Component"
+      "name": "Data Components"
+    },
+    {
+      "description": "Operations for managing evaluations",
+      "name": "Evaluations"
     },
     {
       "description": "Operations for managing external agents",
       "name": "External Agents"
-    },
-    {
-      "description": "Operations for managing complete agent definitions",
-      "name": "Full Agent"
-    },
-    {
-      "description": "Operations for managing complete project definitions",
-      "name": "Full Project"
     },
     {
       "description": "Operations for managing function tools",
@@ -31773,36 +33627,64 @@
       "name": "Functions"
     },
     {
-      "description": "OAuth authentication endpoints for MCP tools",
+      "description": "GitHub App integration endpoints",
+      "name": "GitHub"
+    },
+    {
+      "description": "MCP (Model Context Protocol) endpoints",
+      "name": "MCP"
+    },
+    {
+      "description": "Operations for MCP catalog",
+      "name": "MCP Catalog"
+    },
+    {
+      "description": "OAuth authentication endpoints",
       "name": "OAuth"
+    },
+    {
+      "description": "Operations for managing project members",
+      "name": "Project Members"
+    },
+    {
+      "description": "Operations for managing project permissions",
+      "name": "Project Permissions"
     },
     {
       "description": "Operations for managing projects",
       "name": "Projects"
     },
     {
-      "description": "Operations for managing sub agent external agent relationships",
-      "name": "Sub Agent External Agent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent relationships",
-      "name": "Sub Agent Relations"
-    },
-    {
-      "description": "Operations for managing sub agent team agent relationships",
-      "name": "Sub Agent Team Agent Relations"
+      "description": "Operations for the resolved ref (branch name, tag name, or commit hash)",
+      "name": "Refs"
     },
     {
       "description": "Operations for managing sub agents",
-      "name": "SubAgent"
+      "name": "SubAgents"
     },
     {
-      "description": "Operations for managing sub agent tool relationships",
-      "name": "SubAgent Tool Relations"
+      "description": "Operations for managing third-party MCP servers",
+      "name": "Third-Party MCP Servers"
     },
     {
       "description": "Operations for managing MCP tools",
       "name": "Tools"
+    },
+    {
+      "description": "Operations for managing triggers",
+      "name": "Triggers"
+    },
+    {
+      "description": "Operations for managing user project memberships",
+      "name": "User Project Memberships"
+    },
+    {
+      "description": "Webhook endpoints",
+      "name": "Webhooks"
+    },
+    {
+      "description": "Workflow trigger endpoints",
+      "name": "Workflows"
     }
   ]
 }

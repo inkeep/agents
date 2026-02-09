@@ -3,13 +3,11 @@ import {
   checkBulkPermissions,
   commonGetErrorResponses,
   createApiError,
-  isAuthzEnabled,
   type OrgRole,
   OrgRoles,
   SpiceDbProjectPermissions,
   SpiceDbResourceTypes,
 } from '@inkeep/agents-core';
-import { env } from '../../../env';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -58,7 +56,7 @@ app.openapi(
     const tenantRole = c.get('tenantRole') as OrgRole;
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
-    if (env.DISABLE_AUTH || isTestEnvironment) {
+    if (isTestEnvironment) {
       return c.json({
         data: {
           canView: true,
@@ -75,18 +73,6 @@ app.openapi(
           canView: true,
           canUse: true,
           canEdit: true,
-        },
-      });
-    }
-
-    // Fast path: Authz disabled, use legacy behavior
-    if (!isAuthzEnabled()) {
-      // When authz is disabled, all org members can view/use, only owner/admin can edit
-      return c.json({
-        data: {
-          canView: true,
-          canUse: true,
-          canEdit: false, // Only owner/admin can edit, handled above
         },
       });
     }

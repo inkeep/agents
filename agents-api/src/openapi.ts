@@ -2,6 +2,40 @@ import { swaggerUI } from '@hono/swagger-ui';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, Env } from 'hono';
 
+export const TagToDescription = {
+  A2A: 'Agent-to-Agent communication endpoints',
+  'API Keys': 'Operations for managing API keys',
+  Agents: 'Operations for managing agents',
+  'Artifact Components': 'Operations for managing artifact components',
+  Branches: 'Operations for managing branches',
+  CLI: 'CLI authentication endpoints',
+  Chat: 'Chat completions endpoints',
+  'Context Configs': 'Operations for managing context configurations',
+  Conversations: 'Operations for managing conversations',
+  Credentials: 'Operations for managing credentials',
+  'Credential Stores': 'Operations for managing credential stores',
+  'Data Components': 'Operations for managing data components',
+  Evaluations: 'Operations for managing evaluations',
+  'External Agents': 'Operations for managing external agents',
+  'Function Tools': 'Operations for managing function tools',
+  Functions: 'Operations for managing functions',
+  GitHub: 'GitHub App integration endpoints',
+  MCP: 'MCP (Model Context Protocol) endpoints',
+  'MCP Catalog': 'Operations for MCP catalog',
+  OAuth: 'OAuth authentication endpoints',
+  'Project Members': 'Operations for managing project members',
+  'Project Permissions': 'Operations for managing project permissions',
+  Projects: 'Operations for managing projects',
+  Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
+  SubAgents: 'Operations for managing sub agents',
+  'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
+  Tools: 'Operations for managing MCP tools',
+  Triggers: 'Operations for managing triggers',
+  'User Project Memberships': 'Operations for managing user project memberships',
+  Webhooks: 'Webhook endpoints',
+  Workflows: 'Workflow trigger endpoints',
+};
+
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
@@ -31,100 +65,10 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
             description: 'API Server',
           },
         ],
-        tags: [
-          {
-            name: 'Agent',
-            description: 'Operations for managing individual agents',
-          },
-          {
-            name: 'Agent Artifact Component Relations',
-            description: 'Operations for managing agent artifact component relationships',
-          },
-          {
-            name: 'Agent Data Component Relations',
-            description: 'Operations for managing agent data component relationships',
-          },
-          {
-            name: 'Agents',
-            description: 'Operations for managing agents',
-          },
-          {
-            name: 'API Keys',
-            description: 'Operations for managing API keys',
-          },
-          {
-            name: 'Artifact Component',
-            description: 'Operations for managing artifact components',
-          },
-          {
-            name: 'Context Config',
-            description: 'Operations for managing context configurations',
-          },
-          {
-            name: 'Credential',
-            description: 'Operations for managing credentials',
-          },
-          {
-            name: 'Credential Store',
-            description: 'Operations for managing credential stores',
-          },
-          {
-            name: 'Data Component',
-            description: 'Operations for managing data components',
-          },
-          {
-            name: 'External Agents',
-            description: 'Operations for managing external agents',
-          },
-          {
-            name: 'Full Agent',
-            description: 'Operations for managing complete agent definitions',
-          },
-          {
-            name: 'Full Project',
-            description: 'Operations for managing complete project definitions',
-          },
-          {
-            name: 'Function Tools',
-            description: 'Operations for managing function tools',
-          },
-          {
-            name: 'Functions',
-            description: 'Operations for managing functions',
-          },
-          {
-            name: 'OAuth',
-            description: 'OAuth authentication endpoints for MCP tools',
-          },
-          {
-            name: 'Projects',
-            description: 'Operations for managing projects',
-          },
-          {
-            name: 'Sub Agent External Agent Relations',
-            description: 'Operations for managing sub agent external agent relationships',
-          },
-          {
-            name: 'Sub Agent Relations',
-            description: 'Operations for managing sub agent relationships',
-          },
-          {
-            name: 'Sub Agent Team Agent Relations',
-            description: 'Operations for managing sub agent team agent relationships',
-          },
-          {
-            name: 'SubAgent',
-            description: 'Operations for managing sub agents',
-          },
-          {
-            name: 'SubAgent Tool Relations',
-            description: 'Operations for managing sub agent tool relationships',
-          },
-          {
-            name: 'Tools',
-            description: 'Operations for managing MCP tools',
-          },
-        ],
+        tags: Object.entries(TagToDescription).map(([key, value]) => ({
+          name: key,
+          description: value,
+        })),
       });
 
       // Add security schemes and global security requirements

@@ -1,5 +1,6 @@
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
+import { getProjectMainBranchName } from '../../data-access/manage/projectLifecycle';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   agents,
@@ -24,6 +25,7 @@ import type {
 } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
@@ -106,6 +108,51 @@ export const listAgentsPaginated =
       pagination: { page, limit, total, pages },
     };
   };
+
+export type AvailableAgentInfo = {
+  agentId: string;
+  agentName: string;
+  projectId: string;
+};
+
+const agentsLogger = getLogger('agents-data-access');
+
+/**
+ * List agents across multiple project main branches for a tenant.
+ *
+ * Uses Dolt AS OF queries against each project's main branch without checkout.
+ *
+ * @param db - Database client
+ * @param params - Tenant and project IDs
+ */
+export async function listAgentsAcrossProjectMainBranches(
+  db: AgentsManageDatabaseClient,
+  params: { tenantId: string; projectIds: string[] }
+): Promise<AvailableAgentInfo[]> {
+  const { tenantId, projectIds } = params;
+  const allAgents: AvailableAgentInfo[] = [];
+
+  for (const projectId of projectIds) {
+    try {
+      const branchName = getProjectMainBranchName(tenantId, projectId);
+
+      const result = await db.execute(
+        sql`
+          SELECT id as "agentId", name as "agentName", project_id as "projectId"
+          FROM agent AS OF ${branchName}
+          WHERE tenant_id = ${tenantId} AND project_id = ${projectId}
+          ORDER BY name
+        `
+      );
+
+      allAgents.push(...(result.rows as AvailableAgentInfo[]));
+    } catch (error) {
+      agentsLogger.warn({ error, projectId }, 'Failed to fetch agents for project, skipping');
+    }
+  }
+
+  return allAgents;
+}
 
 export const createAgent = (db: AgentsManageDatabaseClient) => async (data: AgentInsert) => {
   const now = new Date().toISOString();
@@ -782,21 +829,33 @@ const getFullAgentDefinitionInternal =
     }
 
     try {
-      const toolsList = await listTools(db)({
-        scopes: { tenantId, projectId },
-        pagination: { page: 1, limit: 1000 },
-      });
+      const usedToolIds = new Set(
+        Object.values(agentsObject)
+          .flatMap((a) => (Array.isArray((a as any)?.canUse) ? (a as any).canUse : []))
+          .map((ref) => ref?.toolId)
+          .filter(Boolean)
+      );
 
       const toolsObject: Record<string, any> = {};
-      for (const tool of toolsList.data) {
-        toolsObject[tool.id] = {
-          id: tool.id,
-          name: tool.name,
-          description: tool.description,
-          config: tool.config,
-          credentialReferenceId: tool.credentialReferenceId,
-          imageUrl: tool.imageUrl,
-        };
+
+      if (usedToolIds.size > 0) {
+        const { data } = await listTools(db)({
+          scopes: { tenantId, projectId },
+          pagination: { page: 1, limit: 1000 },
+        });
+
+        for (const tool of data) {
+          if (!usedToolIds.has(tool.id)) continue;
+
+          toolsObject[tool.id] = {
+            id: tool.id,
+            name: tool.name,
+            description: tool.description,
+            config: tool.config,
+            credentialReferenceId: tool.credentialReferenceId,
+            imageUrl: tool.imageUrl,
+          };
+        }
       }
       result.tools = toolsObject;
 

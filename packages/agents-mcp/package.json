@@ -1,0 +1,54 @@
+{
+  "name": "@inkeep/agents-mcp",
+  "version": "0.47.2",
+  "author": "Speakeasy",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "@inkeep/agents-mcp": "bin/mcp-server.js",
+    "mcp": "bin/mcp-server.js"
+  },
+  "main": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./esm/index.d.ts",
+      "import": "./esm/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun i && bun src/mcp-server/build.mts && tsc",
+    "mcpb:build": "bun i && bun src/mcp-server/build.mts --pack && tsc",
+    "check": "npm run lint",
+    "lint": "eslint --cache --max-warnings=0 src",
+    "prepublishOnly": "npm run build",
+    "generate": "speakeasy run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.25.2",
+    "@stricli/core": "^1.1.2",
+    "bun": "^1.2.12",
+    "express": "^5.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@anthropic-ai/mcpb": "^1.2.0",
+    "@eslint/js": "^9.26.0",
+    "@types/bun": "^1.2.13",
+    "@types/express": "^5.0.1",
+    "@types/node": "^18.19.3",
+    "eslint": "^9.26.0",
+    "globals": "^16.0.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.31.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "packages/agents-mcp"
+  }
+}

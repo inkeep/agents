@@ -24,13 +24,10 @@ export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
 export const ThemeToggle: FC = () => {
   const { setTheme } = useTheme();
 
-  const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
-    (event) => {
-      const newTheme = event.currentTarget.dataset.theme as ThemeValue;
-      setTheme(newTheme);
-    },
-    [setTheme]
-  );
+  const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>((event) => {
+    const newTheme = event.currentTarget.dataset.theme as ThemeValue;
+    setTheme(newTheme);
+  }, []);
 
   return (
     <DropdownMenu>

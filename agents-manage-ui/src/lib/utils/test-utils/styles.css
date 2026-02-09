@@ -1,0 +1,13 @@
+@import "@/app/globals.css";
+@font-face {
+  font-family: "TestFont";
+  src: url("https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/NotoSans-Regular.ttf")
+    format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: "TestFont";
+  @apply w-fit antialiased;
+}

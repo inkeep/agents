@@ -5,6 +5,13 @@ description: Learn how to add and configure MCP tools for your agents
 icon: LuHammer
 ---
 
+<SkillRule
+  id="mcp-tools-registration"
+  skills="typescript-sdk"
+  title="Registering MCP Servers as Tools"
+  description="How to register and configure MCP tools for your agents"
+>
+
 MCP tools connect to external MCP servers, enabling integration with a wide ecosystem of tools and services. Registering them as tools is a two step process:
 
 ### Step 1: Get an MCP server URL
@@ -53,6 +60,15 @@ const weatherTool = mcpTool({
 
 The custom prompt is provided to agents as usage guidelines for all tools from this server, helping them understand the specific context and best practices for using these tools.
 
+</SkillRule>
+
+<SkillRule
+  id="mcp-tool-overrides"
+  skills="typescript-sdk"
+  title="MCP Tool Overrides"
+  description="Customize how individual MCP tools appear to agents"
+>
+
 ## Tool Overrides
 
 You can customize how individual tools from an MCP server appear to agents using tool overrides. This is useful for simplifying complex tools or providing better names and descriptions:
@@ -92,6 +108,15 @@ const apiTool = mcpTool({
 
 <Note>Tip: When adding tools to an agent, you can also reference the tool in the agent's prompt to help the agent understand how to use the tool.</Note>
 
+</SkillRule>
+
+<SkillRule
+  id="mcp-tool-auth"
+  skills="typescript-sdk"
+  title="MCP Tool Authentication"
+  description="Authentication methods for MCP servers including API keys, OAuth, and custom headers"
+>
+
 ## Authentication
 
 If your MCP server requires authentication, we support various authentication methods (via credentials):
@@ -125,6 +150,15 @@ const customHeadersTool = mcpTool({
   },
 });
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="mcp-tool-selection"
+  skills="typescript-sdk"
+  title="Selecting MCP Tools"
+  description="How to selectively enable tools from MCP servers"
+>
 
 ## Selecting Tools
 
@@ -176,6 +210,15 @@ const customerSupportAgent = subAgent({
     })],
 });
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="mcp-environment-aware"
+  skills="typescript-sdk"
+  title="Environment-Aware MCP Servers"
+  description="Configure MCP tools to switch based on environment (dev vs production)"
+>
 
 ## Environment-Aware MCP Servers
 
@@ -265,3 +308,5 @@ inkeep push  # Uses production environment automatically
 # Override via CLI (takes precedence)
 inkeep push --env development  # Uses development instead
 ```
+
+</SkillRule>

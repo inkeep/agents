@@ -16,7 +16,6 @@ export default defineProject({
   ],
   test: {
     name: 'agents-api-integration',
-    // No setup file - integration tests don't use PGlite migrations
     globals: true,
     environment: 'node',
     testTimeout: 60000, // 60 seconds for database operations
@@ -35,11 +34,12 @@ export default defineProject({
     env: {
       // DO NOT set ENVIRONMENT: 'test' here - we need to use actual INKEEP_AGENTS_MANAGE_DATABASE_URL and INKEEP_AGENTS_RUN_DATABASE_URL for Doltgres and Postgres
       LOG_LEVEL: 'error',
-      DISABLE_AUTH: 'true',
       TENANT_ID: 'test-tenant',
       // Required by env.ts validation even though integration tests don't use these APIs
       ANTHROPIC_API_KEY: 'test-api-key',
       OPENAI_API_KEY: 'test-openai-key',
+      // Bypass secret for authentication in integration tests
+      INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: 'integration-test-bypass-secret',
     },
   },
 });

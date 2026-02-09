@@ -1,4 +1,4 @@
-import { createApiError, projectExists } from '@inkeep/agents-core';
+import { canViewProject, createApiError, type OrgRole } from '@inkeep/agents-core';
 import axios from 'axios';
 import { Hono } from 'hono';
 import { env } from '../../../env';
@@ -15,12 +15,14 @@ app.post('/query', async (c) => {
   let payload = await c.req.json();
   const requestedProjectId = payload.projectId;
   const tenantId = c.get('tenantId');
-  const db = c.get('db');
+  const userId = c.get('userId');
+  const tenantRole = c.get('tenantRole') as OrgRole;
 
-  if (!tenantId) {
+  if (!userId || !tenantId) {
     throw createApiError({
       code: 'unauthorized',
-      message: 'Tenant ID not found',
+      message: 'User or organization context not found',
+      instance: c.req.path,
     });
   }
 
@@ -29,25 +31,32 @@ app.post('/query', async (c) => {
     'Processing SigNoz query request'
   );
 
-  // If projectId is provided, validate access and enforce filter
+  // If projectId is provided, validate user has permission to view the project
   if (requestedProjectId) {
-    const projectExistsCheck = await projectExists(db)({
-      tenantId,
-      projectId: requestedProjectId,
-    });
+    // System users and API key users bypass project access checks
+    // They have full access within their authorized scope (enforced by tenant-access middleware)
+    const bypassCheck = userId === 'system' || userId?.startsWith('apikey:');
 
-    if (!projectExistsCheck) {
-      logger.warn(
-        { tenantId, projectId: requestedProjectId },
-        'Project not found or access denied'
-      );
-      return c.json(
-        {
-          error: 'Forbidden',
-          message: 'You do not have access to this project',
-        },
-        403
-      );
+    if (!bypassCheck) {
+      const hasAccess = await canViewProject({
+        userId,
+        projectId: requestedProjectId,
+        orgRole: tenantRole,
+      });
+
+      if (!hasAccess) {
+        logger.warn(
+          { tenantId, projectId: requestedProjectId, userId },
+          'Project not found or access denied'
+        );
+        return c.json(
+          {
+            error: 'Forbidden',
+            message: 'You do not have access to this project',
+          },
+          403
+        );
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 {
   "title": "Tools and MCPs",
   "icon": "LuHammer",
-  "pages": ["mcp-servers", "credentials", "function-tools", "..."]
+  "pages": ["mcp-servers", "credentials", "function-tools", "tool-approvals", "..."]
 }

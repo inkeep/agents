@@ -3,7 +3,15 @@
  * into a human-readable, prettified JSON format
  */
 
-import type { ActivityItem, ConversationDetail } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_TYPES,
+  type ActivityItem,
+  type ActivityKind,
+  type ConversationDetail,
+} from '@/components/traces/timeline/types';
+import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
 
 interface PrettifiedTrace {
   metadata: {
@@ -18,7 +26,9 @@ interface PrettifiedTrace {
     endTime: string;
     durationMs: number;
   };
-  timeline: Omit<ActivityItem, 'id'>[];
+  agentDefinition: Record<string, unknown> | null;
+  conversationHistory: string;
+  timeline: Omit<ActivityItem, 'id' | 'parentSpanId'>[];
 }
 
 /**
@@ -40,7 +50,6 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
   const priorityKeys: string[] = [];
   const remainingKeys: string[] = [];
 
-  // Separate keys into priority and remaining
   for (const key of Object.keys(obj)) {
     if (PRIORITY_FIELDS.includes(key)) {
       priorityKeys.push(key);
@@ -65,8 +74,12 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
 /**
  * Formats conversation detail data into a prettified OTEL trace structure
  */
-function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): PrettifiedTrace {
-  const trace: PrettifiedTrace = {
+function formatConversationAsPrettifiedTrace(
+  conversation: ConversationDetail,
+  agentDefinition?: FullAgentDefinition,
+  conversationHistory?: string
+): PrettifiedTrace {
+  return {
     metadata: {
       conversationId: conversation.conversationId,
       traceId: conversation.traceId,
@@ -83,34 +96,171 @@ function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): 
         : '',
       durationMs: conversation.duration,
     },
+    agentDefinition: (agentDefinition as Record<string, unknown>) || null,
+    conversationHistory: conversationHistory || '',
     timeline: (conversation.activities || []).map((activity) => {
-      // Destructure to exclude unwanted fields
-      const { id: _id, ...rest } = activity;
-      // Order the fields according to hierarchy
+      const { id: _id, parentSpanId: _parentSpanId, ...rest } = activity;
       return orderObjectKeys(rest);
     }),
   };
-
-  return trace;
 }
 
 /**
- * Converts the trace to a prettified JSON string
+ * Builds the full trace object (fetches agent definition and conversation history)
  */
-function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
-  return JSON.stringify(trace, null, indent);
+export async function buildFullTrace(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
+) {
+  const [agentResult, historyResult] = await Promise.all([
+    conversation.agentId
+      ? getFullAgentAction(tenantId, projectId, conversation.agentId)
+      : Promise.resolve(null),
+    fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
+  ]);
+
+  const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+  const conversationHistory = historyResult?.success
+    ? historyResult.data?.formatted?.llmContext || ''
+    : '';
+
+  return formatConversationAsPrettifiedTrace(conversation, agentDefinition, conversationHistory);
 }
 
 /**
- * Copies the prettified trace to clipboard with compact defaults
+ * Copies the full trace (with agent definition) to clipboard
  */
-export async function copyTraceToClipboard(
-  conversation: ConversationDetail
+export async function copyFullTraceToClipboard(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const trace = formatConversationAsPrettifiedTrace(conversation);
-    const json = traceToJSON(trace);
-    await navigator.clipboard.writeText(json);
+    const trace = await buildFullTrace(conversation, tenantId, projectId);
+    await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to copy trace',
+    };
+  }
+}
+
+/**
+ * Config defining which fields are visible on the timeline for each activity type.
+ * This mirrors what timeline-item.tsx renders without clicking into details.
+ */
+const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
+  [ACTIVITY_TYPES.USER_MESSAGE]: ['messageContent', 'messageParts'],
+  [ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE]: ['aiResponseContent'],
+  [ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT]: ['aiStreamTextContent'],
+  [ACTIVITY_TYPES.CONTEXT_FETCH]: ['toolResult'],
+  [ACTIVITY_TYPES.CONTEXT_RESOLUTION]: ['contextUrl'],
+  [ACTIVITY_TYPES.TOOL_CALL]: [
+    'toolName',
+    'toolType',
+    'toolPurpose',
+    'mcpServerName',
+    'delegationFromSubAgentId',
+    'delegationToSubAgentId',
+    'transferFromSubAgentId',
+    'transferToSubAgentId',
+  ],
+  [ACTIVITY_TYPES.ARTIFACT_PROCESSING]: ['artifactType', 'artifactName', 'artifactDescription'],
+  [ACTIVITY_TYPES.AI_GENERATION]: [],
+  [ACTIVITY_TYPES.AGENT_GENERATION]: [],
+  [ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED]: ['approvalToolName'],
+  [ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED]: ['approvalToolName'],
+  [ACTIVITY_TYPES.TOOL_APPROVAL_DENIED]: ['approvalToolName'],
+  [ACTIVITY_TYPES.COMPRESSION]: ['compressionType', 'compressionRatio'],
+  [ACTIVITY_TYPES.MAX_STEPS_REACHED]: ['stepsCompleted', 'maxSteps'],
+};
+
+/**
+ * Base fields always shown in timeline summaries
+ */
+const BASE_VISIBLE_FIELDS: (keyof ActivityItem)[] = [
+  'type',
+  'description',
+  'status',
+  'timestamp',
+  'subAgentId',
+  'subAgentName',
+];
+
+/**
+ * Error/status fields shown when status is error or warning
+ */
+const ERROR_FIELDS: (keyof ActivityItem)[] = ['otelStatusDescription', 'toolStatusMessage'];
+
+/**
+ * Formats an activity to show only what's visible on the timeline (without clicking into details)
+ */
+function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
+  const visibleFields = new Set([
+    ...BASE_VISIBLE_FIELDS,
+    ...(VISIBLE_FIELDS_BY_TYPE[activity.type] || []),
+    ...(activity.status === 'error' || activity.status === 'warning' ? ERROR_FIELDS : []),
+  ]);
+
+  const summary: Record<string, unknown> = {};
+
+  for (const field of visibleFields) {
+    const value = activity[field];
+    if (value !== undefined && value !== null && value !== '') {
+      summary[field] = value;
+    }
+  }
+
+  return orderObjectKeys(summary);
+}
+
+/**
+ * Builds the summarized trace object (fetches agent definition and conversation history)
+ */
+export async function buildSummarizedTrace(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
+) {
+  const [agentResult, historyResult] = await Promise.all([
+    conversation.agentId
+      ? getFullAgentAction(tenantId, projectId, conversation.agentId)
+      : Promise.resolve(null),
+    fetchConversationHistoryAction(tenantId, projectId, conversation.conversationId),
+  ]);
+
+  const agentDefinition = agentResult?.success ? agentResult.data : undefined;
+  const conversationHistory = historyResult?.success
+    ? historyResult.data?.formatted?.llmContext || ''
+    : '';
+
+  return {
+    metadata: {
+      conversationId: conversation.conversationId,
+      agentName: conversation.agentName,
+      agentId: conversation.agentId,
+      exportedAt: new Date().toISOString(),
+    },
+    agentDefinition: (agentDefinition as Record<string, unknown>) || null,
+    conversationHistory: conversationHistory || '',
+    timeline: (conversation.activities || []).map(formatActivityForSummary),
+  };
+}
+
+/**
+ * Copies a summarized trace (just what's visible in the timeline) to clipboard
+ */
+export async function copySummarizedTraceToClipboard(
+  conversation: ConversationDetail,
+  tenantId: string,
+  projectId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const trace = await buildSummarizedTrace(conversation, tenantId, projectId);
+    await navigator.clipboard.writeText(JSON.stringify(trace, null, 2));
     return { success: true };
   } catch (error) {
     return {

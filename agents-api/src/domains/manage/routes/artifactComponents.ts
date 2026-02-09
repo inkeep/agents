@@ -48,7 +48,7 @@ app.openapi(
     path: '/',
     summary: 'List Artifact Components',
     operationId: 'list-artifact-components',
-    tags: ['Artifact Component'],
+    tags: ['Artifact Components'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -86,7 +86,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Artifact Component',
     operationId: 'get-artifact-component-by-id',
-    tags: ['Artifact Component'],
+    tags: ['Artifact Components'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -127,7 +127,7 @@ app.openapi(
     path: '/',
     summary: 'Create Artifact Component',
     operationId: 'create-artifact-component',
-    tags: ['Artifact Component'],
+    tags: ['Artifact Components'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -206,7 +206,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Artifact Component',
     operationId: 'update-artifact-component',
-    tags: ['Artifact Component'],
+    tags: ['Artifact Components'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -286,7 +286,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Artifact Component',
     operationId: 'delete-artifact-component',
-    tags: ['Artifact Component'],
+    tags: ['Artifact Components'],
     request: {
       params: TenantProjectIdParamsSchema,
     },

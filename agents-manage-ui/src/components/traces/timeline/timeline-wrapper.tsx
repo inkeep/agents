@@ -1,4 +1,12 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FileText,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
@@ -15,9 +23,16 @@ import type {
 import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
 import { DOCS_BASE_URL } from '@/constants/theme';
+import { buildFullTrace, buildSummarizedTrace } from '@/lib/utils/trace-formatter';
 
 function panelTitle(selected: SelectedPanel) {
   switch (selected.type) {
@@ -53,6 +68,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Approved tool details';
     case 'tool_approval_denied':
       return 'Denied tool details';
+    case 'max_steps_reached':
+      return 'Max steps reached';
     default:
       return 'Details';
   }
@@ -67,7 +84,10 @@ interface TimelineWrapperProps {
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
   conversationId?: string;
-  onCopyTrace?: () => void;
+  tenantId?: string;
+  projectId?: string;
+  onCopyFullTrace?: () => void;
+  onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
 }
 
@@ -158,7 +178,10 @@ export function TimelineWrapper({
   refreshOnce,
   showConversationTracesLink = false,
   conversationId,
-  onCopyTrace,
+  tenantId,
+  projectId,
+  onCopyFullTrace,
+  onCopySummarizedTrace,
   isCopying = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
@@ -204,6 +227,34 @@ export function TimelineWrapper({
       })) || []
     );
   }, [conversation?.activities, conversation?.toolCalls]);
+
+  // Token estimates state - calculated when dropdown opens
+  const [tokenEstimates, setTokenEstimates] = useState<{
+    summarized: number | null;
+    full: number | null;
+  }>({ summarized: null, full: null });
+  const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
+
+  // Calculate token estimates when dropdown opens
+  const calculateTokenEstimates = useCallback(async () => {
+    if (!conversation || !tenantId || !projectId || tokenEstimates.summarized !== null) return;
+
+    setIsCalculatingTokens(true);
+    try {
+      // Build actual traces (same as what gets copied)
+      const [summarizedTrace, fullTrace] = await Promise.all([
+        buildSummarizedTrace(conversation, tenantId, projectId),
+        buildFullTrace(conversation, tenantId, projectId),
+      ]);
+
+      setTokenEstimates({
+        summarized: Math.ceil(JSON.stringify(summarizedTrace).length / 4),
+        full: Math.ceil(JSON.stringify(fullTrace).length / 4),
+      });
+    } finally {
+      setIsCalculatingTokens(false);
+    }
+  }, [conversation, tenantId, projectId, tokenEstimates.summarized]);
 
   // Memoize sorted activities to prevent re-sorting on every render
   const sortedActivities = useMemo(() => {
@@ -399,19 +450,50 @@ export function TimelineWrapper({
                 <div className="text-foreground text-md font-medium">Activity timeline</div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Copy JSON Button */}
-                {onCopyTrace && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onCopyTrace}
-                    disabled={isCopying}
-                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    title="Copy trace as JSON"
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    {isCopying ? 'Copying...' : 'Copy Trace'}
-                  </Button>
+                {/* Copy Trace Dropdown */}
+                {(onCopyFullTrace || onCopySummarizedTrace) && (
+                  <DropdownMenu onOpenChange={(open) => open && calculateTokenEstimates()}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isCopying}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        {isCopying ? 'Copying...' : 'Copy Trace'}
+                        <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onCopySummarizedTrace && (
+                        <DropdownMenuItem onClick={onCopySummarizedTrace} disabled={isCopying}>
+                          <FileText className="h-3.5 w-3.5 mr-2" />
+                          <span className="flex-1">Copy Summarized Trace</span>
+                          <span className="text-muted-foreground text-xs ml-2">
+                            {isCalculatingTokens
+                              ? '...'
+                              : tokenEstimates.summarized !== null
+                                ? `~${tokenEstimates.summarized.toLocaleString()} tokens`
+                                : ''}
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+                      {onCopyFullTrace && (
+                        <DropdownMenuItem onClick={onCopyFullTrace} disabled={isCopying}>
+                          <Copy className="h-3.5 w-3.5 mr-2" />
+                          <span className="flex-1">Copy Full Trace</span>
+                          <span className="text-muted-foreground text-xs ml-2">
+                            {isCalculatingTokens
+                              ? '...'
+                              : tokenEstimates.full !== null
+                                ? `~${tokenEstimates.full.toLocaleString()} tokens`
+                                : ''}
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
                 {/* Expand/Collapse AI Messages Buttons */}
                 {sortedActivities.some(

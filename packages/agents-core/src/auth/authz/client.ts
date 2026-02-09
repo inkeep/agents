@@ -24,7 +24,9 @@ export function getSpiceClient(): ZedClientInterface {
     client = v1.NewClient(
       config.token,
       config.endpoint,
-      config.tlsEnabled ? v1.ClientSecurity.SECURE : v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
+      config.tlsEnabled
+        ? v1.ClientSecurity.SECURE
+        : v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
     );
   }
   return client;
@@ -46,7 +48,6 @@ export { v1 };
 
 /**
  * Check if a subject has a permission on a resource.
- * Note: Caller must verify isAuthzEnabled() before calling.
  */
 export async function checkPermission(params: {
   resourceType: string;

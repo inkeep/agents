@@ -3,7 +3,10 @@
 import { type ProjectRole, ProjectRoles } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ProjectRoleSelector } from '@/components/access/project-role-selector';
+import {
+  getProjectRoleLabel,
+  ProjectRoleSelector,
+} from '@/components/access/project-role-selector';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,6 +43,7 @@ interface ProjectAccessDialogProps {
   userId: string;
   userName: string;
   mode: 'assign' | 'manage';
+  readOnly?: boolean;
   onComplete?: () => void;
 }
 
@@ -50,6 +54,7 @@ export function ProjectAccessDialog({
   userId,
   userName,
   mode,
+  readOnly = false,
   onComplete,
 }: ProjectAccessDialogProps) {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -133,13 +138,13 @@ export function ProjectAccessDialog({
       }
     } else if (existing?.removed) {
       updated.set(projectId, {
-        role: existing.originalRole || ProjectRoles.MEMBER,
+        role: existing.originalRole || ProjectRoles.VIEWER,
         isNew: false,
         originalRole: existing.originalRole,
         removed: false,
       });
     } else {
-      updated.set(projectId, { role: ProjectRoles.MEMBER, isNew: true });
+      updated.set(projectId, { role: ProjectRoles.VIEWER, isNew: true });
     }
 
     setAssignments(updated);
@@ -229,8 +234,9 @@ export function ProjectAccessDialog({
     (a) => !a.removed && (a.isNew || a.originalRole)
   ).length;
 
-  const description =
-    mode === 'assign'
+  const description = readOnly
+    ? `View ${userName}'s project access.`
+    : mode === 'assign'
       ? `${userName} has been changed to Member. Select which projects they should have access to.`
       : `Manage ${userName}'s project access.`;
 
@@ -238,7 +244,13 @@ export function ProjectAccessDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{mode === 'assign' ? 'Assign to Projects' : 'Project Access'}</DialogTitle>
+          <DialogTitle>
+            {readOnly
+              ? 'Project Access'
+              : mode === 'assign'
+                ? 'Assign to Projects'
+                : 'Project Access'}
+          </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
@@ -260,7 +272,7 @@ export function ProjectAccessDialog({
             </>
           ) : projects.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
-              No projects found in this organization.
+              No access to any projects.
             </div>
           ) : (
             projects.map((project) => {
@@ -284,11 +296,12 @@ export function ProjectAccessDialog({
                       id={`project-${project.projectId}`}
                       checked={!!isSelected}
                       onCheckedChange={() => toggleProject(project.projectId)}
+                      disabled={readOnly}
                     />
                     <div className="flex-1 min-w-0">
                       <Label
                         htmlFor={`project-${project.projectId}`}
-                        className={`font-medium cursor-pointer ${wasRemoved ? 'line-through text-muted-foreground' : ''}`}
+                        className={`font-medium ${readOnly ? 'cursor-default' : 'cursor-pointer'} ${wasRemoved ? 'line-through text-muted-foreground' : ''}`}
                       >
                         {project.name}
                       </Label>
@@ -298,12 +311,21 @@ export function ProjectAccessDialog({
                         </p>
                       )}
                     </div>
-                    {isSelected && assignment?.role && (
-                      <ProjectRoleSelector
-                        value={assignment.role}
-                        onChange={(role) => setProjectRole(project.projectId, role)}
-                      />
-                    )}
+                    {isSelected &&
+                      assignment?.role &&
+                      (readOnly ? (
+                        <Badge
+                          variant="secondary"
+                          className="text-muted-foreground normal-case text-xs"
+                        >
+                          {getProjectRoleLabel(assignment.role)}
+                        </Badge>
+                      ) : (
+                        <ProjectRoleSelector
+                          value={assignment.role}
+                          onChange={(role) => setProjectRole(project.projectId, role)}
+                        />
+                      ))}
                   </div>
                 </div>
               );
@@ -313,13 +335,13 @@ export function ProjectAccessDialog({
 
         {/* Always render footer container to prevent layout shift */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground border-t pt-4 min-h-[28px]">
-          {!loading && (activeCount > 0 || hasChanges()) && (
+          {!loading && (activeCount > 0 || (!readOnly && hasChanges())) && (
             <>
               <span>Access:</span>
               <Badge variant="secondary">
                 {activeCount} project{activeCount !== 1 ? 's' : ''}
               </Badge>
-              {hasChanges() && mode === 'manage' && (
+              {!readOnly && hasChanges() && mode === 'manage' && (
                 <Badge variant="outline" className="text-amber-600">
                   Unsaved changes
                 </Badge>
@@ -329,22 +351,30 @@ export function ProjectAccessDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={handleCancel} disabled={submitting}>
-            {mode === 'assign' ? 'Skip' : 'Cancel'}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting || loading || (mode === 'manage' && !hasChanges())}
-          >
-            {submitting
-              ? 'Saving...'
-              : mode === 'assign'
-                ? activeCount > 0
-                  ? `Assign to ${activeCount} Project${activeCount > 1 ? 's' : ''}`
-                  : 'Done'
-                : 'Save Changes'}
-          </Button>
+          {readOnly ? (
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={submitting}>
+                {mode === 'assign' ? 'Skip' : 'Cancel'}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting || loading || (mode === 'manage' && !hasChanges())}
+              >
+                {submitting
+                  ? 'Saving...'
+                  : mode === 'assign'
+                    ? activeCount > 0
+                      ? `Assign to ${activeCount} Project${activeCount > 1 ? 's' : ''}`
+                      : 'Done'
+                    : 'Save Changes'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

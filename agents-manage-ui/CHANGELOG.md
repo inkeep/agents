@@ -1,5 +1,204 @@
 # @inkeep/agents-manage-ui
 
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 2307d76: Fix MCP Tool Calls card scrollbox to fill parent container instead of being capped at 120px
+- f6010a1: Improve form component type inference from Zod schemas with transformed values. This ensures proper TypeScript types flow through form fields when using Zod's `.transform()` methods. Also adds `isRequired` and `serializeJson` utility functions for form validation.
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 99388e9: Fix script to keep both original and hashed dependencies in package.json for Turbopack server-only packages
+- 12ad286: - Temp fix for chat to edit
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- 14a2e6f: bump `next` to `^16.1.6` to fix pnpm audit vulnerabilities
+- 4d291f1: Fix custom headers modal to automatically open when validation errors are present on mount
+- 4a83260: Add custom headers validation in playground chat. Users are now notified when custom headers are invalid or required based on the agent's headers schema configuration.
+- fd323b4: Fix `ModelSelector` layout where custom model inputs were cut off and improve `ModelSelector` architecture with new shadcn `ButtonGroup` component
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- cd28e97: Fix optional chaining for data.details in error case to prevent runtime errors
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-core@0.45.1
+
+## 0.45.0
+
+### Minor Changes
+
+- bab4641: add format action button for code editor
+
+### Patch Changes
+
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 8f067f4: chore(dashboard): update vitest deps and add image snapshots for form error state
+- 48b5400: Fix text overflow for function tool node and placeholder node in agent flow
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+  - @inkeep/agents-core@0.45.0
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+- 0ff87cf: feat(dashboard): sort available tools first by active status, after by name
+- 0f3c2e5: feat(dashboard): use official node collision solution in agent flow
+
+### Patch Changes
+
+- f23d445: invalidate cache when updating mcp servers
+- 4f2b927: If the sidebar is expanded via hover and the user clicks the toggle, keep the sidebar open (persist the expanded state).
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 9ea2de8: fix(dashboard): ignore hydration errors from radix DialogTrigger
+- 707d1c8: Prefer `React.use` over `React.useContext`
+- 7a57040: Refactor ux for tool overrides
+- 046f799: chore(dashboard): mark `useAgentActions`, `useMonacoActions`, `useProjectActions`, `useTheme#setTheme` as stable references to avoid warning from `useExhaustiveDependencies` biome rule
+- da3f64f: fix(dashboard): add toast with error when user want to remove undeletable nodes
+- 0d18b7e: remove feature flag
+- 5704c38: fix login redirect
+- 5e7cede: fix orphaned tools case
+- afd01d5: specify stable functions from `useReactFlow` hook for `useExhaustiveDependencies` biome rule
+- Updated dependencies [08aa941]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+  - @inkeep/agents-core@0.44.0
+
+## 0.43.0
+
+### Minor Changes
+
+- a5ba56c: Add UI for configurable webhook signature verification
+
+  Added comprehensive UI for configuring webhook signature verification with support for GitHub, Slack, Stripe, Zendesk, and custom webhook providers.
+
+  **New Features:**
+
+  - Replaced plaintext signing secret input with credential reference selector
+  - Added algorithm selector (sha256, sha512, sha384, sha1, md5) with deprecation warnings
+  - Added encoding selector (hex, base64)
+  - Added signature location configuration (header, query, body with JMESPath)
+  - Added signed components builder with reordering, add/remove functionality
+  - Added component join configuration (strategy and separator)
+  - Added quick setup presets for GitHub, Slack, Zendesk, and Stripe
+  - Added advanced validation options (case sensitivity, empty body, Unicode normalization)
+  - Added client-side JMESPath and regex validation with error messages
+  - All new fields integrate with existing trigger form validation and submission
+
+  **UI Improvements:**
+
+  - Collapsible "Advanced Validation Options" section reduces visual clutter
+  - Provider preset buttons enable one-click configuration for common webhooks
+  - Dynamic field labels and placeholders based on selected options
+  - Helpful tooltips and FormDescription text throughout
+  - Reorder buttons (up/down arrows) for signed components
+  - Success toast confirmation when applying presets
+
+- b215936: add metadata title and descriptions for pages
+- 0b75a6d: add `METADATA_BASE_URL`, `METADATA_TWITTER_SITE` and `METADATA_TWITTER_CREATOR` env variable for setup metadata tags
+
+### Patch Changes
+
+- 0497b9a: bump agents-ui package
+- 5f432f9: stats page
+- eef0a3f: new OAuth callback route
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 0f83405: Fix trigger message template removal not working from UI
+- 5ffbf6b: trigger traces
+- 0f86f53: use tanstack query for:
+  - `fetchThirdPartyMCPServer`
+  - `fetchEvaluators`
+  - `fetchEvaluationSuiteConfigEvaluators`
+  - `fetchEvaluationSuiteConfig`
+  - `fetchUserScopedCredential`
+  - `getAllAgentsAction`
+- 05a8a12: adding authorization checks and spicedb setup
+- f1920e3: address unused exports
+- e8da68a: fix(dashboard): use latest `react@19.3.0-canary` to fix hydration errors mismatches due radix componenents and react `useId` hook
+- 0fff69c: Use centralized jmes validation
+- 503ce52: feat(manage-ui): upload source maps if sentry is enabled
+- caefccc: improve mcp servers page loading
+- 720d42f: trigger fix for vercel
+- c47f630: fix(dashboard): variables in prompt editor weren't properly highlighted inside HTML tags, or were incorrectly highlighted inside `[]` brackets
+- 27a6e3f: Clear context configs when empty in agent serialization
+- 5f66967: triggers for vercel
+- 82b959b: fix hydration errors on triggerId/invocations page
+- 8160ded: improve loading mcps in agent page
+- Updated dependencies [de9bed1]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [05a8a12]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [31b3310]
+- Updated dependencies [5f66967]
+- Updated dependencies [8160ded]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

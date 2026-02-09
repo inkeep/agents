@@ -47,7 +47,7 @@ app.openapi(
     path: '/',
     summary: 'List Credentials',
     operationId: 'list-credentials',
-    tags: ['Credential'],
+    tags: ['Credentials'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -87,7 +87,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Credential',
     operationId: 'get-credential-by-id',
-    tags: ['Credential'],
+    tags: ['Credentials'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
@@ -128,7 +128,7 @@ app.openapi(
     path: '/',
     summary: 'Create Credential',
     operationId: 'create-credential',
-    tags: ['Credential'],
+    tags: ['Credentials'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -174,7 +174,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Credential',
     operationId: 'update-credential',
-    tags: ['Credential'],
+    tags: ['Credentials'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -226,7 +226,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Credential',
     operationId: 'delete-credential',
-    tags: ['Credential'],
+    tags: ['Credentials'],
     request: {
       params: TenantProjectIdParamsSchema,
     },

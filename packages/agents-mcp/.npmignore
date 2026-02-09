@@ -1,0 +1,10 @@
+**/*
+!/RUNTIMES.md
+!/**/*.ts
+!/**/*.js
+!/**/*.mjs
+!/**/*.json
+!/**/*.map
+
+/eslint.config.mjs
+/__tests__

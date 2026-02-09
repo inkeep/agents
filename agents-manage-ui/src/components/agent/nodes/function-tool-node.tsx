@@ -9,11 +9,12 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 
-export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData }) {
-  const { data, selected, id } = props;
-
-  const name = String(data.name || 'Function Tool');
-  const description = String(data.description || '');
+export function FunctionToolNode({
+  data,
+  selected,
+  id,
+}: NodeProps & { data: FunctionToolNodeData }) {
+  const { name = 'Function Tool', description } = data;
 
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
@@ -36,7 +37,7 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
         )}
       >
         <BaseNodeHeader className="mb-0 py-3">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded flex items-center justify-center shrink-0">
                 <Code className="w-4 h-4 text-foreground/70" />

@@ -5,6 +5,13 @@ description: Learn how to configure and use external agents using the A2A protoc
 icon: LuGlobe
 ---
 
+<SkillRule
+  id="external-agents-overview"
+  skills="typescript-sdk"
+  title="External Agents Overview"
+  description="How to configure and use external agents using the A2A protocol"
+>
+
 External agents let you integrate agents built outside of Inkeep (using other frameworks or platforms) into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native. Note that Inkeep Agents are available via an [A2A endpoint](/talk-to-your-agents/a2a) themselves and used from other platforms.
 
 Learn more about A2A:
@@ -105,3 +112,5 @@ const supportSubAgent = subAgent({
 | `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                       |
 | `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                    |
 | `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/tools/credentials) for details                                                 |
+
+</SkillRule>

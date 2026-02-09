@@ -35,7 +35,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       fetchDataComponentsAction(tenantId, projectId),
       fetchArtifactComponentsAction(tenantId, projectId),
       fetchCredentialsAction(tenantId, projectId),
-      fetchToolsAction(tenantId, projectId),
+      fetchToolsAction(tenantId, projectId, { skipDiscovery: true }),
       fetchExternalAgentsAction(tenantId, projectId),
       fetchSkillsAction(tenantId, projectId),
     ]);

@@ -7,6 +7,8 @@ import type {
   ProjectModelSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  WorkAppGitHubAccountTypeSchema,
+  WorkAppGitHubInstallationStatusSchema,
 } from '../validation/schemas';
 
 // Utility types
@@ -236,7 +238,13 @@ export interface ProjectResourceCounts {
   externalAgents: number;
 }
 
-export const TOOL_STATUS_VALUES = ['healthy', 'unhealthy', 'unknown', 'needs_auth'] as const;
+export const TOOL_STATUS_VALUES = [
+  'healthy',
+  'unhealthy',
+  'unknown',
+  'needs_auth',
+  'unavailable',
+] as const;
 
 export const VALID_RELATION_TYPES = ['transfer', 'delegate'] as const;
 
@@ -383,3 +391,19 @@ export type DatasetItemInput = {
 };
 
 export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;
+
+/**
+ * GitHub App installation status.
+ * - 'pending': Installation request awaiting org admin approval
+ * - 'active': Installation is active and functional
+ * - 'suspended': Installation suspended by GitHub or org admin
+ * - 'disconnected': Installation has been disconnected by the user (soft delete)
+ */
+export type WorkAppGitHubInstallationStatus = z.infer<typeof WorkAppGitHubInstallationStatusSchema>;
+
+/**
+ * GitHub account type for the installation target.
+ * - 'Organization': Installed on a GitHub organization
+ * - 'User': Installed on a personal GitHub account
+ */
+export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSchema>;

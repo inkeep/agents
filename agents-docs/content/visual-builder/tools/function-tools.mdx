@@ -62,8 +62,6 @@ function calculateBMI({ weight, height }) {
 
   return { bmi: Math.round(bmi * 10) / 10, category };
 }
-
-return calculateBMI(args);
 ```
 
 <Note>Code can be synchronous aor asynchronous, we accept any flavor.</Note>
@@ -96,7 +94,7 @@ The Visual Builder provides syntax highlighting and validation for your JSON sch
 If you need external packages for your code to run, then specify the desired version in dependencies; otherwise we always use the latest version.
 
 ```javascript
-// Dependencies auto-detected from impports
+// Dependencies auto-detected from imports
 const axios = require("axios"); // latest axios version
 const lodash = require("lodash"); // Uses latest lodash version
 ```
@@ -132,8 +130,6 @@ async function getWeather({ city }) {
     description: response.data.weather,
   };
 }
-
-return getWeather(args);
 ```
 
 **Input Schema**:

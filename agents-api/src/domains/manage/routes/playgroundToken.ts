@@ -33,7 +33,7 @@ app.openapi(
     path: '/',
     summary: 'Generate temporary API key for playground',
     operationId: 'create-playground-token',
-    tags: ['Playground'],
+    tags: ['API Keys'],
     description:
       'Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground',
     security: [{ cookieAuth: [] }],
@@ -132,17 +132,14 @@ app.openapi(
       'utf-8'
     );
 
-    const result = await signTempToken(
-      privateKeyPem,
-      {
-        tenantId,
-        projectId,
-        agentId,
-        type: 'temporary',
-        initiatedBy: { type: 'user', id: userId },
-      },
-      userId
-    );
+    const result = await signTempToken(privateKeyPem, {
+      tenantId,
+      projectId,
+      agentId,
+      type: 'temporary',
+      initiatedBy: { type: 'user', id: userId },
+      sub: userId,
+    });
 
     logger.info({ userId, expiresAt: result.expiresAt }, 'Temporary JWT token generated');
 

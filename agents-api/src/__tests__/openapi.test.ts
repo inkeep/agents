@@ -1,20 +1,15 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { makeRequest } from './utils/testRequest';
 
-function sortObjectKeys(obj: any): any {
+function sortObjectKeys(obj: any): unknown {
   if (typeof obj !== 'object' || obj === null) return obj;
   if (Array.isArray(obj)) return obj.map(sortObjectKeys);
   return Object.keys(obj)
     .sort()
-    .reduce(
-      (acc, key) => {
-        acc[key] = sortObjectKeys(obj[key]);
-        return acc;
-      },
-      {} as Record<string, any>
-    );
+    .reduce<Record<string, unknown>>((acc, key) => {
+      acc[key] = sortObjectKeys(obj[key]);
+      return acc;
+    }, {});
 }
 
 describe('OpenAPI Specification - Integration Tests (Unified agents-api)', () => {
@@ -129,112 +124,19 @@ describe('OpenAPI Specification - Integration Tests (Unified agents-api)', () =>
     });
 
     it('should match the OpenAPI snapshot', async () => {
-      const snapshotDir = path.resolve(__dirname, '../../__snapshots__');
-      const snapshotPath = path.resolve(snapshotDir, 'openapi.json');
+      const openApiJsonSnapshot = `${JSON.stringify(sortObjectKeys(cachedSpec), null, 2)}\n`;
 
-      const normalizedSpec = sortObjectKeys({
-        ...cachedSpec,
-        servers: [{ url: 'http://localhost:3002', description: 'API Server' }],
-      });
+      await expect(openApiJsonSnapshot).toMatchFileSnapshot(
+        '../../__snapshots__/openapi.json',
+        `
+The generated OpenAPI spec differs from the committed snapshot.
 
-      if (process.env.UPDATE_OPENAPI_SNAPSHOT === 'true') {
-        if (!fs.existsSync(snapshotDir)) {
-          fs.mkdirSync(snapshotDir, { recursive: true });
-        }
-        fs.writeFileSync(snapshotPath, `${JSON.stringify(normalizedSpec, null, 2)}\n`, 'utf-8');
-        return;
-      }
-
-      if (!fs.existsSync(snapshotPath)) {
-        const lines: string[] = [];
-        lines.push('');
-        lines.push('═'.repeat(70));
-        lines.push('  ❌ OpenAPI SNAPSHOT NOT FOUND');
-        lines.push('═'.repeat(70));
-        lines.push('');
-        lines.push('  Snapshot file does not exist at:');
-        lines.push(`  ${snapshotPath}`);
-        lines.push('');
-        lines.push('  To create the initial snapshot, run:');
-        lines.push('  pnpm --filter @inkeep/agents-api openapi:update-snapshot');
-        lines.push('');
-        lines.push('═'.repeat(70));
-        lines.push('');
-        throw new Error(lines.join('\n'));
-      }
-
-      const snapshotContent = fs.readFileSync(snapshotPath, 'utf-8');
-      const snapshotSpec = JSON.parse(snapshotContent);
-      const normalizedSnapshot = sortObjectKeys(snapshotSpec);
-
-      const currentJson = JSON.stringify(normalizedSpec, null, 2);
-      const snapshotJson = JSON.stringify(normalizedSnapshot, null, 2);
-
-      if (currentJson !== snapshotJson) {
-        const currentPaths = Object.keys(normalizedSpec.paths || {});
-        const snapshotPaths = Object.keys(normalizedSnapshot.paths || {});
-        const addedPaths = currentPaths.filter((p) => !snapshotPaths.includes(p));
-        const removedPaths = snapshotPaths.filter((p) => !currentPaths.includes(p));
-
-        const currentSchemas = Object.keys(normalizedSpec.components?.schemas || {});
-        const snapshotSchemas = Object.keys(normalizedSnapshot.components?.schemas || {});
-        const addedSchemas = currentSchemas.filter((s) => !snapshotSchemas.includes(s));
-        const removedSchemas = snapshotSchemas.filter((s) => !currentSchemas.includes(s));
-
-        const lines: string[] = [];
-        lines.push('');
-        lines.push('═'.repeat(70));
-        lines.push('  ❌ OpenAPI SNAPSHOT MISMATCH');
-        lines.push('═'.repeat(70));
-        lines.push('');
-        lines.push('  The generated OpenAPI spec differs from the committed snapshot.');
-        lines.push('');
-
-        if (addedPaths.length > 0 || removedPaths.length > 0) {
-          lines.push('  📍 PATH CHANGES:');
-          addedPaths.forEach((p) => {
-            lines.push(`     + ${p}`);
-          });
-          removedPaths.forEach((p) => {
-            lines.push(`     - ${p}`);
-          });
-          lines.push('');
-        }
-
-        if (addedSchemas.length > 0 || removedSchemas.length > 0) {
-          lines.push('  📦 SCHEMA CHANGES:');
-          addedSchemas.forEach((s) => {
-            lines.push(`     + ${s}`);
-          });
-          removedSchemas.forEach((s) => {
-            lines.push(`     - ${s}`);
-          });
-          lines.push('');
-        }
-
-        if (
-          addedPaths.length === 0 &&
-          removedPaths.length === 0 &&
-          addedSchemas.length === 0 &&
-          removedSchemas.length === 0
-        ) {
-          lines.push('  ⚠️  Changes detected in existing paths/schemas (not additions or removals)');
-          lines.push('');
-        }
-
-        lines.push('  ─'.repeat(35));
-        lines.push('');
-        lines.push('  ┌─────────────────────────────────────────────────────────────────┐');
-        lines.push('  │  TO UPDATE THE SNAPSHOT, RUN:                                   │');
-        lines.push('  │                                                                 │');
-        lines.push('  │  pnpm --filter @inkeep/agents-api openapi:update-snapshot       │');
-        lines.push('  └─────────────────────────────────────────────────────────────────┘');
-        lines.push('');
-        lines.push('═'.repeat(70));
-        lines.push('');
-
-        throw new Error(lines.join('\n'));
-      }
+┌─────────────────────────────────────────────────────────────────┐
+│  TO UPDATE THE SNAPSHOT, RUN:                                   │
+│                                                                 │
+│  pnpm --filter @inkeep/agents-api openapi:update-snapshot       │
+└─────────────────────────────────────────────────────────────────┘`
+      );
     });
   });
 });

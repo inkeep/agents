@@ -33,7 +33,7 @@ const logger = getLogger('completionsHandler');
 const chatCompletionsRoute = createRoute({
   method: 'post',
   path: '/completions',
-  tags: ['chat'],
+  tags: ['Chat'],
   summary: 'Create chat completion',
   description:
     'Creates a new chat completion with streaming SSE response using the configured agent',

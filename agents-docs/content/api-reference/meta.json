@@ -1,7 +1,3 @@
 {
-  "pages": [
-    "authentication",
-    "[LuDatabaseZap][Inkeep Agents Manage API](/api-reference)",
-    "[LuPlay][Inkeep Agents Run API](/api-reference/run-api)"
-  ]
+  "pages": ["index", "..."]
 }

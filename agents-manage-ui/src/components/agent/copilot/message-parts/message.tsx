@@ -6,13 +6,25 @@ import { Streamdown } from 'streamdown';
 import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { DataComponent } from '@/lib/api/data-components';
+import { SubAgentToolRelationResult } from '../components/sub-agent-tool-relation-result';
 import { CitationBadge } from './citation-badge';
 import { Citations } from './citations';
 import { InlineEvent } from './inline-event';
-// import { LoadingIndicator } from './loading';
 import { ToolApproval } from './tool-approval';
-import { ToolResult } from './tool-result';
 import { useProcessedOperations } from './use-processed-operations';
+
+// Helper to extract SubAgentToolRelation data from tool-* part output
+function parseToolOutputForRelations(content: any[]): any[] {
+  return content
+    .filter(
+      (item) =>
+        item &&
+        typeof item === 'object' &&
+        'text' in item &&
+        item.text?.SubAgentToolRelationResponse?.data
+    )
+    .map((item) => item.text.SubAgentToolRelationResponse.data);
+}
 
 interface IkpMessageProps {
   message: Message;
@@ -31,8 +43,6 @@ interface IkpMessageProps {
   refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
   cookieHeader?: string;
   copilotToken?: string;
-  /** Whether auth is disabled - pass this for Shadow DOM compatibility */
-  isAuthDisabled?: boolean;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -163,12 +173,11 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
   apiUrl,
   targetTenantId,
   targetProjectId,
-  targetAgentId,
+  targetAgentId: _targetAgentId,
   onOAuthLogin,
   refreshAgentGraph,
   cookieHeader,
   copilotToken,
-  isAuthDisabled,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
   // Just use operations in chronological order
@@ -318,28 +327,6 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
                       );
                     }
 
-                    if (group.data.type === 'tool_result') {
-                      return (
-                        <div key={`operation-${index}`}>
-                          {group.data.details.data.output?.result?.content?.length > 0 && (
-                            <ToolResult
-                              data={group.data}
-                              copilotAgentId={copilotAgentId}
-                              copilotProjectId={copilotProjectId}
-                              copilotTenantId={copilotTenantId}
-                              apiUrl={apiUrl}
-                              targetTenantId={targetTenantId}
-                              targetProjectId={targetProjectId}
-                              targetAgentId={targetAgentId}
-                              onOAuthLogin={onOAuthLogin}
-                              refreshAgentGraph={refreshAgentGraph}
-                              isAuthDisabled={isAuthDisabled}
-                            />
-                          )}
-                        </div>
-                      );
-                    }
-
                     // Handle inline operations in order
                     return (
                       <div key={`operation-${index}`}>
@@ -354,6 +341,32 @@ const IkpMessageComponent: FC<IkpMessageProps> = ({
                         <StreamMarkdown parts={[group]} />
                       </div>
                     );
+                  }
+
+                  if (group.type?.startsWith('tool-') && group.output?.content?.length > 0) {
+                    // Extract SubAgentToolRelation data directly from tool output
+                    const toolRelations = parseToolOutputForRelations(group.output.content);
+
+                    if (toolRelations.length > 0) {
+                      const handleConnect: OAuthLoginHandler = async (params) => {
+                        if (!onOAuthLogin) {
+                          throw new Error('OAuth handler not provided');
+                        }
+                        await onOAuthLogin(params);
+                      };
+
+                      return (
+                        <div key={`tool-result-${index}`} className="py-3">
+                          <SubAgentToolRelationResult
+                            relations={toolRelations}
+                            targetTenantId={targetTenantId}
+                            targetProjectId={targetProjectId}
+                            onConnect={handleConnect}
+                            refreshAgentGraph={refreshAgentGraph}
+                          />
+                        </div>
+                      );
+                    }
                   }
                   return null;
                 });
@@ -395,7 +408,6 @@ export const IkpMessage = (props: any) => {
         refreshAgentGraph={otherProps.refreshAgentGraph}
         cookieHeader={otherProps.cookieHeader}
         copilotToken={otherProps.copilotToken}
-        isAuthDisabled={otherProps.isAuthDisabled}
       />
     </div>
   );

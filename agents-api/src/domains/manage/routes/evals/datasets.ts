@@ -30,10 +30,26 @@ import {
 // import runDbClient from '../../data/db/runDbClient';
 // import { env } from '../../env';
 import { getLogger } from '../../../../logger';
+import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasets');
+
+// Require edit permission for write operations
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
+
+app.use('/:datasetId', async (c, next) => {
+  if (['PATCH', 'DELETE'].includes(c.req.method)) {
+    return requireProjectPermission('edit')(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

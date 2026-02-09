@@ -1270,6 +1270,65 @@ export const updateFullAgentServerSide =
       const subAgentCount = Object.entries(typedAgentDefinition.subAgents).length;
       logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
 
+      const relinkToolRelationPromises: Promise<void>[] = [];
+
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
+          for (const canUseItem of agentData.canUse) {
+            if (!canUseItem.agentToolRelationId) {
+              continue;
+            }
+
+            relinkToolRelationPromises.push(
+              (async () => {
+                try {
+                  const { toolId, toolSelection, headers, toolPolicies, agentToolRelationId } =
+                    canUseItem;
+
+                  const isFunctionTool =
+                    typedAgentDefinition.functionTools &&
+                    toolId in typedAgentDefinition.functionTools;
+
+                  if (isFunctionTool) {
+                    await upsertSubAgentFunctionToolRelation(db)({
+                      scopes: { tenantId, projectId, agentId: finalAgentId },
+                      subAgentId,
+                      functionToolId: toolId,
+                      toolPolicies,
+                      relationId: agentToolRelationId,
+                    });
+                  } else {
+                    await upsertSubAgentToolRelation(db)({
+                      scopes: { tenantId, projectId, agentId: finalAgentId },
+                      subAgentId,
+                      toolId,
+                      selectedTools: toolSelection,
+                      headers,
+                      toolPolicies,
+                      relationId: agentToolRelationId,
+                    });
+                  }
+                } catch (error) {
+                  logger.error(
+                    {
+                      subAgentId,
+                      relationId: canUseItem.agentToolRelationId,
+                      toolId: canUseItem.toolId,
+                      error,
+                    },
+                    'Failed to relink tool relation during sub-agent update'
+                  );
+                }
+              })()
+            );
+          }
+        }
+      }
+
+      if (relinkToolRelationPromises.length > 0) {
+        await Promise.all(relinkToolRelationPromises);
+      }
+
       // External agents are project-scoped and managed at the project level.
       logger.info({}, 'External agents are project-scoped and managed at the project level.');
 

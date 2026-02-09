@@ -1,5 +1,6 @@
 import {
   type BaseExecutionContext,
+  canUseProjectStrict,
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
@@ -108,6 +109,9 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
 
 /**
  * Attempts to authenticate using a JWT temporary token
+ *
+ * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
+ * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
  */
 async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
   if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
@@ -120,17 +124,50 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
     );
     const payload = await verifyTempToken(publicKeyPem, apiKey);
 
-    logger.info({}, 'JWT temp token authenticated successfully');
+    const userId = payload.sub;
+    const projectId = payload.projectId;
+    const agentId = payload.agentId;
+
+    if (!projectId || !agentId) {
+      logger.warn({ userId }, 'Missing projectId or agentId in JWT');
+      throw new HTTPException(400, {
+        message: 'Invalid token: missing projectId or agentId',
+      });
+    }
+
+    let canUse: boolean;
+    try {
+      canUse = await canUseProjectStrict({ userId, projectId });
+    } catch (error) {
+      logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
+      throw new HTTPException(503, {
+        message: 'Authorization service temporarily unavailable',
+      });
+    }
+
+    if (!canUse) {
+      logger.warn({ userId, projectId }, 'User does not have use permission on project');
+      throw new HTTPException(403, {
+        message: 'Access denied: insufficient permissions',
+      });
+    }
+
+    logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
 
     return {
       apiKey,
       tenantId: payload.tenantId,
-      projectId: payload.projectId,
-      agentId: payload.agentId,
+      projectId,
+      agentId,
       apiKeyId: 'temp-jwt',
       metadata: { initiatedBy: payload.initiatedBy },
     };
   } catch (error) {
+    // Re-throw HTTPExceptions (like our 403 above)
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    // Other errors (JWT verification failed) - allow fallback to other auth methods
     logger.debug({ error }, 'JWT verification failed');
     return null;
   }

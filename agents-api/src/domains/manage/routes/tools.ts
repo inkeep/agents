@@ -7,6 +7,7 @@ import {
   createApiError,
   createTool,
   dbResultToMcpTool,
+  dbResultToMcpToolSkeleton,
   deleteTool,
   generateId,
   getToolById,
@@ -23,6 +24,7 @@ import {
   ToolStatusSchema,
   updateTool,
 } from '@inkeep/agents-core';
+import { z } from 'zod';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -61,6 +63,11 @@ app.openapi(
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
         status: ToolStatusSchema.optional(),
+        skipDiscovery: z
+          .enum(['true', 'false'])
+          .optional()
+          .transform((val) => val === 'true')
+          .describe('Skip MCP server discovery for faster response. Status will be "unknown".'),
       }),
     },
     responses: {
@@ -79,7 +86,7 @@ app.openapi(
   async (c) => {
     const db: AgentsManageDatabaseClient = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
-    const { page, limit, status } = c.req.valid('query');
+    const { page, limit, status, skipDiscovery } = c.req.valid('query');
 
     let result: {
       data: McpTool[];
@@ -92,6 +99,21 @@ app.openapi(
     };
     const credentialStores = c.get('credentialStores');
     const userId = c.get('userId');
+
+    // Fast path: skip MCP discovery, return skeleton data
+    if (skipDiscovery) {
+      const dbResult = await listTools(db)({
+        scopes: { tenantId, projectId },
+        pagination: { page, limit },
+      });
+
+      result = {
+        data: dbResult.data.map((tool) => dbResultToMcpToolSkeleton(tool)),
+        pagination: dbResult.pagination,
+      };
+
+      return c.json(result);
+    }
 
     // Filter by status if provided
     if (status) {
@@ -221,6 +243,7 @@ app.openapi(
       credentialScope: body.credentialScope,
       imageUrl: body.imageUrl,
       headers: body.headers,
+      isWorkApp: body.isWorkApp,
     });
 
     return c.json(
@@ -285,6 +308,7 @@ app.openapi(
         credentialScope: body.credentialScope,
         imageUrl: body.imageUrl,
         headers: body.headers,
+        isWorkApp: body.isWorkApp,
       },
     });
 

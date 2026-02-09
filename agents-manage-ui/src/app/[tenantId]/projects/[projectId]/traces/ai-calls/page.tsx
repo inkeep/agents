@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Brain, Calendar, Cpu, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Bot, Brain, Calendar, Coins, Cpu, MessageSquare } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
@@ -20,11 +20,48 @@ import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 
+interface TokenUsageStats {
+  byModel: Array<{
+    modelId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  byAgent: Array<{
+    agentId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  byProject: Array<{
+    projectId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  totals: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+}
+
+function formatTokenCount(count: number): string {
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(2)}M`;
+  }
+  if (count >= 1_000) {
+    return `${(count / 1_000).toFixed(1)}K`;
+  }
+  return count.toLocaleString();
+}
+
 // Time range options
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
   '7d': { label: 'Last 7 days', hours: 24 * 7 },
   '15d': { label: 'Last 15 days', hours: 24 * 15 },
+  '30d': { label: 'Last 30 days', hours: 24 * 30 },
   custom: { label: 'Custom range', hours: 0 },
 } as const;
 
@@ -65,6 +102,12 @@ export default function AICallsBreakdown({
     }[]
   >([]);
   const [modelCalls, setModelCalls] = useState<{ modelId: string; totalCalls: number }[]>([]);
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageStats>({
+    byModel: [],
+    byAgent: [],
+    byProject: [],
+    totals: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agent, setAgents] = useState<string[]>([]);
@@ -100,15 +143,15 @@ export default function AICallsBreakdown({
           endTime: clampedEndMs,
         };
       }
-      // Default to 15 days if custom dates not set
-      const hoursBack = TIME_RANGES['15d'].hours;
+      // Default to 30 days if custom dates not set
+      const hoursBack = TIME_RANGES['30d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
       };
     }
 
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 15;
+    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
     return {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
@@ -128,17 +171,19 @@ export default function AICallsBreakdown({
         const modelId = selectedModel === 'all' ? undefined : selectedModel;
 
         // Fetch all data in parallel using SigNoz aggregations
-        const [agentData, modelData, uniqueAgents, uniqueModels] = await Promise.all([
+        const [agentData, modelData, uniqueAgents, uniqueModels, tokenData] = await Promise.all([
           client.getAICallsBySubAgent(startTime, endTime, agentId, modelId, projectId),
           client.getAICallsByModel(startTime, endTime, agentId, projectId),
           client.getUniqueAgents(startTime, endTime, projectId),
           client.getUniqueModels(startTime, endTime, projectId),
+          client.getTokenUsageStats(startTime, endTime, projectId),
         ]);
 
         setAgentCalls(agentData);
         setModelCalls(modelData);
         setAgents(uniqueAgents);
         setModels(uniqueModels);
+        setTokenUsage(tokenData);
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
@@ -240,7 +285,7 @@ export default function AICallsBreakdown({
               </Label>
               <DatePickerWithPresets
                 label="Time range"
-                onRemove={() => setTimeRange('15d')}
+                onRemove={() => setTimeRange('30d')}
                 value={
                   timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
                 }
@@ -284,29 +329,80 @@ export default function AICallsBreakdown({
         </CardContent>
       </Card>
 
-      {/* Summary Card */}
-      <Card className="shadow-none bg-background">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-foreground">
-            Total Conversation AI Calls
-          </CardTitle>
-          <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <Skeleton className="h-8 w-20 mb-2" />
-          ) : (
-            <div className="text-2xl font-bold text-foreground">
-              {totalAICalls.toLocaleString()}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {selectedAgent === 'all'
-              ? `AI calls within conversations across ${agentCalls.length} agents`
-              : `AI calls within conversations for selected agent`}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Total AI Calls</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-foreground">
+                {totalAICalls.toLocaleString()}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {selectedAgent === 'all'
+                ? `Across ${agentCalls.length} agents`
+                : 'For selected agent'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Total Tokens</CardTitle>
+            <Coins className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-foreground">
+                {formatTokenCount(tokenUsage.totals.totalTokens)}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Input + Output tokens</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Input Tokens</CardTitle>
+            <Coins className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-blue-600">
+                {formatTokenCount(tokenUsage.totals.inputTokens)}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Prompt tokens used</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Output Tokens</CardTitle>
+            <Coins className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-green-600">
+                {formatTokenCount(tokenUsage.totals.outputTokens)}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Completion tokens generated</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Agent Calls List */}
       <Card className="shadow-none bg-background">
@@ -428,6 +524,142 @@ export default function AICallsBreakdown({
                 {selectedAgent === 'all'
                   ? 'No model data detected in the selected time range.'
                   : 'No model data found for the selected agent.'}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Token Usage by Model */}
+      <Card className="shadow-none bg-background">
+        <CardHeader>
+          <CardTitle className="text-foreground">Token Usage by Model</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg"
+                >
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              ))}
+            </div>
+          ) : tokenUsage.byModel.length > 0 ? (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              {tokenUsage.byModel.map((model, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-purple-50/30 dark:bg-purple-900/20 rounded-lg border border-border"
+                >
+                  <div className="flex items-center gap-3">
+                    <Cpu className="h-5 w-5 text-purple-600" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium text-foreground">
+                        {model.modelId === UNKNOWN_VALUE ? 'Unknown Model' : model.modelId}
+                      </span>
+                      <div className="flex gap-3 text-xs text-muted-foreground">
+                        <span>
+                          Input:{' '}
+                          <span className="text-blue-600 font-medium">
+                            {formatTokenCount(model.inputTokens)}
+                          </span>
+                        </span>
+                        <span>
+                          Output:{' '}
+                          <span className="text-green-600 font-medium">
+                            {formatTokenCount(model.outputTokens)}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-purple-600">
+                      {formatTokenCount(model.totalTokens)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">total tokens</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Cpu className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No token usage data found.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                No token data detected in the selected time range.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Token Usage by Agent */}
+      <Card className="shadow-none bg-background">
+        <CardHeader>
+          <CardTitle className="text-foreground">Token Usage by Agent</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg"
+                >
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              ))}
+            </div>
+          ) : tokenUsage.byAgent.length > 0 ? (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              {tokenUsage.byAgent.map((agentItem, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-orange-50/30 dark:bg-orange-900/20 rounded-lg border border-border"
+                >
+                  <div className="flex items-center gap-3">
+                    <Bot className="h-5 w-5 text-orange-600" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium text-foreground">
+                        {agentItem.agentId === UNKNOWN_VALUE ? 'Unknown Agent' : agentItem.agentId}
+                      </span>
+                      <div className="flex gap-3 text-xs text-muted-foreground">
+                        <span>
+                          Input:{' '}
+                          <span className="text-blue-600 font-medium">
+                            {formatTokenCount(agentItem.inputTokens)}
+                          </span>
+                        </span>
+                        <span>
+                          Output:{' '}
+                          <span className="text-green-600 font-medium">
+                            {formatTokenCount(agentItem.outputTokens)}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-orange-600">
+                      {formatTokenCount(agentItem.totalTokens)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">total tokens</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Bot className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No token usage by agent found.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                No agent token data detected in the selected time range.
               </p>
             </div>
           )}

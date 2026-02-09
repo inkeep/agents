@@ -12,7 +12,7 @@ export function createExecutionWrapper(executeCode: string, args: Record<string,
 const args = ${JSON.stringify(args, null, 2)};
 
 // User's function code
-const execute = ${executeCode}
+const execute = ${executeCode};
 
 // Execute the function and output the result
 (async () => {

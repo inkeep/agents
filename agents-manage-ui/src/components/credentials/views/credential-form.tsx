@@ -7,6 +7,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
+
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,17 +16,22 @@ import { InfoCard } from '@/components/ui/info-card';
 import { useCredentialStoresQuery } from '@/lib/query/credential-stores';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
-import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
+import {
+  type CredentialFormData,
+  type CredentialFormOutput,
+  credentialFormSchema,
+  keyValuePairsToRecord,
+} from './credential-form-validation';
 
 interface CredentialFormProps {
-  /** Handler for creating new credentials */
-  onCreateCredential: (data: CredentialFormData) => Promise<void>;
+  /** Handler for creating new credentials (receives metadata as record) */
+  onCreateCredential: (data: CredentialFormOutput) => Promise<void>;
 }
 
 const defaultValues: CredentialFormData = {
   name: '',
   apiKeyToSet: '',
-  metadata: {},
+  metadata: [{ key: '', value: '' }],
   credentialStoreId: '',
   credentialStoreType: 'nango',
   selectedTool: undefined,
@@ -132,7 +138,13 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
         return;
       }
 
-      await onCreateCredential(data);
+      // Convert metadata array to record for API
+      const submitData: CredentialFormOutput = {
+        ...data,
+        metadata: keyValuePairsToRecord(data.metadata),
+      };
+
+      await onCreateCredential(submitData);
     } catch (err) {
       console.error('Failed to create credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to create credential');
@@ -236,9 +248,10 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
               <GenericKeyValueInput
                 control={form.control}
                 name="metadata"
-                label="Metadata (optional)"
-                keyPlaceholder="Header name (e.g., X-API-Key)"
-                valuePlaceholder="Header value"
+                label="Headers (optional)"
+                keyPlaceholder="Key (e.g. X-API-Key)"
+                valuePlaceholder="Value (e.g. your-api-key)"
+                addButtonLabel="Add header"
               />
               <InfoCard title="How this works">
                 <p className="mb-2">
@@ -267,6 +280,8 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
               label="Credential store"
               options={credentialStoreOptions}
               key={`credential-store-${credentialStores.length}-${storesLoading}`} // Force re-render when stores change
+              placeholder="Select a credential store"
+              selectTriggerClassName="w-full"
             />
           </div>
 

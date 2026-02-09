@@ -1,5 +1,162 @@
 # @inkeep/agents-core
 
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+### Patch Changes
+
+- 6fbe785: Fixes spicedb for docker
+
+## 0.47.0
+
+### Minor Changes
+
+- 77a45c9: Implements SPICEDB_TLS_ENABLED
+- cfee934: fixes the spicedb type exports
+
+## 0.46.1
+
+### Patch Changes
+
+- f6010a1: Add `HeadersSchema` export for HTTP header validation and remove unused client exports.
+- 07a027d: Add Claude Opus 4.6 to available model constants
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+
+## 0.45.3
+
+### Patch Changes
+
+- 4a83260: Add custom headers validation in playground chat. Users are now notified when custom headers are invalid or required based on the agent's headers schema configuration.
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+
+## 0.45.0
+
+### Patch Changes
+
+- 938ffb8: Revert refine method in resource id schema
+- 4f91394: add new available-agents route and authz permissions to runAuth middleware
+- 6f5bd15: Add CI check for env.ts descriptions
+
+## 0.44.0
+
+### Minor Changes
+
+- 08aa941: Add GitHub app management functionality
+- ba853ef: disallow resource id schema for value `new`
+
+### Patch Changes
+
+- 5bb2da2: fix(agents-core): add AST validation for function tools `executeCode`
+- 8a283ea: Fix tool relations when renaming sub-agent IDs
+- bcc26b4: Add descriptions to environment variable schemas for better developer experience
+
+## 0.43.0
+
+### Minor Changes
+
+- de9bed1: Replace deprecated keytar package with @napi-rs/keyring for native keychain integration
+- a5ba56c: BREAKING: Replace hardcoded webhook signature verification with flexible, provider-agnostic configuration
+
+  This major version removes the legacy `signingSecret` field from triggers and replaces it with a flexible signature verification system that supports GitHub, Slack, Stripe, Zendesk, and other webhook providers.
+
+  **Breaking Changes:**
+
+  - Removed `signingSecret` column from triggers table (database migration required)
+  - Removed `signingSecret` parameter from TriggerInsertSchema, TriggerUpdateSchema, and TriggerApiInsert
+  - Removed `verifySigningSecret()` function from trigger-auth.ts
+  - Triggers now require `signingSecretCredentialReferenceId` and `signatureVerification` configuration for signature verification
+
+  **New Features:**
+
+  - Added `SignatureVerificationConfig` type supporting:
+    - Multiple HMAC algorithms: sha256, sha512, sha384, sha1, md5
+    - Multiple encodings: hex, base64
+    - Flexible signature extraction from headers, query parameters, or body
+    - Multi-component signing with configurable separators
+    - Regex extraction for complex signature formats
+    - Advanced validation options (case sensitivity, empty body handling, Unicode normalization)
+  - Added `verifySignatureWithConfig()` function with timing-safe signature comparison
+  - Added validation utilities: `validateJMESPath()`, `validateRegex()`
+  - Added comprehensive unit tests and integration tests
+  - Added credential resolution with 5-minute caching in TriggerService
+
+  **Migration Guide:**
+
+  Before (deprecated):
+
+  ```typescript
+  const trigger = {
+    signingSecret: "my-secret",
+  };
+  ```
+
+  After:
+
+  ```typescript
+  const trigger = {
+    signingSecretCredentialReferenceId: "credential-ref-id",
+    signatureVerification: {
+      algorithm: "sha256",
+      encoding: "hex",
+      signature: {
+        source: "header",
+        key: "X-Hub-Signature-256",
+        prefix: "sha256=",
+      },
+      signedComponents: [{ source: "body", required: true }],
+      componentJoin: { strategy: "concatenate", separator: "" },
+    },
+  };
+  ```
+
+  See SDK documentation for complete examples for GitHub, Slack, Stripe, and Zendesk webhooks.
+
+### Patch Changes
+
+- 5f432f9: stats page
+- 0fff69c: Centralized jmes validation
+- eef0a3f: new OAuth callback route
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 0f83405: Fix trigger message template removal not working from UI
+- 5ffbf6b: trigger traces
+- 0aa5679: fix: preserve triggers when not included in fullAgent update
+
+  The fullAgent update endpoint now only deletes orphaned triggers when the triggers field is explicitly provided. This prevents triggers from being deleted when saving an agent from the UI (which doesn't manage triggers via this endpoint). The SDK now always includes triggers in agent serialization to ensure proper sync behavior.
+
+- 05a8a12: adding authorization checks and spicedb setup
+- caefccc: improve mcp servers page loading
+- 720d42f: trigger fix for vercel
+- 31b3310: Migrate fk to varchar in manage schema
+- 5f66967: triggers for vercel
+- 8160ded: improve loading mcps in agent page
+- cfa81bb: fix(agents-core): avoid calling 2 times `getCredentialReference` or `getUserScopedCredentialReference`
+
 ## 0.42.0
 
 ### Minor Changes

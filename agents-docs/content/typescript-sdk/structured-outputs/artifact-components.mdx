@@ -6,6 +6,13 @@ icon: TbInputSpark
 
 <Snippet file="multi-agent-framework/artifacts.mdx" />
 
+<SkillRule
+  id="artifact-components-definition"
+  skills="typescript-sdk"
+  title="Defining Artifact Components"
+  description="How to define artifact components with preview fields for citations and sources"
+>
+
 ## Defining Artifact Components
 
 Artifact components are defined using the `artifactComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
@@ -188,3 +195,5 @@ Example flow:
 2. **Agent decides** to create an artifact citing the source document
 3. Artifact is stored with preview fields (title, url) shown to other agents
 4. Other agents can reference this artifact or get full content when needed
+
+</SkillRule>

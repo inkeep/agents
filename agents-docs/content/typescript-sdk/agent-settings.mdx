@@ -43,6 +43,13 @@ const supportAgent = subAgent({
 
 Configure AI models for your agents. See [Model Configuration](/typescript-sdk/models) for detailed information about supported providers, configuration options, and examples.
 
+<SkillRule
+  id="stop-when-config"
+  skills="typescript-sdk"
+  title="Configuring StopWhen"
+  description="Control stopping conditions to prevent infinite loops in agents"
+>
+
 ## Configuring StopWhen
 
 Control stopping conditions to prevent infinite loops:
@@ -71,6 +78,15 @@ subAgent({
 
 Settings inherit from Project → Agent → Sub Agent.
 
+</SkillRule>
+
+
+<SkillRule
+  id="sub-agent-params"
+  skills="typescript-sdk"
+  title="Sub Agent Parameters Reference"
+  description="Complete parameter reference for subAgent() configuration"
+>
 
 ## Sub Agent overview
 
@@ -89,6 +105,8 @@ Beyond model configuration, Sub Agents define tools, structured outputs, and age
 | `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |
 | `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) |
 | `canDelegateTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) |
+
+</SkillRule>
 
 
 ### Tools & MCPs

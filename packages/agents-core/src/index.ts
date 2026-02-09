@@ -2,6 +2,7 @@
 
 export * from './api-client/index';
 export * from './auth/authz';
+export * from './auth/password-reset-link-store';
 export * from './constants/context-breakdown';
 export * from './constants/execution-limits-shared';
 export * from './constants/models';

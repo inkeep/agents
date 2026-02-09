@@ -5,6 +5,13 @@ icon: LuActivity
 keywords: data operations, emit operations, debugging, agent events, x-emit-operations header, agent monitoring
 ---
 
+<SkillRule
+  id="data-operations-overview"
+  skills="typescript-sdk"
+  title="Data Operations Overview"
+  description="How to enable and use data operations for debugging and monitoring"
+>
+
 ## Overview
 
 Data operations are detailed, real-time events that provide visibility into what agents are doing during execution. They include agent reasoning, tool executions, transfers, delegations, and artifact creation. By default, these operations are hidden from end users to keep the interface clean, but they can be enabled for debugging and monitoring purposes.
@@ -46,6 +53,15 @@ Data operations will be shown during responses.
 🔧 Emit operations: OFF
 Data operations are hidden.
 ```
+
+</SkillRule>
+
+<SkillRule
+  id="data-operation-types"
+  skills="typescript-sdk"
+  title="Data Operation Types Reference"
+  description="All data operation event types and their payloads"
+>
 
 ## Data Operation Types
 
@@ -446,3 +462,5 @@ data: {"type":"completion","details":{"agent":"coordinator-agent","iteration":1}
 ```
 
 This provides complete visibility into the agent's execution process, from initialization through reasoning, tool execution, artifact creation, and final response generation.
+
+</SkillRule>

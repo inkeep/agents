@@ -1,0 +1,101 @@
+---
+title: Push to Inkeep Cloud
+sidebarTitle: Push to Cloud
+description: Set up a profile, authenticate, and push your agents to Inkeep Cloud
+icon: LuCloudUpload
+---
+
+This tutorial walks you through pushing agent configurations to Inkeep Cloud. You'll learn how to set up a CLI profile, authenticate with your Inkeep Cloud account, and push changes made in the Visual Builder.
+
+## Prerequisites
+
+- Access to [Inkeep Cloud](https://inkeep.com/cloud-waitlist) or a [self-hosted deployment](/deployment/vercel)
+- The Inkeep CLI installed globally:
+
+```bash
+npm install -g @inkeep/agents-cli
+```
+
+## Step 1: Create a cloud profile
+
+Profiles let you manage multiple environments (cloud, local, staging) from the same CLI. Create a profile for Inkeep Cloud:
+
+```bash
+inkeep profile add <profile-name>
+```
+
+The CLI prompts you to configure the profile:
+
+1. **Remote type**: Select **Custom**
+2. **Agents API URL**: Enter the URL of your agents API
+3. **Manage UI URL**: Enter the URL of your manage UI
+2. **Environment name**: Enter `production` (or your preferred name)
+
+<Tip>
+You can verify the profile was created by running `inkeep profile list`.
+</Tip>
+
+### Switch to your cloud profile
+
+Set the cloud profile as your active profile:
+
+```bash
+inkeep profile use cloud
+```
+
+You can confirm which profile is active:
+
+```bash
+inkeep profile current
+```
+
+## Step 2: Log in
+
+Authenticate:
+
+```bash
+inkeep login
+```
+
+The CLI will:
+1. Open your browser to the Inkeep authentication page
+2. Display a device code (e.g., `ABCD-1234`)
+3. Wait for you to complete authentication in the browser
+
+Once authenticated, you'll see confirmation:
+
+```
+✓ Logged in as you@example.com
+✓ Organization: Your Organization
+✓ Profile: cloud
+```
+
+<Note>
+Your credentials are securely stored in your system keychain. You only need to log in once per profile.
+</Note>
+
+## Step 3: Push changes to Inkeep Cloud
+
+After making changes in the Visual Builder or in code, push them to Inkeep Cloud.
+
+### Push from a project directory
+
+Navigate to your project directory and run:
+
+```bash
+cd my-project
+inkeep push
+```
+
+The CLI will:
+1. Detect the project from your `index.ts` file
+2. Load configuration from `inkeep.config.ts`
+3. Push all agents, tools, and configurations to Inkeep Cloud
+
+### Push all projects at once
+
+If you have multiple projects in a workspace, push them all:
+
+```bash
+inkeep push --all
+```

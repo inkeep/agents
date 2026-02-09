@@ -1,40 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getSpiceDbConfig, isAuthzEnabled } from '../config';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockEnv = vi.hoisted(() => ({
+  SPICEDB_ENDPOINT: undefined as string | undefined,
+  SPICEDB_PRESHARED_KEY: undefined as string | undefined,
+  SPICEDB_TLS_ENABLED: undefined as boolean | undefined,
+}));
+
+vi.mock('../../../env', () => ({
+  env: mockEnv,
+}));
+
+import { getSpiceDbConfig, isLocalhostEndpoint } from '../config';
 
 describe('authz/config', () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
-    vi.resetModules();
-    process.env = { ...originalEnv };
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  describe('isAuthzEnabled', () => {
-    it('should return false when ENABLE_AUTHZ is not set', () => {
-      delete process.env.ENABLE_AUTHZ;
-      expect(isAuthzEnabled()).toBe(false);
-    });
-
-    it('should return false when ENABLE_AUTHZ is "false"', () => {
-      process.env.ENABLE_AUTHZ = 'false';
-      expect(isAuthzEnabled()).toBe(false);
-    });
-
-    it('should return false for any other ENABLE_AUTHZ value', () => {
-      process.env.ENABLE_AUTHZ = 'yes';
-      expect(isAuthzEnabled()).toBe(false);
-    });
+    mockEnv.SPICEDB_ENDPOINT = undefined;
+    mockEnv.SPICEDB_PRESHARED_KEY = undefined;
+    mockEnv.SPICEDB_TLS_ENABLED = undefined;
   });
 
   describe('getSpiceDbConfig', () => {
     it('should return default values when env vars not set', () => {
-      delete process.env.SPICEDB_ENDPOINT;
-      delete process.env.SPICEDB_PRESHARED_KEY;
-
       const config = getSpiceDbConfig();
 
       expect(config).toEqual({
@@ -45,8 +31,8 @@ describe('authz/config', () => {
     });
 
     it('should auto-enable TLS for remote endpoints', () => {
-      process.env.SPICEDB_ENDPOINT = 'grpc.authzed.com:443';
-      process.env.SPICEDB_PRESHARED_KEY = 'my-secret-key';
+      mockEnv.SPICEDB_ENDPOINT = 'grpc.authzed.com:443';
+      mockEnv.SPICEDB_PRESHARED_KEY = 'my-secret-key';
 
       const config = getSpiceDbConfig();
 
@@ -58,7 +44,7 @@ describe('authz/config', () => {
     });
 
     it('should disable TLS for localhost endpoints', () => {
-      process.env.SPICEDB_ENDPOINT = 'localhost:50051';
+      mockEnv.SPICEDB_ENDPOINT = 'localhost:50051';
 
       const config = getSpiceDbConfig();
 
@@ -66,11 +52,25 @@ describe('authz/config', () => {
     });
 
     it('should disable TLS for 127.0.0.1 endpoints', () => {
-      process.env.SPICEDB_ENDPOINT = '127.0.0.1:50051';
+      mockEnv.SPICEDB_ENDPOINT = '127.0.0.1:50051';
 
       const config = getSpiceDbConfig();
 
       expect(config.tlsEnabled).toBe(false);
+    });
+  });
+
+  describe('isLocalhostEndpoint', () => {
+    it('should return true for localhost', () => {
+      expect(isLocalhostEndpoint('localhost:50051')).toBe(true);
+    });
+
+    it('should return true for 127.0.0.1', () => {
+      expect(isLocalhostEndpoint('127.0.0.1:50051')).toBe(true);
+    });
+
+    it('should return false for remote endpoints', () => {
+      expect(isLocalhostEndpoint('grpc.authzed.com:443')).toBe(false);
     });
   });
 });

@@ -56,13 +56,20 @@ jobs:
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: ${{ runner.os }}-turbo-
 
+      - name: Setup Playwright cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
-          # Ensure agents-manage-ui dependencies are properly installed
-          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
+
+      - name: Install Playwright
+        run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
 
       # Clean database files before running tests
       - name: Clean database files
@@ -81,7 +88,7 @@ jobs:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
@@ -91,8 +98,20 @@ jobs:
           CI: true
           HUSKY: 0
 
+      - name: Upload Vitest Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-screenshots
+          path: agents-manage-ui/.vitest-attachments
+          retention-days: 3
+          include-hidden-files: true
+
       - name: Biome Format
         run: pnpm format:check
+
+      - name: Check env.ts descriptions
+        run: pnpm check:env-descriptions
 
       - name: Check for unused dependencies, exports, and types
         run: pnpm knip
@@ -200,17 +219,31 @@ jobs:
         run: |
           # Build all packages that the e2e test links to local versions
           # These need dist/ directories for subpath exports like ./factory
-          pnpm --filter @inkeep/agents-core build
-          pnpm --filter @inkeep/agents-manage-mcp build
-          pnpm --filter @inkeep/agents-sdk build
-          pnpm --filter @inkeep/agents-api build
-          pnpm --filter @inkeep/agents-cli build
-          pnpm --filter @inkeep/create-agents build
+          pnpm turbo run build --filter=@inkeep/create-agents --filter=@inkeep/agents-api --filter=@inkeep/agents-cli
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+      # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
+      - name: Start SpiceDB
+        run: |
+          docker run -d --name spicedb \
+            --network host \
+            -e SPICEDB_GRPC_PRESHARED_KEY=dev-secret-key \
+            -e SPICEDB_DATASTORE_ENGINE=memory \
+            -e SPICEDB_HTTP_ENABLED=true \
+            authzed/spicedb serve
+          echo "Waiting for SpiceDB to be ready..."
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 50051 2>/dev/null; then
+              echo "SpiceDB is ready!"
+              break
+            fi
+            echo "  Attempt $i/30..."
+            sleep 1
+          done
 
       - name: Run database migrations
         run: pnpm db:migrate
@@ -223,9 +256,15 @@ jobs:
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
-        
+          INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: e2e-test-bypass-secret-for-ci-testing-only
+          INKEEP_AGENTS_MANAGE_UI_USERNAME: admin@example.com
+          INKEEP_AGENTS_MANAGE_UI_PASSWORD: adminADMIN!@12
+          BETTER_AUTH_SECRET: test-secret-key-for-ci
+          SPICEDB_PRESHARED_KEY: dev-secret-key
+
       - name: Run agents-api integration tests
-        run: pnpm --filter @inkeep/agents-api test:integration 
+        run: pnpm --filter @inkeep/agents-api test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          SPICEDB_PRESHARED_KEY: dev-secret-key

@@ -1,5 +1,5 @@
 {
   "title": "Get Started",
   "icon": "LuZap",
-  "pages": ["quick-start", "push-pull", "traces", "inkeep-mcp", "..."]
+  "pages": ["quick-start", "push-pull", "ai-coding-setup-for-ide", "traces", "..."]
 }

@@ -2,14 +2,12 @@ services:
   inkeep-agents-manage-ui:
     build:
       context: .
-      dockerfile: Dockerfile.manage-ui
+      dockerfile: Dockerfile.agents-manage-ui
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - INKEEP_AGENTS_MANAGE_API_URL=${INKEEP_AGENTS_MANAGE_API_URL:-http://inkeep-agents-manage-api:3002}
-      - INKEEP_AGENTS_RUN_API_URL=${INKEEP_AGENTS_RUN_API_URL:-http://localhost:3003}
-      - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
-      - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
+      - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-http://inkeep-agents-api:3002}
+      - PUBLIC_INKEEP_AGENTS_API_URL=${PUBLIC_INKEEP_AGENTS_API_URL:-http://localhost:3002}
       - NANGO_CONNECT_BASE_URL=${NANGO_CONNECT_BASE_URL:-http://localhost:3051}
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
@@ -18,20 +16,31 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      inkeep-agents-manage-api:
+      inkeep-agents-api:
         condition: service_started
-  inkeep-agents-manage-api:
+  inkeep-agents-api:
     build:
       context: .
-      dockerfile: Dockerfile.manage-api
+      dockerfile: Dockerfile.agents-api
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
+      - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
+      - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - GOOGLE_GENERATIVE_AI_API_KEY
+      - AZURE_API_KEY
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://localhost:14318/v1/traces}
+      - OTEL_EXPORTER_OTLP_TRACES_HEADERS
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
+      - INKEEP_AGENTS_JWT_SIGNING_SECRET
+      - INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY
+      - INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
     ports:
       - "3002:3002"
     depends_on:
@@ -41,29 +50,8 @@ services:
         condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
-  inkeep-agents-run-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.run-api
-    environment:
-      - ENVIRONMENT
-      - LOG_LEVEL
-      - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
-      - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
-      - ANTHROPIC_API_KEY
-      - OPENAI_API_KEY
-      - GOOGLE_GENERATIVE_AI_API_KEY
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://localhost:14318/v1/traces}
-      - OTEL_EXPORTER_OTLP_TRACES_HEADERS
-      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
-      - NANGO_SECRET_KEY
-    ports:
-      - "3003:3003"
-    depends_on:
-      inkeep-agents-postgres-db:
-        condition: service_healthy
-      inkeep-agents-migrate:
-        condition: service_completed_successfully
+      inkeep-agents-spicedb:
+        condition: service_started
   inkeep-agents-doltgres-db:
     image: dolthub/doltgresql:latest
     restart: unless-stopped
@@ -83,9 +71,9 @@ services:
     image: postgres:18
     restart: unless-stopped
     environment:
-      POSTGRES_DB: inkeep_agents
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: inkeep_agents
     volumes:
       - inkeep-agents-postgres-data:/var/lib/postgresql
     healthcheck:
@@ -96,18 +84,74 @@ services:
   inkeep-agents-migrate:
     build:
       context: .
-      dockerfile: Dockerfile.migrate
+      dockerfile: Dockerfile.agents-migrate
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
+      - SPICEDB_ENDPOINT=inkeep-agents-spicedb:50051
+      - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
+      - INKEEP_AGENTS_MANAGE_UI_USERNAME
+      - INKEEP_AGENTS_MANAGE_UI_PASSWORD
+      - BETTER_AUTH_SECRET
     depends_on:
       inkeep-agents-doltgres-db:
         condition: service_healthy
       inkeep-agents-postgres-db:
         condition: service_healthy
+      inkeep-agents-spicedb:
+        condition: service_healthy
     restart: "no"
+
+  # SpiceDB for authorization
+  inkeep-agents-spicedb:
+    image: authzed/spicedb:v1.49.1
+    command: serve
+    restart: unless-stopped
+    environment:
+      SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
+      SPICEDB_HTTP_ENABLED: true
+      SPICEDB_TELEMETRY_ENDPOINT: ""
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:50051"]
+      interval: 5s
+      timeout: 30s
+      retries: 10
+    depends_on:
+      inkeep-agents-spicedb-migrate:
+        condition: service_completed_successfully
+
+  inkeep-agents-spicedb-migrate:
+    image: authzed/spicedb:v1.49.1
+    command: migrate head
+    restart: "no"
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
+    depends_on:
+      inkeep-agents-spicedb-postgres-db:
+        condition: service_healthy
+
+  inkeep-agents-spicedb-postgres-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: spicedb
+      POSTGRES_PASSWORD: spicedb
+      POSTGRES_DB: spicedb
+    volumes:
+      - inkeep-agents-spicedb-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spicedb"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
 volumes:
   inkeep-agents-doltgres-data:
   inkeep-agents-postgres-data:
+  inkeep-agents-spicedb-postgres-data:

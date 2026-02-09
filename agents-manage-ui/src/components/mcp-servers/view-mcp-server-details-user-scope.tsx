@@ -133,7 +133,11 @@ export function ViewMCPServerDetailsUserScope({
             <ItemLabel>Your Status</ItemLabel>
             <ItemValue className="items-center">
               <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
-                {tool.status === 'needs_auth' ? 'Needs Login' : tool.status}
+                {tool.status === 'needs_auth'
+                  ? 'Needs Login'
+                  : tool.status === 'unavailable'
+                    ? 'Unavailable'
+                    : tool.status}
               </Badge>
             </ItemValue>
           </div>

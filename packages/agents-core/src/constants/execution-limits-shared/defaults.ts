@@ -25,7 +25,7 @@ export const executionLimitsSharedDefaults = {
   // INITIAL_RECONNECTION_DELAY_MS: Starting delay between retry attempts
   // MAX_RECONNECTION_DELAY_MS: Maximum delay between retry attempts (after exponential growth)
   // RECONNECTION_DELAY_GROWTH_FACTOR: Multiplier applied to delay after each failed retry (exponential backoff)
-  MCP_TOOL_CONNECTION_TIMEOUT_MS: 3_000, // 3 seconds
+  MCP_TOOL_CONNECTION_TIMEOUT_MS: 10_000, // 10 seconds - allows time for cold starts and remote MCP servers
   MCP_TOOL_MAX_RETRIES: 3,
   MCP_TOOL_MAX_RECONNECTION_DELAY_MS: 30_000, // 30 seconds
   MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS: 1_000, // 1 second

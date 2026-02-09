@@ -1,8 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type React from 'react';
 
-import type { Control, FieldPath, FieldValues, RegisterOptions } from 'react-hook-form';
+import type { Control, ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -12,30 +12,35 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-export interface FormFieldWrapperProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
-  label: ReactNode;
-  children: (field: FieldValues) => ReactNode;
-  description?: ReactNode;
-  rules?: RegisterOptions<T, FieldPath<T>>;
+export interface FormFieldWrapperProps<
+  FV extends FieldValues,
+  TV extends FieldValues,
+  TName extends FieldPath<FV>,
+> {
+  control: Control<FV, any, TV>;
+  name: TName;
+  label: string | React.JSX.Element;
+  children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
+  description?: string | React.ReactNode;
   isRequired?: boolean;
 }
 
-export function FormFieldWrapper<T extends FieldValues>({
+export function FormFieldWrapper<
+  FV extends FieldValues,
+  TV extends FieldValues,
+  TName extends FieldPath<FV>,
+>({
   control,
   name,
   label,
   children,
   description,
-  rules,
   isRequired,
-}: FormFieldWrapperProps<T>) {
+}: FormFieldWrapperProps<FV, TV, TName>) {
   return (
     <FormField
       control={control}
       name={name}
-      rules={rules}
       render={({ field }) => (
         <FormItem className="relative">
           <FormLabel isRequired={isRequired}>{label}</FormLabel>

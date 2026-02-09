@@ -342,3 +342,140 @@ SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
     </ul>
   </Accordion>
 </Accordions>
+
+## Deployment Protection
+
+The Inkeep Agent Framework provides health endpoints for Kubernetes-style probes and optional integration with Vercel Checks for automated deployment protection.
+
+### Health Endpoints
+
+Two health endpoints are available for monitoring deployment readiness:
+
+#### `/health` - Liveness Probe
+
+A lightweight endpoint that returns immediately to indicate the service is running.
+
+- **Response**: HTTP 204 (No Content)
+- **Use case**: Kubernetes liveness probes, load balancer health checks
+- **Latency**: Sub-millisecond (no external calls)
+
+```bash
+curl -I https://your-api.vercel.app/health
+# HTTP/2 204
+```
+
+#### `/ready` - Readiness Probe
+
+A comprehensive endpoint that verifies database connectivity before serving traffic.
+
+- **Response (healthy)**: HTTP 200 with JSON status
+- **Response (unhealthy)**: HTTP 503 with RFC 7807 Problem Details
+- **Use case**: Kubernetes readiness probes, deployment verification
+
+```bash
+# Healthy response
+curl https://your-api.vercel.app/ready
+{
+  "status": "ok",
+  "manageDb": true,
+  "runDb": true
+}
+
+# Unhealthy response (503 Service Unavailable)
+{
+  "type": "about:blank",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "One or more health checks failed",
+  "checks": {
+    "manageDb": false,
+    "runDb": true
+  }
+}
+```
+
+### Vercel Deployment Checks with GitHub Actions
+
+Enable automated deployment protection using [Vercel Deployment Checks](https://vercel.com/docs/deployment-checks) combined with a GitHub Action. This approach blocks production deployments from being promoted until your health checks pass.
+
+#### How It Works
+
+1. **Deployment Created**: Vercel creates a production deployment but doesn't promote it yet
+2. **GitHub Action Runs**: A workflow triggers when the deployment is ready and hits the `/ready` endpoint
+3. **Status Reported**: The GitHub Action reports success/failure back to GitHub
+4. **Vercel Reads Status**: Vercel reads the GitHub commit status and promotes the deployment only if checks pass
+
+#### Step 1: Add the GitHub Action Workflow
+
+The Inkeep Agent Framework includes a pre-configured workflow at `.github/workflows/deployment-health-check.yml`:
+
+```yaml
+name: Deployment Health Check
+
+on:
+  deployment_status:
+
+jobs:
+  health-check:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for cold start
+        run: sleep 10
+
+      - name: Check /health endpoint (liveness)
+        run: |
+          curl -f -s -o /dev/null -w "%{http_code}" \
+            "${{ github.event.deployment_status.target_url }}/health" \
+            --retry 3 --retry-delay 5
+
+      - name: Check /ready endpoint (readiness)
+        run: |
+          response=$(curl -f -s "${{ github.event.deployment_status.target_url }}/ready" \
+            --retry 3 --retry-delay 5)
+          echo "Response: $response"
+          echo "$response" | jq -e '.status == "ok"'
+```
+
+#### Step 2: Enable Deployment Checks in Vercel
+
+1. Ensure your project is connected to GitHub using [Vercel for GitHub](https://vercel.com/docs/git/vercel-for-github)
+2. Go to **Project Settings > Deployment Checks**
+3. Click **Add Checks** and select the `health-check` job from your GitHub Actions
+4. Production deployments will now wait for the health check to pass before being promoted
+
+#### Step 3: Test the Integration
+
+1. Push a change to your default branch
+2. Vercel creates a production deployment
+3. The GitHub Action runs and checks the `/ready` endpoint
+4. Once the check passes, Vercel promotes the deployment to your production domains
+
+<Accordions>
+  <Accordion title="Troubleshooting Deployment Checks">
+    <strong>GitHub Action not running:</strong>
+    <ul>
+      <li>Ensure the workflow file exists at <code>.github/workflows/deployment-health-check.yml</code></li>
+      <li>Verify the workflow is enabled in your repository's Actions settings</li>
+    </ul>
+
+    <strong>Check not appearing in Vercel:</strong>
+    <ul>
+      <li>Verify your project is connected to GitHub via Vercel for GitHub</li>
+      <li>Ensure the check is selected in Project Settings > Deployment Checks</li>
+    </ul>
+
+    <strong>Health check fails but service is healthy:</strong>
+    <ul>
+      <li>The <code>/ready</code> endpoint checks database connectivity</li>
+      <li>Ensure database connection strings are correct in the deployment</li>
+      <li>Check database accessibility from the Vercel deployment region</li>
+      <li>Increase the cold start wait time if needed</li>
+    </ul>
+
+    <strong>Bypassing checks:</strong>
+    <ul>
+      <li>Use <strong>Force Promote</strong> from the deployment details page in Vercel</li>
+    </ul>
+  </Accordion>
+</Accordions>

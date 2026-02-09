@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.42.0",
+  "version": "0.47.2",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -90,6 +90,10 @@
       "types": "./dist/auth/authz/index.d.ts",
       "import": "./dist/auth/authz/index.js"
     },
+    "./auth/password-reset-link-store": {
+      "types": "./dist/auth/password-reset-link-store.d.ts",
+      "import": "./dist/auth/password-reset-link-store.js"
+    },
     "./drizzle": "./drizzle/",
     "./package.json": "./package.json"
   },
@@ -125,7 +129,8 @@
     "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
     "db:run:drop": "drizzle-kit drop --config=drizzle.run.config.ts",
     "db:run:studio": "drizzle-kit studio --config=drizzle.run.config.ts",
-    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts"
+    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts",
+    "db:auth:init": "tsx src/auth/init.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.7",
@@ -135,6 +140,7 @@
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/openai-compatible": "2.0.4",
     "@authzed/authzed-node": "^1.6.1",
+    "@babel/parser": "^7.28.6",
     "@better-auth/sso": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
@@ -153,7 +159,7 @@
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",
     "find-up": "^7.0.0",
-    "hono": "^4.10.4",
+    "hono": "^4.11.7",
     "iwanthue": "^2.0.0",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
@@ -168,7 +174,7 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "optionalDependencies": {
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",

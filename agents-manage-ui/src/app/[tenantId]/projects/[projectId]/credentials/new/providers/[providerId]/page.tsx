@@ -34,7 +34,7 @@ function ProviderSetupPage({
 
   // Redirect if user doesn't have edit permission
   useEffect(() => {
-    if (canEdit) {
+    if (!canEdit) {
       router.replace(`/${tenantId}/projects/${projectId}/credentials`);
     }
   }, [canEdit, router, tenantId, projectId]);

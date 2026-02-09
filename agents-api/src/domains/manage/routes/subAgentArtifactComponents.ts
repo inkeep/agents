@@ -44,7 +44,7 @@ app.openapi(
     path: '/agent/{subAgentId}',
     summary: 'Get Artifact Components for Agent',
     operationId: 'get-artifact-components-for-agent',
-    tags: ['Agent Artifact Component Relations'],
+    tags: ['Agents', 'Artifact Components'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -80,7 +80,7 @@ app.openapi(
     path: '/component/{artifactComponentId}/agents',
     summary: 'Get Agents Using Artifact Component',
     operationId: 'get-agents-using-artifact-component',
-    tags: ['Agent Artifact Component Relations'],
+    tags: ['Agents', 'Artifact Components'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         artifactComponentId: z.string(),
@@ -117,7 +117,7 @@ app.openapi(
     path: '/',
     summary: 'Associate Artifact Component with Agent',
     operationId: 'associate-artifact-component-with-agent',
-    tags: ['Agent Artifact Component Relations'],
+    tags: ['Agents', 'Artifact Components'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -204,7 +204,7 @@ app.openapi(
     path: '/agent/{subAgentId}/component/{artifactComponentId}',
     summary: 'Remove Artifact Component from Agent',
     operationId: 'remove-artifact-component-from-agent',
-    tags: ['Agent Artifact Component Relations'],
+    tags: ['Agents', 'Artifact Components'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         artifactComponentId: z.string(),
@@ -251,7 +251,7 @@ app.openapi(
     path: '/agent/{subAgentId}/component/{artifactComponentId}/exists',
     summary: 'Check if Artifact Component is Associated with Agent',
     operationId: 'check-artifact-component-agent-association',
-    tags: ['Agent Artifact Component Relations'],
+    tags: ['Agents', 'Artifact Components'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema.extend({
         artifactComponentId: z.string(),

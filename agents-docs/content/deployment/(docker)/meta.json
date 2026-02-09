@@ -2,6 +2,7 @@
   "icon": "brand/DockerIcon",
   "pages": [
     "docker-local",
+    "authentication",
     "gcp-compute-engine",
     "gcp-cloud-run",
     "aws-ec2",

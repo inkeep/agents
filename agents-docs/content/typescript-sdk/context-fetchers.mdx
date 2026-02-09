@@ -15,6 +15,13 @@ Context fetchers allow you to embed real-time data from external APIs into your 
 - **Headers integration**: Use request-specific parameters to customize data fetching.
 - **Data transformation**: Transform API responses into the exact format your agent needs.
 
+<SkillRule
+  id="context-fetchers-overview"
+  skills="typescript-sdk"
+  title="Context Fetchers Overview"
+  description="How to use context fetchers to embed real-time data in agent prompts"
+>
+
 ## Context Fetchers vs Tools
 
 - **Context Fetchers**: Pre-populate agent prompts with dynamic data
@@ -182,6 +189,8 @@ const chatContext = contextConfig({
 - Fetching user-specific data when an optional user ID header is provided
 - Loading conversation history only when continuing an existing conversation
 - Conditional data loading based on optional API keys or authentication headers
+
+</SkillRule>
 
 ## Best Practices
 

@@ -1,11 +1,12 @@
 'use client';
 
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, UserPlus, X } from 'lucide-react';
 import { type FC, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuthSession } from '@/hooks/use-auth';
 import { PrincipalAvatar } from './principal-avatar';
 import { ProjectRoleSelector } from './project-role-selector';
 import type { AccessPrincipal, AccessRole, PrincipalType } from './types';
@@ -82,7 +83,15 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
   isLoading = false,
   isAdding = false,
 }) => {
+  const { user } = useAuthSession();
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const canEditPrincipal = (principal: AccessPrincipal): boolean => {
+    if (!canManage) return false;
+    if (principal.type === 'user' && principal.id === user?.id) return false;
+    return true;
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<AccessPrincipal[]>([]);
   const [selectedRole, setSelectedRole] = useState(roles[0]?.value || '');
@@ -142,8 +151,8 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
             <div className="flex-1 flex items-center gap-2 min-h-10 px-3 py-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
               {/* Left side: search icon, badges, input (wraps) */}
               <div className="flex-1 flex items-center flex-wrap gap-1.5 min-w-0">
-                {/* Search icon first */}
-                <Search className="size-4 text-muted-foreground shrink-0" />
+                {/* Add member icon */}
+                <UserPlus className="size-4 text-muted-foreground shrink-0" />
 
                 {/* Selected member badges (after search icon) */}
                 <TooltipProvider>
@@ -176,6 +185,7 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                 {/* Search input with dropdown */}
                 <div className="flex-1 min-w-[80px] relative">
                   <input
+                    autoComplete="off"
                     ref={inputRef}
                     type="text"
                     value={searchQuery}
@@ -188,7 +198,9 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
                       // Delay closing to allow click on dropdown items
                       setTimeout(() => setSearchOpen(false), 150);
                     }}
-                    placeholder={selectedMembers.length === 0 ? 'Search by name or email...' : ''}
+                    placeholder={
+                      selectedMembers.length === 0 ? 'Add member by name or email...' : ''
+                    }
                     className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground"
                   />
                   {/* Dropdown results */}
@@ -250,6 +262,57 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
         </div>
       )}
 
+      {/* Explicit members */}
+      <Card className="shadow-none">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">{membersConfig.title}</CardTitle>
+          <CardDescription className="text-xs">{membersConfig.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="divide-y">
+            {principals.map((principal) => (
+              <div
+                key={`${principal.type}-${principal.id}`}
+                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+              >
+                <div className="flex items-center gap-3">
+                  <PrincipalAvatar principal={principal} size="md" />
+                  <div>
+                    <p className="text-sm font-medium">{principal.displayName}</p>
+                    {principal.subtitle && (
+                      <p className="text-xs text-muted-foreground">{principal.subtitle}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {canEditPrincipal(principal) ? (
+                    <ProjectRoleSelector
+                      value={
+                        principal.role as import('@inkeep/agents-core/client-exports').ProjectRole
+                      }
+                      onChange={(newRole) =>
+                        onRoleChange(principal.id, principal.type, principal.role, newRole)
+                      }
+                      onRemove={() => onRemove(principal.id, principal.type, principal.role)}
+                    />
+                  ) : (
+                    <Badge variant="code">
+                      {roles.find((r) => r.value === principal.role)?.label || principal.role}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {principals.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                {membersConfig.emptyMessage}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Inherited access */}
       {inheritedAccess && inheritedAccess.principals.length > 0 && (
         <Card className="border-dashed shadow-none">
@@ -279,57 +342,6 @@ export const ResourceMembersPage: FC<ResourceMembersPageProps> = ({
           </CardContent>
         </Card>
       )}
-
-      {/* Explicit members */}
-      <Card className="shadow-none">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">{membersConfig.title}</CardTitle>
-          <CardDescription className="text-xs">{membersConfig.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="divide-y">
-            {principals.map((principal) => (
-              <div
-                key={`${principal.type}-${principal.id}`}
-                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-              >
-                <div className="flex items-center gap-3">
-                  <PrincipalAvatar principal={principal} size="md" />
-                  <div>
-                    <p className="text-sm font-medium">{principal.displayName}</p>
-                    {principal.subtitle && (
-                      <p className="text-xs text-muted-foreground">{principal.subtitle}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {canManage ? (
-                    <ProjectRoleSelector
-                      value={
-                        principal.role as import('@inkeep/agents-core/client-exports').ProjectRole
-                      }
-                      onChange={(newRole) =>
-                        onRoleChange(principal.id, principal.type, principal.role, newRole)
-                      }
-                      onRemove={() => onRemove(principal.id, principal.type, principal.role)}
-                    />
-                  ) : (
-                    <Badge variant="code">
-                      {roles.find((r) => r.value === principal.role)?.label || principal.role}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {principals.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                {membersConfig.emptyMessage}
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

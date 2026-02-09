@@ -31,6 +31,7 @@ export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
 export * from './runtime/evalRuns';
+export * from './runtime/github-work-app-installations';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';

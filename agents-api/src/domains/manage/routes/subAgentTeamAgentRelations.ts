@@ -48,7 +48,7 @@ app.openapi(
     path: '/',
     summary: 'List Sub Agent Team Agent Relations',
     operationId: 'list-sub-agent-team-agent-relations',
-    tags: ['Sub Agent Team Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
       query: PaginationQueryParamsSchema,
@@ -81,7 +81,7 @@ app.openapi(
         });
 
       return c.json(result);
-    } catch (_error) {
+    } catch {
       throw createApiError({
         code: 'internal_server_error',
         message: 'Failed to retrieve sub agent team agent relations',
@@ -96,7 +96,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Get Sub Agent Team Agent Relation',
     operationId: 'get-sub-agent-team-agent-relation-by-id',
-    tags: ['Sub Agent Team Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
     },
@@ -115,10 +115,10 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, id } = c.req.valid('param');
-    const relation = (await getSubAgentTeamAgentRelationById(db)({
+    const relation = await getSubAgentTeamAgentRelationById(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: id,
-    })) as SubAgentTeamAgentRelationApiSelect | null;
+    });
 
     if (!relation) {
       throw createApiError({
@@ -137,7 +137,7 @@ app.openapi(
     path: '/',
     summary: 'Create Sub Agent Team Agent Relation',
     operationId: 'create-sub-agent-team-agent-relation',
-    tags: ['Sub Agent Team Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
       body: {
@@ -202,7 +202,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Update Sub Agent Team Agent Relation',
     operationId: 'update-sub-agent-team-agent-relation',
-    tags: ['Sub Agent Team Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
       body: {
@@ -253,7 +253,7 @@ app.openapi(
     path: '/{id}',
     summary: 'Delete Sub Agent Team Agent Relation',
     operationId: 'delete-sub-agent-team-agent-relation',
-    tags: ['Sub Agent Team Agent Relations'],
+    tags: ['SubAgents'],
     request: {
       params: TenantProjectAgentSubAgentIdParamsSchema,
     },

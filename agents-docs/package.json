@@ -17,13 +17,14 @@
     "postinstall": "fumadocs-mdx",
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
-    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link",
+    "generate-skill-collections": "node --experimental-strip-types scripts/generate-skill-collections.ts",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link && pnpm generate-skill-collections",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts"
   },
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
     "@inkeep/agents-core": "workspace:*",
-    "@inkeep/agents-ui": "^0.15.8",
+    "@inkeep/agents-ui": "^0.15.10",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
     "@radix-ui/react-collapsible": "^1.1.1",
@@ -35,17 +36,17 @@
     "clsx": "^2.1.1",
     "fumadocs-core": "~16.1.0",
     "fumadocs-mdx": "~14.0.3",
-    "fumadocs-openapi": "~10.0.11",
+    "fumadocs-openapi": "~10.2.6",
     "fumadocs-typescript": "~4.0.13",
     "fumadocs-ui": "~16.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "llm-info": "^1.0.69",
     "lucide-react": "^0.503.0",
-    "next": "16.1.0",
+    "next": "^16.1.6",
     "posthog-js": "^1.308.0",
     "posthog-node": "^5.17.3",
-    "react": "19.3.0-canary-6a0ab4d2-20260121",
-    "react-dom": "19.3.0-canary-6a0ab4d2-20260121",
+    "react": "19.3.0-canary-87ae75b3-20260128",
+    "react-dom": "19.3.0-canary-87ae75b3-20260128",
     "react-icons": "^5.5.0",
     "remark": "^15.0.1",
     "remark-emoji": "^5.0.1",
@@ -53,7 +54,7 @@
     "remark-rehype": "^11.1.2",
     "remark-source-code": "^0.0.3",
     "tailwind-merge": "^3.2.0",
-    "zod": "^4.1.11"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
@@ -61,10 +62,17 @@
     "@types/node": "24.0.7",
     "@types/react": "^19.2.4",
     "@types/react-dom": "^19.2.3",
+    "glob": "^13.0.0",
+    "gray-matter": "^4.0.3",
+    "mdast-util-mdx": "^3.0.0",
+    "mdast-util-to-markdown": "^2.1.2",
     "next-validate-link": "^1.6.3",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx": "^3.1.1",
     "schema-dts": "^1.1.5",
     "tailwindcss": "^4.1.11",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "unist-util-visit": "^5.1.0"
   }
 }

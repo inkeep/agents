@@ -1,11 +1,11 @@
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 
-const timeRanges = ['24h', '7d', '15d', 'custom'] as const;
+const timeRanges = ['24h', '7d', '15d', '30d', 'custom'] as const;
 export type TimeRange = (typeof timeRanges)[number];
 
 export function useToolCallsQueryState() {
   const [queryState, setQueryState] = useQueryStates({
-    timeRange: parseAsStringLiteral(timeRanges).withDefault('15d'),
+    timeRange: parseAsStringLiteral(timeRanges).withDefault('30d'),
     customStartDate: parseAsString.withDefault(''),
     customEndDate: parseAsString.withDefault(''),
     selectedServer: parseAsString.withDefault('all'),
@@ -30,7 +30,7 @@ export function useToolCallsQueryState() {
       setQueryState({
         selectedServer: 'all',
         selectedTool: 'all',
-        timeRange: '15d',
+        timeRange: '30d',
         customStartDate: '',
         customEndDate: '',
       }),

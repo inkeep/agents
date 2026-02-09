@@ -244,6 +244,12 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
+  WorkAppGitHubInstallationInsertSchema,
+  WorkAppGitHubInstallationSelectSchema,
+  WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
+  WorkAppGitHubProjectRepositoryAccessSelectSchema,
+  WorkAppGitHubRepositoryInsertSchema,
+  WorkAppGitHubRepositorySelectSchema,
 } from '../validation/schemas';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
@@ -411,6 +417,22 @@ export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
 export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
 export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
 export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
+
+export type WorkAppGitHubInstallationSelect = z.infer<typeof WorkAppGitHubInstallationSelectSchema>;
+export type WorkAppGitHubInstallationInsert = z.infer<typeof WorkAppGitHubInstallationInsertSchema>;
+export type WorkAppGitHubRepositorySelect = z.infer<typeof WorkAppGitHubRepositorySelectSchema>;
+export type WorkAppGitHubRepositoryInsert = z.infer<typeof WorkAppGitHubRepositoryInsertSchema>;
+export type WorkAppGitHubProjectRepositoryAccessSelect = z.infer<
+  typeof WorkAppGitHubProjectRepositoryAccessSelectSchema
+>;
+export type WorkAppGitHubMcpToolRepositoryAccessSelect = z.infer<
+  typeof WorkAppGitHubMcpToolRepositoryAccessSelectSchema
+>;
+
+export type WorkAppGitHubRepositoryInput = Omit<
+  WorkAppGitHubRepositoryInsert,
+  'id' | 'installationDbId'
+>;
 
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
 export type ConversationInsert = z.infer<typeof ConversationInsertSchema>;

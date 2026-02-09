@@ -28,7 +28,8 @@ import type { MDXComponents } from 'mdx/types';
 import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable } from '@/components/mdx/auto-type-table';
 import { BigVideo } from '@/components/mdx/big-video';
-import { Card } from '@/components/mdx/card'; // Add this line
+import { Card } from '@/components/mdx/card';
+import { SkillRule } from '@/components/mdx/skill-rule';
 import { openapi } from '@/lib/openapi';
 
 // Snippet component for MDX snippets
@@ -81,5 +82,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Video,
     Snippet,
     ComparisonTable,
+    SkillRule,
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.42.0",
+  "version": "0.47.2",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
@@ -20,7 +20,7 @@
     "@stricli/core": "^1.1.2",
     "bun": "^1.2.12",
     "express": "^5.1.0",
-    "zod": "^4.0.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^1.2.0",

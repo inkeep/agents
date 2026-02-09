@@ -23,7 +23,7 @@ async function MCPServersPage({
 
   try {
     const [tools, permissions] = await Promise.all([
-      fetchMCPTools(tenantId, projectId),
+      fetchMCPTools(tenantId, projectId, { skipDiscovery: true }),
       fetchProjectPermissions(tenantId, projectId),
     ]);
     const canEdit = permissions.canEdit;

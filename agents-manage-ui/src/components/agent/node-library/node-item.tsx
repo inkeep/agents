@@ -1,4 +1,5 @@
 import { GripVertical, type LucideIcon } from 'lucide-react';
+import type { ComponentProps, FC, ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type NodeItem = {
@@ -6,25 +7,29 @@ export type NodeItem = {
   name: string;
   Icon: LucideIcon;
   disabled?: boolean;
-  disabledTooltip?: React.ReactNode;
+  disabledTooltip?: ReactNode;
 };
 
 interface NodeItemProps {
   node: NodeItem;
 }
 
-export function NodeItem({ node }: NodeItemProps) {
+const onDragStart: ComponentProps<'button'>['onDragStart'] = (event) => {
+  const type = event.currentTarget.dataset.nodeType;
+  // Only store the minimal serializable data required by the drop handler.
+  // `node` can include React elements (e.g. disabledTooltip) which are not JSON-serializable in dev builds.
+  event.dataTransfer.setData('application/reactflow', JSON.stringify({ type }));
+  event.dataTransfer.effectAllowed = 'move';
+};
+
+export const NodeItem: FC<NodeItemProps> = ({ node }) => {
+  'use memo';
   const { type, name, Icon, disabled, disabledTooltip } = node;
-  const onDragStart = (event: React.DragEvent<HTMLDivElement>) => {
-    // Only store the minimal serializable data required by the drop handler.
-    // `node` can include React elements (e.g. disabledTooltip) which are not JSON-serializable in dev builds.
-    event.dataTransfer.setData('application/reactflow', JSON.stringify({ type }));
-    event.dataTransfer.effectAllowed = 'move';
-  };
   const content = (
-    <div
+    <button
       key={type}
-      role="button"
+      type="button"
+      data-node-type={type}
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
       className={[
@@ -46,7 +51,7 @@ export function NodeItem({ node }: NodeItemProps) {
         </div>
       </div>
       <GripVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all ease-in-out duration-200" />
-    </div>
+    </button>
   );
 
   if (disabled && disabledTooltip) {
@@ -61,4 +66,4 @@ export function NodeItem({ node }: NodeItemProps) {
   }
 
   return content;
-}
+};

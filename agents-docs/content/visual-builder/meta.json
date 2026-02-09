@@ -5,6 +5,7 @@
     "headers",
     "structured-outputs",
     "context-fetchers",
+    "access-control",
     "skills",
     "..."
   ]

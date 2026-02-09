@@ -9,7 +9,6 @@ export interface RuntimeConfig {
   PUBLIC_INKEEP_COPILOT_TENANT_ID?: string;
   PUBLIC_AUTH0_DOMAIN?: string;
   PUBLIC_GOOGLE_CLIENT_ID?: string;
-  PUBLIC_DISABLE_AUTH?: string;
   PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT?: string;
   PUBLIC_POSTHOG_KEY?: string;
   PUBLIC_POSTHOG_HOST?: string;

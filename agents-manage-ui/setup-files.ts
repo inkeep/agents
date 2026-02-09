@@ -1,5 +1,3 @@
-import '@testing-library/jest-dom';
-
 /**
  * Fixes TypeError: document.queryCommandSupported is not a function
  */

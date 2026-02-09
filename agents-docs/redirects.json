@@ -132,5 +132,15 @@
     "source": "/get-started/upgrading",
     "destination": "/tutorials/upgrading",
     "permanent": true
+  },
+  {
+    "source": "/get-started/inkeep-mcp",
+    "destination": "/get-started/ai-coding-setup-for-ide",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/user-authentication",
+    "destination": "/visual-builder/access-control",
+    "permanent": true
   }
 ]

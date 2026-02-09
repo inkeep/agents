@@ -1,3 +1,3 @@
 {
-  "pages": ["agents", "mcp-servers", "../connect-your-data", "upgrading", "..."]
+  "pages": ["agents", "mcp-servers", "cli", "../connect-your-data", "upgrading", "..."]
 }

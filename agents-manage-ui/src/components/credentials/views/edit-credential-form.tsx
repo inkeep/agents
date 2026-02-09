@@ -23,6 +23,7 @@ import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
+import { keyValuePairsToRecord, metadataSchema } from './credential-form-validation';
 
 // Edit-specific validation schema
 const editCredentialFormSchema = z.object({
@@ -31,7 +32,7 @@ const editCredentialFormSchema = z.object({
     .min(1, 'Name is required')
     .refine((val) => val.length > 0, 'Name cannot be empty after transformation')
     .refine((val) => val.length <= 50, 'Name must be 50 characters or less'),
-  metadata: z.record(z.string(), z.string()).default({}),
+  metadata: metadataSchema,
 });
 
 export type EditCredentialFormData = z.output<typeof editCredentialFormSchema>;
@@ -43,6 +44,13 @@ interface EditCredentialFormProps {
   initialFormData: EditCredentialFormData;
   className?: string;
 }
+
+const normalizeMetadata = (metadata: Record<string, string>): string =>
+  JSON.stringify(
+    Object.keys(metadata)
+      .sort()
+      .map((key) => [key, metadata[key]])
+  );
 
 function getCredentialAuthenticationType(credential: Credential): string | undefined {
   if (
@@ -101,16 +109,19 @@ export function EditCredentialForm({
         name: formData.name.trim(),
       });
 
+      const metadataRecord = keyValuePairsToRecord(formData.metadata);
+      const initialMetadataRecord = keyValuePairsToRecord(initialFormData.metadata);
+      const metadataChanged =
+        normalizeMetadata(metadataRecord) !== normalizeMetadata(initialMetadataRecord);
       if (
         credential.retrievalParams?.providerConfigKey &&
         credential.retrievalParams?.connectionId &&
-        formData.metadata &&
-        Object.keys(formData.metadata).length > 0
+        metadataChanged
       ) {
         await setNangoConnectionMetadata({
           providerConfigKey: credential.retrievalParams.providerConfigKey as string,
           connectionId: credential.retrievalParams.connectionId as string,
-          metadata: formData.metadata as Record<string, string>,
+          metadata: metadataRecord,
         });
       }
 
@@ -198,8 +209,9 @@ export function EditCredentialForm({
                   control={form.control}
                   name="metadata"
                   label="Headers (optional)"
-                  keyPlaceholder="Header name (e.g., X-API-Key)"
-                  valuePlaceholder="Header value"
+                  keyPlaceholder="Key (e.g. X-API-Key)"
+                  valuePlaceholder="Value (e.g. your-api-key)"
+                  addButtonLabel="Add header"
                   disabled={!canEdit}
                 />
                 <InfoCard title="How this works">

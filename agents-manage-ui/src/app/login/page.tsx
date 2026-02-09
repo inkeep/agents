@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { useAuthSession } from '@/hooks/use-auth';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 function LoginForm() {
@@ -23,6 +24,20 @@ function LoginForm() {
   const authClient = useAuthClient();
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
   const posthog = usePostHog();
+  const { isAuthenticated, isLoading: isSessionLoading } = useAuthSession();
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (!isSessionLoading && isAuthenticated) {
+      if (invitationId) {
+        router.replace(`/accept-invitation/${invitationId}`);
+      } else if (returnUrl && isValidReturnUrl(returnUrl)) {
+        router.replace(returnUrl);
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [isAuthenticated, isSessionLoading, invitationId, returnUrl, router]);
 
   // Get the validated return URL for post-login redirect (used for email login)
   const getRedirectUrl = (): string => {
@@ -92,7 +107,7 @@ function LoginForm() {
       }
 
       // Redirect to the intended destination
-      router.push(getRedirectUrl());
+      router.replace(getRedirectUrl());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);
@@ -136,6 +151,15 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while checking authentication
+  if (isSessionLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">

@@ -12,6 +12,23 @@ import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { testManageDbClient, testRunDbClient } from '../setup';
 
+// Mock runtime database and cascade delete functions used by deleteTool
+vi.mock('../../db/runtime/runtime-client', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../db/runtime/runtime-client')>();
+  return {
+    ...original,
+    createAgentsRunDatabaseClient: vi.fn(() => ({})),
+  };
+});
+
+vi.mock('../../data-access/runtime/cascade-delete', () => ({
+  cascadeDeleteByTool: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
+}));
+
+vi.mock('../../dolt/schema-sync', () => ({
+  getActiveBranch: vi.fn(() => vi.fn().mockResolvedValue('some_other_branch')),
+}));
+
 describe('projectFull data access', () => {
   let db: AgentsManageDatabaseClient;
   let runDb: AgentsRunDatabaseClient;

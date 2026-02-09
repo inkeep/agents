@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/ai-sdk-provider",
-  "version": "0.42.0",
+  "version": "0.47.2",
   "description": "AI SDK provider for Inkeep Agent Framework",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -39,7 +39,7 @@
     "@ai-sdk/provider": "3.0.2",
     "@ai-sdk/provider-utils": "4.0.4",
     "@inkeep/agents-core": "workspace:*",
-    "zod": "^4.1.12"
+    "zod": "^4.3.6"
   },
   "publishConfig": {
     "access": "public",

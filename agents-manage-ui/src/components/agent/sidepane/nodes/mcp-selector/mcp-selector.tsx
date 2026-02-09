@@ -1,10 +1,9 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
-import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { MCPTool } from '@/lib/types/tools';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
-import { MCPSelectorLoading } from './loading';
 import { MCPServerItem } from './mcp-server-item';
 
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
@@ -14,7 +13,8 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
     tenantId: string;
     projectId: string;
   }>();
-  const { data: tools, isFetching, error } = useMcpToolsQuery();
+  const toolLookup = useAgentStore((state) => state.toolLookup);
+  const tools = Object.values(toolLookup);
 
   const handleSelect = (mcp: MCPTool) => {
     updateNode(selectedNode.id, {
@@ -22,20 +22,6 @@ export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
       data: { toolId: mcp.id, subAgentId: null, relationshipId: null },
     });
   };
-
-  if (isFetching) {
-    return <MCPSelectorLoading title="Select MCP server" />;
-  }
-
-  if (error) {
-    return (
-      <EmptyState
-        message="Something went wrong."
-        actionText="Create MCP server"
-        actionHref={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
-      />
-    );
-  }
 
   if (!tools?.length) {
     return (

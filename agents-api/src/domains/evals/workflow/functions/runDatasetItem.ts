@@ -15,8 +15,8 @@ import {
   updateEvaluationResult,
   withRef,
 } from '@inkeep/agents-core';
-import { manageDbClient } from 'src/data/db';
-import manageDbPool from 'src/data/db/manageDbPool';
+import { manageDbClient } from '../../../../data/db';
+import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { EvaluationService } from '../../services/EvaluationService';

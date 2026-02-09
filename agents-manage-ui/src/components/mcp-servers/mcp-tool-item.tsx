@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical, Trash2 } from 'lucide-react';
+import { Loader2, MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/item-card';
 import { useProjectPermissions } from '@/contexts/project';
 import { deleteToolAction } from '@/lib/actions/tools';
+import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { getActiveTools } from '@/lib/utils/active-tools';
 import { formatDate } from '@/lib/utils/format-date';
@@ -118,14 +119,22 @@ function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
 export function MCPToolItem({
   tenantId,
   projectId,
-  tool,
+  tool: initialTool,
 }: {
   tenantId: string;
   projectId: string;
   tool: MCPTool;
 }) {
   const { canEdit } = useProjectPermissions();
-  const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}`;
+  const linkPath = `/${tenantId}/projects/${projectId}/mcp-servers/${initialTool.id}`;
+
+  const { data: fetchedTool, isFetching: isLoadingStatus } = useMcpToolStatusQuery({
+    tenantId,
+    projectId,
+    toolId: initialTool.id,
+  });
+
+  const tool = fetchedTool ?? initialTool;
 
   const activeTools = getActiveTools({
     availableTools: tool.availableTools,
@@ -159,22 +168,37 @@ export function MCPToolItem({
               {tool.credentialScope === 'user' ? 'User' : 'Project'}
             </Badge>
 
-            {(tool.status === 'unhealthy' || tool.status === 'unknown') && (
+            {isLoadingStatus && (
+              <Badge variant="code" className="flex items-center gap-1 uppercase bg-transparent">
+                <Loader2 className="size-3 animate-spin" />
+                Loading...
+              </Badge>
+            )}
+
+            {!isLoadingStatus && (tool.status === 'unhealthy' || tool.status === 'unknown') && (
               <Badge variant="error">{tool.status}</Badge>
             )}
 
-            {tool.status === 'healthy' && <Badge variant="success">{tool.status}</Badge>}
+            {!isLoadingStatus && tool.status === 'healthy' && (
+              <Badge variant="success">{tool.status}</Badge>
+            )}
 
-            {tool.status === 'needs_auth' && (
+            {!isLoadingStatus && tool.status === 'unavailable' && (
+              <Badge variant="warning">Unavailable</Badge>
+            )}
+
+            {!isLoadingStatus && tool.status === 'needs_auth' && (
               <div className="flex items-center gap-2">
                 <Badge variant="warning">Needs Login</Badge>
               </div>
             )}
 
-            <Badge variant="code" className="uppercase bg-transparent">
-              {activeTools?.length ?? 0} Active tool
-              {activeTools?.length !== 1 ? 's' : ''}
-            </Badge>
+            {!isLoadingStatus && (
+              <Badge variant="code" className="uppercase bg-transparent">
+                {activeTools?.length ?? 0} Active tool
+                {activeTools?.length !== 1 ? 's' : ''}
+              </Badge>
+            )}
           </div>
         </div>
         <ItemCardFooter

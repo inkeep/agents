@@ -3,25 +3,15 @@ import {
   canUseProject,
   canViewProject,
   createApiError,
-  isAuthzEnabled,
   type OrgRole,
   type ProjectPermissionLevel,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { env } from '../env';
 import type { ManageAppVariables } from '../types/app';
 
 /**
  * Middleware to check project-level access.
- *
- * When ENABLE_AUTHZ is false:
- * - 'view' permission: all org members can view
- * - 'edit': only org owner/admin
- *
- * When ENABLE_AUTHZ is true:
- * - Uses SpiceDB to check permissions
- * - Org owner/admin bypass (handled in canViewProject etc.)
  */
 export const requireProjectPermission = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
@@ -32,7 +22,7 @@ export const requireProjectPermission = <
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
     // Skip checks in test environment or when auth is disabled
-    if (env.DISABLE_AUTH || isTestEnvironment) {
+    if (isTestEnvironment) {
       await next();
       return;
     }
@@ -93,29 +83,10 @@ export const requireProjectPermission = <
       }
 
       if (!hasAccess) {
-        // When authz is enabled, always return 404 to avoid leaking project existence
-        if (isAuthzEnabled()) {
-          throw createApiError({
-            code: 'not_found',
-            message: 'Project not found',
-            instance: c.req.path,
-          });
-        }
-
-        // When authz is disabled, return 403 with context for debugging
         throw createApiError({
-          code: 'forbidden',
-          message: `Permission denied. Required: project:${permission}`,
+          code: 'not_found',
+          message: 'Project not found',
           instance: c.req.path,
-          extensions: {
-            requiredPermissions: [`project:${permission}`],
-            context: {
-              userId,
-              organizationId: tenantId,
-              projectId,
-              currentRole: tenantRole,
-            },
-          },
         });
       }
 

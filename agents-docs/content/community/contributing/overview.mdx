@@ -15,9 +15,9 @@ Thank you for your interest in contributing to the Agent Framework! This documen
 
 Before getting started, ensure you have the following installed on your system:
 
-- [Node.js](https://nodejs.org/en/download/) version 22 or higher
+- [Node.js](https://nodejs.org/en/download/) version 22.18 or higher (matches `.node-version`)
 - [Docker](https://docs.docker.com/get-docker/)
-- [pnpm](https://pnpm.io/installation) version 10 or higher
+- [pnpm](https://pnpm.io/installation) version 10.10 or higher (matches `packageManager`)
 
 ### Step 1: Clone the repository
 
@@ -36,38 +36,27 @@ pnpm setup-dev
 
 This will:
 
-1. Create `.env` from the template
-2. Set up user-global config at `~/.inkeep/config`
-4. Install dependencies
-5. Initialize the database, starting the postgres docker container and applying migrations
+- Create `.env` from `.env.example` if missing
+- Create `~/.inkeep/config` for user-global settings if missing
+- Add `.env` to `.gitignore` if needed
+- Install dependencies
+- Start Doltgres (manage) + Postgres (runtime) + SpiceDB (authorization) via `docker-compose.dbs.yml` and run migrations
 
-Add API keys for the AI providers you want to use to the root `.env`. You must have at least one AI provider configured.
+Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
 ```dotenv
 ANTHROPIC_API_KEY=sk-ant-xyz789
-OPENAI_API_KEY=sk-xxx
-GOOGLE_GENERATIVE_AI_API_KEY=sk-xxx
+OPENAI_API_KEY=sk-xxx # optional
+GOOGLE_GENERATIVE_AI_API_KEY=sk-xxx # optional
 ```
 
-Add your SigNoz API key to enable the traces feature (optional).
-
-```dotenv
-SIGNOZ_API_KEY=sk-xxx
-```
-
-Add your Nango secret key to enable the Nango credential store (optional).
-
-```dotenv
-NANGO_SECRET_KEY=sk-xxx
-```
-
-### Step 5: Run the agent framework
+### Step 3: Run the agent framework
 
 ```bash
 pnpm dev
 ```
 
-### Step 6: Start building!
+### Step 4: Start building!
 
 Open `http://localhost:3000` in the browser and start building agents.
 
@@ -80,7 +69,7 @@ Follow the steps below to push your project using the [Inkeep CLI](/typescript-s
 ### Step 1: Download the Inkeep CLI
 
 ```bash
-pnpm install -g @inkeep/agents-cli
+pnpm add -g @inkeep/agents-cli
 ```
 
 ### Step 2: Push the project
@@ -91,9 +80,9 @@ inkeep push
 ```
 
 <Note>
-  The project will be pushed according to the project specified in the
-  `/agents-cookbook/template-projects/inkeep.config.ts` file, which is set to the `default` project by
-  default. Feel free to change it to your own project.
+  The CLI reads `tenantId` and API URLs from the nearest `inkeep.config.ts` (it searches parent
+  directories). The cookbook templates default to `tenantId: 'default'` and `agentsApi.url:
+  'http://localhost:3002'`. Update `agents-cookbook/template-projects/inkeep.config.ts` if needed.
 </Note>
 
 ### Step 3: Observe the Agent in the Visual Builder
@@ -106,28 +95,11 @@ inkeep push
 
 # Set up live traces
 
-### Step 1: Launch docker containers
+For full instructions, see [Traces](/get-started/traces). Short version:
 
-```bash
-cd deploy/docker
-docker compose up -d
-```
-
-### Step 2: Fetch SigNoz API Key
-
-Open `http://localhost:3080` in the browser. Go to **Settings** → **Workspace Settings** → **API Keys** and copy the API key.
-
-### Step 3: Configure environment variable
-
-Create a `.env` file at `/agents-manage-ui/` with the following variable:
-
-```dotenv
-SIGNOZ_API_KEY=your-signoz-api-key-here
-```
-
-### Step 4: View your live traces
-
-Refresh the live traces panel on the right to see your agents in action.
+- For local SigNoz, clone `agents-optional-local-dev` and run `docker-compose --profile signoz up -d`.
+- Set `SIGNOZ_URL`, `SIGNOZ_API_KEY`, and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` in the root `.env` (see `.env.example`).
+- Restart `pnpm dev`, then open `http://localhost:3080` to view traces.
 
 <Image
   src="/images/live-traces.png"
@@ -137,35 +109,11 @@ Refresh the live traces panel on the right to see your agents in action.
 
 # Set up credentials
 
-### Step 1: Create .env file and generate encryption key
+For Nango setup (cloud or local), follow [Use Nango as a credential store](/typescript-sdk/credentials/nango). Short version:
 
-```bash
-cp deploy/docker/.env.nango.example deploy/docker/.env && encryption_key=$(openssl rand -base64 32) && sed -i '' "s|REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY|$encryption_key|" deploy/docker/.env && echo "Docker environment file created with auto-generated encryption key"
-```
-
-### Step 2: Restart the containers
-
-```bash
-cd deploy/docker
-docker compose up -d
-```
-
-### Step 3: Get your Nango API key
-
-Open the Nango Dashboard: `http://localhost:3050` and navigate to **Environment Settings** → **API Keys** and copy the API key.
-
-### Step 4: Configure environment variables
-
-Navigate back to the root directory and paste the below command. Enter your Nango API key when prompted:
-
-```bash
-cd ../../
-printf "Enter your Nango API key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-api/.env agents-manage-ui/.env && echo "Application files updated with Nango API key"
-```
-
-### Step 5: Start creating credentials!
-
-Navigate to the Credentials tab in the left sidebar and click "Create credential".
+- Set `NANGO_SECRET_KEY` in the root `.env`.
+- For local Nango, start services from `agents-optional-local-dev` (`docker-compose --profile nango up -d`) and set `NANGO_SERVER_URL` / `PUBLIC_NANGO_CONNECT_BASE_URL` as needed (see `.env.example`).
+- Restart `pnpm dev`, then create a credential in the Visual Builder (Credentials tab).
 
 # Development Workflow
 
@@ -175,22 +123,18 @@ This project uses Husky for Git hooks to maintain code quality. The hooks are au
 
 #### Pre-commit Hook
 
-The pre-commit hook runs the following checks before allowing a commit:
+The pre-commit hook runs `pnpm lint-staged`, which:
 
-1. **Type checking** - Ensures type safety across all packages
-2. **Tests** - Runs the test suite
+- Formats and lints staged files with Biome
+- Runs `agents-api` tests for affected changes
+
+#### Pre-push Hook
+
+The pre-push hook runs `pnpm check:prepush` (lint, typecheck, and tests) for all packages except docs and cookbook templates.
 
 ##### Bypassing Checks
 
-While we recommend running all checks, there are legitimate cases where you might need to bypass them:
-
-**Skip typecheck only (tests still run):**
-
-```bash
-SKIP_TYPECHECK=1 git commit -m "WIP: debugging issue"
-```
-
-**Skip all hooks (use sparingly):**
+While we recommend running all checks, there are legitimate cases where you might need to bypass hooks:
 
 ```bash
 git commit --no-verify -m "emergency: hotfix for production"
@@ -202,47 +146,11 @@ git commit --no-verify -m "emergency: hotfix for production"
 > - Emergency fixes where speed is critical
 > - Commits that only touch non-code files (though hooks are smart enough to handle this)
 
-### Code Quality
+### Local checks (CI parity)
 
-#### Type Checking
-
-Run type checking across all packages:
-
-```bash
-pnpm typecheck
-```
-
-#### Linting
-
-Run the linter:
-
-```bash
-pnpm lint
-```
-
-Format code automatically:
-
-```bash
-pnpm format
-```
-
-#### Testing
-
-Run tests:
-
-```bash
-pnpm test              # Run all tests
-pnpm test:watch        # Run tests in watch mode
-pnpm test:coverage     # Run tests with coverage report
-```
-
-### Building
-
-Build all packages:
-
-```bash
-pnpm build
-```
+- `pnpm check` runs lint, typecheck, and tests (the same set CI runs).
+- CI also runs `pnpm format:check` and `pnpm knip`.
+- For package-specific commands, see `AGENTS.md` below.
 
 # CLI Development
 
@@ -257,9 +165,6 @@ pnpm build
 
 # Run the local CLI from the repository root
 node agents-cli/dist/index.js --version
-
-# Or use the convenience script (if available)
-./scripts/inkeep-local.sh --version
 ```
 
 ## Testing CLI Changes
@@ -275,8 +180,8 @@ pnpm build
 
 ```bash
 # From repository root
-node agents-cli/dist/index.js push examples/agent-configurations
-node agents-cli/dist/index.js chat
+node agents-cli/dist/index.js push agents-cookbook/template-projects/weather-project
+node agents-cli/dist/index.js --help
 ```
 
 3. **Run CLI tests:**
@@ -298,11 +203,12 @@ node /path/to/agents/agents-cli/dist/index.js --version
 inkeep --version
 ```
 
-For detailed information about switching between versions, see the `INKEEP_CLI_SWITCHING.md` file in the repository root.
+For more CLI setup options, see `agents-cli/SETUP.md` on GitHub:
+https://github.com/inkeep/agents/blob/main/agents-cli/SETUP.md
 
 # Commit Messages
 
-We follow conventional commit format:
+We recommend conventional commit format (not enforced by tooling):
 
 ```
 type(scope): description
@@ -327,7 +233,7 @@ Types:
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feat/amazing-feature`)
 3. Make your changes
-4. Ensure all checks pass (`pnpm typecheck && pnpm test`)
+4. Ensure `pnpm check` passes (mirrors CI; see below)
 5. Commit your changes (following commit message guidelines)
 6. Push to your fork
 7. Open a pull request
@@ -343,11 +249,22 @@ Types:
 
 Our CI pipeline runs on all pull requests and includes:
 
-- Type checking (`pnpm typecheck`)
-- Tests (`pnpm test`)
-- Build verification (`pnpm build`)
+- `pnpm check` (lint, typecheck, tests)
+- `pnpm format:check`
+- `pnpm knip`
+- Create Agents E2E tests (separate job)
 
-These checks must pass before a PR can be merged. The same checks run in pre-commit hooks to catch issues early.
+These checks must pass before a PR can be merged. Pre-commit uses lint-staged, pre-push runs `pnpm check:prepush`, and CI is the source of truth.
+
+# AI coding assistants and coding practices
+
+Many of our best coding practices for AI assistants live in `AGENTS.md`. We render it below for reference.
+
+- Source file: https://github.com/inkeep/agents/blob/main/AGENTS.md
+
+<Snippet file="https://raw.githubusercontent.com/inkeep/agents/refs/heads/main/AGENTS.md" />
+
+Human-only workflows (process, PR etiquette, roadmap context) belong in this guide and the broader contributing docs above.
 
 # Questions?
 

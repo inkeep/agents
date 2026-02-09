@@ -1,4 +1,5 @@
 import { ChevronRight, Plus, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -12,9 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { SpanAttribute } from '@/hooks/use-traces-query-state';
+import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 
 interface SpanFiltersProps {
-  availableSpanNames: string[];
   spanName: string;
   setSpanFilter: (spanName: string, attributes: SpanAttribute[]) => void;
   attributes: SpanAttribute[];
@@ -22,12 +23,14 @@ interface SpanFiltersProps {
   removeAttribute: (index: number) => void;
   updateAttribute: (index: number, field: 'key' | 'value' | 'operator', value: string) => void;
   isNumeric: (value: string) => boolean;
-  spanNamesLoading: boolean;
   selectedAgent?: string;
+  tenantId: string;
+  projectId: string;
+  startTime: number;
+  endTime: number;
 }
 
 export function SpanFilters({
-  availableSpanNames,
   spanName,
   setSpanFilter,
   attributes,
@@ -35,12 +38,77 @@ export function SpanFilters({
   removeAttribute,
   updateAttribute,
   isNumeric,
-  spanNamesLoading,
   selectedAgent,
+  tenantId,
+  projectId,
+  startTime,
+  endTime,
 }: SpanFiltersProps) {
   const totalFilters = attributes.length + (spanName ? 1 : 0);
+
+  const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
+  const [spanNamesLoading, setSpanNamesLoading] = useState(false);
+  const hasFetchedRef = useRef(false);
+  const lastFetchParamsRef = useRef<string>('');
+  const isFetchingRef = useRef(false);
+
+  const fetchSpanNames = useCallback(async () => {
+    if (!startTime || !endTime || !tenantId) return;
+    if (isFetchingRef.current) return; // Guard against concurrent fetches
+
+    const fetchParams = `${startTime}-${endTime}-${selectedAgent}-${projectId}-${tenantId}`;
+    if (hasFetchedRef.current && lastFetchParamsRef.current === fetchParams) {
+      return;
+    }
+
+    isFetchingRef.current = true;
+    setSpanNamesLoading(true);
+    try {
+      const client = getSigNozStatsClient(tenantId);
+      const spanNames = await client.getAvailableSpanNames(
+        startTime,
+        endTime,
+        selectedAgent,
+        projectId
+      );
+      setAvailableSpanNames(spanNames);
+      hasFetchedRef.current = true;
+      lastFetchParamsRef.current = fetchParams;
+    } catch (error) {
+      console.error('Failed to fetch span names:', error);
+      setAvailableSpanNames([]);
+    } finally {
+      isFetchingRef.current = false;
+      setSpanNamesLoading(false);
+    }
+  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally reset ref when filter params change to trigger re-fetch
+  useEffect(() => {
+    hasFetchedRef.current = false;
+  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
+
+  useEffect(() => {
+    if (totalFilters > 0 && !hasFetchedRef.current) {
+      fetchSpanNames();
+    }
+  }, [totalFilters, fetchSpanNames]);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (open && !hasFetchedRef.current) {
+        fetchSpanNames();
+      }
+    },
+    [fetchSpanNames]
+  );
+
   return (
-    <Collapsible defaultOpen={totalFilters > 0} className="border rounded-lg bg-background w-full">
+    <Collapsible
+      defaultOpen={totalFilters > 0}
+      onOpenChange={handleOpenChange}
+      className="border rounded-lg bg-background w-full"
+    >
       <CollapsibleTrigger asChild>
         <Button
           type="button"

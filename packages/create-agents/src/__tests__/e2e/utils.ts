@@ -47,13 +47,14 @@ export async function runCommand(
   command: string,
   args: string[],
   cwd: string,
-  timeout = 120000 // 2 minutes default
+  timeout = 120000, // 2 minutes default
+  envOverrides?: Record<string, string>
 ): Promise<{ stdout: string; stderr: string; exitCode: number | undefined }> {
   try {
     const result = await execa(command, args, {
       cwd,
       timeout,
-      env: { ...process.env, FORCE_COLOR: '0' },
+      env: { ...process.env, FORCE_COLOR: '0', ...envOverrides },
       shell: true,
     });
 

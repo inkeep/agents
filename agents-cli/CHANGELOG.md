@@ -1,5 +1,188 @@
 # @inkeep/agents-cli
 
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-manage-ui@0.47.2
+  - @inkeep/agents-sdk@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-manage-ui@0.47.1
+  - @inkeep/agents-sdk@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-manage-ui@0.47.0
+  - @inkeep/agents-sdk@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- Updated dependencies [2307d76]
+- Updated dependencies [f6010a1]
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-manage-ui@0.46.1
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-sdk@0.46.1
+
+## 0.46.0
+
+### Minor Changes
+
+- 96de898: Update api and manage ui urls
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [99388e9]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-ui@0.46.0
+  - @inkeep/agents-sdk@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [14a2e6f]
+- Updated dependencies [4d291f1]
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [fd323b4]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-manage-ui@0.45.3
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-sdk@0.45.3
+
+## 0.45.2
+
+### Patch Changes
+
+- 4524c28: Trigger release
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+- Updated dependencies [4524c28]
+  - @inkeep/agents-sdk@0.45.2
+  - @inkeep/agents-manage-ui@0.45.2
+  - @inkeep/agents-core@0.45.2
+
+## 0.45.1
+
+### Patch Changes
+
+- 21e6ae5: bump zod to latest 4.3.6 and fix `.omit() cannot be used on object schemas containing refinements` error
+- Updated dependencies [cd28e97]
+- Updated dependencies [21e6ae5]
+  - @inkeep/agents-manage-ui@0.45.1
+  - @inkeep/agents-core@0.45.1
+  - @inkeep/agents-sdk@0.45.1
+
+## 0.45.0
+
+### Patch Changes
+
+- Updated dependencies [938ffb8]
+- Updated dependencies [4f91394]
+- Updated dependencies [6f5bd15]
+- Updated dependencies [8f067f4]
+- Updated dependencies [bab4641]
+- Updated dependencies [48b5400]
+  - @inkeep/agents-core@0.45.0
+  - @inkeep/agents-manage-ui@0.45.0
+  - @inkeep/agents-sdk@0.45.0
+
+## 0.44.0
+
+### Patch Changes
+
+- Updated dependencies [08aa941]
+- Updated dependencies [f23d445]
+- Updated dependencies [4f2b927]
+- Updated dependencies [5bb2da2]
+- Updated dependencies [8a283ea]
+- Updated dependencies [9ea2de8]
+- Updated dependencies [707d1c8]
+- Updated dependencies [7a57040]
+- Updated dependencies [046f799]
+- Updated dependencies [0ff87cf]
+- Updated dependencies [bcc26b4]
+- Updated dependencies [ba853ef]
+- Updated dependencies [da3f64f]
+- Updated dependencies [0d18b7e]
+- Updated dependencies [5704c38]
+- Updated dependencies [0f3c2e5]
+- Updated dependencies [5e7cede]
+- Updated dependencies [afd01d5]
+  - @inkeep/agents-core@0.44.0
+  - @inkeep/agents-manage-ui@0.44.0
+  - @inkeep/agents-sdk@0.44.0
+
+## 0.43.0
+
+### Minor Changes
+
+- de9bed1: Replace deprecated keytar package with @napi-rs/keyring for native keychain integration
+
+### Patch Changes
+
+- 5f432f9: stats page
+- 2f9d367: trigger fix
+- 3e3a0db: unneeded code for stats
+- 5ffbf6b: trigger traces
+- 05a8a12: adding authorization checks and spicedb setup
+- 720d42f: trigger fix for vercel
+- 5f66967: triggers for vercel
+- Updated dependencies [de9bed1]
+- Updated dependencies [0497b9a]
+- Updated dependencies [5f432f9]
+- Updated dependencies [0fff69c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [a5ba56c]
+- Updated dependencies [eef0a3f]
+- Updated dependencies [2f9d367]
+- Updated dependencies [3e3a0db]
+- Updated dependencies [0f83405]
+- Updated dependencies [5ffbf6b]
+- Updated dependencies [0aa5679]
+- Updated dependencies [0f86f53]
+- Updated dependencies [05a8a12]
+- Updated dependencies [f1920e3]
+- Updated dependencies [e8da68a]
+- Updated dependencies [0fff69c]
+- Updated dependencies [503ce52]
+- Updated dependencies [caefccc]
+- Updated dependencies [720d42f]
+- Updated dependencies [c47f630]
+- Updated dependencies [31b3310]
+- Updated dependencies [27a6e3f]
+- Updated dependencies [5f66967]
+- Updated dependencies [b215936]
+- Updated dependencies [82b959b]
+- Updated dependencies [8160ded]
+- Updated dependencies [0b75a6d]
+- Updated dependencies [cfa81bb]
+  - @inkeep/agents-core@0.43.0
+  - @inkeep/agents-sdk@0.43.0
+  - @inkeep/agents-manage-ui@0.43.0
+
 ## 0.42.0
 
 ### Minor Changes

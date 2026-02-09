@@ -8,7 +8,8 @@ import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
-import { type OrgRole, OrgRoles } from './authz/config';
+import { type OrgRole, OrgRoles } from './authz/types';
+import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
 /**
@@ -83,6 +84,7 @@ export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
   dbClient: AgentsRunDatabaseClient;
+  cookieDomain?: string;
   ssoProviders?: SSOProviderConfig[];
   socialProviders?: {
     google?: GoogleOptions;
@@ -100,48 +102,45 @@ export interface UserAuthConfig {
 
 /**
  * Extracts the root domain from a URL for cross-subdomain cookie sharing.
- * For example:
+ *
+ * When the API and UI share a common 3-part parent (e.g., api.pilot.inkeep.com
+ * and pilot.inkeep.com both share .pilot.inkeep.com), the function auto-computes
+ * the shared parent. When domains don't share a 3-part parent (e.g.,
+ * api.agents.inkeep.com and app.inkeep.com), set AUTH_COOKIE_DOMAIN explicitly.
+ *
+ * Examples (auto-computed from baseURL):
  * - https://api.pilot.inkeep.com -> .pilot.inkeep.com
  * - https://pilot.inkeep.com -> .pilot.inkeep.com
  * - http://localhost:3002 -> undefined (no domain for localhost)
  *
- * The logic extracts the parent domain that can be shared across subdomains.
- * For domains with 3+ parts, it takes everything except the first part.
- * For domains with exactly 2 parts, it takes both parts.
+ * With AUTH_COOKIE_DOMAIN=.inkeep.com:
+ * - Any *.inkeep.com URL -> .inkeep.com
  */
-function extractCookieDomain(baseURL: string): string | undefined {
+export function extractCookieDomain(baseURL: string, explicitDomain?: string): string | undefined {
+  if (explicitDomain) {
+    return explicitDomain.startsWith('.') ? explicitDomain : `.${explicitDomain}`;
+  }
+
   try {
     const url = new URL(baseURL);
     const hostname = url.hostname;
 
-    // Don't set domain for localhost or IP addresses
     if (hostname === 'localhost' || hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       return undefined;
     }
 
-    // Split hostname into parts
     const parts = hostname.split('.');
 
-    // We need at least 2 parts to form a domain (e.g., inkeep.com)
     if (parts.length < 2) {
       return undefined;
     }
 
-    // Extract the parent domain that can be shared across subdomains
-    // Examples:
-    // - pilot.inkeep.com (3 parts) -> take all 3 parts -> .pilot.inkeep.com
-    // - api.pilot.inkeep.com (4 parts) -> take last 3 parts -> .pilot.inkeep.com
-    // - inkeep.com (2 parts) -> take both parts -> .inkeep.com
-
     let domainParts: string[];
     if (parts.length === 3) {
-      // For 3-part domains like pilot.inkeep.com, take all parts
       domainParts = parts;
     } else if (parts.length > 3) {
-      // For 4+ part domains like api.pilot.inkeep.com, take everything except first
       domainParts = parts.slice(1);
     } else {
-      // For 2-part domains like inkeep.com, take both parts
       domainParts = parts;
     }
 
@@ -186,8 +185,7 @@ async function registerSSOProvider(
 }
 
 export function createAuth(config: BetterAuthConfig) {
-  // Extract cookie domain from baseURL for cross-subdomain cookie sharing
-  const cookieDomain = extractCookieDomain(config.baseURL);
+  const cookieDomain = extractCookieDomain(config.baseURL, config.cookieDomain);
 
   const auth = betterAuth({
     baseURL: config.baseURL,
@@ -201,6 +199,10 @@ export function createAuth(config: BetterAuthConfig) {
       maxPasswordLength: 128,
       requireEmailVerification: false,
       autoSignIn: true,
+      resetPasswordTokenExpiresIn: 60 * 30,
+      sendResetPassword: async ({ user, url, token }) => {
+        setPasswordResetLink({ email: user.email, url, token });
+      },
     },
     account: {
       accountLinking: {
@@ -244,15 +246,17 @@ export function createAuth(config: BetterAuthConfig) {
       },
     },
     advanced: {
-      crossSubDomainCookies: {
-        enabled: true,
-        ...(cookieDomain && { domain: cookieDomain }),
-      },
+      // Only enable cross-subdomain cookies for production (when we have a real domain)
+      ...(cookieDomain && {
+        crossSubDomainCookies: {
+          enabled: true,
+          domain: cookieDomain,
+        },
+      }),
       defaultCookieAttributes: {
         sameSite: 'none',
         secure: true,
         httpOnly: true,
-        partitioned: true,
         ...(cookieDomain && { domain: cookieDomain }),
       },
       ...config.advanced,
@@ -278,6 +282,7 @@ export function createAuth(config: BetterAuthConfig) {
           admin: adminRole,
           owner: ownerRole,
         },
+        creatorRole: OrgRoles.ADMIN,
         membershipLimit: 300,
         invitationLimit: 300,
         invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
@@ -295,6 +300,17 @@ export function createAuth(config: BetterAuthConfig) {
           // - SendGrid: await sgMail.send({ ... })
           // - AWS SES: await ses.sendEmail({ ... })
           // - Postmark: await postmark.sendEmail({ ... })
+        },
+        schema: {
+          invitation: {
+            additionalFields: {
+              authMethod: {
+                type: 'string',
+                input: true,
+                required: false,
+              },
+            },
+          },
         },
         organizationHooks: {
           afterAcceptInvitation: async ({ member, user, organization: org }) => {
