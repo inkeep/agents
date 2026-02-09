@@ -942,6 +942,7 @@ export class Agent {
                       type: 'approval-resolved',
                       toolCallId,
                       approved: false,
+                      reason: approvalResult.reason,
                     });
                   }
                 }
@@ -1561,6 +1562,7 @@ export class Agent {
                       type: 'approval-resolved',
                       toolCallId,
                       approved: false,
+                      reason: approvalResult.reason,
                     });
                   }
                 }
@@ -2364,18 +2366,13 @@ export class Agent {
     const input = args ? JSON.stringify(args, null, 2) : 'No input';
 
     if (isToolResultDenied(result)) {
-      const reason = result.reason ?? 'User denied approval';
-      const output = `The user declined to run this tool. Reason: ${reason}`;
       return [
         `## Tool: ${toolName}`,
         '',
         `### 🔧 TOOL_CALL_ID: ${toolCallId}`,
         '',
-        `### Input`,
-        `${input}`,
-        '',
         `### Output`,
-        `${output}`,
+        result.reason,
       ].join('\n');
     }
 
