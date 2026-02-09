@@ -57,6 +57,7 @@ describe('agent builder function', () => {
       name: 'Component Agent',
       description: 'Agent with data components',
       prompt: 'Agent that uses data components',
+      // @ts-expect-error `props` are explicitly missing
       dataComponents: () => [mockDataComponent],
     };
 
