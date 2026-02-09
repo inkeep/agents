@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.47.1
+
+### Patch Changes
+
+- 6fbe785: Fixes spicedb for docker
+
 ## 0.47.0
 
 ### Minor Changes
