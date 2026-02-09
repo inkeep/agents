@@ -1,5 +1,6 @@
 'use server';
 
+import type { Part } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import {
   createTrigger,
@@ -125,7 +126,7 @@ export async function rerunTriggerAction(
   triggerId: string,
   params: {
     userMessage: string;
-    messageParts?: Array<Record<string, unknown>>;
+    messageParts?: Part[];
   }
 ): Promise<ActionResult<{ invocationId: string; conversationId: string }>> {
   try {

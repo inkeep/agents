@@ -25,6 +25,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import type { Part } from '@inkeep/agents-core';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
@@ -112,12 +113,15 @@ export default function ConversationDetail({
 
     setIsRerunning(true);
     try {
-      let messageParts: Array<Record<string, unknown>> | undefined;
+      let messageParts: Part[] | undefined;
       if (userMessageActivity.messageParts) {
         try {
           messageParts = JSON.parse(userMessageActivity.messageParts);
-        } catch {
-          // Fall back to text-only
+        } catch (parseError) {
+          console.warn('Failed to parse messageParts for rerun, falling back to text-only', {
+            conversationId,
+            error: parseError instanceof Error ? parseError.message : String(parseError),
+          });
         }
       }
 

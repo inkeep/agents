@@ -97,17 +97,21 @@ export const TextPartSchema = z
   })
   .openapi('TextPart');
 
-const FileWithBytesSchema = z.object({
-  name: z.string().optional(),
-  mimeType: z.string().optional(),
-  bytes: z.string(),
-});
+const FileWithBytesSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    bytes: z.string(),
+  })
+  .strict();
 
-const FileWithUriSchema = z.object({
-  name: z.string().optional(),
-  mimeType: z.string().optional(),
-  uri: z.string(),
-});
+const FileWithUriSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    uri: z.string(),
+  })
+  .strict();
 
 export const FilePartSchema = z
   .object({

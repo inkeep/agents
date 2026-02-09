@@ -778,7 +778,7 @@ app.openapi(
       );
       throw createApiError({
         code: 'internal_server_error',
-        message: `Failed to dispatch rerun: ${errorMessage}`,
+        message: `Something went wrong. Please contact support.`,
       });
     }
 
