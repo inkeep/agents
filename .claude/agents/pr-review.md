@@ -225,7 +225,7 @@ Classify each finding as **inline-routable** or **summary-only**.
 - **NOT architectural:** If the suggestion is architectural/conceptual rather than a concrete code change, use summary-only
 
 **Suggestion block routing:** Inline comments may or may not include a GitHub 1-click `suggestion` block.
-- If `fix_confidence: HIGH` *and* you can provide an exact drop-in replacement for the selected line range, include a `suggestion` block.
+- If `fix_confidence: HIGH` *and* you can provide an exact drop-in replacement for the selected line range, include a `suggestion` block. **This should be backed by web citations or "similar code in the repo" citations.**
 - Otherwise, omit the `suggestion` block and describe the fix directionally (still include `Issue`, `Why`, and `Refs` in the inline comment body).
 
 Only if all of the above are true, then route it as **inline-routable**.
