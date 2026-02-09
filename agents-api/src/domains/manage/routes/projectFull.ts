@@ -20,6 +20,7 @@ import {
   getProjectMainBranchName,
   getProjectMetadata,
   type ResolvedRef,
+  removeProjectFromSpiceDb,
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
@@ -164,6 +165,7 @@ app.openapi(
       });
 
       // 4. Sync to SpiceDB: link project to org and grant creator admin role
+      // CRITICAL: If this fails, the project exists but the creator can't access it
       if (userId) {
         try {
           await syncProjectToSpiceDb({
@@ -172,7 +174,22 @@ app.openapi(
             creatorUserId: userId,
           });
         } catch (syncError) {
-          logger.warn({ syncError }, 'Failed to sync project to SpiceDB');
+          logger.error(
+            {
+              syncError,
+              tenantId,
+              projectId: validatedProjectData.id,
+              userId,
+            },
+            'Failed to sync project to SpiceDB - project created but authorization setup failed'
+          );
+
+          // Fail the request - project exists in DB but is inaccessible
+          throw createApiError({
+            code: 'internal_server_error',
+            message:
+              'Project created but authorization setup failed. Please delete and try again, or contact support.',
+          });
         }
       }
 
@@ -402,6 +419,7 @@ app.openapi(
           });
 
       // Sync to SpiceDB when creating a new project
+      // CRITICAL: If this fails, the project exists but the creator can't access it
       if (isCreate && userId) {
         try {
           await syncProjectToSpiceDb({
@@ -410,7 +428,22 @@ app.openapi(
             creatorUserId: userId,
           });
         } catch (syncError) {
-          logger.warn({ syncError }, 'Failed to sync project to SpiceDB');
+          logger.error(
+            {
+              syncError,
+              tenantId,
+              projectId,
+              userId,
+            },
+            'Failed to sync project to SpiceDB - project created but authorization setup failed'
+          );
+
+          // Fail the request - project exists in DB but is inaccessible
+          throw createApiError({
+            code: 'internal_server_error',
+            message:
+              'Project created but authorization setup failed. Please delete and try again, or contact support.',
+          });
         }
       }
 
@@ -506,6 +539,27 @@ app.openapi(
           code: 'not_found',
           message: 'Project not found',
         });
+      }
+
+      // 4. Clean up SpiceDB relationships
+      // This removes all authorization relationships for the project
+      try {
+        await removeProjectFromSpiceDb({
+          tenantId,
+          projectId,
+        });
+        logger.info({ tenantId, projectId }, 'Removed project from SpiceDB');
+      } catch (spiceDbError) {
+        // Log but don't fail - the project data is already deleted
+        // This could leave orphaned auth relationships, but won't affect functionality
+        logger.warn(
+          {
+            spiceDbError,
+            tenantId,
+            projectId,
+          },
+          'Failed to remove project from SpiceDB - orphaned auth relationships may remain'
+        );
       }
 
       return c.body(null, 204);
