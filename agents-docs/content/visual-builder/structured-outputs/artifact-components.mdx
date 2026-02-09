@@ -20,7 +20,7 @@ icon: TbInputSpark
 1. Go to the Artifact Components tab in the left sidebar. Then select "New artifact component".
 2. Add in an id, name, and description. These are required fields.
 3. For the props schema, you can either:
-   - **Enter a JSON schema** with `inPreview: true` properties to define specific fields that will be immediately available
+   - **Enter a JSON schema** with `inPreview: true` properties to define specific fields that will be immediately available. Every property must include a `"description"` field for LLM compatibility.
    - **Leave empty** to save the entire tool result without filtering
 4. Click "Submit".
 
@@ -34,24 +34,29 @@ To visually add the artifact component to the Agent, see the [Sub Agents](/visua
   text**.
 </Callout>
 
+<Callout>
+  **Note**: When providing a props schema, every property must include a non-empty `"description"` field for LLM compatibility.
+</Callout>
+
 ```json
 // ❌ WRONG: Tool returns text, schema expects structured data
 // Tool output: { "result": { "content": [{ "text": "Weather: Sunny, 75°F" }] } }
 {
   "type": "object",
   "properties": {
-    "temperature": { "type": "number" }, // ❌ Cannot extract number from text
-    "condition": { "type": "string" }     // ❌ Cannot extract condition from text
+    "temperature": { "type": "number", "description": "Current temperature" },
+    "condition": { "type": "string", "description": "Weather condition" }
   }
 }
+// Note: Even with descriptions, this is wrong because the tool output doesn't match
 
 // ✅ CORRECT: Tool returns structured data matching schema
 // Tool output: { "result": { "temperature": 75, "condition": "Sunny" } }
 {
   "type": "object",
   "properties": {
-    "temperature": { "type": "number" },
-    "condition": { "type": "string" }
+    "temperature": { "type": "number", "description": "Current temperature in Fahrenheit" },
+    "condition": { "type": "string", "description": "Current weather condition" }
   }
 }
 ```
