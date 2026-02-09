@@ -44,8 +44,41 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
-- **`content`** — Can be a string or an object with `parts` for multi-part content
+- **`content`** — Can be a string, or use `parts` array for multi-part content including images
+- **`parts`** — Array of content parts supporting `text` and `image` types
 - **`conversationId`** — Optional; server generates one if omitted
+
+
+### Multi-part Content with Images
+
+To include images alongside text, use the `parts` array:
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "parts": [
+        { "type": "text", "text": "What's in this image?" },
+        { "type": "image", "text": "https://example.com/photo.png" }
+      ]
+    }
+  ],
+  "conversationId": "optional-conversation-id"
+}
+```
+
+**Supported image formats:**
+- PNG, JPEG, JPG, WebP
+- GIF is not supported by all model providers
+
+**Image sources:**
+- HTTP/HTTPS URLs
+- Base64 data URIs (e.g., `data:image/png;base64,...`)
+
+<Note>
+  Images are processed for the current request but are not persisted to conversation history.
+</Note>
 
 ### Optional Headers
 
