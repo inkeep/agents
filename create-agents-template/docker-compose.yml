@@ -6,10 +6,8 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - INKEEP_AGENTS_MANAGE_API_URL=${INKEEP_AGENTS_MANAGE_API_URL:-http://inkeep-agents-manage-api:3002}
-      - INKEEP_AGENTS_RUN_API_URL=${INKEEP_AGENTS_RUN_API_URL:-http://localhost:3003}
-      - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
-      - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
+      - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-http://inkeep-agents-api:3002}
+      - PUBLIC_INKEEP_AGENTS_API_URL=${PUBLIC_INKEEP_AGENTS_API_URL:-http://localhost:3002}
       - NANGO_CONNECT_BASE_URL=${NANGO_CONNECT_BASE_URL:-http://localhost:3051}
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
@@ -31,6 +29,7 @@ services:
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
       - SPICEDB_ENDPOINT=${SPICEDB_ENDPOINT:-inkeep-agents-spicedb:50051}
       - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
       - ANTHROPIC_API_KEY
       - OPENAI_API_KEY
       - GOOGLE_GENERATIVE_AI_API_KEY
@@ -39,8 +38,11 @@ services:
       - OTEL_EXPORTER_OTLP_TRACES_HEADERS
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
+      - INKEEP_AGENTS_JWT_SIGNING_SECRET
+      - INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY
+      - INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
     ports:
-      - "3003:3003"
+      - "3002:3002"
     depends_on:
       inkeep-agents-doltgres-db:
         condition: service_healthy
@@ -65,8 +67,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-    ports:
-      - "5432:5432"
   inkeep-agents-postgres-db:
     image: postgres:18
     restart: unless-stopped
@@ -81,8 +81,6 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
-    ports:
-      - "5433:5432"
   inkeep-agents-migrate:
     build:
       context: .
@@ -92,10 +90,18 @@ services:
       - LOG_LEVEL
       - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
+      - SPICEDB_ENDPOINT=inkeep-agents-spicedb:50051
+      - SPICEDB_PRESHARED_KEY=${SPICEDB_PRESHARED_KEY:-dev-secret-key}
+      - SPICEDB_TLS_ENABLED=${SPICEDB_TLS_ENABLED:-false}
+      - INKEEP_AGENTS_MANAGE_UI_USERNAME
+      - INKEEP_AGENTS_MANAGE_UI_PASSWORD
+      - BETTER_AUTH_SECRET
     depends_on:
       inkeep-agents-doltgres-db:
         condition: service_healthy
       inkeep-agents-postgres-db:
+        condition: service_healthy
+      inkeep-agents-spicedb:
         condition: service_healthy
     restart: "no"
 
@@ -107,11 +113,14 @@ services:
     environment:
       SPICEDB_GRPC_PRESHARED_KEY: ${SPICEDB_PRESHARED_KEY:-dev-secret-key}
       SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable"
-      SPICEDB_HTTP_ENABLED: "true"
-    ports:
-      - "50051:50051"
-      - "8443:8443"
+      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
+      SPICEDB_HTTP_ENABLED: true
+      SPICEDB_TELEMETRY_ENDPOINT: ""
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:50051"]
+      interval: 5s
+      timeout: 30s
+      retries: 10
     depends_on:
       inkeep-agents-spicedb-migrate:
         condition: service_completed_successfully
@@ -122,7 +131,7 @@ services:
     restart: "no"
     environment:
       SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable"
+      SPICEDB_DATASTORE_CONN_URI: postgres://spicedb:spicedb@inkeep-agents-spicedb-postgres-db:5432/spicedb?sslmode=disable
     depends_on:
       inkeep-agents-spicedb-postgres-db:
         condition: service_healthy
@@ -141,8 +150,6 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
-    ports:
-      - "5434:5432"
 
 volumes:
   inkeep-agents-doltgres-data:

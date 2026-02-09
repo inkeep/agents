@@ -8,7 +8,7 @@ import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
-import { type OrgRole, OrgRoles } from './authz/config';
+import { type OrgRole, OrgRoles } from './authz/types';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 

@@ -1,3 +1,4 @@
+import { HeadersSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { transformToJson } from '@/lib/json-schema-validation';
 
@@ -14,12 +15,6 @@ export const idSchema = z
     'Id must contain only alphanumeric characters, underscores, and dashes. No spaces allowed.'
   );
 
-export const DefaultHeadersSchema = z.record(
-  z.string(),
-  z.string('All header values must be strings'),
-  'Must be valid JSON object'
-);
-
 function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
   ctx.addIssue({
     code: 'custom',
@@ -27,7 +22,7 @@ function addIssue(ctx: z.RefinementCtx, error: z.ZodError) {
   });
 }
 
-export function createCustomHeadersSchema(customHeaders: string) {
+export function createCustomHeadersSchema(customHeaders?: string) {
   const zodSchema = z
     .string()
     .trim()
@@ -35,7 +30,7 @@ export function createCustomHeadersSchema(customHeaders: string) {
     // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
     .superRefine((value, ctx) => {
       // First validate default schema
-      const result = DefaultHeadersSchema.safeParse(value);
+      const result = HeadersSchema.safeParse(value);
       if (!result.success) {
         addIssue(ctx, result.error);
         return;

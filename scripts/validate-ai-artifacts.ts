@@ -11,8 +11,8 @@
  *   tsx scripts/validate-ai-artifacts.ts # same thing
  */
 
-import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { join, basename, dirname } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { parse } from 'yaml';
 
 interface ValidationResult {
@@ -33,7 +33,11 @@ function validateAgentFile(filePath: string): ValidationResult[] {
   const fm = extractFrontmatter(content);
 
   if (!fm) {
-    results.push({ file: filePath, status: 'error', message: 'No YAML frontmatter delimiters (---) found' });
+    results.push({
+      file: filePath,
+      status: 'error',
+      message: 'No YAML frontmatter delimiters (---) found',
+    });
     return results;
   }
 
@@ -47,7 +51,11 @@ function validateAgentFile(filePath: string): ValidationResult[] {
   }
 
   if (!data || typeof data !== 'object') {
-    results.push({ file: filePath, status: 'error', message: `Frontmatter parsed as ${typeof data}, expected object` });
+    results.push({
+      file: filePath,
+      status: 'error',
+      message: `Frontmatter parsed as ${typeof data}, expected object`,
+    });
     return results;
   }
 
@@ -56,7 +64,11 @@ function validateAgentFile(filePath: string): ValidationResult[] {
   }
 
   if (!('description' in data)) {
-    results.push({ file: filePath, status: 'error', message: 'Missing required "description" field' });
+    results.push({
+      file: filePath,
+      status: 'error',
+      message: 'Missing required "description" field',
+    });
   }
 
   if ('name' in data) {
@@ -89,7 +101,11 @@ function validateSkillFile(filePath: string): ValidationResult[] {
   const fm = extractFrontmatter(content);
 
   if (!fm) {
-    results.push({ file: filePath, status: 'error', message: 'No YAML frontmatter delimiters (---) found' });
+    results.push({
+      file: filePath,
+      status: 'error',
+      message: 'No YAML frontmatter delimiters (---) found',
+    });
     return results;
   }
 
@@ -103,7 +119,11 @@ function validateSkillFile(filePath: string): ValidationResult[] {
   }
 
   if (!data || typeof data !== 'object') {
-    results.push({ file: filePath, status: 'error', message: `Frontmatter parsed as ${typeof data}, expected object` });
+    results.push({
+      file: filePath,
+      status: 'error',
+      message: `Frontmatter parsed as ${typeof data}, expected object`,
+    });
     return results;
   }
 
@@ -112,7 +132,11 @@ function validateSkillFile(filePath: string): ValidationResult[] {
   }
 
   if (!('description' in data)) {
-    results.push({ file: filePath, status: 'error', message: 'Missing required "description" field' });
+    results.push({
+      file: filePath,
+      status: 'error',
+      message: 'Missing required "description" field',
+    });
   }
 
   if ('name' in data) {
@@ -195,11 +219,9 @@ function main() {
   if (errors > 0) {
     console.log(`\nFAILED: ${errors} error(s) in ${total} files`);
     console.log(
-      '\nCommon fix: ensure all content inside \'description: |\' is indented by at least 2 spaces.',
+      "\nCommon fix: ensure all content inside 'description: |' is indented by at least 2 spaces."
     );
-    console.log(
-      'Lines at column 0 (like <example>, <commentary>) break the YAML block scalar.',
-    );
+    console.log('Lines at column 0 (like <example>, <commentary>) break the YAML block scalar.');
     process.exit(1);
   }
 

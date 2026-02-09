@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-mcp
 
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+## 0.47.0
+
+## 0.46.1
+
 ## 0.46.0
 
 ### Patch Changes

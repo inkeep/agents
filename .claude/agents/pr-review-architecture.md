@@ -38,7 +38,10 @@ tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
+  - internal-surface-areas
+  - find-similar
   - pr-review-output-contract
   - pr-review-check-suggestion
 model: opus
@@ -226,7 +229,7 @@ Things AI agents and junior engineers often miss at the system level:
 
 1. **Review the PR context** — diff, changed files, and PR metadata are available via `pr-context`
 2. **Identify architectural decisions** — boundaries changed, cross-module flows, consistency semantics
-3. **Inspect surrounding architecture** — read the nearest related modules and entry points
+3. **Inspect surrounding architecture** — use `find-similar` to locate related modules, peer implementations, and existing patterns before assessing whether the PR's approach is consistent or divergent
 4. **Model failure modes** — partial failures, inconsistent state, unexpected coupling
 5. **Assess evolvability** — how hard is the next change?
 6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.

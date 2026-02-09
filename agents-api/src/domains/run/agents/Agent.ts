@@ -31,17 +31,19 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
+  type FinishReason,
   generateText,
   Output,
+  type StepResult,
   type StreamTextResult,
   streamText,
   type Tool,
   type ToolSet,
   tool,
 } from 'ai';
-import manageDbPool from 'src/data/db/manageDbPool';
-import { env } from 'src/env';
+import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
@@ -98,6 +100,80 @@ export function hasToolCallWithPrefix(prefix: string) {
 }
 
 const logger = getLogger('Agent');
+
+/**
+ * Shape of a generation response after all Promise-based getters have been resolved.
+ *
+ * The AI SDK's `GenerateTextResult` and `StreamTextResult` classes expose properties
+ * like `text`, `steps`, `finishReason`, and `output` as **prototype getters** — not
+ * own enumerable properties. When one of these class instances is spread with `{ ...result }`,
+ * the spread operator copies only own enumerable properties and silently drops the getters,
+ * causing those fields to become `undefined` on the resulting plain object.
+ *
+ * This type represents the safely-resolved plain object produced by
+ * `resolveGenerationResponse`, where every needed getter has been awaited and
+ * assigned as a concrete own property.
+ */
+export interface ResolvedGenerationResponse {
+  steps: Array<StepResult<ToolSet>>;
+  text: string;
+  finishReason: FinishReason;
+  output?: any;
+  object?: any;
+  formattedContent?: MessageContent | null;
+}
+
+/**
+ * Resolves a generation response from either `generateText` or `streamText` into
+ * a plain object with all needed values as own properties.
+ *
+ * **Why this exists:** The AI SDK returns class instances whose key properties
+ * (`text`, `steps`, `finishReason`, `output`) are prototype getters.
+ * `StreamTextResult` getters return `PromiseLike` values; `GenerateTextResult`
+ * getters return direct values. In both cases, the spread operator `{ ...result }`
+ * silently drops them. This function uses `Promise.resolve()` to safely resolve
+ * both styles, then spreads them as explicit own properties so downstream code
+ * (and further spreads) never loses them.
+ */
+export async function resolveGenerationResponse(
+  response: Record<string, unknown>
+): Promise<ResolvedGenerationResponse> {
+  const stepsValue = response.steps;
+
+  if (!stepsValue) {
+    return response as unknown as ResolvedGenerationResponse;
+  }
+
+  try {
+    const [steps, text, finishReason, output] = await Promise.all([
+      Promise.resolve(
+        stepsValue as PromiseLike<Array<StepResult<ToolSet>>> | Array<StepResult<ToolSet>>
+      ),
+      Promise.resolve(response.text as PromiseLike<string> | string),
+      Promise.resolve(response.finishReason as PromiseLike<FinishReason> | FinishReason),
+      Promise.resolve(response.output),
+    ]);
+
+    return {
+      ...response,
+      steps,
+      text,
+      finishReason,
+      output,
+    } as ResolvedGenerationResponse;
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        responseKeys: Object.keys(response),
+      },
+      'Failed to resolve generation response properties - AI SDK response may be malformed'
+    );
+    throw new Error(
+      `Failed to resolve generation response: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
 
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
@@ -2713,7 +2789,7 @@ ${output}`;
           // Configure model settings and behavior
           const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
             this.configureModelSettings();
-          let response: any;
+          let response: ResolvedGenerationResponse;
           let textResponse: string;
 
           // Build initial messages
@@ -2782,31 +2858,32 @@ ${output}`;
           );
 
           // Execute generation
+          let rawResponse: Record<string, unknown>;
           if (shouldStream) {
-            response = await this.handleStreamGeneration(
+            rawResponse = (await this.handleStreamGeneration(
               streamText(generationConfig),
               sessionId,
               contextId,
               !!dataComponentsSchema
-            );
+            )) as unknown as Record<string, unknown>;
           } else {
-            response = await generateText(nonStreamingConfig);
+            rawResponse = (await generateText(nonStreamingConfig)) as unknown as Record<
+              string,
+              unknown
+            >;
           }
 
           logger.info(
             {
               agentId: this.config.id,
-              hasOutput: !!response.output,
-              dataComponentsCount: response.output?.dataComponents?.length || 0,
-              finishReason: response.finishReason,
+              hasOutput: !!rawResponse.output,
+              dataComponentsCount: (rawResponse.output as any)?.dataComponents?.length || 0,
+              finishReason: rawResponse.finishReason,
             },
             '✅ Generation completed'
           );
 
-          if (response.steps) {
-            const resolvedSteps = await response.steps;
-            response = { ...response, steps: resolvedSteps };
-          }
+          response = await resolveGenerationResponse(rawResponse);
 
           // Process response based on whether it has structured output
           if (hasStructuredOutput && response.output) {
@@ -3444,11 +3521,11 @@ ${output}`;
   }
 
   private async formatFinalResponse(
-    response: any,
+    response: ResolvedGenerationResponse,
     textResponse: string,
     sessionId: string,
     contextId: string
-  ): Promise<any> {
+  ): Promise<ResolvedGenerationResponse> {
     let formattedContent: MessageContent | null = response.formattedContent || null;
 
     if (!formattedContent) {
@@ -3476,7 +3553,7 @@ ${output}`;
     };
   }
 
-  private handleGenerationError(error: unknown, span: Span) {
+  private handleGenerationError(error: unknown, span: Span): never {
     // Use full cleanup since compressor is being discarded on error
     if (this.currentCompressor) {
       this.currentCompressor.fullCleanup();
@@ -3576,7 +3653,5 @@ ${output}`;
         }
       }
     }
-
-    await parser.finalize();
   }
 }

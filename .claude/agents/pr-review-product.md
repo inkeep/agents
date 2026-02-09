@@ -47,6 +47,7 @@ tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
   - pr-review-output-contract
   - pr-review-check-suggestion
@@ -175,12 +176,12 @@ Use this checklist as a lens. Only generate a finding when you can tie it to con
 
 **Flag when:** the common path becomes heavy/ceremonial.
 
-## 10. Docs Accompaniment
+## 10. Docs Accompaniment (Product Lens)
 
-- If customer-facing behavior changes, are docs or examples updated?
-- Would a customer following existing docs be surprised?
+- Would a customer following existing docs or examples be surprised by this change?
+- Does the change affect the user's mental model, discoverability, or onboarding path in ways that existing documentation doesn't address?
 
-**Flag when:** PR changes customer-facing behavior or adds a feature without any discoverable documentation/explanation.
+**Flag when:** the PR introduces a customer-visible concept, changes a user-facing interaction pattern, or deprecates something customers rely on — and the impact on the user's understanding is not self-evident from the change itself. Focus on the **product impact** (mental model, discoverability) rather than docs file compliance.
 
 ## 11. Affordance and Discoverability
 
@@ -241,7 +242,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
 - Use `category: "product"`.
 - Prefer these `type` choices:
   - `inline`: only when there is a concrete, low-risk, localized improvement (e.g., rename a confusing flag, improve an error message)
-  - `file`: when the issue is localized to one surface/file but not a ≤10-line fix
+  - `file`: when the issue is localized to one surface/file but not a ≤20-line fix
   - `multi-file`: when coherence/docs/templates span multiple files/surfaces
   - `system`: when the concern is about overall product shape/mental model rather than specific lines
 

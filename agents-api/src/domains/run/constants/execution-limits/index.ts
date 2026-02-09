@@ -15,7 +15,7 @@ const constantsSchema = z.object(
 
       // Use appropriate schema type based on the default value type
       if (typeof defaultValue === 'boolean') {
-        return [envKey, z.coerce.boolean().optional()];
+        return [envKey, z.stringbool().optional()];
       }
       return [envKey, z.coerce.number().optional()];
     })

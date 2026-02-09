@@ -76,6 +76,9 @@ Ask: *"Can I prove this issue from the code diff alone?"*
 
 If you have access to a web search tool, verify the finding:
 
+**Version check (for library/package-specific searches):**
+Before formulating your query, confirm the relevant package version(s) from the repo (e.g., `package.json`, lockfile, framework config). Use the actual version in your search queries and reasoning — not assumed versions from training data. Not all searches require this; skip for general patterns, language-level issues, or non-versioned concerns.
+
 **Formulate a specific query:**
 ```
 Good: "React 19 use memo directive 2024"
@@ -94,7 +97,7 @@ Bad:  "is moment.js bad" (opinion-seeking)
 
 | Result | Action |
 |--------|--------|
-| **Confirms issue** | Keep finding, HIGH confidence. Optionally cite source. |
+| **Confirms issue** | Keep finding, HIGH confidence. Cite the authoritative source in `references`. |
 | **Contradicts finding** | **DROP the finding.** Do not include in output. |
 | **Inconclusive** | Keep finding, MEDIUM confidence. Note uncertainty. |
 
@@ -134,17 +137,25 @@ After validating the issue, verify your proposed fix is current best practice.
 
 | Answer | Action |
 |--------|--------|
-| **No** — Obvious fix (null check, typo, simple refactor) | HIGH fix_confidence |
-| **Yes** — Requires knowing current patterns/APIs | Continue to Step F2 |
+| **No** — Obvious fix (null check, typo, simple refactor) AND does not change how a third-party library/framework/SDK is called or configured | HIGH fix_confidence |
+| **Yes** — Requires knowing current patterns/APIs, OR changes how a third-party library/framework/SDK is used (imports, method calls, configuration, hook usage, etc.) | Continue below |
 
-### Step F2: Web Search for Best Practice (if available)
+**Rule: any fix that changes third-party library/framework usage MUST go through Step F2 (web search) before the finding can claim `fix_confidence: HIGH`.** Codebase prior art alone is insufficient — the existing code may itself use outdated patterns. Check the codebase first to understand context and existing conventions, then verify against current upstream documentation.
 
-**Formulate a query for the solution:**
+**Before external search:** Look for existing patterns, utilities, or conventions in the codebase that address the same concern. Cite any prior art as a "related code elsewhere" reference. Then proceed to Step F2 to verify the pattern is current best practice — even if you found codebase prior art.
+
+### Step F2: Web Search for Best Practice (REQUIRED for third-party code)
+
+**This step is mandatory** when the fix changes how any third-party library, framework, or SDK is used — regardless of whether codebase prior art exists. If no web search tool is available, cap `fix_confidence` at MEDIUM (see Step F3).
+
+**Version check:** Before formulating your query, confirm the relevant package version(s) from the repo (e.g., `package.json`, lockfile, framework config). Use the actual version in your search queries — APIs, patterns, and recommended practices vary between versions. If the version you confirmed differs from what you assumed, re-evaluate your fix before searching.
+
+**Formulate a version-specific query for the solution:**
 ```
 Good: "React 19 recommended way to memoize components 2024"
 Good: "Next.js 15 server actions error handling pattern"
-Good: "TypeScript zod schema validation best practice"
-Bad:  "how to fix React" (too vague)
+Good: "drizzle-orm 0.35 query builder best practice"
+Bad:  "how to fix React" (too vague, no version)
 Bad:  "best library for X" (opinion-seeking)
 ```
 
@@ -152,6 +163,7 @@ Bad:  "best library for X" (opinion-seeking)
 1. Official documentation (canonical patterns)
 2. Library maintainer blogs/guides (authoritative)
 3. GitHub examples from the library itself (real usage)
+4. Source code for open source libraries
 
 **Take action based on results:**
 
@@ -163,12 +175,12 @@ Bad:  "best library for X" (opinion-seeking)
 
 ### Step F3: Fix Confidence Calibration (no web search, or inconclusive)
 
-When you cannot verify the fix approach:
+When you cannot verify the fix approach via web search, **you cannot claim HIGH fix_confidence for any fix that changes third-party library/framework usage**:
 
 | Category | Fix Confidence Ceiling |
 |----------|------------------------|
+| Third-party library/framework API usage | MEDIUM max (HIGH requires Step F2 verification) |
 | Framework-specific patterns | MEDIUM max |
-| Library API usage | MEDIUM max |
 | Security remediation | LOW (unless verified) |
 | Performance optimization | MEDIUM max |
 | Migration/upgrade paths | LOW (version-specific) |
@@ -178,11 +190,13 @@ When you cannot verify the fix approach:
 When you verify a fix via web search, **include the source in your references**:
 
 ```json
-"references": [
-  "[src/components/List.tsx:42](https://github.com/.../List.tsx#L42)",
-  "[React useMemo docs](https://react.dev/reference/react/useMemo)",
-  "[When to use useMemo](https://react.dev/reference/react/useMemo#should-you-add-usememo-everywhere)"
-]
+{
+  "references": [
+    "[src/components/VirtualList.tsx:88 — memoization pattern](https://github.com/.../VirtualList.tsx#L88)",
+    "[React useMemo docs](https://react.dev/reference/react/useMemo)",
+    "[When to use useMemo](https://react.dev/reference/react/useMemo#should-you-add-usememo-everywhere)"
+  ]
+}
 ```
 
 This grounds your fix recommendation in authoritative sources.
@@ -211,6 +225,7 @@ Step 2: Search "moment.js maintenance mode 2024"
 Result: moment.js docs confirm maintenance mode since 2020
 
 Action: Keep finding, HIGH confidence
+        references: Add "[Moment.js docs: project status](https://momentjs.com/docs/#/-project-status/)"
         Add to implications: "moment.js has been in maintenance mode since 2020"
 ```
 
@@ -262,6 +277,7 @@ Result: Multiple valid options (date-fns, dayjs, Temporal API)
 
 Action: fix_confidence: MEDIUM
         fix: "Consider date-fns (lightweight) or dayjs (moment-compatible API)"
+        references: Cite the docs/specs for the options you mention (e.g., Temporal proposal, date-fns docs, dayjs docs)
         Add note: "Choice depends on bundle size constraints and API preferences"
 ```
 

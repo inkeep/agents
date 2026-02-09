@@ -1,5 +1,56 @@
 # @inkeep/agents-api
 
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-manage-mcp@0.47.2
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-mcp@0.47.2
+  - @inkeep/agents-work-apps@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-work-apps@0.47.1
+  - @inkeep/agents-manage-mcp@0.47.1
+  - @inkeep/agents-mcp@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-work-apps@0.47.0
+  - @inkeep/agents-manage-mcp@0.47.0
+  - @inkeep/agents-mcp@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 7fd85b6: Refactor: Consolidate to single-phase generation
+
+  - Removed Phase 2 infrastructure (Phase2Config.ts, phase2/ template directories, thinking-preparation.xml)
+  - Moved data component templates from phase2/ to shared/ for single-phase use
+  - Updated Phase1Config to handle data components inline
+  - Added model recommendations docs for data components (recommend Sonnet 4+, Opus 4+, GPT-4.1/5.1/5.2, Gemini 3.0 Pro)
+
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+- Updated dependencies [6139d11]
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-work-apps@0.46.1
+  - @inkeep/agents-manage-mcp@0.46.1
+  - @inkeep/agents-mcp@0.46.1
+
 ## 0.46.0
 
 ### Patch Changes
