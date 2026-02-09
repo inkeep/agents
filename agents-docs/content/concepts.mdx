@@ -55,6 +55,24 @@ Sub Agents in Inkeep are designed to respond to the user as a single, cohesive u
 
 <Snippet file="multi-agent-framework/WaysToTalkToAgent.mdx" />
 
+## Work Apps
+
+**Work Apps** are platform integrations that let your Agents operate directly inside collaboration tools like Slack. Unlike webhook triggers that respond to events, Work Apps provide real-time, interactive experiences with features like:
+
+- **Slash commands** - Users invoke Agents with commands like `/inkeep [question]`
+- **@mentions** - Tag the Agent in channels for public, threaded responses
+- **User account linking** - Connect Slack users to their Inkeep identity for personalized responses
+- **Workspace configuration** - Set default Agents per workspace or channel
+
+Work Apps are installed at the workspace level via OAuth and configured through the dashboard.
+
+<Cards>
+  <Card title="Slack Integration" icon="brand/Slack" href="/talk-to-your-agents/work-apps/slack">
+    Connect your Agents to Slack for real-time conversations.
+  </Card>
+</Cards>
+
+
 ## Triggers
 
 **Triggers** are webhook endpoints that allow external services to invoke your Agents. When a webhook is received, the payload is validated, transformed into a message, and used to start a new conversation.
