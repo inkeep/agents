@@ -1,4 +1,5 @@
 import jmespath from 'jmespath';
+import type { JSONSchema } from 'zod/v4/core';
 import { getLogger } from '../../../logger';
 
 export interface SchemaValidationResult {
@@ -227,8 +228,13 @@ export class SchemaProcessor {
    * Normalize JSON schema for structured output compatibility
    * Makes all properties required - this ensures compatibility across all LLM providers
    * (OpenAI/Azure require it, Anthropic accepts it)
+   *
+   * @param schema - JSON schema to normalize (supports nested objects, arrays, unions)
+   * @returns Normalized schema with all properties marked as required
    */
-  static normalizeForStructuredOutput(schema: any): any {
+  static normalizeForStructuredOutput(
+    schema: JSONSchema.BaseSchema | Record<string, unknown> | null | undefined
+  ): JSONSchema.BaseSchema | Record<string, unknown> | null | undefined {
     if (!schema || typeof schema !== 'object') {
       return schema;
     }
