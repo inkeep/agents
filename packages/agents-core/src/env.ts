@@ -103,7 +103,7 @@ const envSchema = z.object({
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
   SPICEDB_ENDPOINT: z.string().optional().describe('SpiceDB endpoint'),
   SPICEDB_PRESHARED_KEY: z.string().optional().describe('SpiceDB pre-shared key'),
-  SPICEDB_TLS_ENABLED: z.coerce.boolean().optional().describe('SpiceDB TLS enabled'),
+  SPICEDB_TLS_ENABLED: z.stringbool().optional().describe('SpiceDB TLS enabled'),
 });
 
 const parseEnv = () => {
