@@ -169,12 +169,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -357,12 +352,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -743,12 +733,7 @@
       "ApiKeyCreate": {
         "properties": {
           "agentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "createdAt": {
             "type": "string"
@@ -803,12 +788,7 @@
       "ApiKeyUpdate": {
         "properties": {
           "agentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "expiresAt": {
             "nullable": true,
@@ -944,12 +924,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -1063,12 +1038,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -1546,12 +1516,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           }
         },
         "type": "object"
@@ -1596,12 +1561,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           }
         },
         "type": "object"
@@ -2030,20 +1990,10 @@
             "type": "string"
           },
           "credentialStoreId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2126,20 +2076,10 @@
             "type": "string"
           },
           "credentialStoreId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2341,12 +2281,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2463,12 +2398,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4088,12 +4018,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4157,12 +4082,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4747,12 +4667,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "anyOf": [
@@ -4881,12 +4796,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4950,12 +4860,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -5007,12 +4912,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "anyOf": [
@@ -5395,12 +5295,7 @@
             ]
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -5951,6 +5846,14 @@
         ],
         "type": "object"
       },
+      "ResourceId": {
+        "description": "Resource identifier",
+        "example": "resource_789",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-zA-Z0-9\\-_.]+$",
+        "type": "string"
+      },
       "SignatureSource": {
         "description": "Configuration for extracting the signature",
         "properties": {
@@ -6379,12 +6282,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/Model"
@@ -6540,12 +6438,7 @@
             "type": "string"
           },
           "externalAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "headers": {
             "additionalProperties": {
@@ -6598,12 +6491,7 @@
             "type": "string"
           },
           "externalAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "headers": {
             "additionalProperties": {
@@ -6613,20 +6501,10 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6699,20 +6577,10 @@
       "SubAgentFunctionToolRelationCreate": {
         "properties": {
           "functionToolId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "anyOf": [
@@ -6829,20 +6697,10 @@
             "type": "string"
           },
           "externalSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "relationType": {
             "enum": [
@@ -6852,28 +6710,13 @@
             "type": "string"
           },
           "sourceSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "teamSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6921,20 +6764,10 @@
             "type": "string"
           },
           "externalSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "relationType": {
             "enum": [
@@ -6944,28 +6777,13 @@
             "type": "string"
           },
           "sourceSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "teamSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7059,12 +6877,7 @@
             "type": "object"
           },
           "targetAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7117,28 +6930,13 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7285,12 +7083,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "selectedTools": {
             "items": {
@@ -7300,20 +7093,10 @@
             "type": "array"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "additionalProperties": {
@@ -7380,12 +7163,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "selectedTools": {
             "items": {
@@ -7395,20 +7173,10 @@
             "type": "array"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "additionalProperties": {
@@ -7469,12 +7237,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/Model"
@@ -7951,12 +7714,7 @@
             ]
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -8172,12 +7930,7 @@
             ]
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -8389,12 +8142,7 @@
             "type": "boolean"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "additionalProperties": {
@@ -8700,12 +8448,7 @@
             "type": "boolean"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "additionalProperties": {
@@ -11727,12 +11470,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -11835,12 +11573,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -11940,12 +11673,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13039,12 +12767,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13154,12 +12877,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13276,12 +12994,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13780,12 +13493,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13895,12 +13603,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -14017,12 +13720,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -14155,20 +13853,10 @@
                     "type": "string"
                   },
                   "artifactComponentId": {
-                    "description": "Resource identifier",
-                    "example": "resource_789",
-                    "maxLength": 255,
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9\\-_.]+$",
-                    "type": "string"
+                    "$ref": "#/components/schemas/ResourceId"
                   },
                   "subAgentId": {
-                    "description": "Resource identifier",
-                    "example": "resource_789",
-                    "maxLength": 255,
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9\\-_.]+$",
-                    "type": "string"
+                    "$ref": "#/components/schemas/ResourceId"
                   }
                 },
                 "required": [
@@ -16364,12 +16052,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16429,12 +16112,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16551,12 +16229,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17098,12 +16771,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17164,12 +16832,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17287,12 +16950,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17682,12 +17340,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17757,12 +17410,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17879,12 +17527,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18302,12 +17945,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18377,12 +18015,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18509,12 +18142,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19050,12 +18678,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19124,12 +18747,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19255,12 +18873,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19649,12 +19262,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19764,12 +19372,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19886,12 +19489,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20019,12 +19617,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -20214,12 +19807,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -20339,12 +19927,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20395,12 +19978,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20508,12 +20086,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20909,12 +20482,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20966,12 +20534,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21080,12 +20643,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21447,12 +21005,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21503,12 +21056,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21616,12 +21164,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22279,12 +21822,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -22516,12 +22054,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22883,12 +22416,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22939,12 +22467,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23052,12 +22575,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23419,12 +22937,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23475,12 +22988,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23588,12 +23096,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -28961,12 +28464,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29017,12 +28515,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29130,12 +28623,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29510,12 +28998,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29616,12 +29099,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29729,12 +29207,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31600,12 +31073,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31706,12 +31174,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31819,12 +31282,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31943,12 +31401,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],

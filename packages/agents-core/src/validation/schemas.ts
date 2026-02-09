@@ -125,7 +125,7 @@ export const ResourceIdSchema = z
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   })
   .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
-  .openapi({
+  .openapi('ResourceId', {
     description: 'Resource identifier',
     example: 'resource_789',
   });

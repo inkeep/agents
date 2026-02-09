@@ -107,7 +107,7 @@ services:
 
   # SpiceDB for authorization
   inkeep-agents-spicedb:
-    image: authzed/spicedb:latest
+    image: authzed/spicedb:v1.49.1
     command: serve
     restart: unless-stopped
     environment:
@@ -126,7 +126,7 @@ services:
         condition: service_completed_successfully
 
   inkeep-agents-spicedb-migrate:
-    image: authzed/spicedb:latest
+    image: authzed/spicedb:v1.49.1
     command: migrate head
     restart: "no"
     environment:
