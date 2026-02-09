@@ -13,7 +13,7 @@ import { SchemaProcessor } from './SchemaProcessor';
  */
 export class ArtifactReferenceSchema {
   // Standard artifact props schema - single source of truth
-  private static readonly ARTIFACT_PROPS_SCHEMA: JSONSchema.BaseSchema = {
+  private static readonly ARTIFACT_PROPS_SCHEMA = {
     type: 'object',
     properties: {
       artifact_id: {
@@ -27,7 +27,7 @@ export class ArtifactReferenceSchema {
       },
     },
     required: ['artifact_id', 'tool_call_id'],
-  };
+  } satisfies JSONSchema.BaseSchema;
 
   /**
    * Get the standard Zod schema for artifact reference components
@@ -125,7 +125,7 @@ export class ArtifactCreateSchema {
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
-      const propsSchema: JSONSchema.BaseSchema = {
+      const propsSchema = {
         type: 'object',
         properties: {
           id: {
@@ -150,7 +150,7 @@ export class ArtifactCreateSchema {
           details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
-      };
+      } satisfies JSONSchema.BaseSchema;
 
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
