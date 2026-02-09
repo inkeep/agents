@@ -45,6 +45,7 @@ SpiceDB manages organization and project-level permissions using a relationship-
 |----------|----------|-------------|
 | `SPICEDB_ENDPOINT` | Yes | SpiceDB gRPC endpoint (default: `localhost:50051`) |
 | `SPICEDB_PRESHARED_KEY` | Yes | SpiceDB preshared key for authentication |
+| `SPICEDB_TLS_ENABLED` | No | Explicitly enable/disable TLS (default: auto-detect based on endpoint) |
 
 ### OAuth Providers (Optional)
 
@@ -83,6 +84,7 @@ Authentication is enabled by default. Configure the required environment variabl
     # Authorization (SpiceDB)
     SPICEDB_ENDPOINT=localhost:50051
     SPICEDB_PRESHARED_KEY=dev-secret-key
+    # SPICEDB_TLS_ENABLED=  # Optional: explicitly set TLS (auto-detected by default)
     ```
   </Step>
   <Step>
