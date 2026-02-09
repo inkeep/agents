@@ -18,6 +18,10 @@ icon: LuBlocks
 
 Data components are defined using the `dataComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
 
+<Callout type="warning">
+  **Required**: The `props` field is mandatory for data components. Additionally, every property in your schema must include a non-empty `description` for LLM compatibility.
+</Callout>
+
 ```typescript
 import { dataComponent } from '@inkeep/agents-sdk';
 import { z } from 'zod';
@@ -44,7 +48,7 @@ export const taskList = dataComponent({
 ```
 
 <Callout>
-JSON Schema is also supported if you prefer traditional schema definitions.
+JSON Schema is also supported. When using JSON Schema, ensure every property includes a `"description"` field.
 </Callout>
 
 ## Using in Agents
