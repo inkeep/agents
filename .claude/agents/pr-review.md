@@ -3,8 +3,8 @@ name: pr-review
 description: |
   PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, submits batched PR review.
   Invoked via: `/pr-review` skill or `claude --agent pr-review`.
-tools: Task, Read, Grep, Glob, Bash
-skills: [pr-context, product-surface-areas, find-similar, pr-review-output-contract]
+tools: Task, Read, Write, Grep, Glob, Bash
+skills: [pr-context, pr-tldr, product-surface-areas, internal-surface-areas, find-similar, pr-review-output-contract]
 model: opus
 ---
 
@@ -65,6 +65,24 @@ Use the context above to spin up an Explore subagent to understand the relevant 
 
 This step is about context gathering // "world model" building only, not about making judgements, assumptions, or determinations. Objective is to form a deep understanding so that later steps are better grounded.
 
+## Phase 1.5: Generate PR TLDR
+
+Generate the PR context brief so subagent reviewers start from a shared baseline.
+
+1. The `pr-tldr` skill (already loaded) contains the template with `{{FILL: ...}}` markers.
+2. Fill each marker using your Phase 1 analysis, the `product-surface-areas` dependency chain (customer-facing), and the `internal-surface-areas` catalog + Breaking Change Impact Matrix (internal).
+3. Preserve all static content verbatim — only replace `{{FILL: ...}}` markers.
+4. Write the filled result to `.claude/skills/pr-tldr/SKILL.md` with this frontmatter.
+
+**Fill constraints** (the brief orients reviewers — it must not steer them):
+- Factual context only. No quality assessments, identified issues/risks, severity ratings, or recommendations.
+- No restated diff content or metadata (already in pr-context). 
+- Customer-facing surfaces: see outline of those in `product-surface-areas` skill. "Potentially unaccounted" requires transitive-chain evidence.
+- Internal surfaces: must cite changed files. Prefer grouping/mapping via `internal-surface-areas` catalog categories (e.g., “CI/CD Pipelines”, “Database Schemas & Migrations”). For “potentially impacted but not updated”, use the `internal-surface-areas` Breaking Change Impact Matrix as a best-effort guide — only include impacts that are plausibly relevant to the specific changed files.
+
+- Hedging language throughout ("appears to", "likely"). Never assert intent as fact.
+- Under 800 words filled content. When in doubt, omit.
+
 ## Phase 2: Select Reviewers
 
 Match changed files to the relevant sub-agent reviewers. Each reviewer has a specialized role and returns output as defined in the `pr-review-output-contract`.
@@ -89,7 +107,7 @@ Skip or reduce the above based on these conditions:
 |---|---|
 | Pure assets (images, fonts, etc. — no markdown, no code) | Skip all Core |
 | Docs-only (markdown/MDX, no code changes) | `pr-review-docs`, `pr-review-product`, `pr-review-consistency` only |
-| Purely internal (no user-visible behavioral difference — internal refactor, perf optimization, internal-only logging, etc.) | Skip all Core |
+| Purely internal (no user-visible behavioral difference — internal refactor, perf optimization, internal-only logging, etc.) | Skip all Core (but still consider `pr-review-devops` per ownership routing below) |
 
 Otherwise, assume all Core reviewers apply.
 
@@ -128,6 +146,19 @@ These provide domain expertise. Select when the PR touches their domain; skip wh
 
 **Rule**: When unsure whether a Critical Domain or Domain-Specific reviewer applies, include it — the cost of a false positive (extra reviewer) is lower than a false negative (missed issue). This is especially true for Critical Domain reviewers where misses have irreversible consequences.
 
+### Ownership routing — docs vs internal artifacts
+
+Two reviewers have adjacent but non-overlapping documentation responsibilities. The orchestrator must route correctly to avoid duplicated or missed coverage:
+
+| PR characteristic | Reviewer to include | Reason |
+|---|---|---|
+| Customer-facing surface changes (APIs, SDKs, CLI, UI, config, protocols) — even if no docs files changed | `pr-review-docs` | Enforces docs accompaniment: detects when customer-facing docs should have been updated |
+| Customer-facing docs files in diff (`agents-docs/`, customer-facing READMEs) | `pr-review-docs` | Reviews docs quality against `write-docs` standards |
+| Internal tooling/infra changes (CI/CD, build, DB, scripts, env, Docker, authz) — even if no internal artifact files changed | `pr-review-devops` | Enforces internal artifact freshness: detects when `AGENTS.md`, skills, workflows, `.env.example`, etc. should have been updated |
+| Internal AI artifacts in diff (`AGENTS.md`, `.agents/skills/`, `.claude/agents/`, `.claude/rules/`) | `pr-review-devops` | Reviews AI artifact quality (section 8 of its checklist) |
+
+When a PR touches **both** product surfaces and internal tooling, include **both** reviewers — their scopes do not overlap.
+
 ## Phase 3: Dispatch Reviewers
 
 Spawn each selected reviewer via the Task tool, spawning all relevant agents **in parallel**.
@@ -138,7 +169,7 @@ Review PR #[PR_NUMBER]: [Title].
 
 <<Description of the intent and scope of the change[s] framed as may be plausably relevant to the subagent. Keep to 2-8 sentences max -- concise. Be mindful of mis-representing intent if not clear. Inter-weave specific files that may be worth reviewing or good entry points for it to review, but don't pre-emptively underscope or limit what it reviews -- just give it enough context to kick off without being limiting to what it's reviewing for.>>
 
-The PR context (diff, changed files, metadata) is already loaded via your pr-context skill.
+The PR context (diff, changed files, metadata) is loaded via your pr-context skill. A pre-computed context brief (surface impact analysis, review state) is available via your pr-tldr skill — treat it as a starting point that may contain inaccuracies, not as authoritative.
 
 Return findings as JSON array per pr-review-output-contract.
 ```
@@ -216,7 +247,7 @@ Only if all of the above are true, then consider it for **inline-comment-eligibl
 1. Read the `Automated Review Comments` table in pr-context under `Prior Feedback`
 2. For each proposed inline comment, verify its file:line does NOT match any **ACTIVE** entry (±2 lines) with a similar issue
 3. If it matches → route to **Pending Recommendations** instead (link to existing thread)
-4. Also check `Human Review Comments` and `Previous Review Summaries` for coverage of the same issue
+4. Also check `Human Review Comments` and `Previous Review Summaries` for coverage of the same issue -- REGURGITATION OF PRIOR ISSUES IS **BAD**.
 
 Per the **No Duplication Principle**:
 - **Skip** if same location (±2 lines) with similar issue already exists in any prior thread or review body
@@ -570,13 +601,14 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 |------|---------|
 | **Task** | Spawn reviewer subagents (`subagent_type: "pr-review-standards"`) |
 | **Read** | Examine files for context before dispatch |
+| **Write** | Generate the `pr-tldr` skill file (Phase 1.5 ONLY — no other writes) |
 | **Grep/Glob** | Discover files by pattern |
-| **Bash** | Git operations (`git diff`, `git merge-base`), `gh api` for queries |
+| **Bash** | Git operations (`git diff`, `git merge-base`), `gh api` for queries, `mkdir -p` for pr-tldr directory |
 | **mcp__github__create_pending_pull_request_review** | Create pending review (Phase 5.0) |
 | **mcp__github__add_comment_to_pending_review** | Add inline comments with suggestion blocks to the pending review (Phase 5.3) |
 | **mcp__github__submit_pending_pull_request_review** | Submit review with body + event (Phase 6) |
 
-**Do not:** Write files, edit code, or use Bash for non-git commands.
+**Do not:** Edit existing code files, use Bash for non-git/non-mkdir commands, or use Write for anything other than the pr-tldr skill file.
 
 # Failure Strategy
 

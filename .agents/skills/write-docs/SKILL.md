@@ -23,21 +23,20 @@ Create clear, consistent documentation for the Inkeep docs site following establ
 - Writing code comments or inline documentation (not MDX docs)
 - Working on engineering/code improvements that are internal-facing only (no product surface area touched)
 
-## Also update (when relevant)
+## Customer-facing docs artifacts
 
-Product or engineering changes may require updates beyond product docs. Check these:
+When a product or engineering change affects customers, check whether these documentation surfaces need creating or updating:
 
-| Artifact | Path | Update when |
+| Artifact | Example | Update when |
 |----------|------|-------------|
-| `AGENTS.md` | `/AGENTS.md` | Commands, workflows, file locations, architecture patterns change |
-| AI agent skills | `/.agents/skills/`| Best practices, checklists, review criteria change. Symlinked across .claude, .cursor and .codex.|
-| AI (sub)agent definitions | `/.claude/agents/` | Review workflows, subagent responsibilities change |
-| `README.md` | `/README.md` | Setup, quick start, or project overview changes |
-| `CONTRIBUTING.md` | `/CONTRIBUTING.md` | Contribution workflows or standards change |
-| `.env.example` | `/.env.example`, `/.env.docker.example` | Environment variables added/removed |
-| `LICENSE.md` | `/LICENSE.md` | Licensing or attribution requirements change |
-| Spec documents | `/spec/` | Feature specs, authoring guidelines change |
-| CI/CD workflows | `/.github/workflows/` | Build, test, or deployment pipelines change |
+| Docs site pages | `**/content/**`, `**/docs/**`| Any customer-facing feature, API, SDK, CLI, UI, config, or behavior change |
+| Docs snippets | `agents-docs/_snippets/**` | Shared content referenced across multiple pages changes |
+| Package, or template READMEs | `packages/*/README.md`, `*/README.md`, ` | Public API, installation, templates, or quick-start instructions change |
+| `.env.example` | `/.env.example`, `/.env.docker.example` | Environment variables added/removed (self-hosting docs) |
+
+The above are **examples**, there may be more or different content surface areas.
+
+**Out of scope for this skill:** Internal contributor or internal AI development tooling docs like `AGENTS.md`, `.agents/skills/`, `.agents/agents/`, `.agents/rules/`, `.github/workflows/`, `CONTRIBUTING.md`, or `README.md`s that are internal documentation only.
 
 ---
 
