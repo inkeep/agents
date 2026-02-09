@@ -12,7 +12,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         },
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.required).toEqual(['name', 'age']);
       expect(result.properties.name).toEqual({ type: 'string' });
@@ -29,7 +29,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         required: ['required'],
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.required).toEqual(['required', 'optional']);
     });
@@ -50,7 +50,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         },
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.required).toEqual(['user']);
       expect(result.properties.user.required).toEqual(['email', 'name']);
@@ -74,7 +74,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         },
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.required).toEqual(['level1']);
       expect(result.properties.level1.required).toEqual(['level2']);
@@ -100,7 +100,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         },
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.properties.items.items.required).toEqual(['id', 'value']);
     });
@@ -124,7 +124,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         },
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.properties.matrix.items.items.required).toEqual(['cell']);
     });
@@ -145,7 +145,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         ],
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.anyOf[0].required).toEqual(['a']);
       expect(result.anyOf[1].required).toEqual(['b']);
@@ -165,7 +165,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         ],
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.oneOf[0].required).toEqual(['type']);
       expect(result.oneOf[1].required).toEqual(['kind']);
@@ -185,7 +185,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         ],
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.allOf[0].required).toEqual(['base']);
       expect(result.allOf[1].required).toEqual(['extended']);
@@ -205,13 +205,13 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
 
     it('should handle schemas without properties', () => {
       const schema = { type: 'object' };
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
       expect(result).toEqual({ type: 'object' });
     });
 
     it('should handle primitive type schemas', () => {
       const schema = { type: 'string' };
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
       expect(result).toEqual({ type: 'string' });
     });
 
@@ -220,7 +220,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         type: 'object',
         properties: {},
       };
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
       expect(result.required).toEqual([]);
     });
 
@@ -252,7 +252,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         },
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.required).toEqual(['fact']);
       expect(result.properties.fact.nullable).toBe(true);
@@ -285,7 +285,7 @@ describe('SchemaProcessor.normalizeForStructuredOutput', () => {
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };
 
-      const result = SchemaProcessor.normalizeForStructuredOutput(schema);
+      const result = SchemaProcessor.normalizeForStructuredOutput(schema) as any;
 
       expect(result.required).toEqual([
         'id',

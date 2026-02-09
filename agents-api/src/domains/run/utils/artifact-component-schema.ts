@@ -106,7 +106,7 @@ export class ArtifactCreateSchema {
       return z.object({
         id: z.string(),
         name: z.literal(`ArtifactCreate_${component.name}`),
-        props: z.fromJSONSchema(normalizedPropsSchema),
+        props: z.fromJSONSchema(normalizedPropsSchema as JSONSchema.BaseSchema),
       });
     });
   }
@@ -163,7 +163,7 @@ export class ArtifactCreateSchema {
         projectId: projectId,
         name: `ArtifactCreate_${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
-        props: normalizedPropsSchema,
+        props: normalizedPropsSchema as any,
       };
     });
   }

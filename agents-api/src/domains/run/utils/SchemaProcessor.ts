@@ -239,7 +239,8 @@ export class SchemaProcessor {
       return schema;
     }
 
-    const normalized = { ...schema };
+    // Work with any internally for flexibility, return typed result
+    const normalized: any = { ...schema };
 
     if (normalized.properties && typeof normalized.properties === 'object') {
       // Mark all properties as required
@@ -248,26 +249,26 @@ export class SchemaProcessor {
       // Recursively normalize nested properties
       const normalizedProperties: any = {};
       for (const [key, value] of Object.entries(normalized.properties)) {
-        normalizedProperties[key] = SchemaProcessor.normalizeForStructuredOutput(value);
+        normalizedProperties[key] = SchemaProcessor.normalizeForStructuredOutput(value as any);
       }
       normalized.properties = normalizedProperties;
     }
 
     // Handle arrays and unions
     if (normalized.items) {
-      normalized.items = SchemaProcessor.normalizeForStructuredOutput(normalized.items);
+      normalized.items = SchemaProcessor.normalizeForStructuredOutput(normalized.items as any);
     }
-    if (normalized.anyOf) {
+    if (Array.isArray(normalized.anyOf)) {
       normalized.anyOf = normalized.anyOf.map((s: any) =>
         SchemaProcessor.normalizeForStructuredOutput(s)
       );
     }
-    if (normalized.oneOf) {
+    if (Array.isArray(normalized.oneOf)) {
       normalized.oneOf = normalized.oneOf.map((s: any) =>
         SchemaProcessor.normalizeForStructuredOutput(s)
       );
     }
-    if (normalized.allOf) {
+    if (Array.isArray(normalized.allOf)) {
       normalized.allOf = normalized.allOf.map((s: any) =>
         SchemaProcessor.normalizeForStructuredOutput(s)
       );
