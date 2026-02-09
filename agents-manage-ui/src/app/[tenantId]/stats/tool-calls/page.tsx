@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, CheckCircle, FolderKanban, Wrench } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FolderKanban, Server, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
