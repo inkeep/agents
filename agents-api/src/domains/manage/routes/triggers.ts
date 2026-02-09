@@ -22,6 +22,7 @@ import {
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   updateTrigger,
+  PartSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
@@ -699,7 +700,7 @@ app.openapi(
             schema: z.object({
               userMessage: z.string().describe('The user message to send to the agent'),
               messageParts: z
-                .array(z.record(z.string(), z.unknown()))
+                .array(PartSchema)
                 .optional()
                 .describe('Optional structured message parts (from original trace)'),
             }),
@@ -745,14 +746,12 @@ app.openapi(
 
     if (!trigger.enabled) {
       throw createApiError({
-        code: 'not_found',
+        code: 'conflict',
         message: 'Trigger is disabled',
       });
     }
 
-    const messageParts = rawMessageParts
-      ? (rawMessageParts as Array<Record<string, unknown>>)
-      : [{ kind: 'text', text: userMessage }];
+    const messageParts = rawMessageParts ?? [{ kind: 'text' as const, text: userMessage }];
 
     let invocationId: string;
     let conversationId: string;
@@ -765,13 +764,14 @@ app.openapi(
         resolvedRef,
         payload: { _rerun: true },
         transformedPayload: undefined,
-        messageParts: messageParts as any,
+        messageParts,
         userMessageText: userMessage,
       }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       logger.error(
-        { err: errorMessage, tenantId, projectId, agentId, triggerId },
+        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId },
         'Failed to dispatch trigger rerun execution'
       );
       throw createApiError({
