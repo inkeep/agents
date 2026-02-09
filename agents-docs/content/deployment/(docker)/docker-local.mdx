@@ -64,29 +64,37 @@ cp .env.docker.example .env
 
 Here's an overview of the important environment variables when deploying. Make sure to replace all of these in the `.env` file.
 ```bash
+# Change to "production" if deploying to production
 ENVIRONMENT=development
 
 # AI Provider Keys (you need at least one)
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 GOOGLE_GENERATIVE_AI_API_KEY=
+AZURE_API_KEY=
 
-# Nango
+# From Nango dashboard at http://localhost:3050
 NANGO_SECRET_KEY=
 
-# SigNoz
+# From SigNoz dashboard at http://localhost:3080
 SIGNOZ_API_KEY=
 
-# Better Auth secret (paste your generated secret)
-BETTER_AUTH_SECRET=<your-generated-secret>
+# Set these for the Manage UI at http://localhost:3000
+PUBLIC_INKEEP_AGENTS_API_URL=http://localhost:3002
+PUBLIC_NANGO_SERVER_URL=http://localhost:3050
+PUBLIC_NANGO_CONNECT_BASE_URL=http://localhost:3051
+PUBLIC_SIGNOZ_URL=http://localhost:3080
 
-# Initial admin credentials
+# Set these to access Manage UI at http://localhost:3000
 INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-8-chars-min>
+INKEEP_AGENTS_MANAGE_UI_PASSWORD=<INKEEP_AGENTS_MANAGE_UI_PASSWORD>
 
-# SpiceDB connection, localhost. Can replace with cloud endpoint and preshared key
-SPICEDB_ENDPOINT=localhost:50051
-SPICEDB_PRESHARED_KEY=dev-secret-key
+INKEEP_AGENTS_JWT_SIGNING_SECRET=<REPLACE_WITH_INKEEP_AGENTS_JWT_SIGNING_SECRET>
+BETTER_AUTH_SECRET=<BETTER_AUTH_SECRET>
+SPICEDB_PRESHARED_KEY=<REPLACE_WITH_SPICEDB_PRESHARED_KEY>
+
+INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=<REPLACE_WITH_INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY>
+INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=<REPLACE_WITH_INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY>
 ```
 
 <Snippet file="self-hosting/runtime-limits-note.mdx" />
