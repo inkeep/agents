@@ -5,7 +5,7 @@
  */
 
 import { checkPermission, lookupResources } from './client';
-import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes } from './config';
+import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes } from './types';
 
 /**
  * Check if a user can view a project.
