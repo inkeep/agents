@@ -108,10 +108,14 @@ describe('dataComponent builder function', () => {
   });
 
   it('should handle render attribute with component and mockData', () => {
+    const props: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    };
     const config: DataComponentConfig = {
       name: 'Render Data Component',
       description: 'Data component with render config',
-      props: { type: 'object', properties: { name: { type: 'string' } } },
+      props: props as JsonSchemaForLlmSchemaType,
       render: {
         component: 'function Component({ name }) { return <div>Hello {name}</div>; }',
         mockData: { name: 'World' },
