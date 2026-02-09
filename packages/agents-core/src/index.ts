@@ -23,3 +23,4 @@ export * from './types/index';
 export * from './types/server';
 export * from './utils/index';
 export * from './validation/index';
+export type { JsonSchemaForLlmSchemaType } from './validation/json-schemas';
