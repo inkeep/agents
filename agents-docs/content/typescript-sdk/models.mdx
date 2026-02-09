@@ -33,7 +33,7 @@ const myAgent = agent({
 
 const mySubAgent = subAgent({
   models: {
-    structuredOutput: { model: "openai/gpt-4.1-mini" }  // Override for JSON output
+    summarizer: { model: "openai/gpt-4.1-mini" }  // Override for summaries
   }
 });
 ```
@@ -50,7 +50,6 @@ const mySubAgent = subAgent({
 | Type | Purpose | Fallback |
 |------|---------|----------|
 | `base` | Text generation and reasoning | **Required at project level** |
-| `structuredOutput` | JSON/structured output only | Falls back to `base` |
 | `summarizer` | Summaries and status updates | Falls back to `base` |
 
 </SkillRule>
