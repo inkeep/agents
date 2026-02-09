@@ -256,19 +256,20 @@ describe('Artifact Components Data Access', () => {
 
   describe('createArtifactComponent', () => {
     it('should create a new artifact component', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          title: { type: 'string', inPreview: true },
+          description: { type: 'string', inPreview: false },
+        },
+      };
       const componentData = {
         id: 'artifact-1',
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        props: {
-          type: 'object',
-          properties: {
-            title: { type: 'string', inPreview: true },
-            description: { type: 'string', inPreview: false },
-          },
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {

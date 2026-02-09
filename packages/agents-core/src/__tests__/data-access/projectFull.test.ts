@@ -587,6 +587,12 @@ describe('projectFull data access', () => {
           content: { type: 'string' },
         },
       };
+      const propsData2: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          content: { type: 'string' },
+        },
+      };
       const projectWithDataComponents: FullProjectDefinition = {
         ...createTestProjectDefinition(projectId),
         dataComponents: {
@@ -600,12 +606,7 @@ describe('projectFull data access', () => {
             id: data2Id,
             name: 'Data Component 2',
             description: 'Test data component 2',
-            props: {
-              type: 'object',
-              properties: {
-                content: { type: 'string' },
-              },
-            },
+            props: propsData2 as JsonSchemaForLlmSchemaType,
           },
         },
       };

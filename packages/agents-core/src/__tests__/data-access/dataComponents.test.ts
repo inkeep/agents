@@ -311,19 +311,20 @@ describe('Data Components Data Access', () => {
 
   describe('createDataComponent', () => {
     it('should create a new data component', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+        },
+        required: ['key'],
+      };
       const componentData: DataComponentInsert = {
         id: testDataComponentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'New Component',
         description: 'A new test component',
-        props: {
-          type: 'object',
-          properties: {
-            key: { type: 'string' },
-          },
-          required: ['key'],
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {
