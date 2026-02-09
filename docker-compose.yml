@@ -82,7 +82,7 @@ services:
       timeout: 3s
       retries: 30
   inkeep-agents-migrate:
-    image: inkeep/agents-migrate:latest
+    image: inkeep/agents-migrate:0.47.2
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
