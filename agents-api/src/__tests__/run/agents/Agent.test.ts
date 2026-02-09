@@ -1733,7 +1733,7 @@ describe('Agent Conditional Tool Availability', () => {
             name: { type: 'string', inPreview: true },
             details: { type: 'string', inPreview: false },
           },
-        },
+        } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
