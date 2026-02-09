@@ -173,7 +173,6 @@ describe('SystemPromptBuilder', () => {
         tools: [],
         dataComponents: [],
         artifacts: [],
-        isThinkingPreparation: false,
         skills: [
           {
             ...baseSkill,
@@ -515,7 +514,6 @@ describe('SystemPromptBuilder', () => {
 
       expect(result.prompt).toContain('<name>Incomplete Artifact</name>');
       expect(result.prompt).toContain('<description>Artifact without metadata</description>');
-      expect(result).toBeDefined();
     });
   });
 });
