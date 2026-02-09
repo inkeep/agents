@@ -2366,15 +2366,17 @@ export class Agent {
     if (isToolResultDenied(result)) {
       const reason = result.reason ?? 'User denied approval';
       const output = `The user declined to run this tool. Reason: ${reason}`;
-      return `## Tool: ${toolName}
-
-### 🔧 TOOL_CALL_ID: ${toolCallId}
-
-### Input
-${input}
-
-### Output
-${output}`;
+      return [
+        `## Tool: ${toolName}`,
+        '',
+        `### 🔧 TOOL_CALL_ID: ${toolCallId}`,
+        '',
+        `### Input`,
+        `${input}`,
+        '',
+        `### Output`,
+        `${output}`,
+      ].join('\n');
     }
 
     // Handle string results that might be JSON - try to parse them
