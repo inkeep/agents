@@ -97,7 +97,7 @@ These fields are **required on all finding types**.
 
 ### Reference Types
 
-Every finding **must** include at least one reference. References ground and justify your analysis in verifiable sources and prevent hallucinated recommendations.
+Every finding **must** include at least one reference (outside of the line numbers a suggestion applies to). References ground and justify your analysis in verifiable sources and prevent hallucinated recommendations.
 
 **Important:** References are **not** for pointing to the file or lines where the finding is located — the finding's own `file` and `line` fields already capture that. Instead, references cite **other sources** that justify *why* the finding is valid: related code elsewhere in the codebase, project standards (skills, AGENTS.md), reviewer-defined rules, or external documentation.
 
@@ -131,12 +131,12 @@ https://github.com/{repo}/blob/{sha}/{path}#L{start}-L{end}
 ```
 
 **Guidance:**
-- **Code issues** → link to *related* code elsewhere that demonstrates the pattern, contract, or prior art that justifies the finding (do NOT re-link the finding's own file/line — that is already in the finding's `file`/`line` fields)
-- **Standards violations** → link to the skill or AGENTS.md that defines the standard
+- **Code issues** → link to *related* code elsewhere ...
+- **Standards violations** → link to the AGENTS.md rule that defines the standard
+- **Skill-backed findings** → link to the skill that defines the pattern or checklist (`.agents/skills/*/SKILL.md`)
 - **Reviewer-defined rules** → link to your own agent file (`.claude/agents/pr-review-*.md`)
 - **Best practice claims** → link to official docs or authoritative sources
 - **Multiple references** are encouraged when they strengthen the finding
-
 ---
 
 ### Type: `inline`

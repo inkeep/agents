@@ -27,6 +27,7 @@ tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - vercel-react-best-practices
   - vercel-composition-patterns
   - next-best-practices
@@ -34,7 +35,7 @@ skills:
   - accessibility-checklist
   - pr-review-output-contract
   - pr-review-check-suggestion
-model: sonnet
+model: opus
 permissionMode: default
 ---
 

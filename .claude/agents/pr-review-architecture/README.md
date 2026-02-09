@@ -27,7 +27,7 @@ pr-review (orchestrator, opus)
 
 ```bash
 # CI (automatic via GitHub Actions)
-# Triggered on: pull_request [opened, synchronize]
+# Triggered on: pull_request [opened, synchronize, ready_for_review]
 
 # Local testing
 claude --agent pr-review "Review the changes in this branch"
@@ -40,6 +40,11 @@ claude --agent pr-review "Review the changes in this branch"
 │  Phase 1: Analyze Context                                               │
 │  ├── Read pr-context skill (diff, metadata, comments)                   │
 │  └── Spawn Explore subagents to understand codebase/architecture        │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Phase 1.5: Generate PR TLDR                                            │
+│  ├── Fill pr-tldr template using Phase 1 analysis                       │
+│  ├── Map surfaces via product-surface-areas + internal-surface-areas    │
+│  └── Write filled TLDR to .claude/skills/pr-tldr/SKILL.md              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Phase 2: Select Reviewers                                              │
 │  └── Match changed files → relevant subagents                           │
@@ -100,11 +105,21 @@ Detect fault classes and anti-patterns using domain expertise. No external skill
 | [`pr-review.md`](../pr-review.md) | Orchestrator |
 | [`pr-review-*.md`](../) | Subagents |
 | [`claude-code-review.yml`](../../../.github/workflows/claude-code-review.yml) | CI workflow |
-| [`pr-review-output-contract`](../../skills/pr-review-output-contract/SKILL.md) | Output schema |
-| [`product-surface-areas`](../../skills/product-surface-areas/SKILL.md) | Surface dependency graph |
+| [`pr-review-output-contract`](../../../.agents/skills/pr-review-output-contract/SKILL.md) | Output schema |
+| [`product-surface-areas`](../../../.agents/skills/product-surface-areas/SKILL.md) | Customer-facing surface dependency graph |
+| [`internal-surface-areas`](../../../.agents/skills/internal-surface-areas/SKILL.md) | Internal subsystem dependency graph |
 | [`find-similar`](../../../.agents/skills/find-similar/SKILL.md) | Peer/pattern discovery |
+| [`pr-tldr`](../../../.agents/skills/pr-tldr/SKILL.md) | PR context brief template (filled at review time) |
 
 ## Shared Skills
+
+### pr-tldr
+
+`pr-tldr` is a template-based context brief that the orchestrator fills during Phase 1.5. It provides subagent reviewers with a shared baseline: surface impact analysis (customer-facing + internal), review state, and notable context.
+
+**Loaded by:** All subagent reviewers (via `skills: [pr-tldr, ...]`).
+
+**Written by:** The orchestrator during Phase 1.5 (the only file it writes).
 
 ### find-similar
 
@@ -119,7 +134,8 @@ Detect fault classes and anti-patterns using domain expertise. No external skill
 
 `product-surface-areas` is a consolidated inventory of 63 customer-facing surfaces with a dependency graph showing what breaks when something changes.
 
-**Loaded by reviewers that benefit from surface context:**
+**Loaded by reviewers that benefit from customer-facing surface context:**
+- `pr-review` (orchestrator) — Phase 1.5 surface mapping
 - `pr-review-architecture` — evaluates system-wide impact and evolvability
 - `pr-review-breaking-changes` — maps schema/contract changes to affected surfaces
 - `pr-review-product` — evaluates customer mental-model impact and cross-surface coherence
@@ -129,19 +145,40 @@ Detect fault classes and anti-patterns using domain expertise. No external skill
 - `pr-review-errors` — error handling patterns
 - `pr-review-types` — type safety across surfaces
 - `pr-review-docs` — documentation coverage
+- `pr-review-devops` — self-hosting artifact and env contract consistency
+
+### internal-surface-areas
+
+`internal-surface-areas` is a consolidated inventory of 94 internal subsystems (infra, tooling, shared code) with a dependency graph and Breaking Change Impact Matrix showing internal ripple effects.
+
+**Loaded by reviewers that benefit from internal dependency context:**
+- `pr-review` (orchestrator) — Phase 1.5 internal surface mapping
+- `pr-review-architecture` — evaluates internal layering and cross-module dependencies
+- `pr-review-breaking-changes` — traces schema/migration/env changes through internal dependency chains
+- `pr-review-consistency` — detects internal convention drift (config, tooling, naming)
+- `pr-review-devops` — sanity-checks internal ripple effects for infra/tooling changes
+- `pr-review-security-iam` — maps auth/authz infrastructure surfaces
+- `pr-review-sre` — traces observability and runtime engine dependencies
+- `pr-review-llm` — navigates runtime engine internals (streaming, tools, sandboxes)
 
 **Not loaded (context cost outweighs benefit):**
-- `pr-review-comments` — focused on comment accuracy, not product architecture
+- `pr-review-comments` — focused on comment accuracy, not internal architecture
 - `pr-review-tests` — focused on test coverage quality
 - `pr-review-frontend` — focused on React/Next.js technical patterns (has its own skills)
+- `pr-review-product` — focused on customer mental model, not internal plumbing
+- `pr-review-standards` — micro-level correctness, not system-level ripple
+- `pr-review-errors` — focused on error handling patterns
+- `pr-review-types` — focused on type design and invariants
+- `pr-review-docs` — focused on documentation file quality
 
 ## Context Injection
 
 PR context is auto-injected via a generated skill (no Read tool calls needed):
 
 1. CI generates `.claude/skills/pr-context/SKILL.md` with PR metadata, diff, comments
-2. All agents declare `skills: [pr-context, ...]` in frontmatter
-3. Context loads into system prompt at spawn
+2. The orchestrator generates `.claude/skills/pr-tldr/SKILL.md` during Phase 1.5
+3. All agents declare `skills: [pr-context, pr-tldr, ...]` in frontmatter
+4. Context loads into system prompt at spawn
 
 ## Context Window Impact During Normal Development
 
@@ -153,7 +190,7 @@ Agents are **only loaded when explicitly invoked** — either via `/pr-review` i
 
 ### Skills (`.agents/skills/pr-review-*/SKILL.md`)
 
-Both PR-review skills use **progressive disclosure** and are configured to prevent any automatic loading:
+PR-review skills use **progressive disclosure** and are configured to prevent any automatic loading:
 
 ```yaml
 user-invocable: false
@@ -174,14 +211,15 @@ At startup, Claude Code only reads the **frontmatter metadata** (~100 tokens per
 | `pr-review-output-contract` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
 | `pr-review-check-suggestion` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
 | `find-similar` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
-| **Total** | **19 files** | **~300 tokens** | **No** |
+| `pr-tldr` | 1 | ~100 (metadata only) | No — `disable-model-invocation: true` |
+| **Total** | **20 files** | **~400 tokens** | **No** |
 
-For comparison, `AGENTS.md` alone is ~12,000+ tokens and is always loaded. The PR review system's ~200 token metadata footprint is negligible.
+For comparison, `AGENTS.md` alone is ~12,000+ tokens and is always loaded. The PR review system's ~400 token metadata footprint is negligible.
 
 ## Adding a Reviewer
 
 1. Create `.claude/agents/pr-review-{domain}.md`
-2. Add `pr-context` and `pr-review-output-contract` to skills
+2. Add `pr-context`, `pr-tldr`, and `pr-review-output-contract` to skills
 3. Add to orchestrator's selection matrix in `pr-review.md` Phase 2
 
 ## Local Testing
