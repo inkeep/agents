@@ -1,20 +1,16 @@
 'use client';
 
-import { ArrowLeft, Calendar, Server, Wrench } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Server, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '@/components/layout/page-header';
+import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
+import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useToolCallsQueryState } from '@/hooks/use-tool-calls-query-state';
@@ -163,114 +159,87 @@ export default function ToolCallsBreakdown({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild className="gap-2">
+        <Button asChild variant="ghost" size="icon-sm">
           <NextLink href={backLink}>
             <ArrowLeft className="h-4 w-4" />
-            Back to Overview
+            <span className="sr-only">Back to Traces</span>
           </NextLink>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tool Calls Breakdown</h1>
-          <p className="text-sm text-muted-foreground">
-            Detailed view of MCP tool calls with error rates
-          </p>
-        </div>
+        <PageHeader title="Tool Calls Breakdown" className="mb-0" />
       </div>
 
-      <Card className="shadow-none bg-background">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-foreground text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex flex-col md:flex-row gap-2 md:gap-4 max-w-4xl">
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="server-filter" className="text-sm">
-                MCP Server
-              </Label>
-              <Select value={selectedServer} onValueChange={setServerFilter}>
-                <SelectTrigger id="server-filter">
-                  <SelectValue placeholder="Select server" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Servers</SelectItem>
-                  {servers.map((server) => (
-                    <SelectItem key={server.name} value={server.name}>
-                      {server.name}
-                      {server.id ? ` (${server.id})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-4">
+        <Combobox
+          defaultValue={selectedServer}
+          notFoundMessage={'No MCP servers found.'}
+          onSelect={(value) => {
+            setServerFilter(value);
+          }}
+          options={servers.map((server) => ({
+            value: server.name,
+            label: server.id ? `${server.name} (${server.id})` : server.name,
+          }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              disabled={loading}
+              filterLabel={selectedServer === 'all' ? 'All servers' : 'Server'}
+              isRemovable={true}
+              onDeleteFilter={() => {
+                setServerFilter('all');
+              }}
+              multipleCheckboxValues={
+                selectedServer && selectedServer !== 'all' ? [selectedServer] : []
+              }
+              options={servers.map((server) => ({
+                value: server.name,
+                label: server.id ? `${server.name} (${server.id})` : server.name,
+              }))}
+            />
+          }
+        />
 
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="tool-filter" className="text-sm">
-                Tool
-              </Label>
-              <Select value={selectedTool} onValueChange={setToolFilter}>
-                <SelectTrigger id="tool-filter">
-                  <SelectValue placeholder="Select tool" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tools</SelectItem>
-                  {tools.map((tool) => (
-                    <SelectItem key={tool} value={tool}>
-                      {tool}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <Combobox
+          defaultValue={selectedTool}
+          notFoundMessage={'No tools found.'}
+          onSelect={(value) => {
+            setToolFilter(value);
+          }}
+          options={tools.map((tool) => ({
+            value: tool,
+            label: tool,
+          }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              disabled={loading}
+              filterLabel={selectedTool === 'all' ? 'All tools' : 'Tool'}
+              isRemovable={true}
+              onDeleteFilter={() => {
+                setToolFilter('all');
+              }}
+              multipleCheckboxValues={selectedTool && selectedTool !== 'all' ? [selectedTool] : []}
+              options={tools.map((tool) => ({
+                value: tool,
+                label: tool,
+              }))}
+            />
+          }
+        />
 
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="time-filter" className="text-sm">
-                Time Range
-              </Label>
-              <DatePickerWithPresets
-                label="Time range"
-                onRemove={() => setTimeRange('30d')}
-                value={
-                  timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
-                }
-                onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
-                setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
-                options={Object.entries(TIME_RANGES)
-                  .filter(([key]) => key !== 'custom')
-                  .map(([value, config]) => ({
-                    value,
-                    label: config.label,
-                  }))}
-                showCalendarDirectly={false}
-              />
-            </div>
-          </div>
-
-          {!loading && (
-            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-              <div>
-                {selectedServer === 'all' && selectedTool === 'all'
-                  ? `Showing ${filteredToolCalls.length} tools across all servers`
-                  : selectedServer === 'all'
-                    ? `Showing ${filteredToolCalls.length} results filtered by tool: ${selectedTool}`
-                    : selectedTool === 'all'
-                      ? `Showing ${filteredToolCalls.length} tools for server: ${selectedServer}`
-                      : `Showing ${filteredToolCalls.length} results for tool "${selectedTool}" and server "${selectedServer}"`}
-              </div>
-              <div className="flex items-center gap-1 text-xs">
-                <Calendar className="h-3 w-3" />
-                Time range:{' '}
-                {timeRange === 'custom'
-                  ? 'Custom range'
-                  : TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.label || timeRange}
-                <span className="text-muted-foreground/70">
-                  ({new Date(startTime).toLocaleDateString()} -{' '}
-                  {new Date(endTime).toLocaleDateString()})
-                </span>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <DatePickerWithPresets
+          label="Time range"
+          onRemove={() => setTimeRange('30d')}
+          value={timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange}
+          onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
+          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          options={Object.entries(TIME_RANGES)
+            .filter(([key]) => key !== 'custom')
+            .map(([value, config]) => ({
+              value,
+              label: config.label,
+            }))}
+          showCalendarDirectly={false}
+        />
+      </div>
 
       {!loading &&
       filteredToolCalls.length === 0 &&
@@ -294,28 +263,23 @@ export default function ToolCallsBreakdown({
         </Card>
       ) : (
         <>
-          <Card className="shadow-none bg-background">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Total Success Rate
-              </CardTitle>
-              <Wrench className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-32 mb-2" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-500">
-                    {(100 - overallErrorRate).toFixed(0)}%
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {totalToolCalls - totalErrors}/{totalToolCalls} calls successful
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatCard
+              title="Tool Calls"
+              stat={totalToolCalls}
+              statDescription="Number of MCP tool calls"
+              isLoading={loading}
+              Icon={Wrench}
+            />
+            <StatCard
+              title="Success Rate"
+              stat={Number((100 - overallErrorRate).toFixed(0))}
+              unit="%"
+              statDescription={`${totalToolCalls - totalErrors} / ${totalToolCalls} calls successful`}
+              isLoading={loading}
+              Icon={CheckCircle}
+            />
+          </div>
 
           <Card className="shadow-none bg-background">
             <CardHeader>

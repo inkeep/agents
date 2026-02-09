@@ -7,7 +7,6 @@ import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
-// import { ToolCallsByServerCard } from '@/components/traces/tool-calls-by-server-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
@@ -196,7 +195,7 @@ export default function AllProjectsToolCallsBreakdown({
 
       {/* Filters Card */}
 
-      <div className="flex flex-col md:flex-row gap-2 md:gap-4 max-w-4xl">
+      <div className="flex flex-col md:flex-row flex-wrap gap-2 md:gap-4 ">
         {/* Project Filter */}
         <Combobox
           defaultValue={selectedProjectId}
