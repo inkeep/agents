@@ -1,5 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { act, render } from '@testing-library/react';
-import { type UseFormReturn, useForm } from 'react-hook-form';
+import { type FC, useEffect } from 'react';
+import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -11,7 +14,7 @@ import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
 
-function getCommonProps(form: UseFormReturn, name: string) {
+function getCommonProps<T extends FieldValues>(form: UseFormReturn<T>, name: FieldPath<T>) {
   const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
   return {
     name,
@@ -22,15 +25,21 @@ function getCommonProps(form: UseFormReturn, name: string) {
   };
 }
 
-function TestForm() {
-  const form = useForm({
-    errors: {
-      input: { type: 'string', message: error },
-      textarea: { type: 'string', message: error },
-      select: { type: 'string', message: error },
-      combobox: { type: 'string', message: error },
-    },
-  });
+const testSchema = z.strictObject({
+  input: z.string(error),
+  textarea: z.string(error),
+  select: z.string(error),
+  combobox: z.string(error),
+});
+
+const TestForm: FC = () => {
+  const resolver = zodResolver(testSchema);
+  const form = useForm({ resolver });
+
+  useEffect(() => {
+    void form.trigger();
+  }, [form]);
+
   const divider = <hr style={{ borderColor: 'green' }} />;
   return (
     <Form {...form}>
@@ -45,42 +54,34 @@ function TestForm() {
       </form>
     </Form>
   );
-}
+};
 
-function NestedTestForm() {
-  const form = useForm({
-    errors: {
-      jsonSchemaEditor: {
-        foo: {
-          bar: {
-            qux: {
-              message: error,
-              type: 'invalid_type',
-            },
-          },
-        },
-      },
-    },
-  });
+const nestedTestSchema = z.strictObject({
+  jsonSchemaEditor: z.strictObject({
+    foo: z.strictObject({
+      bar: z.strictObject({
+        qux: z.string(error),
+      }),
+    }),
+  }),
+});
 
-  function getCommonProps(name: string) {
-    const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-    return {
-      name,
-      control: form.control,
-      placeholder: `${capitalizedName} placeholder`,
-      label: `${capitalizedName} label`,
-      isRequired: true,
-    };
-  }
+const NestedTestForm: FC = () => {
+  const resolver = zodResolver(nestedTestSchema);
+  const form = useForm({ resolver });
+
+  useEffect(() => {
+    void form.trigger();
+  }, [form]);
+
   return (
     <Form {...form}>
       <form style={{ width: 320 }}>
-        <JsonSchemaInput {...getCommonProps('jsonSchemaEditor')} />
+        <JsonSchemaInput {...getCommonProps(form, 'jsonSchemaEditor')} />
       </form>
     </Form>
   );
-}
+};
 
 describe('Form', () => {
   test('should properly highlight error state', async () => {
