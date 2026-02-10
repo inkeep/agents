@@ -58,7 +58,7 @@ app.use('/:teamId/settings', async (c, next) => {
   return next();
 });
 
-app.use('/:workspaceId', async (c, next) => {
+app.use('/:teamId', async (c, next) => {
   if (c.req.method === 'DELETE') {
     return requireWorkspaceAdmin()(c, next);
   }
@@ -316,14 +316,14 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:workspaceId',
+    path: '/:teamId',
     summary: 'Uninstall Workspace',
     description: 'Uninstall Slack app from workspace. Accepts either teamId or connectionId.',
     operationId: 'slack-delete-workspace',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     request: {
       params: z.object({
-        workspaceId: z.string(),
+        teamId: z.string(),
       }),
     },
     responses: {
@@ -347,21 +347,21 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { workspaceId } = c.req.valid('param');
+    const { teamId: workspaceIdentifier } = c.req.valid('param');
 
     let teamId: string;
     let connectionId: string;
 
     try {
-      if (workspaceId.includes(':')) {
-        connectionId = workspaceId;
-        const teamMatch = workspaceId.match(/T:([A-Z0-9]+)/);
+      if (workspaceIdentifier.includes(':')) {
+        connectionId = workspaceIdentifier;
+        const teamMatch = workspaceIdentifier.match(/T:([A-Z0-9]+)/);
         if (!teamMatch) {
           return c.json({ error: 'Invalid connectionId format' }, 400);
         }
         teamId = teamMatch[1];
       } else {
-        teamId = workspaceId;
+        teamId = workspaceIdentifier;
         connectionId = computeWorkspaceConnectionId({
           teamId,
           enterpriseId: undefined,
@@ -418,7 +418,7 @@ app.openapi(
       logger.info({ connectionId, teamId }, 'Deleted workspace installation and cleared cache');
       return c.json({ success: true });
     } catch (error) {
-      logger.error({ error, workspaceId }, 'Failed to uninstall workspace');
+      logger.error({ error, workspaceIdentifier }, 'Failed to uninstall workspace');
       return c.json({ error: 'Failed to uninstall workspace' }, 500);
     }
   }

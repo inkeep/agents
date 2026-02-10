@@ -201,12 +201,17 @@ export function getUserFriendlyErrorMessage(errorType: SlackErrorType, agentName
 
 export type ProjectOption = { id: string; name: string };
 
+const INTERNAL_FETCH_TIMEOUT_MS = 10_000;
+
 export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectOption[]> {
   const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
   const token = await generateInternalServiceToken({
     serviceId: InternalServices.INKEEP_AGENTS_MANAGE_API,
     tenantId,
   });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${apiUrl}/manage/tenants/${tenantId}/projects?limit=50`, {
@@ -215,6 +220,7 @@ export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectO
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -235,6 +241,8 @@ export async function fetchProjectsForTenant(tenantId: string): Promise<ProjectO
   } catch (error) {
     logger.error({ error, tenantId }, 'Error fetching projects from API');
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -249,6 +257,9 @@ export async function fetchAgentsForProject(
     projectId,
   });
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
+
   try {
     const response = await fetch(
       `${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=50`,
@@ -259,6 +270,7 @@ export async function fetchAgentsForProject(
           'Content-Type': 'application/json',
           'x-inkeep-project-id': projectId,
         },
+        signal: controller.signal,
       }
     );
 
@@ -288,6 +300,8 @@ export async function fetchAgentsForProject(
   } catch (error) {
     logger.error({ error, tenantId, projectId }, 'Error fetching agents from API');
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

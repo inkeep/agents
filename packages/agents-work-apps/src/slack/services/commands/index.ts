@@ -476,19 +476,38 @@ async function executeAgentInBackground(
 
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
-    const response = await fetch(`${apiBaseUrl}/run/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${slackUserToken}`,
-        'x-inkeep-project-id': targetAgent.projectId,
-        'x-inkeep-agent-id': targetAgent.id,
-      },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: question }],
-        stream: false,
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${slackUserToken}`,
+          'x-inkeep-project-id': targetAgent.projectId,
+          'x-inkeep-agent-id': targetAgent.id,
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: question }],
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+      if ((error as Error).name === 'AbortError') {
+        await sendResponseUrlMessage(payload.responseUrl, {
+          response_type: 'ephemeral',
+          text: 'Request timed out. Please try again.',
+        });
+        return;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

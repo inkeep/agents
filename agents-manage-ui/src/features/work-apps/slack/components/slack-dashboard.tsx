@@ -93,6 +93,7 @@ export function SlackDashboard() {
                   href="https://docs.inkeep.com/integrations/slack"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="View Slack integration documentation"
                 >
                   <HelpCircle className="h-4 w-4" />
                 </a>

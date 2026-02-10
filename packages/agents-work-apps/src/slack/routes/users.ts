@@ -23,6 +23,19 @@ import type { WorkAppsVariables } from '../types';
 
 const logger = getLogger('slack-users');
 
+/**
+ * Verify the authenticated caller matches the requested userId.
+ * System tokens and API keys are allowed to act on behalf of any user.
+ */
+function isAuthorizedForUser(c: { get: (key: string) => unknown }, requestedUserId: string): boolean {
+  const sessionUserId = c.get('userId') as string | undefined;
+  if (!sessionUserId) return true; // No session context (unauthenticated endpoints like link-status)
+  if (sessionUserId === requestedUserId) return true;
+  if (sessionUserId === 'system' || sessionUserId.startsWith('apikey:')) return true;
+  if (sessionUserId === 'dev-user') return true; // Dev bypass
+  return false;
+}
+
 const app = new OpenAPIHono<{ Variables: WorkAppsVariables }>();
 
 app.openapi(
@@ -270,6 +283,10 @@ app.openapi(
       return c.json({ error: 'userId is required' }, 400);
     }
 
+    if (!isAuthorizedForUser(c, userId)) {
+      return c.json({ error: 'Can only create sessions for your own account' }, 403);
+    }
+
     logger.debug({ userId, userEmail, userName }, 'Creating Nango connect session');
 
     const session = await createConnectSession({
@@ -331,6 +348,10 @@ app.openapi(
 
     if (!userId && !(slackUserId && slackTeamId)) {
       return c.json({ error: 'Either userId or (slackUserId + slackTeamId) is required' }, 400);
+    }
+
+    if (userId && !isAuthorizedForUser(c, userId)) {
+      return c.json({ error: 'Can only disconnect your own account' }, 403);
     }
 
     try {
@@ -424,6 +445,10 @@ app.openapi(
   }),
   async (c) => {
     const { userId: appUserId } = c.req.valid('query');
+
+    if (!isAuthorizedForUser(c, appUserId)) {
+      return c.json({ error: 'Can only query your own connection status' }, 403);
+    }
 
     try {
       const userMappings = await findWorkAppSlackUserMappingByInkeepUserId(runDbClient)(appUserId);

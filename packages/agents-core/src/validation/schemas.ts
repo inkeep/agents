@@ -69,6 +69,9 @@ import {
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
+  workAppSlackChannelAgentConfigs,
+  workAppSlackUserMappings,
+  workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -2770,12 +2773,6 @@ export const WorkAppGitHubAccessGetResponseSchema = z.object({
 // ============================================================================
 // Work App Slack Schemas
 // ============================================================================
-
-import {
-  workAppSlackChannelAgentConfigs,
-  workAppSlackUserMappings,
-  workAppSlackWorkspaces,
-} from '../db/runtime/runtime-schema';
 
 export const WorkAppSlackWorkspaceStatusSchema = z.enum(['active', 'suspended', 'disconnected']);
 
