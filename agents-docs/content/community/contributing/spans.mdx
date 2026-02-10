@@ -14,7 +14,7 @@ The Inkeep Agent Framework uses OpenTelemetry for distributed tracing and observ
 
 ```typescript
 import { SpanStatusCode, type Span } from "@opentelemetry/api";
-import { getTracer, setSpanWithError } from "../tracer";
+import { getTracer, setSpanWithError, unwrapError } from "../tracer";
 ```
 
 ### 2. Get the Tracer
@@ -97,6 +97,30 @@ try {
 }
 ```
 
+### Error Unwrapping
+
+The `setSpanWithError` utility automatically unwraps nested error cause chains to surface root cause errors. This is particularly useful because Node.js `fetch()` wraps underlying errors (like undici's `HeadersTimeoutError`) in generic `TypeError: fetch failed` messages.
+
+When you pass an error to `setSpanWithError`, it traverses the `.cause` chain to find and record the original root cause error, making debugging significantly easier.
+
+### Using unwrapError Directly
+
+For cases where you need to unwrap errors outside of span handling, use the `unwrapError` utility directly:
+
+```typescript
+import { unwrapError } from "@inkeep/agents-core";
+
+try {
+  await fetch(url);
+} catch (error) {
+  const rootCause = unwrapError(error);
+  // rootCause will be the underlying error (e.g., HeadersTimeoutError)
+  // instead of the generic "fetch failed" wrapper
+  console.error("Root cause:", rootCause.message);
+  throw rootCause;
+}
+```
+
 ## Best Practices
 
 ### 1. Consistent Naming Convention
@@ -169,7 +193,7 @@ Spans provide powerful observability into your Inkeep Agent Framework operations
 1. **Use `getTracer()`** for consistent tracing
 2. **Use consistent naming**
 3. **Set meaningful attributes** for searchability
-4. **Handle errors properly** using `setSpanWithError` for consistent error handling
+4. **Handle errors properly** using `setSpanWithError` which automatically unwraps error cause chains to surface root cause errors
 5. **Use `startActiveSpan`** for automatic lifecycle management
 
 This will give you comprehensive visibility into your agent operations, making debugging and performance optimization much easier.
