@@ -3,6 +3,7 @@
   "pages": [
     "docker-local",
     "authentication",
+    "azure-vm",
     "gcp-compute-engine",
     "gcp-cloud-run",
     "aws-ec2",

@@ -1,21 +1,6 @@
 import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
-import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-
-// Destructure defaults for use in schemas
-const {
-  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
-  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
-  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
-  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
-  STATUS_UPDATE_MAX_NUM_EVENTS,
-  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
-  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
-  VALIDATION_AGENT_PROMPT_MAX_CHARS,
-  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} = schemaValidationDefaults;
-
 // Config DB imports (Doltgres - versioned)
 import {
   agents,
@@ -51,7 +36,6 @@ import {
   tools,
   triggers,
 } from '../db/manage/manage-schema';
-
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
@@ -79,12 +63,81 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
+export const StringRecordSchema = z
+  .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
+  .openapi('StringRecord');
+
+// A2A Part Schemas
+// These Zod schemas mirror the Part types defined in types/a2a.ts
+
+const PartMetadataSchema = z.record(z.string(), z.any()).optional();
+
+export const TextPartSchema = z
+  .object({
+    kind: z.literal('text'),
+    text: z.string(),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('TextPart');
+
+const FileWithBytesSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    bytes: z.string(),
+  })
+  .strict();
+
+const FileWithUriSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    uri: z.string(),
+  })
+  .strict();
+
+export const FilePartSchema = z
+  .object({
+    kind: z.literal('file'),
+    file: z.union([FileWithBytesSchema, FileWithUriSchema]),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('FilePart');
+
+export const DataPartSchema = z
+  .object({
+    kind: z.literal('data'),
+    data: z.record(z.string(), z.any()),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('DataPart');
+
+export const PartSchema = z
+  .discriminatedUnion('kind', [TextPartSchema, FilePartSchema, DataPartSchema])
+  .openapi('Part');
+
+export type PartSchemaType = z.infer<typeof PartSchema>;
 
 export const StopWhenSchema = z
   .object({
@@ -127,7 +180,7 @@ export const ResourceIdSchema = z
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   })
   .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
-  .openapi({
+  .openapi('ResourceId', {
     description: 'Resource identifier',
     example: 'resource_789',
   });

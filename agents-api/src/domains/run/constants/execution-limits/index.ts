@@ -25,12 +25,14 @@ const constantsSchema = z.object(
 const parseConstants = () => {
   const envOverrides = constantsSchema.parse(process.env);
 
-  // Merge environment overrides with defaults
   return Object.fromEntries(
-    Object.entries(executionLimitsDefaults).map(([key, defaultValue]) => [
-      key,
-      envOverrides[`AGENTS_${key}` as keyof typeof envOverrides] ?? defaultValue,
-    ])
+    Object.entries(executionLimitsDefaults).map(([key, defaultValue]) => {
+      const envKey = `AGENTS_${key}`;
+      if (process.env[envKey] === undefined) {
+        return [key, defaultValue];
+      }
+      return [key, envOverrides[envKey as keyof typeof envOverrides] ?? defaultValue];
+    })
   ) as typeof executionLimitsDefaults;
 };
 

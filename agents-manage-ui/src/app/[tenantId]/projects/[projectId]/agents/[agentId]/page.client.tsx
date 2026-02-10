@@ -267,7 +267,7 @@ export const Agent: FC<AgentProps> = ({
     if (!agent.subAgents) return {};
     const lookup: SubAgentTeamAgentConfigLookup = {};
     Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+      if (agentData && 'canDelegateTo' in agentData && agentData.canDelegateTo) {
         const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
         agentData.canDelegateTo
           .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
@@ -800,8 +800,9 @@ export const Agent: FC<AgentProps> = ({
                 const subAgentId = mcpNode.data.subAgentId;
                 const toolId = mcpNode.data.toolId;
 
-                if (res.data.subAgents[subAgentId]?.canUse) {
-                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
+                const savedSubAgent = res.data.subAgents[subAgentId];
+                if (savedSubAgent?.canUse) {
+                  const matchingRelationship = savedSubAgent.canUse.find(
                     (tool: any) =>
                       tool.toolId === toolId &&
                       tool.agentToolRelationId &&

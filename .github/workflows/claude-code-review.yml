@@ -3,14 +3,32 @@ name: Claude PR Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
-
-concurrency:
-  group: pr-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  issue_comment:
+    types: [created]
 
 jobs:
   pr-review:
-    if: github.event.pull_request.draft == false
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        github.event.issue.state == 'open' &&
+        contains(github.event.comment.body, '@claude') &&
+        (contains(github.event.comment.body, '--review') || contains(github.event.comment.body, '--full-review')) &&
+        !contains(github.actor, '[bot]') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR'
+        )
+      )
+    # Job-level concurrency so the group is only entered AFTER the if: check.
+    # Workflow-level concurrency would let bot comments (which skip via if:)
+    # cancel in-progress human-triggered runs before they're filtered out.
+    concurrency:
+      group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,10 +37,70 @@ jobs:
       id-token: write
 
     steps:
+      - name: Get PR Details
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER='${{ github.event.pull_request.number || github.event.issue.number }}'
+          PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}")
+
+          TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          BODY=$(echo "$PR_JSON" | jq -r '.body // ""')
+          AUTHOR_LOGIN=$(echo "$PR_JSON" | jq -r '.user.login')
+          BASE_REF=$(echo "$PR_JSON" | jq -r '.base.ref')
+          HEAD_SHA=$(echo "$PR_JSON" | jq -r '.head.sha')
+          ADDITIONS=$(echo "$PR_JSON" | jq -r '.additions')
+          DELETIONS=$(echo "$PR_JSON" | jq -r '.deletions')
+          CHANGED_FILES_COUNT=$(echo "$PR_JSON" | jq -r '.changed_files')
+          LABELS=$(echo "$PR_JSON" | jq -r '[.labels[].name] | join(", ")')
+          DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
+
+          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          {
+            echo "title<<EOF"
+            echo "$TITLE"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          echo "author_login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
+          echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "additions=$ADDITIONS" >> $GITHUB_OUTPUT
+          echo "deletions=$DELETIONS" >> $GITHUB_OUTPUT
+          echo "changed_files_count=$CHANGED_FILES_COUNT" >> $GITHUB_OUTPUT
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "draft=$DRAFT" >> $GITHUB_OUTPUT
+
+          # Determine trigger command (issue_comment only; pull_request defaults to auto)
+          # IMPORTANT: read comment body from event payload via jq — do NOT inline
+          # github.event.comment.body into bash source (it can contain quotes/newlines).
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            COMMENT_BODY="$(jq -r '.comment.body // ""' "$GITHUB_EVENT_PATH")"
+            # Check --full-review BEFORE --review (substring overlap).
+            # We use -- prefix (not /) because claude-code-action reserves /xxx for skill invocations.
+            if printf '%s' "$COMMENT_BODY" | grep -Eq '(^|[[:space:]])--full-review([[:space:]]|$)'; then
+              echo "trigger_command=full-review" >> $GITHUB_OUTPUT
+            else
+              echo "trigger_command=review" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "trigger_command=auto" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history for merge-base
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin "${{ steps.pr.outputs.base_ref }}" --force --prune --no-tags
 
       - name: Get PR Diff
         id: diff
@@ -38,7 +116,7 @@ jobs:
             ':!**/CHANGELOG.md'
           )
 
-          BASE="origin/${{ github.event.pull_request.base.ref }}"
+          BASE="origin/${{ steps.pr.outputs.base_ref }}"
 
           # Get the diff for the PR (excluding noisy files)
           DIFF=$(git diff "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
@@ -68,20 +146,58 @@ jobs:
           } >> $GITHUB_OUTPUT
           echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
 
-          # Cap diff at 500KB to stay safely under prompt limits
-          MAX_SIZE=512000
-          if [ $DIFF_SIZE -gt $MAX_SIZE ]; then
-            echo "diff_content<<EOF" >> $GITHUB_OUTPUT
-            echo "${DIFF:0:$MAX_SIZE}" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "[TRUNCATED - diff exceeded ${MAX_SIZE} bytes (was ${DIFF_SIZE}). Use 'gh pr diff ${{ github.event.pull_request.number }}' for full diff]" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "truncated=true" >> $GITHUB_OUTPUT
-          else
-            echo "diff_content<<EOF" >> $GITHUB_OUTPUT
-            echo "$DIFF" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+          # ── Adaptive diff strategy ──────────────────────────────────────────
+          # Diffs within INLINE_THRESHOLD are embedded directly in the pr-context
+          # skill so reviewers see them immediately (zero tool calls needed).
+          #
+          # Larger diffs switch to "summary mode": pr-context gets metadata +
+          # file list + diff stats only, and the full diff is written to a file.
+          # Reviewers read specific file diffs on-demand via `git diff`.
+          #
+          # Why: each subagent reviewer loads pr-context as a skill (~system
+          # prompt). A 500KB diff ≈ 128K tokens leaves < 40K for reasoning in a
+          # 200K context window, causing most reviewers to hit context limits.
+          # ───────────────────────────────────────────────────────────────────
+          INLINE_THRESHOLD=100000  # ~100KB ≈ 25K tokens — safe for all reviewer budgets
+          DIFF_DELIM="DIFF_DELIM_${RANDOM}_${RANDOM}_$(date +%s%N)"
+
+          if [ $DIFF_SIZE -le $INLINE_THRESHOLD ]; then
+            # ── Inline mode: embed full diff in pr-context skill ──
+            echo "diff_mode=inline" >> $GITHUB_OUTPUT
+            {
+              echo "diff_content<<$DIFF_DELIM"
+              echo '```diff'
+              printf '%s\n' "$DIFF"
+              echo '```'
+              echo "$DIFF_DELIM"
+            } >> $GITHUB_OUTPUT
             echo "truncated=false" >> $GITHUB_OUTPUT
+          else
+            # ── Summary mode: diff too large to inline ──
+            echo "diff_mode=summary" >> $GITHUB_OUTPUT
+            echo "diff_size_bytes=$DIFF_SIZE" >> $GITHUB_OUTPUT
+            echo "truncated=true" >> $GITHUB_OUTPUT
+
+            # Write full diff to a known file for on-demand reading
+            mkdir -p .claude/pr-diff
+            printf '%s' "$DIFF" > .claude/pr-diff/full.diff
+            echo "Full diff written to .claude/pr-diff/full.diff (${DIFF_SIZE} bytes) — summary mode enabled"
+
+            # Build the summary-mode placeholder for pr-context
+            FILE_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
+            {
+              echo "diff_content<<$DIFF_DELIM"
+              echo "> **⚠️ LARGE PR (summary mode)** — The diff (~${DIFF_SIZE} bytes across ~${FILE_COUNT} files) exceeds the inline threshold (~$((INLINE_THRESHOLD / 1000))KB)."
+              echo "> The diff is NOT included in this context to preserve reviewer context budgets."
+              echo ">"
+              echo "> **How to read diffs on-demand:**"
+              echo "> - Specific file: \`git diff origin/${{ steps.pr.outputs.base_ref }}...HEAD -- path/to/file.ts\`"
+              echo "> - Full PR diff: \`gh pr diff ${{ steps.pr.outputs.number }}\`"
+              echo "> - Pre-written full diff: read \`.claude/pr-diff/full.diff\`"
+              echo ">"
+              echo "> **Prioritize** using the Changed Files diff stats above. Focus on files most relevant to your review domain."
+              echo "$DIFF_DELIM"
+            } >> $GITHUB_OUTPUT
           fi
 
       - name: Get Review Context
@@ -140,7 +256,7 @@ jobs:
                 }
               }
             }
-          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr=${{ github.event.pull_request.number }})
+          ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr=${{ steps.pr.outputs.number }})
 
           THREADS=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviewThreads.nodes // []')
           REVIEWS=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviews.nodes // []')
@@ -263,7 +379,9 @@ jobs:
           # ── Changes since last Claude review ──
           # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
           # the last automated review was made against, then computes the delta.
-          PR_HEAD="${{ github.event.pull_request.head.sha }}"
+          PR_HEAD="${{ steps.pr.outputs.head_sha }}"
+          # COUPLED: The regex below must match the heading in .claude/agents/pr-review.md Phase 6.2.
+          # The pr-review agent is constrained to always start its review body with "## PR Review Summary".
           LAST_REVIEW_SHA=$(echo "$REVIEWS" | jq -r '
             [.[] | select(
               (.author.login == "claude" or .author.login == "claude[bot]") and
@@ -272,11 +390,15 @@ jobs:
             sort_by(.submittedAt) | last | .commit.oid // ""
           ')
 
+          SINCE_REVIEW_COUNT=0  # default; overwritten below if a prior review SHA exists
           if [ -n "$LAST_REVIEW_SHA" ] && [ "$LAST_REVIEW_SHA" != "null" ] && git cat-file -e "$LAST_REVIEW_SHA" 2>/dev/null; then
             SINCE_REVIEW_COUNT=$(git rev-list --count "$LAST_REVIEW_SHA".."$PR_HEAD")
             if [ "$SINCE_REVIEW_COUNT" = "0" ]; then
+              echo "is_re_review=false" >> $GITHUB_OUTPUT
+              echo "since_review_files=" >> $GITHUB_OUTPUT
               SINCE_REVIEW_SECTION="_Re-review — no new commits since last automated review (commit \`${LAST_REVIEW_SHA:0:12}\`)._"
             else
+              echo "is_re_review=true" >> $GITHUB_OUTPUT
               DIFF_EXCLUDE=(
                 ':!pnpm-lock.yaml'
                 ':!package-lock.json'
@@ -288,10 +410,41 @@ jobs:
               )
               SINCE_REVIEW_LOG=$(git log --oneline "$LAST_REVIEW_SHA".."$PR_HEAD")
               SINCE_REVIEW_STATS=$(git diff --stat "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              SINCE_REVIEW_FILES=$(git diff --name-only "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              {
+                echo "since_review_files<<ENDFILES"
+                echo "$SINCE_REVIEW_FILES"
+                echo "ENDFILES"
+              } >> $GITHUB_OUTPUT
+
+              # Include the actual delta diff if it's small enough to be useful
+              # without blowing context budgets (loaded by all reviewers via pr-context)
+              SINCE_REVIEW_DIFF=$(git diff "$LAST_REVIEW_SHA".."$PR_HEAD" -- . "${DIFF_EXCLUDE[@]}")
+              SINCE_REVIEW_DIFF_SIZE=${#SINCE_REVIEW_DIFF}
+              SINCE_REVIEW_INLINE_THRESHOLD=30000  # ~30KB ≈ 7.5K tokens
+
+              if [ $SINCE_REVIEW_DIFF_SIZE -le $SINCE_REVIEW_INLINE_THRESHOLD ]; then
+                SINCE_REVIEW_DIFF_SECTION="### Diff since last review
+          \`\`\`diff
+          $SINCE_REVIEW_DIFF
+          \`\`\`"
+              else
+                SINCE_REVIEW_DIFF_SECTION="### Diff since last review
+          > Delta diff too large (~${SINCE_REVIEW_DIFF_SIZE} bytes) to inline. Use \`git diff ${LAST_REVIEW_SHA:0:12}..HEAD\` to read on-demand."
+              fi
+
+              SINCE_REVIEW_FILE_COUNT=$(echo "$SINCE_REVIEW_FILES" | wc -l | tr -d ' ')
+
               SINCE_REVIEW_SECTION="| Field | Value |
           |---|---|
           | **Last review commit** | \`${LAST_REVIEW_SHA:0:12}\` |
           | **Commits since** | $SINCE_REVIEW_COUNT |
+          | **Files changed** | $SINCE_REVIEW_FILE_COUNT |
+
+          ### Files changed since last review
+          \`\`\`
+          $SINCE_REVIEW_FILES
+          \`\`\`
 
           ### Commits since last review
           \`\`\`
@@ -301,9 +454,13 @@ jobs:
           ### Diff stats since last review
           \`\`\`
           $SINCE_REVIEW_STATS
-          \`\`\`"
+          \`\`\`
+
+          $SINCE_REVIEW_DIFF_SECTION"
             fi
           else
+            echo "is_re_review=false" >> $GITHUB_OUTPUT
+            echo "since_review_files=" >> $GITHUB_OUTPUT
             SINCE_REVIEW_SECTION="_First automated review — no prior review to compare against._"
           fi
 
@@ -312,6 +469,19 @@ jobs:
             echo "$SINCE_REVIEW_SECTION"
             echo "ENDREVIEW"
           } >> $GITHUB_OUTPUT
+
+          # ── Compute review_scope ──────────────────────────────────────────
+          # review_scope is the single source of truth for delta vs full scoping.
+          #   full  = review entire PR (first review, no new commits, or --full-review override)
+          #   delta = scope to changes since last automated review
+          TRIGGER='${{ steps.pr.outputs.trigger_command }}'
+          if [ "$TRIGGER" = "full-review" ]; then
+            echo "review_scope=full" >> $GITHUB_OUTPUT
+          elif [ "$SINCE_REVIEW_COUNT" -gt 0 ]; then
+            echo "review_scope=delta" >> $GITHUB_OUTPUT
+          else
+            echo "review_scope=full" >> $GITHUB_OUTPUT
+          fi
 
       - name: Get PR Comments
         id: pr_comments
@@ -339,7 +509,7 @@ jobs:
             }
           ' -f owner="${{ github.repository_owner }}" \
             -f repo="${{ github.event.repository.name }}" \
-            -F pr=${{ github.event.pull_request.number }} \
+            -F pr=${{ steps.pr.outputs.number }} \
             --jq '[.data.repository.pullRequest.comments.nodes[] | select(.author.__typename == "User" or (.author.login | test("github-actions|claude"; "i")))]')
 
           # Format as markdown, latest-first
@@ -367,7 +537,7 @@ jobs:
           # Delete progress/error/output comments from cancelled/errored previous runs.
           # "Claude finished" covers completed runs where the review submission failed.
           # claude-code-action posts as "claude[bot]"; older versions or custom setups may use "github-actions[bot]".
-          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+          gh api repos/${{ github.repository }}/issues/${{ steps.pr.outputs.number }}/comments \
             --jq '.[] | select(.user.login == "claude[bot]" and (.body | test("Claude encountered an error|Claude finished|Starting PR review|🔄|PR Review in Progress"))) | .id' \
           | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
@@ -396,20 +566,23 @@ jobs:
 
           | Field | Value |
           |---|---|
-          | **PR** | #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }} |
-          | **Author** | ${{ github.event.pull_request.user.login }} |
-          | **Base** | `${{ github.event.pull_request.base.ref }}` |
+          | **PR** | #${{ steps.pr.outputs.number }} — ${{ steps.pr.outputs.title }} |
+          | **Author** | ${{ steps.pr.outputs.author_login }} |
+          | **Base** | `${{ steps.pr.outputs.base_ref }}` |
           | **Repo** | ${{ github.repository }} |
-          | **Head SHA** | `${{ github.event.pull_request.head.sha }}` |
-          | **Size** | ${{ steps.diff.outputs.commit_count }} commits · +${{ github.event.pull_request.additions }}/-${{ github.event.pull_request.deletions }} · ${{ github.event.pull_request.changed_files }} files |
-          | **Labels** | ${{ join(github.event.pull_request.labels.*.name, ', ') || '_None_' }} |
+          | **Head SHA** | `${{ steps.pr.outputs.head_sha }}` |
+          | **Size** | ${{ steps.diff.outputs.commit_count }} commits · +${{ steps.pr.outputs.additions }}/-${{ steps.pr.outputs.deletions }} · ${{ steps.pr.outputs.changed_files_count }} files |
+          | **Labels** | ${{ steps.pr.outputs.labels || '_None_' }} |
           | **Review state** | ${{ steps.review_context.outputs.review_decision }} |
-          | **Trigger** | `${{ github.event.action }}` |
+          | **Diff mode** | `${{ steps.diff.outputs.diff_mode }}` — ${{ steps.diff.outputs.diff_mode == 'summary' && 'reviewers must read file diffs on-demand via `git diff`' || 'full diff included below' }} |
+          | **Event** | `${{ github.event_name }}:${{ github.event.action }}` |
+          | **Trigger command** | `${{ steps.pr.outputs.trigger_command }}` — ${{ steps.pr.outputs.trigger_command == 'full-review' && 'manual full-scope override' || steps.pr.outputs.trigger_command == 'review' && 'manual review request' || 'automatic CI trigger' }} |
+          | **Review scope** | `${{ steps.review_context.outputs.review_scope }}` — ${{ steps.review_context.outputs.review_scope == 'delta' && 'scoped to changes since last automated review' || 'full PR scope' }} |
 
           ## Description
           Author-provided description (may not fully reflect actual scope):
 
-          ${{ github.event.pull_request.body }}
+          ${{ steps.pr.outputs.body }}
 
           ## Linked Issues
           Issues this PR closes. These provide the "why" — the problem being solved, acceptance criteria, and prior discussion.
@@ -424,21 +597,31 @@ jobs:
           ```
 
           ## Changed Files
-          Per-file diff stats (for prioritizing review effort) and full file list:
+          Per-file diff stats (for prioritizing review effort):
 
           ```
           ${{ steps.diff.outputs.diff_stats }}
           ```
 
-          ## Diff
-          ${{ steps.diff.outputs.truncated == 'true' && '> **Note:** Diff was truncated due to size. Use `gh pr diff` to fetch the full diff.' || '' }}
-          ```diff
-          ${{ steps.diff.outputs.diff_content }}
+          Full file list (untruncated paths):
+
           ```
+          ${{ steps.diff.outputs.changed_files }}
+          ```
+
+          ## Diff
+
+          ${{ steps.diff.outputs.diff_content }}
 
           ## Changes Since Last Review
 
           ${{ steps.review_context.outputs.since_review_section }}
+
+          ${{ steps.review_context.outputs.review_scope == 'delta' && '## Review Focus
+
+          > **RE-REVIEW — scope to the delta.** A prior automated review already covered this PR. Your review scope is the code that changed since that review (see "Changes Since Last Review" above). Apply your normal review process — same quality bar, same severity criteria — but scoped to the delta. Do not re-analyze unchanged files or re-raise issues on code that was already reviewed. If prior feedback appears unaddressed in the delta, note it; otherwise, focus your effort on what is new or modified.' || steps.review_context.outputs.review_scope == 'full' && steps.review_context.outputs.is_re_review == 'true' && '## Review Focus
+
+          > **FULL-SCOPE REVIEW (manual override).** A prior automated review exists, but a full-scope review was explicitly requested via `--full-review`. Review the entire PR — do not limit scope to the delta. The "Changes Since Last Review" section above is provided for context only.' || '' }}
 
           ## Prior Feedback
 
@@ -474,8 +657,8 @@ jobs:
           ## GitHub URL Base (for hyperlinks)
 
           Use these to construct clickable links in your findings:
-          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}/{path}#L{line}` or `#L{start}-L{end}`
-          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}`
+          - **File link pattern:** `https://github.com/${{ github.repository }}/blob/${{ steps.pr.outputs.head_sha }}/{path}#L{line}` or `#L{start}-L{end}`
+          - **PR link:** `https://github.com/${{ github.repository }}/pull/${{ steps.pr.outputs.number }}`
 
           SKILL_EOF
           
@@ -507,7 +690,7 @@ jobs:
             --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'
             --allowedTools "Task,Read,Write,Grep,Glob,mcp__exa__web_search_exa,mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(mkdir:*)"
           prompt: |
-            Review PR #${{ github.event.pull_request.number }}.
+            Review PR #${{ steps.pr.outputs.number }}. Begin Phase 1.
 
       - name: Clean up progress comment
         if: success()
@@ -516,7 +699,7 @@ jobs:
         run: |
           # Delete the progress/output comment posted by claude-code-action for THIS run.
           # Scoped by run ID embedded in the "View job" link so other Claude automations are untouched.
-          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+          gh api repos/${{ github.repository }}/issues/${{ steps.pr.outputs.number }}/comments \
             --jq '.[] | select(.user.login == "claude[bot]" and (.body | contains("actions/runs/${{ github.run_id }}"))) | .id' \
           | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/issues/comments/{} 2>/dev/null || true
 
@@ -524,7 +707,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: claude-debug-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          name: claude-debug-pr-${{ steps.pr.outputs.number }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/claude-debug/
             ${{ steps.claude.outputs.execution_file }}
