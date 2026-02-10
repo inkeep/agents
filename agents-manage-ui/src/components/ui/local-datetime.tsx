@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   formatDate,
   formatDateAgo,
@@ -20,24 +20,31 @@ const formatFns: Record<FormatFn, (dateString: string, options?: { local?: boole
 /**
  * Client component that renders a datetime string in the user's local timezone.
  *
- * This avoids hydration mismatches by initially rendering in UTC (matching the
- * server-rendered HTML), then switching to local time after mount.
+ * Uses suppressHydrationWarning so the client immediately renders local time
+ * without waiting for a useEffect cycle. The server renders UTC (which briefly
+ * appears in the initial HTML), but React replaces it with the client's local
+ * time during hydration.
  *
- * Use this instead of passing `{ local: true }` directly when the component
- * receives data from a server component via props (SSR'd with server timezone).
- *
- * For components that only render after client-side data fetching (e.g. via
- * useEffect/useState), using `{ local: true }` directly is fine.
+ * Also patches the DOM via useEffect as a fallback for cases where React's
+ * hydration reconciliation doesn't update the text content.
  */
 function LocalDateTimeBase({ dateString, format }: { dateString: string; format: FormatFn }) {
   const fn = formatFns[format];
-  const [display, setDisplay] = useState(() => fn(dateString));
+  const ref = useRef<HTMLSpanElement>(null);
+  const localDisplay = fn(dateString, { local: true });
 
+  // Fallback: ensure DOM is updated to local time after mount
   useEffect(() => {
-    setDisplay(fn(dateString, { local: true }));
-  }, [dateString, fn]);
+    if (ref.current && ref.current.textContent !== localDisplay) {
+      ref.current.textContent = localDisplay;
+    }
+  }, [localDisplay]);
 
-  return <>{display}</>;
+  return (
+    <span ref={ref} suppressHydrationWarning>
+      {localDisplay}
+    </span>
+  );
 }
 
 export function LocalDate({ dateString }: { dateString: string }) {
