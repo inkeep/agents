@@ -14,7 +14,6 @@ import type { SlackNotification } from '../types';
 
 interface SlackContextValue {
   user: { id: string; email?: string; name?: string } | null;
-  session: { token?: string; expiresAt?: string } | null;
   isLoading: boolean;
   tenantId: string;
 
@@ -33,7 +32,6 @@ interface SlackContextValue {
   };
 
   ui: {
-    isConnecting: boolean;
     notification: SlackNotification | null;
   };
 
@@ -53,10 +51,9 @@ interface SlackProviderProps {
 }
 
 export function SlackProvider({ children, tenantId }: SlackProviderProps) {
-  const { user, session, isLoading: isAuthLoading } = useAuthSession();
+  const { user, isLoading: isAuthLoading } = useAuthSession();
   const queryClient = useQueryClient();
 
-  const isConnecting = useSlackStore((state) => state.isConnecting);
   const notification = useSlackStore((state) => state.notification);
   const setNotification = useSlackStore((state) => state.setNotification);
   const clearNotification = useSlackStore((state) => state.clearNotification);
@@ -100,7 +97,6 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
     user: user
       ? { id: user.id, email: user.email || undefined, name: user.name || undefined }
       : null,
-    session: session ? { token: session.token, expiresAt: session.expiresAt?.toString() } : null,
     isLoading: isAuthLoading,
     tenantId,
 
@@ -112,7 +108,6 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
     },
 
     ui: {
-      isConnecting,
       notification,
     },
 

@@ -51,24 +51,6 @@ export const slackApi = {
     return response.json();
   },
 
-  async listAgents(tenantId: string): Promise<{
-    agents: Array<{
-      id: string;
-      name: string | null;
-      projectId: string;
-      projectName: string | null;
-    }>;
-  }> {
-    const response = await fetch(
-      `${getApiUrl()}/work-apps/slack/agents?tenantId=${encodeURIComponent(tenantId)}`,
-      { credentials: 'include' }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to fetch agents');
-    }
-    return response.json();
-  },
-
   async setWorkspaceDefaultAgent(params: {
     teamId: string;
     defaultAgent: DefaultAgentConfig;
@@ -120,21 +102,6 @@ export const slackApi = {
       return { success: false, error: data.error || 'Failed to verify link token' };
     }
     return { success: true, ...data };
-  },
-
-  async getLinkStatus(params: { slackUserId: string; slackTeamId: string }): Promise<{
-    linked: boolean;
-    linkId?: string;
-    linkedAt?: string;
-    slackUsername?: string;
-  }> {
-    const response = await fetch(
-      `${getApiUrl()}/work-apps/slack/users/link-status?slackUserId=${encodeURIComponent(params.slackUserId)}&slackTeamId=${encodeURIComponent(params.slackTeamId)}`
-    );
-    if (!response.ok) {
-      return { linked: false };
-    }
-    return response.json();
   },
 
   async unlinkUser(params: {
@@ -198,27 +165,6 @@ export const slackApi = {
     );
     if (!response.ok) {
       return { channels: [] };
-    }
-    return response.json();
-  },
-
-  async getChannelSettings(
-    teamId: string,
-    channelId: string
-  ): Promise<{
-    channelId: string;
-    agentConfig?: {
-      projectId: string;
-      agentId: string;
-      agentName?: string;
-    };
-  }> {
-    const response = await fetch(
-      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/settings`,
-      { credentials: 'include' }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to get channel settings');
     }
     return response.json();
   },
