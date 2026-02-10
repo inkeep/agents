@@ -941,7 +941,7 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
       .max(64)
       .default('UTC')
       .describe('IANA timezone for cron expression (e.g., America/New_York, Europe/London)'),
-  runAt: () => z.string().datetime().nullable().optional().describe('One-time execution timestamp'),
+  runAt: () => z.iso.datetime().nullable().optional().describe('One-time execution timestamp'),
   payload: () =>
     z
       .record(z.string(), z.unknown())
@@ -1048,9 +1048,9 @@ export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
     id: () => ResourceIdSchema,
     scheduledTriggerId: () => ResourceIdSchema,
     status: () => ScheduledTriggerInvocationStatusEnum,
-    scheduledFor: () => z.string().datetime().describe('Scheduled execution time'),
-    startedAt: () => z.string().datetime().optional().describe('Actual start time'),
-    completedAt: () => z.string().datetime().optional().describe('Completion time'),
+    scheduledFor: () => z.iso.datetime().describe('Scheduled execution time'),
+    startedAt: () => z.iso.datetime().optional().describe('Actual start time'),
+    completedAt: () => z.iso.datetime().optional().describe('Completion time'),
     resolvedPayload: () =>
       z
         .record(z.string(), z.unknown())
@@ -2708,14 +2708,10 @@ export const TriggerWithWebhookUrlListResponse = z
   .openapi('TriggerWithWebhookUrlListResponse');
 
 export const ScheduledTriggerWithRunInfoSchema = ScheduledTriggerApiSelectSchema.extend({
-  lastRunAt: z
-    .string()
-    .datetime()
-    .nullable()
-    .describe('Timestamp of the last completed or failed run'),
+  lastRunAt: z.iso.datetime().nullable().describe('Timestamp of the last completed or failed run'),
   lastRunStatus: z.enum(['completed', 'failed']).nullable().describe('Status of the last run'),
   lastRunConversationIds: z.array(z.string()).describe('Conversation IDs from the last run'),
-  nextRunAt: z.string().datetime().nullable().describe('Timestamp of the next pending run'),
+  nextRunAt: z.iso.datetime().nullable().describe('Timestamp of the next pending run'),
 }).openapi('ScheduledTriggerWithRunInfo');
 
 export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
