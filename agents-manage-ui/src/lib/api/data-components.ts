@@ -107,7 +107,7 @@ export async function createDataComponent(
 export async function updateDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponent: DataComponentApiUpdate & { id: string }
+  dataComponent: Partial<DataComponentApiUpdate> & { id: string }
 ): Promise<DataComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
