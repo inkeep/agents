@@ -1,5 +1,11 @@
 import { z } from '@hono/zod-openapi';
-import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
+import {
+  FilePartSchema,
+  type FilePart,
+  type Part,
+  TextPartSchema,
+  type TextPart,
+} from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { type ContentItem, type ImageContentItem, imageUrlSchema } from '../types/chat';
 
@@ -31,7 +37,7 @@ const imageContentPartSchema = z.object({
 const vercelMessageContentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
 
 const buildTextPart = (text: string): TextPart => {
-  return { kind: 'text', text };
+  return TextPartSchema.parse({ kind: 'text', text });
 };
 
 const parseDataUri = (dataUri: string): { mimeType: string; base64Data: string } | null => {
@@ -47,14 +53,14 @@ const buildFilePart = (uri: string, options?: { detail?: 'auto' | 'low' | 'high'
   const parsed = parseDataUri(uri);
 
   if (parsed) {
-    return {
+    return FilePartSchema.parse({
       kind: 'file',
       file: {
         bytes: parsed.base64Data,
         mimeType: parsed.mimeType,
       },
       ...(options?.detail && { metadata: { detail: options.detail } }),
-    };
+    });
   }
 
   try {
@@ -63,11 +69,11 @@ const buildFilePart = (uri: string, options?: { detail?: 'auto' | 'low' | 'high'
     throw new Error(`Invalid image URI: expected valid data URI or HTTP URL`);
   }
 
-  return {
+  return FilePartSchema.parse({
     kind: 'file',
     file: { uri, mimeType: 'image/*' },
     ...(options?.detail && { metadata: { detail: options.detail } }),
-  };
+  });
 };
 
 export const extractTextFromParts = (parts: Part[]): string => {
