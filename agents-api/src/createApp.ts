@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { OrgRoles } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
-import { type Context, Hono, type Next } from 'hono';
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
@@ -26,6 +26,7 @@ import {
   runCorsConfig,
   signozCorsConfig,
   workAppsCorsConfig,
+  workAppsAuth,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { evalApiKeyAuth } from './middleware/evalsAuth';
@@ -367,42 +368,7 @@ function createAgentsHono(config: AppConfig) {
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/work-apps/github', githubRoutes);
 
-  // Work Apps auth middleware - shared session/API key auth for protected Slack routes
-  // Most routes are unauthenticated (events, commands), but workspace and user management require session
-  const workAppsAuth = async (c: Context, next: Next) => {
-    if (isTestEnvironment()) {
-      await next();
-      return;
-    }
-
-    // DEV ONLY: Allow localhost origins without session auth
-    // This is needed because cross-origin cookies don't work with ngrok during development
-    // In production, the dashboard and API are on the same domain so session cookies work
-    const origin = c.req.header('Origin');
-    if (origin && env.ENVIRONMENT !== 'production') {
-      try {
-        const originUrl = new URL(origin);
-        if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
-          c.set('userId', 'dev-user');
-          c.set('tenantId', 'default');
-          c.set('tenantRole', 'owner');
-          await next();
-          return;
-        }
-      } catch {
-        // Invalid origin URL, continue to auth check
-      }
-    }
-
-    // For mutating requests, require session auth (dashboard uses Better Auth cookies)
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      return manageApiKeyAuth()(c as any, next);
-    }
-
-    return sessionAuth()(c as any, next);
-  };
-
+  // Work Apps auth - session/API key auth for protected routes (workspace management, user endpoints)
   app.use('/work-apps/slack/workspaces/*', workAppsAuth);
   app.use('/work-apps/slack/users/*', workAppsAuth);
 
