@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export interface StatProps {
-  stat?: number | null;
+  stat?: number | string | null;
   statDescription?: string;
   isLoading?: boolean;
   unit?: string;
@@ -10,7 +10,11 @@ export interface StatProps {
 
 export function Stat({ stat, statDescription, isLoading, unit }: StatProps) {
   const formattedStat =
-    stat !== null && stat !== undefined ? new Intl.NumberFormat().format(stat) : 'N/A';
+    stat !== null && stat !== undefined
+      ? typeof stat === 'string'
+        ? stat
+        : new Intl.NumberFormat().format(stat)
+      : 'N/A';
 
   return (
     <div className="flex flex-col gap-2 h-full justify-end">
