@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 
+/** @lintignore */
 export function GenericPromptEditor<
   FV extends FieldValues,
   TV extends FieldValues,
@@ -41,32 +42,30 @@ export function GenericPromptEditor<
     <FormField
       control={control}
       name={name}
-      render={({ field }) => {
-        return (
-          <FormItem>
-            <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
-              <FormLabel isRequired={isRequired}>
-                {label}
-                <AddVariableAction uri={uri} className="ml-auto" />
-                {!open && <Editor.DialogTrigger />}
-              </FormLabel>
-              <FormControl>
-                <PromptEditor
-                  uri={uri}
-                  autoFocus={open}
-                  className={cn(!open && 'max-h-96', 'min-h-16', className)}
-                  hasDynamicHeight={!open}
-                  placeholder={placeholder}
-                  // aria-labelledby={id}
-                  {...field}
-                />
-              </FormControl>
-              {description && <FormDescription>{description}</FormDescription>}
-              <FormMessage />
-            </Editor.Dialog>
-          </FormItem>
-        );
-      }}
+      render={({ field }) => (
+        <FormItem>
+          <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
+            <FormLabel isRequired={isRequired}>
+              {label}
+              <AddVariableAction uri={uri} className="ml-auto" />
+              {!open && <Editor.DialogTrigger />}
+            </FormLabel>
+            <FormControl>
+              <PromptEditor
+                uri={uri}
+                autoFocus={open}
+                className={cn(!open && 'max-h-96', 'min-h-16', className)}
+                hasDynamicHeight={!open}
+                placeholder={placeholder}
+                // aria-labelledby={id}
+                {...field}
+              />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </Editor.Dialog>
+        </FormItem>
+      )}
     />
   );
 }

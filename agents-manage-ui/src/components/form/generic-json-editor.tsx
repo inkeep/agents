@@ -12,6 +12,7 @@ import {
 } from '../ui/form';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
 
+/** @lintignore */
 export function GenericJsonEditor<
   FV extends FieldValues,
   TV extends FieldValues,
