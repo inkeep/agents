@@ -11,7 +11,9 @@ const TOKEN_TTL = '10m';
 
 /**
  * Zod schema for validating Slack link token JWT payload.
- * This is a stateless token used for the device authorization flow.
+ * This is a stateless token used for the Slack-to-Inkeep account linking flow.
+ * When a user runs `/inkeep link` in Slack, this JWT is generated and embedded
+ * in a URL that the user visits to complete the linking.
  */
 export const SlackLinkTokenPayloadSchema = z.object({
   iss: z.literal(ISSUER),

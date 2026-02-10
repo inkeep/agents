@@ -425,14 +425,30 @@ export async function storeWorkspaceInstallation(
       },
     };
 
-    const response = await fetch(`${nangoApiUrl}/connections`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${nangoApiUrl}/connections`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+      if ((error as Error).name === 'AbortError') {
+        logger.error({ connectionId }, 'Nango connection import timed out');
+        return { connectionId, success: false };
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const responseText = await response.text();
 

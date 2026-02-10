@@ -13,10 +13,10 @@
  * - GET /workspaces/:teamId/users - List linked users
  *
  * Permission Model:
- * - Read operations (GET): Any authenticated user (members see read-only)
- * - Workspace settings (PUT): Org admin/owner only
- * - Channel settings (PUT/DELETE): Org admin/owner OR member who is in that Slack channel
- * - Workspace uninstall (DELETE): Org admin/owner only
+ * - Read operations (GET): Authenticated users only (tenant isolation via verifyTenantOwnership in handler)
+ * - Workspace settings (PUT): Inkeep org admin/owner only (requireWorkspaceAdmin middleware)
+ * - Channel settings (PUT/DELETE): Inkeep org admin/owner OR channel member (requireChannelMemberOrAdmin middleware)
+ * - Workspace uninstall (DELETE): Inkeep org admin/owner only (requireWorkspaceAdmin middleware)
  */
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
@@ -654,7 +654,10 @@ app.openapi(
     const body = c.req.valid('json');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    const tenantId = workspace?.tenantId || 'default';
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      return c.json({ success: false, configId: '' });
+    }
+    const tenantId = workspace.tenantId || 'default';
 
     const config = await upsertWorkAppSlackChannelAgentConfig(runDbClient)({
       tenantId,
@@ -734,7 +737,7 @@ app.openapi(
     const body = c.req.valid('json');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    if (!workspace?.botToken) {
+    if (!workspace?.botToken || !verifyTenantOwnership(c, workspace.tenantId)) {
       return c.json({ error: 'Workspace not found or no bot token' }, 404);
     }
 
@@ -830,7 +833,10 @@ app.openapi(
     const body = c.req.valid('json');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    const tenantId = workspace?.tenantId || 'default';
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      return c.json({ success: false, removed: 0 });
+    }
+    const tenantId = workspace.tenantId || 'default';
 
     let removed = 0;
     await Promise.all(
@@ -879,7 +885,10 @@ app.openapi(
     const { teamId, channelId } = c.req.valid('param');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    const tenantId = workspace?.tenantId || 'default';
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      return c.json({ success: false });
+    }
+    const tenantId = workspace.tenantId || 'default';
 
     const deleted = await deleteWorkAppSlackChannelAgentConfig(runDbClient)(
       tenantId,
@@ -1124,7 +1133,7 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
 
-    if (!workspace?.botToken) {
+    if (!workspace?.botToken || !verifyTenantOwnership(c, workspace.tenantId)) {
       return c.json(
         { success: false, error: 'Workspace not found or no bot token available' },
         404

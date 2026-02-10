@@ -127,6 +127,12 @@ export async function handleOpenAgentSelectorModal(params: {
     );
   } catch (error) {
     logger.error({ error, teamId }, 'Failed to open agent selector modal');
+    if (responseUrl) {
+      await sendResponseUrlMessage(responseUrl, {
+        text: SlackStrings.errors.failedToOpenSelector,
+        response_type: 'ephemeral',
+      }).catch(() => {});
+    }
   }
 }
 

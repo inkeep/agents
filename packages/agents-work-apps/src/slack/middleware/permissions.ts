@@ -55,8 +55,8 @@ async function resolveWorkAppTenantContext(c: Context, teamId: string, userId: s
 }
 
 /**
- * Middleware that requires org admin/owner role.
- * Use for workspace-level settings that only admins can modify.
+ * Middleware that requires Inkeep org admin/owner role.
+ * Use for workspace-level settings that only Inkeep organization admins can modify.
  */
 export const requireWorkspaceAdmin = <
   Env extends { Variables: ManageAppVariables } = { Variables: ManageAppVariables },
@@ -104,7 +104,7 @@ export const requireWorkspaceAdmin = <
     if (!isOrgAdmin(tenantRole)) {
       throw createApiError({
         code: 'forbidden',
-        message: 'Only workspace administrators can modify workspace settings',
+        message: 'Only organization administrators can modify workspace settings',
         instance: c.req.path,
         extensions: {
           requiredRole: 'admin or owner',

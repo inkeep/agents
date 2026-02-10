@@ -385,11 +385,17 @@ export async function sendResponseUrlMessage(
       'Sending response_url message'
     );
 
+    const controller = new AbortController();
+    const responseTimeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
+
     const response = await fetch(responseUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+
+    clearTimeout(responseTimeout);
 
     const responseBody = await response.text().catch(() => '');
     logger.info(

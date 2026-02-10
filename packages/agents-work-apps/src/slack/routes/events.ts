@@ -376,6 +376,7 @@ app.post('/nango-webhook', async (c) => {
         }
       } catch (error: unknown) {
         logger.error({ error, connectionId }, 'Failed to process Nango deletion webhook');
+        return c.json({ error: 'Deletion processing failed' }, 500);
       }
     }
 
