@@ -1,10 +1,10 @@
 import { Braces } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import { useState } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
@@ -25,16 +25,13 @@ export function ExpandablePromptEditor({
   'use memo';
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
+  const { getEditorByUri } = useMonacoActions();
   const $uri = props.uri ?? `${name}.template`;
   const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
 
-  const handleAddVariable = () => {
-    if (!monaco) {
-      return;
-    }
-    const model = monaco.editor.getModel(monaco.Uri.parse(uri));
-    const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
-    if (!editor) {
+  function handleAddVariable() {
+    const editor = getEditorByUri(uri);
+    if (!monaco || !editor) {
       return;
     }
 
@@ -47,7 +44,7 @@ export function ExpandablePromptEditor({
     editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
     editor.focus();
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  };
+  }
 
   const id = `${name}-label`;
 
@@ -76,13 +73,13 @@ export function ExpandablePromptEditor({
       }
     >
       <PromptEditor
-        uri={uri}
         autoFocus={open}
         aria-invalid={error ? 'true' : undefined}
         className={cn(!open && 'max-h-96', 'min-h-16', className)}
         hasDynamicHeight={!open}
         aria-labelledby={id}
         {...props}
+        uri={uri}
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
     </ExpandableField>
