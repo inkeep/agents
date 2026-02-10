@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
+  PartSchema,
   commonGetErrorResponses,
   createApiError,
   createMessage,
@@ -328,11 +329,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
       // Store last user message
       const lastUserMessage = body.messages.filter((m) => m.role === 'user').slice(-1)[0];
 
-      // Build Part[] for execution (text + image parts)
-      const messageParts: Part[] = getMessagePartsFromVercelContent(
-        lastUserMessage?.content,
-        lastUserMessage?.parts
-      );
+      // Build Part[] for execution (text + image parts), validated against core PartSchema
+      const messageParts: Part[] = z
+        .array(PartSchema)
+        .parse(
+          getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts)
+        );
 
       // Extract text content from parts
       const userText = extractTextFromParts(messageParts) || '';
