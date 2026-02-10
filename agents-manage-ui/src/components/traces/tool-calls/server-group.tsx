@@ -43,7 +43,7 @@ export function ServerGroup({
   const totalCalls = totalCallsProp ?? fromTools.totalCalls;
   const rate = totalCalls > 0 ? Math.round((totalSuccess / totalCalls) * 100) : 0;
 
-  const status = rate === 0 ? 'destructive' : rate < 50 ? 'warning' : 'success';
+  const status = rate === 0 ? 'destructive' : rate <= 50 ? 'warning' : 'success';
 
   return (
     <div className="rounded-xl border border-border bg-card dark:bg-muted/30 overflow-hidden">
@@ -59,8 +59,8 @@ export function ServerGroup({
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-foreground truncate">{name}</div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-mono">{slug}</span>
-            <span className="text-border">{'/'}</span>
+            {slug && <span className="font-mono">{slug}</span>}
+            {slug && <span className="text-border">{'/'}</span>}
             <span>{toolCount} tools</span>
           </div>
         </div>

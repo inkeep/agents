@@ -55,7 +55,7 @@ export function ToolCallsByProject({
           ))
         ) : projectStats.length === 0 ? (
           <TableRow noHover>
-            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
               No MCP calls detected in the selected time range.
             </TableCell>
           </TableRow>
