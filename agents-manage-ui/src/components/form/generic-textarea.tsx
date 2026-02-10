@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
 
 interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
-  control: Control<FV, any, TV>;
+  control: Control<FV, unknown, TV>;
   name: FieldPath<FV>;
   label: string;
   placeholder?: string;
@@ -17,7 +17,10 @@ interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
   description?: React.ReactNode;
 }
 
-export function GenericTextarea<FV extends FieldValues, TV extends FieldValues>({
+export function GenericTextarea<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -28,7 +31,7 @@ export function GenericTextarea<FV extends FieldValues, TV extends FieldValues>(
   isRequired = false,
   rows,
   description,
-}: GenericTextareaProps<FV, TV>) {
+}: GenericTextareaProps<TFieldValues, TTransformedValues>) {
   return (
     <FormFieldWrapper
       control={control}
