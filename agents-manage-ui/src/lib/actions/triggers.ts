@@ -2,7 +2,13 @@
 
 import type { Part } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
-import { createTrigger, deleteTrigger, rerunTrigger, type Trigger, updateTrigger } from '../api/triggers';
+import {
+  createTrigger,
+  deleteTrigger,
+  rerunTrigger,
+  type Trigger,
+  updateTrigger,
+} from '../api/triggers';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
