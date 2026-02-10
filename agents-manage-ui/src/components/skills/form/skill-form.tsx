@@ -58,6 +58,8 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
     defaultValues: formatFormData(initialData),
     mode: 'onChange',
   });
+  const { isSubmitting, isValid } = form.formState;
+  const isDisabled = isSubmitting || !isValid;
   const content = useWatch({ control: form.control, name: 'content' });
   const metadata = useWatch({ control: form.control, name: 'metadata' });
   const router = useRouter();
@@ -169,10 +171,11 @@ Use this skill when the user needs to work with PDF files...
   "version": "1.0.0",
   "author": "example"
 }`}
+          error={form.formState.errors.metadata?.message}
         />
 
         <div className="flex w-full justify-between">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button type="submit" disabled={isDisabled}>
             Save
           </Button>
           {initialData && (

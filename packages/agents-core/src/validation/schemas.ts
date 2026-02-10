@@ -1423,9 +1423,6 @@ export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchem
   .openapi('DatasetRunConfigAgentRelationUpdate');
 
 const SkillIndexSchema = z.int().min(0);
-export const StringRecordSchema = z
-  .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
-  .openapi('StringRecord');
 
 export const SkillFrontmatterSchema = z.object({
   name: z
