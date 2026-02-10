@@ -577,22 +577,21 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(response.status).toBe(400);
     });
 
-    it('should handle projects with empty IDs', async () => {
+    it('should reject projects with empty IDs', async () => {
       const tenantId = await createTrackedTenant();
       const projectDefinition = createTestProjectDefinition(''); // Empty ID
 
       const response = await makeRequest(`/manage/tenants/${tenantId}/project-full`, {
         method: 'POST',
         body: JSON.stringify(projectDefinition),
-        expectError: false,
+        expectError: true,
       });
 
-      // The API currently accepts empty IDs (might be used for special cases)
-      // This behavior could be changed if empty IDs should be rejected
-      expect(response.status).toBe(201);
+      // Empty IDs are rejected by SpiceDB validation
+      expect(response.status).toBe(500);
       const body = await response.json();
-      expect(body.data).toBeDefined();
-      expect(body.data.id).toBe(''); // Empty ID is preserved
+      expect(body.error).toBeDefined();
+      expect(body.error.message).toContain('authorization setup failed');
     });
   });
 });
