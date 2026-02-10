@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { transformToJson } from '@inkeep/agents-core/client-exports';
 import { render, screen, waitFor } from '@testing-library/react';
 import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
@@ -9,7 +10,6 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
-import { transformToJson } from '@/lib/json-schema-validation';
 import { GenericComboBox } from '../generic-combo-box';
 import '@/lib/utils/test-utils/styles.css';
 
@@ -79,11 +79,7 @@ const NestedTestForm: FC = () => {
   const resolver = zodResolver(nestedTestSchema);
   const form = useForm({
     defaultValues: {
-      jsonSchemaEditor: JSON.stringify({
-        foo: {
-          bar: {},
-        },
-      }),
+      jsonSchemaEditor: JSON.stringify({ foo: { bar: {} } }),
     },
     resolver,
   });
