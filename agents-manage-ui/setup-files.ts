@@ -1,3 +1,6 @@
+import * as extensions from '@testing-library/jest-dom/matchers';
+
+expect.extend(extensions);
 /**
  * Fixes TypeError: document.queryCommandSupported is not a function
  */

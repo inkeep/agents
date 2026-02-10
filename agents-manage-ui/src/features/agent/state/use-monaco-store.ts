@@ -200,6 +200,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           'typescript',
           'json',
           'html-derivative',
+          'markdown',
           {
             ...markdownShikiGrammar,
             aliases: [],

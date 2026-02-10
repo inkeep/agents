@@ -95,6 +95,7 @@ These fields are **required on all finding types**.
 | 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
 | 8 | `fix` | string | Suggestion[s] for how to address it. If simple, give the full solution as a code block. If bigger-scoped, interweave brief code examples into the explanation. Don't over-engineer — give a starting point/direction. |
 | 9 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+| 10 | `pre_existing` | boolean | **(Optional.)** Set to `true` if this issue existed before this PR — it was NOT introduced by the PR's changes. Omit or set `false` for issues introduced by the PR. See guidance below. |
 
 ### Reference Types
 
@@ -207,9 +208,9 @@ Use the smallest severity that is still honest. Severity indicates **impact**, n
 
 | Severity | Meaning | Merge Impact |
 |----------|---------|--------------|
-| `CRITICAL` | Security vulnerability, data loss, broken functionality, likely incident | Blocks merge |
-| `MAJOR` | Core standard violation, reliability/maintainability risk, likely bug | Fix before merge |
-| `MINOR` | Improvements, consistency issues, "would be better if…" | Can merge; fix later |
+| `CRITICAL` | Security or AuthN, Authz, or IAM vulnerability, data loss or corruption, breaking change or broken core functionality, likely incident | Blocks merge |
+| `MAJOR` | Core standard violation, reliability/maintainability/deployment risk, likely bug, not addressing all product or internal surface areas that changes affect (e.g. missing docs), etc. | Fix before merge |
+| `MINOR` | Improvements, consistency issues, "would be better if…"... I.e. functionally ok but could use cleaner implementation, etc. | Can merge; developer discretion.  |
 | `INFO` | Informational notes, non-actionable observations | No action required |
 
 ### `confidence`
@@ -218,7 +219,7 @@ How certain you are that this is a real issue. Not how severe it is.
 
 | Confidence | Meaning | Evidence Level |
 |------------|---------|----------------|
-| `HIGH` | Definite issue. Evidence is unambiguous in the code/diff. | "I can point to the exact line and explain why it's wrong." |
+| `HIGH` | Definite issue. Evidence is unambiguous in the code/diff and clearly problematic or would be identified as a real issue by experienced engineers. | "I can point to the exact line and explain why it's wrong." |
 | `MEDIUM` | Likely issue. Reasonable alternate interpretation exists. | "This looks wrong, but there might be context I'm missing." |
 | `LOW` | Possible issue. Needs human confirmation or more context. | "This could be a problem, but I'm not sure." |
 
@@ -228,9 +229,9 @@ How confident you are in the proposed fix. Distinct from `confidence` (issue cer
 
 | Fix Confidence | Meaning |
 |----------------|---------|
-| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. **Requires web search verification when the fix changes third-party library/framework usage** (see `pr-review-check-suggestion` Step F2). Default to `MEDIUM` until substantiated — except for self-evident fixes (null checks, typos, simple refactors) that don't touch third-party APIs. |
-| `MEDIUM` | Fix is directionally correct but may need adjustment. |
-| `LOW` | Fix is a starting point; human should verify approach. |
+| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. **Requires web search verification when the fix changes third-party library/framework usage** (see `pr-review-check-suggestion` Step F2) or reference to other existing code in the existing codebase that illustrates the correct approach. Default to `MEDIUM` until substantiated. Only exception are self-evident fixes (null checks, typos, simple refactors) that are intrinsically obvious (rare). |
+| `MEDIUM` | Fix is directionally correct but may need certain details confirmed by developer. |
+| `LOW` | Fix is a starting point but not sure about exact approach given context; human should verify approach. |
 
 ### `category`
 
@@ -253,6 +254,15 @@ Use **your primary domain**. This is a freeform string.
 | `llm` | AI/LLM integration: tools, templates, streaming, context management |
 
 **Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category relevant to you.
+
+### `pre_existing` (optional)
+
+Indicates whether the issue existed **before** this PR — it was not introduced by the PR's changes. Defaults to `false` (omit the field entirely for issues introduced by the PR).
+
+**This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues, expand your review scope, or spend additional cycles hunting for tech debt. Only flag something as `pre_existing: true` if it clearly stood out while you were doing your normal review.
+
+- Same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
+- Only use with **HIGH confidence** findings — uncertain pre-existing issues are not worth flagging
 
 ### `issue`, `implications`, `fix`
 
@@ -310,11 +320,27 @@ Never use absolute paths. Always use paths relative to the repository root.
     "confidence": "HIGH",
     "fix": "Use parameterized queries:\n```typescript\nconst result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);\n```",
     "fix_confidence": "HIGH"
+  },
+  {
+    "type": "file",
+    "file": "src/utils/logger.ts",
+    "category": "standards",
+    "issue": "Logger utility swallows errors silently — catch block is empty. This predates this PR but is in the same module being modified.",
+    "references": [
+      "[AGENTS.md:L97 — error handling must be explicit](https://github.com/org/repo/blob/abc123/AGENTS.md#L97)",
+      "[src/utils/logger.ts:15-18 — empty catch block](https://github.com/org/repo/blob/abc123/src/utils/logger.ts#L15-L18)"
+    ],
+    "implications": "Silent error swallowing can mask bugs and make debugging difficult. Since this file is being modified in this PR, it's a natural cleanup opportunity.",
+    "severity": "MINOR",
+    "confidence": "HIGH",
+    "fix": "Add explicit error handling or re-throw:\n```typescript\ncatch (error) {\n  console.error('Logger failed:', error);\n}\n```",
+    "fix_confidence": "HIGH",
+    "pre_existing": true
   }
 ]
 ```
 
-**Note the order:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
+**Note the order:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence → pre_existing (optional)
 
 ---
 
@@ -324,7 +350,7 @@ Before returning, verify:
 
 - [ ] Output is valid JSON (no prose, no code fences, no markdown)
 - [ ] Output is an array of Finding objects
-- [ ] **Field order is correct:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
+- [ ] **Field order is correct:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence → pre_existing (if applicable)
 - [ ] Every finding has a `type` field with valid value
 - [ ] Every finding has all required fields for its type
 - [ ] `severity`, `confidence`, and `fix_confidence` use allowed enum values

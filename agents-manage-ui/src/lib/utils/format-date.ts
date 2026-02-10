@@ -38,6 +38,7 @@ export function formatDate(dateString: string) {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: 'UTC',
     });
     return formatter.format(date);
   } catch (error) {
@@ -58,6 +59,7 @@ export function formatDateTime(dateString: string): string {
     minute: '2-digit',
     second: '2-digit',
     hour12: true,
+    timeZone: 'UTC',
   }).format(date); // e.g. "Aug 28, 2024, 5:42:30 PM"
 }
 
@@ -72,6 +74,7 @@ export function formatDateTimeTable(dateString: string): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: 'UTC',
   }).format(date); // e.g. "Aug 28, 2024, 5:42 PM"
 }
 
@@ -116,6 +119,7 @@ export function formatDateAgo(dateString: string) {
       month: 'short',
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+      timeZone: 'UTC',
     });
   } catch (error) {
     console.warn('Error formatting date:', dateString, error);
