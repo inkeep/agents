@@ -123,3 +123,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      # The default GITHUB_TOKEN cannot trigger downstream workflows,
+      # so we use a PAT that can.
+      - name: Trigger Vercel Production Deploy
+        if: steps.changesets.outputs.published == 'true'
+        run: gh workflow run vercel-production.yml --ref main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
