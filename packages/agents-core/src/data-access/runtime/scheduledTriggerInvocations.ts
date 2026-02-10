@@ -306,24 +306,10 @@ export const addConversationIdToInvocation =
     invocationId: string;
     conversationId: string;
   }): Promise<ScheduledTriggerInvocation | undefined> => {
-    // First, get the current invocation to access existing conversationIds
-    const current = await db.query.scheduledTriggerInvocations.findFirst({
-      where: and(
-        eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-        eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-        eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
-        eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
-        eq(scheduledTriggerInvocations.id, params.invocationId)
-      ),
-    });
-
-    const existingIds = (current?.conversationIds as string[]) || [];
-    const newConversationIds = [...existingIds, params.conversationId];
-
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
-        conversationIds: newConversationIds,
+        conversationIds: sql`${scheduledTriggerInvocations.conversationIds} || ${JSON.stringify([params.conversationId])}::jsonb`,
       })
       .where(
         and(
@@ -522,8 +508,6 @@ export const listUpcomingInvocationsForAgentPaginated =
     const offset = (page - 1) * limit;
 
     // Include running invocations if requested (for dashboard showing active + upcoming)
-
-    // Include running invocations if requested (for dashboard showing active + upcoming)
     const statusCondition = params.includeRunning
       ? inArray(scheduledTriggerInvocations.status, ['pending', 'running'])
       : eq(scheduledTriggerInvocations.status, 'pending');
@@ -550,14 +534,6 @@ export const listUpcomingInvocationsForAgentPaginated =
 
     const total = totalResult[0]?.count || 0;
     const pages = Math.ceil(total / limit);
-
-    console.log('[listUpcomingInvocationsForAgentPaginated] Results:', {
-      dataCount: data.length,
-      total,
-      firstItem: data[0]
-        ? { id: data[0].id, status: data[0].status, scheduledFor: data[0].scheduledFor }
-        : null,
-    });
 
     return {
       data,

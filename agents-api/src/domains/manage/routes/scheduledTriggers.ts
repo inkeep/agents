@@ -6,6 +6,7 @@ import {
   createApiError,
   createScheduledTrigger,
   createScheduledTriggerInvocation,
+  DateTimeFilterQueryParamsSchema,
   deleteScheduledTrigger,
   generateId,
   getProjectScopedRef,
@@ -20,7 +21,6 @@ import {
   markScheduledTriggerInvocationCompleted,
   markScheduledTriggerInvocationFailed,
   markScheduledTriggerInvocationRunning,
-  DateTimeFilterQueryParamsSchema,
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
@@ -106,13 +106,13 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const result = await listScheduledTriggersPaginated(db)({
+    const { data, pagination } = await listScheduledTriggersPaginated(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
 
     // Fetch run info for all triggers in a single batch query
-    const triggerIds = result.data.map((trigger) => ({
+    const triggerIds = data.map((trigger) => ({
       agentId,
       triggerId: trigger.id,
     }));
@@ -122,7 +122,7 @@ app.openapi(
       triggerIds,
     });
 
-    const dataWithRunInfo = result.data.map((trigger) => {
+    const dataWithRunInfo = data.map((trigger) => {
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = trigger;
       const runInfo = runInfoMap.get(trigger.id) || {
         lastRunAt: null,
@@ -138,7 +138,7 @@ app.openapi(
 
     return c.json({
       data: dataWithRunInfo,
-      pagination: result.pagination,
+      pagination,
     });
   }
 );
@@ -575,9 +575,7 @@ const ScheduledTriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.
   DateTimeFilterQueryParamsSchema
 )
   .extend({
-    status: ScheduledTriggerInvocationStatusEnum.optional().describe(
-      'Filter by invocation status'
-    ),
+    status: ScheduledTriggerInvocationStatusEnum.optional().describe('Filter by invocation status'),
   })
   .openapi('ScheduledTriggerInvocationQueryParams');
 
@@ -886,14 +884,10 @@ app.openapi(
       });
     }
 
-    // Apply defaults for retry configuration (handles null values from older triggers)
-    const maxRetries = trigger.maxRetries ?? 3;
-    const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
-    const timeoutSeconds = trigger.timeoutSeconds ?? 300;
+    const { maxRetries, retryDelaySeconds, timeoutSeconds } = trigger;
 
     // Create a new invocation for the rerun
     const newInvocationId = generateId();
-    const now = new Date().toISOString();
 
     await createScheduledTriggerInvocation(runDbClient)({
       id: newInvocationId,
@@ -902,10 +896,9 @@ app.openapi(
       agentId,
       scheduledTriggerId,
       status: 'pending',
-      scheduledFor: now,
+      scheduledFor: new Date().toISOString(),
       idempotencyKey: `manual-rerun-${invocationId}-${Date.now()}`,
       attemptNumber: 1,
-      createdAt: now,
     });
 
     logger.info(
@@ -918,6 +911,7 @@ app.openapi(
         newInvocationId,
         maxRetries,
         retryDelaySeconds,
+        timeoutSeconds,
       },
       'Created new invocation for manual rerun with retry support'
     );
@@ -1008,7 +1002,15 @@ app.openapi(
             scheduledTriggerId,
             invocationId: newInvocationId,
             conversationId,
-          }).catch(() => {});
+          }).catch((err) => {
+            logger.error(
+              {
+                invocationId: newInvocationId,
+                error: err instanceof Error ? err.message : String(err),
+              },
+              'Failed to save conversation ID'
+            );
+          });
 
           if (success) {
             await markScheduledTriggerInvocationCompleted(runDbClient)({
@@ -1035,7 +1037,15 @@ app.openapi(
                 attemptNumber: attemptNumber + 1,
                 status: 'running',
               },
-            }).catch(() => {});
+            }).catch((err) => {
+              logger.error(
+                {
+                  invocationId: newInvocationId,
+                  error: err instanceof Error ? err.message : String(err),
+                },
+                'Failed to update invocation attempt number'
+              );
+            });
 
             attemptNumber++;
             // Sleep before retry
@@ -1051,7 +1061,15 @@ app.openapi(
             scopes,
             scheduledTriggerId,
             invocationId: newInvocationId,
-          }).catch(() => {});
+          }).catch((err) => {
+            logger.error(
+              {
+                invocationId: newInvocationId,
+                error: err instanceof Error ? err.message : String(err),
+              },
+              'Failed to mark invocation as failed after retries exhausted'
+            );
+          });
         }
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
@@ -1061,7 +1079,15 @@ app.openapi(
           scopes,
           scheduledTriggerId,
           invocationId: newInvocationId,
-        }).catch(() => {});
+        }).catch((err) => {
+          logger.error(
+            {
+              invocationId: newInvocationId,
+              error: err instanceof Error ? err.message : String(err),
+            },
+            'Failed to mark invocation as failed in error handler'
+          );
+        });
       }
     });
 
@@ -1131,7 +1157,6 @@ app.openapi(
 
     // Create a new invocation
     const invocationId = generateId();
-    const now = new Date().toISOString();
 
     await createScheduledTriggerInvocation(runDbClient)({
       id: invocationId,
@@ -1140,10 +1165,9 @@ app.openapi(
       agentId,
       scheduledTriggerId,
       status: 'pending',
-      scheduledFor: now,
+      scheduledFor: new Date().toISOString(),
       idempotencyKey: `manual-run-${scheduledTriggerId}-${Date.now()}`,
       attemptNumber: 1,
-      createdAt: now,
     });
 
     logger.info(
@@ -1245,7 +1269,12 @@ app.openapi(
             scheduledTriggerId,
             invocationId,
             conversationId,
-          }).catch(() => {});
+          }).catch((err) => {
+            logger.error(
+              { invocationId, error: err instanceof Error ? err.message : String(err) },
+              'Failed to save conversation ID'
+            );
+          });
 
           if (success) {
             await markScheduledTriggerInvocationCompleted(runDbClient)({
@@ -1268,7 +1297,15 @@ app.openapi(
                 attemptNumber: attemptNumber + 1,
                 status: 'running',
               },
-            }).catch(() => {});
+            }).catch((err) => {
+              logger.error(
+                {
+                  invocationId,
+                  error: err instanceof Error ? err.message : String(err),
+                },
+                'Failed to update invocation attempt number'
+              );
+            });
 
             attemptNumber++;
             await new Promise((resolve) => setTimeout(resolve, retryDelaySeconds * 1000));
@@ -1283,7 +1320,15 @@ app.openapi(
             scopes,
             scheduledTriggerId,
             invocationId,
-          }).catch(() => {});
+          }).catch((err) => {
+            logger.error(
+              {
+                invocationId,
+                error: err instanceof Error ? err.message : String(err),
+              },
+              'Failed to mark invocation as failed after retries exhausted'
+            );
+          });
         }
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
@@ -1293,7 +1338,15 @@ app.openapi(
           scopes,
           scheduledTriggerId,
           invocationId,
-        }).catch(() => {});
+        }).catch((err) => {
+          logger.error(
+            {
+              invocationId,
+              error: err instanceof Error ? err.message : String(err),
+            },
+            'Failed to mark invocation as failed in error handler'
+          );
+        });
       }
     });
 

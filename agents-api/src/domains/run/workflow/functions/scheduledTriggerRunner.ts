@@ -4,6 +4,7 @@
  * This workflow:
  * 1. Gets or creates the next pending invocation
  * 2. Sleeps until its scheduled time
+ * 3. Checks if the trigger is still enabled
  * 4. Executes the agent with retries
  * 5. For cron triggers, loops back to step 1
  *

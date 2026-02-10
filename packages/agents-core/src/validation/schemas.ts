@@ -2935,8 +2935,8 @@ export const PaginationQueryParamsSchema = z
   .openapi('PaginationQueryParams');
 
 export const DateTimeFilterQueryParamsSchema = z.object({
-  from: z.string().datetime().optional().describe('Start date for filtering (ISO8601)'),
-  to: z.string().datetime().optional().describe('End date for filtering (ISO8601)'),
+  from: z.iso.datetime().optional().describe('Start date for filtering (ISO8601)'),
+  to: z.iso.datetime().optional().describe('End date for filtering (ISO8601)'),
 });
 
 export const PrebuiltMCPServerSchema = z.object({
