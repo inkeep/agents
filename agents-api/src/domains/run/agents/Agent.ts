@@ -27,6 +27,7 @@ import {
   type ResolvedRef,
   type SubAgentStopWhen,
   TemplateEngine,
+  unwrapError,
   withRef,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
@@ -701,7 +702,8 @@ export class Agent {
           return result;
         } catch (error) {
           const duration = Date.now() - startTime;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const rootCause = unwrapError(error);
+          const errorMessage = rootCause.message;
 
           if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
@@ -720,7 +722,7 @@ export class Agent {
             await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
           }
 
-          throw error;
+          throw rootCause;
         }
       },
     };
@@ -1069,8 +1071,9 @@ export class Agent {
 
               return enhancedResult;
             } catch (error) {
-              logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
-              throw error;
+              const rootCause = unwrapError(error);
+              logger.error({ toolName, toolCallId, error: rootCause.message }, 'MCP tool execution failed');
+              throw rootCause;
             }
           },
         });

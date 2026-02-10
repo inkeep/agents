@@ -677,7 +677,6 @@ async function executeAgentAsync(params: {
         otelContext.active() // Explicitly use current context with execute_async as parent
       );
       messageSpan.end();
-      await flushBatchProcessor();
 
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },

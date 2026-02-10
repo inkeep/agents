@@ -22,6 +22,8 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core';
+import { unwrapError } from '@inkeep/agents-core';
+import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getLogger } from '../../../logger';
 
 const logger = getLogger('a2aClient');
@@ -154,7 +156,22 @@ export class A2AClient {
       },
       ...options,
     };
+    // Eagerly start fetching the agent card. Attach a no-op .catch() to prevent
+    // Node.js "unhandled promise rejection" crashes if the fetch fails before
+    // anyone awaits the promise (e.g. ECONNREFUSED). The real error is still
+    // preserved in the promise and will surface when callers await it.
     this.agentCardPromise = this._fetchAndCacheAgentCard();
+    this.agentCardPromise.catch(() => {});
+  }
+
+  /**
+   * Injects OpenTelemetry trace context (traceparent, tracestate, baggage) into headers.
+   * Ensures trace continuity across A2A self-calls, preventing missing spans in SigNoz.
+   */
+  private _injectTraceContext(headers: Record<string, string>): Record<string, string> {
+    const carrier: Record<string, string> = { ...headers };
+    propagation.inject(otelContext.active(), carrier);
+    return carrier;
   }
 
   /**
@@ -177,10 +194,10 @@ export class A2AClient {
     );
     try {
       const response = await fetch(url.toString(), {
-        headers: {
+        headers: this._injectTraceContext({
           Accept: 'application/json',
           ...(this.options.headers || {}),
-        },
+        }),
       });
 
       if (!response.ok) {
@@ -197,8 +214,9 @@ export class A2AClient {
       this.serviceEndpointUrl = agentCard.url; // Cache the service endpoint URL from the agent card
       return agentCard;
     } catch (error) {
-      console.error('Error fetching or parsing Agent Card:', error);
-      throw error;
+      const rootCause = unwrapError(error);
+      console.error('Error fetching or parsing Agent Card:', rootCause);
+      throw rootCause;
     }
   }
 
@@ -222,10 +240,10 @@ export class A2AClient {
       }
 
       const response = await fetch(url.toString(), {
-        headers: {
+        headers: this._injectTraceContext({
           Accept: 'application/json',
           ...(this.options.headers || {}),
-        },
+        }),
       });
       if (!response.ok) {
         throw new Error(
@@ -376,7 +394,7 @@ export class A2AClient {
         return res;
       } catch (err: unknown) {
         if (err instanceof PermanentError) {
-          throw err.cause;
+          throw unwrapError(err.cause);
         }
 
         const elapsed = Date.now() - start;
@@ -392,7 +410,7 @@ export class A2AClient {
           if (err instanceof TemporaryError) {
             return err.response;
           }
-          throw err;
+          throw unwrapError(err);
         }
 
         let retryInterval = 0;
@@ -467,11 +485,11 @@ export class A2AClient {
     const httpResponse = await this.retry(async () => {
       return fetch(endpoint, {
         method: 'POST',
-        headers: {
+        headers: this._injectTraceContext({
           'Content-Type': 'application/json',
-          Accept: 'application/json', // Expect JSON response for non-streaming requests
+          Accept: 'application/json',
           ...(this.options.headers || {}),
-        },
+        }),
         body: JSON.stringify(rpcRequest),
       });
     });
@@ -560,11 +578,11 @@ export class A2AClient {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
+      headers: this._injectTraceContext({
         'Content-Type': 'application/json',
         Accept: 'text/event-stream', // Crucial for SSE
         ...(this.options.headers || {}),
-      },
+      }),
       body: JSON.stringify(rpcRequest),
     });
 
@@ -676,11 +694,11 @@ export class A2AClient {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
+      headers: this._injectTraceContext({
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
         ...(this.options.headers || {}),
-      },
+      }),
       body: JSON.stringify(rpcRequest),
     });
 
@@ -774,8 +792,9 @@ export class A2AClient {
         }
       }
     } catch (error: any) {
-      console.error('Error reading or parsing SSE stream:', error.message);
-      throw error;
+      const rootCause = unwrapError(error);
+      console.error('Error reading or parsing SSE stream:', rootCause.message);
+      throw rootCause;
     } finally {
       reader.releaseLock(); // Ensure the reader lock is released
     }
