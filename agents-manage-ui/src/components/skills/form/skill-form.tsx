@@ -4,11 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Info, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { type FC, useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
-import { ExpandablePromptEditor } from '@/components/editors/expandable-prompt-editor';
+import { useForm } from 'react-hook-form';
 import FullPageError from '@/components/errors/full-page-error';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
+import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -60,8 +60,6 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
   });
   const { isSubmitting, isValid } = form.formState;
   const isDisabled = isSubmitting || !isValid;
-  const content = useWatch({ control: form.control, name: 'content' });
-  const metadata = useWatch({ control: form.control, name: 'metadata' });
   const router = useRouter();
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -140,11 +138,12 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           placeholder="High-level summary of what this skill enforces."
           isRequired={isRequired(schema, 'description')}
         />
-        <ExpandablePromptEditor
+        <GenericPromptEditor
+          control={form.control}
           label="Content"
           name="content"
-          value={content}
-          onChange={form.setValue.bind(null, 'content')}
+          isRequired={isRequired(schema, 'content')}
+          uri="content.md"
           placeholder={`# PDF Processing
 
 ## When to use this skill
@@ -158,20 +157,15 @@ Use this skill when the user needs to work with PDF files...
 ## How to fill forms
 
 ...`}
-          error={form.formState.errors.content?.message}
-          isRequired={isRequired(schema, 'content')}
-          uri="content.md"
         />
-        <ExpandableJsonEditor
-          value={metadata ?? ''}
-          onChange={form.setValue.bind(null, 'metadata')}
+        <GenericJsonEditor
+          control={form.control}
           name="metadata"
           label="Metadata (JSON)"
           placeholder={`{
   "version": "1.0.0",
   "author": "example"
 }`}
-          error={form.formState.errors.metadata?.message}
         />
 
         <div className="flex w-full justify-between">
