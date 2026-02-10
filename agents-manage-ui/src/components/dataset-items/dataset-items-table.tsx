@@ -111,7 +111,7 @@ export function DatasetItemsTable({
                 return (
                   <TableRow key={item.id} noHover>
                     <TableCell className="text-sm text-muted-foreground">
-                      {formatDateTimeTable(item.updatedAt)}
+                      {formatDateTimeTable(item.updatedAt, { local: true })}
                     </TableCell>
                     <TableCell>
                       <ReadOnlyEditor name={`input_${index}`} value={item.input} />

@@ -419,7 +419,9 @@ export default function Page({
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{formatDateTime(run.createdAt)}</span>
+                          <span className="text-sm">
+                            {formatDateTime(run.createdAt, { local: true })}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {conversationProgress.isRunning ? (
@@ -459,7 +461,9 @@ export default function Page({
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{formatDateTime(conversation.createdAt)}</span>
+                        <span className="text-sm">
+                          {formatDateTime(conversation.createdAt, { local: true })}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Link

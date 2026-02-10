@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { TriggerInvocation } from '@/lib/api/triggers';
+import { formatDateTime } from '@/lib/utils/format-date';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { Combobox } from '../ui/combobox';
 
@@ -29,20 +30,6 @@ interface InvocationsTableProps {
   tenantId: string;
   projectId: string;
   currentStatus?: 'pending' | 'success' | 'failed';
-}
-
-function formatDate(dateString: string): string {
-  // Ensure the date is parsed as UTC if no timezone is specified
-  const normalizedDateString = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
-  const date = new Date(normalizedDateString);
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -176,7 +163,9 @@ export function InvocationsTable({
                         </Button>
                       </TableCell>
                       <TableCell onClick={() => toggleRow(invocation.id)}>
-                        <div className="font-mono text-sm">{formatDate(invocation.createdAt)}</div>
+                        <div className="font-mono text-sm">
+                          {formatDateTime(invocation.createdAt, { local: true })}
+                        </div>
                       </TableCell>
                       <TableCell onClick={() => toggleRow(invocation.id)}>
                         <StatusBadge status={invocation.status} />
