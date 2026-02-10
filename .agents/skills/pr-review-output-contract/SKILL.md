@@ -207,9 +207,9 @@ Use the smallest severity that is still honest. Severity indicates **impact**, n
 
 | Severity | Meaning | Merge Impact |
 |----------|---------|--------------|
-| `CRITICAL` | Security vulnerability, data loss, broken functionality, likely incident | Blocks merge |
-| `MAJOR` | Core standard violation, reliability/maintainability risk, likely bug | Fix before merge |
-| `MINOR` | Improvements, consistency issues, "would be better if…" | Can merge; fix later |
+| `CRITICAL` | Security or AuthN, Authz, or IAM vulnerability, data loss or corruption, breaking change or broken core functionality, likely incident | Blocks merge |
+| `MAJOR` | Core standard violation, reliability/maintainability/deployment risk, likely bug, not addressing all product or internal surface areas that changes affect (e.g. missing docs), etc. | Fix before merge |
+| `MINOR` | Improvements, consistency issues, "would be better if…"... I.e. functionally ok but could use cleaner implementation, etc. | Can merge; developer discretion.  |
 | `INFO` | Informational notes, non-actionable observations | No action required |
 
 ### `confidence`
@@ -218,7 +218,7 @@ How certain you are that this is a real issue. Not how severe it is.
 
 | Confidence | Meaning | Evidence Level |
 |------------|---------|----------------|
-| `HIGH` | Definite issue. Evidence is unambiguous in the code/diff. | "I can point to the exact line and explain why it's wrong." |
+| `HIGH` | Definite issue. Evidence is unambiguous in the code/diff and clearly problematic or would be identified as a real issue by experienced engineers. | "I can point to the exact line and explain why it's wrong." |
 | `MEDIUM` | Likely issue. Reasonable alternate interpretation exists. | "This looks wrong, but there might be context I'm missing." |
 | `LOW` | Possible issue. Needs human confirmation or more context. | "This could be a problem, but I'm not sure." |
 
@@ -228,9 +228,9 @@ How confident you are in the proposed fix. Distinct from `confidence` (issue cer
 
 | Fix Confidence | Meaning |
 |----------------|---------|
-| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. **Requires web search verification when the fix changes third-party library/framework usage** (see `pr-review-check-suggestion` Step F2). Default to `MEDIUM` until substantiated — except for self-evident fixes (null checks, typos, simple refactors) that don't touch third-party APIs. |
-| `MEDIUM` | Fix is directionally correct but may need adjustment. |
-| `LOW` | Fix is a starting point; human should verify approach. |
+| `HIGH` | Fix is drop-in: complete, correct, includes necessary imports/types, doesn't introduce new issues. **Requires web search verification when the fix changes third-party library/framework usage** (see `pr-review-check-suggestion` Step F2) or reference to other existing code in the existing codebase that illustrates the correct approach. Default to `MEDIUM` until substantiated. Only exception are self-evident fixes (null checks, typos, simple refactors) that are intrinsically obvious (rare). |
+| `MEDIUM` | Fix is directionally correct but may need certail details confirmed by developer. |
+| `LOW` | Fix is a starting point but not sure about exact approach given context; human should verify approach. |
 
 ### `category`
 
