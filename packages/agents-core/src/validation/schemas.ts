@@ -84,6 +84,57 @@ import {
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
 
+// A2A Part Schemas
+// These Zod schemas mirror the Part types defined in types/a2a.ts
+
+const PartMetadataSchema = z.record(z.string(), z.any()).optional();
+
+export const TextPartSchema = z
+  .object({
+    kind: z.literal('text'),
+    text: z.string(),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('TextPart');
+
+const FileWithBytesSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    bytes: z.string(),
+  })
+  .strict();
+
+const FileWithUriSchema = z
+  .object({
+    name: z.string().optional(),
+    mimeType: z.string().optional(),
+    uri: z.string(),
+  })
+  .strict();
+
+export const FilePartSchema = z
+  .object({
+    kind: z.literal('file'),
+    file: z.union([FileWithBytesSchema, FileWithUriSchema]),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('FilePart');
+
+export const DataPartSchema = z
+  .object({
+    kind: z.literal('data'),
+    data: z.record(z.string(), z.any()),
+    metadata: PartMetadataSchema,
+  })
+  .openapi('DataPart');
+
+export const PartSchema = z
+  .discriminatedUnion('kind', [TextPartSchema, FilePartSchema, DataPartSchema])
+  .openapi('Part');
+
+export type PartSchemaType = z.infer<typeof PartSchema>;
+
 export const StopWhenSchema = z
   .object({
     transferCountIs: z
@@ -125,7 +176,7 @@ export const ResourceIdSchema = z
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   })
   .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
-  .openapi({
+  .openapi('ResourceId', {
     description: 'Resource identifier',
     example: 'resource_789',
   });
@@ -1820,6 +1871,12 @@ export const FetchDefinitionSchema = z
     credential: CredentialReferenceApiInsertSchema.optional(),
   })
   .openapi('FetchDefinition');
+
+export const HeadersSchema = z.record(
+  z.string(),
+  z.string('All header values must be strings'),
+  'Must be valid JSON object'
+);
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
   headersSchema: z.any().optional().openapi({

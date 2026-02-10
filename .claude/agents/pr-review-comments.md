@@ -4,31 +4,33 @@ description: |
   Reviews code comments for accuracy, staleness, and misleading information.
   Spawned by pr-review orchestrator for files with significant JSDoc or inline comments.
 
-<example>
-Context: PR modifies code with existing JSDoc or inline comments
-user: "Review this PR that refactors the auth flow and updates several functions with JSDoc comments."
-assistant: "Code changes with existing comments need review for comment accuracy and staleness. I'll use the pr-review-comments agent."
-<commentary>
-Refactors often leave comments outdated, creating misleading documentation that wastes future maintainer time.
-</commentary>
-assistant: "I'll use the pr-review-comments agent."
-</example>
+  <example>
+  Context: PR modifies code with existing JSDoc or inline comments
+  user: "Review this PR that refactors the auth flow and updates several functions with JSDoc comments."
+  assistant: "Code changes with existing comments need review for comment accuracy and staleness. I'll use the pr-review-comments agent."
+  <commentary>
+  Refactors often leave comments outdated, creating misleading documentation that wastes future maintainer time.
+  </commentary>
+  assistant: "I'll use the pr-review-comments agent."
+  </example>
 
-<example>
-Context: Near-miss — PR adds new code without comments
-user: "Review this PR that adds a new utility function with no documentation."
-assistant: "Missing documentation is a different concern than inaccurate comments. I won't use the comments reviewer for this."
-<commentary>
-Comment review focuses on accuracy of existing comments, not absence of comments.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR adds new code without comments
+  user: "Review this PR that adds a new utility function with no documentation."
+  assistant: "Missing documentation is a different concern than inaccurate comments. I won't use the comments reviewer for this."
+  <commentary>
+  Comment review focuses on accuracy of existing comments, not absence of comments.
+  </commentary>
+  </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - pr-review-output-contract
-model: sonnet
+  - pr-review-check-suggestion
+model: opus
 color: green
 permissionMode: default
 ---
@@ -74,6 +76,8 @@ When analyzing comments, you will:
    - Recommendations for additional context where needed
    - Clear rationale for why comments should be removed
    - Alternative approaches for conveying the same information
+
+6. **Validate Findings**: Apply `pr-review-check-suggestion` checklist to any findings that depend on external knowledge. Drop or adjust confidence as needed.
 
 **Output Format:**
 

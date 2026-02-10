@@ -1,5 +1,74 @@
 # @inkeep/agents-work-apps
 
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- 3abfc41: Simplify author payload and add isSuggestion
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 6139d11: Github mcp efficiency improvements
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- 37248c6: visualize update from feature branch
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+
 ## 0.45.2
 
 ### Patch Changes

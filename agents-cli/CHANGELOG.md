@@ -1,5 +1,97 @@
 # @inkeep/agents-cli
 
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [6fb0715]
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-manage-ui@0.47.4
+  - @inkeep/agents-core@0.47.4
+  - @inkeep/agents-sdk@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+  - @inkeep/agents-manage-ui@0.47.3
+  - @inkeep/agents-sdk@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-manage-ui@0.47.2
+  - @inkeep/agents-sdk@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-manage-ui@0.47.1
+  - @inkeep/agents-sdk@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-manage-ui@0.47.0
+  - @inkeep/agents-sdk@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- Updated dependencies [2307d76]
+- Updated dependencies [f6010a1]
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-manage-ui@0.46.1
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-sdk@0.46.1
+
+## 0.46.0
+
+### Minor Changes
+
+- 96de898: Update api and manage ui urls
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- Updated dependencies [4811c97]
+- Updated dependencies [99388e9]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-ui@0.46.0
+  - @inkeep/agents-sdk@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- Updated dependencies [14a2e6f]
+- Updated dependencies [4d291f1]
+- Updated dependencies [4a83260]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [fd323b4]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-manage-ui@0.45.3
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-sdk@0.45.3
+
 ## 0.45.2
 
 ### Patch Changes

@@ -15,6 +15,7 @@ export type ToolApprovalUiEvent =
       type: 'approval-resolved';
       toolCallId: string;
       approved: boolean;
+      reason?: string;
     };
 
 type Listener = (event: ToolApprovalUiEvent) => void | Promise<void>;
@@ -63,6 +64,7 @@ export class ToolApprovalUiBus {
             eventType: event.type,
             toolCallId: (event as any).toolCallId,
             error: error instanceof Error ? error.message : String(error),
+            reason: (event as any).reason,
           },
           'ToolApprovalUiBus listener failed'
         );

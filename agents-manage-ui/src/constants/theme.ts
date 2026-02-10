@@ -2,6 +2,7 @@ export const MONACO_THEME_NAME = Object.freeze({
   light: 'inkeep-light',
   dark: 'inkeep-dark',
 });
+export const INKEEP_BRAND_COLOR = '#3784ff';
 export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';

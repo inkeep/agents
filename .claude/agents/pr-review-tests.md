@@ -4,31 +4,33 @@ description: |
   Reviews test coverage quality and completeness. Identifies untested critical paths, edge cases, and error conditions.
   Spawned by pr-review orchestrator for test files or files with missing test coverage.
 
-<example>
-Context: PR adds new functionality with accompanying tests
-user: "Review this PR that adds a new payment processor with unit tests."
-assistant: "New functionality needs test coverage review for critical paths and edge cases. I'll use the pr-review-tests agent."
-<commentary>
-New features often have gaps in error path and edge case coverage that only surface in production.
-</commentary>
-assistant: "I'll use the pr-review-tests agent."
-</example>
+  <example>
+  Context: PR adds new functionality with accompanying tests
+  user: "Review this PR that adds a new payment processor with unit tests."
+  assistant: "New functionality needs test coverage review for critical paths and edge cases. I'll use the pr-review-tests agent."
+  <commentary>
+  New features often have gaps in error path and edge case coverage that only surface in production.
+  </commentary>
+  assistant: "I'll use the pr-review-tests agent."
+  </example>
 
-<example>
-Context: Near-miss — PR only updates documentation
-user: "Review this PR that updates the README and adds JSDoc comments."
-assistant: "Documentation changes don't require test coverage review. I won't use the tests reviewer for this."
-<commentary>
-Test review focuses on code behavior coverage, not documentation.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR only updates documentation
+  user: "Review this PR that updates the README and adds JSDoc comments."
+  assistant: "Documentation changes don't require test coverage review. I won't use the tests reviewer for this."
+  <commentary>
+  Test review focuses on code behavior coverage, not documentation.
+  </commentary>
+  </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - pr-review-output-contract
-model: sonnet
+  - pr-review-check-suggestion
+model: opus
 color: cyan
 permissionMode: default
 ---
@@ -67,6 +69,7 @@ You are an expert test coverage analyst specializing in pull request review. You
 5. Check for tests that are too tightly coupled to implementation
 6. Look for missing negative cases and error scenarios
 7. Consider integration points and their test coverage
+8. **Validate findings** — Apply `pr-review-check-suggestion` checklist to any findings that depend on external knowledge (testing frameworks, library-specific patterns). Drop or adjust confidence as needed.
 
 **Rating Guidelines:**
 - 9-10: Critical functionality that could cause data loss, security issues, or system failures

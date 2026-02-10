@@ -12,91 +12,73 @@ Create clear, consistent documentation for the Inkeep docs site following establ
 
 ## Use when
 
-- Creating a new documentation page in `agents-docs/content/`
-- Updating or improving existing documentation
-- A new feature needs documentation
+- Any customer-facing feature, API, SDK, CLI, UI, config, or behavior change needs documenting
+- Creating or updating pages in `agents-docs/content/`, snippets, or public-facing READMEs or reference artifacts (like .env.example files)
 - Restructuring or reorganizing docs (moves, renames, redirects)
 
 ## Do NOT use when
 
 - Writing code comments or inline documentation (not MDX docs)
-- Creating skills (use `write-skill` instead)
-- Working on non-docs packages
-
-## Also update (when relevant)
-
-Product or engineering changes may require updates beyond product docs. Check these:
-
-| Artifact | Path | Update when |
-|----------|------|-------------|
-| `AGENTS.md` | `/AGENTS.md` | Commands, workflows, file locations, architecture patterns change |
-| AI agent skills | `/.agents/skills/`| Best practices, checklists, review criteria change. Symlinked across .claude, .cursor and .codex.|
-| AI (sub)agent definitions | `/.claude/agents/` | Review workflows, subagent responsibilities change |
-| `README.md` | `/README.md` | Setup, quick start, or project overview changes |
-| `CONTRIBUTING.md` | `/CONTRIBUTING.md` | Contribution workflows or standards change |
-| `.env.example` | `/.env.example`, `/.env.docker.example` | Environment variables added/removed |
-| `LICENSE.md` | `/LICENSE.md` | Licensing or attribution requirements change |
-| Spec documents | `/spec/` | Feature specs, authoring guidelines change |
-| CI/CD workflows | `/.github/workflows/` | Build, test, or deployment pipelines change |
-
----
-
-## Workflow
-
-1. **Identify documentation type** — Determine if this is reference, tutorial, integration, or overview content (see Step 1)
-2. **Write frontmatter** — Add required `title` and optional fields like `sidebarTitle`, `description`, `keywords` (see Step 2)
-3. **Structure content** — Use the appropriate pattern template for your doc type (see Step 3)
-4. **Use components correctly** — Apply `<Steps>`, `<Tabs>`, `<Cards>`, callouts as needed (see Step 4)
-5. **Write code examples** — Ensure examples are runnable with language tags and realistic values (see Step 5)
-6. **Handle navigation** — Update `meta.json` if needed; add redirects for moves/renames (see File Organization)
-7. **Verify** — Check against the verification checklist before completing
+- Working on internal-only changes with no customer-facing surface area
+- Updating internal tooling docs (e.g. `AGENTS.md`, `.agents/skills/`, `.agents/rules/`, `CONTRIBUTING.md`, `.github/workflows/`)
 
 ---
 
 ## Philosophy
 
 **Every feature must be documented fully** across all surfaces: how it's used, interacted with, depended on, or perceived by end-users. Documentation is the audited source of truth for the product.
-
-### Principles
-
+- **Every Surface Area Needs Documentation**: Anything that an engineering change touches that involves a customer-facing change in any product surface area[s] need to be documented.
+- **Keep docs current**: Documentation is a living artifact. When code changes, existing docs must be updated in the same change. Stale docs are misleading docs.
+- **Accuracy over speed**: Incorrect documentation erodes trust faster than missing documentation. Cross-reference source code to verify that types, parameter names, and described behavior match the actual implementation.
+- **Consistency**: Use the same terminology, structure, and formatting patterns across all docs. If we call it a "project" in one place, don't call it a "workspace" in another.
+- **For the right audience**: Tailor voice, depth, and framing to who will read the page. A developer integrating an SDK needs different context than an admin configuring a project.
+- **Good information architecture**: The right audiences find the right content.
 - **Clarity over assumption**: Don't assume prior knowledge. Be explicit about prerequisites and context.
 - **Direct and practical**: Get to the point. Documentation exists to help users accomplish goals, not to showcase everything we know.
 - **Progressive disclosure**: Build up concepts before diving into details.
 - **Scoped and targeted**: Each doc has a clear outcome. Provide the context needed—nothing more, nothing less.
-- **Right detail, right place**: Avoid duplication. If something is explained elsewhere, link to it.
-- **Good information architecture**: The right audiences find the right content.
+- **Right detail, right place**: Avoid duplication. If something is explained elsewhere, link to it or reuse it in some way as appropriate.
 
-### By content type
+---
 
-| Pattern | Focus |
-|---------|-------|
-| **Overview** (Conceptual) | Mental models, "why", terminology, key definitions, relationships |
-| **Reference** (APIs, SDKs, Config) | Exhaustive, scannable, precise specs |
-| **Tutorial** (How-to Guides) | Step-by-step, goal-oriented, minimal tangents |
-| **Integration** (Third-party Services) | Installation-focused, platform-aware |
+## Workflow
+
+1. **Understand context** - Fully map out the scope of what needs to be changed. **Consider all procuct surface areas plausibly affected**, and identify existing documentation or documentation sections that may need updating or new articles.
+2. **Identify documentation type** — Determine if this is reference, tutorial, integration, or overview content (see Step 1)
+3. **Write frontmatter** — Add required `title` and optional fields like `sidebarTitle`, `description`, `keywords` (see Step 2)
+4. **Structure content** — Use the appropriate pattern template for your doc type (see Step 3)
+5. **Use components correctly** — Apply `<Steps>`, `<Tabs>`, `<Cards>`, callouts as needed (see Step 4)
+6. **Write code examples** — Ensure examples are runnable with language tags and realistic values (see Step 5)
+7. **Handle navigation** — Update `meta.json` if needed; add redirects for moves/renames (see File Organization)
+8. **Verify** — Check against the verification checklist before completing
+
+
+## Step 0: Identify Relevant Surface Areas
+
+Before writing anything, map out which surface areas the change touches. Review the engineering or product changes (staged files, PR diff, or task description) and ask:
+
+1. **What changed?** — Identify the modified packages, APIs, schemas, or UI components
+2. **Who is affected?** — Determine which user-facing surfaces consume or expose this change. For example (not exhaustive!):
+   - SDK/CLI users (types, builder APIs, commands)
+   - Dashboard users (UI forms, views, workflows)
+   - API consumers (endpoints, request/response shapes, streaming formats)
+   - Widget/chat users (runtime behavior, rendering)
+   - Self-hosting users (env vars, deployment config)
+3. **What docs already exist?** — Search `agents-docs/content/` for pages that reference the affected feature; these may need updates
+4. **What's new vs. changed?** — New surface areas need new pages; changed behavior needs existing page updates
+
+If a change touches multiple surface areas, create or update a doc for each. Don't bundle unrelated surfaces into one page unless it's a natural fit with the existing document or similar analogous docs.
 
 ---
 
 ## Step 1: Identify Documentation Type
 
-```
-What are you documenting?
-│
-├─ A new SDK feature or API?
-│  └─ **Reference** → Use Reference Pattern (noun titles)
-│
-├─ Step-by-step instructions to accomplish something?
-│  └─ **Tutorial/Guide** → Use Tutorial Pattern (verb titles)
-│
-├─ How to connect a third-party service?
-│  └─ **Integration** → Use Integration Pattern (verb titles)
-│
-├─ A conceptual explanation ("what is X")?
-│  └─ **Overview** → Use Overview Pattern (noun titles)
-│
-└─ Configuration options or settings?
-   └─ **Configuration** → Use Reference Pattern (noun titles)
-```
+| Pattern | When to use | Focus | Title style |
+|---------|-------------|-------|-------------|
+| **Overview** | Conceptual explanation ("what is X?") | Mental models, "why", terminology, key definitions, relationships | Noun |
+| **Reference** | New SDK feature, API, or configuration options | Exhaustive, scannable, precise specs | Noun |
+| **Tutorial** | Step-by-step instructions to accomplish something | Goal-oriented, sequential, minimal tangents | Verb |
+| **Integration** | Connecting a third-party service | Installation-focused, platform-aware | Verb |
 
 ---
 

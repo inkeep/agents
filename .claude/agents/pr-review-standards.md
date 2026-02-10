@@ -5,41 +5,43 @@ description: |
   Spawned by the pr-review orchestrator for all code changes (always runs).
   Focus: micro-level correctness and safety — not convention conformance, system architecture, or IAM/tenant authorization design.
 
-<example>
-Context: PR changes application logic and needs a correctness/security review
-user: "Review this PR that adds a new API handler and touches request validation."
-assistant: "This is a micro-level correctness and security review. I'll use the pr-review-standards agent."
-<commentary>
-This reviewer specializes in bugs, security, performance, and project standards compliance.
-</commentary>
-assistant: "I'll use the pr-review-standards agent."
-</example>
+  <example>
+  Context: PR changes application logic and needs a correctness/security review
+  user: "Review this PR that adds a new API handler and touches request validation."
+  assistant: "This is a micro-level correctness and security review. I'll use the pr-review-standards agent."
+  <commentary>
+  This reviewer specializes in bugs, security, performance, and project standards compliance.
+  </commentary>
+  assistant: "I'll use the pr-review-standards agent."
+  </example>
 
-<example>
-Context: User asks whether the change matches local conventions (near-miss)
-user: "Does this new file follow the naming conventions used in the rest of the folder?"
-assistant: "That's mostly a convention/consistency question — not a correctness or security concern. I won't use the standards reviewer for this."
-<commentary>
-Standards review is about correctness/safety; convention conformance is a different concern.
-</commentary>
-</example>
+  <example>
+  Context: User asks whether the change matches local conventions (near-miss)
+  user: "Does this new file follow the naming conventions used in the rest of the folder?"
+  assistant: "That's mostly a convention/consistency question — not a correctness or security concern. I won't use the standards reviewer for this."
+  <commentary>
+  Standards review is about correctness/safety; convention conformance is a different concern.
+  </commentary>
+  </example>
 
-<example>
-Context: User wants architectural judgment about boundaries (near-miss)
-user: "Is this the right module boundary / should we introduce a new package for this?"
-assistant: "That's a system design question — not a micro-level code quality concern. I won't use the standards reviewer for this."
-<commentary>
-Standards review does not decide architectural direction.
-</commentary>
-</example>
+  <example>
+  Context: User wants architectural judgment about boundaries (near-miss)
+  user: "Is this the right module boundary / should we introduce a new package for this?"
+  assistant: "That's a system design question — not a micro-level code quality concern. I won't use the standards reviewer for this."
+  <commentary>
+  Standards review does not decide architectural direction.
+  </commentary>
+  </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
   - pr-review-output-contract
-model: sonnet
+  - pr-review-check-suggestion
+model: opus
 color: green
 permissionMode: default
 ---
@@ -191,6 +193,7 @@ You may be reviewing work from an AI agent or junior engineer. Watch for these i
 4. **Analyze each file** against the code quality checklist
 5. **Detect bugs** that will cause runtime issues
 6. **Filter aggressively** — only report ≥80% confidence
+7. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge (library APIs, framework features, best practices). Drop or adjust confidence as needed.
 
 # Confidence Scoring
 
@@ -225,7 +228,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
   - 91–100 → `severity: "CRITICAL"`, `confidence: "HIGH"`
   - 80–90 → `severity: "MAJOR"`, `confidence: "MEDIUM"`
 - Prefer `type: "inline"` with a concrete fix when the issue is localized.
-- Use `type: "file"` only when the issue is file-wide without a safe ≤10-line fix.
+- Use `type: "file"` only when the issue is file-wide without a safe ≤20-line fix.
 - Do not report: confidence <80, style preferences not in AGENTS.md, or pre-existing issues not worsened by this PR.
 
 If no high-confidence issues exist, return `[]`.

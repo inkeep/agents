@@ -218,67 +218,9 @@ async function setupProjectInDatabase(isCloud) {
     logWarning('This may cause issues with the setup. Consider checking your database schema.');
   }
 
-  // Step 3: Setup SpiceDB schema
-  if (!isCloud) {
-    logStep(3, 'Setting up SpiceDB schema');
-
-    // SpiceDB configuration from environment with defaults
-    const spicedbEndpoint = process.env.SPICEDB_ENDPOINT || 'localhost:50051';
-    const spicedbToken = process.env.SPICEDB_PRESHARED_KEY || 'dev-secret-key';
-
-    // Check if zed CLI is installed
-    try {
-      await execAsync('which zed');
-
-      // Wait for SpiceDB to be ready
-      logInfo(`Waiting for SpiceDB to be ready at ${spicedbEndpoint}...`);
-      let spicedbReady = false;
-      for (let i = 0; i < 30; i++) {
-        try {
-          await execAsync(
-            `zed schema read --insecure --endpoint ${spicedbEndpoint} --token ${spicedbToken}`
-          );
-          spicedbReady = true;
-          break;
-        } catch {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (spicedbReady) {
-        // Write schema from bundled file in @inkeep/agents-core
-        const schemaPath = 'node_modules/@inkeep/agents-core/spicedb/schema.zed';
-        logInfo(`Writing SpiceDB schema from ${schemaPath}...`);
-        try {
-          await execAsync(
-            `zed schema write ${schemaPath} --insecure --endpoint ${spicedbEndpoint} --token ${spicedbToken}`
-          );
-          logSuccess('SpiceDB schema applied');
-        } catch {
-          logWarning('Could not write SpiceDB schema (SpiceDB may still be starting)');
-          logInfo(
-            `Run manually: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint ${spicedbEndpoint} --token $SPICEDB_PRESHARED_KEY`
-          );
-        }
-      } else {
-        logWarning('SpiceDB did not become ready in time');
-        logInfo(
-          `Run manually after SpiceDB is ready: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint ${spicedbEndpoint} --token $SPICEDB_PRESHARED_KEY`
-        );
-      }
-    } catch {
-      logWarning('zed CLI not installed - skipping SpiceDB schema setup');
-      logInfo('Install with: brew install authzed/tap/zed');
-      logInfo(
-        `Then run: zed schema write node_modules/@inkeep/agents-core/spicedb/schema.zed --insecure --endpoint $SPICEDB_ENDPOINT --token $SPICEDB_PRESHARED_KEY`
-      );
-    }
-  } else {
-    logInfo('Skipping SpiceDB schema setup (cloud mode - configure SpiceDB separately)');
-  }
-
-  // Step 4: Initialize default organization and admin user (if credentials are set)
-  logStep(4, 'Checking for auth initialization');
+  // Step 3: Initialize default organization and admin user (if credentials are set)
+  // Note: SpiceDB schema is now applied automatically by db:auth:init
+  logStep(3, 'Checking for auth initialization');
 
   const hasAuthCredentials =
     process.env.INKEEP_AGENTS_MANAGE_UI_USERNAME &&

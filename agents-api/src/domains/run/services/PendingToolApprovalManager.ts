@@ -141,7 +141,7 @@ export class PendingToolApprovalManager {
     this.pendingApprovals.delete(toolCallId);
     approval.resolve({
       approved: false,
-      reason: reason || 'User denied approval',
+      reason: `The user declined to run this tool. ${reason ? `Reason: ${reason}` : ''}`,
     });
 
     return true;

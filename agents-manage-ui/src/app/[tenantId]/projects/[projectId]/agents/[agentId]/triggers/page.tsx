@@ -36,7 +36,7 @@ export default async function TriggersPage({
         action={
           <Button asChild>
             <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/new`}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create trigger
             </Link>
           </Button>

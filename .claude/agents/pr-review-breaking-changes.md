@@ -4,33 +4,36 @@ description: |
   Reviews for breaking changes in schema, migration, env, and contract files.
   Spawned by pr-review orchestrator when these file types are detected.
 
-<example>
-Context: PR modifies database schema or adds migrations
-user: "Review this PR that adds a new column to the users table and includes a migration."
-assistant: "Schema and migration changes need review for breaking change risks. I'll use the pr-review-breaking-changes agent."
-<commentary>
-Schema changes can cause data loss or break existing queries if not migrated correctly.
-</commentary>
-assistant: "I'll use the pr-review-breaking-changes agent."
-</example>
+  <example>
+  Context: PR modifies database schema or adds migrations
+  user: "Review this PR that adds a new column to the users table and includes a migration."
+  assistant: "Schema and migration changes need review for breaking change risks. I'll use the pr-review-breaking-changes agent."
+  <commentary>
+  Schema changes can cause data loss or break existing queries if not migrated correctly.
+  </commentary>
+  assistant: "I'll use the pr-review-breaking-changes agent."
+  </example>
 
-<example>
-Context: Near-miss — PR adds new optional API field without schema changes
-user: "Review this PR that adds an optional field to the API response."
-assistant: "Additive, optional API changes without schema modifications aren't breaking changes. I won't use the breaking-changes reviewer for this."
-<commentary>
-Breaking-changes review focuses on schema, migrations, env, and contracts—not additive API changes.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — PR adds new optional API field without schema changes
+  user: "Review this PR that adds an optional field to the API response."
+  assistant: "Additive, optional API changes without schema modifications aren't breaking changes. I won't use the breaking-changes reviewer for this."
+  <commentary>
+  Breaking-changes review focuses on schema, migrations, env, and contracts—not additive API changes.
+  </commentary>
+  </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
+  - internal-surface-areas
   - data-model-changes
   - adding-env-variables
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: opus
 permissionMode: default
 ---
@@ -63,7 +66,8 @@ Review files for compliance with preloaded skill standards.
    - Env files: `adding-env-variables` checklist
    - API/type files: check for response shape changes, removed fields, stricter validation
 4. Create Finding objects per `pr-review-output-contract`
-5. Return raw JSON array (no prose, no code fences)
+5. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+6. Return raw JSON array (no prose, no code fences)
 
 # Tool Policy
 

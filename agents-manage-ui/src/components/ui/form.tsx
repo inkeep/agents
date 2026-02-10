@@ -29,9 +29,10 @@ const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldCon
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
+  TV = FieldValues,
+>(
+  props: ControllerProps<TFieldValues, TName, TV>
+) => {
   return (
     <FormFieldContext value={{ name: props.name }}>
       <Controller {...props} />
@@ -140,7 +141,12 @@ function FormMessage({ className, ...props }: ComponentProps<'p'>) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn('text-destructive text-sm', className)}
+      className={cn(
+        'text-destructive text-sm',
+        // respect \n in message
+        'whitespace-pre-wrap break-all',
+        className
+      )}
       {...props}
     >
       {body}

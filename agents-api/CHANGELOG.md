@@ -1,5 +1,114 @@
 # @inkeep/agents-api
 
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 820bd49: Fix z.stringbool() breaking COMPRESSION_ENABLED default when env var is unset
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+  - @inkeep/agents-work-apps@0.47.4
+  - @inkeep/agents-manage-mcp@0.47.4
+  - @inkeep/agents-mcp@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- 756a560: Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size
+- 045c405: enhance tool approval handling, so agents are conversationally aware of approvals
+- Updated dependencies [3abfc41]
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-work-apps@0.47.3
+  - @inkeep/agents-core@0.47.3
+  - @inkeep/agents-manage-mcp@0.47.3
+  - @inkeep/agents-mcp@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-manage-mcp@0.47.2
+  - @inkeep/agents-core@0.47.2
+  - @inkeep/agents-mcp@0.47.2
+  - @inkeep/agents-work-apps@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+  - @inkeep/agents-work-apps@0.47.1
+  - @inkeep/agents-manage-mcp@0.47.1
+  - @inkeep/agents-mcp@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+  - @inkeep/agents-work-apps@0.47.0
+  - @inkeep/agents-manage-mcp@0.47.0
+  - @inkeep/agents-mcp@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 7fd85b6: Refactor: Consolidate to single-phase generation
+
+  - Removed Phase 2 infrastructure (Phase2Config.ts, phase2/ template directories, thinking-preparation.xml)
+  - Moved data component templates from phase2/ to shared/ for single-phase use
+  - Updated Phase1Config to handle data components inline
+  - Added model recommendations docs for data components (recommend Sonnet 4+, Opus 4+, GPT-4.1/5.1/5.2, Gemini 3.0 Pro)
+
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+- Updated dependencies [6139d11]
+  - @inkeep/agents-core@0.46.1
+  - @inkeep/agents-work-apps@0.46.1
+  - @inkeep/agents-manage-mcp@0.46.1
+  - @inkeep/agents-mcp@0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+- 016d9dc: Fix internal A2A and self-referencing calls to use in-process fetch transport instead of network loopback, ensuring same-instance execution for features relying on process-local state like SSE stream registries
+- Updated dependencies [4811c97]
+- Updated dependencies [12ad286]
+  - @inkeep/agents-core@0.46.0
+  - @inkeep/agents-manage-mcp@0.46.0
+  - @inkeep/agents-mcp@0.46.0
+  - @inkeep/agents-work-apps@0.46.0
+
+## 0.45.3
+
+### Patch Changes
+
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+- Updated dependencies [4a83260]
+- Updated dependencies [37248c6]
+- Updated dependencies [bee6724]
+- Updated dependencies [16f91d0]
+- Updated dependencies [632d68d]
+  - @inkeep/agents-core@0.45.3
+  - @inkeep/agents-work-apps@0.45.3
+  - @inkeep/agents-manage-mcp@0.45.3
+  - @inkeep/agents-mcp@0.45.3
+
 ## 0.45.2
 
 ### Patch Changes

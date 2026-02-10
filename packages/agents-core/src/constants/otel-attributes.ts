@@ -71,6 +71,7 @@ export const SPAN_KEYS = {
   TOOL_PURPOSE: 'tool.purpose',
   TOOL_NAME: 'tool.name',
   TOOL_CALL_ID: 'tool.callId',
+  TOOL_APPROVAL_REASON: 'tool.approval.reason',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',

@@ -3,7 +3,7 @@ import { Octokit } from '@octokit/rest';
 import { minimatch } from 'minimatch';
 import { env } from '../../env';
 import { getLogger } from '../../logger';
-import type { ChangedFile, GitHubUser, PullRequest } from './schemas';
+import type { ChangedFile, Comment, GitHubUser, PullRequest } from './schemas';
 
 const logger = getLogger('github-mcp-utils');
 
@@ -65,17 +65,9 @@ export function getGitHubClientFromInstallationId(installationId: string): Octok
   });
 }
 
-function mapUser(user: {
-  login: string;
-  id: number;
-  avatar_url: string;
-  html_url: string;
-}): GitHubUser {
+function mapUser(user: { login: string }): GitHubUser {
   return {
     login: user.login,
-    id: user.id,
-    avatarUrl: user.avatar_url,
-    url: user.html_url,
   };
 }
 
@@ -195,12 +187,12 @@ export async function fetchPrFiles(
     `Fetching PR #${prNumber} changed files`
   );
 
-  const files: ChangedFile[] = [];
-
   const pullRequest = await fetchPrInfo(octokit, owner, repo, prNumber);
   const headSha = pullRequest.head.sha;
 
-  // Paginate through all changed files
+  // Collect all files from pagination first
+  const collectedFiles: ChangedFile[] = [];
+
   for await (const response of octokit.paginate.iterator(octokit.rest.pulls.listFiles, {
     owner,
     repo,
@@ -208,7 +200,6 @@ export async function fetchPrFiles(
     per_page: 100,
   })) {
     for (const file of response.data) {
-      // Apply path filter if specified
       if (
         pathFilters.length > 0 &&
         !pathFilters.some((filter) => minimatch(file.filename, filter))
@@ -216,7 +207,7 @@ export async function fetchPrFiles(
         continue;
       }
 
-      const changedFile: ChangedFile = {
+      collectedFiles.push({
         commit_messages: [],
         path: file.filename,
         status: file.status as ChangedFile['status'],
@@ -224,39 +215,55 @@ export async function fetchPrFiles(
         deletions: file.deletions,
         patch: includePatch ? file.patch : undefined,
         previousPath: file.previous_filename,
-      };
+      });
+    }
+  }
 
-      // Fetch file contents if requested and file wasn't deleted
-      if (includeContents && file.status !== 'removed') {
-        try {
-          const { data: content } = await octokit.rest.repos.getContent({
-            owner,
-            repo,
-            path: file.filename,
-            ref: headSha,
-          });
+  // Fetch file contents in parallel batches if requested
+  if (includeContents) {
+    const BATCH_SIZE = 10;
+    const filesToFetch = collectedFiles.filter((f) => f.status !== 'removed');
 
-          if ('content' in content && content.encoding === 'base64') {
-            changedFile.contents = Buffer.from(content.content, 'base64').toString('utf-8');
+    for (let i = 0; i < filesToFetch.length; i += BATCH_SIZE) {
+      const batch = filesToFetch.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (changedFile) => {
+          try {
+            const { data: content } = await octokit.rest.repos.getContent({
+              owner,
+              repo,
+              path: changedFile.path,
+              ref: headSha,
+            });
+
+            if ('content' in content && content.encoding === 'base64') {
+              changedFile.contents = Buffer.from(content.content, 'base64').toString('utf-8');
+            }
+          } catch (error) {
+            logger.warn(
+              { owner, repo, prNumber, headSha, file: changedFile.path },
+              `Failed to fetch contents for ${changedFile.path}: ${error}`
+            );
           }
-        } catch (error) {
-          logger.warn(
-            { owner, repo, prNumber, headSha, file },
-            `Failed to fetch contents for ${file.filename}: ${error}`
-          );
-        }
-      }
-
-      files.push(changedFile);
+        })
+      );
     }
   }
 
   logger.info(
-    { owner, repo, prNumber, headSha, pathFilters, includeContents, files },
-    `Found ${files.length} changed files${pathFilters.length > 0 ? ` matching "${pathFilters.join(', ')}"` : ''}`
+    {
+      owner,
+      repo,
+      prNumber,
+      headSha,
+      pathFilters,
+      includeContents,
+      fileCount: collectedFiles.length,
+    },
+    `Found ${collectedFiles.length} changed files${pathFilters.length > 0 ? ` matching "${pathFilters.join(', ')}"` : ''}`
   );
 
-  return files;
+  return collectedFiles;
 }
 
 /**
@@ -269,22 +276,40 @@ export async function fetchPrFileDiffs(
   prNumber: number
 ): Promise<ChangedFile[]> {
   try {
-    // Get all commits in the PR
-    const commits = await fetchPrCommits(octokit, owner, repo, prNumber);
+    // Fetch commits and PR files in parallel
+    const [commits, prFiles] = await Promise.all([
+      fetchPrCommits(octokit, owner, repo, prNumber),
+      fetchPrFiles(octokit, owner, repo, prNumber),
+    ]);
 
-    // Get the final PR files to know what files to include
-    const prFiles = await fetchPrFiles(octokit, owner, repo, prNumber);
+    // Fetch all commit details in parallel (batched to avoid rate limits)
+    const BATCH_SIZE = 10;
+    const commitDetailsList: {
+      sha: string;
+      message: string;
+      files: Awaited<ReturnType<typeof fetchCommitDetails>>['files'];
+    }[] = [];
+
+    for (let i = 0; i < commits.length; i += BATCH_SIZE) {
+      const batch = commits.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (commit) => {
+          const commitDetails = await fetchCommitDetails(octokit, owner, repo, commit.sha);
+          return {
+            sha: commit.sha,
+            message: commit.commit.message,
+            files: commitDetails.files,
+          };
+        })
+      );
+      commitDetailsList.push(...batchResults);
+    }
 
     // Group commits by file
     const fileToCommits: Record<string, CommitData[]> = {};
 
-    for (const commit of commits) {
-      const commitSha = commit.sha;
-      const commitDetails = await fetchCommitDetails(octokit, owner, repo, commitSha);
-      const commitMessage = commit.commit.message;
-
-      // For each file modified in this commit
-      for (const fileInfo of commitDetails.files || []) {
+    for (const { sha, message, files } of commitDetailsList) {
+      for (const fileInfo of files || []) {
         const filename = fileInfo.filename;
 
         if (!fileToCommits[filename]) {
@@ -292,8 +317,8 @@ export async function fetchPrFileDiffs(
         }
 
         fileToCommits[filename].push({
-          commit_sha: commitSha,
-          commit_message: commitMessage,
+          commit_sha: sha,
+          commit_message: message,
           file_info: fileInfo,
         });
       }
@@ -306,24 +331,17 @@ export async function fetchPrFileDiffs(
       const filename = prFile.path;
 
       if (filename in fileToCommits) {
-        // Get all commit messages for this file
         const commitMessages = fileToCommits[filename].map(
           (commitData) => commitData.commit_message
         );
-
-        const diff = prFile.patch;
-
-        // Use the final PR file stats for additions/deletions
-        const additions = prFile.additions || 0;
-        const deletions = prFile.deletions || 0;
 
         const githubFileDiff: ChangedFile = {
           commit_messages: commitMessages,
           path: filename,
           status: prFile.status,
-          additions,
-          deletions,
-          patch: diff,
+          additions: prFile.additions || 0,
+          deletions: prFile.deletions || 0,
+          patch: prFile.patch,
         };
 
         fileDiffs.push(githubFileDiff);
@@ -339,58 +357,194 @@ export async function fetchPrFileDiffs(
 }
 
 /**
+ * Fetch all PR comments (both issue comments and review comments)
+ */
+export async function fetchComments(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<Comment[]> {
+  // Fetch all three comment types in parallel
+  const [issueComments, reviewComments, reviewSummaries] = await Promise.all([
+    // Issue comments (general PR comments)
+    (async () => {
+      const results: Comment[] = [];
+      for await (const response of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+        owner,
+        repo,
+        issue_number: prNumber,
+        per_page: 100,
+      })) {
+        for (const comment of response.data) {
+          if (!comment.user) continue;
+          results.push({
+            id: comment.id,
+            body: comment.body || '',
+            author: mapUser(comment.user),
+            createdAt: comment.created_at,
+            updatedAt: comment.updated_at,
+            type: 'issue',
+          });
+        }
+      }
+      return results;
+    })(),
+    // Review comments (inline code comments)
+    (async () => {
+      const results: Comment[] = [];
+      for await (const response of octokit.paginate.iterator(
+        octokit.rest.pulls.listReviewComments,
+        {
+          owner,
+          repo,
+          pull_number: prNumber,
+          per_page: 100,
+        }
+      )) {
+        for (const comment of response.data) {
+          const isSuggestion = /```suggestion\b/.test(comment.body);
+          results.push({
+            id: comment.id,
+            body: comment.body,
+            author: mapUser(comment.user),
+            createdAt: comment.created_at,
+            updatedAt: comment.updated_at,
+            type: 'review',
+            path: comment.path,
+            line: comment.line || comment.original_line,
+            diffHunk: comment.diff_hunk,
+            isSuggestion,
+          });
+        }
+      }
+      return results;
+    })(),
+    // Review summaries (approve/request changes with body text)
+    (async () => {
+      const results: Comment[] = [];
+      for await (const response of octokit.paginate.iterator(octokit.rest.pulls.listReviews, {
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: 100,
+      })) {
+        for (const review of response.data) {
+          if (review.body && review.user) {
+            results.push({
+              id: review.id,
+              body: review.body,
+              author: mapUser(review.user),
+              createdAt: review.submitted_at ?? new Date().toISOString(),
+              type: 'review_summary',
+              state: review.state as Comment['state'],
+            });
+          }
+        }
+      }
+      return results;
+    })(),
+  ]);
+
+  const comments = [...issueComments, ...reviewComments, ...reviewSummaries];
+
+  // Drop comments from bots other than inkeep[bot]
+  return comments.filter((c) => {
+    const login = c.author.login;
+    if (login.endsWith('[bot]') && login !== 'inkeep[bot]') {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
  * Generate a markdown representation of a pull request with file diffs
  */
 export function generatePrMarkdown(
   pr: PullRequest,
   fileDiffs: ChangedFile[],
+  comments: Comment[],
   owner: string,
   repo: string
 ): string {
   let markdown = `# Pull Request #${pr.number}: ${pr.title}\n\n`;
 
   // Basic PR info
-  markdown += `**Repository:** ${owner}/${repo}\n`;
-  markdown += `**State:** ${pr.state}\n`;
-  markdown += `**Author:** ${pr.author.login}\n`;
-  markdown += `**Created:** ${new Date(pr.createdAt).toLocaleDateString()}\n`;
-  markdown += `**Updated:** ${new Date(pr.updatedAt).toLocaleDateString()}\n\n`;
-
-  // Branches
-  markdown += '## Branches\n';
-  markdown += `- **From:** \`${pr.head.ref}\`\n`;
-  markdown += `- **To:** \`${pr.base.ref}\` (${owner}/${repo})\n\n`;
-
-  // URL
-  markdown += `**URL:** ${pr.url}\n\n`;
+  markdown += '<metadata>\n';
+  markdown += `Repository: ${owner}/${repo}\n`;
+  markdown += `State: ${pr.state}\n`;
+  markdown += `Author: ${pr.author.login}\n`;
+  markdown += `Created: ${new Date(pr.createdAt).toLocaleDateString()}\n`;
+  markdown += `Updated: ${new Date(pr.updatedAt).toLocaleDateString()}\n`;
+  markdown += `Branch: ${pr.head.ref} → ${pr.base.ref}\n`;
+  markdown += `URL: ${pr.url}\n`;
+  markdown += '</metadata>\n\n';
 
   // Description
   if (pr.body) {
-    markdown += `## Description\n${pr.body}\n\n`;
-  } else {
-    markdown += '## Description\n_No description provided._\n\n';
+    markdown += `<description>\n${pr.body}\n</description>\n\n`;
   }
 
   // File changes summary
+  markdown += '<files>\n';
   if (fileDiffs.length > 0) {
-    // Files changed
-    markdown += '## Files Changed\n';
     for (const fileDiff of fileDiffs) {
-      markdown += `### ${fileDiff.path}\n`;
-      markdown += `- **Additions:** +${fileDiff.additions}\n`;
-      markdown += `- **Deletions:** -${fileDiff.deletions}\n`;
-
-      // Commit messages for this file
+      markdown += `${fileDiff.path} (+${fileDiff.additions}/-${fileDiff.deletions})\n`;
       if (fileDiff.commit_messages.length > 0) {
-        markdown += '- **Related commits:**\n';
         const uniqueMessages = [...new Set(fileDiff.commit_messages)];
         for (const message of uniqueMessages) {
-          markdown += `  - ${message.split('\n')[0]}\n`; // First line only
+          markdown += `  - ${message.split('\n')[0]}\n`;
         }
       }
+    }
+  }
+  markdown += '</files>\n\n';
 
+  // Comments section
+  if (comments.length > 0) {
+    markdown += '<comments>\n';
+
+    const reviewSummaries = comments.filter((c) => c.type === 'review_summary');
+    const issueComments = comments.filter((c) => c.type === 'issue');
+    const reviewComments = comments.filter((c) => c.type === 'review');
+
+    // Review summaries (approvals, change requests)
+    for (const review of reviewSummaries) {
+      markdown += `[${review.state}] @${review.author.login} (${new Date(review.createdAt).toLocaleDateString()})\n`;
+      if (review.body) {
+        markdown += `${review.body}\n`;
+      }
       markdown += '\n';
     }
+
+    // General PR comments
+    for (const comment of issueComments) {
+      markdown += `@${comment.author.login} (${new Date(comment.createdAt).toLocaleDateString()})\n`;
+      markdown += `${comment.body}\n\n`;
+    }
+
+    // Inline code comments
+    if (reviewComments.length > 0) {
+      const commentsByFile = new Map<string, typeof reviewComments>();
+      for (const comment of reviewComments) {
+        const path = comment.path || 'unknown';
+        const existing = commentsByFile.get(path) || [];
+        existing.push(comment);
+        commentsByFile.set(path, existing);
+      }
+
+      for (const [path, fileComments] of commentsByFile) {
+        markdown += `${path}:\n`;
+        for (const comment of fileComments) {
+          const lineInfo = comment.line ? ` line ${comment.line}` : '';
+          markdown += `  @${comment.author.login}${lineInfo} (${new Date(comment.createdAt).toLocaleDateString()})\n`;
+          markdown += `  ${comment.body}\n\n`;
+        }
+      }
+    }
+
+    markdown += '</comments>\n';
   }
 
   return markdown;

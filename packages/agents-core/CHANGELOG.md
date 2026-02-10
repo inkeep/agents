@@ -1,5 +1,61 @@
 # @inkeep/agents-core
 
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 5f3f5ea: Add keepAlive config to db connections
+
+## 0.47.3
+
+### Patch Changes
+
+- 756a560: Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size
+- 045c405: add TOOL_APPROVAL_REASON to span keys
+
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+### Patch Changes
+
+- 6fbe785: Fixes spicedb for docker
+
+## 0.47.0
+
+### Minor Changes
+
+- 77a45c9: Implements SPICEDB_TLS_ENABLED
+- cfee934: fixes the spicedb type exports
+
+## 0.46.1
+
+### Patch Changes
+
+- f6010a1: Add `HeadersSchema` export for HTTP header validation and remove unused client exports.
+- 07a027d: Add Claude Opus 4.6 to available model constants
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+- 12ad286: - Temp fix for chat to edit
+
+## 0.45.3
+
+### Patch Changes
+
+- 4a83260: Add custom headers validation in playground chat. Users are now notified when custom headers are invalid or required based on the agent's headers schema configuration.
+- bee6724: Fix cross-subdomain auth for domains that don't share a 3-part parent (e.g., app.inkeep.com + api.agents.inkeep.com)
+- 16f91d0: bump `hono` to `^4.11.7` to fix pnpm audit vulnerabilities
+- 632d68d: Replace custom jsonSchemaToZod implementation with Zod's native z.fromJSONSchema() method
+
 ## 0.45.2
 
 ### Patch Changes

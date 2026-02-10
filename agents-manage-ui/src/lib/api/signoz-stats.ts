@@ -355,20 +355,43 @@ class SigNozStatsAPI {
     searchQuery: string | undefined,
     agentId: string | undefined
   ): Promise<{ conversationIds: string[]; total: number }> {
-    // Consolidated query: fetch all required data in a single request
+    const hasSearchQuery = !!searchQuery?.trim();
+    const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
+    const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
+
     const consolidatedPayload = this.buildFilteredConversationIdsPayload(
       startTime,
       endTime,
       filters,
       projectId,
       agentId,
-      !!searchQuery?.trim()
+      hasSearchQuery,
+      useServerSidePagination ? pagination : undefined
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
 
-    // Extract activity data (always needed for sorting)
-    const activitySeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
+    // Fast path: server-side pagination (no search, no span filters)
+    if (useServerSidePagination) {
+      const pageSeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.PAGE_CONVERSATIONS);
+      const conversationIds = pageSeries
+        .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
+        .filter(Boolean) as string[];
+
+      const totalSeries = this.extractSeries(
+        consolidatedResp,
+        QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS
+      );
+      const total = countFromSeries(totalSeries[0] || { values: [{ value: '0' }] });
+
+      return { conversationIds, total };
+    }
+
+    // Slow path: client-side filtering needed for search or span filters
+    const activitySeries = this.extractSeries(
+      consolidatedResp,
+      QUERY_EXPRESSIONS.PAGE_CONVERSATIONS
+    );
     const activityMap = new Map<string, number>();
     for (const s of activitySeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
@@ -376,11 +399,10 @@ class SigNozStatsAPI {
       activityMap.set(id, numberFromSeries(s));
     }
 
-    // Start with all conversation IDs from activity data
     let conversationIds = Array.from(activityMap.keys());
 
     // Apply span filters if needed
-    if (filters?.spanName || filters?.attributes?.length) {
+    if (hasSpanFilters) {
       const filteredSeries = this.extractSeries(
         consolidatedResp,
         QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS
@@ -392,7 +414,7 @@ class SigNozStatsAPI {
     }
 
     // Apply search filtering if needed
-    if (searchQuery?.trim()) {
+    if (hasSearchQuery) {
       const metadataSeries = this.extractSeries(
         consolidatedResp,
         QUERY_EXPRESSIONS.CONVERSATION_METADATA
@@ -419,7 +441,7 @@ class SigNozStatsAPI {
         }
       }
 
-      const q = searchQuery.toLowerCase().trim();
+      const q = searchQuery?.toLowerCase().trim() ?? '';
       conversationIds = conversationIds.filter((id) => {
         const meta = metadataMap.get(id);
         const firstMsg = firstMessagesMap.get(id);
@@ -435,7 +457,7 @@ class SigNozStatsAPI {
     conversationIds.sort((a, b) => {
       const aTime = activityMap.get(a) ?? 0;
       const bTime = activityMap.get(b) ?? 0;
-      return bTime - aTime; // Descending order
+      return bTime - aTime;
     });
 
     const total = conversationIds.length;
@@ -1543,7 +1565,8 @@ class SigNozStatsAPI {
     filters: SpanFilterOptions | undefined,
     projectId: string | undefined,
     agentId: string | undefined,
-    includeSearchData: boolean
+    includeSearchData: boolean,
+    pagination?: { page: number; limit: number }
   ) {
     const buildBaseFilters = (): any[] => {
       const items: any[] = [
@@ -1582,11 +1605,15 @@ class SigNozStatsAPI {
       return items;
     };
 
+    const paginationLimit =
+      pagination && !includeSearchData ? pagination.limit : QUERY_DEFAULTS.LIMIT_UNLIMITED;
+    const paginationOffset =
+      pagination && !includeSearchData ? (pagination.page - 1) * pagination.limit : 0;
+
     const builderQueries: Record<string, any> = {
-      // Always include activity query for sorting
-      lastActivity: {
+      pageConversations: {
         dataSource: DATA_SOURCES.TRACES,
-        queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+        queryName: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
         aggregateOperator: AGGREGATE_OPERATORS.MIN,
         aggregateAttribute: {
           key: SPAN_KEYS.TIMESTAMP,
@@ -1599,15 +1626,35 @@ class SigNozStatsAPI {
             ...QUERY_FIELD_CONFIGS.STRING_TAG,
           },
         ],
-        expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+        expression: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
         reduceTo: REDUCE_OPERATIONS.MIN,
         stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
         orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+        offset: paginationOffset,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: paginationLimit,
+      },
+      totalConversations: {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
+        aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
+        aggregateAttribute: {
+          key: SPAN_KEYS.CONVERSATION_ID,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG,
+        },
+        filters: { op: OPERATORS.AND, items: buildBaseFilters() },
+        groupBy: [],
+        expression: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
+        reduceTo: REDUCE_OPERATIONS.SUM,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [],
         offset: QUERY_DEFAULTS.OFFSET,
         disabled: QUERY_DEFAULTS.DISABLED,
         having: QUERY_DEFAULTS.HAVING,
         legend: QUERY_DEFAULTS.LEGEND,
-        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        limit: 1,
       },
     };
 
@@ -2220,7 +2267,7 @@ class SigNozStatsAPI {
               ],
             },
             groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalConversations',
+            expression: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [],
@@ -3410,7 +3457,7 @@ class SigNozStatsAPI {
               ],
             },
             groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalConversations',
+            expression: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [],

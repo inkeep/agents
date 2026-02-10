@@ -80,6 +80,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
+    { label: 'Claude Opus 4.6', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_6 },
     { label: 'Claude Opus 4.5', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_5 },
     { label: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
     { label: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },

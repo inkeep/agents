@@ -159,38 +159,8 @@ echo "  Running runtime database migrations..."
 pnpm --filter @inkeep/agents-core db:run:migrate
 echo -e "${GREEN}✓${NC} Runtime database migrations applied"
 
-# 8. Setup SpiceDB schema (authorization) - must happen before auth init
-echo ""
-echo "Setting up SpiceDB..."
-
-# Check if zed CLI is installed
-if command -v zed &> /dev/null; then
-  SCHEMA_PATH="packages/agents-core/spicedb/schema.zed"
-  echo "  Writing SpiceDB schema from $SCHEMA_PATH..."
-  
-  # Retry writing schema until SpiceDB is ready (up to 30 attempts)
-  SCHEMA_APPLIED=false
-  for i in {1..30}; do
-    if zed schema write $SCHEMA_PATH --insecure --endpoint localhost:50051 --token dev-secret-key 2>/dev/null; then
-      SCHEMA_APPLIED=true
-      break
-    fi
-    sleep 1
-  done
-  
-  if [ "$SCHEMA_APPLIED" = true ]; then
-    echo -e "${GREEN}✓${NC} SpiceDB schema applied"
-  else
-    echo -e "${YELLOW}⚠️  Could not write SpiceDB schema (SpiceDB may still be starting)${NC}"
-    echo "   Wait a few seconds and re-run 'pnpm setup-dev' to retry"
-  fi
-else
-  echo -e "${YELLOW}⚠️  zed CLI not installed - skipping SpiceDB schema setup${NC}"
-  echo "   Install with: brew install authzed/tap/zed"
-  echo "   Then re-run 'pnpm setup-dev' to apply the schema"
-fi
-
-# 9. Initialize default organization and admin user (if credentials are set)
+# 8. Initialize default organization and admin user (if credentials are set)
+# Note: SpiceDB schema is now applied automatically by pnpm db:auth:init
 echo ""
 echo "Checking for auth initialization..."
 

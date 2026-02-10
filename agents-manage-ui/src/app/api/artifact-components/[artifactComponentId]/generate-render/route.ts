@@ -9,7 +9,7 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
+import { ModelFactory } from '@inkeep/agents-core';
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -68,7 +68,9 @@ export async function POST(
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
     // Define schema for generated output
-    const mockDataSchema = jsonSchemaToZod(artifactComponent.props);
+    const mockDataSchema = artifactComponent.props
+      ? z.fromJSONSchema(artifactComponent.props)
+      : z.string();
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
       mockData: mockDataSchema.describe('Sample data matching the props schema'),

@@ -1,5 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import { TypeCompiler } from '@sinclair/typebox/compiler';
+import { z } from 'zod';
 
 // TypeBox schema for valid JSON Schema Draft 7
 const JsonSchemaPropertySchema = Type.Object({
@@ -254,4 +255,19 @@ export function getJsonParseError(error: unknown): string {
     return 'Invalid JSON syntax - check structure and formatting';
   }
   return 'Unable to parse JSON';
+}
+
+/**
+ * Used in z.transform, later will be reused in reusing zod schema from @inkeep/agents-core PR
+ */
+export function transformToJson<T extends string>(value: T, ctx: z.RefinementCtx<T>) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Invalid JSON syntax',
+    });
+    return z.NEVER;
+  }
 }

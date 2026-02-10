@@ -1,6 +1,7 @@
 ---
 name: product-surface-areas
-description: Consolidated dependency graph of Inkeep customer-facing surface areas (UIs, CLIs, SDKs, APIs, protocols, config formats). Example use: as a prd-time (planning/brainstorming phase) or post-change checklist to understand the full scope of side-effects or what making one change to the product means for the rest. Use whenever you need to understand the "ripple" out effects of any change.
+description: |
+  Consolidated dependency graph of Inkeep customer-facing surface areas (UIs, CLIs, SDKs, APIs, protocols, config formats). Example use: as a prd-time (planning/brainstorming phase) or post-change checklist to understand the full scope of side-effects or what making one change to the product means for the rest. Use whenever you need to understand the "ripple" out effects of any change.
 ---
 
 # Inkeep Product Surface Area Inventory

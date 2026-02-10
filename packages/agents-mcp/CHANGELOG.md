@@ -1,5 +1,29 @@
 # @inkeep/agents-mcp
 
+## 0.47.4
+
+## 0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- c5357e5: Fixes zod stringbo
+
+## 0.47.1
+
+## 0.47.0
+
+## 0.46.1
+
+## 0.46.0
+
+### Patch Changes
+
+- 4811c97: performance imp trace
+
+## 0.45.3
+
 ## 0.45.2
 
 ## 0.45.1

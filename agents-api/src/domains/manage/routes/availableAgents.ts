@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   createApiError,
-  listAgentsAcrossProjectBranches,
+  listAgentsAcrossProjectMainBranches,
   listUsableProjectIds,
   verifyTempToken,
 } from '@inkeep/agents-core';
@@ -166,7 +166,7 @@ app.openapi(
     }
 
     // Fetch agents across all usable project branches
-    const agents = await listAgentsAcrossProjectBranches(manageDbClient, {
+    const agents = await listAgentsAcrossProjectMainBranches(manageDbClient, {
       tenantId,
       projectIds,
     });

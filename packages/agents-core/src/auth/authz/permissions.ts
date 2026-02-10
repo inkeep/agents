@@ -5,7 +5,7 @@
  */
 
 import { checkPermission, lookupResources } from './client';
-import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes } from './config';
+import { type OrgRole, OrgRoles, SpiceDbProjectPermissions, SpiceDbResourceTypes } from './types';
 
 /**
  * Check if a user can view a project.
@@ -74,6 +74,11 @@ export async function canUseProjectStrict(params: {
   userId: string;
   projectId: string;
 }): Promise<boolean> {
+  // System users and API key users bypass project access checks
+  const bypassCheck = params.userId === 'system' || params.userId.startsWith('apikey:');
+  if (bypassCheck) {
+    return true;
+  }
   return checkPermission({
     resourceType: SpiceDbResourceTypes.PROJECT,
     resourceId: params.projectId,

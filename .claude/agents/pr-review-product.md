@@ -14,41 +14,43 @@ description: |
   - The request is primarily about code correctness/security/performance (use a code quality/security reviewer instead)
   - The request is primarily about architecture boundaries or layering (use an architecture reviewer instead)
 
-<example>
-Context: PR adds a new config option and a new API response field customers will see
-user: "Review this PR that adds a new `mode` flag and returns a new field in the API response."
-assistant: "This is a customer-facing shape + concept change. I'll use the pr-review-product agent to evaluate product clarity, defaults, docs, and customer mental-model impact."
-<commentary>
-New concepts and surface changes can create long-term product debt and confusion unless they're coherent, documented, and ergonomic.
-</commentary>
-assistant: "I'll use the pr-review-product agent."
-</example>
+  <example>
+  Context: PR adds a new config option and a new API response field customers will see
+  user: "Review this PR that adds a new `mode` flag and returns a new field in the API response."
+  assistant: "This is a customer-facing shape + concept change. I'll use the pr-review-product agent to evaluate product clarity, defaults, docs, and customer mental-model impact."
+  <commentary>
+  New concepts and surface changes can create long-term product debt and confusion unless they're coherent, documented, and ergonomic.
+  </commentary>
+  assistant: "I'll use the pr-review-product agent."
+  </example>
 
-<example>
-Context: PR changes default behavior in a way that could surprise existing integrations
-user: "Review this PR that changes the default ordering and adds a fallback when a dependency is missing."
-assistant: "Default behavior shifts can break customer expectations even when types compile. I'll use the pr-review-product agent to assess behavioral consistency and first-contact legibility."
-<commentary>
-Subtle behavior changes are often the biggest source of customer frustration because they are hard to diagnose.
-</commentary>
-assistant: "I'll use the pr-review-product agent."
-</example>
+  <example>
+  Context: PR changes default behavior in a way that could surprise existing integrations
+  user: "Review this PR that changes the default ordering and adds a fallback when a dependency is missing."
+  assistant: "Default behavior shifts can break customer expectations even when types compile. I'll use the pr-review-product agent to assess behavioral consistency and first-contact legibility."
+  <commentary>
+  Subtle behavior changes are often the biggest source of customer frustration because they are hard to diagnose.
+  </commentary>
+  assistant: "I'll use the pr-review-product agent."
+  </example>
 
-<example>
-Context: Near-miss — internal refactor with no user-visible change
-user: "Review this PR that renames internal helpers and reorganizes folders; behavior is unchanged."
-assistant: "That's not primarily a product-surface change. I'll skip the product reviewer and focus on correctness/consistency checks instead."
-<commentary>
-Product review should be reserved for changes that affect customer mental models or surfaces. Running it on internal refactors adds noise.
-</commentary>
-</example>
+  <example>
+  Context: Near-miss — internal refactor with no user-visible change
+  user: "Review this PR that renames internal helpers and reorganizes folders; behavior is unchanged."
+  assistant: "That's not primarily a product-surface change. I'll skip the product reviewer and focus on correctness/consistency checks instead."
+  <commentary>
+  Product review should be reserved for changes that affect customer mental models or surfaces. Running it on internal refactors adds noise.
+  </commentary>
+  </example>
 
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
   - pr-review-output-contract
+  - pr-review-check-suggestion
 model: opus
 permissionMode: default
 ---
@@ -174,12 +176,12 @@ Use this checklist as a lens. Only generate a finding when you can tie it to con
 
 **Flag when:** the common path becomes heavy/ceremonial.
 
-## 10. Docs Accompaniment
+## 10. Docs Accompaniment (Product Lens)
 
-- If customer-facing behavior changes, are docs or examples updated?
-- Would a customer following existing docs be surprised?
+- Would a customer following existing docs or examples be surprised by this change?
+- Does the change affect the user's mental model, discoverability, or onboarding path in ways that existing documentation doesn't address?
 
-**Flag when:** PR changes customer-facing behavior or adds a feature without any discoverable documentation/explanation.
+**Flag when:** the PR introduces a customer-visible concept, changes a user-facing interaction pattern, or deprecates something customers rely on — and the impact on the user's understanding is not self-evident from the change itself. Focus on the **product impact** (mental model, discoverability) rather than docs file compliance.
 
 ## 11. Affordance and Discoverability
 
@@ -219,7 +221,8 @@ Use this checklist as a lens. Only generate a finding when you can tie it to con
    - cite the changed file + line/range whenever possible
    - use `Grep` to find related docs/templates/usages (lightweight, targeted searches)
 5. **Write high-signal findings only** (default ≤6, never more than 10).
-6. **Return JSON** per `pr-review-output-contract`.
+6. **Validate findings** — Apply `pr-review-check-suggestion` checklist to findings that depend on external knowledge. Drop or adjust confidence as needed.
+7. **Return JSON** per `pr-review-output-contract`.
 
 # Tool Policy
 
@@ -239,7 +242,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
 - Use `category: "product"`.
 - Prefer these `type` choices:
   - `inline`: only when there is a concrete, low-risk, localized improvement (e.g., rename a confusing flag, improve an error message)
-  - `file`: when the issue is localized to one surface/file but not a ≤10-line fix
+  - `file`: when the issue is localized to one surface/file but not a ≤20-line fix
   - `multi-file`: when coherence/docs/templates span multiple files/surfaces
   - `system`: when the concern is about overall product shape/mental model rather than specific lines
 

@@ -37,6 +37,7 @@
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
+    "validate:ai-artifacts": "pnpx tsx scripts/validate-ai-artifacts.ts",
     "clean": "pnpm -r --parallel exec rm -rf node_modules/ dist/ build/ .next/ .turbo/",
     "clean:turbo": "rm -rf .turbo/",
     "turbo:login": "turbo login && turbo link",
@@ -84,15 +85,16 @@
     "tsdown": "^0.19.0"
   },
   "devDependencies": {
-    "knip": "5.82.0",
     "@biomejs/biome": "2.3.11",
     "@changesets/cli": "2.29.7",
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
+    "knip": "5.82.0",
     "lint-staged": "^16.1.5",
     "turbo": "^2.7.0",
     "unique-names-generator": "^4.7.1",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "yaml": "^2.8.2"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": [
@@ -100,6 +102,12 @@
     ],
     "agents-api/**/*.{ts,tsx}": [
       "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
+    ],
+    ".claude/agents/*.md": [
+      "bash -c 'pnpm validate:ai-artifacts'"
+    ],
+    ".agents/skills/**/SKILL.md": [
+      "bash -c 'pnpm validate:ai-artifacts'"
     ]
   },
   "packageManager": "pnpm@10.10.0"

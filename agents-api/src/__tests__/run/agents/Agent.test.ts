@@ -7,7 +7,7 @@ import {
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
-import { Phase1Config } from '../../../domains/run/agents/versions/v1/Phase1Config';
+import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
 const toParts = (text: string) => [{ kind: 'text' as const, text }];
 
@@ -565,7 +565,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -588,7 +589,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -611,7 +613,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -645,7 +648,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       artifacts: [],
       artifactComponents: [],
       hasAgentArtifactComponents: false,
-      isThinkingPreparation: false,
+      includeDataComponents: false,
+      clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
     });
@@ -655,14 +659,14 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
-    // Verify the SystemPromptBuilder was instantiated with 'v1' and Phase1Config
+    // Verify the SystemPromptBuilder was instantiated with 'v1' and PromptConfig
     expect(systemPromptBuilder).toBeDefined();
-    // The constructor should have been called with 'v1' and a Phase1Config instance
+    // The constructor should have been called with 'v1' and a PromptConfig instance
     // This is tested implicitly by the fact that the agent creates successfully
   });
 });
 
-describe('Phase1Config Tool Conversion', () => {
+describe('PromptConfig Tool Conversion', () => {
   test('should convert McpTool availableTools to ToolData format correctly', () => {
     const mockTools: McpTool[] = [
       {
@@ -711,7 +715,7 @@ describe('Phase1Config Tool Conversion', () => {
       } as McpTool,
     ];
 
-    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
+    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -741,8 +745,8 @@ describe('Phase1Config Tool Conversion', () => {
   });
 
   test('should handle empty or undefined McpTool arrays', () => {
-    expect(Phase1Config.convertMcpToolsToToolData([])).toEqual([]);
-    expect(Phase1Config.convertMcpToolsToToolData(undefined)).toEqual([]);
+    expect(PromptConfig.convertMcpToolsToToolData([])).toEqual([]);
+    expect(PromptConfig.convertMcpToolsToToolData(undefined)).toEqual([]);
   });
 
   test('should handle McpTools without availableTools', () => {
@@ -770,7 +774,7 @@ describe('Phase1Config Tool Conversion', () => {
       } as McpTool,
     ];
 
-    const result = Phase1Config.convertMcpToolsToToolData(mockTools);
+    const result = PromptConfig.convertMcpToolsToToolData(mockTools);
     expect(result).toEqual([]);
   });
 });
@@ -1532,17 +1536,9 @@ describe('Agent Model Settings', () => {
     await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Called twice: once for text generation with custom model, once for structured output with OpenAI model
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-3-5-haiku-latest',
-      providerOptions: {
-        anthropic: {
-          temperature: 0.5,
-        },
-      },
-    });
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
+    // Single-phase generation: uses structuredOutput model when data components are present
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'openai/gpt-4.1-mini',
     });
   });
@@ -1564,13 +1560,9 @@ describe('Agent Model Settings', () => {
     await agent.generate(toParts('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
-    // Called twice: once for text generation, once for structured output (both use base model)
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-sonnet-4-5',
-      providerOptions: undefined,
-    });
-    expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
+    // Single-phase generation: falls back to base model when no structuredOutput model configured
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(1);
+    expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
