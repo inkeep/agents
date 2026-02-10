@@ -122,7 +122,7 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       `/${tenantId}/projects/${projectId}/evaluations/run-configs`,
       `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
       `/${tenantId}/projects/${projectId}/agents/${slug[3]}/triggers/${slug[5]}`,
-      `/${tenantId}/projects/${projectId}/skills/${slug[3]}`,
+      ...(slug[3] === 'new' ? [] : [`/${tenantId}/projects/${projectId}/skills/${slug[3]}`]),
     ]);
 
     if (!routesWithoutBreadcrumbs.has(href)) {

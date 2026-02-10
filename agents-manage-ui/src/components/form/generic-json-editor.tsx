@@ -42,10 +42,10 @@ export function GenericJsonEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex">
+              <FormLabel isRequired={isRequired} className="inline-flex grow">
                 {label}
               </FormLabel>
-              <Editor.DialogTrigger className={cn('ml-auto', open && 'invisible')} />
+              <Editor.DialogTrigger className={open ? 'invisible' : ''} />
             </div>
             <FormControl>
               <StandaloneJsonEditor
