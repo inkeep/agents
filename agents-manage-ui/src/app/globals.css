@@ -68,6 +68,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -166,6 +168,9 @@
   --sidebar-accent-foreground: var(--color-azure-600);
   --sidebar-border: var(--color-stone-200);
   --sidebar-ring: var(--color-stone-400);
+
+  --success: oklch(0.52 0.14 160);
+  --warning: oklch(0.65 0.18 75);
 }
 
 .dark {
@@ -200,6 +205,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --success: oklch(0.65 0.16 162);
+  --warning: oklch(0.75 0.16 78);
 }
 
 @layer base {

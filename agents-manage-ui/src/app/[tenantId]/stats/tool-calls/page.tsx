@@ -1,12 +1,13 @@
 'use client';
 
-import { ArrowLeft, CheckCircle, FolderKanban, Server, Wrench } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FolderKanban, Layers, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
+import { ToolCallsByServerCard } from '@/components/traces/tool-calls/tool-calls-by-server-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
@@ -265,7 +266,12 @@ export default function AllProjectsToolCallsBreakdown({
       {/* Project Calls List */}
       <Card className="shadow-none bg-background">
         <CardHeader>
-          <CardTitle className="text-foreground">MCP Calls by Project</CardTitle>
+          <CardTitle className="flex font-medium items-center gap-4 text-foreground">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-gray-400 dark:text-white/40" />
+              MCP Calls by Project
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -328,158 +334,7 @@ export default function AllProjectsToolCallsBreakdown({
       </Card>
 
       {/* Tool Breakdown by Server */}
-      <Card className="shadow-none bg-background">
-        <CardHeader>
-          <CardTitle className="text-foreground">Tool Calls by Server</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-5 w-20" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            (() => {
-              const toolsByServer = toolCalls.reduce(
-                (acc, tool) => {
-                  const serverName = tool.serverName || UNKNOWN_VALUE;
-                  if (!acc[serverName]) {
-                    acc[serverName] = [];
-                  }
-                  acc[serverName].push(tool);
-                  return acc;
-                },
-                {} as Record<string, typeof toolCalls>
-              );
-
-              const serverNames = Object.keys(toolsByServer).sort((a, b) => {
-                if (a === UNKNOWN_VALUE) return 1;
-                if (b === UNKNOWN_VALUE) return -1;
-                return a.localeCompare(b);
-              });
-
-              if (serverNames.length === 0) {
-                return (
-                  <div className="text-center py-8">
-                    <Server className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No tool calls found.</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      No MCP tool calls detected in the selected time range.
-                    </p>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                  {serverNames.map((serverName) => {
-                    const serverTools = toolsByServer[serverName];
-                    const serverTotalCalls = serverTools.reduce((sum, t) => sum + t.totalCalls, 0);
-                    const serverTotalErrors = serverTools.reduce((sum, t) => sum + t.errorCount, 0);
-                    const serverSuccessful = serverTotalCalls - serverTotalErrors;
-                    const serverSuccessRate =
-                      serverTotalCalls > 0 ? (serverSuccessful / serverTotalCalls) * 100 : 0;
-
-                    const serverId = serverTools[0]?.serverId;
-
-                    return (
-                      <div key={serverName} className="space-y-2">
-                        <div
-                          className={`flex items-center justify-between p-4 rounded-lg border ${serverSuccessRate === 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-border bg-muted/40'}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Server
-                              className={`h-5 w-5 ${serverSuccessRate === 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
-                            />
-                            <div>
-                              <span
-                                className={`text-sm font-semibold ${serverSuccessRate === 0 ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}
-                              >
-                                {serverName === UNKNOWN_VALUE ? 'Unknown Server' : serverName}
-                              </span>
-                              {serverId && serverId !== UNKNOWN_VALUE && (
-                                <p
-                                  className={`text-xs font-mono ${serverSuccessRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}
-                                >
-                                  {serverId}
-                                </p>
-                              )}
-                              <p
-                                className={`text-xs ${serverSuccessRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}
-                              >
-                                {serverTools.length} tool{serverTools.length !== 1 ? 's' : ''}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div
-                              className={`text-lg font-bold ${serverSuccessRate === 0 ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}
-                            >
-                              {serverSuccessRate.toFixed(0)}%
-                            </div>
-                            <div
-                              className={`text-xs ${serverSuccessRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}
-                            >
-                              {serverSuccessful}/{serverTotalCalls} calls
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="ml-6 space-y-2">
-                          {serverTools
-                            .sort((a, b) => b.totalCalls - a.totalCalls)
-                            .map((tool, toolIndex) => {
-                              const successfulCalls = tool.totalCalls - tool.errorCount;
-                              const successRate =
-                                tool.totalCalls > 0 ? (successfulCalls / tool.totalCalls) * 100 : 0;
-                              return (
-                                <div
-                                  key={toolIndex}
-                                  className={`flex items-center justify-between p-3 rounded-md border ${successRate === 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-border/50 bg-muted/20'}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Wrench
-                                      className={`h-4 w-4 ${successRate === 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
-                                    />
-                                    <span
-                                      className={`text-sm ${successRate === 0 ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}
-                                    >
-                                      {tool.toolName === UNKNOWN_VALUE
-                                        ? 'Unknown Tool'
-                                        : tool.toolName}
-                                    </span>
-                                  </div>
-                                  <div className="text-right">
-                                    <div
-                                      className={`text-sm font-medium ${successRate === 0 ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}
-                                    >
-                                      {successRate.toFixed(0)}%
-                                    </div>
-                                    <div
-                                      className={`text-xs ${successRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}
-                                    >
-                                      {successfulCalls}/{tool.totalCalls} calls
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()
-          )}
-        </CardContent>
-      </Card>
+      <ToolCallsByServerCard title="Tool Calls by Server" loading={loading} toolCalls={toolCalls} />
     </div>
   );
 }
