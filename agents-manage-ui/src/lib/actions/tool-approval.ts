@@ -10,6 +10,7 @@
  */
 'use server';
 
+import { isValidExecuteCode } from '@inkeep/agents-core';
 import { computeDiff, extractFieldsToUpdate, fetchCurrentEntityState } from './tool-approval.utils';
 import type { ActionResult } from './types';
 
@@ -17,6 +18,7 @@ interface FieldDiff {
   field: string;
   oldValue: any;
   newValue: any;
+  renderAsCode?: boolean;
 }
 
 interface FetchToolApprovalDiffParams {
@@ -48,7 +50,14 @@ export async function fetchToolApprovalDiff(
     }
 
     const newValues = extractFieldsToUpdate(input);
-    const diffs = computeDiff(currentState, newValues);
+    const rawDiffs = computeDiff(currentState, newValues);
+    const diffs = rawDiffs.map(({ field, oldValue, newValue }) => {
+      const bothStrings = typeof oldValue === 'string' && typeof newValue === 'string';
+      const renderAsCode =
+        bothStrings &&
+        (isValidExecuteCode(String(newValue)) || isValidExecuteCode(String(oldValue)));
+      return { field, oldValue, newValue, renderAsCode: !!renderAsCode };
+    });
 
     return {
       success: true,

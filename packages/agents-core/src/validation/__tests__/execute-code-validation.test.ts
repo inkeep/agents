@@ -1,4 +1,4 @@
-import { FunctionApiInsertSchema } from '../schemas';
+import { FunctionApiInsertSchema, isValidExecuteCode } from '../schemas';
 
 function parse(executeCode: string) {
   return FunctionApiInsertSchema.parse({
@@ -71,6 +71,18 @@ describe('FunctionApiInsertSchema executeCode validation', () => {
 
     test('async named function', () => {
       expect(() => parse('async function foo() {}')).not.toThrowError();
+    });
+  });
+
+  describe('isValidExecuteCode', () => {
+    it('returns true for valid executeCode strings', () => {
+      expect(isValidExecuteCode('async function execute() { return 1; }')).toBe(true);
+      expect(isValidExecuteCode('() => 1')).toBe(true);
+    });
+    it('returns false for invalid executeCode strings', () => {
+      expect(isValidExecuteCode('')).toBe(false);
+      expect(isValidExecuteCode('export default null')).toBe(false);
+      expect(isValidExecuteCode('const x = 1;')).toBe(false);
     });
   });
 });

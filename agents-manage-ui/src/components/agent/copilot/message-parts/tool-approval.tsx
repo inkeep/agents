@@ -29,6 +29,7 @@ interface FieldDiff {
   field: string;
   oldValue: any;
   newValue: any;
+  renderAsCode?: boolean;
 }
 
 interface EntityData {
@@ -72,8 +73,14 @@ const DeleteEntityApproval = ({ entityData }: { entityData: EntityData }) => {
 const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
   return (
     <div className="flex flex-col gap-5">
-      {diffs.map(({ field, oldValue, newValue }) => (
-        <DiffField key={field} field={field} originalValue={oldValue} newValue={newValue} />
+      {diffs.map(({ field, oldValue, newValue, renderAsCode }) => (
+        <DiffField
+          key={field}
+          field={field}
+          originalValue={oldValue}
+          newValue={newValue}
+          renderAsCode={renderAsCode}
+        />
       ))}
     </div>
   );
