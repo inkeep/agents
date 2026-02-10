@@ -111,7 +111,7 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
               ? ''
               : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
           }
-          isRequired
+          isRequired={isRequired(schema, 'name')}
           disabled={!!initialData}
         />
         <GenericTextarea
@@ -136,7 +136,7 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
             </>
           }
           placeholder="High-level summary of what this skill enforces."
-          isRequired
+          isRequired={isRequired(schema, 'description')}
         />
         <ExpandablePromptEditor
           label="Content"
@@ -157,7 +157,7 @@ Use this skill when the user needs to work with PDF files...
 
 ...`}
           error={form.formState.errors.content?.message}
-          isRequired
+          isRequired={isRequired(schema, 'content')}
           uri="content.md"
         />
         <ExpandableJsonEditor
