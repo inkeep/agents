@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.47.5
+
+### Patch Changes
+
+- 1ae697c: Polish tool calls breakdown pages
+  - @inkeep/agents-core@0.47.5
+
 ## 0.47.4
 
 ### Patch Changes
