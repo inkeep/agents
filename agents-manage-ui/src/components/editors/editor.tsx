@@ -1,3 +1,5 @@
+'use client';
+
 import { Maximize } from 'lucide-react';
 import type { ComponentProps, FC, JSX, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
