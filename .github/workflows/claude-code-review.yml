@@ -7,7 +7,9 @@ on:
     types: [created]
 
 concurrency:
-  group: pr-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  # Separate groups per trigger type so issue_comment runs (which often skip)
+  # don't cancel in-progress pull_request review runs.
+  group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
