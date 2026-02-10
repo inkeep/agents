@@ -15,26 +15,26 @@ import {
   TenantProjectParamsSchema,
   updateSkill,
 } from '@inkeep/agents-core';
-import { requirePermission } from '../../../middleware/requirePermission';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 app.use('/', (c, next) => {
-  // if (c.req.method === 'POST') {
-  //   return requirePermission({ skill: ['create'] })(c, next);
-  // }
+  if (c.req.method === 'POST') {
+    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
+  }
   return next();
 });
 
 app.use('/:id', (c, next) => {
-  // if (c.req.method === 'PUT') {
-  //   return requirePermission({ skill: ['update'] })(c, next);
-  // }
-  // if (c.req.method === 'DELETE') {
-  //   return requirePermission({ skill: ['delete'] })(c, next);
-  // }
+  if (c.req.method === 'PUT') {
+    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requireProjectPermission<{ Variables: ManageAppVariables }>('edit')(c, next);
+  }
   return next();
 });
 
