@@ -1,10 +1,21 @@
 'use client';
 
-import { ArrowLeft, Bot, Brain, Coins, Cpu, MessageSquare } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowLeftFromLine,
+  ArrowRightToLine,
+  Bot,
+  Brain,
+  Coins,
+  Cpu,
+  MessageSquare,
+  SparklesIcon,
+} from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
+import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Button } from '@/components/ui/button';
@@ -222,7 +233,6 @@ export default function AICallsBreakdown({
       </div>
 
       {/* Filters Card */}
-
       <div className="flex flex-col md:flex-row gap-2 md:gap-4">
         {/* Agent Filter */}
         <Combobox
@@ -284,7 +294,6 @@ export default function AICallsBreakdown({
         />
 
         {/* Time Range Filter */}
-
         <DatePickerWithPresets
           label="Time range"
           onRemove={() => setTimeRange('30d')}
@@ -303,77 +312,38 @@ export default function AICallsBreakdown({
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Total AI Calls</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-foreground">
-                {totalAICalls.toLocaleString()}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {selectedAgent === 'all'
-                ? `Across ${agentCalls.length} agents`
-                : 'For selected agent'}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total AI Calls"
+          stat={totalAICalls}
+          statDescription={
+            selectedAgent === 'all' ? `Across ${agentCalls.length} agents` : 'For selected agent'
+          }
+          isLoading={loading}
+          Icon={SparklesIcon}
+        />
+        <StatCard
+          title="Total Tokens"
+          stat={formatTokenCount(tokenUsage.totals.totalTokens)}
+          statDescription="Input + Output tokens"
+          isLoading={loading}
+          Icon={Coins}
+        />
 
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Total Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-foreground">
-                {formatTokenCount(tokenUsage.totals.totalTokens)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Input + Output tokens</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Input Tokens"
+          stat={formatTokenCount(tokenUsage.totals.inputTokens)}
+          statDescription="Prompt tokens used"
+          isLoading={loading}
+          Icon={ArrowRightToLine}
+        />
 
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Input Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-blue-600">
-                {formatTokenCount(tokenUsage.totals.inputTokens)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Prompt tokens used</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Output Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mb-2" />
-            ) : (
-              <div className="text-2xl font-bold text-green-600">
-                {formatTokenCount(tokenUsage.totals.outputTokens)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Completion tokens generated</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Output Tokens"
+          stat={formatTokenCount(tokenUsage.totals.outputTokens)}
+          statDescription="Completion tokens generated"
+          isLoading={loading}
+          Icon={ArrowLeftFromLine}
+        />
       </div>
 
       {/* Agent Calls List */}
