@@ -36,21 +36,23 @@ export function ExpandableField({
 
   return (
     <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
-      <div className="flex items-center justify-between">
-        <Label
-          id={id}
-          className={cn(hasError && 'text-destructive', 'gap-1')}
-          onClick={focusEditor}
-        >
-          {label}
-          {isRequired && <span className="text-red-500">*</span>}
-        </Label>
-        <div className="flex gap-2">
-          {actions}
-          {!open && <Editor.DialogTrigger />}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label
+            id={id}
+            className={cn(hasError && 'text-destructive', 'gap-1')}
+            onClick={focusEditor}
+          >
+            {label}
+            {isRequired && <span className="text-red-500">*</span>}
+          </Label>
+          <div className="flex gap-2">
+            {actions}
+            {!open && <Editor.DialogTrigger />}
+          </div>
         </div>
+        <div className={cn('relative space-y-2', open && 'grow')}>{children}</div>
       </div>
-      <div className={cn('relative space-y-2', open && 'grow')}>{children}</div>
     </Editor.Dialog>
   );
 }
