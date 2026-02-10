@@ -262,7 +262,7 @@ export default function ConversationDetail({
               className="shadow-none bg-background"
               title={
                 conversation.conversationStartTime
-                  ? `Start: ${conversation.conversationStartTime}${showEndTime ? `\nEnd: ${conversation.conversationEndTime}` : ''}`
+                  ? `Start: ${formatDateTime(conversation.conversationStartTime, { local: true })}${showEndTime && conversation.conversationEndTime ? `\nEnd: ${formatDateTime(conversation.conversationEndTime, { local: true })}` : ''}`
                   : 'Timing data not available'
               }
             >
@@ -285,7 +285,8 @@ export default function ConversationDetail({
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-xs text-muted-foreground">End:</span>
                             <span className="text-xs font-mono">
-                              {conversation.conversationEndTime && formatDateTime(conversation.conversationEndTime, { local: true })}
+                              {conversation.conversationEndTime &&
+                                formatDateTime(conversation.conversationEndTime, { local: true })}
                             </span>
                           </div>
                         ) : conversation.status === 'active' ? (
