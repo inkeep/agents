@@ -9,14 +9,15 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
+import { transformToJson } from '@/lib/json-schema-validation';
 import { GenericComboBox } from '../generic-combo-box';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
 
-function getCommonProps<FV extends FieldValues, TV extends FieldValues>(
-  form: UseFormReturn<FV, unknown, TV>,
-  name: FieldPath<FV>
+function getCommonProps<TFieldValues extends FieldValues, TTransformedValues = TFieldValues>(
+  form: UseFormReturn<TFieldValues, unknown, TTransformedValues>,
+  name: FieldPath<TFieldValues>
 ) {
   const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
   return {
@@ -40,7 +41,7 @@ const TestForm: FC = () => {
   const form = useForm({ resolver });
 
   useEffect(() => {
-    void form.trigger();
+    form.trigger();
   }, [form]);
 
   const divider = <hr style={{ borderColor: 'green' }} />;
@@ -88,7 +89,7 @@ const NestedTestForm: FC = () => {
   });
 
   useEffect(() => {
-    void form.trigger();
+    form.trigger();
   }, [form]);
 
   return (
