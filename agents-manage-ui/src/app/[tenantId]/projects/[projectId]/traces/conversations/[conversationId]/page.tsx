@@ -259,7 +259,7 @@ export default function ConversationDetail({
 
           return (
             <Card
-              className="shadow-none bg-background"
+              className="shadow-none bg-background max-h-[280px] flex flex-col"
               title={
                 conversation.conversationStartTime
                   ? `Start: ${formatDateTime(conversation.conversationStartTime, { local: true })}${showEndTime && conversation.conversationEndTime ? `\nEnd: ${formatDateTime(conversation.conversationEndTime, { local: true })}` : ''}`
@@ -310,12 +310,12 @@ export default function ConversationDetail({
         })()}
 
         {/* AI Calls summary grouped by model */}
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="shadow-none bg-background max-h-[280px] flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium text-foreground">AI Calls</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0 overflow-y-auto">
             {(() => {
               const ai = conversation?.activities?.filter(
                 (a: ActivityItem) =>
@@ -370,8 +370,8 @@ export default function ConversationDetail({
         <MCPBreakdownCard conversation={conversation} />
 
         {/* Alerts */}
-        <Card className="shadow-none bg-background">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="shadow-none bg-background max-h-[280px] flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium text-foreground">Alerts</CardTitle>
             <TriangleAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>

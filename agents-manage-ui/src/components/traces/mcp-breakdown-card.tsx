@@ -95,7 +95,7 @@ export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
   }, [conversation]);
 
   return (
-    <Card className="shadow-none bg-background flex flex-col">
+    <Card className="shadow-none bg-background flex flex-col max-h-[280px]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
         <CardTitle className="text-sm font-medium text-foreground"> MCP Tool Calls</CardTitle>
         <Wrench className="h-4 w-4 text-muted-foreground" />
