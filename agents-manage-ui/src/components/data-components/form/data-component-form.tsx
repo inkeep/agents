@@ -153,6 +153,7 @@ export function DataComponentForm({
               tenantId={tenantId}
               projectId={projectId}
               dataComponentId={id}
+              dataComponentName={form.watch('name')}
               existingRender={initialData?.render || null}
               onRenderChanged={(render) => {
                 form.setValue('render', render);

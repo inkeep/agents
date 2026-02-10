@@ -58,6 +58,16 @@ function isNestedConfig(config: any): config is {
 }
 
 /**
+ * Ensure URL has a scheme so fetch() works. Bare host:port gets http://.
+ */
+function ensureUrlScheme(url: string | undefined): string | undefined {
+  if (!url?.trim()) return url;
+  const u = url.trim();
+  if (/^https?:\/\//i.test(u)) return u;
+  return `http://${u}`;
+}
+
+/**
  * Normalize config from either flat or nested format to internal format
  */
 function normalizeConfig(config: any): InkeepConfig {
@@ -65,7 +75,7 @@ function normalizeConfig(config: any): InkeepConfig {
     // New nested format
     return {
       tenantId: config.tenantId,
-      agentsApiUrl: config.agentsApi?.url,
+      agentsApiUrl: ensureUrlScheme(config.agentsApi?.url),
       agentsApiKey: config.agentsApi?.apiKey,
       manageUiUrl: config.manageUiUrl,
       outputDirectory: config.outputDirectory,
@@ -74,7 +84,7 @@ function normalizeConfig(config: any): InkeepConfig {
   // Legacy flat format
   return {
     tenantId: config.tenantId,
-    agentsApiUrl: config.agentsApiUrl,
+    agentsApiUrl: ensureUrlScheme(config.agentsApiUrl),
     manageUiUrl: config.manageUiUrl,
     outputDirectory: config.outputDirectory,
   };
@@ -411,6 +421,15 @@ export async function validateConfiguration(
   if (!config.agentsApiKey && cliCredentials) {
     config.agentsApiKey = cliCredentials.accessToken;
     logger.info({}, 'Using CLI session token as API key');
+  }
+  // Login stores under 'inkeep-cloud'; default loadCredentials() uses 'auth-credentials'
+  if (!config.agentsApiKey && !cliCredentials) {
+    const cloudCreds = await loadCredentials('inkeep-cloud');
+    if (cloudCreds?.accessToken) {
+      config.agentsApiKey = cloudCreds.accessToken;
+      if (!config.tenantId) config.tenantId = cloudCreds.organizationId;
+      logger.info({}, 'Using CLI login credentials (inkeep-cloud)');
+    }
   }
 
   // Use CLI credentials as fallback for tenant ID if not specified in config

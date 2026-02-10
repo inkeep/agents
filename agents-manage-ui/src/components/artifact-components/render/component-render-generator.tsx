@@ -13,13 +13,16 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { updateArtifactComponent } from '@/lib/api/artifact-components';
+import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
   tenantId: string;
   projectId: string;
   artifactComponentId: string;
+  artifactComponentName?: string;
   existingRender?: { component: string; mockData: Record<string, unknown> } | null;
   onRenderChanged?: (
     render: { component: string; mockData: Record<string, unknown> } | null
@@ -30,6 +33,7 @@ export function ComponentRenderGenerator({
   tenantId,
   projectId,
   artifactComponentId,
+  artifactComponentName,
   existingRender,
   onRenderChanged,
 }: ComponentPreviewGeneratorProps) {
@@ -204,6 +208,7 @@ export function ComponentRenderGenerator({
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     disabled={isDeleting || isGenerating}
@@ -263,8 +268,15 @@ export function ComponentRenderGenerator({
                   </div>
                 </PopoverContent>
               </Popover>
+              <UseInYourAppModal
+                componentId={artifactComponentId}
+                componentName={artifactComponentName}
+                renderCode={render?.component}
+                docsPath={`${DOCS_BASE_URL}/visual-builder/structured-outputs/artifact-components`}
+              />
               {isSaved && (
                 <Button
+                  type="button"
                   variant="destructive-outline"
                   onClick={handleDeletePreview}
                   disabled={isDeleting || isGenerating}
