@@ -16,9 +16,9 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-interface GenericSelectProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericSelectProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label: string;
   placeholder?: string;
   options: SelectOption[];
@@ -28,7 +28,10 @@ interface GenericSelectProps<T extends FieldValues> {
   isRequired?: boolean;
 }
 
-export function GenericSelect<T extends FieldValues>({
+export function GenericSelect<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -38,7 +41,7 @@ export function GenericSelect<T extends FieldValues>({
   selectTriggerClassName,
   description,
   isRequired = false,
-}: GenericSelectProps<T>) {
+}: GenericSelectProps<TFieldValues, TTransformedValues>) {
   return (
     <FormFieldWrapper
       control={control}
