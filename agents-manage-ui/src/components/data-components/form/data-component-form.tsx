@@ -48,7 +48,7 @@ export function DataComponentForm({
     defaultValues,
     mode: 'onChange',
   });
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
 
   // Auto-prefill ID based on name field (only for new components)
@@ -153,7 +153,7 @@ export function DataComponentForm({
 
           {!readOnly && (
             <div className="flex w-full justify-between">
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !isValid}>
                 Save
               </Button>
               {id && (
