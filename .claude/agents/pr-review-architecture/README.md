@@ -8,19 +8,19 @@ Multi-agent PR review system powered by Claude Code.
 pr-review (orchestrator, opus)
 ├── pr-review-architecture        (opus)   — System design, boundaries, layering, evolvability
 ├── pr-review-breaking-changes    (opus)   — Backward compatibility, data contracts, migrations
-├── pr-review-comments            (sonnet) — Comment quality and inline code documentation
+├── pr-review-comments            (opus)   — Comment quality and inline code documentation
 ├── pr-review-consistency         (opus)   — Cross-codebase pattern consistency, naming, conventions
 ├── pr-review-devops              (opus)   — CI/CD, deployment, infrastructure changes
-├── pr-review-docs                (sonnet) — Documentation coverage and accuracy
-├── pr-review-errors              (sonnet) — Error handling, logging, observability
-├── pr-review-frontend            (sonnet) — React/Next.js patterns, UX, accessibility
-├── pr-review-llm                 (sonnet) — LLM integration patterns, prompting, streaming
+├── pr-review-docs                (opus)   — Documentation coverage and accuracy
+├── pr-review-errors              (opus)   — Error handling, logging, observability
+├── pr-review-frontend            (opus)   — React/Next.js patterns, UX, accessibility
+├── pr-review-llm                 (opus)   — LLM integration patterns, prompting, streaming
 ├── pr-review-product             (opus)   — Product-level thinking, user impact, surface areas
 ├── pr-review-security-iam        (opus)   — Auth, tenant isolation, IAM, credential handling
 ├── pr-review-sre                 (opus)   — Reliability, performance, scaling, monitoring
-├── pr-review-standards           (sonnet) — Code style, linting, Biome conventions
-├── pr-review-tests               (sonnet) — Test coverage, quality, patterns
-└── pr-review-types               (sonnet) — TypeScript types, Zod schemas, type safety
+├── pr-review-standards           (opus)   — Code style, linting, Biome conventions
+├── pr-review-tests               (opus)   — Test coverage, quality, patterns
+└── pr-review-types               (opus)   — TypeScript types, Zod schemas, type safety
 ```
 
 ## Quick Start
@@ -50,10 +50,10 @@ claude --agent pr-review "Review the changes in this branch"
 │  └── Match changed files → relevant subagents                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Phase 3: Dispatch Reviewers (parallel)                                 │
-│  ├── pr-review-standards (always)                                       │
-│  ├── pr-review-frontend (if .tsx/.jsx in app/, components/, etc.)       │
-│  ├── pr-review-docs (if .md/.mdx files)                                 │
-│  └── ... other relevant reviewers                                       │
+│  ├── Detect context: diff mode (inline/summary) + review iteration      │
+│  ├── First review: full-scope handoff (inline or summary mode)          │
+│  ├── Re-review: delta-scoped handoff (files changed since last review)  │
+│  └── Spawn all selected reviewers in parallel                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Phase 4: Judge & Filter                                                │
 │  ├── Deduplicate (inline → file → multi-file → system)                  │
@@ -179,6 +179,52 @@ PR context is auto-injected via a generated skill (no Read tool calls needed):
 2. The orchestrator generates `.claude/skills/pr-tldr/SKILL.md` during Phase 1.5
 3. All agents declare `skills: [pr-context, pr-tldr, ...]` in frontmatter
 4. Context loads into system prompt at spawn
+
+### Adaptive Diff Strategy (Large PR Resilience)
+
+For PRs where the diff exceeds ~100KB (after exclude patterns), the workflow switches to **summary mode** to prevent reviewer context window exhaustion:
+
+| Mode | Diff size | pr-context contains | Reviewers read diffs via |
+|------|-----------|---------------------|--------------------------|
+| `inline` | ≤ 100KB | Full diff embedded | Direct reading (zero tool calls) |
+| `summary` | > 100KB | Metadata + file list + stats only | `git diff origin/{base}...HEAD -- <path>` on-demand |
+
+**Why 100KB?** Each subagent loads pr-context as a system-prompt skill. A 500KB diff ≈ 128K tokens, leaving < 40K for reasoning in a 200K context window. The 100KB threshold (~25K tokens) keeps all reviewers comfortably within budget.
+
+**Summary mode flow:**
+1. CI writes full diff to `.claude/pr-diff/full.diff` (for bulk access)
+2. pr-context skill gets metadata + file list + diff stats (lightweight)
+3. Orchestrator provides each reviewer with a domain-scoped file list in the handoff message
+4. Reviewers read specific file diffs on-demand via `git diff`
+
+### Re-Review Scoping
+
+On re-reviews (new commits since the last automated review), the system scopes reviewers to the delta:
+
+1. CI detects the last review commit SHA and computes the delta (files, stats, diff)
+2. pr-context gets a `## Changes Since Last Review` section with:
+   - File list of what changed since the last review
+   - Commit log and per-file diff stats
+   - Actual delta diff content (if ≤ 30KB), otherwise a `git diff` command
+3. pr-context gets a conditional `## Review Focus` directive telling reviewers to scope to the delta
+4. The orchestrator (Phase 3.4) appends a delta-scoped file list to each reviewer's handoff
+
+**Same quality bar, narrower scope:** Reviewers apply the same review process and severity criteria — the scoping is purely about which code to analyze, not what to flag.
+
+### pr-context Sections (complete reference)
+
+| Section | Always present | Content |
+|---------|---------------|---------|
+| PR Metadata | Yes | Number, title, author, base, repo, head SHA, size, labels, review state, diff mode, trigger |
+| Description | Yes | Author-provided PR body |
+| Linked Issues | Yes | Closing issues with labels and body (truncated at 1000 chars) |
+| Commit History | Yes | `git log --oneline --reverse` |
+| Changed Files | Yes | `git diff --stat` (per-file +/-) + `git diff --name-only` (full paths) |
+| Diff | Yes | Full diff (inline mode) or summary mode instructions |
+| Changes Since Last Review | Yes | First review message, or: metadata table, file list, commits, stats, delta diff |
+| Review Focus | Re-review only | Delta-scoping directive (only when new commits exist since last review) |
+| Prior Feedback | Yes | Automated comments, human threads, previous reviews, PR discussion |
+| GitHub URL Base | Yes | File link and PR link patterns |
 
 ## Context Window Impact During Normal Development
 
