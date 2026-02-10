@@ -255,8 +255,11 @@ export async function streamAgentResponse(params: {
         thread_ts: threadTs,
         text: errorMessage,
       });
-    } catch {
-      // Ignore - we tried our best
+    } catch (notifyError) {
+      logger.warn(
+        { notifyError, channel, threadTs },
+        'Failed to notify user of stream error'
+      );
     }
 
     return { success: false, errorType, errorMessage };

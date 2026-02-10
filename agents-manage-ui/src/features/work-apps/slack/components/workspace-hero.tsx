@@ -246,6 +246,7 @@ export function WorkspaceHero() {
                       href={`https://app.slack.com/client/${workspace.teamId}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="Open workspace in Slack"
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <ExternalLink className="h-4 w-4" />

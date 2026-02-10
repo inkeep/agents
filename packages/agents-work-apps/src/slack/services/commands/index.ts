@@ -44,8 +44,13 @@ interface AgentInfo {
  * This uses the proper ref-middleware and Dolt branch resolution.
  * Requires an auth token to access the manage API.
  */
+const INTERNAL_FETCH_TIMEOUT_MS = 10_000;
+
 async function fetchAgentsFromManageApi(tenantId: string, authToken: string): Promise<AgentInfo[]> {
   const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), INTERNAL_FETCH_TIMEOUT_MS);
 
   try {
     // First fetch projects
@@ -55,6 +60,7 @@ async function fetchAgentsFromManageApi(tenantId: string, authToken: string): Pr
         'Content-Type': 'application/json',
         Authorization: `Bearer ${authToken}`,
       },
+      signal: controller.signal,
     });
 
     if (!projectsResponse.ok) {
@@ -82,6 +88,7 @@ async function fetchAgentsFromManageApi(tenantId: string, authToken: string): Pr
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${authToken}`,
               },
+              signal: controller.signal,
             }
           );
 
@@ -108,6 +115,8 @@ async function fetchAgentsFromManageApi(tenantId: string, authToken: string): Pr
   } catch (error) {
     logger.error({ error, tenantId }, 'Failed to fetch agents from manage API');
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

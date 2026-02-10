@@ -8,37 +8,14 @@ Enables enterprise teams to interact with Inkeep AI agents directly from Slack v
 2. Install the Slack app to a workspace via `/work-apps/slack/install`
 3. Use `/inkeep help` in Slack to see available commands
 
-## Documentation
-
-All documentation is organized in the `docs/` folder:
-
-| Folder | Contents |
-|--------|----------|
-| **[docs/INDEX.md](./docs/INDEX.md)** | Full documentation index |
-| [docs/spec/](./docs/spec/) | Technical specs (architecture, auth, database, API) |
-| [docs/flows/](./docs/flows/) | Flow diagrams (slash commands, @mentions) |
-| [docs/developer/](./docs/developer/) | Developer resources (SQL, testing) |
-
-### Quick Reference
-
-| Document | Description |
-|----------|-------------|
-| [docs/spec/ARCHITECTURE.md](./docs/spec/ARCHITECTURE.md) | System overview |
-| [docs/spec/AUTHENTICATION.md](./docs/spec/AUTHENTICATION.md) | JWT tokens, permissions |
-| [docs/flows/SLASH_COMMANDS.md](./docs/flows/SLASH_COMMANDS.md) | `/inkeep` command flows |
-| [docs/flows/MENTIONS.md](./docs/flows/MENTIONS.md) | `@Inkeep` mention flows |
-| [docs/developer/COMMANDS.md](./docs/developer/COMMANDS.md) | SQL snippets, scripts |
-
----
-
 ## Key Concepts
 
 ### Agent Resolution
 
 | Context | Priority |
 |---------|----------|
-| `/inkeep` commands | Channel > Workspace |
-| `@Inkeep` mentions | Channel > Workspace |
+| `/inkeep` commands | Channel default > Workspace default |
+| `@Inkeep` mentions | Channel default > Workspace default |
 
 ### Slash Commands
 
@@ -48,8 +25,8 @@ All documentation is organized in the `docs/` folder:
 | `/inkeep help` | Show available commands |
 | `/inkeep link` | Link Slack account to Inkeep |
 | `/inkeep status` | Check account and agent status |
-| `/inkeep [question]` | Ask the default agent |
-| `/inkeep run "agent" [question]` | Ask a specific agent |
+| `/inkeep [message]` | Send a message to the default agent |
+| `/inkeep run "agent" [message]` | Send a message to a specific agent |
 
 ---
 
@@ -68,7 +45,7 @@ All documentation is organized in the `docs/` folder:
 │                    INKEEP AGENTS API (/work-apps/slack/*)                   │
 │  1. Verify Slack signature                                                  │
 │  2. Check user is linked                                                    │
-│  3. Resolve agent (user > channel > workspace)                              │
+│  3. Resolve agent (channel default > workspace default)                     │
 │  4. Generate SlackUserToken JWT                                             │
 │  5. Call /run/api/chat                                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -77,6 +54,7 @@ All documentation is organized in the `docs/` folder:
 ┌─────────────────────────┐               ┌─────────────────────────┐
 │        NANGO            │               │       POSTGRESQL        │
 │  Bot token storage      │               │  User mappings          │
+│  OAuth management       │               │  Channel configs        │
 └─────────────────────────┘               └─────────────────────────┘
 ```
 
@@ -87,25 +65,12 @@ All documentation is organized in the `docs/` folder:
 ```
 packages/agents-work-apps/src/slack/
 ├── README.md                 # This file
-├── slack-app-manifest.json   # Slack app configuration
-├── docs/                     # All documentation
-│   ├── INDEX.md              # Documentation index
-│   ├── spec/                 # Technical specifications
-│   │   ├── ARCHITECTURE.md
-│   │   ├── AUTHENTICATION.md
-│   │   ├── DATABASE.md
-│   │   ├── API.md
-│   │   └── DESIGN_DECISIONS.md
-│   ├── flows/                # Flow diagrams
-│   │   ├── USER_FLOWS.md
-│   │   ├── SLASH_COMMANDS.md
-│   │   └── MENTIONS.md
-│   └── developer/            # Developer resources
-│       ├── COMMANDS.md
-│       └── TESTING.md
-├── routes/                   # API routes
-├── services/                 # Business logic
-└── middleware/               # Auth middleware
+├── slack-app-manifest.json   # Slack app configuration template
+├── i18n/                     # Centralized Slack-facing UI strings
+├── middleware/               # Auth middleware (permissions)
+├── routes/                   # API routes (oauth, workspaces, users, events)
+├── services/                 # Business logic (commands, streaming, modals, nango)
+└── types.ts                  # Shared type definitions
 ```
 
 ---

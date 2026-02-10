@@ -34,11 +34,11 @@ interface OAuthState {
   timestamp: number;
 }
 
-function getStateSigningSecret(): string {
+export function getStateSigningSecret(): string {
   return env.SLACK_SIGNING_SECRET || 'dev-oauth-state-secret';
 }
 
-function createOAuthState(tenantId?: string): string {
+export function createOAuthState(tenantId?: string): string {
   const state: OAuthState = {
     nonce: crypto.randomBytes(16).toString('hex'),
     tenantId: tenantId || 'default',
@@ -52,7 +52,7 @@ function createOAuthState(tenantId?: string): string {
   return `${data}.${signature}`;
 }
 
-function parseOAuthState(stateStr: string): OAuthState | null {
+export function parseOAuthState(stateStr: string): OAuthState | null {
   try {
     const [data, signature] = stateStr.split('.');
     if (!data || !signature) {

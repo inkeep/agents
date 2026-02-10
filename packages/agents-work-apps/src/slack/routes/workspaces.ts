@@ -49,6 +49,19 @@ import type { ManageAppVariables } from '../types';
 
 const logger = getLogger('slack-workspaces');
 
+/**
+ * Verify workspace belongs to the authenticated user's tenant.
+ * Returns true if access is allowed, false if denied.
+ */
+function verifyTenantOwnership(
+  c: { get: (key: string) => unknown },
+  workspaceTenantId: string
+): boolean {
+  const sessionTenantId = c.get('tenantId') as string | undefined;
+  if (!sessionTenantId) return true; // No session context (unauthenticated path)
+  return sessionTenantId === workspaceTenantId;
+}
+
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 app.use('/:teamId/settings', async (c, next) => {
@@ -115,9 +128,15 @@ app.openapi(
   }),
   async (c) => {
     try {
-      const workspaces = await listWorkspaceInstallations();
+      const allWorkspaces = await listWorkspaceInstallations();
 
-      logger.info({ count: workspaces.length }, 'Listed workspace installations');
+      // Filter by authenticated user's tenant to enforce tenant isolation
+      const sessionTenantId = c.get('tenantId') as string | undefined;
+      const workspaces = sessionTenantId
+        ? allWorkspaces.filter((w) => w.tenantId === sessionTenantId)
+        : allWorkspaces;
+
+      logger.info({ count: workspaces.length, tenantId: sessionTenantId }, 'Listed workspace installations');
 
       return c.json({
         workspaces: workspaces.map((w) => ({
@@ -174,7 +193,7 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
 
-    if (!workspace) {
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
       return c.json({ error: 'Workspace not found' }, 404);
     }
 
@@ -225,6 +244,11 @@ app.openapi(
   }),
   async (c) => {
     const { teamId } = c.req.valid('param');
+
+    const workspace = await findWorkspaceConnectionByTeamId(teamId);
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      return c.json({ defaultAgent: undefined });
+    }
 
     let defaultAgent:
       | { projectId: string; agentId: string; agentName?: string; projectName?: string }
@@ -474,7 +498,7 @@ app.openapi(
     const { limit } = c.req.valid('query');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    if (!workspace?.botToken) {
+    if (!workspace?.botToken || !verifyTenantOwnership(c, workspace.tenantId)) {
       return c.json({ error: 'Workspace not found or no bot token' }, 404);
     }
 
@@ -562,7 +586,10 @@ app.openapi(
     const { teamId, channelId } = c.req.valid('param');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    const tenantId = workspace?.tenantId || 'default';
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      return c.json({ channelId, agentConfig: undefined });
+    }
+    const tenantId = workspace.tenantId || 'default';
 
     const config = await findWorkAppSlackChannelAgentConfig(runDbClient)(
       tenantId,
@@ -907,7 +934,10 @@ app.openapi(
     const { teamId } = c.req.valid('param');
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
-    const tenantId = workspace?.tenantId || 'default';
+    if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      return c.json({ linkedUsers: [] });
+    }
+    const tenantId = workspace.tenantId || 'default';
 
     const linkedUsers = await listWorkAppSlackUserMappingsByTeam(runDbClient)(tenantId, teamId);
 
@@ -973,7 +1003,7 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
 
-    if (!workspace?.botToken) {
+    if (!workspace?.botToken || !verifyTenantOwnership(c, workspace.tenantId)) {
       return c.json({
         healthy: false,
         permissions: {

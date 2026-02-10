@@ -70,12 +70,11 @@ export const requireWorkspaceAdmin = <
     }
 
     const userId = c.get('userId');
-    const tenantId = c.get('tenantId');
 
-    if (!userId || !tenantId) {
+    if (!userId) {
       throw createApiError({
         code: 'unauthorized',
-        message: 'User or organization context not found',
+        message: 'User context not found',
         instance: c.req.path,
       });
     }
@@ -85,13 +84,23 @@ export const requireWorkspaceAdmin = <
       return;
     }
 
-    // Resolve tenantRole if not already set (work-apps routes don't go through requireTenantAccess)
+    // Resolve tenant context from teamId for session-based users
     const teamId = c.req.param('teamId') || c.req.param('workspaceId');
-    if (teamId && !c.get('tenantRole')) {
+    if (teamId && !c.get('tenantId')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }
 
+    const tenantId = c.get('tenantId');
     const tenantRole = c.get('tenantRole');
+
+    if (!tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Organization context not found',
+        instance: c.req.path,
+      });
+    }
+
     if (!isOrgAdmin(tenantRole)) {
       throw createApiError({
         code: 'forbidden',
@@ -126,12 +135,11 @@ export const requireChannelMemberOrAdmin = <
     }
 
     const userId = c.get('userId');
-    const tenantId = c.get('tenantId');
 
-    if (!userId || !tenantId) {
+    if (!userId) {
       throw createApiError({
         code: 'unauthorized',
-        message: 'User or organization context not found',
+        message: 'User context not found',
         instance: c.req.path,
       });
     }
@@ -141,13 +149,22 @@ export const requireChannelMemberOrAdmin = <
       return;
     }
 
-    // Resolve tenantRole if not already set
+    // Resolve tenant context from teamId for session-based users
     const teamId = c.req.param('teamId');
-    if (teamId && !c.get('tenantRole')) {
+    if (teamId && !c.get('tenantId')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }
 
+    const tenantId = c.get('tenantId');
     const tenantRole = c.get('tenantRole');
+
+    if (!tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Organization context not found',
+        instance: c.req.path,
+      });
+    }
 
     // Admins can modify any channel
     if (isOrgAdmin(tenantRole)) {
