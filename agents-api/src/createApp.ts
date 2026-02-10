@@ -370,8 +370,7 @@ function createAgentsHono(config: AppConfig) {
   // Work Apps auth middleware - shared session/API key auth for protected Slack routes
   // Most routes are unauthenticated (events, commands), but workspace and user management require session
   const workAppsAuth = async (c: Context, next: Next) => {
-    // Skip auth for GET requests (listing is public) and in test mode
-    if (c.req.method === 'GET' || isTestEnvironment()) {
+    if (isTestEnvironment()) {
       await next();
       return;
     }

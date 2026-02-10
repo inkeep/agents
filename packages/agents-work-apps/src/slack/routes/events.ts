@@ -304,6 +304,7 @@ app.post('/nango-webhook', async (c) => {
       .digest('hex');
 
     if (
+      signature.length !== expectedSignature.length ||
       !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
     ) {
       logger.warn({ signature }, 'Invalid Nango webhook signature');

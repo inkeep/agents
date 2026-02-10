@@ -34,18 +34,46 @@ interface OAuthState {
   timestamp: number;
 }
 
+function getStateSigningSecret(): string {
+  return env.SLACK_SIGNING_SECRET || 'dev-oauth-state-secret';
+}
+
 function createOAuthState(tenantId?: string): string {
   const state: OAuthState = {
     nonce: crypto.randomBytes(16).toString('hex'),
     tenantId: tenantId || 'default',
     timestamp: Date.now(),
   };
-  return Buffer.from(JSON.stringify(state)).toString('base64url');
+  const data = Buffer.from(JSON.stringify(state)).toString('base64url');
+  const signature = crypto
+    .createHmac('sha256', getStateSigningSecret())
+    .update(data)
+    .digest('base64url');
+  return `${data}.${signature}`;
 }
 
 function parseOAuthState(stateStr: string): OAuthState | null {
   try {
-    const decoded = Buffer.from(stateStr, 'base64url').toString('utf-8');
+    const [data, signature] = stateStr.split('.');
+    if (!data || !signature) {
+      logger.warn({}, 'OAuth state missing signature');
+      return null;
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', getStateSigningSecret())
+      .update(data)
+      .digest('base64url');
+
+    if (
+      signature.length !== expectedSignature.length ||
+      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+    ) {
+      logger.warn({}, 'Invalid OAuth state signature');
+      return null;
+    }
+
+    const decoded = Buffer.from(data, 'base64url').toString('utf-8');
     const state = JSON.parse(decoded) as OAuthState;
 
     if (!state.nonce || !state.timestamp) {
@@ -59,7 +87,7 @@ function parseOAuthState(stateStr: string): OAuthState | null {
 
     return state;
   } catch {
-    logger.warn({ stateStr: stateStr.slice(0, 20) }, 'Failed to parse OAuth state');
+    logger.warn({ stateStr: stateStr?.slice(0, 20) }, 'Failed to parse OAuth state');
     return null;
   }
 }
@@ -168,16 +196,32 @@ app.openapi(
     }
 
     try {
-      const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: env.SLACK_CLIENT_ID || '',
-          client_secret: env.SLACK_CLIENT_SECRET || '',
-          code,
-          redirect_uri: `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`,
-        }),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+
+      let tokenResponse: Response;
+      try {
+        tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: env.SLACK_CLIENT_ID || '',
+            client_secret: env.SLACK_CLIENT_SECRET || '',
+            code,
+            redirect_uri: `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`,
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchErr) {
+        clearTimeout(timeout);
+        if ((fetchErr as Error).name === 'AbortError') {
+          logger.error({}, 'Slack token exchange timed out');
+          return c.redirect(`${dashboardUrl}?error=timeout`);
+        }
+        throw fetchErr;
+      } finally {
+        clearTimeout(timeout);
+      }
 
       const tokenData = await tokenResponse.json();
 
