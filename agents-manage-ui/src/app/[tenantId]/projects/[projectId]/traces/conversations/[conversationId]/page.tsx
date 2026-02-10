@@ -289,13 +289,6 @@ export default function ConversationDetail({
                                 formatDateTime(conversation.conversationEndTime, { local: true })}
                             </span>
                           </div>
-                        ) : conversation.status === 'active' ? (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xs text-muted-foreground">End:</span>
-                            <span className="text-xs font-mono text-yellow-600 dark:text-yellow-400">
-                              Running…
-                            </span>
-                          </div>
                         ) : null}
                       </div>
                       <div className="space-y-1 mt-2">
