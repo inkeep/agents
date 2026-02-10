@@ -27,7 +27,60 @@ export function ModelSection({
   agentModels,
 }: ModelSectionProps) {
   const hasAdvancedOptions = models?.structuredOutput || models?.summarizer;
-  const _hasAnyModel = models?.base || models?.structuredOutput || models?.summarizer;
+
+  // Helper to get inherited model and provider options from the same source
+  const getStructuredOutputInheritance = () => {
+    if (agentModels?.structuredOutput?.model) {
+      return {
+        model: agentModels.structuredOutput.model,
+        options: agentModels.structuredOutput.providerOptions,
+      };
+    }
+    if (projectModels?.structuredOutput?.model) {
+      return {
+        model: projectModels.structuredOutput.model,
+        options: projectModels.structuredOutput.providerOptions,
+      };
+    }
+    if (models?.base?.model) {
+      return { model: models.base.model, options: models.base.providerOptions };
+    }
+    if (agentModels?.base?.model) {
+      return { model: agentModels.base.model, options: agentModels.base.providerOptions };
+    }
+    if (projectModels?.base?.model) {
+      return { model: projectModels.base.model, options: projectModels.base.providerOptions };
+    }
+    return { model: undefined, options: undefined };
+  };
+
+  const getSummarizerInheritance = () => {
+    if (agentModels?.summarizer?.model) {
+      return {
+        model: agentModels.summarizer.model,
+        options: agentModels.summarizer.providerOptions,
+      };
+    }
+    if (projectModels?.summarizer?.model) {
+      return {
+        model: projectModels.summarizer.model,
+        options: projectModels.summarizer.providerOptions,
+      };
+    }
+    if (models?.base?.model) {
+      return { model: models.base.model, options: models.base.providerOptions };
+    }
+    if (agentModels?.base?.model) {
+      return { model: agentModels.base.model, options: agentModels.base.providerOptions };
+    }
+    if (projectModels?.base?.model) {
+      return { model: projectModels.base.model, options: projectModels.base.providerOptions };
+    }
+    return { model: undefined, options: undefined };
+  };
+
+  const structuredOutputInheritance = getStructuredOutputInheritance();
+  const summarizerInheritance = getSummarizerInheritance();
 
   return (
     <div className="space-y-8">
@@ -45,6 +98,11 @@ export function ModelSection({
         value={models?.base?.model}
         providerOptions={models?.base?.providerOptions}
         inheritedValue={agentModels?.base?.model || projectModels?.base?.model}
+        inheritedProviderOptions={
+          agentModels?.base?.model
+            ? agentModels?.base?.providerOptions
+            : projectModels?.base?.providerOptions
+        }
         label={
           <div className="flex items-center gap-2">
             Base model
@@ -62,9 +120,7 @@ export function ModelSection({
         description="Primary model for general sub agent responses"
         onModelChange={(value) => updatePath('models.base.model', value || undefined)}
         onProviderOptionsChange={createProviderOptionsHandler((options) => {
-          console.log('model-section updatePath about to be called with options:', options);
           updatePath('models.base.providerOptions', options);
-          console.log('model-section updatePath completed');
         })}
         editorNamePrefix="base"
       />
@@ -73,13 +129,8 @@ export function ModelSection({
         <ModelConfiguration
           value={models?.structuredOutput?.model}
           providerOptions={models?.structuredOutput?.providerOptions}
-          inheritedValue={
-            agentModels?.structuredOutput?.model ||
-            projectModels?.structuredOutput?.model ||
-            models?.base?.model ||
-            agentModels?.base?.model ||
-            projectModels?.base?.model
-          }
+          inheritedValue={structuredOutputInheritance.model}
+          inheritedProviderOptions={structuredOutputInheritance.options}
           label={
             <div className="flex items-center gap-2">
               Structured output model
@@ -105,13 +156,8 @@ export function ModelSection({
         <ModelConfiguration
           value={models?.summarizer?.model}
           providerOptions={models?.summarizer?.providerOptions}
-          inheritedValue={
-            agentModels?.summarizer?.model ||
-            projectModels?.summarizer?.model ||
-            models?.base?.model ||
-            agentModels?.base?.model ||
-            projectModels?.base?.model
-          }
+          inheritedValue={summarizerInheritance.model}
+          inheritedProviderOptions={summarizerInheritance.options}
           label={
             <div className="flex items-center gap-2">
               Summarizer model

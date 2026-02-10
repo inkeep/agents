@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
@@ -14,6 +14,8 @@ interface ModelConfigurationProps {
   providerOptions?: string | Record<string, unknown>;
   /** Inherited/default model value to show when no value is set */
   inheritedValue?: string;
+  /** Inherited provider options to show when no value is set */
+  inheritedProviderOptions?: string | Record<string, unknown>;
   /** Label for the model selector */
   label?: React.ReactNode;
   /** Description text shown below the selector */
@@ -40,6 +42,7 @@ export function ModelConfiguration({
   value,
   providerOptions,
   inheritedValue,
+  inheritedProviderOptions,
   label,
   description,
   placeholder = 'Select a model...',
@@ -56,24 +59,34 @@ export function ModelConfiguration({
     string | Record<string, unknown> | undefined
   >(providerOptions);
 
-  // Sync internal state when prop changes
+  // Sync internal state when prop changes or when switching from inherited to explicit
   useEffect(() => {
     setInternalProviderOptions(providerOptions);
   }, [providerOptions]);
 
-  const handleModelChange = (modelValue: string) => {
-    const previousModel = value;
-    const newModel = modelValue || undefined;
+  // Clear internal state when model becomes explicit (value changes from undefined to defined)
+  const previousValue = useRef(value);
+  useEffect(() => {
+    const wasInherited = previousValue.current === undefined && inheritedValue !== undefined;
+    const isNowExplicit = value !== undefined;
 
-    // Clear provider options when switching between different provider types or models
-    const previousProvider = previousModel?.includes('/') ? previousModel.split('/')[0] : null;
-    const newProvider = newModel?.includes('/') ? newModel.split('/')[0] : null;
-
-    // Only clear if switching between different providers (but preserve existing options for same provider)
-    if (previousProvider && newProvider && previousProvider !== newProvider) {
+    if (wasInherited && isNowExplicit) {
       setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.(undefined);
-    } else if (previousProvider && !newProvider) {
+    }
+
+    previousValue.current = value;
+  }, [value, inheritedValue]);
+
+  const handleModelChange = (modelValue: string) => {
+    const previousEffectiveModel = value || inheritedValue;
+    const newModel = modelValue || undefined;
+    const wasInherited = !value && !!inheritedValue;
+    const isNowExplicit = !!newModel;
+
+    // Clear provider options when:
+    // 1. Model value changes, OR
+    // 2. Switching from inherited to explicit (even if same model)
+    if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
       setInternalProviderOptions(undefined);
       onProviderOptionsChange?.(undefined);
     }
@@ -110,9 +123,13 @@ export function ModelConfiguration({
     return providerOptionsTemplate;
   };
 
+  const effectiveModel = value || inheritedValue;
+  const effectiveProviderOptions = value ? internalProviderOptions : inheritedProviderOptions;
+  const isUsingInheritedOptions = !value && !!inheritedValue;
+
   const jsonPlaceholder = getJsonPlaceholder
-    ? getJsonPlaceholder(value)
-    : getDefaultJsonPlaceholder(value);
+    ? getJsonPlaceholder(effectiveModel)
+    : getDefaultJsonPlaceholder(effectiveModel);
 
   return (
     <div className="space-y-4">
@@ -132,33 +149,44 @@ export function ModelConfiguration({
       </div>
 
       {/* Provider Options JSON Editor */}
-      {value && (
+      {effectiveModel && (
         <div className="space-y-2">
-          <FieldLabel id={`${editorNamePrefix}-provider-options`} label="Provider options" />
+          <FieldLabel
+            id={`${editorNamePrefix}-provider-options`}
+            label={
+              isUsingInheritedOptions ? (
+                <span className="text-muted-foreground italic">
+                  Provider options <span className="text-xs">(inherited)</span>
+                </span>
+              ) : (
+                'Provider options'
+              )
+            }
+          />
           <StandaloneJsonEditor
             name={`${editorNamePrefix}-provider-options`}
             onChange={handleProviderOptionsStringChange}
             value={
-              typeof internalProviderOptions === 'string'
-                ? internalProviderOptions
-                : internalProviderOptions
-                  ? JSON.stringify(internalProviderOptions, null, 2)
+              typeof effectiveProviderOptions === 'string'
+                ? effectiveProviderOptions
+                : effectiveProviderOptions
+                  ? JSON.stringify(effectiveProviderOptions, null, 2)
                   : ''
             }
             placeholder={jsonPlaceholder}
             customTemplate={jsonPlaceholder}
-            readOnly={disabled}
+            readOnly={disabled || isUsingInheritedOptions}
           />
         </div>
       )}
 
       {/* Azure Configuration Fields */}
-      {value?.startsWith('azure/') && (
+      {effectiveModel?.startsWith('azure/') && (
         <AzureConfigurationSection
-          providerOptions={internalProviderOptions}
+          providerOptions={effectiveProviderOptions}
           onProviderOptionsChange={handleProviderOptionsStringChange}
           editorNamePrefix={editorNamePrefix}
-          disabled={disabled}
+          disabled={disabled || isUsingInheritedOptions}
         />
       )}
     </div>

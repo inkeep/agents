@@ -285,6 +285,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                     setAzureDeploymentName('');
                     setAzureResourceName('');
                     setAzureBaseURL('');
+                    onValueChange?.('azure/...');
                   }}
                 >
                   Azure ...
@@ -471,6 +472,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 setAzureDeploymentName('');
                 setAzureResourceName('');
                 setAzureBaseURL('');
+                onValueChange?.('');
               }}
             >
               Cancel
