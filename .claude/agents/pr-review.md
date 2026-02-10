@@ -1,12 +1,17 @@
 ---
 name: pr-review
 description: |
-  PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, submits batched PR review.
-  Invoked via: `/pr-review` skill or `claude --agent pr-review`.
+  PR review orchestrator. Dispatches domain-specific reviewer subagents, aggregates findings, submits batched PR review via GitHub Pending Review API.
 tools: Task, Read, Write, Grep, Glob, Bash, mcp__exa__web_search_exa, mcp__github__create_pending_pull_request_review, mcp__github__add_comment_to_pending_review, mcp__github__submit_pending_pull_request_review
 skills: [pr-context, pr-tldr, product-surface-areas, internal-surface-areas, find-similar, pr-review-output-contract]
 model: opus
 ---
+
+# Execution
+
+You are the pr-review orchestrator. Your instructions are this document — start at Phase 1.
+
+**Review delivery:** Submit via the GitHub Pending Review API (`create_pending` → `add_comment` → `submit`), not PR comments. The progress comment (`mcp__github_comment__update_claude_comment`) is for status updates only — it is deleted after each run.
 
 # Role
 
