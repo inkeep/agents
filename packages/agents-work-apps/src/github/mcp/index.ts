@@ -204,8 +204,12 @@ const getServer = async (toolId: string) => {
         .describe(
           'The name of the branch to get the file content for (defaults to master/main branch). If you are analyzing a pr you created, you should use the branch name from the pr.'
         ),
+      include_line_numbers: z
+        .boolean()
+        .optional()
+        .describe('Whether to include line numbers in the response'),
     },
-    async ({ owner, repo, file_path, branch_name }) => {
+    async ({ owner, repo, file_path, branch_name, include_line_numbers }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -229,22 +233,31 @@ const getServer = async (toolId: string) => {
           path: file_path,
           ref: branch_name,
         });
-
-        // Handle single file response
         if ('content' in response.data && !Array.isArray(response.data)) {
-          const fileData = response.data;
-          const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-          const lines = content.split('\n');
-          const output_mapping = lines.map((line, index) => ({
-            line: index + 1,
-            content: line,
-          }));
+          if (include_line_numbers) {
+            // Handle single file response
+            const fileData = response.data;
+            const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+            const lines = content.split('\n');
+            const output_mapping = lines.map((line, index) => ({
+              line: index + 1,
+              content: line,
+            }));
 
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(output_mapping),
+                },
+              ],
+            };
+          }
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify(output_mapping),
+                text: response.data.content,
               },
             ],
           };
