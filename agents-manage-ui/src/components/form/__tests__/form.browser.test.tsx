@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { act, render } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,11 +10,15 @@ import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
+import { transformToJson } from '@/lib/json-schema-validation';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
 
-function getCommonProps<T extends FieldValues>(form: UseFormReturn<T>, name: FieldPath<T>) {
+function getCommonProps<FV extends FieldValues, TV extends FieldValues>(
+  form: UseFormReturn<FV, unknown, TV>,
+  name: FieldPath<FV>
+) {
   const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
   return {
     name,
@@ -57,18 +61,32 @@ const TestForm: FC = () => {
 };
 
 const nestedTestSchema = z.strictObject({
-  jsonSchemaEditor: z.strictObject({
-    foo: z.strictObject({
-      bar: z.strictObject({
-        qux: z.string(error),
-      }),
-    }),
-  }),
+  jsonSchemaEditor: z
+    .string()
+    .transform(transformToJson)
+    .pipe(
+      z.strictObject({
+        foo: z.strictObject({
+          bar: z.strictObject({
+            qux: z.string(error),
+          }),
+        }),
+      })
+    ),
 });
 
 const NestedTestForm: FC = () => {
   const resolver = zodResolver(nestedTestSchema);
-  const form = useForm({ resolver });
+  const form = useForm({
+    defaultValues: {
+      jsonSchemaEditor: JSON.stringify({
+        foo: {
+          bar: {},
+        },
+      }),
+    },
+    resolver,
+  });
 
   useEffect(() => {
     void form.trigger();
@@ -87,6 +105,10 @@ describe('Form', () => {
   test('should properly highlight error state', async () => {
     const { container } = render(<TestForm />);
 
+    await waitFor(() => {
+      expect(screen.getAllByText(error)).toHaveLength(4);
+    });
+
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });
@@ -95,6 +117,11 @@ describe('Form', () => {
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
+
+    await waitFor(() => {
+      const messages = container.querySelector('[data-slot="form-message"]');
+      expect(messages).toBeInTheDocument();
+    });
 
     await act(async () => {
       await expect(container).toMatchScreenshot();
