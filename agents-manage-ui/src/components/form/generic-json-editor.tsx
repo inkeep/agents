@@ -1,5 +1,5 @@
 import type { FieldPath, FieldValues } from 'react-hook-form';
-import type { FormFieldWrapperProps } from './form-field-wrapper';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import {
   FormControl,
   FormDescription,
@@ -8,6 +8,7 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form';
+import type { FormFieldWrapperProps } from './form-field-wrapper';
 
 export function GenericJsonEditor<
   FV extends FieldValues,

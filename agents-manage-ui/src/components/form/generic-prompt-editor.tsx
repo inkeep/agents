@@ -1,5 +1,10 @@
+import { Maximize } from 'lucide-react';
+import { useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
+import { AddVariableAction } from '@/components/editors/expandable-prompt-editor';
+import { PromptEditor } from '@/components/editors/prompt-editor';
 import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -15,12 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Maximize } from 'lucide-react';
-import { PromptEditor } from '@/components/editors/prompt-editor';
 import { cn } from '@/lib/utils';
-import { AddVariableAction } from '@/components/editors/expandable-prompt-editor';
 
 export function GenericPromptEditor<
   FV extends FieldValues,
