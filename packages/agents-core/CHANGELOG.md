@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 5f3f5ea: Add keepAlive config to db connections
+
 ## 0.47.3
 
 ### Patch Changes
