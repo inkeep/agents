@@ -1,1 +1,5 @@
-{"title":"Chat Components","icon":"LuBlocks","pages":["index","react","nextjs","javascript","customization","..."]}
+{
+  "title": "Chat Components",
+  "icon": "LuBlocks",
+  "pages": ["index", "react", "nextjs", "javascript", "customization", "..."]
+}
