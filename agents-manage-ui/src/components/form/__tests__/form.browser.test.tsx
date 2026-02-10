@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,7 +10,6 @@ import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Form } from '@/components/ui/form';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
-import { transformToJson } from '@/lib/json-schema-validation';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
@@ -109,9 +108,7 @@ describe('Form', () => {
       expect(screen.getAllByText(error)).toHaveLength(4);
     });
 
-    await act(async () => {
-      await expect(container).toMatchScreenshot();
-    });
+    await expect(container).toMatchScreenshot();
   }, 20_000);
 
   test('should properly highlight nested error state', async () => {
@@ -119,12 +116,10 @@ describe('Form', () => {
     const { container } = render(<NestedTestForm />);
 
     await waitFor(() => {
-      const messages = container.querySelector('[data-slot="form-message"]');
-      expect(messages).toBeInTheDocument();
+      const message = container.querySelector<HTMLParagraphElement>('[data-slot="form-message"]');
+      expect(message).toBeInTheDocument();
     });
 
-    await act(async () => {
-      await expect(container).toMatchScreenshot();
-    });
+    await expect(container).toMatchScreenshot();
   }, 20_000);
 });
