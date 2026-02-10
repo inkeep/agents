@@ -55,7 +55,7 @@ export function ExpandableCodeEditor({
         className={cn(!open && error && 'max-h-96')}
         aria-labelledby={id}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </ExpandableField>
   );
 }
