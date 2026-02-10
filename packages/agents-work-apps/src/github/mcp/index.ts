@@ -253,11 +253,12 @@ const getServer = async (toolId: string) => {
               ],
             };
           }
+          const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
           return {
             content: [
               {
                 type: 'text',
-                text: response.data.content,
+                text: content,
               },
             ],
           };
