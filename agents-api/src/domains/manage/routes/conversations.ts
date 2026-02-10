@@ -7,6 +7,8 @@ import {
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
+import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
+import mediaRoutes from '../../run/routes/media';
 
 const app = new OpenAPIHono();
 
@@ -71,9 +73,11 @@ app.openapi(
 
     const llmContext = formatMessagesForLLMContext(messages);
 
+    const resolvedMessages = resolveMessagesListBlobUris(messages);
+
     return c.json({
       data: {
-        messages,
+        messages: resolvedMessages,
         formatted: {
           llmContext,
         },
@@ -81,5 +85,8 @@ app.openapi(
     });
   }
 );
+
+// Mount media routes for conversation media access
+app.route('/:id/media', mediaRoutes);
 
 export default app;

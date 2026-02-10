@@ -21,6 +21,7 @@ patchedDependencies:
 overrides:
   next: ^16.1.6 # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h
   esbuild: 0.25.9 # we pin it for Cypress
+  zod: ^4.3.6 # pin zod across all packages to avoid version splits
   "@modelcontextprotocol/sdk>zod": ^3.25.7
   "@anthropic-ai/mcpb>zod": ^3.25.7
   preact: "-" # we don't use preact, this removes pnpm audit warnings from posthog-js>preact

@@ -162,6 +162,44 @@ const envSchema = z.object({
   GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 
+  // Blob Storage (S3-compatible, MinIO for local dev)
+  BLOB_STORAGE_PROVIDER: z
+    .enum(['s3'])
+    .optional()
+    .default('s3')
+    .describe('Blob storage provider for media uploads (currently only S3-compatible)'),
+  BLOB_STORAGE_S3_ENDPOINT: z
+    .string()
+    .optional()
+    .default('http://localhost:9000')
+    .describe('S3-compatible endpoint URL (use MinIO URL for local dev, omit for AWS S3)'),
+  BLOB_STORAGE_S3_BUCKET: z
+    .string()
+    .optional()
+    .default('inkeep-agents-media')
+    .describe('S3 bucket name for storing uploaded media'),
+  BLOB_STORAGE_S3_REGION: z
+    .string()
+    .optional()
+    .default('us-east-1')
+    .describe('AWS region for the S3 bucket'),
+  BLOB_STORAGE_S3_ACCESS_KEY_ID: z
+    .string()
+    .optional()
+    .default('minioadmin')
+    .describe('AWS access key ID for S3 (defaults to MinIO dev credentials)'),
+  BLOB_STORAGE_S3_SECRET_ACCESS_KEY: z
+    .string()
+    .optional()
+    .default('minioadmin')
+    .describe('AWS secret access key for S3 (defaults to MinIO dev credentials)'),
+  BLOB_STORAGE_S3_FORCE_PATH_STYLE: z
+    .string()
+    .optional()
+    .default('true')
+    .transform((val) => val === 'true')
+    .describe('Force path-style S3 URLs (required for MinIO, set to "false" for AWS S3)'),
+
   // Workflow Configuration
   WORKFLOW_TARGET_WORLD: z.string().optional().describe('Target world for workflow execution'),
   WORKFLOW_POSTGRES_URL: z
