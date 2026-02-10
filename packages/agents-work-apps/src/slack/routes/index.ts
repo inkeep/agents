@@ -24,11 +24,6 @@
  *   POST /users/disconnect           - Disconnect/unlink user
  *   GET  /users/status               - Get user connection status
  *
- * Resources (resources.ts):
- *   GET  /projects                   - List projects
- *   GET  /projects/:projectId/agents - List agents in project
- *   GET  /agents                     - List all agents
- *
  * Events & Commands (events.ts):
  *   POST /commands                   - Handle slash commands
  *   POST /events                     - Handle Slack events
@@ -45,7 +40,6 @@ import type { WorkAppsVariables } from '../types';
 import eventsRouter from './events';
 import internalRouter from './internal';
 import oauthRouter from './oauth';
-import resourcesRouter from './resources';
 import usersRouter from './users';
 import workspacesRouter from './workspaces';
 
@@ -56,6 +50,5 @@ app.route('/users', usersRouter);
 app.route('/', oauthRouter);
 app.route('/', eventsRouter);
 app.route('/', internalRouter);
-app.route('/', resourcesRouter);
 
 export default app;
