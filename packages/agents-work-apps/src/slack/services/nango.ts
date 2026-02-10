@@ -18,7 +18,7 @@
  * @see packages/agents-core/src/data-access/runtime/workAppSlack.ts
  */
 
-import { findWorkAppSlackWorkspaceByTeamId as findWorkspaceByTeamIdDb } from '@inkeep/agents-core';
+import { findWorkAppSlackWorkspaceBySlackTeamId } from '@inkeep/agents-core';
 import { Nango } from '@nangohq/node';
 import runDbClient from '../../db/runDbClient';
 import { env } from '../../env';
@@ -130,7 +130,7 @@ export async function findWorkspaceConnectionByTeamId(
   }
 
   try {
-    const dbWorkspace = await findWorkspaceByTeamIdDb(runDbClient)('default', teamId);
+    const dbWorkspace = await findWorkAppSlackWorkspaceBySlackTeamId(runDbClient)(teamId);
 
     if (dbWorkspace?.nangoConnectionId) {
       const botToken = await getConnectionAccessToken(dbWorkspace.nangoConnectionId);

@@ -57,6 +57,23 @@ export const findWorkAppSlackWorkspaceByTeamId =
   };
 
 /**
+ * Find a workspace by Slack team ID only (without tenant filter).
+ * Slack team IDs are globally unique, so this is safe for resolving
+ * the tenant from an incoming Slack event where tenant is unknown.
+ */
+export const findWorkAppSlackWorkspaceBySlackTeamId =
+  (db: AgentsRunDatabaseClient) =>
+  async (slackTeamId: string): Promise<WorkAppSlackWorkspaceSelect | null> => {
+    const results = await db
+      .select()
+      .from(workAppSlackWorkspaces)
+      .where(eq(workAppSlackWorkspaces.slackTeamId, slackTeamId))
+      .limit(1);
+
+    return results[0] || null;
+  };
+
+/**
  * Find a workspace by its Nango connection ID.
  *
  * One Nango connection = one OAuth token = one Slack workspace.
