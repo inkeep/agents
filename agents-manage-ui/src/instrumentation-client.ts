@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import type * as SentryNs from '@sentry/nextjs';
+import { REPLAY_UNMASK_SELECTORS, REPLAY_UNBLOCK_SELECTORS } from '@/lib/replay-privacy';
 
 export let onRouterTransitionStart: typeof SentryNs.captureRouterTransitionStart;
 
@@ -14,7 +15,20 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
     // Add optional integrations for additional features
-    integrations: [Sentry.replayIntegration()],
+    integrations: [
+      Sentry.replayIntegration({
+        // Keep maskAllText: true (default) so all text is masked by default.
+        // Keep maskAllInputs: true (default) so form inputs stay masked.
+        // Keep blockAllMedia: true (default) so media is blocked by default.
+
+        // Unmask static UI chrome that doesn't contain user-generated PII.
+        // Selectors defined in @/lib/replay-privacy.ts (shared with PostHog).
+        unmask: [...REPLAY_UNMASK_SELECTORS],
+
+        // Unblock SVG icons in UI chrome so layout and iconography are visible.
+        unblock: [...REPLAY_UNBLOCK_SELECTORS],
+      }),
+    ],
 
     // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
     tracesSampleRate: 1,
