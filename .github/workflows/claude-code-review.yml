@@ -21,7 +21,7 @@ jobs:
         github.event.issue.pull_request &&
         github.event.issue.state == 'open' &&
         contains(github.event.comment.body, '@claude') &&
-        contains(github.event.comment.body, '/review') &&
+        contains(github.event.comment.body, '--review') &&
         !contains(github.actor, '[bot]') &&
         (
           github.event.comment.author_association == 'OWNER' ||
@@ -81,8 +81,9 @@ jobs:
           # github.event.comment.body into bash source (it can contain quotes/newlines).
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             COMMENT_BODY="$(jq -r '.comment.body // ""' "$GITHUB_EVENT_PATH")"
-            # Check /full-review BEFORE /review (substring overlap: /full-review contains /review)
-            if printf '%s' "$COMMENT_BODY" | grep -Eq '(^|[[:space:]])/full-review([[:space:]]|$)'; then
+            # Check --full-review BEFORE --review (substring overlap).
+            # We use -- prefix (not /) because claude-code-action reserves /xxx for skill invocations.
+            if printf '%s' "$COMMENT_BODY" | grep -Eq '(^|[[:space:]])--full-review([[:space:]]|$)'; then
               echo "trigger_command=full-review" >> $GITHUB_OUTPUT
             else
               echo "trigger_command=review" >> $GITHUB_OUTPUT
@@ -471,7 +472,7 @@ jobs:
 
           # ── Compute review_scope ──────────────────────────────────────────
           # review_scope is the single source of truth for delta vs full scoping.
-          #   full  = review entire PR (first review, no new commits, or /full-review override)
+          #   full  = review entire PR (first review, no new commits, or --full-review override)
           #   delta = scope to changes since last automated review
           TRIGGER='${{ steps.pr.outputs.trigger_command }}'
           if [ "$TRIGGER" = "full-review" ]; then
@@ -620,7 +621,7 @@ jobs:
 
           > **RE-REVIEW — scope to the delta.** A prior automated review already covered this PR. Your review scope is the code that changed since that review (see "Changes Since Last Review" above). Apply your normal review process — same quality bar, same severity criteria — but scoped to the delta. Do not re-analyze unchanged files or re-raise issues on code that was already reviewed. If prior feedback appears unaddressed in the delta, note it; otherwise, focus your effort on what is new or modified.' || steps.review_context.outputs.review_scope == 'full' && steps.review_context.outputs.is_re_review == 'true' && '## Review Focus
 
-          > **FULL-SCOPE REVIEW (manual override).** A prior automated review exists, but a full-scope review was explicitly requested via `/full-review`. Review the entire PR — do not limit scope to the delta. The "Changes Since Last Review" section above is provided for context only.' || '' }}
+          > **FULL-SCOPE REVIEW (manual override).** A prior automated review exists, but a full-scope review was explicitly requested via `--full-review`. Review the entire PR — do not limit scope to the delta. The "Changes Since Last Review" section above is provided for context only.' || '' }}
 
           ## Prior Feedback
 

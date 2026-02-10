@@ -30,8 +30,8 @@ pr-review (orchestrator, opus)
 # Triggered on: pull_request [opened, synchronize, ready_for_review]
 
 # CI (manual via PR comment)
-# @claude /review        — triggers review (delta-scoped if re-review)
-# @claude /full-review   — triggers full-scope review (overrides delta scoping)
+# @claude --review        — triggers review (delta-scoped if re-review)
+# @claude --full-review   — triggers full-scope review (overrides delta scoping)
 
 # Local testing
 claude --agent pr-review "Review the changes in this branch"
@@ -207,8 +207,8 @@ The system uses a `review_scope` signal (`full` | `delta`) in pr-context metadat
 
 | `review_scope` | When | Behavior |
 |----------------|------|----------|
-| `full` | First review, no new commits, or `/full-review` override | Review entire PR |
-| `delta` | New commits since last automated review (and no `/full-review`) | Scope to changes since last review |
+| `full` | First review, no new commits, or `--full-review` override | Review entire PR |
+| `delta` | New commits since last automated review (and no `--full-review`) | Scope to changes since last review |
 
 On re-reviews (new commits since the last automated review), the default is `review_scope=delta`:
 
@@ -222,11 +222,11 @@ On re-reviews (new commits since the last automated review), the default is `rev
 
 **Same quality bar, narrower scope:** Reviewers apply the same review process and severity criteria — the scoping is purely about which code to analyze, not what to flag.
 
-#### `/full-review` Override
+#### `--full-review` Override
 
-Commenting `@claude /full-review` on a PR forces `review_scope=full` even when a prior automated review exists and new commits have been pushed. This disables delta-only scoping so reviewers assess the entire PR.
+Commenting `@claude --full-review` on a PR forces `review_scope=full` even when a prior automated review exists and new commits have been pushed. This disables delta-only scoping so reviewers assess the entire PR.
 
-Large-PR diff summarization (summary mode) is **not** overridden by `/full-review` — it protects reviewer context budgets regardless of scope.
+Large-PR diff summarization (summary mode) is **not** overridden by `--full-review` — it protects reviewer context budgets regardless of scope.
 
 The `## Changes Since Last Review` section is still included for context, but a `## Review Focus` directive clarifies that the review is full-scope and delta data is informational only.
 
@@ -234,9 +234,9 @@ The `## Changes Since Last Review` section is still included for context, but a 
 
 CI runs use separate concurrency groups per trigger type:
 - `pr-review-pull_request-<PR#>` (automatic runs)
-- `pr-review-issue_comment-<PR#>` (manual `/review` or `/full-review`)
+- `pr-review-issue_comment-<PR#>` (manual `--review` or `--full-review`)
 
-A `/full-review` comment will **not** cancel an in-progress automatic `pull_request` review (different groups). Within each group, `cancel-in-progress: true` applies (e.g. a second `/full-review` cancels the first). This is intentional — the alternative (shared group) previously caused bot comments to cancel in-progress PR reviews.
+A `--full-review` comment will **not** cancel an in-progress automatic `pull_request` review (different groups). Within each group, `cancel-in-progress: true` applies (e.g. a second `--full-review` cancels the first). This is intentional — the alternative (shared group) previously caused bot comments to cancel in-progress PR reviews.
 
 ### pr-context Sections (complete reference)
 
