@@ -4,10 +4,10 @@ import { Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import { useProjectPermissions } from '@/contexts/project';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn } from '@/lib/utils';
-import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { Button } from '../ui/button';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 
@@ -72,11 +72,15 @@ export function ViewExternalAgentDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>{formatDateTimeTable(externalAgent.createdAt, { local: true })}</ItemValue>
+            <ItemValue>
+              <LocalDateTimeTable dateString={externalAgent.createdAt} />
+            </ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>{formatDateTimeTable(externalAgent.updatedAt, { local: true })}</ItemValue>
+            <ItemValue>
+              <LocalDateTimeTable dateString={externalAgent.updatedAt} />
+            </ItemValue>
           </div>
         </div>
 

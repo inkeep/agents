@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import {
   Table,
   TableBody,
@@ -19,7 +20,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { DatasetItem } from '@/lib/api/dataset-items';
-import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { DatasetItemFormDialog } from './dataset-item-form-dialog';
 import { DeleteDatasetItemConfirmation } from './delete-dataset-item-confirmation';
 
@@ -111,7 +111,7 @@ export function DatasetItemsTable({
                 return (
                   <TableRow key={item.id} noHover>
                     <TableCell className="text-sm text-muted-foreground">
-                      {formatDateTimeTable(item.updatedAt, { local: true })}
+                      <LocalDateTimeTable dateString={item.updatedAt} />
                     </TableCell>
                     <TableCell>
                       <ReadOnlyEditor name={`input_${index}`} value={item.input} />

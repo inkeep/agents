@@ -8,6 +8,7 @@ import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import { Progress } from '@/components/ui/progress';
 import {
   Table,
@@ -24,7 +25,6 @@ import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
-import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 type AnyRecord = Record<string, unknown>;
 const isPlainObject = (v: unknown): v is AnyRecord =>
@@ -263,9 +263,11 @@ export function EvaluationRunConfigResults({
                       </Link>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {result.conversationCreatedAt
-                        ? formatDateTimeTable(result.conversationCreatedAt, { local: true })
-                        : '-'}
+                      {result.conversationCreatedAt ? (
+                        <LocalDateTimeTable dateString={result.conversationCreatedAt} />
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
                       <code className="text-xs font-mono text-muted-foreground">

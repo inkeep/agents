@@ -4,11 +4,11 @@ import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
-import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
@@ -82,13 +82,13 @@ export function ViewMCPServerDetailsProjectScope({
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
             <ItemValue>
-              {tool.createdAt ? formatDateTimeTable(tool.createdAt, { local: true }) : 'N/A'}
+              {tool.createdAt ? <LocalDateTimeTable dateString={tool.createdAt} /> : 'N/A'}
             </ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
             <ItemValue>
-              {tool.updatedAt ? formatDateTimeTable(tool.updatedAt, { local: true }) : 'N/A'}
+              {tool.updatedAt ? <LocalDateTimeTable dateString={tool.updatedAt} /> : 'N/A'}
             </ItemValue>
           </div>
         </div>
@@ -208,7 +208,9 @@ export function ViewMCPServerDetailsProjectScope({
                   <ItemLabel>Credential Expires At</ItemLabel>
                   {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
                 </div>
-                <ItemValue>{formatDateTimeTable(tool.expiresAt, { local: true })}</ItemValue>
+                <ItemValue>
+                  <LocalDateTimeTable dateString={tool.expiresAt} />
+                </ItemValue>
               </div>
             )}
           </div>

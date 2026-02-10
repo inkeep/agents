@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LocalDateTime } from '@/components/ui/local-datetime';
 import {
   Table,
   TableBody,
@@ -15,7 +16,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { TriggerInvocation } from '@/lib/api/triggers';
-import { formatDateTime } from '@/lib/utils/format-date';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { Combobox } from '../ui/combobox';
 
@@ -164,7 +164,7 @@ export function InvocationsTable({
                       </TableCell>
                       <TableCell onClick={() => toggleRow(invocation.id)}>
                         <div className="font-mono text-sm">
-                          {formatDateTime(invocation.createdAt, { local: true })}
+                          <LocalDateTime dateString={invocation.createdAt} />
                         </div>
                       </TableCell>
                       <TableCell onClick={() => toggleRow(invocation.id)}>
