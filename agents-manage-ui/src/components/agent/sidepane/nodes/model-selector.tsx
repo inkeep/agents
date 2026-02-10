@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown, X } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
@@ -56,6 +57,11 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   const [azureResourceName, setAzureResourceName] = useState('');
   const [azureBaseURL, setAzureBaseURL] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
+  const { setHasOpenModelConfig } = useAgentActions();
+
+  useEffect(() => {
+    setHasOpenModelConfig(showCustomInput !== null);
+  }, [showCustomInput]);
 
   const selectedModel = (() => {
     for (const models of Object.values(modelOptions)) {
@@ -249,6 +255,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                     setShowCustomInput('openrouter');
                     setOpen(false);
                     setCustomModelInput('');
+                    onValueChange?.('openrouter/...');
                   }}
                 >
                   OpenRouter ...
@@ -260,6 +267,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                     setShowCustomInput('gateway');
                     setOpen(false);
                     setCustomModelInput('');
+                    onValueChange?.('gateway/...');
                   }}
                 >
                   Vercel AI Gateway ...
@@ -271,6 +279,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                     setShowCustomInput('nim');
                     setOpen(false);
                     setCustomModelInput('');
+                    onValueChange?.('nim/...');
                   }}
                 >
                   NVIDIA NIM ...
@@ -375,6 +384,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               onClick={() => {
                 setShowCustomInput(null);
                 setCustomModelInput('');
+                onValueChange?.('');
               }}
             >
               Cancel

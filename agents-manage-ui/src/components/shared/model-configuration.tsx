@@ -148,6 +148,16 @@ export function ModelConfiguration({
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
       </div>
 
+      {/* Azure Configuration Fields */}
+      {effectiveModel?.startsWith('azure/') && (
+        <AzureConfigurationSection
+          providerOptions={effectiveProviderOptions}
+          onProviderOptionsChange={handleProviderOptionsStringChange}
+          editorNamePrefix={editorNamePrefix}
+          disabled={disabled || isUsingInheritedOptions}
+        />
+      )}
+
       {/* Provider Options JSON Editor */}
       {effectiveModel && (
         <div className="space-y-2">
@@ -178,16 +188,6 @@ export function ModelConfiguration({
             readOnly={disabled || isUsingInheritedOptions}
           />
         </div>
-      )}
-
-      {/* Azure Configuration Fields */}
-      {effectiveModel?.startsWith('azure/') && (
-        <AzureConfigurationSection
-          providerOptions={effectiveProviderOptions}
-          onProviderOptionsChange={handleProviderOptionsStringChange}
-          editorNamePrefix={editorNamePrefix}
-          disabled={disabled || isUsingInheritedOptions}
-        />
       )}
     </div>
   );

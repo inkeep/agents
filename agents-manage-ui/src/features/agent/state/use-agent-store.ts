@@ -47,6 +47,11 @@ interface AgentStateData {
    */
   isSidebarSessionOpen: boolean;
   variableSuggestions: string[];
+  /**
+   * Tracks if any model configuration modal is currently open (azure, openrouter, gateway, nim).
+   * Used to disable save button while configuration is in progress.
+   */
+  hasOpenModelConfig: boolean;
 }
 
 interface AgentPersistedStateData {
@@ -114,6 +119,10 @@ interface AgentActions {
   animateGraph: EventListenerOrEventListenerObject;
 
   setVariableSuggestions: (variableSuggestions: string[]) => void;
+  /**
+   * Setter for `hasOpenModelConfig` field.
+   */
+  setHasOpenModelConfig: (hasOpenModelConfig: boolean) => void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -151,6 +160,7 @@ const initialAgentState: AgentStateData = {
   showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
+  hasOpenModelConfig: false,
 };
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
@@ -546,6 +556,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     setVariableSuggestions(variableSuggestions) {
       set({ variableSuggestions });
+    },
+    setHasOpenModelConfig(hasOpenModelConfig) {
+      set({ hasOpenModelConfig });
     },
   },
 });
