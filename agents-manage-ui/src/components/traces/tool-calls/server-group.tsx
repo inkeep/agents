@@ -1,7 +1,8 @@
 'use client';
 
-import { ChevronDown, Server } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { cn } from '@/lib/utils';
 import { ToolCallItem } from './tool-call-item';
 
@@ -16,6 +17,8 @@ interface ServerGroupProps {
   slug: string;
   toolCount: number;
   tools: Tool[];
+  /** Optional server image URL (e.g. from MCP server config); when absent, MCPToolImage uses ProviderIcon/name fallback. */
+  imageUrl?: string;
   /** When set, server header shows these instead of aggregating from tools (e.g. when tools are filtered). */
   totalSuccess?: number;
   totalCalls?: number;
@@ -26,6 +29,7 @@ export function ServerGroup({
   slug,
   toolCount,
   tools,
+  imageUrl,
   totalSuccess: totalSuccessProp,
   totalCalls: totalCallsProp,
 }: ServerGroupProps) {
@@ -49,7 +53,7 @@ export function ServerGroup({
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <Server className="h-4 w-4" />
+          <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
         </div>
 
         <div className="flex-1 min-w-0">
