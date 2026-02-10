@@ -29,6 +29,10 @@ pr-review (orchestrator, opus)
 # CI (automatic via GitHub Actions)
 # Triggered on: pull_request [opened, synchronize, ready_for_review]
 
+# CI (manual via PR comment)
+# @claude /review        — triggers review (delta-scoped if re-review)
+# @claude /full-review   — triggers full-scope review (overrides delta scoping)
+
 # Local testing
 claude --agent pr-review "Review the changes in this branch"
 ```
@@ -50,9 +54,9 @@ claude --agent pr-review "Review the changes in this branch"
 │  └── Match changed files → relevant subagents                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Phase 3: Dispatch Reviewers (parallel)                                 │
-│  ├── Detect context: diff mode (inline/summary) + review iteration      │
-│  ├── First review: full-scope handoff (inline or summary mode)          │
-│  ├── Re-review: delta-scoped handoff (files changed since last review)  │
+│  ├── Detect context: diff mode (inline/summary) + review scope          │
+│  ├── review_scope=full: full-scope handoff (inline or summary mode)     │
+│  ├── review_scope=delta: delta-scoped handoff (changed since last rev)  │
 │  └── Spawn all selected reviewers in parallel                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Phase 4: Judge & Filter                                                │
@@ -197,9 +201,16 @@ For PRs where the diff exceeds ~100KB (after exclude patterns), the workflow swi
 3. Orchestrator provides each reviewer with a domain-scoped file list in the handoff message
 4. Reviewers read specific file diffs on-demand via `git diff`
 
-### Re-Review Scoping
+### Re-Review Scoping and `review_scope`
 
-On re-reviews (new commits since the last automated review), the system scopes reviewers to the delta:
+The system uses a `review_scope` signal (`full` | `delta`) in pr-context metadata to control scoping:
+
+| `review_scope` | When | Behavior |
+|----------------|------|----------|
+| `full` | First review, no new commits, or `/full-review` override | Review entire PR |
+| `delta` | New commits since last automated review (and no `/full-review`) | Scope to changes since last review |
+
+On re-reviews (new commits since the last automated review), the default is `review_scope=delta`:
 
 1. CI detects the last review commit SHA and computes the delta (files, stats, diff)
 2. pr-context gets a `## Changes Since Last Review` section with:
@@ -207,22 +218,38 @@ On re-reviews (new commits since the last automated review), the system scopes r
    - Commit log and per-file diff stats
    - Actual delta diff content (if ≤ 30KB), otherwise a `git diff` command
 3. pr-context gets a conditional `## Review Focus` directive telling reviewers to scope to the delta
-4. The orchestrator (Phase 3.4) appends a delta-scoped file list to each reviewer's handoff
+4. The orchestrator (Phase 3) appends a delta-scoped file list to each reviewer's handoff
 
 **Same quality bar, narrower scope:** Reviewers apply the same review process and severity criteria — the scoping is purely about which code to analyze, not what to flag.
+
+#### `/full-review` Override
+
+Commenting `@claude /full-review` on a PR forces `review_scope=full` even when a prior automated review exists and new commits have been pushed. This disables delta-only scoping so reviewers assess the entire PR.
+
+Large-PR diff summarization (summary mode) is **not** overridden by `/full-review` — it protects reviewer context budgets regardless of scope.
+
+The `## Changes Since Last Review` section is still included for context, but a `## Review Focus` directive clarifies that the review is full-scope and delta data is informational only.
+
+#### Concurrency
+
+CI runs use separate concurrency groups per trigger type:
+- `pr-review-pull_request-<PR#>` (automatic runs)
+- `pr-review-issue_comment-<PR#>` (manual `/review` or `/full-review`)
+
+A `/full-review` comment will **not** cancel an in-progress automatic `pull_request` review (different groups). Within each group, `cancel-in-progress: true` applies (e.g. a second `/full-review` cancels the first). This is intentional — the alternative (shared group) previously caused bot comments to cancel in-progress PR reviews.
 
 ### pr-context Sections (complete reference)
 
 | Section | Always present | Content |
 |---------|---------------|---------|
-| PR Metadata | Yes | Number, title, author, base, repo, head SHA, size, labels, review state, diff mode, trigger |
+| PR Metadata | Yes | Number, title, author, base, repo, head SHA, size, labels, review state, diff mode, event, trigger command, review scope |
 | Description | Yes | Author-provided PR body |
 | Linked Issues | Yes | Closing issues with labels and body (truncated at 1000 chars) |
 | Commit History | Yes | `git log --oneline --reverse` |
 | Changed Files | Yes | `git diff --stat` (per-file +/-) + `git diff --name-only` (full paths) |
 | Diff | Yes | Full diff (inline mode) or summary mode instructions |
 | Changes Since Last Review | Yes | First review message, or: metadata table, file list, commits, stats, delta diff |
-| Review Focus | Re-review only | Delta-scoping directive (only when new commits exist since last review) |
+| Review Focus | Conditional | Delta-scoping directive (`review_scope=delta`), full-scope override notice (`review_scope=full` on re-review), or absent (first review with `review_scope=full`) |
 | Prior Feedback | Yes | Automated comments, human threads, previous reviews, PR discussion |
 | GitHub URL Base | Yes | File link and PR link patterns |
 
@@ -270,7 +297,7 @@ For comparison, `AGENTS.md` alone is ~12,000+ tokens and is always loaded. The P
 
 ## Local Testing
 
-Create the pr-context skill manually for local runs:
+Create the pr-context skill manually for local runs. When `Review scope` is absent from the metadata table (as it will be for manually-created pr-context), the orchestrator defaults to full-scope behavior.
 
 ```bash
 mkdir -p .claude/skills/pr-context

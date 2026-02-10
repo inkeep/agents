@@ -67,7 +67,7 @@ You may spin up multiple parallel Explore subagents or chain new ones in sequenc
 
 This step is about context gathering // "world model" building only, not about making judgements, assumptions, or determinations. Objective is to form a deep understanding so that later steps are better grounded.
 
-**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. On "re-reviews", focus exploration on the delta and how it interacts with the broader PR rather than re-exploring unchanged areas.
+**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), focus exploration on the delta and how it interacts with the broader PR rather than re-exploring unchanged areas.
 
 ## Phase 1.5: Generate PR TLDR
 
@@ -157,7 +157,7 @@ Spawn each selected reviewer via the Task tool, spawning all relevant agents **i
 
 ### 3.1 Handoff Template
 
-One template for all cases. The orchestrator fills in the conditional lines based on two signals from pr-context: **diff mode** (`inline` vs `summary`) and **review iteration** (first review vs re-review with new commits).
+One template for all cases. The orchestrator fills in the conditional lines based on two signals from pr-context: **diff mode** (`inline` vs `summary`) and **review scope** (`full` vs `delta` — see `Review scope` in pr-context metadata).
 
 Reviewers already know how to use their skills (pr-context, pr-tldr, pr-review-output-contract) — don't re-explain that in the handoff.
 
@@ -169,10 +169,10 @@ Review PR #[NUMBER]: [Title].
 [ONLY if summary mode]
 Diff not inline — read on-demand: git diff origin/[BASE]...HEAD -- <path>
 
-[ONLY if re-review]
+[ONLY if review_scope == 'delta' in pr-context metadata]
 Re-review — scope to delta only.
 
-[ONLY if summary mode OR re-review — include a file list]
+[ONLY if summary mode OR review_scope == 'delta' — include a file list]
 Files:
 - path/to/file.ts
 - path/to/other.ts
@@ -182,11 +182,13 @@ Files:
 
 | Situation | List contains |
 |-----------|---------------|
-| Summary mode, first review | Domain-relevant files from Changed Files (5-15, prioritized by diff size) |
-| Inline mode, re-review | Delta files relevant to this reviewer's domain |
-| Summary mode, re-review | Delta files only (reviewer reads via `git diff`) |
+| Summary mode, `review_scope=full` | Domain-relevant files from Changed Files (5-15, prioritized by diff size) |
+| Inline mode, `review_scope=delta` | Delta files relevant to this reviewer's domain |
+| Summary mode, `review_scope=delta` | Delta files only (reviewer reads via `git diff`) |
 
 **Keep handoffs short.** The reviewer has full access to pr-context and pr-tldr for details. The handoff just points them in the right direction.
+
+**Scope signal:** Use `Review scope` from the pr-context metadata table as the single source of truth for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior.
 
 ## Phase 4: Judge & Filter
 
@@ -405,6 +407,8 @@ The review body is the summary markdown. It will be submitted together with all 
 #### Format
 
 > ⚠️ **NO DUPLICATION**: Items in Pending Recommendations MUST NOT appear here. Items posted as Inline Comments must appear only as 1-line inline logs (not full writeups). See No Duplication Principle.
+
+**HARD CONSTRAINT:** The review body MUST start with exactly `## PR Review Summary` — this exact heading, every time, regardless of whether this is a first review or a re-review. The CI workflow uses a regex (`^## PR Review Summary`) to identify prior automated reviews and compute the delta for re-reviews. If you change this heading, subsequent re-reviews will fail to find this review as a baseline.
 
 ````markdown
 ## PR Review Summary
