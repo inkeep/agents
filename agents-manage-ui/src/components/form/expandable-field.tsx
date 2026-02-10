@@ -1,10 +1,10 @@
 'use client';
 
 import type { ComponentProps, ReactNode } from 'react';
+import { Editor } from '@/components/editors/editor';
 import { Label } from '@/components/ui/label';
 import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
-import { Editor } from '@/components/editors/editor';
 
 interface ExpandableFieldProps extends ComponentProps<typeof Editor.Dialog> {
   uri: string;
