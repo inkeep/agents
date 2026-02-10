@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
+import { Editor } from '@/components/editors/editor';
 import { AddVariableAction } from '@/components/editors/expandable-prompt-editor';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import type { FormFieldWrapperProps } from '@/components/form/form-field-wrapper';
@@ -12,7 +13,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
-import { Editor } from '@/components/editors/editor';
 
 export function GenericPromptEditor<
   FV extends FieldValues,
@@ -26,13 +26,16 @@ export function GenericPromptEditor<
   label,
   className,
   placeholder,
+  ...props
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   className?: string;
   placeholder: string;
+  uri: ComponentProps<typeof PromptEditor>['uri'];
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
-  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
+  const $uri = props.uri ?? `${name}.template`;
+  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
 
   return (
     <FormField

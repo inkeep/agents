@@ -1,4 +1,6 @@
-import type { FC, ReactNode, JSX } from 'react';
+import { Maximize } from 'lucide-react';
+import type { FC, JSX, ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -6,8 +8,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Maximize } from 'lucide-react';
 
 interface EditorDialogProps {
   open: boolean;
