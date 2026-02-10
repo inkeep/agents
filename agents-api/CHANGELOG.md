@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 820bd49: Fix z.stringbool() breaking COMPRESSION_ENABLED default when env var is unset
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+  - @inkeep/agents-work-apps@0.47.4
+  - @inkeep/agents-manage-mcp@0.47.4
+  - @inkeep/agents-mcp@0.47.4
+
 ## 0.47.3
 
 ### Patch Changes

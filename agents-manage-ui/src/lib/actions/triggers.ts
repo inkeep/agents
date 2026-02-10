@@ -1,10 +1,12 @@
 'use server';
 
+import type { Part } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import {
   createTrigger,
   deleteTrigger,
   fetchTriggers,
+  rerunTrigger,
   type Trigger,
   updateTrigger,
 } from '../api/triggers';
@@ -112,6 +114,39 @@ export async function updateTriggerAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update trigger',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function rerunTriggerAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  triggerId: string,
+  params: {
+    userMessage: string;
+    messageParts?: Part[];
+  }
+): Promise<ActionResult<{ invocationId: string; conversationId: string }>> {
+  try {
+    const result = await rerunTrigger(tenantId, projectId, agentId, triggerId, params);
+    return {
+      success: true,
+      data: { invocationId: result.invocationId, conversationId: result.conversationId },
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to rerun trigger',
       code: 'unknown_error',
     };
   }
