@@ -89,7 +89,7 @@ Generate the PR context brief so subagent reviewers start from a shared baseline
 
 ## Phase 2: Select Reviewers
 
-Match changed files to the relevant sub-agent reviewers. Each reviewer has a specialized role and returns output as defined in the `pr-review-output-contract`. The descrptions below are rough descriptions, you should assume that they subagents are capable of reviewing any topic that seems reasonably within their scope even if not explicitly listed. Lean on them for specialized review.
+Match changed files to the relevant sub-agent reviewers. Each reviewer has a specialized role and returns output as defined in the `pr-review-output-contract`. The descriptions below are rough descriptions, you should assume that the subagents are capable of reviewing any topic that seems reasonably within their scope even if not explicitly listed. Lean on them for specialized review.
 
 Reviewers are organized into four tiers. For any PR that touches a **product surface** (APIs, SDKs, CLI, UI, docs, config formats, protocols), select all Core reviewers plus applicable Strong Default, Critical Domain, and Domain-Specific reviewers.
 
