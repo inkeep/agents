@@ -16,6 +16,7 @@ import {
 import { resolveCollisions } from '@/components/agent/configuration/resolve-collisions';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { sentry } from '@/lib/sentry';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -449,12 +450,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'tool_call': {
             const relationshipId = data.details?.data?.relationshipId;
-            const subAgentId = data.details?.subAgentId;
-            if (!relationshipId && !subAgentId) {
-              console.warn(
-                '[type: tool_call] relationshipId and subAgentId are both missing',
-                data
-              );
+            if (!relationshipId) {
+              const error = new Error('[type: tool_call] relationshipId is missing');
+              sentry.captureException(error, { extra: data });
+              console.warn(error);
             }
             return {
               edges: updateEdgeStatus((edge) => {
@@ -464,7 +463,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   : edge.data?.status;
               }),
               nodes: updateNodeStatus((node) =>
-                node.data.id === subAgentId ||
+                node.data.id === data.details?.subAgentId ||
                 (relationshipId && relationshipId === node.data.relationshipId)
                   ? 'delegating'
                   : node.data.status
@@ -472,15 +471,16 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'error': {
-            const { relationshipId } = data.details?.data ?? {};
-            const subAgentId = data.details?.subAgentId;
-            if (!relationshipId && !subAgentId) {
-              console.warn('[type: error] relationshipId and subAgentId are both missing', data);
+            const { relationshipId, agent } = data.details?.data ?? {};
+            if (!relationshipId && !data.agent && !agent) {
+              const error = new Error(`[type: error] relationshipId is missing`);
+              sentry.captureException(error, { extra: data });
+              console.warn(error);
             }
             return {
               nodes: updateNodeStatus((node) =>
-                (relationshipId && relationshipId === node.data.relationshipId) ||
-                node.data.id === subAgentId
+                relationshipId === node.data.relationshipId ||
+                [agent, data.agent].includes(node.data.id)
                   ? 'error'
                   : node.data.status
               ),
@@ -488,18 +488,16 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'tool_result': {
             const relationshipId = data.details?.data?.relationshipId;
-            const subAgentId = data.details?.subAgentId;
-            if (!relationshipId && !subAgentId) {
-              console.warn(
-                '[type: tool_result] relationshipId and subAgentId are both missing',
-                data
-              );
+            if (!relationshipId) {
+              const error = new Error('[type: tool_result] relationshipId is missing');
+              sentry.captureException(error, { extra: data });
+              console.warn(error);
             }
             return {
               edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
 
-                return subAgentId === edge.source &&
+                return data.details?.subAgentId === edge.source &&
                   relationshipId &&
                   relationshipId === node?.data.relationshipId
                   ? 'inverted-delegating'
@@ -509,7 +507,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 if (relationshipId && relationshipId === node.data.relationshipId) {
                   return data.details?.data?.error ? 'error' : 'inverted-delegating';
                 }
-                if (node.id === subAgentId) {
+                if (node.id === data.details?.subAgentId) {
                   return 'delegating';
                 }
 
