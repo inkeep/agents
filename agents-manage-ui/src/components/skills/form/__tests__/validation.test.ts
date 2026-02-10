@@ -1,4 +1,4 @@
-import { parseMetadataField, SkillSchema } from '../validation';
+import { SkillSchema } from '../validation';
 
 describe('SkillSchema', () => {
   test('validates required fields', () => {
@@ -55,21 +55,70 @@ describe('SkillSchema', () => {
       ]);
     }
   });
-});
+  describe('metadata', () => {
+    const defaultValues = {
+      name: 'a',
+      description: 'a',
+      content: 'a',
+    };
 
-describe('parseMetadataField', () => {
-  test('returns null for empty metadata', () => {
-    expect(parseMetadataField(' ')).toBeNull();
-    expect(parseMetadataField()).toBeNull();
-  });
+    test('returns null for empty metadata', () => {
+      const result = SkillSchema.safeParse({
+        ...defaultValues,
+        metadata: ' ',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.metadata).toBeNull();
+      }
+    });
 
-  test('parses valid JSON object', () => {
-    const parsed = parseMetadataField('{"key":"value"}');
-    expect(parsed).toEqual({ key: 'value' });
-  });
+    test('parses valid JSON object', () => {
+      const result = SkillSchema.safeParse({
+        ...defaultValues,
+        metadata: '{"key":"value"}',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.metadata).toStrictEqual({ key: 'value' });
+      }
+    });
 
-  test('throws for non-object JSON', () => {
-    expect(() => parseMetadataField('"text"')).toThrow();
-    expect(() => parseMetadataField('[]')).toThrow();
+    describe('throws for non-object JSON', () => {
+      test('when input is not object', () => {
+        const result = SkillSchema.safeParse({
+          ...defaultValues,
+          metadata: '"text"',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues).toStrictEqual([
+            {
+              code: 'invalid_type',
+              expected: 'record',
+              message: 'Must be valid JSON object',
+              path: ['metadata'],
+            },
+          ]);
+        }
+      });
+      test('when input object value is not string', () => {
+        const result = SkillSchema.safeParse({
+          ...defaultValues,
+          metadata: '{"key":0}',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues).toStrictEqual([
+            {
+              code: 'invalid_type',
+              expected: 'string',
+              message: 'All object values must be strings',
+              path: ['metadata', 'key'],
+            },
+          ]);
+        }
+      });
+    });
   });
 });

@@ -1370,7 +1370,9 @@ export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchem
   .openapi('DatasetRunConfigAgentRelationUpdate');
 
 const SkillIndexSchema = z.int().min(0);
-const SkillMetadataSchema = z.record(z.string(), z.string()).nullable();
+const StringRecordSchema = z
+  .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
+  .openapi('StringRecord');
 
 export const SkillFrontmatterSchema = z.object({
   name: z
@@ -1389,14 +1391,15 @@ export const SkillFrontmatterSchema = z.object({
     .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
     .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
   description: z.string().trim().nonempty().max(1024),
-  metadata: SkillMetadataSchema.optional().default(null),
+  metadata: StringRecordSchema.nullish().default(null),
 });
 export const SkillSelectSchema = createSelectSchema(skills).extend({
-  metadata: SkillMetadataSchema,
+  metadata: StringRecordSchema.nullable(),
 });
 export const SkillInsertSchema = createInsertSchema(skills)
   .extend({
-    metadata: SkillFrontmatterSchema.shape.metadata,
+    ...SkillFrontmatterSchema.shape,
+    content: z.string().trim().nonempty(),
   })
   .omit({
     // We set id under the hood as skill.name
@@ -1893,12 +1896,6 @@ export const FetchDefinitionSchema = z
     credential: CredentialReferenceApiInsertSchema.optional(),
   })
   .openapi('FetchDefinition');
-
-export const HeadersSchema = z.record(
-  z.string(),
-  z.string('All header values must be strings'),
-  'Must be valid JSON object'
-);
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
   headersSchema: z.any().optional().openapi({
