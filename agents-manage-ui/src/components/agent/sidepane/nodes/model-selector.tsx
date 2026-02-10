@@ -1,9 +1,10 @@
 'use client';
 
 import { Check, ChevronsUpDown, X } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
+import { useAvailableModelsQuery } from '@/lib/query/available-models';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -57,8 +58,15 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   const [azureBaseURL, setAzureBaseURL] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
 
+  const { data: dynamicModels } = useAvailableModelsQuery();
+
+  const effectiveModelOptions = useMemo(() => {
+    if (dynamicModels) return dynamicModels;
+    return modelOptions;
+  }, [dynamicModels]);
+
   const selectedModel = (() => {
-    for (const models of Object.values(modelOptions)) {
+    for (const models of Object.values(effectiveModelOptions)) {
       const model = models.find((m) => m.value === value);
       if (model) return model;
     }
@@ -91,7 +99,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
 
   const inheritedModel = (() => {
     if (!inheritedValue) return null;
-    for (const models of Object.values(modelOptions)) {
+    for (const models of Object.values(effectiveModelOptions)) {
       const model = models.find((m) => m.value === inheritedValue);
       if (model) return model;
     }
@@ -200,8 +208,8 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                   );
                 })()}
               </CommandEmpty>
-              {/* Predefined models */}
-              {Object.entries(modelOptions).map(([provider, models]) => (
+              {/* Predefined models (dynamic when available, static fallback) */}
+              {Object.entries(effectiveModelOptions).map(([provider, models]) => (
                 <CommandGroup key={provider} heading={provider}>
                   {models.map((model) => (
                     <CommandItem
