@@ -2,9 +2,9 @@ import type { ModelSettings } from '@inkeep/agents-core';
 import { ModelInfoMap } from 'llm-info';
 import { getLogger } from '../../../logger';
 import {
-  COMPRESSION_ENABLED,
   COMPRESSION_HARD_LIMIT,
   COMPRESSION_SAFETY_BUFFER,
+  executionLimitsDefaults,
 } from '../constants/execution-limits';
 
 const logger = getLogger('ModelContextUtils');
@@ -190,7 +190,11 @@ export function getCompressionConfigForModel(
     process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || COMPRESSION_SAFETY_BUFFER.toString(),
     10
   );
-  const enabled = process.env.AGENTS_COMPRESSION_ENABLED !== 'false' && COMPRESSION_ENABLED;
+  const envEnabledValue = process.env.AGENTS_COMPRESSION_ENABLED;
+  const enabled =
+    envEnabledValue !== undefined
+      ? envEnabledValue !== 'false'
+      : executionLimitsDefaults.COMPRESSION_ENABLED;
 
   if (modelContextInfo.hasValidContextWindow && modelContextInfo.contextWindow) {
     let hardLimit: number;
