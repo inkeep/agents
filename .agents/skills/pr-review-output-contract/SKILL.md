@@ -264,6 +264,7 @@ Set `pre_existing: true` when you encounter a notable issue in your domain that 
 - Omit the field entirely (or set `false`) for findings about issues introduced by the PR — this is the default
 - When `true`, the orchestrator may surface the finding in a "While You're Here" section if it's relevant to the PR's scope
 - Use the same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
+- The orchestrator requires **HIGH confidence** for pre-existing issues to surface in review — low-confidence pre-existing findings will be filtered out
 
 ### `issue`, `implications`, `fix`
 
@@ -328,7 +329,7 @@ Never use absolute paths. Always use paths relative to the repository root.
     "category": "standards",
     "issue": "Logger utility swallows errors silently — catch block is empty. This predates this PR but is in the same module being modified.",
     "references": [
-      "[AGENTS.md:L48 — error handling must be explicit](https://github.com/org/repo/blob/abc123/AGENTS.md#L48)",
+      "[AGENTS.md:L97 — error handling must be explicit](https://github.com/org/repo/blob/abc123/AGENTS.md#L97)",
       "[src/utils/logger.ts:15-18 — empty catch block](https://github.com/org/repo/blob/abc123/src/utils/logger.ts#L15-L18)"
     ],
     "implications": "Silent error swallowing can mask bugs and make debugging difficult. Since this file is being modified in this PR, it's a natural cleanup opportunity.",

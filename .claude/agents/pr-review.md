@@ -517,7 +517,7 @@ when the problem is complex or context is needed.
 
 🧹 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
 **Issue:** Brief description of the pre-existing problem.
-**Why now:** Why it's worth addressing alongside this PR — what's the connection to the current work?
+**Why:** Connection to the current work — why this is worth addressing alongside this PR.
 **Fix:** Brief suggestion.
 **Refs:** `[file:line](url)`
 
