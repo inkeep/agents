@@ -77,7 +77,7 @@ export function ServerGroup({
             {rate}%
           </span>
           <span className="text-xs text-muted-foreground tabular-nums">
-            {totalSuccess}/{totalCalls} calls
+            {totalSuccess} / {totalCalls} calls
           </span>
           <ChevronDown
             className={cn(

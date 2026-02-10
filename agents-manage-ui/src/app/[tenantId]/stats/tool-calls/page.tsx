@@ -1,18 +1,17 @@
 'use client';
 
-import { ArrowLeft, CheckCircle, FolderKanban, Layers, Wrench } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Layers, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
+import { ToolCallsByProject } from '@/components/traces/tool-calls/tool-calls-by-project';
 import { ToolCallsByServerCard } from '@/components/traces/tool-calls/tool-calls-by-server-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
-import { Skeleton } from '@/components/ui/skeleton';
-import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
@@ -241,98 +240,47 @@ export default function AllProjectsToolCallsBreakdown({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatCard
-          title="Total MCP Calls"
-          stat={totalMCPCalls}
-          statDescription={
-            selectedProjectId === undefined
-              ? `Tool calls across all ${projectStats.length} projects`
-              : `Tool calls for selected project`
-          }
-          isLoading={loading}
-          Icon={Wrench}
-        />
-        <StatCard
-          title="Success Rate"
-          stat={Number(overallSuccessRate.toFixed(0))}
-          unit="%"
-          statDescription={`${totalToolCalls - totalToolErrors} / ${totalToolCalls} calls successful`}
-          isLoading={loading}
-          Icon={CheckCircle}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:items-stretch">
+        <div className="flex flex-col min-w-0 md:flex-row lg:flex-col gap-4 md:[&>*]:flex-1 md:[&>*]:min-w-0">
+          <StatCard
+            title="Total MCP Calls"
+            stat={totalMCPCalls}
+            statDescription={
+              selectedProjectId === undefined
+                ? `Tool calls across all ${projectStats.length} projects`
+                : `Tool calls for selected project`
+            }
+            isLoading={loading}
+            Icon={Wrench}
+          />
+          <StatCard
+            title="Success Rate"
+            stat={Number(overallSuccessRate.toFixed(0))}
+            unit="%"
+            statDescription={`${totalToolCalls - totalToolErrors} / ${totalToolCalls} calls successful`}
+            isLoading={loading}
+            Icon={CheckCircle}
+          />
+        </div>
+        {/* Project Calls List */}
+        <Card className="shadow-none bg-sidebar dark:bg-card pb-0 lg:col-span-2 flex flex-col min-h-0 border-none">
+          <CardHeader>
+            <CardTitle className="flex font-medium items-center gap-4 text-foreground">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-gray-400 dark:text-white/40" />
+                MCP Calls by Project
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 px-0">
+            <ToolCallsByProject
+              projectStats={projectStats}
+              projectNameMap={projectNameMap}
+              projectStatsLoading={loading}
+            />
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Project Calls List */}
-      <Card className="shadow-none bg-background">
-        <CardHeader>
-          <CardTitle className="flex font-medium items-center gap-4 text-foreground">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-gray-400 dark:text-white/40" />
-              MCP Calls by Project
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg"
-                >
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              ))}
-            </div>
-          ) : projectStats.length > 0 ? (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-              {[...projectStats]
-                .sort((a, b) => b.totalMCPCalls - a.totalMCPCalls)
-                .map((project, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-orange-50/30 dark:bg-orange-900/20 rounded-lg border border-border"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FolderKanban className="h-5 w-5 text-orange-600" />
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium text-foreground">
-                          {projectNameMap.get(project.projectId) || project.projectId}
-                        </span>
-                        {project.projectId !== UNKNOWN_VALUE &&
-                          projectNameMap.get(project.projectId) && (
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {project.projectId}
-                            </span>
-                          )}
-                        <span className="text-xs text-muted-foreground">
-                          {project.totalConversations.toLocaleString()} conversations
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-600">
-                        {project.totalMCPCalls.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">MCP calls</div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <FolderKanban className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No MCP calls found.</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                No MCP calls detected in the selected time range.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Tool Breakdown by Server */}
       <ToolCallsByServerCard title="Tool Calls by Server" loading={loading} toolCalls={toolCalls} />
     </div>

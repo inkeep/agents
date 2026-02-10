@@ -266,7 +266,7 @@ export default function ToolCallsBreakdown({
             <StatCard
               title="Tool Calls"
               stat={totalToolCalls}
-              statDescription="Number of MCP tool calls"
+              statDescription="Number of tool calls"
               isLoading={loading}
               Icon={Wrench}
             />

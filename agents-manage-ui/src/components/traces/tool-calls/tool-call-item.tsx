@@ -63,7 +63,7 @@ export function ToolCallItem({ name, successCount, totalCalls }: ToolCallItemPro
         </span>
 
         <span className="text-xs text-muted-foreground tabular-nums w-14 md:w-20 text-right">
-          {successCount}/{totalCalls} calls
+          {successCount} / {totalCalls} calls
         </span>
       </div>
     </div>

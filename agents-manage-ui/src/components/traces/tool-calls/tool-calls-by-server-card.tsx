@@ -1,7 +1,7 @@
 'use client';
 
-import { Wrench } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { MCPIcon } from '@/components/icons/mcp-icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
@@ -132,7 +132,7 @@ export function ToolCallsByServerCard({
       <CardHeader>
         <CardTitle className="flex font-medium items-center gap-4 text-foreground">
           <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-gray-400 dark:text-white/40" />
+            <MCPIcon className="h-4 w-4 text-gray-400 dark:text-white/40" />
             {title}
           </div>
         </CardTitle>
