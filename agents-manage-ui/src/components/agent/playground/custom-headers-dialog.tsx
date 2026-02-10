@@ -1,4 +1,4 @@
-import { type StringRecordSchema } from '@inkeep/agents-core/client-exports';
+import type { StringRecordSchema } from '@inkeep/agents-core/client-exports';
 import { Pencil, Plus } from 'lucide-react';
 import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
