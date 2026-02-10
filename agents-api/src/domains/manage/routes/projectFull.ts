@@ -200,7 +200,10 @@ app.openapi(
       }
 
       // Handle SpiceDB sync failures - transactions already rolled back
-      if (error?.message?.includes('SpiceDB') || error?.code === 3 || error?.details) {
+      // Check for gRPC error characteristics (SpiceDB uses gRPC via @authzed/authzed-node)
+      const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
+      const mentionsSpiceDb = error?.message?.includes('SpiceDB');
+      if (mentionsSpiceDb || isGrpcError) {
         logger.error(
           {
             error,
@@ -468,23 +471,26 @@ app.openapi(
 
       // Handle SpiceDB sync failures for creates - transactions already rolled back
       const isCreate = c.get('isProjectCreate') ?? false;
-      if (
-        isCreate &&
-        (error?.message?.includes('SpiceDB') || error?.code === 3 || error?.details)
-      ) {
-        logger.error(
-          {
-            error,
-            tenantId,
-            projectId,
-            userId,
-          },
-          'Failed to sync project to SpiceDB - database transactions rolled back'
-        );
-        throw createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to set up project authorization. No changes were made to the database.',
-        });
+      if (isCreate) {
+        // Check for gRPC error characteristics (SpiceDB uses gRPC via @authzed/authzed-node)
+        const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
+        const mentionsSpiceDb = error?.message?.includes('SpiceDB');
+        if (mentionsSpiceDb || isGrpcError) {
+          logger.error(
+            {
+              error,
+              tenantId,
+              projectId,
+              userId,
+            },
+            'Failed to sync project to SpiceDB - database transactions rolled back'
+          );
+          throw createApiError({
+            code: 'internal_server_error',
+            message:
+              'Failed to set up project authorization. No changes were made to the database.',
+          });
+        }
       }
 
       throw createApiError({
