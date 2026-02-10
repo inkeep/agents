@@ -61,9 +61,13 @@ The PR context (diff, changed files, metadata, existing comments) is available v
 Use these terms consistently when referencing prior feedback throughout the workflow.
 
 ### Phase 1.1:
-Use the context above to spin up an Explore subagent to understand the relevant paths/product interfaces/existing architecture/etc. that you need to more deeply understand the scope and purpose of this PR. Try to think through it as building a "knowledge graph" of not just the changes, but all the relevant things that may be derived from or affected technically, architecturally, or at a product level. You may spin up multiple parallel Explore subagents or chain new ones in sequence do additional research as needed if changes are complex or there's more you want to understand.
+Use the context above to spin up an Explore subagent to understand the relevant paths/product interfaces/existing architecture/etc. that you need to more deeply understand the scope and purpose of this PR. Try to think through it as building a "knowledge graph" (+"transitive chain") of not just the changes, but all the relevant things that may be derived from or get side-effects from the changes across all key dimensions: technically, architecturally, or at a product/customer-facing level. 
+
+You may spin up multiple parallel Explore subagents or chain new ones in sequence do additional research as needed if changes are complex or there's more you want to understand. Your goal is to get high confidence to be able to generate a high quality `pr-tldr` (see next Phase) artifact.
 
 This step is about context gathering // "world model" building only, not about making judgements, assumptions, or determinations. Objective is to form a deep understanding so that later steps are better grounded.
+
+**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. On "re-reviews", focus exploration on the delta and how it interacts with the broader PR rather than re-exploring unchanged areas.
 
 ## Phase 1.5: Generate PR TLDR
 
@@ -76,7 +80,7 @@ Generate the PR context brief so subagent reviewers start from a shared baseline
 
 **Fill constraints** (the brief orients reviewers — it must not steer them):
 - Factual context only. No quality assessments, identified issues/risks, severity ratings, or recommendations.
-- No restated diff content or metadata (already in pr-context). 
+- No restated raw diff content or metadata (already in pr-context). 
 - Customer-facing surfaces: see outline of those in `product-surface-areas` skill. "Potentially unaccounted" requires transitive-chain evidence.
 - Internal surfaces: must cite changed files. Prefer grouping/mapping via `internal-surface-areas` catalog categories (e.g., “CI/CD Pipelines”, “Database Schemas & Migrations”). For “potentially impacted but not updated”, use the `internal-surface-areas` Breaking Change Impact Matrix as a best-effort guide — only include impacts that are plausibly relevant to the specific changed files.
 
@@ -151,81 +155,38 @@ These provide domain expertise. Select when the PR touches their domain; skip wh
 
 Spawn each selected reviewer via the Task tool, spawning all relevant agents **in parallel**.
 
-### 3.1 Detect Context
+### 3.1 Handoff Template
 
-Check pr-context for two signals that shape the handoff:
+One template for all cases. The orchestrator fills in the conditional lines based on two signals from pr-context: **diff mode** (`inline` vs `summary`) and **review iteration** (first review vs re-review with new commits).
 
-**Diff mode** (from the metadata table):
-- **`inline`** — Full diff is embedded in pr-context. Reviewers see it directly.
-- **`summary`** — Diff is NOT inline (too large). Reviewers MUST read file diffs on-demand via tool calls.
-
-**Review iteration** (from the "Changes Since Last Review" section):
-- **First review** — No prior automated review exists. Full-scope review.
-- **Re-review** — A prior review exists. Scope to the delta (files changed since the last review).
-
-### 3.2 First Review — Inline Mode
+Reviewers already know how to use their skills (pr-context, pr-tldr, pr-review-output-contract) — don't re-explain that in the handoff.
 
 ```
-Review PR #[PR_NUMBER]: [Title].
+Review PR #[NUMBER]: [Title].
 
-<<brief 1-3 sentences on why this subagent was selected without being overly prescriptive on what it should limit its scope to — just describe what you believe about the PR intersects its domain at a high level. Mention specific files or areas worth starting from, but don't limit scope. Keep fairly general, be wary of biasing the reviewer.>>
+<<1-2 sentences: why this reviewer was selected. Mention relevant files/areas but don't limit scope.>>
 
-The PR context (diff, changed files, metadata) is loaded via your pr-context skill. A pre-computed context brief (intent, surface impact, review state) is available via your pr-tldr skill — treat it as a starting point that may contain inaccuracies, not as authoritative.
+[ONLY if summary mode]
+Diff not inline — read on-demand: git diff origin/[BASE]...HEAD -- <path>
 
-Return findings as JSON array per pr-review-output-contract.
+[ONLY if re-review]
+Re-review — scope to delta only.
+
+[ONLY if summary mode OR re-review — include a file list]
+Files:
+- path/to/file.ts
+- path/to/other.ts
 ```
 
-### 3.3 First Review — Summary Mode (large PR)
+**What goes in the file list:**
 
-When pr-context is in summary mode, the diff is NOT available inline. You MUST provide each reviewer with a domain-scoped file list so they know what to read. Each reviewer should read only the files relevant to their domain — NOT the entire diff.
+| Situation | List contains |
+|-----------|---------------|
+| Summary mode, first review | Domain-relevant files from Changed Files (5-15, prioritized by diff size) |
+| Inline mode, re-review | Delta files relevant to this reviewer's domain |
+| Summary mode, re-review | Delta files only (reviewer reads via `git diff`) |
 
-```
-Review PR #[PR_NUMBER]: [Title].
-
-<<brief 1-3 sentences on why this subagent was selected>>
-
-**⚠️ LARGE PR — summary mode.** The diff is NOT inline in pr-context (too large). You MUST read file diffs on-demand using:
-  git diff origin/[BASE_BRANCH]...HEAD -- <path>
-
-Start with these files (most relevant to your domain):
-- path/to/file1.ts — <<why relevant>>
-- path/to/file2.ts — <<why relevant>>
-- ...
-
-Use the Changed Files section in pr-context for the full file list and diff stats. Prioritize files with the most changes in your domain. Read only what you need — do NOT try to read the entire diff at once.
-
-The PR context (metadata, file list, diff stats, prior feedback) is loaded via your pr-context skill. A pre-computed context brief is available via your pr-tldr skill.
-
-Return findings as JSON array per pr-review-output-contract.
-```
-
-**Tips for building domain-scoped file lists:**
-- Use the Changed Files diff stats from pr-context to identify files by domain
-- Group files by package/directory for each reviewer's domain
-- Include 5-15 files per reviewer — enough for thorough coverage, not so many they exhaust context
-- For reviewers with broad scope (standards, product), prioritize by diff size (most changed files first)
-
-### 3.4 Re-Review Handoff
-
-On re-reviews, scope each reviewer to the delta — files changed since the last automated review. Use the "Changes Since Last Review" section in pr-context to identify which files changed and the commit narrative.
-
-Append this paragraph to **whichever handoff format applies** (3.2 or 3.3):
-
-```
-**RE-REVIEW — scope to the delta.** A prior review already covered this PR. Your review scope is the code that changed since the last review. Apply your normal review process — same quality bar, same criteria — but focus on what's new or modified. Do not re-analyze unchanged code. The "Review Focus" and "Changes Since Last Review" sections in pr-context have the details.
-
-Files changed since last review (focus here):
-- path/to/changed-file1.ts
-- path/to/changed-file2.ts
-- ...
-```
-
-**Building the delta file list:**
-- Use the "Diff stats since last review" in pr-context to identify files in the delta
-- Filter to files relevant to the reviewer's domain
-- If the delta is small (< 5 files in this reviewer's domain), include all of them
-- If the delta is large, prioritize by change size within the reviewer's domain
-- In summary mode, provide `git diff` commands scoped to delta files only
+**Keep handoffs short.** The reviewer has full access to pr-context and pr-tldr for details. The handoff just points them in the right direction.
 
 ## Phase 4: Judge & Filter
 
