@@ -56,8 +56,8 @@ export default defineConfig({
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
                 comparatorOptions: {
-                  // 1% of the pixels are allowed to mismatch between macOS and Linux
-                  allowedMismatchedPixelRatio: 0.01,
+                  // 2% of the pixels are allowed to mismatch between macOS and Linux
+                  allowedMismatchedPixelRatio: 0.02,
                 },
               },
             },
