@@ -1,41 +1,50 @@
-import './env'; // Load environment files first (needed by instrumentation)
-import './instrumentation'; // Initialize Langfuse tracing second
-
-// Silence config loading logs for cleaner CLI output
-import { getLogger } from '@inkeep/agents-core';
-
-const configLogger = getLogger('config');
-configLogger.updateOptions({ level: 'silent' });
+/**
+ * CLI entry point.
+ *
+ * IMPORTANT: Keep top-level imports minimal. Only `commander`, `node:fs`,
+ * `node:path`, and `node:url` are imported eagerly so that `--version` and
+ * `--help` work instantly — even when the dependency tree is broken (e.g.
+ * pnpm global installs with a zod v3/v4 mismatch).
+ *
+ * All command implementations and @inkeep/agents-core imports are lazy-loaded
+ * inside `.action()` callbacks via dynamic `import()`.
+ */
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { addCommand } from './commands/add';
-import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
-import { devCommand } from './commands/dev';
-import { initCommand } from './commands/init';
-import { listAgentsCommand } from './commands/list-agents';
-import { loginCommand } from './commands/login';
-import { logoutCommand } from './commands/logout';
-import {
-  profileAddCommand,
-  profileCurrentCommand,
-  profileListCommand,
-  profileRemoveCommand,
-  profileUseCommand,
-} from './commands/profile';
-import { pullV3Command } from './commands/pull-v3/index';
-import { pushCommand } from './commands/push';
-import { statusCommand } from './commands/status';
-import { updateCommand } from './commands/update';
-import { whoamiCommand } from './commands/whoami';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const packageJsonPath = join(__dirname, '..', 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+// ── Lazy initialisation ─────────────────────────────────────────────
+// Deferred until the first command actually runs. This keeps
+// `inkeep --version` and `inkeep --help` working even when heavy
+// dependencies fail to load.
+
+let _initialised = false;
+
+async function ensureInit(): Promise<void> {
+  if (_initialised) return;
+  _initialised = true;
+
+  // Load .env files (secrets, API keys)
+  await import('./env');
+
+  // Start Langfuse tracing (if configured)
+  await import('./instrumentation');
+
+  // Silence config-loading logs for cleaner CLI output
+  const { getLogger } = await import('@inkeep/agents-core');
+  const configLogger = getLogger('config');
+  configLogger.updateOptions({ level: 'silent' });
+}
+
+// ── Program setup ───────────────────────────────────────────────────
 
 const program = new Command();
 
@@ -53,6 +62,8 @@ program
   .option('--local-prefix <path_prefix>', 'Use local templates from the given path prefix')
   .option('--config <path>', 'Path to configuration file')
   .action(async (template, options) => {
+    await ensureInit();
+    const { addCommand } = await import('./commands/add');
     await addCommand({ template, ...options });
   });
 
@@ -63,6 +74,8 @@ program
   .option('--no-interactive', 'Skip interactive prompts')
   .option('--config <path>', 'Path to use as template for new configuration')
   .action(async (path, options) => {
+    await ensureInit();
+    const { initCommand } = await import('./commands/init');
     await initCommand({ path, ...options });
   });
 
@@ -74,6 +87,8 @@ configCommand
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (key, options) => {
+    await ensureInit();
+    const { configGetCommand } = await import('./commands/config');
     const config = options.config || options.configFilePath;
     await configGetCommand(key, { config });
   });
@@ -84,6 +99,8 @@ configCommand
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (key, value, options) => {
+    await ensureInit();
+    const { configSetCommand } = await import('./commands/config');
     const config = options.config || options.configFilePath;
     await configSetCommand(key, value, { config });
   });
@@ -94,6 +111,8 @@ configCommand
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (options) => {
+    await ensureInit();
+    const { configListCommand } = await import('./commands/config');
     const config = options.config || options.configFilePath;
     await configListCommand({ config });
   });
@@ -118,6 +137,8 @@ program
   )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
+    await ensureInit();
+    const { pushCommand } = await import('./commands/push');
     await pushCommand(options);
   });
 
@@ -146,6 +167,8 @@ program
   )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
+    await ensureInit();
+    const { pullV3Command } = await import('./commands/pull-v3/index');
     await pullV3Command(options);
   });
 
@@ -158,6 +181,8 @@ program
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (options) => {
+    await ensureInit();
+    const { listAgentsCommand } = await import('./commands/list-agents');
     const config = options.config || options.configFilePath;
     await listAgentsCommand({ ...options, config });
   });
@@ -173,6 +198,8 @@ program
   .option('--path', 'Output the path to the Dashboard UI', false)
   .option('--open-browser', 'Open the browser', false)
   .action(async (options) => {
+    await ensureInit();
+    const { devCommand } = await import('./commands/dev');
     await devCommand({
       port: parseInt(options.port, 10),
       host: options.host,
@@ -190,6 +217,8 @@ program
   .option('--check', 'Check for updates without installing')
   .option('--force', 'Force update even if already on latest version')
   .action(async (options) => {
+    // update command doesn't need the heavy init (no agents-core deps)
+    const { updateCommand } = await import('./commands/update');
     await updateCommand(options);
   });
 
@@ -199,6 +228,8 @@ program
   .description('Authenticate with Inkeep Cloud')
   .option('--profile <name>', 'Profile to authenticate (defaults to active profile)')
   .action(async (options) => {
+    await ensureInit();
+    const { loginCommand } = await import('./commands/login');
     await loginCommand(options);
   });
 
@@ -207,6 +238,8 @@ program
   .description('Log out of Inkeep Cloud')
   .option('--profile <name>', 'Profile to log out (defaults to active profile)')
   .action(async (options) => {
+    await ensureInit();
+    const { logoutCommand } = await import('./commands/logout');
     await logoutCommand(options);
   });
 
@@ -215,6 +248,8 @@ program
   .description('Show current profile, authentication state, and remote URLs')
   .option('--profile <name>', 'Profile to show status for (defaults to active profile)')
   .action(async (options) => {
+    await ensureInit();
+    const { statusCommand } = await import('./commands/status');
     await statusCommand(options);
   });
 
@@ -222,6 +257,8 @@ program
   .command('whoami')
   .description('Display current authentication status (alias for status)')
   .action(async () => {
+    await ensureInit();
+    const { whoamiCommand } = await import('./commands/whoami');
     await whoamiCommand();
   });
 
@@ -234,6 +271,8 @@ profileCommand
   .command('list')
   .description('List all profiles')
   .action(async () => {
+    await ensureInit();
+    const { profileListCommand } = await import('./commands/profile');
     await profileListCommand();
   });
 
@@ -241,6 +280,8 @@ profileCommand
   .command('add [name]')
   .description('Add a new profile')
   .action(async (name) => {
+    await ensureInit();
+    const { profileAddCommand } = await import('./commands/profile');
     await profileAddCommand(name);
   });
 
@@ -248,6 +289,8 @@ profileCommand
   .command('use <name>')
   .description('Set the active profile')
   .action(async (name) => {
+    await ensureInit();
+    const { profileUseCommand } = await import('./commands/profile');
     await profileUseCommand(name);
   });
 
@@ -255,6 +298,8 @@ profileCommand
   .command('current')
   .description('Display the active profile details')
   .action(async () => {
+    await ensureInit();
+    const { profileCurrentCommand } = await import('./commands/profile');
     await profileCurrentCommand();
   });
 
@@ -262,6 +307,8 @@ profileCommand
   .command('remove <name>')
   .description('Remove a profile')
   .action(async (name) => {
+    await ensureInit();
+    const { profileRemoveCommand } = await import('./commands/profile');
     await profileRemoveCommand(name);
   });
 
