@@ -14,6 +14,7 @@ type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   error?: string;
 };
 
+/** @lintignore */
 export const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, className }) => {
   'use memo';
   const monaco = useMonacoStore((state) => state.monaco);

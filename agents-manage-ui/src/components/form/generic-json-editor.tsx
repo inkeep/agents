@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
 import { Editor } from '@/components/editors/editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { cn } from '@/lib/utils';
 import {
   FormControl,
   FormDescription,
@@ -11,9 +12,7 @@ import {
   FormMessage,
 } from '../ui/form';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
-import { cn } from '@/lib/utils';
 
-/** @lintignore */
 export function GenericJsonEditor<
   FV extends FieldValues,
   TV extends FieldValues,
@@ -30,6 +29,7 @@ export function GenericJsonEditor<
   placeholder: string;
   customTemplate: string;
 }) {
+  'use memo';
   const [open, onOpenChange] = useState(false);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   return (
