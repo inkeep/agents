@@ -1,4 +1,5 @@
-import { parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { extractTextFromParts } from 'src/domains/run/utils/message-parts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import {
@@ -131,11 +132,8 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       // Mock implementation
     }
 
-    async generate(parts: any[], _options: any) {
-      const message = parts
-        .filter((p: any) => p.kind === 'text')
-        .map((p: any) => p.text)
-        .join(' ');
+    async generate(userParts: Part[], _options: unknown) {
+      const message = extractTextFromParts(userParts);
       // Mock different response types based on message content
       if (message.includes('transfer')) {
         return {

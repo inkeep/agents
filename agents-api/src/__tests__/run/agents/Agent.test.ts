@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
-const toParts = (text: string) => [{ kind: 'text' as const, text }];
+const makeTextPart = (text: string) => [{ kind: 'text' as const, text }];
 
 // Mock the AI SDK functions
 vi.mock('ai', () => ({
@@ -868,7 +868,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithNoneMode, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'), mockRuntimeContext);
+    await agent.generate(makeTextPart('Test prompt'), mockRuntimeContext);
 
     expect(getFormattedConversationHistory).not.toHaveBeenCalled();
   });
@@ -886,7 +886,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithFullMode, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'), mockRuntimeContext);
+    await agent.generate(makeTextPart('Test prompt'), mockRuntimeContext);
     expect(getConversationHistoryWithCompression).toHaveBeenCalled();
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
@@ -921,7 +921,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     };
 
     const agent = new Agent(configWithScopedMode, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'), mockRuntimeContext);
+    await agent.generate(makeTextPart('Test prompt'), mockRuntimeContext);
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
       tenantId: 'test-tenant',
@@ -1371,7 +1371,7 @@ describe('Two-Pass Generation System', () => {
 
   test('should return text response when no data components', async () => {
     const agent = new Agent({ ...mockAgentConfig, dataComponents: [] }, mockExecutionContext);
-    const result = await agent.generate(toParts('Test prompt'));
+    const result = await agent.generate(makeTextPart('Test prompt'));
 
     expect(result.text).toBe('Mocked response');
     expect(result.object).toBeUndefined();
@@ -1379,7 +1379,7 @@ describe('Two-Pass Generation System', () => {
 
   test('should return object response when data components configured', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    const result = await agent.generate(toParts('Test prompt'));
+    const result = await agent.generate(makeTextPart('Test prompt'));
 
     expect(result.object).toBeDefined();
     expect(result.object.dataComponents).toHaveLength(1);
@@ -1417,7 +1417,7 @@ describe('Agent Model Settings', () => {
 
   test('should use ModelFactory.prepareGenerationConfig with base model configuration', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1444,7 +1444,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithModel, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1475,7 +1475,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithModel, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
@@ -1493,7 +1493,7 @@ describe('Agent Model Settings', () => {
 
   test('should pass generation parameters to generateText', async () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     // Get the mocked generateText function
     const { generateText } = await import('ai');
@@ -1533,7 +1533,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithDataComponents, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     // Single-phase generation: uses structuredOutput model when data components are present
@@ -1557,7 +1557,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithDataComponents, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     // Single-phase generation: falls back to base model when no structuredOutput model configured
@@ -1579,7 +1579,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithOpenAI, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1599,7 +1599,7 @@ describe('Agent Model Settings', () => {
     };
 
     const agent = new Agent(configWithPlainModel, mockExecutionContext);
-    await agent.generate(toParts('Test prompt'));
+    await agent.generate(makeTextPart('Test prompt'));
 
     const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
@@ -1801,7 +1801,7 @@ describe('Agent Image Support', () => {
     const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const { generateText } = await import('ai');
 
-    await agent.generate(toParts('Simple text prompt'));
+    await agent.generate(makeTextPart('Simple text prompt'));
     expect(generateText).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -1814,7 +1814,7 @@ describe('Agent Image Support', () => {
       })
     );
 
-    await agent.generate(toParts('Just text, no images'));
+    await agent.generate(makeTextPart('Just text, no images'));
     expect(generateText).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
