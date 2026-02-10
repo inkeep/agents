@@ -1,9 +1,9 @@
 'use client';
 
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Search } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useMemo, useState } from 'react';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
@@ -44,6 +45,7 @@ const ProjectItem: FC<{
 
 export const ProjectSwitcher: FC = () => {
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const { isAdmin: canCreateProject } = useIsOrgAdmin();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile, state } = useSidebar();
@@ -54,6 +56,15 @@ export const ProjectSwitcher: FC = () => {
     setIsProjectDialogOpen(true);
   }, []);
 
+  const filteredProjects = useMemo(() => {
+    if (!projects) return [];
+    if (!search.trim()) return projects;
+    const query = search.toLowerCase();
+    return projects.filter(
+      (p) => p.name.toLowerCase().includes(query) || p.description?.toLowerCase().includes(query)
+    );
+  }, [projects, search]);
+
   if (isFetching) {
     return <Skeleton className="h-12" />;
   }
@@ -61,7 +72,7 @@ export const ProjectSwitcher: FC = () => {
   const projectName = projects.find((p) => p.projectId === projectId)?.name ?? 'Project not found';
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={() => setSearch('')}>
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
@@ -81,18 +92,37 @@ export const ProjectSwitcher: FC = () => {
         align="end"
         sideOffset={4}
       >
-        {projects.map((project) => (
-          <DropdownMenuItem key={project.projectId} asChild>
-            <NextLink href={`/${tenantId}/projects/${project.projectId}/agents`}>
-              <ProjectItem
-                name={project.name}
-                description={project.description}
-                icon={project.projectId === projectId && Check}
-                showIcon={false}
-              />
-            </NextLink>
-          </DropdownMenuItem>
-        ))}
+        <div className="flex items-center gap-2 px-2 py-1.5">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <Input
+            placeholder="Search projects..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="h-7 border-none shadow-none focus-visible:ring-0 px-0"
+          />
+        </div>
+        <DropdownMenuSeparator />
+        <div className="overflow-y-auto max-h-[200px]">
+          {filteredProjects.length === 0 ? (
+            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+              No projects found
+            </div>
+          ) : (
+            filteredProjects.map((project) => (
+              <DropdownMenuItem key={project.projectId} asChild>
+                <NextLink href={`/${tenantId}/projects/${project.projectId}/agents`}>
+                  <ProjectItem
+                    name={project.name}
+                    description={project.description}
+                    icon={project.projectId === projectId && Check}
+                    showIcon={false}
+                  />
+                </NextLink>
+              </DropdownMenuItem>
+            ))
+          )}
+        </div>
         {canCreateProject && (
           <>
             <DropdownMenuSeparator />
