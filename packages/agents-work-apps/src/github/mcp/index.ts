@@ -207,9 +207,9 @@ const getServer = async (toolId: string) => {
       include_line_numbers: z
         .boolean()
         .optional()
-        .describe('Whether to include line numbers in the response'),
+        .describe('Whether to include line numbers in the response (defaults to false)'),
     },
-    async ({ owner, repo, file_path, branch_name, include_line_numbers }) => {
+    async ({ owner, repo, file_path, branch_name, include_line_numbers = false }) => {
       try {
         let githubClient: Octokit;
         try {
