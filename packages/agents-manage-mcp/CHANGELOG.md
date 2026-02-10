@@ -1,5 +1,7 @@
 # @inkeep/agents-manage-mcp
 
+## 0.47.5
+
 ## 0.47.4
 
 ## 0.47.3
