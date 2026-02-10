@@ -119,7 +119,7 @@ import { getProjectScopedRef, resolveRef } from '@inkeep/agents-core';
 
 const projectScopedRef = getProjectScopedRef(tenantId, projectId, 'main');
 
-// You can directly a manage db client to resolve the ref
+// You can directly use a manage db client to resolve the ref
 const resolvedRef = await resolveRef(agentsManageDbClient)(projectScopedRef);
 ```
 
