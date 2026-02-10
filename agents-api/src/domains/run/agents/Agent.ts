@@ -1072,7 +1072,10 @@ export class Agent {
               return enhancedResult;
             } catch (error) {
               const rootCause = unwrapError(error);
-              logger.error({ toolName, toolCallId, error: rootCause.message }, 'MCP tool execution failed');
+              logger.error(
+                { toolName, toolCallId, error: rootCause.message },
+                'MCP tool execution failed'
+              );
               throw rootCause;
             }
           },
