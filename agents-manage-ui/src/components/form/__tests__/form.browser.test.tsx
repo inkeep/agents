@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { type UseFormReturn, useForm } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
