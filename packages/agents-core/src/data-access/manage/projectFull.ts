@@ -1339,7 +1339,6 @@ const getFullProjectInternal =
       // Use default models configuration if project doesn't have one configured
       const DEFAULT_MODELS = {
         base: { model: 'claude-sonnet-4-5' },
-        structuredOutput: { model: 'claude-sonnet-4-5' },
         summarizer: { model: 'claude-sonnet-4-5' },
       };
 

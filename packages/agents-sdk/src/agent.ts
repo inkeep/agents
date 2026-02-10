@@ -995,9 +995,6 @@ export class Agent implements AgentInterface {
       if (!this.models.base && projectModels.base) {
         this.models.base = projectModels.base;
       }
-      if (!this.models.structuredOutput && projectModels.structuredOutput) {
-        this.models.structuredOutput = projectModels.structuredOutput;
-      }
       if (!this.models.summarizer && projectModels.summarizer) {
         this.models.summarizer = projectModels.summarizer;
       }
@@ -1075,9 +1072,6 @@ export class Agent implements AgentInterface {
       // Inherit individual model types from agent if not set at agent level
       if (!agent.config.models.base && this.models.base) {
         agent.config.models.base = this.models.base;
-      }
-      if (!agent.config.models.structuredOutput && this.models.structuredOutput) {
-        agent.config.models.structuredOutput = this.models.structuredOutput;
       }
       if (!agent.config.models.summarizer && this.models.summarizer) {
         agent.config.models.summarizer = this.models.summarizer;

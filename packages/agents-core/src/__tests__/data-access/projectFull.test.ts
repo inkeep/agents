@@ -49,7 +49,6 @@ describe('projectFull data access', () => {
     description: 'A test project for data access testing',
     models: {
       base: { model: 'gpt-4o-mini' },
-      structuredOutput: { model: 'gpt-4o' },
     },
     stopWhen: {
       transferCountIs: 10,

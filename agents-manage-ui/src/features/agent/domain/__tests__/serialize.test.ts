@@ -18,7 +18,6 @@ describe('serializeAgentData', () => {
             prompt: 'Test instructions',
             models: {
               base: undefined,
-              structuredOutput: undefined,
               summarizer: undefined,
             },
           },
@@ -43,7 +42,6 @@ describe('serializeAgentData', () => {
             prompt: 'Test instructions',
             models: {
               base: undefined,
-              structuredOutput: undefined,
               summarizer: undefined,
             },
           },
@@ -68,7 +66,6 @@ describe('serializeAgentData', () => {
             prompt: 'Test instructions',
             models: {
               base: { model: 'gpt-4' },
-              structuredOutput: undefined,
               summarizer: undefined,
             },
           },
@@ -80,36 +77,6 @@ describe('serializeAgentData', () => {
 
       expect(result.subAgents.agent1.models).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: undefined,
-        summarizer: undefined,
-      });
-    });
-
-    it('should include models object when structuredOutput has a value', () => {
-      const nodes: Node<AgentNodeData>[] = [
-        {
-          id: 'agent1',
-          type: NodeType.SubAgent,
-          position: { x: 0, y: 0 },
-          data: {
-            id: 'agent1',
-            name: 'Test Agent',
-            prompt: 'Test instructions',
-            models: {
-              base: undefined,
-              structuredOutput: { model: 'gpt-4o-2024-08-06' },
-              summarizer: undefined,
-            },
-          },
-        },
-      ];
-      const edges: Edge[] = [];
-
-      const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
-
-      expect(result.subAgents.agent1.models).toEqual({
-        base: undefined,
-        structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: undefined,
       });
     });
@@ -126,7 +93,6 @@ describe('serializeAgentData', () => {
             prompt: 'Test instructions',
             models: {
               base: undefined,
-              structuredOutput: undefined,
               summarizer: { model: 'gpt-3.5-turbo' },
             },
           },
@@ -138,7 +104,6 @@ describe('serializeAgentData', () => {
 
       expect(result.subAgents.agent1.models).toEqual({
         base: undefined,
-        structuredOutput: undefined,
         summarizer: { model: 'gpt-3.5-turbo' },
       });
     });
@@ -155,7 +120,6 @@ describe('serializeAgentData', () => {
             prompt: 'Test instructions',
             models: {
               base: { model: 'gpt-4' },
-              structuredOutput: { model: 'gpt-4o-2024-08-06' },
               summarizer: { model: 'gpt-3.5-turbo' },
             },
           },
@@ -167,7 +131,6 @@ describe('serializeAgentData', () => {
 
       expect(result.subAgents.agent1.models).toEqual({
         base: { model: 'gpt-4' },
-        structuredOutput: { model: 'gpt-4o-2024-08-06' },
         summarizer: { model: 'gpt-3.5-turbo' },
       });
     });

@@ -135,7 +135,7 @@ function hasDistinctModels(agentModels: any, projectModels: any): boolean {
   if (!projectModels) return !!agentModels; // Agent has models but project doesn't
 
   // Compare each model type
-  const modelTypes = ['base', 'structuredOutput', 'summarizer'];
+  const modelTypes = ['base', 'summarizer'];
 
   for (const type of modelTypes) {
     const agentModel = agentModels[type]?.model;
@@ -264,20 +264,6 @@ export function generateAgentDefinition(
         lines.push(`${indentation}${indentation}${indentation},`);
         lines.push(
           `${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.base.providerOptions)}`
-        );
-      }
-      lines.push(`${indentation}${indentation}},`);
-    }
-
-    if (agentData.models.structuredOutput?.model) {
-      lines.push(`${indentation}${indentation}structuredOutput: {`);
-      lines.push(
-        `${indentation}${indentation}${indentation}model: ${formatString(agentData.models.structuredOutput.model, q)}`
-      );
-      if (agentData.models.structuredOutput.providerOptions) {
-        lines.push(`${indentation}${indentation}${indentation},`);
-        lines.push(
-          `${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.structuredOutput.providerOptions)}`
         );
       }
       lines.push(`${indentation}${indentation}},`);

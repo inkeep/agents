@@ -8,11 +8,6 @@ export const providerOptionsTemplate = `{
   "maxTokens": 2048
 }`;
 
-export const structuredOutputModelProviderOptionsTemplate = `{
-  "temperature": 0.1,
-  "maxOutputTokens": 1024
-}`;
-
 export const summarizerModelProviderOptionsTemplate = `{
   "temperature": 0.3,
   "maxOutputTokens": 1024

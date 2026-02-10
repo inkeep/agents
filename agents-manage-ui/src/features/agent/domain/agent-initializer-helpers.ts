@@ -31,12 +31,6 @@ export function extractAgentMetadata(
                 providerOptions: formatJsonField(agent.models.base.providerOptions),
               }
             : undefined,
-          structuredOutput: agent.models.structuredOutput
-            ? {
-                model: agent.models.structuredOutput.model,
-                providerOptions: formatJsonField(agent.models.structuredOutput.providerOptions),
-              }
-            : undefined,
           summarizer: agent.models.summarizer
             ? {
                 model: agent.models.summarizer.model,

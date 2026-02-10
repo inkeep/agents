@@ -22,7 +22,6 @@ export {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
   providerOptionsTemplate,
-  structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from './model-templates';
 

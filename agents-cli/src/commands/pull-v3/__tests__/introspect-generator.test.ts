@@ -49,7 +49,6 @@ describe('Introspect Generator - End-to-End', () => {
     description: 'A comprehensive customer support system with multiple agents and tools',
     models: {
       base: { model: 'gpt-4o-mini', temperature: 0.7 },
-      structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
       summarizer: { model: 'gpt-4o-mini', temperature: 0.5 },
     },
     stopWhen: {
@@ -460,11 +459,6 @@ describe('Introspect Generator - End-to-End', () => {
           temperature: 0.7,
           maxTokens: 4096,
           topP: 0.9,
-        },
-        structuredOutput: {
-          model: 'gpt-4o',
-          temperature: 0.1,
-          maxTokens: 2048,
         },
         summarizer: {
           model: 'gpt-4o-mini',

@@ -164,20 +164,6 @@ export function generateSubAgentDefinition(
       lines.push(`${indentation}${indentation}},`);
     }
 
-    if (agentData.models.structuredOutput?.model) {
-      lines.push(`${indentation}${indentation}structuredOutput: {`);
-      lines.push(
-        `${indentation}${indentation}${indentation}model: ${formatString(agentData.models.structuredOutput.model, q)}`
-      );
-      if (agentData.models.structuredOutput.providerOptions) {
-        lines.push(`${indentation}${indentation}${indentation},`);
-        lines.push(
-          `${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.structuredOutput.providerOptions)}`
-        );
-      }
-      lines.push(`${indentation}${indentation}},`);
-    }
-
     if (agentData.models.summarizer?.model) {
       lines.push(`${indentation}${indentation}summarizer: {`);
       lines.push(

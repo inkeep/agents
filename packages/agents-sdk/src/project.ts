@@ -27,7 +27,6 @@ export interface ProjectConfig {
   description?: string;
   models?: {
     base?: ModelSettings;
-    structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
   stopWhen?: StopWhen;

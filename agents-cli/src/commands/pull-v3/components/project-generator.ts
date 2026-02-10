@@ -43,8 +43,8 @@ export function generateProjectDefinition(
       !projectData[field] || projectData[field] === null || projectData[field] === undefined
   );
 
-  // Additional validation for models.base
-  if (!projectData.models?.base) {
+  // Additional validation for models.base (only if models exists)
+  if (projectData.models && !projectData.models.base) {
     missingFields.push('models.base');
   }
 

@@ -26,7 +26,6 @@ import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import {
   statusUpdatesComponentsTemplate,
-  structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
@@ -237,74 +236,7 @@ export function MetadataEditor() {
           editorNamePrefix="agent-base"
         />
 
-        <CollapsibleSettings
-          defaultOpen={!!models?.structuredOutput || !!models?.summarizer}
-          title="Advanced model options"
-        >
-          <div className="relative space-y-2">
-            <ModelSelector
-              value={models?.structuredOutput?.model || ''}
-              inheritedValue={
-                project?.models?.structuredOutput?.model ||
-                models?.base?.model ||
-                project?.models?.base?.model
-              }
-              onValueChange={(value) => {
-                const currentModels = getCurrentModels();
-                const newModels = {
-                  ...(currentModels || {}),
-                  structuredOutput: value
-                    ? {
-                        ...(currentModels?.structuredOutput || {}),
-                        model: value,
-                      }
-                    : undefined,
-                };
-                updateMetadata('models', newModels);
-              }}
-              label={
-                <div className="flex items-center gap-2">
-                  Structured output model
-                  <InheritanceIndicator
-                    {...getModelInheritanceStatus(
-                      'agent',
-                      models?.structuredOutput?.model,
-                      project?.models?.structuredOutput?.model
-                    )}
-                    size="sm"
-                  />
-                </div>
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Model for structured outputs and components (defaults to base model)
-            </p>
-          </div>
-          {/* Structured Output Model Provider Options */}
-          {models?.structuredOutput?.model && (
-            <div className="space-y-2">
-              <FieldLabel
-                id="structured-provider-options"
-                label="Structured output model provider options"
-              />
-              <StandaloneJsonEditor
-                name="structured-provider-options"
-                onChange={(value) => {
-                  const currentModels = getCurrentModels();
-                  updateMetadata('models', {
-                    ...(currentModels || {}),
-                    structuredOutput: {
-                      model: currentModels?.structuredOutput?.model || '',
-                      providerOptions: value,
-                    },
-                  });
-                }}
-                value={models.structuredOutput.providerOptions || ''}
-                placeholder={structuredOutputModelProviderOptionsTemplate}
-                customTemplate={structuredOutputModelProviderOptionsTemplate}
-              />
-            </div>
-          )}
+        <CollapsibleSettings title="Advanced model options">
           <div className="relative space-y-2">
             <ModelSelector
               value={models?.summarizer?.model || ''}

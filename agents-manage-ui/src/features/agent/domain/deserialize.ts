@@ -130,14 +130,6 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                       : undefined,
                   }
                 : undefined,
-              structuredOutput: subAgent.models.structuredOutput
-                ? {
-                    model: subAgent.models.structuredOutput.model ?? '',
-                    providerOptions: subAgent.models.structuredOutput.providerOptions
-                      ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
-                      : undefined,
-                  }
-                : undefined,
               summarizer: subAgent.models.summarizer
                 ? {
                     model: subAgent.models.summarizer.model ?? '',

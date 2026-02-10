@@ -30,12 +30,6 @@ const testProject: FullProjectDefinition = {
         maxTokens: 4096,
       },
     },
-    structuredOutput: {
-      model: 'gpt-4o',
-      providerOptions: {
-        temperature: 0.3,
-      },
-    },
     summarizer: {
       model: 'gpt-4o-mini',
       providerOptions: {

@@ -66,7 +66,7 @@ describe('Validation Schemas', () => {
               },
             },
           },
-          structuredOutput: {
+          summarizer: {
             model: 'gpt-4o-mini',
           },
         },

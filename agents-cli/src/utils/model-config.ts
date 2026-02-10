@@ -7,10 +7,6 @@ export interface ModelConfigurationResult {
       model: string;
       providerOptions?: Record<string, any>;
     };
-    structuredOutput?: {
-      model: string;
-      providerOptions?: Record<string, any>;
-    };
     summarizer?: {
       model: string;
       providerOptions?: Record<string, any>;
@@ -24,9 +20,6 @@ export const defaultGeminiModelConfigurations: ModelSettings = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
-  structuredOutput: {
-    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
-  },
   summarizer: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
@@ -36,9 +29,6 @@ export const defaultOpenaiModelConfigurations: ModelSettings = {
   base: {
     model: OPENAI_MODELS.GPT_5_2,
   },
-  structuredOutput: {
-    model: OPENAI_MODELS.GPT_4_1_MINI,
-  },
   summarizer: {
     model: OPENAI_MODELS.GPT_4_1_NANO,
   },
@@ -46,9 +36,6 @@ export const defaultOpenaiModelConfigurations: ModelSettings = {
 
 export const defaultAnthropicModelConfigurations: ModelSettings = {
   base: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
-  },
-  structuredOutput: {
     model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   summarizer: {
@@ -205,35 +192,23 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     process.exit(0);
   }
 
-  const configureOptionalModels = await p.confirm({
-    message: 'Would you like to configure optional models for structured output and summaries?',
+  const configureSummarizer = await p.confirm({
+    message: 'Would you like to configure a separate model for summaries and status updates?',
     initialValue: false,
   });
 
-  if (p.isCancel(configureOptionalModels)) {
+  if (p.isCancel(configureSummarizer)) {
     p.cancel('Operation cancelled');
     process.exit(0);
   }
 
-  let structuredOutputModel: string | null = null;
   let summarizerModel: string | null = null;
 
-  if (configureOptionalModels) {
+  if (configureSummarizer) {
     const optionalChoices = [...availableModels, { label: 'Use base model', value: null }];
 
-    const structuredOutputResponse = await p.select({
-      message: 'Select your model for structured output tasks (or use base model):',
-      options: optionalChoices,
-    });
-
-    if (p.isCancel(structuredOutputResponse)) {
-      p.cancel('Operation cancelled');
-      process.exit(0);
-    }
-    structuredOutputModel = structuredOutputResponse as string | null;
-
     const summarizerResponse = await p.select({
-      message: 'Select your model for summaries and quick tasks (or use base model):',
+      message: 'Select your model for summaries and status updates (or use base model):',
       options: optionalChoices,
     });
 
@@ -272,18 +247,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     modelSettings.base.providerOptions = baseProviderOptions;
   }
 
-  // Add optional models only if they were configured
-  if (structuredOutputModel) {
-    modelSettings.structuredOutput = {
-      model: structuredOutputModel,
-    };
-
-    const structuredProviderOptions = addProviderOptions(structuredOutputModel);
-    if (structuredProviderOptions) {
-      modelSettings.structuredOutput.providerOptions = structuredProviderOptions;
-    }
-  }
-
+  // Add summarizer model if configured
   if (summarizerModel) {
     modelSettings.summarizer = {
       model: summarizerModel,

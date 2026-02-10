@@ -263,7 +263,7 @@ describe('Agent Agent Data Access - Integration Tests', () => {
               },
             },
           },
-          structuredOutput: {
+          summarizer: {
             model: 'gpt-4o-mini',
           },
         },

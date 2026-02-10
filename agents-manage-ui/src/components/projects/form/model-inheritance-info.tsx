@@ -7,7 +7,7 @@ export const ModelInheritanceInfo = () => {
       </li>
       <li>
         <span className="font-medium">Individual model types</span> inherit independently (base,
-        structuredOutput, summarizer)
+        summarizer)
       </li>
       <li>
         <span className="font-medium">Explicit settings</span> always take precedence over inherited

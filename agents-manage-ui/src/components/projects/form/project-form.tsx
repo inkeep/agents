@@ -66,12 +66,6 @@ const serializeData = (data: ProjectFormData) => {
         model: data.models.base.model,
         providerOptions: cleanProviderOptions(data.models.base.providerOptions),
       },
-      structuredOutput: data.models?.structuredOutput?.model
-        ? {
-            model: data.models.structuredOutput.model,
-            providerOptions: cleanProviderOptions(data.models.structuredOutput.providerOptions),
-          }
-        : undefined,
       summarizer: data.models?.summarizer?.model
         ? {
             model: data.models.summarizer.model,

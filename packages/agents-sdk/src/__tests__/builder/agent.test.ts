@@ -78,7 +78,6 @@ vi.mock('../../projectFullClient.js', () => ({
     description: 'Test project for agent testing',
     models: {
       base: { model: 'gpt-4o' },
-      structuredOutput: { model: 'gpt-4o-mini' },
       summarizer: { model: 'gpt-3.5-turbo' },
     },
     stopWhen: {
@@ -604,7 +603,6 @@ describe('Agent', () => {
         description: 'Test project for agent testing',
         models: {
           base: { model: 'gpt-4o' },
-          structuredOutput: { model: 'gpt-4o-mini' },
           summarizer: { model: 'gpt-3.5-turbo' },
         },
         stopWhen: {
@@ -658,7 +656,6 @@ describe('Agent', () => {
       const inheritedModels = agent.getModels();
       expect(inheritedModels).toEqual({
         base: { model: 'gpt-4o' },
-        structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
       });
 
@@ -670,7 +667,6 @@ describe('Agent', () => {
     it('should not override existing agent models but inherit missing ones', async () => {
       const agentModels = {
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3.5-haiku' },
       };
 
       agent.setModels(agentModels);
@@ -681,7 +677,6 @@ describe('Agent', () => {
       // Should keep existing agent models and inherit missing summarizer from project
       const expectedModels = {
         base: { model: 'claude-3-sonnet' }, // kept from agent
-        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       };
       expect(agent.getModels()).toEqual(expectedModels);
@@ -694,7 +689,6 @@ describe('Agent', () => {
     it('should propagate agent models to agents without models', async () => {
       const agentModels = {
         base: { model: 'gpt-4o' },
-        structuredOutput: { model: 'gpt-4o-mini' },
       };
 
       agent.setModels(agentModels);
@@ -713,7 +707,6 @@ describe('Agent', () => {
     it('should not override agent models when they are already configured', async () => {
       const agentModels = {
         base: { model: 'gpt-4o' },
-        structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
       };
 
@@ -727,11 +720,9 @@ describe('Agent', () => {
 
       await agent.init();
 
-      // Agent1 should keep its existing models and inherit missing structuredOutput from agent
       const expectedAgent1Models = {
         base: { model: 'claude-3-opus' }, // kept from agent
         summarizer: { model: 'claude-3.5-haiku' }, // kept from agent
-        structuredOutput: { model: 'gpt-4o-mini' }, // inherited from agent
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
 
@@ -742,13 +733,11 @@ describe('Agent', () => {
     it('should support partial model inheritance from agent to agents', async () => {
       const agentModels = {
         base: { model: 'gpt-4o' },
-        structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
       };
 
       // Agent1 has partial models (missing base)
       const agent1PartialModels = {
-        structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
         // no base - should inherit from agent
       };
@@ -761,7 +750,6 @@ describe('Agent', () => {
       // Agent1 should inherit missing base from agent, keep existing models
       const expectedAgent1Models = {
         base: { model: 'gpt-4o' }, // inherited from agent
-        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from agent
         summarizer: { model: 'claude-3-sonnet' }, // kept from agent
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -797,7 +785,6 @@ describe('Agent', () => {
         description: 'Test project',
         models: {
           base: { model: undefined },
-          structuredOutput: undefined,
           summarizer: undefined,
         },
         stopWhen: undefined,
@@ -822,7 +809,6 @@ describe('Agent', () => {
       // Set partial agent models (missing summarizer)
       const partialAgentModels = {
         base: { model: 'claude-3-sonnet' },
-        structuredOutput: { model: 'claude-3.5-haiku' },
         // no summarizer - should inherit from project
       };
 
@@ -834,7 +820,6 @@ describe('Agent', () => {
       const finalModels = agent.getModels();
       expect(finalModels).toEqual({
         base: { model: 'claude-3-sonnet' }, // kept from agent
-        structuredOutput: { model: 'claude-3.5-haiku' }, // kept from agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       });
     });
@@ -843,7 +828,6 @@ describe('Agent', () => {
       // Set up inheritance chain
       const projectModels = {
         base: { model: 'gpt-4o' },
-        structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
       };
 
@@ -864,20 +848,17 @@ describe('Agent', () => {
       // Project has all three model types
       const _projectModels = {
         base: { model: 'gpt-4o' },
-        structuredOutput: { model: 'gpt-4o-mini' },
         summarizer: { model: 'gpt-3.5-turbo' },
       };
 
       // Agent has partial models (missing summarizer)
       const agentPartialModels = {
         base: { model: 'claude-3-opus' }, // overrides project
-        structuredOutput: { model: 'claude-3-sonnet' }, // overrides project
         // no summarizer - should inherit from project
       };
 
       // Agent1 has partial models (missing base)
       const agent1PartialModels = {
-        structuredOutput: { model: 'claude-3.5-haiku' }, // overrides agent
         // no base or summarizer - should inherit from agent/project
       };
 
@@ -891,7 +872,6 @@ describe('Agent', () => {
       // Agent should inherit missing summarizer from project
       const expectedAgentModels = {
         base: { model: 'claude-3-opus' }, // explicit in agent
-        structuredOutput: { model: 'claude-3-sonnet' }, // explicit in agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from project
       };
       expect(agent.getModels()).toEqual(expectedAgentModels);
@@ -899,7 +879,6 @@ describe('Agent', () => {
       // Agent1 should inherit missing models from agent
       const expectedAgent1Models = {
         base: { model: 'claude-3-opus' }, // inherited from agent
-        structuredOutput: { model: 'claude-3.5-haiku' }, // explicit in agent
         summarizer: { model: 'gpt-3.5-turbo' }, // inherited from agent (which got it from project)
       };
       expect(agent1.getModels()).toEqual(expectedAgent1Models);
@@ -912,7 +891,6 @@ describe('Agent', () => {
       // Create agent with models
       const agentModels = {
         base: { model: 'claude-3-opus' },
-        structuredOutput: { model: 'claude-3-sonnet' },
       };
 
       const agent = new Agent({
@@ -957,7 +935,6 @@ describe('Agent', () => {
         description: 'Test project for agent testing',
         models: {
           base: { model: 'gpt-4o' },
-          structuredOutput: { model: 'gpt-4o-mini' },
           summarizer: { model: 'gpt-3.5-turbo' },
         },
         stopWhen: {

@@ -93,7 +93,7 @@ describe('Agents Data Access - Integration Tests', () => {
               },
             },
           },
-          structuredOutput: {
+          summarizer: {
             model: 'gpt-4o-mini',
           },
         },
@@ -529,9 +529,6 @@ describe('Agents Data Access - Integration Tests', () => {
               responseFormat: { type: 'json_object' },
             },
           },
-        },
-        structuredOutput: {
-          model: 'gpt-4o-mini',
         },
         summarizer: {
           model: 'claude-3.5-haiku',

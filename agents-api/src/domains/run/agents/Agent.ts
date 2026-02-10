@@ -440,38 +440,6 @@ export class Agent {
   }
 
   /**
-   * Get the model settings for structured output generation
-   * Falls back to base model if structured output not configured
-   */
-  private getStructuredOutputModel(): ModelSettings {
-    if (!this.config.models) {
-      throw new Error(
-        'Model configuration is required. Please configure models at the project level.'
-      );
-    }
-
-    const structuredConfig = this.config.models.structuredOutput;
-    const baseConfig = this.config.models.base;
-
-    if (structuredConfig) {
-      return {
-        model: validateModel(structuredConfig.model, 'Structured output'),
-        providerOptions: structuredConfig.providerOptions,
-      };
-    }
-
-    if (!baseConfig) {
-      throw new Error(
-        'Base model configuration is required for structured output fallback. Please configure models at the project level.'
-      );
-    }
-    return {
-      model: validateModel(baseConfig.model, 'Base (fallback for structured output)'),
-      providerOptions: baseConfig.providerOptions,
-    };
-  }
-
-  /**
    * Get the model settings for summarization/distillation
    * Falls back to base model if summarizer not configured
    */
@@ -2790,8 +2758,10 @@ ${output}`;
           span.setAttributes(breakdownAttributes);
 
           // Configure model settings and behavior
-          const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
-            this.configureModelSettings();
+          const { primaryModelSettings, modelSettings, timeoutMs } = this.configureModelSettings();
+          const hasStructuredOutput = Boolean(
+            this.config.dataComponents && this.config.dataComponents.length > 0
+          );
           let response: ResolvedGenerationResponse;
           let textResponse: string;
 
@@ -3128,15 +3098,7 @@ ${output}`;
    * Configure model settings, timeouts, and streaming behavior
    */
   private configureModelSettings() {
-    // Check if we have structured output components
-    const hasStructuredOutput = Boolean(
-      this.config.dataComponents && this.config.dataComponents.length > 0
-    );
-
-    // Use structured output model when data components are present, otherwise use primary model
-    const primaryModelSettings = hasStructuredOutput
-      ? this.getStructuredOutputModel()
-      : this.getPrimaryModel();
+    const primaryModelSettings = this.getPrimaryModel();
     const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
 
     // Extract maxDuration from config and convert to milliseconds, or use defaults
@@ -3165,7 +3127,6 @@ ${output}`;
     return {
       primaryModelSettings,
       modelSettings: { ...modelSettings, maxDuration: timeoutMs / 1000 },
-      hasStructuredOutput,
       timeoutMs,
     };
   }

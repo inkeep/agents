@@ -26,7 +26,6 @@ describe('project builder function', () => {
       description: 'A full test project configuration',
       models: {
         base: { model: 'gpt-4o-mini' },
-        structuredOutput: { model: 'gpt-4o' },
         summarizer: { model: 'gpt-3.5-turbo' },
       },
       stopWhen: {
