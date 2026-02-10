@@ -95,6 +95,7 @@ These fields are **required on all finding types**.
 | 7 | `confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How certain are you this is a real issue? (rate AFTER citing evidence) |
 | 8 | `fix` | string | Suggestion[s] for how to address it. If simple, give the full solution as a code block. If bigger-scoped, interweave brief code examples into the explanation. Don't over-engineer — give a starting point/direction. |
 | 9 | `fix_confidence` | `"HIGH"` \| `"MEDIUM"` \| `"LOW"` | How confident are you in the proposed fix? |
+| 10 | `pre_existing` | boolean | **(Optional.)** Set to `true` if this issue existed before this PR — it was NOT introduced by the PR's changes. Omit or set `false` for issues introduced by the PR. See guidance below. |
 
 ### Reference Types
 
@@ -254,6 +255,16 @@ Use **your primary domain**. This is a freeform string.
 
 **Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category relevant to you.
 
+### `pre_existing` (optional)
+
+Set `pre_existing: true` when you encounter a notable issue in your domain that clearly existed **before** this PR — it was not introduced by the PR's changes.
+
+**This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues, expand your review scope, or spend additional cycles hunting for tech debt. Only flag something as `pre_existing` if it clearly stood out while you were doing your normal review.
+
+- Omit the field entirely (or set `false`) for findings about issues introduced by the PR — this is the default
+- When `true`, the orchestrator may surface the finding in a "While You're Here" section if it's relevant to the PR's scope
+- Use the same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
+
 ### `issue`, `implications`, `fix`
 
 Scale depth with severity × confidence. Lean detailed — thorough analysis and specific resolutions or suggestions to consider are better than vague!
@@ -310,11 +321,27 @@ Never use absolute paths. Always use paths relative to the repository root.
     "confidence": "HIGH",
     "fix": "Use parameterized queries:\n```typescript\nconst result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);\n```",
     "fix_confidence": "HIGH"
+  },
+  {
+    "type": "file",
+    "file": "src/utils/logger.ts",
+    "category": "standards",
+    "issue": "Logger utility swallows errors silently — catch block is empty. This predates this PR but is in the same module being modified.",
+    "references": [
+      "[AGENTS.md:L48 — error handling must be explicit](https://github.com/org/repo/blob/abc123/AGENTS.md#L48)",
+      "[src/utils/logger.ts:15-18 — empty catch block](https://github.com/org/repo/blob/abc123/src/utils/logger.ts#L15-L18)"
+    ],
+    "implications": "Silent error swallowing can mask bugs and make debugging difficult. Since this file is being modified in this PR, it's a natural cleanup opportunity.",
+    "severity": "MINOR",
+    "confidence": "HIGH",
+    "fix": "Add explicit error handling or re-throw:\n```typescript\ncatch (error) {\n  console.error('Logger failed:', error);\n}\n```",
+    "fix_confidence": "HIGH",
+    "pre_existing": true
   }
 ]
 ```
 
-**Note the order:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
+**Note the order:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence → pre_existing (optional)
 
 ---
 
@@ -324,7 +351,7 @@ Before returning, verify:
 
 - [ ] Output is valid JSON (no prose, no code fences, no markdown)
 - [ ] Output is an array of Finding objects
-- [ ] **Field order is correct:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence
+- [ ] **Field order is correct:** type → location → category → issue → references → implications → severity → confidence → fix → fix_confidence → pre_existing (if applicable)
 - [ ] Every finding has a `type` field with valid value
 - [ ] Every finding has all required fields for its type
 - [ ] `severity`, `confidence`, and `fix_confidence` use allowed enum values

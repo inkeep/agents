@@ -33,6 +33,7 @@ You are both a **sanity and quality checker** of the review process and a **syst
 | Was raised in PRIOR run (by you or human) and still unresolved | **Pending Recommendations** section (link only) | ❌ Main, ❌ Inline, ❌ Discarded |
 | Is NEW, meets Main severity + confidence criteria, NOT posted as inline comment | **Main** section — Critical, Major, or Minor (full detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
 | Is NEW, validated as strictly better, but nitpick or developer preference, NOT posted as inline comment | **Main** section — Consider (brief detail) | ❌ Pending, ❌ Discarded |
+| Is pre-existing (not introduced by this PR), HIGH confidence, clearly related to PR scope, reasonably addressable alongside this PR | **Main** section — While You're Here (brief detail) | ❌ Inline, ❌ Pending, ❌ Discarded |
 | Was assessed as invalid, not applicable, addressed elsewhere, or not relevant | **Discarded** section (collapsed) | ❌ Main, ❌ Inline, ❌ Pending |
 
 **Key:** If you added an inline comment for an issue, it appears only as a **1-line inline log** inside the corresponding bucket (not a full Main writeup).
@@ -207,7 +208,7 @@ Cluster findings describing the same issue:
 ### 4.2 Relevancy Check
 
 For each finding, ask:
-1. **Is this applicable and attributable to changes in this PR?** (not a pre-existing issue) → If No, **DISCARD**
+1. **Is this applicable and attributable to changes in this PR?** (not a pre-existing issue) → If No, and the finding clearly stood out as a notable pre-existing issue during normal review (especially if the sub-reviewer flagged it with `pre_existing: true`), route to **While You're Here**. Otherwise → **DISCARD**. Do not actively investigate whether discarded items might qualify as tech debt.
 2. **Is this issue actually addressed elsewhere?** (e.g., sanitization happens upstream and that's the better place) → If Yes, **DISCARD**
 3. **Are the plausible resolutions reasonably addressable within the scope of this PR?** → If No, **DISCARD**
 4. **Has this issue been raised in the PR already?** → If pending/unresolved, include in **Pending Recommendations** only (per No Duplication Principle). If resolved, **DISCARD**.
@@ -247,7 +248,7 @@ mcp__github__create_pending_pull_request_review
 Classify each finding as **inline-routable** or **summary-only**.
 
 **Inline-routable criteria** (**ALL must be true**):
-- **Meets Main/Consider gates:** This finding would be included in this review as **Critical / Major / Minor / Consider** per Phase 6.2 (same confidence/severity/validation qualifiers as Main — inline vs summary is decided only by the routing constraints below).
+- **Meets Main/Consider gates:** This finding would be included in this review as **Critical / Major / Minor / Consider** per Phase 6.2 (same confidence/severity/validation qualifiers as Main — inline vs summary is decided only by the routing constraints below). **"While You're Here" items are never inline-routable** — they are pre-existing issues not on changed lines.
 - **Type:** `type: "inline"` (findings with `type: "file"`, `"multi-file"`, or `"system"` are summary-only)
 - **Fix scope:** same file, ~1–20 lines changed. DO NOT route inline if the issue involves multiple files, has multiple potential options you want the user to consider, or otherwise is non-trivial change you want the developer to carefully consider.
 - **NOT architectural:** If the suggestion is architectural/conceptual rather than a concrete code change, use summary-only
@@ -378,13 +379,14 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
 | Added as inline comment (Phase 5) | **Main** section — inside the corresponding bucket (Critical/Major/Minor/Consider) as a brief inline-log item | 1-line log entry (no URLs needed — they're in the same review) |
 | Prior run, still unresolved | **Pending Recommendations** | Link only |
 | NEW + meets Main/Consider gates + NOT posted inline | **Main** (Critical / Major / Minor / Consider) | Full detail (brief for Consider) |
+| Pre-existing + HIGH confidence + clearly related to PR scope | **Main** (While You're Here) | Brief detail |
 | Assessed as invalid, inapplicable, or addressed elsewhere | **Discarded** | Collapsed table row |
 
 ### 6.2 Format Review Body
 
 The review body is the summary markdown. It will be submitted together with all Inline Comments as a single atomic PR review. Produce it in this order:
 
-1. **Main** — NEW findings: Critical, Major, Minor (full detail), and Consider (brief detail). Inline comments posted in Phase 5 are logged as 1-line entries inside their corresponding bucket.
+1. **Main** — NEW findings: Critical, Major, Minor (full detail), Consider (brief detail), and While You're Here (brief detail, pre-existing). Inline comments posted in Phase 5 are logged as 1-line entries inside their corresponding bucket.
 2. **Pending Recommendations** — Links to PRIOR unresolved review threads and previous review findings (link + 1-sentence only)
 3. **Final Recommendation** — APPROVE / APPROVE WITH SUGGESTIONS / REQUEST CHANGES
 4. **Discarded** — Invalid/inapplicable items (collapsed)
@@ -405,6 +407,18 @@ The review body is the summary markdown. It will be submitted together with all 
 - The improvement is minor enough that it's a nitpick or developer preference — the developer can reasonably choose not to apply it
 - **NOT** invalid, inapplicable, or addressed elsewhere (those go in Discarded)
 - **Not** in Pending Recommendations or already resolved
+
+#### **Criteria for While You're Here** (ALL must be true):
+
+These items surface **naturally** during the review process — either flagged by sub-reviewers (via `pre_existing: true` in their output) or noticed by the orchestrator while filtering findings. Do NOT actively search for pre-existing issues or spend additional cycles on tech debt discovery. Most reviews will not have this section — that's expected.
+
+The following criteria qualify items that naturally came to your attention:
+- **Pre-existing** — the issue was NOT introduced by this PR; it existed before
+- **HIGH confidence** — you are certain this is a real, legitimate issue
+- **Clearly stood out** — it was obvious enough to catch during normal review of the PR's scope, not something you had to go looking for
+- **Reasonably addressable** alongside this PR — not a massive refactor or unrelated tangent
+- **Not** in Pending Recommendations or already raised in a prior review
+- Omit this section entirely if nothing qualifies — it is optional and most reviews won't include it
 
 #### Per-finding routing (do this for each finding before writing it)
 
@@ -494,9 +508,23 @@ when the problem is complex or context is needed.
 
 // Findings posted as inline comments (these REPLACE full writeups):
 - 💭 Consider: `file.ts:42` Issue summary
+
+### 🧹 While You're Here (W) 🧹
+
+// Pre-existing issues that surfaced naturally during this review.
+// Only include if they clearly stood out — do not go hunting. These are opportunistic, not required.
+// Omit this section entirely if nothing came up. Most reviews won't have this section.
+
+🧹 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
+**Issue:** Brief description of the pre-existing problem.
+**Why now:** Why it's worth addressing alongside this PR — what's the connection to the current work?
+**Fix:** Brief suggestion.
+**Refs:** `[file:line](url)`
+
+🧹 2) ...
 ````
 
-Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L (Consider items don't count toward Key Findings).
+Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L (Consider and While You're Here items don't count toward Key Findings).
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
@@ -513,7 +541,7 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 - If invalid, inapplicable, or addressed elsewhere → **Discarded**
 - If you're unsure whether a finding is valid → do additional research (explore the codebase, check patterns elsewhere, search the web) to reach a determination. Don't place uncertain items in Consider — resolve your uncertainty first.
 
-Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it's valid (Critical/Major/Minor/Consider based on impact) or it's not (Discarded).
+Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it's valid (Critical/Major/Minor/Consider based on impact), a pre-existing issue worth surfacing (While You're Here), or it's not (Discarded).
 
 Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
 
@@ -593,9 +621,9 @@ Format:
 </details>
 ````
 
-Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, or not relevant to this PR. 'Y' is the count. Validated improvements — even minor nitpicks — go in Consider, not here.
+Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, or not relevant to this PR. 'Y' is the count. Validated improvements — even minor nitpicks — go in Consider, not here. Pre-existing issues that are related to the PR's scope go in While You're Here, not here.
 
-**Per No Duplication Principle:** Do NOT include items that appear in Main (including Consider and 1-line inline logs) or Pending Recommendations.
+**Per No Duplication Principle:** Do NOT include items that appear in Main (including Consider, While You're Here, and 1-line inline logs) or Pending Recommendations.
 
 ### Reviewer Stats
 
@@ -605,13 +633,13 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 <details>
 <summary>Reviewers (R)</summary>
 
-| Reviewer | Returned | Critical/Major | Minor | Consider | Discarded |
-|----------|----------|----------------|-------|----------|-----------|
-| `pr-review-standards` | 7 | 1 | 1 | 1 | 4 |
-| `pr-review-architecture` | 3 | 1 | 0 | 0 | 2 |
-| `pr-review-security-iam` | 2 | 1 | 0 | 0 | 1 |
-| ... | ... | ... | ... | ... | ... |
-| **Total** | **12** | **3** | **1** | **1** | **7** |
+| Reviewer | Returned | Main&nbsp;Findings | Consider | While&nbsp;You're&nbsp;Here | Inline&nbsp;Comments | Pending&nbsp;Recs | Discarded |
+|----------|----------|--------------------|----------|-------------------------------|----------------------|-------------------|-----------|
+| `pr-review-standards` | 7 | 1 | 1 | 0 | 1 | 0 | 4 |
+| `pr-review-architecture` | 3 | 1 | 0 | 1 | 0 | 1 | 0 |
+| `pr-review-security-iam` | 2 | 0 | 0 | 0 | 1 | 0 | 1 |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+| **Total** | **12** | **2** | **1** | **1** | **2** | **1** | **5** |
 
 [(optional) Note: <1-2 sentences max with any debugging notes on sub-agent behavior]
 
@@ -621,14 +649,16 @@ R =  # of reviewers dispatched
 
 **Column definitions:**
 - **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
-- **Critical/Major** — Findings placed in Critical or Major buckets (full writeups + inline logs).
-- **Minor** — Findings placed in the Minor bucket (full writeups + inline logs).
-- **Consider** — Findings placed in the Consider section (full writeups + inline logs).
-- **Discarded** — Findings from this reviewer assessed as invalid, inapplicable, or not relevant or previously covered by other reviews.
+- **Main Findings** — Findings from this reviewer that are written up as full entries in the Main section (Critical, Major, or Minor), excluding 1-line inline logs.
+- **Consider** — Findings from this reviewer written up as full Consider entries (validated as strictly better but nitpick or developer preference), excluding 1-line inline logs.
+- **While You're Here** — Findings from this reviewer reclassified as pre-existing issues worth addressing alongside this PR (or independently identified by the orchestrator).
+- **Inline Comments** — Findings from this reviewer that were posted as GitHub Inline Comments (Phase 5) and logged as 1-line inline items inside the corresponding bucket.
+- **Pending Recs** — Findings from this reviewer matched to prior unresolved review threads or previous review findings (Pending Recommendations).
+- **Discarded** — Findings from this reviewer assessed as invalid, inapplicable, or not relevant.
 
 **Notes:**
-- Pending Recommendations are not attributed to reviewers (they come from prior runs, not current subagents)m we only note them as Discarded if the reviewer sends a suggestion that is duplicative of prior suggestions.
-- When multiple findings are consolidated or merged, etc., any reviewer who suggested to fix that finding should get a count.
+- A finding that was **merged** with another during dedup counts toward the reviewer whose version was kept.
+- The sum of Inline Comments + Main Findings + Consider + While You're Here + Pending Recs + Discarded may be less than Returned when findings are dropped entirely (e.g., already resolved, not attributable to this PR).
 - Include a **Total** row summing each column.
 - Order reviewers by **Returned** count descending.
 
