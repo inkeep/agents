@@ -1,0 +1,53 @@
+import type { FC, ReactNode, JSX } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Maximize } from 'lucide-react';
+
+interface EditorDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+  label: string | JSX.Element;
+}
+
+const EditorDialog: FC<EditorDialogProps> = ({ open, onOpenChange, children, label }) => {
+  'use memo';
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children}
+      <DialogContent
+        size="fullscreen"
+        className="!max-w-none h-screen w-screen max-h-screen p-0 gap-0 border-0 rounded-none"
+      >
+        <DialogTitle className="sr-only">{label}</DialogTitle>
+        <DialogDescription className="sr-only">{`${label} Editor`}</DialogDescription>
+        <div className="flex flex-col w-full px-8 pb-8 pt-12 mx-auto max-w-7xl min-w-0 gap-2">
+          {children}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const EditorDialogTrigger: FC = () => {
+  'use memo';
+  return (
+    <DialogTrigger asChild>
+      <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">
+        <Maximize className="size-3.5" />
+        Expand
+      </Button>
+    </DialogTrigger>
+  );
+};
+
+export const Editor = {
+  Dialog: EditorDialog,
+  DialogTrigger: EditorDialogTrigger,
+};
