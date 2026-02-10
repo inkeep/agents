@@ -3,7 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import type * as SentryNs from '@sentry/nextjs';
-import { REPLAY_UNMASK_SELECTORS, REPLAY_UNBLOCK_SELECTORS } from '@/lib/replay-privacy';
+import { REPLAY_UNBLOCK_SELECTORS, REPLAY_UNMASK_SELECTORS } from '@/lib/replay-privacy';
 
 export let onRouterTransitionStart: typeof SentryNs.captureRouterTransitionStart;
 
