@@ -1,10 +1,6 @@
 import * as extensions from '@testing-library/jest-dom/matchers';
 
-beforeAll(() => {
-  if (typeof document !== 'undefined') {
-    expect.extend(extensions);
-  }
-});
+expect.extend(extensions);
 /**
  * Fixes TypeError: document.queryCommandSupported is not a function
  */

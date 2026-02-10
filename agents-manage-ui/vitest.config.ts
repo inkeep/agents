@@ -25,6 +25,7 @@ const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] =
 
 export default defineConfig({
   test: {
+    name: pkgJson.name,
     globals: true,
     projects: [
       {
@@ -70,7 +71,6 @@ export default defineConfig({
       {
         extends: true,
         test: {
-          name: `${pkgJson.name}/node`,
           setupFiles: './setup-files',
           exclude: [BROWSER_TESTS_PATTERN, ...defaultExclude],
         },
