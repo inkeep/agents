@@ -17,26 +17,31 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSkillQuery, useUpsertSkillMutation } from '@/lib/query/skills';
 import type { Skill } from '@/lib/types/skills';
-import { formatJsonField } from '@/lib/utils';
+import { isRequired, serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
-import { defaultValues, type SkillFormData, SkillSchema } from './validation';
+import { type SkillInput, SkillSchema as schema } from './validation';
 
 interface SkillFormProps {
-  initialData?: Skill;
   onSuccess?: () => void;
 }
 
-const formatFormData = (data: Skill | null): SkillFormData => {
-  if (!data) return defaultValues;
+const resolver = zodResolver(schema);
 
+function formatFormData(data: Skill | null): SkillInput {
+  if (data) {
+    return {
+      ...data,
+      metadata: serializeJson(data.metadata),
+    };
+  }
   return {
-    name: data.name,
-    description: data.description,
-    content: data.content,
-    metadata: formatJsonField(data.metadata),
+    name: '',
+    description: '',
+    content: '',
+    metadata: '',
   };
-};
+}
 
 export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
   'use memo';
@@ -48,8 +53,8 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { error, isFetching, data: initialData } = useSkillQuery({ skillId });
   const { mutateAsync: upsertSkill } = useUpsertSkillMutation();
-  const form = useForm<SkillFormData>({
-    resolver: zodResolver(SkillSchema),
+  const form = useForm({
+    resolver,
     defaultValues: formatFormData(initialData),
     mode: 'onChange',
   });

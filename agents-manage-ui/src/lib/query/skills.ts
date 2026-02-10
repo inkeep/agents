@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { parseMetadataField, type SkillFormData } from '@/components/skills/form/validation';
+import type { SkillOutput } from '@/components/skills/form/validation';
 import { createSkill, fetchSkill, updateSkill } from '@/lib/api/skills';
 import type { Skill } from '@/lib/types/skills';
 
@@ -15,7 +15,7 @@ const skillQueryKeys = {
 
 interface UpsertSkillInput {
   skillId?: string;
-  data: SkillFormData;
+  data: SkillOutput;
 }
 
 export function useSkillQuery({
@@ -60,14 +60,9 @@ export function useUpsertSkillMutation() {
 
   return useMutation<Skill, Error, UpsertSkillInput>({
     async mutationFn({ skillId, data }) {
-      const payload = {
-        ...data,
-        metadata: parseMetadataField(data.metadata),
-      };
-
       const result = skillId
-        ? await updateSkill(tenantId, projectId, skillId, payload)
-        : await createSkill(tenantId, projectId, payload);
+        ? await updateSkill(tenantId, projectId, skillId, data)
+        : await createSkill(tenantId, projectId, data);
 
       return result;
     },
