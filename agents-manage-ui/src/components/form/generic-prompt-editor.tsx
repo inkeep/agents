@@ -46,11 +46,13 @@ export function GenericPromptEditor<
       render={({ field }) => (
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
-            <FormLabel isRequired={isRequired}>
-              {label}
+            <div className="flex">
+              <FormLabel isRequired={isRequired} className="inline-flex">
+                {label}
+              </FormLabel>
               <AddVariableAction uri={uri} className="ml-auto" />
               {!open && <Editor.DialogTrigger />}
-            </FormLabel>
+            </div>
             <FormControl>
               <PromptEditor
                 uri={uri}

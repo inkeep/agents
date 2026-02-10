@@ -26,10 +26,10 @@ export function GenericJsonEditor<
   isRequired,
   label,
   placeholder,
-  customTemplate,
+  customTemplate = placeholder,
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   placeholder: string;
-  customTemplate: string;
+  customTemplate?: string;
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
@@ -41,10 +41,12 @@ export function GenericJsonEditor<
       render={({ field }) => (
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
-            <FormLabel isRequired={isRequired}>
-              {label}
+            <div className="flex">
+              <FormLabel isRequired={isRequired} className="inline-flex">
+                {label}
+              </FormLabel>
               <Editor.DialogTrigger className={cn('ml-auto', open && 'invisible')} />
-            </FormLabel>
+            </div>
             <FormControl>
               <StandaloneJsonEditor
                 uri={uri}
