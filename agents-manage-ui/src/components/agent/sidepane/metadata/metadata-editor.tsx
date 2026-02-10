@@ -3,8 +3,8 @@
 import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
-import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -37,7 +37,7 @@ import {
 } from '@/lib/templates';
 import { FullAgentUpdateSchema as schema } from '@/lib/types/agent-full';
 import { isRequired } from '@/lib/utils';
-import { GenericPromptEditor } from '../../../editors/expandable-prompt-editor';
+import { GenericPromptEditor } from '../../../form/generic-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';

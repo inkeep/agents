@@ -1,5 +1,5 @@
 import { type FC, useEffect } from 'react';
-import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';

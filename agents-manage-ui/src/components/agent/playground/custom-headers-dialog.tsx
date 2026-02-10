@@ -4,7 +4,7 @@ import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
-import { GenericJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
