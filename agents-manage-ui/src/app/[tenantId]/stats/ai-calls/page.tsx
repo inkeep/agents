@@ -1,19 +1,14 @@
 'use client';
 
-import { ArrowLeft, Bot, Calendar, Coins, Cpu, FolderKanban, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Bot, Coins, Cpu, FolderKanban, MessageSquare } from 'lucide-react';
 import NextLink from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
+import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
@@ -95,7 +90,7 @@ export default function AllProjectsAICallsBreakdown({
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
   // Fetch projects on mount
   useEffect(() => {
@@ -160,7 +155,7 @@ export default function AllProjectsAICallsBreakdown({
         setError(null);
 
         const client = getSigNozStatsClient(tenantId);
-        const projectIdFilter = selectedProjectId === 'all' ? undefined : [selectedProjectId];
+        const projectIdFilter = selectedProjectId === undefined ? undefined : [selectedProjectId];
 
         // Fetch project stats, model breakdown, and token usage
         const [projectData, modelData, tokenData] = await Promise.all([
@@ -169,12 +164,12 @@ export default function AllProjectsAICallsBreakdown({
             startTime,
             endTime,
             undefined,
-            selectedProjectId === 'all' ? undefined : selectedProjectId
+            selectedProjectId === undefined ? undefined : selectedProjectId
           ),
           client.getTokenUsageStats(
             startTime,
             endTime,
-            selectedProjectId === 'all' ? undefined : selectedProjectId
+            selectedProjectId === undefined ? undefined : selectedProjectId
           ),
         ]);
 
@@ -222,98 +217,61 @@ export default function AllProjectsAICallsBreakdown({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild className="gap-2">
+      <div className="flex items-center gap-4 mb-6">
+        <Button asChild variant="ghost" size="icon-sm">
           <NextLink href={backLink}>
             <ArrowLeft className="h-4 w-4" />
-            Back to Stats
+            <span className="sr-only">Back to Stats</span>
           </NextLink>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">AI Calls Breakdown</h1>
-          <p className="text-sm text-muted-foreground">
-            Detailed view of AI calls across all projects
-          </p>
-        </div>
+        <PageHeader title="AI Calls Breakdown" className="mb-0" />
       </div>
 
       {/* Filters Card */}
-      <Card className="shadow-none bg-background">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-foreground text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex flex-col md:flex-row gap-2 md:gap-4 max-w-4xl">
-            {/* Project Filter */}
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="project-filter" className="text-sm">
-                Project
-              </Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                <SelectTrigger id="project-filter">
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
-                  {projectsLoading ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : (
-                    projects.map((project) => (
-                      <SelectItem key={project.projectId} value={project.projectId}>
-                        {project.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* Time Range Filter */}
-            <div className="space-y-1 flex-1">
-              <Label htmlFor="time-filter" className="text-sm">
-                Time Range
-              </Label>
-              <DatePickerWithPresets
-                label="Time range"
-                onRemove={() => setTimeRange('30d')}
-                value={
-                  timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
-                }
-                onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
-                setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
-                options={Object.entries(TIME_RANGES).map(([value, config]) => ({
-                  value,
-                  label: config.label,
-                }))}
-                showCalendarDirectly={false}
-              />
-            </div>
-          </div>
+      <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+        {/* Project Filter */}
+        <Combobox
+          defaultValue={selectedProjectId}
+          notFoundMessage={'No projects found.'}
+          onSelect={(value) => {
+            setSelectedProjectId(value);
+          }}
+          options={projects.map((project) => ({
+            value: project.projectId,
+            label: project.name,
+          }))}
+          TriggerComponent={
+            <FilterTriggerComponent
+              disabled={projectsLoading}
+              filterLabel={selectedProjectId === undefined ? 'All projects' : 'Project'}
+              isRemovable={true}
+              onDeleteFilter={() => {
+                setSelectedProjectId(undefined);
+              }}
+              multipleCheckboxValues={selectedProjectId ? [selectedProjectId] : []}
+              options={projects.map((project) => ({
+                value: project.projectId,
+                label: project.name,
+              }))}
+            />
+          }
+        />
 
-          {!loading && (
-            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-              <div>
-                {selectedProjectId === 'all'
-                  ? `Showing AI calls across ${projectStats.length} projects`
-                  : `Showing AI calls for project: ${projectNameMap.get(selectedProjectId) || selectedProjectId}`}
-              </div>
-              <div className="flex items-center gap-1 text-xs">
-                <Calendar className="h-3 w-3" />
-                Time range:{' '}
-                {timeRange === CUSTOM
-                  ? 'Custom range'
-                  : TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.label || timeRange}
-                <span className="text-muted-foreground/70">
-                  ({new Date(startTime).toLocaleDateString()} -{' '}
-                  {new Date(endTime).toLocaleDateString()})
-                </span>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Time Range Filter */}
+        <DatePickerWithPresets
+          label="Time range"
+          onRemove={() => setTimeRange('30d')}
+          value={timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange}
+          onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
+          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          options={Object.entries(TIME_RANGES).map(([value, config]) => ({
+            value,
+            label: config.label,
+          }))}
+          showCalendarDirectly={false}
+        />
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
