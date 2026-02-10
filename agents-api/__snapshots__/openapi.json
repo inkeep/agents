@@ -169,12 +169,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -357,12 +352,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "anyOf": [
@@ -743,12 +733,7 @@
       "ApiKeyCreate": {
         "properties": {
           "agentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "createdAt": {
             "type": "string"
@@ -803,12 +788,7 @@
       "ApiKeyUpdate": {
         "properties": {
           "agentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "expiresAt": {
             "nullable": true,
@@ -944,12 +924,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -1063,12 +1038,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -1546,12 +1516,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           }
         },
         "type": "object"
@@ -1596,12 +1561,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           }
         },
         "type": "object"
@@ -2030,20 +1990,10 @@
             "type": "string"
           },
           "credentialStoreId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2126,20 +2076,10 @@
             "type": "string"
           },
           "credentialStoreId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2341,12 +2281,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2463,12 +2398,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -2540,6 +2470,33 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "DataPart": {
+        "properties": {
+          "data": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "kind": {
+            "enum": [
+              "data"
+            ],
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind",
+          "data"
+        ],
         "type": "object"
       },
       "Dataset": {
@@ -4088,12 +4045,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4157,12 +4109,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4172,6 +4119,67 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "FilePart": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "bytes": {
+                    "type": "string"
+                  },
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bytes"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "uri": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "uri"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "kind": {
+            "enum": [
+              "file"
+            ],
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind",
+          "file"
+        ],
         "type": "object"
       },
       "Forbidden": {
@@ -4747,12 +4755,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "anyOf": [
@@ -4881,12 +4884,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -4950,12 +4948,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
             "maxLength": 256,
@@ -5007,12 +5000,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "anyOf": [
@@ -5395,12 +5383,7 @@
             ]
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -5600,6 +5583,27 @@
         "default": 1,
         "minimum": 1,
         "type": "number"
+      },
+      "Part": {
+        "discriminator": {
+          "mapping": {
+            "data": "#/components/schemas/DataPart",
+            "file": "#/components/schemas/FilePart",
+            "text": "#/components/schemas/TextPart"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TextPart"
+          },
+          {
+            "$ref": "#/components/schemas/FilePart"
+          },
+          {
+            "$ref": "#/components/schemas/DataPart"
+          }
+        ]
       },
       "ProblemDetails": {
         "properties": {
@@ -5950,6 +5954,14 @@
           "data"
         ],
         "type": "object"
+      },
+      "ResourceId": {
+        "description": "Resource identifier",
+        "example": "resource_789",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-zA-Z0-9\\-_.]+$",
+        "type": "string"
       },
       "SignatureSource": {
         "description": "Configuration for extracting the signature",
@@ -6379,12 +6391,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/Model"
@@ -6540,12 +6547,7 @@
             "type": "string"
           },
           "externalAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "headers": {
             "additionalProperties": {
@@ -6598,12 +6600,7 @@
             "type": "string"
           },
           "externalAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "headers": {
             "additionalProperties": {
@@ -6613,20 +6610,10 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6699,20 +6686,10 @@
       "SubAgentFunctionToolRelationCreate": {
         "properties": {
           "functionToolId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "anyOf": [
@@ -6829,20 +6806,10 @@
             "type": "string"
           },
           "externalSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "relationType": {
             "enum": [
@@ -6852,28 +6819,13 @@
             "type": "string"
           },
           "sourceSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "teamSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -6921,20 +6873,10 @@
             "type": "string"
           },
           "externalSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "relationType": {
             "enum": [
@@ -6944,28 +6886,13 @@
             "type": "string"
           },
           "sourceSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "teamSubAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7059,12 +6986,7 @@
             "type": "object"
           },
           "targetAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7117,28 +7039,13 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "targetAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "updatedAt": {
             "type": "string"
@@ -7285,12 +7192,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "selectedTools": {
             "items": {
@@ -7300,20 +7202,10 @@
             "type": "array"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "additionalProperties": {
@@ -7380,12 +7272,7 @@
             "type": "object"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "selectedTools": {
             "items": {
@@ -7395,20 +7282,10 @@
             "type": "array"
           },
           "subAgentId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolId": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "toolPolicies": {
             "additionalProperties": {
@@ -7469,12 +7346,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/Model"
@@ -7547,6 +7419,30 @@
         "description": "Tenant identifier",
         "example": "tenant_123",
         "type": "string"
+      },
+      "TextPart": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "type": "object"
       },
       "ThirdPartyMCPServerResponse": {
         "properties": {
@@ -7951,12 +7847,7 @@
             ]
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -8172,12 +8063,7 @@
             ]
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "imageUrl": {
             "type": "string"
@@ -8389,12 +8275,7 @@
             "type": "boolean"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "additionalProperties": {
@@ -8660,6 +8541,67 @@
         ],
         "type": "object"
       },
+      "TriggerIsDisabled": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "conflict"
+                ],
+                "example": "conflict",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Trigger is disabled",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "conflict"
+                    ],
+                    "example": "conflict",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Trigger is disabled",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "description": "The HTTP status code.",
+                "example": 409,
+                "type": "integer"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Conflict",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "TriggerOutputTransform": {
         "nullable": true,
         "properties": {
@@ -8700,12 +8642,7 @@
             "type": "boolean"
           },
           "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/ResourceId"
           },
           "inputSchema": {
             "additionalProperties": {
@@ -11727,12 +11664,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -11835,12 +11767,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -11940,12 +11867,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13039,12 +12961,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13154,12 +13071,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13276,12 +13188,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13780,12 +13687,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -13895,12 +13797,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -14017,12 +13914,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -14155,20 +14047,10 @@
                     "type": "string"
                   },
                   "artifactComponentId": {
-                    "description": "Resource identifier",
-                    "example": "resource_789",
-                    "maxLength": 255,
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9\\-_.]+$",
-                    "type": "string"
+                    "$ref": "#/components/schemas/ResourceId"
                   },
                   "subAgentId": {
-                    "description": "Resource identifier",
-                    "example": "resource_789",
-                    "maxLength": 255,
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9\\-_.]+$",
-                    "type": "string"
+                    "$ref": "#/components/schemas/ResourceId"
                   }
                 },
                 "required": [
@@ -16364,12 +16246,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16429,12 +16306,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -16551,12 +16423,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17098,12 +16965,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17164,12 +17026,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17287,12 +17144,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17682,12 +17534,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17757,12 +17604,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -17879,12 +17721,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18302,12 +18139,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18377,12 +18209,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -18509,12 +18336,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19050,12 +18872,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19124,12 +18941,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19255,12 +19067,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19649,12 +19456,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19764,12 +19566,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -19886,12 +19683,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20019,12 +19811,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -20214,12 +20001,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -20311,6 +20093,181 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/triggers/{id}/rerun": {
+      "post": {
+        "operationId": "rerun-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "messageParts": {
+                    "description": "Optional structured message parts (from original trace)",
+                    "items": {
+                      "$ref": "#/components/schemas/Part"
+                    },
+                    "type": "array"
+                  },
+                  "userMessage": {
+                    "description": "The user message to send to the agent",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userMessage"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "invocationId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "invocationId",
+                    "conversationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Trigger rerun accepted and dispatched"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerIsDisabled"
+                }
+              }
+            },
+            "description": "Trigger is disabled"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Rerun Trigger",
+        "tags": [
+          "Triggers"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{id}": {
       "delete": {
         "operationId": "delete-agent",
@@ -20339,12 +20296,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20395,12 +20347,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20508,12 +20455,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20909,12 +20851,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -20966,12 +20903,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21080,12 +21012,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21447,12 +21374,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21503,12 +21425,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -21616,12 +21533,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22279,12 +22191,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           },
           {
@@ -22516,12 +22423,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22883,12 +22785,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -22939,12 +22836,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23052,12 +22944,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23419,12 +23306,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23475,12 +23357,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -23588,12 +23465,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -28961,12 +28833,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29017,12 +28884,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29130,12 +28992,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29510,12 +29367,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29616,12 +29468,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -29729,12 +29576,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31600,12 +31442,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31706,12 +31543,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31819,12 +31651,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -31943,12 +31770,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],

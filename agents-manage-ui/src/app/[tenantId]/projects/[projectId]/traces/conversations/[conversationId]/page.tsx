@@ -8,6 +8,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
@@ -24,6 +25,8 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import type { Part } from '@inkeep/agents-core';
+import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -37,10 +40,12 @@ export default function ConversationDetail({
   const { conversationId, tenantId, projectId } = use(params);
   const backLink = `/${tenantId}/projects/${projectId}/traces` as const;
 
+  const router = useRouter();
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -91,6 +96,69 @@ export default function ConversationDetail({
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 200));
       setIsCopying(false);
+    }
+  };
+
+  const handleRerunTrigger = async () => {
+    if (!conversation?.triggerId || !conversation?.agentId) return;
+
+    const userMessageActivity = conversation.activities?.find(
+      (a) => a.type === 'user_message' && a.messageContent
+    );
+
+    if (!userMessageActivity?.messageContent) {
+      toast.error('No user message found in trace to rerun');
+      return;
+    }
+
+    setIsRerunning(true);
+    try {
+      let messageParts: Part[] | undefined;
+      if (userMessageActivity.messageParts) {
+        try {
+          messageParts = JSON.parse(userMessageActivity.messageParts);
+        } catch (parseError) {
+          console.warn('Failed to parse messageParts for rerun, falling back to text-only', {
+            conversationId,
+            error: parseError instanceof Error ? parseError.message : String(parseError),
+          });
+        }
+      }
+
+      const result = await rerunTriggerAction(
+        tenantId,
+        projectId,
+        conversation.agentId,
+        conversation.triggerId,
+        {
+          userMessage: userMessageActivity.messageContent,
+          messageParts,
+        }
+      );
+
+      if (result.success && result.data) {
+        toast.success('Trigger rerun dispatched', {
+          description: `New conversation: ${result.data.conversationId}`,
+          action: {
+            label: 'View',
+            onClick: () => {
+              router.push(
+                `/${tenantId}/projects/${projectId}/traces/conversations/${result.data?.conversationId}`
+              );
+            },
+          },
+        });
+      } else {
+        toast.error('Failed to rerun trigger', {
+          description: result.error || 'An unknown error occurred',
+        });
+      }
+    } catch (err) {
+      toast.error('Failed to rerun trigger', {
+        description: err instanceof Error ? err.message : 'An unknown error occurred',
+      });
+    } finally {
+      setIsRerunning(false);
     }
   };
 
@@ -369,6 +437,9 @@ export default function ConversationDetail({
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}
+            onRerunTrigger={handleRerunTrigger}
+            isRerunning={isRerunning}
+            showRerunTrigger={!!(conversation.triggerId && conversation.agentId)}
           />
         </ResizablePanelGroup>
       </div>

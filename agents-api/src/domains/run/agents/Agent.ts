@@ -77,6 +77,7 @@ import {
   calculateBreakdownTotal,
   estimateTokens,
 } from '../utils/token-estimator';
+import { createDeniedToolResult, isToolResultDenied } from '../utils/tool-result';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
@@ -687,11 +688,7 @@ export class Agent {
             });
           }
 
-          const isDeniedResult =
-            !!result &&
-            typeof result === 'object' &&
-            '__inkeepToolDenied' in (result as any) &&
-            (result as any).__inkeepToolDenied === true;
+          const isDeniedResult = isToolResultDenied(result);
 
           if (streamRequestId && streamHelper && !isInternalToolForUi) {
             if (isDeniedResult) {
@@ -945,6 +942,7 @@ export class Agent {
                       type: 'approval-resolved',
                       toolCallId,
                       approved: false,
+                      reason: approvalResult.reason,
                     });
                   }
                 }
@@ -957,6 +955,7 @@ export class Agent {
                       'tool.callId': toolCallId,
                       'subAgent.id': this.config.id,
                       'subAgent.name': this.config.name,
+                      'tool.approval.reason': approvalResult.reason,
                     },
                   },
                   (denialSpan: Span) => {
@@ -968,11 +967,7 @@ export class Agent {
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
 
-                    return {
-                      __inkeepToolDenied: true,
-                      toolCallId,
-                      reason: approvalResult.reason,
-                    };
+                    return createDeniedToolResult(toolCallId, approvalResult.reason);
                   }
                 );
               }
@@ -1567,6 +1562,7 @@ export class Agent {
                       type: 'approval-resolved',
                       toolCallId,
                       approved: false,
+                      reason: approvalResult.reason,
                     });
                   }
                 }
@@ -1590,11 +1586,7 @@ export class Agent {
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
 
-                    return {
-                      __inkeepToolDenied: true,
-                      toolCallId,
-                      reason: approvalResult.reason,
-                    };
+                    return createDeniedToolResult(toolCallId, approvalResult.reason);
                   }
                 );
               }
@@ -2372,6 +2364,17 @@ export class Agent {
    */
   private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
     const input = args ? JSON.stringify(args, null, 2) : 'No input';
+
+    if (isToolResultDenied(result)) {
+      return [
+        `## Tool: ${toolName}`,
+        '',
+        `### 🔧 TOOL_CALL_ID: ${toolCallId}`,
+        '',
+        `### Output`,
+        result.reason,
+      ].join('\n');
+    }
 
     // Handle string results that might be JSON - try to parse them
     let parsedResult = result;

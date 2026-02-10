@@ -190,11 +190,13 @@ When you cannot verify the fix approach via web search, **you cannot claim HIGH 
 When you verify a fix via web search, **include the source in your references**:
 
 ```json
-"references": [
-  "[src/components/List.tsx:42](https://github.com/.../List.tsx#L42)",
-  "[React useMemo docs](https://react.dev/reference/react/useMemo)",
-  "[When to use useMemo](https://react.dev/reference/react/useMemo#should-you-add-usememo-everywhere)"
-]
+{
+  "references": [
+    "[src/components/VirtualList.tsx:88 — memoization pattern](https://github.com/.../VirtualList.tsx#L88)",
+    "[React useMemo docs](https://react.dev/reference/react/useMemo)",
+    "[When to use useMemo](https://react.dev/reference/react/useMemo#should-you-add-usememo-everywhere)"
+  ]
+}
 ```
 
 This grounds your fix recommendation in authoritative sources.
@@ -223,6 +225,7 @@ Step 2: Search "moment.js maintenance mode 2024"
 Result: moment.js docs confirm maintenance mode since 2020
 
 Action: Keep finding, HIGH confidence
+        references: Add "[Moment.js docs: project status](https://momentjs.com/docs/#/-project-status/)"
         Add to implications: "moment.js has been in maintenance mode since 2020"
 ```
 
@@ -274,6 +277,7 @@ Result: Multiple valid options (date-fns, dayjs, Temporal API)
 
 Action: fix_confidence: MEDIUM
         fix: "Consider date-fns (lightweight) or dayjs (moment-compatible API)"
+        references: Cite the docs/specs for the options you mention (e.g., Temporal proposal, date-fns docs, dayjs docs)
         Add note: "Choice depends on bundle size constraints and API preferences"
 ```
 
