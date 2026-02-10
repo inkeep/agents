@@ -1,0 +1,144 @@
+---
+title: Working with the manage database (Doltgres)
+sidebarTitle: Manage Database
+description: How branch-scoped database connections work in the Inkeep Agent Framework
+icon: LuDatabase
+---
+
+# Overview
+
+The management database is a [Doltgres](https://docs.doltgres.com/) instance — a PostgreSQL-compatible database with Git-like versioning built in.
+
+## Branch naming convention
+
+Each project gets its own main branch, namespaced as:
+
+```
+<tenantId>_<projectId>_main
+```
+
+For example, a project with `tenantId: "acme"` and `projectId: "proj_123"` has a main branch named `acme_proj_123_main`.
+
+Connections to doltgres default to the `main` branch, so it is critical that **every connection checks out the correct project branch before performing any operations**. The framework provides two mechanisms for this depending on where your code runs.
+
+## Mechanism 1: middleware (manage routes)
+
+All `/manage` API routes pass through the `branchScopedDbMiddleware`. This middleware:
+
+1. Acquires a dedicated connection from the pool
+2. Checks out the correct branch (resolved from the request's `ref` query parameter)
+3. Creates a Drizzle ORM client scoped to that connection
+4. Injects it into the Hono context as `'db'`
+5. Executes the route handler
+6. Auto-commits changes on success for write operations (POST, PUT, PATCH, DELETE)
+7. Cleans up: checks out `main` and releases the connection
+
+### Usage in manage routes
+
+Inside any `/manage` route handler, retrieve the branch-scoped database client from context:
+
+```typescript
+async (c) => {
+  const db: AgentsManageDatabaseClient = c.get('db');
+  const { tenantId, projectId } = c.req.valid('param');
+
+  const tools = await listTools(db)({
+    scopes: { tenantId, projectId },
+  });
+
+  return c.json({ data: tools });
+}
+```
+
+## Mechanism 2: `withRef`
+
+When you need to read or write manage data from outside the `/manage` routes — for example from the `/run` domain, `/evals` domain, or other packages — use the `withRef` wrapper from `@inkeep/agents-core`.
+
+`withRef` handles the full lifecycle of a branch-scoped connection:
+
+1. Acquires a dedicated connection from the pool
+2. Checks out the specified branch
+3. Executes your callback with a scoped Drizzle client
+4. Optionally auto-commits on success for write operations
+5. Cleans up: checks out `main`, releases the connection
+
+### Read example
+
+```typescript
+import { withRef } from '@inkeep/agents-core';
+import manageDbPool from '../data/db/manageDbPool';
+
+const agent = await withRef(manageDbPool, resolvedRef, (db) =>
+  getFullAgent(db)({
+    scopes: { tenantId, projectId, agentId },
+  })
+);
+```
+
+### Write example with auto-commit
+
+```typescript
+await withRef(
+  manageDbPool,
+  resolvedRef,
+  async (db) => {
+    await updateAgent(db, agentId, data);
+  },
+  { commit: true, commitMessage: 'Update agent config' }
+);
+```
+
+### Batching multiple operations
+
+You can batch multiple reads or writes in a single `withRef` call. This uses one connection and one branch checkout for all operations:
+
+```typescript
+const result = await withRef(
+  manageDbPool,
+  resolvedRef,
+  async (db) => {
+    await createCredential(db, credData);
+    await updateTool(db, toolId, { credentialId });
+    return { success: true };
+  },
+  {
+    commit: true,
+    commitMessage: 'Link credential to tool',
+    author: { name: 'oauth-flow', email: 'oauth@inkeep.com' },
+  }
+);
+```
+
+### Obtaining a `resolvedRef`
+
+Most runtime code paths already have a `resolvedRef` available — either through the Hono context (`c.get('resolvedRef')`) or via an execution context (`this.executionContext.resolvedRef`).
+If you need to resolve a ref manually, use `getProjectScopedRef` and `resolveRef`:
+
+```typescript
+import { getProjectScopedRef, resolveRef } from '@inkeep/agents-core';
+
+const projectScopedRef = getProjectScopedRef(tenantId, projectId, 'main');
+
+// You can directly a manage db client to resolve the ref
+const resolvedRef = await resolveRef(agentsManageDbClient)(projectScopedRef);
+```
+
+## Decision guide
+
+| Where is your code? | What to use |
+|---|---|
+| `/manage` route handler | `c.get('db')` — the middleware handles checkout and commit |
+| `/run` or `/evals` route handler | `withRef(manageDbPool, resolvedRef, (db) => ...)` |
+| Service class or utility | `withRef(manageDbPool, resolvedRef, (db) => ...)` |
+| Already inside a `withRef` callback | Use the `db` from the callback argument directly |
+
+## Key files
+
+| File | Purpose |
+|---|---|
+| `agents-api/src/middleware/branchScopedDb.ts` | Middleware for `/manage` routes |
+| `packages/agents-core/src/dolt/ref-scope.ts` | `withRef` wrapper and nesting detection |
+| `packages/agents-core/src/dolt/ref-middleware.ts` | Ref resolution middleware (resolves `ref` query param to `ResolvedRef`) |
+| `packages/agents-core/src/dolt/ref-helpers.ts` | Helper functions for ref resolution and management |
+| `packages/agents-core/src/validation/dolt-schemas.ts` | `ResolvedRef` type and Zod schemas |
+| `agents-api/src/data/db/manageDbPool.ts` | The connection pool singleton |
