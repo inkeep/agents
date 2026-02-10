@@ -60,12 +60,13 @@ const TruncateToolBadge: FC<{
 };
 
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
+  'use memo';
+
   const { data, selected } = props;
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { toolLookup, agentToolConfigLookup, edges } = useAgentStore((state) => ({
+  const { toolLookup, agentToolConfigLookup } = useAgentStore((state) => ({
     toolLookup: state.toolLookup,
     agentToolConfigLookup: state.agentToolConfigLookup,
-    edges: state.edges,
   }));
 
   // Get skeleton data from initial page load (status: 'unknown', availableTools: [])
@@ -85,15 +86,13 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const name = data.name || `Tool: ${data.toolId}`;
   const imageUrl = data.imageUrl ?? toolData?.imageUrl;
 
-  const availableTools = toolData?.availableTools;
-
   const activeTools = getActiveTools({
-    availableTools: availableTools,
+    availableTools: toolData?.availableTools,
     activeTools: toolData?.config?.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup, edges);
-  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup, edges);
+  const selectedTools = getCurrentSelectedToolsForNode(props, agentToolConfigLookup);
+  const toolPolicies = getCurrentToolPoliciesForNode(props, agentToolConfigLookup);
 
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
   const hasOrphanedTools = orphanedTools.length > 0;
