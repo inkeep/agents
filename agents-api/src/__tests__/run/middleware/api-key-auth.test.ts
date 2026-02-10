@@ -28,6 +28,8 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentById: getAgentByIdMock,
   verifyServiceToken: verifyServiceTokenMock,
   validateTargetAgent: validateTargetAgentMock,
+  isAnonymousToken: () => false,
+  verifyAnonymousToken: vi.fn().mockResolvedValue({ valid: false, error: 'mock' }),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),

@@ -1,7 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AppVariables } from '../../types';
 import agentRoutes from './routes/agents';
-import anonymousChatRoutes from './routes/anonymousChat';
 import anonymousConversationRoutes from './routes/anonymousConversations';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
@@ -14,7 +13,6 @@ export function createRunRoutes() {
   app.route('/v1/chat', chatRoutes);
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);
-  app.route('/anonymous', anonymousChatRoutes);
   app.route('/anonymous', anonymousConversationRoutes);
   app.route('/agents', agentRoutes);
   app.route('/', webhookRoutes);
