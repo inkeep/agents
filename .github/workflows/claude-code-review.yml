@@ -21,7 +21,7 @@ jobs:
         github.event.issue.pull_request &&
         github.event.issue.state == 'open' &&
         contains(github.event.comment.body, '@claude') &&
-        contains(github.event.comment.body, '--review') &&
+        (contains(github.event.comment.body, '--review') || contains(github.event.comment.body, '--full-review')) &&
         !contains(github.actor, '[bot]') &&
         (
           github.event.comment.author_association == 'OWNER' ||
