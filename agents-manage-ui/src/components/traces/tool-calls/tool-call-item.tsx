@@ -1,6 +1,6 @@
 'use client';
 
-import { Wrench } from 'lucide-react';
+import { AlertTriangle, Check, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ToolCallItemProps {
@@ -13,6 +13,17 @@ function getStatusColor(rate: number) {
   if (rate === 0) return 'destructive';
   if (rate <= 50) return 'warning';
   return 'success';
+}
+
+function StatusIcon({ status }: { status: 'success' | 'warning' | 'destructive' }) {
+  switch (status) {
+    case 'success':
+      return <Check className="h-4 w-4" />;
+    case 'warning':
+      return <AlertTriangle className="h-4 w-4" />;
+    case 'destructive':
+      return <XCircle className="h-4 w-4" />;
+  }
 }
 
 export function ToolCallItem({ name, successCount, totalCalls }: ToolCallItemProps) {
@@ -31,7 +42,7 @@ export function ToolCallItem({ name, successCount, totalCalls }: ToolCallItemPro
           status === 'destructive' && 'bg-destructive/15 text-destructive'
         )}
       >
-        <Wrench className="h-4 w-4" />
+        <StatusIcon status={status} />
       </div>
 
       <span className="flex-1 truncate font-mono text-sm text-foreground/80 group-hover:text-foreground transition-colors">

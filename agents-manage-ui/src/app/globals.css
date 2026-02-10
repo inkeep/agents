@@ -169,7 +169,7 @@
   --sidebar-border: var(--color-stone-200);
   --sidebar-ring: var(--color-stone-400);
 
-  --success: oklch(0.52 0.14 160);
+  --success: var(--color-azure-500);
   --warning: oklch(0.65 0.18 75);
 }
 
@@ -205,7 +205,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
-  --success: oklch(0.65 0.16 162);
+
+  --success: var(--color-sky-blue);
   --warning: oklch(0.75 0.16 78);
 }
 
