@@ -129,69 +129,64 @@ app.openapi(
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
     try {
-      // 1. Create project in runtime DB and create project main branch
-      await createProjectMetadataAndBranch(
-        runDbClient,
-        configDb
-      )({
-        tenantId,
-        projectId: validatedProjectData.id,
-        createdBy: userId,
-      });
+      // Two-phase commit: Wrap all database operations in transactions
+      // If SpiceDB sync fails, both DB transactions will rollback automatically
+      const createdProject = await runDbClient.transaction(async (runTx) => {
+        return await configDb.transaction(async (configTx) => {
+          // Phase 1: Database operations (within transactions - not committed yet)
 
-      logger.info(
-        { tenantId, projectId: validatedProjectData.id },
-        'Created project with branch, now populating config'
-      );
-
-      // Checkout the project main branch
-      const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
-      await checkoutBranch(configDb)({ branchName: projectMainBranch, autoCommitPending: true });
-
-      // Update resolvedRef so the middleware commits to the correct branch
-      const newResolvedRef: ResolvedRef = {
-        type: 'branch',
-        name: projectMainBranch,
-        hash: '', // Hash will be determined at commit time
-      };
-      c.set('resolvedRef', newResolvedRef);
-
-      logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
-
-      // 3. Create full project config in the project branch
-      const createdProject = await createFullProjectServerSide(configDb)({
-        scopes: { tenantId, projectId: validatedProjectData.id },
-        projectData: validatedProjectData,
-      });
-
-      // 4. Sync to SpiceDB: link project to org and grant creator admin role
-      // CRITICAL: If this fails, the project exists but the creator can't access it
-      if (userId) {
-        try {
-          await syncProjectToSpiceDb({
+          // 1. Create project in runtime DB and create project main branch
+          await createProjectMetadataAndBranch(
+            runTx,
+            configTx
+          )({
             tenantId,
             projectId: validatedProjectData.id,
-            creatorUserId: userId,
+            createdBy: userId,
           });
-        } catch (syncError) {
-          logger.error(
-            {
-              syncError,
-              tenantId,
-              projectId: validatedProjectData.id,
-              userId,
-            },
-            'Failed to sync project to SpiceDB - project created but authorization setup failed'
+
+          logger.info(
+            { tenantId, projectId: validatedProjectData.id },
+            'Created project with branch, now populating config'
           );
 
-          // Fail the request - project exists in DB but is inaccessible
-          throw createApiError({
-            code: 'internal_server_error',
-            message:
-              'Project created but authorization setup failed. Please delete and try again, or contact support.',
+          // Checkout the project main branch
+          const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
+          await checkoutBranch(configTx)({
+            branchName: projectMainBranch,
+            autoCommitPending: true,
           });
-        }
-      }
+
+          // Update resolvedRef so the middleware commits to the correct branch
+          const newResolvedRef: ResolvedRef = {
+            type: 'branch',
+            name: projectMainBranch,
+            hash: '', // Hash will be determined at commit time
+          };
+          c.set('resolvedRef', newResolvedRef);
+
+          logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
+
+          // 2. Create full project config in the project branch
+          const project = await createFullProjectServerSide(configTx)({
+            scopes: { tenantId, projectId: validatedProjectData.id },
+            projectData: validatedProjectData,
+          });
+
+          // Phase 2: Sync to SpiceDB (still within transaction scope)
+          // If this fails, both transactions will rollback automatically
+          if (userId) {
+            await syncProjectToSpiceDb({
+              tenantId,
+              projectId: validatedProjectData.id,
+              creatorUserId: userId,
+            });
+          }
+
+          // If we reach here, both transactions will commit
+          return project;
+        });
+      });
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -201,6 +196,23 @@ app.openapi(
         throw createApiError({
           code: 'conflict',
           message: `Project with ID '${projectData.id}' already exists`,
+        });
+      }
+
+      // Handle SpiceDB sync failures - transactions already rolled back
+      if (error?.message?.includes('SpiceDB') || error?.code === 3 || error?.details) {
+        logger.error(
+          {
+            error,
+            tenantId,
+            projectId: validatedProjectData.id,
+            userId,
+          },
+          'Failed to sync project to SpiceDB - database transactions rolled back'
+        );
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to set up project authorization. No changes were made to the database.',
         });
       }
 
@@ -389,66 +401,57 @@ app.openapi(
       // Use cached result from middleware (permission already checked there)
       const isCreate = c.get('isProjectCreate') ?? false;
 
-      if (isCreate) {
-        // Project doesn't exist - create it with branch first
-        await createProjectMetadataAndBranch(
-          runDbClient,
-          configDb
-        )({
-          tenantId,
-          projectId,
-          createdBy: userId,
-        });
-
-        logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
-
-        // Checkout the project main branch
-        const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
-        await checkoutBranch(configDb)({ branchName: projectMainBranch, autoCommitPending: true });
-      }
-
-      // Update/create the full project using server-side data layer operations
+      // Two-phase commit for creates, regular update for existing projects
       const updatedProject: FullProjectSelect = isCreate
-        ? await createFullProjectServerSide(configDb)({
-            scopes: { tenantId, projectId },
-            projectData: validatedProjectData,
+        ? await runDbClient.transaction(async (runTx) => {
+            return await configDb.transaction(async (configTx) => {
+              // Phase 1: Database operations (within transactions)
+
+              // Create project with branch first
+              await createProjectMetadataAndBranch(
+                runTx,
+                configTx
+              )({
+                tenantId,
+                projectId,
+                createdBy: userId,
+              });
+
+              logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
+
+              // Checkout the project main branch
+              const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
+              await checkoutBranch(configTx)({
+                branchName: projectMainBranch,
+                autoCommitPending: true,
+              });
+
+              // Create the full project config
+              const project = await createFullProjectServerSide(configTx)({
+                scopes: { tenantId, projectId },
+                projectData: validatedProjectData,
+              });
+
+              // Phase 2: Sync to SpiceDB (within transaction scope)
+              // If this fails, both transactions will rollback automatically
+              if (userId) {
+                await syncProjectToSpiceDb({
+                  tenantId,
+                  projectId,
+                  creatorUserId: userId,
+                });
+              }
+
+              return project;
+            });
           })
         : await updateFullProjectServerSide(configDb)({
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           });
 
-      // Sync to SpiceDB when creating a new project
-      // CRITICAL: If this fails, the project exists but the creator can't access it
-      if (isCreate && userId) {
-        try {
-          await syncProjectToSpiceDb({
-            tenantId,
-            projectId,
-            creatorUserId: userId,
-          });
-        } catch (syncError) {
-          logger.error(
-            {
-              syncError,
-              tenantId,
-              projectId,
-              userId,
-            },
-            'Failed to sync project to SpiceDB - project created but authorization setup failed'
-          );
-
-          // Fail the request - project exists in DB but is inaccessible
-          throw createApiError({
-            code: 'internal_server_error',
-            message:
-              'Project created but authorization setup failed. Please delete and try again, or contact support.',
-          });
-        }
-      }
-
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         throw createApiError({
           code: 'bad_request',
@@ -460,6 +463,27 @@ app.openapi(
         throw createApiError({
           code: 'bad_request',
           message: error.message,
+        });
+      }
+
+      // Handle SpiceDB sync failures for creates - transactions already rolled back
+      const isCreate = c.get('isProjectCreate') ?? false;
+      if (
+        isCreate &&
+        (error?.message?.includes('SpiceDB') || error?.code === 3 || error?.details)
+      ) {
+        logger.error(
+          {
+            error,
+            tenantId,
+            projectId,
+            userId,
+          },
+          'Failed to sync project to SpiceDB - database transactions rolled back'
+        );
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to set up project authorization. No changes were made to the database.',
         });
       }
 
