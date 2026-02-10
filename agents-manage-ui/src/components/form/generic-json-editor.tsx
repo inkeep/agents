@@ -9,6 +9,8 @@ import {
   FormMessage,
 } from '../ui/form';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
+import { Editor } from '@/components/editors/editor';
+import { useState } from 'react';
 
 export function GenericJsonEditor<
   FV extends FieldValues,
@@ -26,22 +28,28 @@ export function GenericJsonEditor<
   placeholder: string;
   customTemplate: string;
 }) {
+  const [open, onOpenChange] = useState(false);
   return (
     <FormField
       control={control}
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel isRequired={isRequired}>{label}</FormLabel>
-          <FormControl>
-            <StandaloneJsonEditor
-              placeholder={placeholder}
-              customTemplate={customTemplate}
-              {...field}
-            />
-          </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
+          <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
+            <FormLabel isRequired={isRequired}>
+              {label}
+              {!open && <Editor.DialogTrigger />}
+            </FormLabel>
+            <FormControl>
+              <StandaloneJsonEditor
+                placeholder={placeholder}
+                customTemplate={customTemplate}
+                {...field}
+              />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </Editor.Dialog>
         </FormItem>
       )}
     />
