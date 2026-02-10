@@ -6,12 +6,6 @@ on:
   issue_comment:
     types: [created]
 
-concurrency:
-  # Separate groups per trigger type so issue_comment runs (which often skip)
-  # don't cancel in-progress pull_request review runs.
-  group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
-
 jobs:
   pr-review:
     if: |
@@ -29,6 +23,12 @@ jobs:
           github.event.comment.author_association == 'COLLABORATOR'
         )
       )
+    # Job-level concurrency so the group is only entered AFTER the if: check.
+    # Workflow-level concurrency would let bot comments (which skip via if:)
+    # cancel in-progress human-triggered runs before they're filtered out.
+    concurrency:
+      group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
