@@ -564,11 +564,13 @@ export const Agent: FC<AgentProps> = ({
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
-        const subAgentId = params.source;
+        if (edges.some((edge) => edge.target === targetNode.id)) {
+          toast.error('This MCP tool is already connected. Remove the existing connection first.');
+          return;
+        }
         updateNodeData(targetNode.id, {
           ...targetNode.data,
-          subAgentId,
-          relationshipId: null, // Will be set after saving to database
+          subAgentId: params.source,
         });
       }
     }

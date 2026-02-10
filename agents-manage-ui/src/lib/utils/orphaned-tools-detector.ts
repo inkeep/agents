@@ -1,4 +1,3 @@
-import type { Edge } from '@xyflow/react';
 import type { MCPNodeData } from '@/components/agent/configuration/node-types';
 
 export interface ActiveTool {
@@ -27,16 +26,15 @@ export function getCurrentSelectedToolsForNode(
   agentToolConfigLookup: Record<
     string,
     Record<string, { toolId: string; toolSelection?: string[] | null }>
-  >,
-  _edges: Edge[]
+  >
 ): string[] | null {
   // First check if we have temporary selections stored on the node (from recent clicks)
-  if ((node.data as any).tempSelectedTools !== undefined) {
+  if (node.data.tempSelectedTools !== undefined) {
     return (node.data as any).tempSelectedTools;
   }
 
   // If node has relationshipId, find config by relationshipId
-  const relationshipId = (node.data as any).relationshipId;
+  const { relationshipId } = node.data;
   if (relationshipId) {
     for (const toolsMap of Object.values(agentToolConfigLookup)) {
       const config = toolsMap[relationshipId];
@@ -58,16 +56,15 @@ export function getCurrentHeadersForNode(
   agentToolConfigLookup: Record<
     string,
     Record<string, { toolId: string; headers?: Record<string, string> }>
-  >,
-  _edges: Edge[]
+  >
 ): Record<string, string> {
   // First check if we have temporary headers stored on the node (from recent edits)
-  if ((node.data as any).tempHeaders !== undefined) {
+  if (node.data.tempHeaders !== undefined) {
     return (node.data as any).tempHeaders;
   }
 
   // If node has relationshipId, find config by relationshipId
-  const relationshipId = (node.data as any).relationshipId;
+  const { relationshipId } = node.data;
   if (relationshipId) {
     for (const toolsMap of Object.values(agentToolConfigLookup)) {
       const config = toolsMap[relationshipId];
@@ -89,16 +86,15 @@ export function getCurrentToolPoliciesForNode(
   agentToolConfigLookup: Record<
     string,
     Record<string, { toolId: string; toolPolicies?: Record<string, { needsApproval?: boolean }> }>
-  >,
-  _edges: Edge[]
+  >
 ): Record<string, { needsApproval?: boolean }> {
   // First check if we have temporary toolPolicies stored on the node (from recent edits)
-  if ((node.data as any).tempToolPolicies !== undefined) {
+  if (node.data.tempToolPolicies !== undefined) {
     return (node.data as any).tempToolPolicies;
   }
 
   // If node has relationshipId, find config by relationshipId
-  const relationshipId = (node.data as any).relationshipId;
+  const { relationshipId } = node.data;
   if (relationshipId) {
     for (const toolsMap of Object.values(agentToolConfigLookup)) {
       const config = toolsMap[relationshipId];
