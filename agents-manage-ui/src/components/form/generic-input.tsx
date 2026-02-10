@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { FormFieldWrapper } from './form-field-wrapper';
 
 interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
-  control: Control<FV, any, TV>;
+  control: Control<FV, unknown, TV>;
   name: FieldPath<FV>;
   label: string | JSX.Element;
   placeholder?: string;
@@ -20,7 +20,7 @@ interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
 
 export function GenericInput<
   TFieldValues extends FieldValues,
-  TTransformedValues extends FieldValues = TFieldValues,
+  TTransformedValues extends FieldValues,
 >({
   control,
   name,

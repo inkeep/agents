@@ -494,7 +494,7 @@ function buildMessage(
   return { messageParts, userMessageText };
 }
 
-async function dispatchExecution(params: {
+export async function dispatchExecution(params: {
   tenantId: string;
   projectId: string;
   agentId: string;

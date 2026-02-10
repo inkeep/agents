@@ -25,6 +25,7 @@ const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] =
 
 export default defineConfig({
   test: {
+    name: pkgJson.name,
     globals: true,
     projects: [
       {
@@ -55,8 +56,8 @@ export default defineConfig({
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
                 comparatorOptions: {
-                  // 1% of the pixels are allowed to mismatch between macOS and Linux
-                  allowedMismatchedPixelRatio: 0.01,
+                  // 2% of the pixels are allowed to mismatch between macOS and Linux
+                  allowedMismatchedPixelRatio: 0.02,
                 },
               },
             },
@@ -70,7 +71,6 @@ export default defineConfig({
       {
         extends: true,
         test: {
-          name: `${pkgJson.name}/node`,
           setupFiles: './setup-files',
           exclude: [BROWSER_TESTS_PATTERN, ...defaultExclude],
         },

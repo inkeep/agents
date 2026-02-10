@@ -129,12 +129,35 @@ function FormDescription({ className, ...props }: ComponentProps<'p'>) {
   );
 }
 
-function FormMessage({ className, ...props }: ComponentProps<'p'>) {
+function firstNestedMessage(node: unknown, path: string[] = []): string | undefined {
+  if (!node || typeof node !== 'object') return;
+
+  if ('message' in node && typeof node.message === 'string') {
+    if (!path.length) {
+      return node.message;
+    }
+    const fieldPath = path.map((p) => JSON.stringify(p)).join(', ');
+    const pathLike = path.length > 1 ? `[${fieldPath}]` : fieldPath;
+
+    return `${node.message}
+  → at ${/* z.prettifyError like format  */ pathLike}`;
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    const msg = firstNestedMessage(value, [...path, key]);
+    if (msg) {
+      return msg;
+    }
+  }
+}
+
+function FormMessage({ className, children, ...props }: ComponentProps<'p'>) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? '') : props.children;
+
+  const body = firstNestedMessage(error) || children;
 
   if (!body) {
-    return null;
+    return;
   }
 
   return (

@@ -1,5 +1,30 @@
 # @inkeep/agents-manage-ui
 
+## 0.47.5
+
+### Patch Changes
+
+- 1ae697c: Polish tool calls breakdown pages
+  - @inkeep/agents-core@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- 6fb0715: Fix hydration error by adding UTC timezone to all date formatting functions. Ensures server and client render identical date strings regardless of server/client timezone differences.
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+
 ## 0.47.2
 
 ### Patch Changes

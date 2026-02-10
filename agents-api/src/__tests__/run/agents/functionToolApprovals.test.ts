@@ -49,6 +49,7 @@ import type { FullExecutionContext } from '@inkeep/agents-core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { pendingToolApprovalManager } from '../../../domains/run/services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../../domains/run/services/ToolApprovalUiBus';
+import { INKEEP_TOOL_DENIED_KEY } from '../../../domains/run/utils/tool-result';
 
 describe('Function tool approvals (toolPolicies)', () => {
   beforeEach(() => {
@@ -107,7 +108,7 @@ describe('Function tool approvals (toolPolicies)', () => {
       { toolCallId: 'call_1' }
     );
 
-    expect(result).toMatchObject({ __inkeepToolDenied: true, toolCallId: 'call_1' });
+    expect(result).toMatchObject({ [INKEEP_TOOL_DENIED_KEY]: true, toolCallId: 'call_1' });
     expect(sandboxExecutorMock.executeFunctionTool).not.toHaveBeenCalled();
     expect(publishSpy).toHaveBeenCalledWith(
       'req_1',

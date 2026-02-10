@@ -1,12 +1,11 @@
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /inkeep-agents
 
 RUN npm install -g pnpm@10.17.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY turbo.json drizzle.manage.config.ts ./
-COPY turbo.json drizzle.run.config.ts ./
+COPY turbo.json drizzle.manage.config.ts drizzle.run.config.ts ./
 
 RUN pnpm fetch
 
