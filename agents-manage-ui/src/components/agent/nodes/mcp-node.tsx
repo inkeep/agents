@@ -115,7 +115,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     const totalCount = activeTools?.length ?? 0;
 
     if (selectedCount === 0) {
-      return ['0'];
+      return [];
     }
 
     // If all tools are selected, show total count
@@ -141,8 +141,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   };
 
   const toolBadges = getToolDisplay().map((label) => {
-    const isSynthetic =
-      label === '0' || label.startsWith('+') || label.endsWith('(ALL)') || label.includes('(ALL)');
+    const isSynthetic = label.startsWith('+') || label.includes('(ALL)');
 
     return {
       label,
