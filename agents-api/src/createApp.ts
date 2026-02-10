@@ -141,6 +141,12 @@ function createAgentsHono(config: AppConfig) {
     await next();
   });
 
+  // Work Apps routes - set auth context for session-based operations (before sessionContext)
+  app.use('/work-apps/*', async (c, next) => {
+    c.set('auth', auth);
+    await next();
+  });
+
   app.use('/run/*', async (c, next) => {
     if (sandboxConfig) {
       c.set('sandboxConfig', sandboxConfig);
@@ -360,12 +366,6 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/work-apps/github', githubRoutes);
-
-  // Work Apps routes - set auth context for session-based operations
-  app.use('/work-apps/*', async (c, next) => {
-    c.set('auth', auth);
-    await next();
-  });
 
   // Work Apps auth middleware - shared session/API key auth for protected Slack routes
   // Most routes are unauthenticated (events, commands), but workspace and user management require session

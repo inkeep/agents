@@ -144,6 +144,10 @@ app.openapi(
       const { tenantId, slack } = verifyResult.payload;
       const { teamId, userId: slackUserId, enterpriseId, username } = slack;
 
+      // Prefer session userId (from auth) over body.userId for security
+      const sessionUserId = c.get('userId') as string | undefined;
+      const inkeepUserId = sessionUserId || body.userId;
+
       const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
         tenantId,
         slackUserId,
@@ -151,7 +155,7 @@ app.openapi(
         'work-apps-slack'
       );
 
-      if (existingLink && existingLink.inkeepUserId === body.userId) {
+      if (existingLink && existingLink.inkeepUserId === inkeepUserId) {
         logger.info(
           { slackUserId, tenantId, inkeepUserId: body.userId },
           'Slack user already linked to same account'
@@ -170,7 +174,7 @@ app.openapi(
           {
             slackUserId,
             existingUserId: existingLink.inkeepUserId,
-            newUserId: body.userId,
+            newUserId: inkeepUserId,
             tenantId,
           },
           'Slack user already linked, updating to new user'
@@ -185,7 +189,7 @@ app.openapi(
         slackEnterpriseId: enterpriseId,
         slackUsername: username,
         slackEmail: body.userEmail,
-        inkeepUserId: body.userId,
+        inkeepUserId: inkeepUserId,
       });
 
       logger.info(

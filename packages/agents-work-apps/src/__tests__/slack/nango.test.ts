@@ -10,7 +10,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { computeWorkspaceConnectionId, getSlackIntegrationId } from '../../slack/services/nango';
 
-vi.mock('../../../../env', () => ({
+vi.mock('../../env', () => ({
   env: {
     NANGO_SLACK_SECRET_KEY: 'test-nango-secret',
     NANGO_SECRET_KEY: 'test-nango-secret-fallback',
@@ -19,7 +19,7 @@ vi.mock('../../../../env', () => ({
   },
 }));
 
-vi.mock('../../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),

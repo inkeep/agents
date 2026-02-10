@@ -28,17 +28,11 @@
  *   POST /commands                   - Handle slash commands
  *   POST /events                     - Handle Slack events
  *   POST /nango-webhook              - Handle Nango webhooks
- *
- * Internal/Debug (internal.ts):
- *   POST /register-workspace         - Register workspace (memory cache)
- *   GET  /workspace-info             - Get workspace info
- *   POST /debug/generate-token       - Generate test tokens (dev only)
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { WorkAppsVariables } from '../types';
 import eventsRouter from './events';
-import internalRouter from './internal';
 import oauthRouter from './oauth';
 import usersRouter from './users';
 import workspacesRouter from './workspaces';
@@ -49,6 +43,5 @@ app.route('/workspaces', workspacesRouter);
 app.route('/users', usersRouter);
 app.route('/', oauthRouter);
 app.route('/', eventsRouter);
-app.route('/', internalRouter);
 
 export default app;

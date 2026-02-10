@@ -350,20 +350,35 @@ async function callAgentApi(params: {
 }): Promise<{ text: string; isError: boolean }> {
   const { apiBaseUrl, slackUserToken, projectId, agentId, question, conversationId } = params;
 
-  const response = await fetch(`${apiBaseUrl}/run/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${slackUserToken}`,
-      'x-inkeep-project-id': projectId,
-      'x-inkeep-agent-id': agentId,
-    },
-    body: JSON.stringify({
-      messages: [{ role: 'user', content: question }],
-      stream: false,
-      conversationId,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}/run/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${slackUserToken}`,
+        'x-inkeep-project-id': projectId,
+        'x-inkeep-agent-id': agentId,
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: question }],
+        stream: false,
+        conversationId,
+      }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+    if ((error as Error).name === 'AbortError') {
+      return { text: 'Request timed out. Please try again.', isError: true };
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (response.ok) {
     const result = await response.json();

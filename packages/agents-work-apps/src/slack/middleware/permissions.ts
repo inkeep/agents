@@ -1,6 +1,7 @@
 import {
   createApiError,
   findWorkAppSlackUserMappingByInkeepUserId,
+  getUserOrganizationsFromDb,
   OrgRoles,
 } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
@@ -21,6 +22,39 @@ export function isOrgAdmin(tenantRole: string | undefined): boolean {
 }
 
 /**
+ * Resolve tenantId and tenantRole from a Slack teamId.
+ * Looks up the workspace connection to find the owning tenant,
+ * then checks the user's org membership to determine their role.
+ *
+ * This is needed because /work-apps/* routes don't go through requireTenantAccess
+ * middleware (which normally sets tenantRole on /manage/* routes).
+ */
+async function resolveWorkAppTenantContext(c: Context, teamId: string, userId: string) {
+  const workspace = await findWorkspaceConnectionByTeamId(teamId);
+  if (!workspace?.tenantId) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Slack workspace not found or not associated with a tenant',
+      instance: c.req.path,
+    });
+  }
+
+  const userOrganizations = await getUserOrganizationsFromDb(runDbClient)(userId);
+  const orgAccess = userOrganizations.find((org) => org.organizationId === workspace.tenantId);
+
+  if (!orgAccess) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'Access denied to this organization',
+      instance: c.req.path,
+    });
+  }
+
+  c.set('tenantId', workspace.tenantId);
+  c.set('tenantRole', orgAccess.role);
+}
+
+/**
  * Middleware that requires org admin/owner role.
  * Use for workspace-level settings that only admins can modify.
  */
@@ -37,7 +71,6 @@ export const requireWorkspaceAdmin = <
 
     const userId = c.get('userId');
     const tenantId = c.get('tenantId');
-    const tenantRole = c.get('tenantRole');
 
     if (!userId || !tenantId) {
       throw createApiError({
@@ -52,6 +85,13 @@ export const requireWorkspaceAdmin = <
       return;
     }
 
+    // Resolve tenantRole if not already set (work-apps routes don't go through requireTenantAccess)
+    const teamId = c.req.param('teamId') || c.req.param('workspaceId');
+    if (teamId && !c.get('tenantRole')) {
+      await resolveWorkAppTenantContext(c, teamId, userId);
+    }
+
+    const tenantRole = c.get('tenantRole');
     if (!isOrgAdmin(tenantRole)) {
       throw createApiError({
         code: 'forbidden',
@@ -87,7 +127,6 @@ export const requireChannelMemberOrAdmin = <
 
     const userId = c.get('userId');
     const tenantId = c.get('tenantId');
-    const tenantRole = c.get('tenantRole');
 
     if (!userId || !tenantId) {
       throw createApiError({
@@ -102,6 +141,14 @@ export const requireChannelMemberOrAdmin = <
       return;
     }
 
+    // Resolve tenantRole if not already set
+    const teamId = c.req.param('teamId');
+    if (teamId && !c.get('tenantRole')) {
+      await resolveWorkAppTenantContext(c, teamId, userId);
+    }
+
+    const tenantRole = c.get('tenantRole');
+
     // Admins can modify any channel
     if (isOrgAdmin(tenantRole)) {
       await next();
@@ -109,7 +156,6 @@ export const requireChannelMemberOrAdmin = <
     }
 
     // For members, verify they are in the Slack channel
-    const teamId = c.req.param('teamId');
     const channelId = c.req.param('channelId');
 
     if (!teamId || !channelId) {

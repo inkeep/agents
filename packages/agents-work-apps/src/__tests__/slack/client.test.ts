@@ -37,7 +37,7 @@ vi.mock('@slack/web-api', () => ({
   })),
 }));
 
-vi.mock('../../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),

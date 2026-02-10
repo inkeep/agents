@@ -289,6 +289,28 @@ app.post('/events', async (c) => {
 app.post('/nango-webhook', async (c) => {
   const body = await c.req.text();
 
+  // Verify Nango webhook signature if secret is configured
+  if (env.NANGO_SECRET_KEY) {
+    const signature = c.req.header('x-nango-signature');
+    if (!signature) {
+      logger.warn({}, 'Missing Nango webhook signature');
+      return c.json({ error: 'Missing signature' }, 401);
+    }
+
+    const crypto = await import('node:crypto');
+    const expectedSignature = crypto
+      .createHmac('sha256', env.NANGO_SECRET_KEY)
+      .update(body)
+      .digest('hex');
+
+    if (
+      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+    ) {
+      logger.warn({ signature }, 'Invalid Nango webhook signature');
+      return c.json({ error: 'Invalid signature' }, 401);
+    }
+  }
+
   let payload: {
     type: string;
     success?: boolean;
