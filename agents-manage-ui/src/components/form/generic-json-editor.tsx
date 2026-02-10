@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
 import { Editor } from '@/components/editors/editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { cn } from '@/lib/utils';
 import {
   FormControl,
   FormDescription,
@@ -12,7 +13,6 @@ import {
 } from '../ui/form';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
 
-/** @lintignore */
 export function GenericJsonEditor<
   FV extends FieldValues,
   TV extends FieldValues,
@@ -29,7 +29,9 @@ export function GenericJsonEditor<
   placeholder: string;
   customTemplate: string;
 }) {
+  'use memo';
   const [open, onOpenChange] = useState(false);
+  const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   return (
     <FormField
       control={control}
@@ -39,12 +41,14 @@ export function GenericJsonEditor<
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <FormLabel isRequired={isRequired}>
               {label}
-              {!open && <Editor.DialogTrigger />}
+              <Editor.DialogTrigger className={cn('ml-auto', open && 'invisible')} />
             </FormLabel>
             <FormControl>
               <StandaloneJsonEditor
+                uri={uri}
                 placeholder={placeholder}
                 customTemplate={customTemplate}
+                hasDynamicHeight={!open}
                 {...field}
               />
             </FormControl>

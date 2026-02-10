@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 
-/** @lintignore */
 export function GenericPromptEditor<
   FV extends FieldValues,
   TV extends FieldValues,

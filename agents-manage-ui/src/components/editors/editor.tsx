@@ -1,5 +1,5 @@
 import { Maximize } from 'lucide-react';
-import type { FC, JSX, ReactNode } from 'react';
+import type { ComponentProps, FC, JSX, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface EditorDialogProps {
   open: boolean;
@@ -35,11 +36,17 @@ const EditorDialog: FC<EditorDialogProps> = ({ open, onOpenChange, children, lab
   );
 };
 
-const EditorDialogTrigger: FC = () => {
+const EditorDialogTrigger: FC<ComponentProps<typeof Button>> = ({ className, ...props }) => {
   'use memo';
   return (
     <DialogTrigger asChild>
-      <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">
+      <Button
+        variant="link"
+        size="sm"
+        type="button"
+        className={cn('text-xs rounded-sm h-6', className)}
+        {...props}
+      >
         <Maximize className="size-3.5" />
         Expand
       </Button>
