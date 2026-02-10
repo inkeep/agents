@@ -49,10 +49,6 @@ export const isWebhookRoute = (path: string) => {
   return path.includes('/triggers/') && !path.endsWith('/triggers') && !path.endsWith('/triggers/');
 };
 
-const isAnonymousRoute = (path: string) => {
-  return path.includes('/anonymous/');
-};
-
 function createAgentsHono(config: AppConfig) {
   const { serverConfig, credentialStores, auth, sandboxConfig } = config;
 
@@ -307,9 +303,8 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/oauth/login', async (c, next) => oauthRefMiddleware(c, next));
   app.use('/manage/oauth/login', async (c, next) => branchScopedDbMiddleware(c, next));
 
-  // Apply ref middleware to all execution routes (skip anonymous - handles its own ref)
+  // Apply ref middleware to all execution routes
   app.use('/run/*', async (c, next) => {
-    if (isAnonymousRoute(c.req.path)) return next();
     return runRefMiddleware(c, next);
   });
 
@@ -321,7 +316,6 @@ function createAgentsHono(config: AppConfig) {
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('/run/*', async (c, next) => {
-    if (isAnonymousRoute(c.req.path)) return next();
     return executionBaggageMiddleware()(c, next);
   });
 

@@ -32082,86 +32082,6 @@
         ]
       }
     },
-    "/run/anonymous/conversations": {
-      "get": {
-        "description": "Returns conversations the anonymous user participated in, authorized via SpiceDB.",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 20,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "properties": {
-                        "conversations": {
-                          "items": {
-                            "nullable": true
-                          },
-                          "type": "array"
-                        },
-                        "limit": {
-                          "type": "number"
-                        },
-                        "page": {
-                          "type": "number"
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "conversations",
-                        "total",
-                        "page",
-                        "limit"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "List of conversations"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "List conversations for anonymous user",
-        "tags": [
-          "Anonymous Conversations"
-        ]
-      }
-    },
     "/run/api/chat": {
       "post": {
         "description": "Chat completion endpoint streaming with Vercel data stream protocol.",
@@ -33015,6 +32935,86 @@
         "summary": "Create chat completion",
         "tags": [
           "Chat"
+        ]
+      }
+    },
+    "/run/v1/conversations": {
+      "get": {
+        "description": "Returns conversations for the authenticated user or anonymous user.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "conversations": {
+                          "items": {
+                            "nullable": true
+                          },
+                          "type": "array"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "page": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "conversations",
+                        "total",
+                        "page",
+                        "limit"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of conversations"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List conversations",
+        "tags": [
+          "Conversations"
         ]
       }
     },
