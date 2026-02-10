@@ -52,7 +52,7 @@ export function ServerGroup({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
           <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="shrink-0" />
         </div>
 
