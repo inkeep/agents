@@ -1,21 +1,6 @@
 import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
-import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-
-// Destructure defaults for use in schemas
-const {
-  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
-  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
-  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
-  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
-  STATUS_UPDATE_MAX_NUM_EVENTS,
-  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
-  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
-  VALIDATION_AGENT_PROMPT_MAX_CHARS,
-  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} = schemaValidationDefaults;
-
 // Config DB imports (Doltgres - versioned)
 import {
   agents,
@@ -49,7 +34,6 @@ import {
   tools,
   triggers,
 } from '../db/manage/manage-schema';
-
 // Runtime DB imports (Postgres - not versioned)
 import {
   apiKeys,
@@ -77,12 +61,30 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
 import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
   createSelectSchema,
   registerFieldSchemas,
 } from './drizzle-schema-helpers';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
+export const StringRecordSchema = z
+  .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
+  .openapi('StringRecord');
 
 // A2A Part Schemas
 // These Zod schemas mirror the Part types defined in types/a2a.ts
@@ -1871,12 +1873,6 @@ export const FetchDefinitionSchema = z
     credential: CredentialReferenceApiInsertSchema.optional(),
   })
   .openapi('FetchDefinition');
-
-export const HeadersSchema = z.record(
-  z.string(),
-  z.string('All header values must be strings'),
-  'Must be valid JSON object'
-);
 
 export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).extend({
   headersSchema: z.any().optional().openapi({

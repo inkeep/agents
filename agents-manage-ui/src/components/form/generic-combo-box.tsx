@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils';
 import { FormFieldWrapper } from './form-field-wrapper';
 import type { SelectOption } from './generic-select';
 
-interface GenericComboBoxProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericComboBoxProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label: string;
   options: SelectOption[];
   searchPlaceholder?: string;
@@ -28,7 +28,10 @@ interface GenericComboBoxProps<T extends FieldValues> {
   isRequired?: boolean;
 }
 
-export function GenericComboBox<T extends FieldValues>({
+export function GenericComboBox<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -37,7 +40,7 @@ export function GenericComboBox<T extends FieldValues>({
   placeholder,
   disabled = false,
   isRequired = false,
-}: GenericComboBoxProps<T>) {
+}: GenericComboBoxProps<TFieldValues, TTransformedValues>) {
   const [open, setOpen] = useState(false);
 
   return (
