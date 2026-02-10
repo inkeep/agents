@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { ServerGroup } from './server-group';
 
-export type ToolCallEntry = {
+type ToolCallEntry = {
   toolName: string;
   serverName: string;
   serverId: string;
