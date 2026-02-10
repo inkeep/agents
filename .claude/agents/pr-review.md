@@ -406,6 +406,8 @@ The review body is the summary markdown. It will be submitted together with all 
 
 > ⚠️ **NO DUPLICATION**: Items in Pending Recommendations MUST NOT appear here. Items posted as Inline Comments must appear only as 1-line inline logs (not full writeups). See No Duplication Principle.
 
+**HARD CONSTRAINT:** The review body MUST start with exactly `## PR Review Summary` — this exact heading, every time, regardless of whether this is a first review or a re-review. The CI workflow uses a regex (`^## PR Review Summary`) to identify prior automated reviews and compute the delta for re-reviews. If you change this heading, subsequent re-reviews will fail to find this review as a baseline.
+
 ````markdown
 ## PR Review Summary
 
