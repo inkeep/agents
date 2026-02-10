@@ -117,7 +117,7 @@ function StructuredOutputModelSection({
       {/* Azure Configuration (appears above provider options) */}
       {structuredOutputModel?.startsWith('azure/') && (
         <AzureConfigurationSection
-          providerOptions={providerOptionsField.value}
+          providerOptions={providerOptionsField.value ?? undefined}
           onProviderOptionsChange={(value) => {
             if (!value?.trim()) {
               providerOptionsField.onChange(undefined);
@@ -203,7 +203,7 @@ function SummarizerModelSection({
       {/* Azure Configuration (appears above provider options) */}
       {summarizerModel?.startsWith('azure/') && (
         <AzureConfigurationSection
-          providerOptions={providerOptionsField.value}
+          providerOptions={providerOptionsField.value ?? undefined}
           onProviderOptionsChange={(value) => {
             if (!value?.trim()) {
               providerOptionsField.onChange(undefined);
