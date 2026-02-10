@@ -10,7 +10,15 @@ type JsonEditorProps = ComponentProps<typeof JsonEditor>;
 interface StandaloneJsonEditorProps
   extends Pick<
     JsonEditorProps,
-    'value' | 'placeholder' | 'disabled' | 'id' | 'className' | 'readOnly' | 'aria-invalid' | 'uri'
+    | 'value'
+    | 'placeholder'
+    | 'disabled'
+    | 'id'
+    | 'className'
+    | 'readOnly'
+    | 'aria-invalid'
+    | 'uri'
+    | 'hasDynamicHeight'
   > {
   onChange: NonNullable<JsonEditorProps['onChange']>;
   name?: string;
