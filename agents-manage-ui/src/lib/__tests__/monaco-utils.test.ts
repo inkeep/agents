@@ -143,4 +143,13 @@ describe('Monaco-Editor Functionality', async () => {
 }`;
     expect(addDecorationsToString(modelValue)).toBe(expectedContentWithDecorations);
   });
+
+  it('should detect markdown language for `.md` files', () => {
+    const { language } = getOrCreateModel({
+      monaco,
+      uri: 'test.md',
+      value: '',
+    });
+    expect(language).toBe('markdown');
+  });
 });
