@@ -7,6 +7,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { useProjectPermissions } from '@/contexts/project';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn } from '@/lib/utils';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { Button } from '../ui/button';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 
@@ -32,16 +33,6 @@ export function ViewExternalAgentDetails({
   className,
 }: ExternalAgentProps) {
   const { canEdit } = useProjectPermissions();
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   return (
     <div className={cn('space-y-8', className)}>
@@ -81,11 +72,11 @@ export function ViewExternalAgentDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>{formatDate(externalAgent.createdAt)}</ItemValue>
+            <ItemValue>{formatDateTimeTable(externalAgent.createdAt, { local: true })}</ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>{formatDate(externalAgent.updatedAt)}</ItemValue>
+            <ItemValue>{formatDateTimeTable(externalAgent.updatedAt, { local: true })}</ItemValue>
           </div>
         </div>
 

@@ -296,7 +296,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate(repo.createdAt)}
+                    {formatDate(repo.createdAt, { local: true })}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon-sm" asChild>

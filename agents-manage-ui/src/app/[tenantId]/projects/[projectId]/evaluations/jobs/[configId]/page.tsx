@@ -13,6 +13,7 @@ import type {
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
+import { formatDate } from '@/lib/utils/format-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +31,8 @@ export async function getJobName({
 
   // Prefer date range if available
   if (criteria?.dateRange?.startDate && criteria?.dateRange?.endDate) {
-    const startDate = new Date(criteria.dateRange.startDate).toLocaleDateString();
-    const endDate = new Date(criteria.dateRange.endDate).toLocaleDateString();
+    const startDate = formatDate(criteria.dateRange.startDate);
+    const endDate = formatDate(criteria.dateRange.endDate);
     displayName = `${startDate} - ${endDate}`;
   } else if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
     // Fall back to dataset run name
