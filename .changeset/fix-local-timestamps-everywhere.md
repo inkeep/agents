@@ -1,5 +1,5 @@
 ---
-'agents-manage-ui': patch
+"@inkeep/agents-manage-ui": patch
 ---
 
 Use local timezone for all user-facing datetime displays
