@@ -1,5 +1,6 @@
 'use client';
 
+import type { Part } from '@inkeep/agents-core';
 import {
   Activity,
   ArrowLeft,
@@ -25,7 +26,6 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import type { Part } from '@inkeep/agents-core';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
