@@ -225,52 +225,44 @@ export class SchemaProcessor {
   }
 
   /**
-   * Normalize JSON schema for structured output compatibility
-   * Makes all properties required - this ensures compatibility across all LLM providers
-   * (OpenAI/Azure require it, Anthropic accepts it)
-   *
-   * @param schema - JSON schema to normalize (supports nested objects, arrays, unions)
-   * @returns Normalized schema with all properties marked as required
+   * Makes all properties required recursively throughout the schema.
+   * This ensures compatibility across all LLM providers (OpenAI/Azure require it, Anthropic accepts it).
    */
-  static normalizeForStructuredOutput(
+  static makeAllPropertiesRequired(
     schema: JSONSchema.BaseSchema | Record<string, unknown> | null | undefined
   ): JSONSchema.BaseSchema | Record<string, unknown> | null | undefined {
     if (!schema || typeof schema !== 'object') {
       return schema;
     }
 
-    // Work with any internally for flexibility, return typed result
     const normalized: any = { ...schema };
 
     if (normalized.properties && typeof normalized.properties === 'object') {
-      // Mark all properties as required
       normalized.required = Object.keys(normalized.properties);
 
-      // Recursively normalize nested properties
       const normalizedProperties: any = {};
       for (const [key, value] of Object.entries(normalized.properties)) {
-        normalizedProperties[key] = SchemaProcessor.normalizeForStructuredOutput(value as any);
+        normalizedProperties[key] = SchemaProcessor.makeAllPropertiesRequired(value as any);
       }
       normalized.properties = normalizedProperties;
     }
 
-    // Handle arrays and unions
     if (normalized.items) {
-      normalized.items = SchemaProcessor.normalizeForStructuredOutput(normalized.items as any);
+      normalized.items = SchemaProcessor.makeAllPropertiesRequired(normalized.items as any);
     }
     if (Array.isArray(normalized.anyOf)) {
       normalized.anyOf = normalized.anyOf.map((s: any) =>
-        SchemaProcessor.normalizeForStructuredOutput(s)
+        SchemaProcessor.makeAllPropertiesRequired(s)
       );
     }
     if (Array.isArray(normalized.oneOf)) {
       normalized.oneOf = normalized.oneOf.map((s: any) =>
-        SchemaProcessor.normalizeForStructuredOutput(s)
+        SchemaProcessor.makeAllPropertiesRequired(s)
       );
     }
     if (Array.isArray(normalized.allOf)) {
       normalized.allOf = normalized.allOf.map((s: any) =>
-        SchemaProcessor.normalizeForStructuredOutput(s)
+        SchemaProcessor.makeAllPropertiesRequired(s)
       );
     }
 

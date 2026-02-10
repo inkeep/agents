@@ -3495,9 +3495,7 @@ ${output}`;
 
     this.config.dataComponents?.forEach((dc) => {
       // Normalize schema to ensure all properties are required (cross-provider compatibility)
-      const normalizedProps = dc.props
-        ? SchemaProcessor.normalizeForStructuredOutput(dc.props)
-        : null;
+      const normalizedProps = dc.props ? SchemaProcessor.makeAllPropertiesRequired(dc.props) : null;
       const propsSchema = normalizedProps ? z.fromJSONSchema(normalizedProps) : z.string();
       componentSchemas.push(
         z.object({

@@ -101,7 +101,7 @@ export class ArtifactCreateSchema {
       };
 
       // Normalize schema for cross-provider compatibility
-      const normalizedPropsSchema = SchemaProcessor.normalizeForStructuredOutput(propsSchema);
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
 
       return z.object({
         id: z.string(),
@@ -155,7 +155,7 @@ export class ArtifactCreateSchema {
       };
 
       // Normalize schema for cross-provider compatibility
-      const normalizedPropsSchema = SchemaProcessor.normalizeForStructuredOutput(propsSchema);
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
 
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
