@@ -257,14 +257,12 @@ Use **your primary domain**. This is a freeform string.
 
 ### `pre_existing` (optional)
 
-Set `pre_existing: true` when you encounter a notable issue in your domain that clearly existed **before** this PR — it was not introduced by the PR's changes.
+Indicates whether the issue existed **before** this PR — it was not introduced by the PR's changes. Defaults to `false` (omit the field entirely for issues introduced by the PR).
 
-**This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues, expand your review scope, or spend additional cycles hunting for tech debt. Only flag something as `pre_existing` if it clearly stood out while you were doing your normal review.
+**This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues, expand your review scope, or spend additional cycles hunting for tech debt. Only flag something as `pre_existing: true` if it clearly stood out while you were doing your normal review.
 
-- Omit the field entirely (or set `false`) for findings about issues introduced by the PR — this is the default
-- When `true`, the orchestrator may surface the finding in a "While You're Here" section if it's relevant to the PR's scope
-- Use the same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
-- The orchestrator requires **HIGH confidence** for pre-existing issues to surface in review — low-confidence pre-existing findings will be filtered out
+- Same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
+- Only use with **HIGH confidence** findings — uncertain pre-existing issues are not worth flagging
 
 ### `issue`, `implications`, `fix`
 
