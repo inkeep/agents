@@ -95,6 +95,13 @@ export const ProjectSwitcher: FC = () => {
         <div className="flex items-center gap-2 px-2 py-1.5">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <Input
+            aria-label="Search projects"
+            placeholder="Search projects..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="h-7 border-none shadow-none focus-visible:ring-0 px-0"
+          />
             placeholder="Search projects..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
