@@ -262,9 +262,9 @@ Set `pre_existing: true` when you encounter a notable issue in your domain that 
 **This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues, expand your review scope, or spend additional cycles hunting for tech debt. Only flag something as `pre_existing` if it clearly stood out while you were doing your normal review.
 
 - Omit the field entirely (or set `false`) for findings about issues introduced by the PR — this is the default
-- When `true`, the orchestrator may surface the finding in a "While You're Here" section if it's relevant to the PR's scope
+- When `true`, the finding may be surfaced in a "While You're Here" section if it's relevant to the PR's scope
 - Use the same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
-- The orchestrator requires **HIGH confidence** for pre-existing issues to surface in review — low-confidence pre-existing findings will be filtered out
+- Pre-existing findings require **HIGH confidence** to surface in review — low-confidence pre-existing findings will be filtered out
 
 ### `issue`, `implications`, `fix`
 
