@@ -1058,7 +1058,10 @@ export class Agent {
 
               const parsedResult = parseEmbeddedJson(rawResult);
 
-              const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
+              const enhancedResult = this.enhanceToolResultWithStructureHints(
+                parsedResult,
+                toolCallId
+              );
 
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
@@ -2428,14 +2431,15 @@ ${output}`;
 
   /**
    * Analyze tool result structure and add helpful path hints for artifact creation
+   * Also adds tool call ID to the result for easy reference
    * Only adds hints when artifact components are available
    */
-  private enhanceToolResultWithStructureHints(result: any): any {
+  private enhanceToolResultWithStructureHints(result: any, toolCallId?: string): any {
     if (!result) {
       return result;
     }
 
-    // Only add structure hints if artifact components are available
+    // Only add structure hints and tool call ID if artifact components are available
     if (!this.artifactComponents || this.artifactComponents.length === 0) {
       return result;
     }
@@ -2638,9 +2642,10 @@ ${output}`;
       const allSelectors = [...usefulSelectors, ...nestedContentPaths];
       const uniqueSelectors = [...new Set(allSelectors)].slice(0, 15);
 
-      // Add structure hints to the original result (not the parsed version)
+      // Add structure hints and tool call ID to the original result (not the parsed version)
       const enhanced = {
         ...result,
+        ...(toolCallId ? { _toolCallId: toolCallId } : {}),
         _structureHints: {
           terminalPaths: terminalPaths, // All field paths that contain actual values
           arrayPaths: arrayPaths, // All array structures found
@@ -2651,6 +2656,8 @@ ${output}`;
           maxDepthFound: Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length)),
           totalPathsFound: allPaths.length,
           artifactGuidance: {
+            toolCallId:
+              '🔧 CRITICAL: Use the _toolCallId field from this result object. This is the exact tool call ID you must use in your artifact:create tag. NEVER generate or make up a tool call ID.',
             creationFirst:
               '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
             baseSelector:
