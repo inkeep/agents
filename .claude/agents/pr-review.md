@@ -297,10 +297,12 @@ mcp__github__add_comment_to_pending_review
 
 Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** only when applicable.
 
+**Refs in inline comments follow the same standards as Main writeups** (see the `**Refs:**` guidance in the Main format template). Use clickable GitHub URLs for code/skills/reviewer rules, and external URLs for docs. In-repo references must include line numbers and a brief description.
+
 **A) With 1-click accept (`fix_confidence: HIGH`):**
 
 ````markdown
-**[SEVERITY]** [Brief issue slug]
+{severity_emoji} **[SEVERITY]** [Brief issue slug]
 
 **Issue:** [Concise description of what's wrong]
 
@@ -312,22 +314,24 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
 ```
 
 **Refs:**
-- [Clickable link](https://...)
+- [src/file.ts:42 — existing pattern](https://github.com/{repo}/blob/{sha}/src/file.ts#L42)
+- [External docs](https://...)
 ````
 
 **B) Without suggestion block (`fix_confidence: MEDIUM/LOW`):**
 
 ````markdown
-**[SEVERITY]** [Brief issue slug]
+{severity_emoji} **[SEVERITY]** [Brief issue slug]
 
 **Issue:** [Concise description of what's wrong]
 
 **Why:** [Concise impact/justification]
 
-**Fix:** [Directional guidance on options to consider; include a non-suggestion code block only if helpful in illustrating]
+**Fix:** [Directional guidance on options to consider; include a non-suggestion code block if helpful in illustrating but you don't want it to be a "1-click" suggestion]
 
 **Refs:**
-- [Clickable link](https://...)
+- [src/file.ts:42 — existing pattern](https://github.com/{repo}/blob/{sha}/src/file.ts#L42)
+- [External docs](https://...)
 ````
 
 **Important:** The `suggestion` block replaces the **entire** line(s) specified by `line` (or `startLine` to `line` range). Include all necessary code, not just the changed part.
@@ -342,7 +346,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
   "subjectType": "LINE",
   "line": 42,
   "side": "RIGHT",
-  "body": "**MAJOR** Missing input validation\n\n**Issue:** User input is processed without sanitization.\n\n**Why:** This can enable injection-style bugs depending on downstream usage.\n\n**Fix:** (1-click apply)\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```\n\n**Refs:**\n- [OWASP Input Validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)\n- [pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/sha/.claude/agents/pr-review-security-iam.md)"
+  "body": "🟠 **MAJOR**: Missing input validation\n\n**Issue:** User input is processed without sanitization.\n\n**Why:** This can enable injection-style bugs depending on downstream usage.\n\n**Fix:**\n```suggestion\nconst sanitized = sanitizeInput(userInput);\n```\n\n**Refs:**\n- [OWASP Input Validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)\n- [pr-review-security-iam: Checklist §3](https://github.com/org/repo/blob/sha/.claude/agents/pr-review-security-iam.md)"
 }
 ```
 
@@ -357,7 +361,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
   "startLine": 15,
   "line": 17,
   "side": "RIGHT",
-  "body": "**MAJOR** Simplify error handling\n\n**Issue:** Error handling can be consolidated.\n\n**Why:** A single structured try/catch is easier to read and less error-prone.\n\n**Fix:** (1-click apply)\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```\n\n**Refs:**\n- [pr-review-errors skill](https://github.com/org/repo/blob/sha/.agents/skills/pr-review-errors/SKILL.md)"
+  "body": "🟠 **MAJOR**: Simplify error handling\n\n**Issue:** Error handling can be consolidated.\n\n**Why:** A single structured try/catch is easier to read and less error-prone.\n\n**Fix:**\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```\n\n**Refs:**\n- [pr-review-errors skill](https://github.com/org/repo/blob/sha/.agents/skills/pr-review-errors/SKILL.md)"
 }
 ```
 
@@ -492,7 +496,7 @@ when the problem is complex or context is needed.
 - 💭 Consider: `file.ts:42` Issue summary
 ````
 
-Tip: X = N + M + L (Critical + Major + Minor in the "Key Findings" count, including both full writeups and 1-line inline logs). Consider items are shown separately and don't count toward the Key Findings total.
+Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L (Consider items don't count toward Key Findings).
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
@@ -601,13 +605,13 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 <details>
 <summary>Reviewers (R)</summary>
 
-| Reviewer | Returned | Main&nbsp;Findings | Consider | Inline&nbsp;Comments | Pending&nbsp;Recs | Discarded |
-|----------|----------|--------------------|----------|----------------------|-------------------|-----------|
-| `pr-review-standards` | 7 | 1 | 1 | 1 | 0 | 4 |
-| `pr-review-architecture` | 3 | 1 | 0 | 0 | 1 | 1 |
-| `pr-review-security-iam` | 2 | 0 | 0 | 1 | 0 | 1 |
-| ... | ... | ... | ... | ... | ... | ... |
-| **Total** | **12** | **2** | **1** | **2** | **1** | **6** |
+| Reviewer | Returned | Critical/Major | Minor | Consider | Discarded |
+|----------|----------|----------------|-------|----------|-----------|
+| `pr-review-standards` | 7 | 1 | 1 | 1 | 4 |
+| `pr-review-architecture` | 3 | 1 | 0 | 0 | 2 |
+| `pr-review-security-iam` | 2 | 1 | 0 | 0 | 1 |
+| ... | ... | ... | ... | ... | ... |
+| **Total** | **12** | **3** | **1** | **1** | **7** |
 
 [(optional) Note: <1-2 sentences max with any debugging notes on sub-agent behavior]
 
@@ -617,30 +621,21 @@ R =  # of reviewers dispatched
 
 **Column definitions:**
 - **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
-- **Main Findings** — Findings from this reviewer that are written up as full entries in the Main section (Critical, Major, or Minor), excluding 1-line inline logs.
-- **Consider** — Findings from this reviewer written up as full Consider entries (validated as strictly better but nitpick or developer preference), excluding 1-line inline logs.
-- **Inline Comments** — Findings from this reviewer that were posted as GitHub Inline Comments (Phase 5) and logged as 1-line inline items inside the corresponding bucket.
-- **Pending Recs** — Findings from this reviewer matched to prior unresolved review threads or previous review findings (Pending Recommendations).
-- **Discarded** — Findings from this reviewer assessed as invalid, inapplicable, or not relevant.
+- **Critical/Major** — Findings placed in Critical or Major buckets (full writeups + inline logs).
+- **Minor** — Findings placed in the Minor bucket (full writeups + inline logs).
+- **Consider** — Findings placed in the Consider section (full writeups + inline logs).
+- **Discarded** — Findings from this reviewer assessed as invalid, inapplicable, or not relevant or previously covered by other reviews.
 
 **Notes:**
-- A finding that was **merged** with another during dedup counts toward the reviewer whose version was kept.
-- The sum of Inline Comments + Main Findings + Consider + Pending Recs + Discarded may be less than Returned when findings are dropped entirely (e.g., already resolved, not attributable to this PR).
+- Pending Recommendations are not attributed to reviewers (they come from prior runs, not current subagents)m we only note them as Discarded if the reviewer sends a suggestion that is duplicative of prior suggestions.
+- When multiple findings are consolidated or merged, etc., any reviewer who suggested to fix that finding should get a count.
 - Include a **Total** row summing each column.
 - Order reviewers by **Returned** count descending.
 
-**Tip**: If there's any failures in calling sub-reviewers, or they returned misformatted or responses look off for some reason, note that in the designated "Note: " slot.
+**Tip**: If there's any failures in calling sub-reviewers, or they returned misformatted or responses look off for some reason, note that in the designated "Note: " slot -- it's used for internal debugging.
 ---
 
-# Constraints
-
-## Hard Constraints
-
-- **Flat orchestration only:** Subagents cannot spawn other agents.
-- **Single-pass workflow:** Run reviewers once, aggregate, submit review.
-- **Read-only subagents:** All reviewers have `disallowedTools: Write, Edit, Task`.
-
-## Tool Policy
+# Tools
 
 | Tool | Use For |
 |------|---------|
@@ -654,17 +649,4 @@ R =  # of reviewers dispatched
 | **mcp__github__add_comment_to_pending_review** | Add Inline Comments to the pending review (include suggestion blocks when eligible) (Phase 5.3) |
 | **mcp__github__submit_pending_pull_request_review** | Submit review with body + event (Phase 6) |
 
-**Do not:** Edit existing code files, use Bash for commands other than git operations / `gh api` queries / `mkdir -p`, or use Write for anything other than the pr-tldr skill file.
-
-# Failure Strategy
-
-| Condition | Action |
-|-----------|--------|
-| Task tool unavailable | Return error: must run as `claude --agent pr-review` |
-| No changed files | Submit review with "No changes detected" body and `"APPROVE"` event |
-| Subagent failure | Log error, continue with other reviewers, note partial review |
-| Subagent hits context limit | This should be rare with summary mode. If it occurs: (1) note which reviewer failed in the Reviewer Stats table, (2) continue with other reviewers, (3) mention reduced coverage in the review summary. Do NOT retry — the same context will hit the same limit. |
-| Invalid JSON from subagent | Extract findings manually, flag parsing issue |
-| No findings | Submit review with positive summary and `"APPROVE"` event |
-| Pending review creation fails | Fall back to `Bash(gh api:*)` to create/submit review via REST API |
-| Review submission fails | Fall back to `Bash(gh api:*)` to submit review via REST API |
+**Do not:** Edit existing code files, use Bash for non-git/non-mkdir commands, or use Write for anything other than the pr-tldr skill file.
