@@ -20,20 +20,36 @@ import {
 
 const logger = getLogger('slack-event-utils');
 
-// --- Cached user mapping lookup ---
+// --- Cached user mapping lookup (bounded) ---
 
 const USER_MAPPING_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const USER_MAPPING_CACHE_MAX_SIZE = 5000;
 
-const userMappingCache = new Map<
-  string,
-  {
-    mapping: Awaited<ReturnType<ReturnType<typeof findWorkAppSlackUserMapping>>>;
-    expiresAt: number;
+type UserMappingResult = Awaited<ReturnType<ReturnType<typeof findWorkAppSlackUserMapping>>>;
+
+const userMappingCache = new Map<string, { mapping: UserMappingResult; expiresAt: number }>();
+
+function evictExpiredEntries() {
+  if (userMappingCache.size <= USER_MAPPING_CACHE_MAX_SIZE) return;
+  const now = Date.now();
+  for (const [key, entry] of userMappingCache) {
+    if (entry.expiresAt <= now) {
+      userMappingCache.delete(key);
+    }
   }
->();
+  // If still over max after evicting expired, remove oldest entries
+  if (userMappingCache.size > USER_MAPPING_CACHE_MAX_SIZE) {
+    const excess = userMappingCache.size - USER_MAPPING_CACHE_MAX_SIZE;
+    const keys = userMappingCache.keys();
+    for (let i = 0; i < excess; i++) {
+      const { value } = keys.next();
+      if (value) userMappingCache.delete(value);
+    }
+  }
+}
 
 /**
- * Find a user mapping with in-memory caching (5 min TTL).
+ * Find a user mapping with bounded in-memory caching (5 min TTL, max 5000 entries).
  * Called on every @mention and /inkeep command — caching avoids redundant DB queries.
  */
 export async function findCachedUserMapping(
@@ -56,6 +72,7 @@ export async function findCachedUserMapping(
     clientId
   );
 
+  evictExpiredEntries();
   userMappingCache.set(cacheKey, {
     mapping,
     expiresAt: Date.now() + USER_MAPPING_CACHE_TTL_MS,

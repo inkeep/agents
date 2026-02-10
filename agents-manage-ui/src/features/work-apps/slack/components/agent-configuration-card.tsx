@@ -434,6 +434,7 @@ export function AgentConfigurationCard() {
               fetchWorkspaceSettings();
             }}
             disabled={loadingAgents || loadingChannels}
+            aria-label="Refresh agent and channel data"
             title="Refresh"
           >
             {loadingAgents || loadingChannels ? (
@@ -868,6 +869,7 @@ export function AgentConfigurationCard() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => handleResetChannelToDefault(channel.id, channel.name)}
+                              aria-label="Reset channel to workspace default"
                               title="Reset to workspace default"
                             >
                               <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />

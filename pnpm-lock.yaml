@@ -1126,8 +1126,8 @@ importers:
         specifier: ^1.25.3
         version: 1.25.3(hono@4.11.7)(zod@4.3.6)
       '@nangohq/node':
-        specifier: ^0.48.1
-        version: 0.48.4
+        specifier: ^0.69.20
+        version: 0.69.20
       '@octokit/auth-app':
         specifier: ^8.1.2
         version: 8.1.2
@@ -3110,10 +3110,6 @@ packages:
 
   '@nangohq/frontend@0.69.20':
     resolution: {integrity: sha512-vWlj0zQBOy44HjgEthJpdVsuGmtRIjgoyP8BLLEuXul289ylwPo2Odz30f5miFE2O2dPBeHI1aqME3cKvYweXw==}
-
-  '@nangohq/node@0.48.4':
-    resolution: {integrity: sha512-77yocmC4BxEDEEWczuCRDANbXa0otttX/P8F34Qr9A/aq0q0GdIqmHpUZQy7wHCWu4s5FWvFxngBKS+J2jEsjw==}
-    engines: {node: '>=18.0'}
 
   '@nangohq/node@0.69.20':
     resolution: {integrity: sha512-1qTHvx3u5DScC+g2YM9IBH6p6qqqYfcdZY38B4VtCzlAzjLsIqFZyC8X7HlTIDLBMWcluRA3Be4UEtbfVFh+RA==}
@@ -16796,12 +16792,6 @@ snapshots:
   '@nangohq/frontend@0.69.20':
     dependencies:
       '@nangohq/types': 0.69.20
-    transitivePeerDependencies:
-      - debug
-
-  '@nangohq/node@0.48.4':
-    dependencies:
-      axios: 1.13.2(debug@4.4.3)
     transitivePeerDependencies:
       - debug
 

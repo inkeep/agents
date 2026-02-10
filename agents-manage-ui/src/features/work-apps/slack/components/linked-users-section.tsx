@@ -145,6 +145,7 @@ export function LinkedUsersSection() {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="User options"
               className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -190,6 +191,7 @@ export function LinkedUsersSection() {
                   size="icon"
                   onClick={handleExportUsers}
                   className="h-8 w-8"
+                  aria-label="Export linked users to CSV"
                   title="Export to CSV"
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -201,6 +203,7 @@ export function LinkedUsersSection() {
                 onClick={() => fetchLinkedUsers()}
                 disabled={isLoading}
                 className="h-8 w-8"
+                aria-label="Refresh linked users"
                 title="Refresh"
               >
                 {isLoading ? (

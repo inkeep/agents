@@ -342,21 +342,33 @@ export const listWorkAppSlackChannelAgentConfigsByTeam =
       );
   };
 
+/**
+ * Atomic upsert using onConflictDoUpdate to avoid TOCTOU race conditions.
+ * Uses the unique constraint on (tenantId, slackTeamId, slackChannelId).
+ */
 export const upsertWorkAppSlackChannelAgentConfig =
   (db: AgentsRunDatabaseClient) =>
   async (
     data: Omit<WorkAppSlackChannelAgentConfigInsert, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<WorkAppSlackChannelAgentConfigSelect> => {
-    const existing = await findWorkAppSlackChannelAgentConfig(db)(
-      data.tenantId,
-      data.slackTeamId,
-      data.slackChannelId
-    );
+    const id = `wscac_${nanoid(21)}`;
+    const now = new Date().toISOString();
 
-    if (existing) {
-      const [updated] = await db
-        .update(workAppSlackChannelAgentConfigs)
-        .set({
+    const [result] = await db
+      .insert(workAppSlackChannelAgentConfigs)
+      .values({
+        id,
+        ...data,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [
+          workAppSlackChannelAgentConfigs.tenantId,
+          workAppSlackChannelAgentConfigs.slackTeamId,
+          workAppSlackChannelAgentConfigs.slackChannelId,
+        ],
+        set: {
           projectId: data.projectId,
           agentId: data.agentId,
           agentName: data.agentName,
@@ -364,15 +376,12 @@ export const upsertWorkAppSlackChannelAgentConfig =
           slackChannelType: data.slackChannelType,
           enabled: data.enabled,
           configuredByUserId: data.configuredByUserId,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(workAppSlackChannelAgentConfigs.id, existing.id))
-        .returning();
+          updatedAt: now,
+        },
+      })
+      .returning();
 
-      return updated;
-    }
-
-    return createWorkAppSlackChannelAgentConfig(db)(data);
+    return result;
   };
 
 export const deleteWorkAppSlackChannelAgentConfig =
