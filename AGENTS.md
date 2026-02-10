@@ -206,16 +206,16 @@ Your responsibility is to think through the work that is being done from all dim
 - **Resources, endpoints, or actions** (create/update/delete, new capabilities)
 - **Auth / permissions / tenancy** (view/use/edit boundaries, RBAC, fine-grained authz, multi-tenant scoping)
 
-### Surfaces to consider (examples)
-- **Templates & onboarding**: `@inkeep/create-agents`, cookbook template projects
-- **Inkeep CLI workflows**: onboarding (`init`), sync (`push`/`pull`), template import (`add`)
-- **TypeScript SDK**: builder APIs/types/examples
-- **APIs**: configuration layer (manage), runtime layer (run), evaluation layer (evals)
-- **Manage UI dashboard**: forms/builders/serialization, permissions gating, traces views
-- **Widgets UX** (`agents-ui`): runtime chat + stream parsing compatibility
-- **Observability**: traces UX expectations, OTEL attribute stability, SigNoz queries
-- **Protocols / data formats**: OpenAI-compatible SSE, Vercel AI SDK data streams, A2A JSON-RPC
-- **Documentation**: docs pages + embedded snippets
+### Surface area analysis (load before planning or implementing)
+
+This product has **50+ customer-facing** and **100+ internal tooling/devops** surfaces with complex dependency chains. When planning or implementing any feature or change, load the relevant surface area skill to map the blast radius and plan "to-dos" of all areas that need to be addressed before writing a line of code:
+
+| Skill | Scope | Load when |
+|---|---|---|
+| `product-surface-areas` | APIs, SDKs, CLI, UIs, Widgets, Event Streams, docs, protocols, templates, etc. | Change affects anything a customer (developer or no-code admin) uses or depends on |
+| `internal-surface-areas` | Build, CI/CD, DB, auth, runtime engine, test infra, internal AI tooling, etc. | Change affects infrastructure, tooling, or shared internals |
+
+**Tip**: Both skills include dependency graphs, breaking change impact matrices, and transitive chain tracing for systematically identifying relevant surfaces and code paths that may be affected by changes.
 
 ## Development Guidelines
 

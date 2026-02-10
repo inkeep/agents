@@ -34,14 +34,7 @@ import { FullAgentAgentInsertSchema, MAX_ID_LENGTH } from './validation/schemas'
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
-export {
-  type AgentStopWhen,
-  AgentWithinContextOfProjectResponse,
-  AgentWithinContextOfProjectSchema,
-  HeadersSchema,
-  type ModelSettings,
-  type StopWhen,
-} from './validation/schemas';
+export * from './validation/schemas';
 
 const ContextConfigApiInsertSchema = z.object({
   id: z.string().optional(),

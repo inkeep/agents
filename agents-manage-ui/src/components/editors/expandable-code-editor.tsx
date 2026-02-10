@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentPropsWithoutRef, useState } from 'react';
+import { type ComponentPropsWithoutRef, type ReactNode, useState } from 'react';
 import { CodeEditor } from '@/components/editors/code-editor';
 import { cn } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
@@ -16,6 +16,7 @@ interface ExpandableCodeEditorProps {
   isRequired?: boolean;
   error?: string;
   placeholder?: CodeEditorProps['placeholder'];
+  actions?: ReactNode;
 }
 
 export function ExpandableCodeEditor({
@@ -27,6 +28,7 @@ export function ExpandableCodeEditor({
   placeholder,
   error,
   isRequired,
+  actions,
 }: ExpandableCodeEditorProps) {
   const [open, setOpen] = useState(false);
   const uri = `${open ? 'expanded-' : ''}${name}.jsx` as const;
@@ -41,6 +43,7 @@ export function ExpandableCodeEditor({
       className={className}
       isRequired={isRequired}
       hasError={!!error}
+      actions={actions}
     >
       <CodeEditor
         uri={uri}
@@ -52,7 +55,7 @@ export function ExpandableCodeEditor({
         className={cn(!open && error && 'max-h-96')}
         aria-labelledby={id}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </ExpandableField>
   );
 }

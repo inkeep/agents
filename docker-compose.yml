@@ -1,13 +1,13 @@
 services:
   inkeep-agents-manage-ui:
-    image: inkeep/agents-manage-ui:0.47.2
+    image: inkeep/agents-manage-ui:0.47.5
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-inkeep-agents-api:3002}
+      - INKEEP_AGENTS_API_URL=${INKEEP_AGENTS_API_URL:-http://inkeep-agents-api:3002}
       - PUBLIC_INKEEP_AGENTS_API_URL=${PUBLIC_INKEEP_AGENTS_API_URL:-http://localhost:3002}
       - PUBLIC_NANGO_CONNECT_BASE_URL=${PUBLIC_NANGO_CONNECT_BASE_URL:-http://localhost:3051}
-      - PUBLIC_NANGO_SERVER_URL=${PUBLIC_NANGO_SERVER_URL:-http://localhost:3051}
+      - PUBLIC_NANGO_SERVER_URL=${PUBLIC_NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
       - NANGO_SECRET_KEY
       - PUBLIC_SIGNOZ_URL=${PUBLIC_SIGNOZ_URL:-http://localhost:3080}
@@ -21,7 +21,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-api:
-    image: inkeep/agents-api:0.47.2
+    image: inkeep/agents-api:0.47.5
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
@@ -48,8 +48,10 @@ services:
         condition: service_healthy
       inkeep-agents-postgres-db:
         condition: service_healthy
+      inkeep-agents-migrate:
+        condition: service_completed_successfully
       inkeep-agents-spicedb:
-        condition: service_healthy
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
   inkeep-agents-doltgres-db:
@@ -82,7 +84,7 @@ services:
       timeout: 3s
       retries: 30
   inkeep-agents-migrate:
-    image: inkeep/agents-migrate:0.47.2
+    image: inkeep/agents-migrate:0.47.5
     environment:
       - ENVIRONMENT
       - LOG_LEVEL

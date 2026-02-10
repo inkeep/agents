@@ -107,6 +107,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
   const subAgentIds: string[] = Object.keys(data.subAgents);
   for (const subAgentId of subAgentIds) {
     const subAgent = data.subAgents[subAgentId];
+    if (!subAgent) continue;
     const isDefault = subAgentId === data.defaultSubAgentId;
 
     const nodeType = NodeType.SubAgent;
@@ -179,7 +180,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
 
   for (const subAgentId of subAgentIds) {
     const agent = data.subAgents[subAgentId];
-    if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
+    if (agent && 'canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolNodeId = generateId();
@@ -253,6 +254,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
   const processedPairs = new Set<string>();
   for (const sourceSubAgentId of subAgentIds) {
     const sourceAgent = data.subAgents[sourceSubAgentId];
+    if (!sourceAgent) continue;
 
     if ('canTransferTo' in sourceAgent && sourceAgent.canTransferTo) {
       for (const targetSubAgentId of sourceAgent.canTransferTo) {

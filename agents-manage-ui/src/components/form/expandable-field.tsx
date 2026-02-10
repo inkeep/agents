@@ -44,14 +44,18 @@ export function ExpandableField({
 
   const { getEditorByUri } = useMonacoActions();
 
-  function handleClick() {
+  function focusEditor() {
     getEditorByUri(uri)?.focus();
   }
 
   const content = (
     <>
       <div className="flex items-center justify-between">
-        <Label id={id} className={cn(hasError && 'text-red-600', 'gap-1')} onClick={handleClick}>
+        <Label
+          id={id}
+          className={cn(hasError && 'text-destructive', 'gap-1')}
+          onClick={focusEditor}
+        >
           {label}
           {isRequired && <span className="text-red-500">*</span>}
         </Label>

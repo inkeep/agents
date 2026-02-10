@@ -16,9 +16,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-interface GenericKeyValueInputProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface GenericKeyValueInputProps<FV extends FieldValues, TV = FieldValues> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label: string;
   description?: string;
   keyPlaceholder?: string;
@@ -43,7 +43,10 @@ interface GenericKeyValueInputProps<T extends FieldValues> {
  *
  * Convert to record on submit using `keyValuePairsToRecord()` helper.
  */
-export function GenericKeyValueInput<T extends FieldValues>({
+export function GenericKeyValueInput<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label,
@@ -53,7 +56,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
   addButtonLabel = 'Add item',
   isRequired,
   disabled = false,
-}: GenericKeyValueInputProps<T>) {
+}: GenericKeyValueInputProps<TFieldValues, TTransformedValues>) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: name as never,
@@ -112,7 +115,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
             <div key={field.id} className="flex items-center gap-2">
               <FormField
                 control={control}
-                name={`${name}.${index}.key` as FieldPath<T>}
+                name={`${name}.${index}.key` as FieldPath<TFieldValues>}
                 render={({ field: keyField }) => (
                   <FormControl>
                     <Input
@@ -134,7 +137,7 @@ export function GenericKeyValueInput<T extends FieldValues>({
               <span className="text-muted-foreground select-none">:</span>
               <FormField
                 control={control}
-                name={`${name}.${index}.value` as FieldPath<T>}
+                name={`${name}.${index}.value` as FieldPath<TFieldValues>}
                 render={({ field: valueField }) => (
                   <FormControl>
                     <Input

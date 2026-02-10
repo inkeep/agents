@@ -65,17 +65,9 @@ export function getGitHubClientFromInstallationId(installationId: string): Octok
   });
 }
 
-function mapUser(user: {
-  login: string;
-  id: number;
-  avatar_url: string;
-  html_url: string;
-}): GitHubUser {
+function mapUser(user: { login: string }): GitHubUser {
   return {
     login: user.login,
-    id: user.id,
-    avatarUrl: user.avatar_url,
-    url: user.html_url,
   };
 }
 
@@ -411,6 +403,7 @@ export async function fetchComments(
         }
       )) {
         for (const comment of response.data) {
+          const isSuggestion = /```suggestion\b/.test(comment.body);
           results.push({
             id: comment.id,
             body: comment.body,
@@ -420,6 +413,8 @@ export async function fetchComments(
             type: 'review',
             path: comment.path,
             line: comment.line || comment.original_line,
+            diffHunk: comment.diff_hunk,
+            isSuggestion,
           });
         }
       }
