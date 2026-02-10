@@ -162,12 +162,20 @@ const envSchema = z.object({
   GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
 
-  // Blob Storage (S3-compatible, MinIO for local dev)
+  // Blob Storage (S3-compatible or Vercel Blob)
   BLOB_STORAGE_PROVIDER: z
-    .enum(['s3'])
+    .enum(['s3', 'vercel'])
     .optional()
     .default('s3')
-    .describe('Blob storage provider for media uploads (currently only S3-compatible)'),
+    .describe(
+      'Blob storage provider for media uploads: s3 (MinIO/AWS for self-host or local), vercel (Vercel Blob when deployed on Vercel)'
+    ),
+  BLOB_READ_WRITE_TOKEN: z
+    .string()
+    .optional()
+    .describe(
+      'Vercel Blob read-write token. Required when BLOB_STORAGE_PROVIDER=vercel. From Blob store settings or env BLOB_READ_WRITE_TOKEN on Vercel.'
+    ),
   BLOB_STORAGE_S3_ENDPOINT: z
     .string()
     .optional()

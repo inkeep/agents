@@ -1,6 +1,8 @@
+import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { S3BlobStorageProvider } from './s3-provider';
 import type { BlobStorageProvider } from './types';
+import { VercelBlobStorageProvider } from './vercel-blob-provider';
 
 export type {
   BlobStorageDownloadResult,
@@ -14,8 +16,14 @@ let instance: BlobStorageProvider | null = null;
 
 export function getBlobStorageProvider(): BlobStorageProvider {
   if (!instance) {
-    logger.info({}, 'Initializing S3 blob storage provider');
-    instance = new S3BlobStorageProvider();
+    const provider = env.BLOB_STORAGE_PROVIDER ?? 's3';
+    if (provider === 'vercel') {
+      logger.info({}, 'Initializing Vercel Blob storage provider');
+      instance = new VercelBlobStorageProvider();
+    } else {
+      logger.info({}, 'Initializing S3 blob storage provider');
+      instance = new S3BlobStorageProvider();
+    }
   }
   return instance;
 }
