@@ -251,51 +251,69 @@ export default function ConversationDetail({
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4 flex-shrink-0">
         {/* Duration */}
-        <Card
-          className="shadow-none bg-background"
-          title={
-            conversation.conversationStartTime && conversation.conversationEndTime
-              ? `Start: ${conversation.conversationStartTime}\nEnd: ${conversation.conversationEndTime}`
-              : 'Timing data not available'
-          }
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-foreground">Duration</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {conversation.conversationStartTime && conversation.conversationEndTime ? (
-                <>
-                  <div className="text-sm font-medium text-foreground">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">Start:</span>
-                      <span className="text-xs font-mono">
-                        {formatDateTime(conversation.conversationStartTime)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-muted-foreground">End:</span>
-                      <span className="text-xs font-mono">
-                        {formatDateTime(conversation.conversationEndTime)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-1 mt-2">
-                    {conversation.conversationDuration && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Conversation Duration:</span>{' '}
-                        {formatDuration(conversation.conversationDuration)}
+        {(() => {
+          const hasAssistantResponse = conversation.activities?.some(
+            (a) => a.type === 'ai_assistant_message'
+          );
+          const showEndTime = hasAssistantResponse && conversation.conversationEndTime;
+
+          return (
+            <Card
+              className="shadow-none bg-background"
+              title={
+                conversation.conversationStartTime
+                  ? `Start: ${conversation.conversationStartTime}${showEndTime ? `\nEnd: ${conversation.conversationEndTime}` : ''}`
+                  : 'Timing data not available'
+              }
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">Duration</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {conversation.conversationStartTime ? (
+                    <>
+                      <div className="text-sm font-medium text-foreground">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground">Start:</span>
+                          <span className="text-xs font-mono">
+                            {formatDateTime(conversation.conversationStartTime, { local: true })}
+                          </span>
+                        </div>
+                        {showEndTime ? (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs text-muted-foreground">End:</span>
+                            <span className="text-xs font-mono">
+                              {conversation.conversationEndTime && formatDateTime(conversation.conversationEndTime, { local: true })}
+                            </span>
+                          </div>
+                        ) : conversation.status === 'active' ? (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs text-muted-foreground">End:</span>
+                            <span className="text-xs font-mono text-yellow-600 dark:text-yellow-400">
+                              Running…
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="text-sm text-muted-foreground">Timing data not available</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                      <div className="space-y-1 mt-2">
+                        {hasAssistantResponse && conversation.conversationDuration && (
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Conversation Duration:</span>{' '}
+                            {formatDuration(conversation.conversationDuration)}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Timing data not available</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* AI Calls summary grouped by model */}
         <Card className="shadow-none bg-background">
