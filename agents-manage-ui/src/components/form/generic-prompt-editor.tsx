@@ -1,3 +1,5 @@
+'use client';
+
 import { type ComponentProps, useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
 import { Editor } from '@/components/editors/editor';

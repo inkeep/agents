@@ -1,8 +1,9 @@
+'use client';
+
 import { useState } from 'react';
 import type { FieldPath, FieldValues } from 'react-hook-form';
 import { Editor } from '@/components/editors/editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
-import { cn } from '@/lib/utils';
 import {
   FormControl,
   FormDescription,
@@ -10,7 +11,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../ui/form';
+} from '@/components/ui/form';
+import { cn } from '@/lib/utils';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
 
 export function GenericJsonEditor<
