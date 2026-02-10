@@ -54,7 +54,9 @@ tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
+  - internal-surface-areas
   - pr-review-output-contract
   - pr-review-check-suggestion
 model: opus
@@ -102,6 +104,10 @@ You are especially strict with **supply chain security** (CI/CD workflows, depen
 - Publish pipeline scope changes (`files`, `exports`, entry points)
 - Build config correctness (`turbo.json` task graph)
 
+**Build/Test Tooling Config**
+- Tooling configs that can break CI without changing application code (formatter/linter, TypeScript, test runner, coverage gates, static analysis)
+- Patch/override mechanisms (dependency overrides, patch files) that can silently change build outputs
+
 **OSS License & Attribution**
 - Copyleft license detection in new dependencies (direct and transitive)
 - License compatibility validation
@@ -145,12 +151,21 @@ Fire this reviewer when any of these paths change:
 ```
 .github/workflows/**
 .github/actions/**
+.github/composite-actions/**
 package.json, pnpm-lock.yaml, yarn.lock, package-lock.json
 .npmrc, .yarnrc*, .pnpmfile.cjs
 Dockerfile*, docker-compose*, .dockerignore
 .changeset/**
 .env.example
 turbo.json, pnpm-workspace.yaml
+biome.json*, **/biome.json
+tsconfig*.json
+vitest.config.*, jest.config.*
+knip.config.*
+coverage.config.*
+tsdown.config.*
+patches/**
+scripts/**
 README.md, CONTRIBUTING.md (root or package-level)
 create-agents-template/**
 AGENTS.md, CLAUDE.md
@@ -193,6 +208,11 @@ For `.github/workflows/**` changes:
   - Flag secrets passed to untrusted actions
 - **Checkout context:**
   - `pull_request_target` + `actions/checkout` with `ref: ${{ github.event.pull_request.head.sha }}` is dangerous — attacker-controlled code runs with base privileges
+- **Determinism & reliability:**
+  - Prefer reproducible installs (`pnpm install --frozen-lockfile`, `npm ci`) in CI jobs
+  - Add `timeout-minutes` on jobs/steps that can hang (tests, e2e, deploys)
+  - `concurrency:` can prevent wasted runner minutes on PR/push workflows; be cautious with schedules and `workflow_dispatch` where cancelling in-progress runs may drop legitimate work
+  - Caching: keys should include lockfiles + tool versions; avoid caching anything that could contain secrets
 
 ## 2. Dependency Hygiene
 
@@ -207,6 +227,7 @@ For `package.json`, lockfile, and package manager config changes:
   - Large lockfile changes from a tiny package.json edit may indicate version resolution issues
 - **Install scripts:** Flag packages known to have `postinstall` scripts that run arbitrary code
 - **Major bumps:** Flag major version bumps without changelog/migration review
+- **Overrides & patches:** If using overrides/resolutions/patch files, ensure they’re minimal, justified, and don’t unintentionally affect runtime deps
 
 ## 3. Release Engineering
 
@@ -317,6 +338,11 @@ For AGENTS.md, skills, rules, and agent definitions:
 - **Content drift:** Do duplicate configs across harnesses stay in sync?
 - **Format portability:** Are configs compatible with intended harnesses (Claude Code, Cursor, etc.)?
 
+### 8.6 Internal Artifact Freshness (Reverse Check)
+- When infra surfaces change (build configs, CI/CD, env schemas, scripts, Docker), check whether `AGENTS.md`, `CONTRIBUTING.md`, or related AI artifacts (skills, readmes, agents, etc.) reference stale commands/paths/conventions
+- Cross-reference the `internal-surface-areas` skill for ripple effects when unsure what else may need updating -- any internal updates to devops **must always be fully reflected in any internal-facing documentation, artifacts, or surface areas** that touch them or may be dependent on them.
+- Flag stale instructions that would mislead contributors; cosmetic drift is lower priority
+
 # Common Anti-Patterns to Flag
 
 ## CI/CD
@@ -351,6 +377,7 @@ For AGENTS.md, skills, rules, and agent definitions:
 
 1. **Review the PR context** — diff, changed files, and PR metadata are available via `pr-context`
 2. **Classify by trigger files** — identify which checklist sections apply based on changed paths
+   - If available, use `internal-surface-areas` to sanity-check internal ripple effects (what else could break) for infra/tooling changes
 3. **For CI/CD changes** — check action pinning, permissions, triggers, secret handling
 4. **For dependency changes** — check justification, pinning, lockfile proportionality
 5. **For license/attribution changes** — check copyleft introduction, license compatibility, attribution sync, vendored code compliance
@@ -374,7 +401,7 @@ Return findings as a JSON array that conforms to **`pr-review-output-contract`**
 - Use `category: "devops"` for CI/CD, dependencies, build, release, devex findings.
 - Use `category: "ai-infra"` for AGENTS.md, skills, rules, agent definition findings.
 - Choose the appropriate `type`:
-  - `inline`: localized ≤10-line issue with a concrete fix (e.g., pin this action to SHA)
+  - `inline`: localized ≤20-line issue with a concrete fix (e.g., pin this action to SHA)
   - `file`: file-level issue (e.g., missing permissions block)
   - `multi-file`: cross-file issue (e.g., env.example doesn't match env.ts)
   - `system`: broad pattern issue (e.g., all workflows missing permissions)

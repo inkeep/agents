@@ -4,6 +4,7 @@ import type * as PostHogReact from '@posthog/react';
 import type { PostHog as PostHogClient } from 'posthog-js';
 import { createContext, use, useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { REPLAY_UNMASK_SELECTOR_STRING } from '@/lib/replay-privacy';
 
 type PosthogModules = {
   posthog: PostHogClient;
@@ -39,6 +40,27 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
             api_host: PUBLIC_POSTHOG_HOST,
             defaults: '2025-11-30',
             enable_recording_console_log: true,
+
+            // Session recording privacy: mask all text by default,
+            // then selectively unmask static UI chrome.
+            // PostHog does NOT mask text by default (unlike Sentry), so we
+            // opt-in to masking and use maskTextFn to reveal safe elements.
+            // Selectors defined in @/lib/replay-privacy.ts (shared with Sentry).
+            session_recording: {
+              maskAllInputs: true,
+              maskTextSelector: '*',
+              maskTextFn: (text, element) => {
+                // Don't mask whitespace-only text (preserves layout)
+                if (!text.trim()) return text;
+
+                // Unmask static UI chrome that doesn't contain user PII.
+                if (element?.closest?.(REPLAY_UNMASK_SELECTOR_STRING)) {
+                  return text;
+                }
+
+                return '*'.repeat(text.length);
+              },
+            },
           });
 
           if (PUBLIC_POSTHOG_SITE_TAG) {

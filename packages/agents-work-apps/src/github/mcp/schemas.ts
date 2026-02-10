@@ -2,9 +2,6 @@ import { z } from 'zod';
 
 export const GitHubUserSchema = z.object({
   login: z.string(),
-  id: z.number(),
-  avatarUrl: z.string().url(),
-  url: z.url(),
 });
 
 export const RepositorySchema = z.object({
@@ -55,6 +52,8 @@ export const CommentSchema = z.object({
   // For review comments (inline code comments)
   path: z.string().optional(),
   line: z.number().optional(),
+  diffHunk: z.string().optional(),
+  isSuggestion: z.boolean().optional(),
   // For review summaries
   state: z.enum(['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED', 'PENDING']).optional(),
 });

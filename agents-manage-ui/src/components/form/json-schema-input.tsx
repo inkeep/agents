@@ -7,9 +7,9 @@ import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent
 import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
 import { FormFieldWrapper } from './form-field-wrapper';
 
-interface JsonSchemaInputProps<T extends FieldValues> {
-  control: Control<T>;
-  name: FieldPath<T>;
+interface JsonSchemaInputProps<FV extends FieldValues, TV = FV> {
+  control: Control<FV, unknown, TV>;
+  name: FieldPath<FV>;
   label?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -27,7 +27,10 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   customTemplate?: string;
 }
 
-export function JsonSchemaInput<T extends FieldValues>({
+export function JsonSchemaInput<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({
   control,
   name,
   label = 'JSON Schema',
@@ -40,7 +43,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   allRequired = false,
   uri,
   customTemplate,
-}: JsonSchemaInputProps<T>) {
+}: JsonSchemaInputProps<TFieldValues, TTransformedValues>) {
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
   const formState = useFormState({ name });

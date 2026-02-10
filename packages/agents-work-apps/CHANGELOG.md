@@ -1,5 +1,59 @@
 # @inkeep/agents-work-apps
 
+## 0.47.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- 3abfc41: Simplify author payload and add isSuggestion
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-core@0.47.3
+
+## 0.47.2
+
+### Patch Changes
+
+- Updated dependencies [c5357e5]
+  - @inkeep/agents-core@0.47.2
+
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [6fbe785]
+  - @inkeep/agents-core@0.47.1
+
+## 0.47.0
+
+### Patch Changes
+
+- Updated dependencies [77a45c9]
+- Updated dependencies [cfee934]
+  - @inkeep/agents-core@0.47.0
+
+## 0.46.1
+
+### Patch Changes
+
+- 6139d11: Github mcp efficiency improvements
+- Updated dependencies [f6010a1]
+- Updated dependencies [07a027d]
+  - @inkeep/agents-core@0.46.1
+
 ## 0.46.0
 
 ### Patch Changes

@@ -17,11 +17,11 @@ export interface FormFieldWrapperProps<
   TV extends FieldValues,
   TName extends FieldPath<FV>,
 > {
-  control: Control<FV, any, TV>;
+  control: Control<FV, unknown, TV>;
   name: TName;
   label: string | React.JSX.Element;
   children: (field: ControllerRenderProps<FV, TName>) => React.ReactNode;
-  description?: string | React.ReactNode;
+  description?: React.ReactNode;
   isRequired?: boolean;
 }
 

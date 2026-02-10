@@ -24,7 +24,9 @@ export function getSpiceClient(): ZedClientInterface {
     client = v1.NewClient(
       config.token,
       config.endpoint,
-      config.tlsEnabled ? v1.ClientSecurity.SECURE : v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
+      config.tlsEnabled
+        ? v1.ClientSecurity.SECURE
+        : v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
     );
   }
   return client;

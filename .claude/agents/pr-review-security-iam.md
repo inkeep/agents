@@ -40,7 +40,9 @@ tools: Read, Grep, Glob, Bash, mcp__exa__web_search_exa
 disallowedTools: Write, Edit, Task
 skills:
   - pr-context
+  - pr-tldr
   - product-surface-areas
+  - internal-surface-areas
   - pr-review-output-contract
   - pr-review-check-suggestion
 model: opus
@@ -306,7 +308,7 @@ Return **valid JSON only**: a JSON array of findings that conforms to `pr-review
 **Requirements:**
 - Use `category: "security"`.
 - Pick the correct `type`:
-  - `inline` only for localized ≤10-line issues with a concrete, low-risk fix.
+  - `inline` only for localized ≤20-line issues with a concrete, low-risk fix.
   - Otherwise use `file`, `multi-file`, or `system`.
 - Calibrate severity:
   - `CRITICAL`: cross-tenant access, auth bypass, privilege escalation, approval-gate bypass, impersonation misuse, secret exposure, signature verification missing, PII sent to external services unscrubbed, audit log deletion capability, credential changes unaudited

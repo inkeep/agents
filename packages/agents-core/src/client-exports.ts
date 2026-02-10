@@ -20,13 +20,7 @@ import { MAX_ID_LENGTH } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
-export {
-  AgentWithinContextOfProjectResponse,
-  AgentWithinContextOfProjectSchema,
-  HeadersSchema,
-  type ModelSettings,
-  type StopWhen,
-} from './validation/schemas';
+export * from './validation/schemas';
 
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
@@ -45,7 +39,7 @@ export function generateIdFromName(name: string): string {
     .slice(0, MAX_ID_LENGTH);
 }
 
-export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/config';
+export { type OrgRole, OrgRoles, type ProjectRole, ProjectRoles } from './auth/authz/types';
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';

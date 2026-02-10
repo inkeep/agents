@@ -21,23 +21,24 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   name: string;
+  label: string;
+  isRequired?: boolean;
+  error?: string;
 };
 
 const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, className }) => {
+  'use memo';
   const monaco = useMonacoStore((state) => state.monaco);
+  const { getEditorByUri } = useMonacoActions();
 
-  const handleAddVariable = () => {
-    if (!monaco) {
-      return;
-    }
-    const model = monaco.editor.getModel(monaco.Uri.parse(uri));
-    const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
-    if (!editor) {
+  function handleAddVariable() {
+    const editor = getEditorByUri(uri);
+    if (!monaco || !editor) {
       return;
     }
 
@@ -50,7 +51,7 @@ const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, class
     editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
     editor.focus();
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  };
+  }
 
   return (
     <Button
@@ -73,14 +74,11 @@ export function ExpandablePromptEditor({
   error,
   name,
   ...props
-}: {
-  label: string;
-  isRequired?: boolean;
-  error?: string;
-} & PromptEditorProps) {
+}: PromptEditorProps) {
   'use memo';
   const [open, onOpenChange] = useState(false);
-  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
+  const $uri = props.uri ?? `${name}.template`;
+  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
   const id = `${name}-label`;
 
   return (
@@ -92,18 +90,18 @@ export function ExpandablePromptEditor({
       label={label}
       isRequired={isRequired}
       hasError={!!error}
-      actions={<AddVariableAction uri={uri} />}
+      actions={uri.endsWith('.template') && <AddVariableAction uri={uri} />}
     >
       <PromptEditor
-        uri={uri}
         autoFocus={open}
         aria-invalid={error ? 'true' : undefined}
         className={cn(!open && 'max-h-96', 'min-h-16', className)}
         hasDynamicHeight={!open}
         aria-labelledby={id}
         {...props}
+        uri={uri}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </ExpandableField>
   );
 }
