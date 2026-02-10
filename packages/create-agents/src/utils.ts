@@ -47,9 +47,6 @@ export const defaultGoogleModelConfigurations = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
-  structuredOutput: {
-    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
-  },
   summarizer: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
@@ -59,9 +56,6 @@ export const defaultOpenaiModelConfigurations = {
   base: {
     model: OPENAI_MODELS.GPT_5_2,
   },
-  structuredOutput: {
-    model: OPENAI_MODELS.GPT_4_1_MINI,
-  },
   summarizer: {
     model: OPENAI_MODELS.GPT_4_1_NANO,
   },
@@ -69,9 +63,6 @@ export const defaultOpenaiModelConfigurations = {
 
 export const defaultAnthropicModelConfigurations = {
   base: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
-  },
-  structuredOutput: {
     model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   summarizer: {
@@ -334,10 +325,6 @@ export const createAgents = async (
     // Create Azure model configuration with user's deployment
     defaultModelSettings = {
       base: {
-        model: `azure/${deploymentName}`,
-        providerOptions: azureProviderOptions,
-      },
-      structuredOutput: {
         model: `azure/${deploymentName}`,
         providerOptions: azureProviderOptions,
       },

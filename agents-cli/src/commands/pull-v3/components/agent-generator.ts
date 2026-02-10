@@ -135,7 +135,7 @@ function hasDistinctModels(agentModels: any, projectModels: any): boolean {
   if (!projectModels) return !!agentModels; // Agent has models but project doesn't
 
   // Compare each model type
-  const modelTypes = ['base', 'structuredOutput', 'summarizer'];
+  const modelTypes = ['base', 'summarizer'];
 
   for (const type of modelTypes) {
     const agentModel = agentModels[type]?.model;

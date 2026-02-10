@@ -52,8 +52,8 @@ export function agent(config: AgentConfig): Agent {
  *   name: 'Customer Support System',
  *   description: 'Multi-agent customer support system',
  *   models: {
- *     base: { model: 'gpt-4.1-mini' },
- *     structuredOutput: { model: 'gpt-4.1' }
+ *     base: { model: 'gpt-4.1' },
+ *     summarizer: { model: 'gpt-4.1-nano' }
  *   },
  *   stopWhen: {
  *     transferCountIs: 10,

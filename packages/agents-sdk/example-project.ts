@@ -15,7 +15,6 @@ const customerSupportProject = project({
   // Project-level model settings that cascade to agents and agents
   models: {
     base: { model: OPENAI_MODELS.GPT_5_2 },
-    structuredOutput: { model: OPENAI_MODELS.GPT_4_1_MINI },
     summarizer: { model: OPENAI_MODELS.GPT_4_1_NANO },
   },
 

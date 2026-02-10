@@ -5,7 +5,6 @@ import type {
 
 export interface ProjectModels {
   base: ModelSettings;
-  structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 }
 

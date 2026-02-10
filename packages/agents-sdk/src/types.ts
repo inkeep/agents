@@ -260,7 +260,6 @@ export interface AgentConfig {
   prompt?: string;
   models?: {
     base?: ModelSettings;
-    structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
   statusUpdates?: StatusUpdateSettings;

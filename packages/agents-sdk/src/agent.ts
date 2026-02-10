@@ -995,9 +995,6 @@ export class Agent implements AgentInterface {
       if (!this.models.base && projectModels.base) {
         this.models.base = projectModels.base;
       }
-      if (!this.models.structuredOutput && projectModels.structuredOutput) {
-        this.models.structuredOutput = projectModels.structuredOutput;
-      }
       if (!this.models.summarizer && projectModels.summarizer) {
         this.models.summarizer = projectModels.summarizer;
       }

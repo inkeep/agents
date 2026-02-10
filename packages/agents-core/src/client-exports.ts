@@ -69,12 +69,6 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
           providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
         })
         .optional(),
-      structuredOutput: z
-        .object({
-          model: z.string(),
-          providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
-        })
-        .optional(),
       summarizer: z
         .object({
           model: z.string(),
