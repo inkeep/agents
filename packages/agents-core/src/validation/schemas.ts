@@ -48,7 +48,6 @@ import {
   subAgentToolRelations,
   tools,
   triggers,
-  workAppConfigs,
 } from '../db/manage/manage-schema';
 
 // Runtime DB imports (Postgres - not versioned)
@@ -2767,38 +2766,6 @@ export const WorkAppGitHubAccessGetResponseSchema = z.object({
 // Work App Configuration Schemas
 // ============================================================================
 
-export const WorkAppTypeSchema = z.enum(['slack', 'teams']).openapi('WorkAppType');
-
-export const WorkAppConfigMetadataSchema = z
-  .object({
-    configuredByUserId: z.string().optional(),
-    configuredByUserName: z.string().optional(),
-    notes: z.string().optional(),
-  })
-  .openapi('WorkAppConfigMetadata');
-
-export const WorkAppConfigSelectSchema = createSelectSchema(workAppConfigs);
-
-export const WorkAppConfigInsertSchema = createInsertSchema(workAppConfigs).extend({
-  id: ResourceIdSchema,
-  appType: WorkAppTypeSchema,
-  metadata: WorkAppConfigMetadataSchema.optional(),
-});
-
-export const WorkAppConfigUpdateSchema = WorkAppConfigInsertSchema.partial();
-
-export const WorkAppConfigApiSelectSchema = WorkAppConfigSelectSchema.omit({
-  tenantId: true,
-}).openapi('WorkAppConfig');
-
-export const WorkAppConfigApiInsertSchema = WorkAppConfigInsertSchema.omit({
-  tenantId: true,
-  createdAt: true,
-  updatedAt: true,
-}).openapi('WorkAppConfigCreate');
-
-export const WorkAppConfigApiUpdateSchema =
-  WorkAppConfigApiInsertSchema.partial().openapi('WorkAppConfigUpdate');
 
 // ============================================================================
 // Work App Slack Schemas

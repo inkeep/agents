@@ -231,12 +231,6 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
-  WorkAppConfigApiInsertSchema,
-  WorkAppConfigApiSelectSchema,
-  WorkAppConfigApiUpdateSchema,
-  WorkAppConfigInsertSchema,
-  WorkAppConfigSelectSchema,
-  WorkAppConfigUpdateSchema,
   WorkAppGitHubInstallationInsertSchema,
   WorkAppGitHubInstallationSelectSchema,
   WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
@@ -629,9 +623,3 @@ export interface SummaryEvent {
   };
 }
 
-export type WorkAppConfigSelect = z.infer<typeof WorkAppConfigSelectSchema>;
-export type WorkAppConfigInsert = z.infer<typeof WorkAppConfigInsertSchema>;
-export type WorkAppConfigUpdate = z.infer<typeof WorkAppConfigUpdateSchema>;
-export type WorkAppConfigApiSelect = z.infer<typeof WorkAppConfigApiSelectSchema>;
-export type WorkAppConfigApiInsert = z.infer<typeof WorkAppConfigApiInsertSchema>;
-export type WorkAppConfigApiUpdate = z.infer<typeof WorkAppConfigApiUpdateSchema>;
