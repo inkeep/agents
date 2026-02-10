@@ -17,7 +17,7 @@ import {
   createNotLinkedMessage,
   createUnlinkSuccessMessage,
   createUpdatedHelpMessage,
-} from '../blocks';
+} from '../../slack/services/blocks';
 
 describe('Slack Block Builders', () => {
   describe('createContextBlock', () => {

@@ -8,7 +8,7 @@ import {
   getThreadContext,
   getWorkspaceDefaultAgent,
   sendResponseUrlMessage,
-} from '../events';
+} from '../../slack/services/events';
 
 vi.mock('@inkeep/agents-core', () => ({
   findWorkAppSlackChannelAgentConfig: vi.fn(() => vi.fn()),
@@ -17,17 +17,17 @@ vi.mock('@inkeep/agents-core', () => ({
   InternalServices: { INKEEP_AGENTS_MANAGE_API: 'inkeep-agents-manage-api' },
 }));
 
-vi.mock('../../../db/runDbClient', () => ({
+vi.mock('../../db/runDbClient', () => ({
   default: {},
 }));
 
-vi.mock('../../../env', () => ({
+vi.mock('../../env', () => ({
   env: {
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
   },
 }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-vi.mock('../nango', () => ({
+vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),
 }));
 
@@ -143,7 +143,7 @@ describe('getWorkspaceDefaultAgent', () => {
   });
 
   it('should return workspace default when available', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
       teamId: 'T123',
@@ -162,7 +162,7 @@ describe('getWorkspaceDefaultAgent', () => {
   });
 
   it('should return null when no default configured', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
       teamId: 'T123',
@@ -182,7 +182,7 @@ describe('getChannelAgentConfig', () => {
 
   it('should fall back to workspace default when no channel config', async () => {
     const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',

@@ -9,15 +9,15 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { streamAgentResponse } from '../events/streaming';
+import { streamAgentResponse } from '../../slack/services/events/streaming';
 
-vi.mock('../../../env', () => ({
+vi.mock('../../env', () => ({
   env: {
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
   },
 }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),

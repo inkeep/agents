@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { SlackCommandPayload } from '../types';
+import type { SlackCommandPayload } from '../../slack/services/types';
 
 describe('Slack Commands', () => {
   describe('SlackCommandPayload type', () => {

@@ -19,9 +19,9 @@ vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
 }));
 
-vi.mock('../../../db/runDbClient', () => ({ default: {} }));
+vi.mock('../../db/runDbClient', () => ({ default: {} }));
 
-vi.mock('../../../env', () => ({
+vi.mock('../../env', () => ({
   env: {
     INKEEP_AGENTS_MANAGE_UI_URL: 'http://localhost:3000',
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
@@ -29,7 +29,7 @@ vi.mock('../../../env', () => ({
   },
 }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-vi.mock('../nango', () => ({
+vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn().mockResolvedValue({
     connectionId: 'conn-1',
     teamId: 'T789',
@@ -47,7 +47,7 @@ vi.mock('../nango', () => ({
   }),
 }));
 
-vi.mock('../client', () => ({
+vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     views: { open: vi.fn().mockResolvedValue({ ok: true }) },
     chat: {
@@ -57,7 +57,7 @@ vi.mock('../client', () => ({
   })),
 }));
 
-vi.mock('../events/utils', () => ({
+vi.mock('../../slack/services/events/utils', () => ({
   fetchProjectsForTenant: vi.fn().mockResolvedValue([{ id: 'proj-1', name: 'Project' }]),
   fetchAgentsForProject: vi.fn().mockResolvedValue([
     { id: 'agent-1', name: 'Agent', projectId: 'proj-1', projectName: 'Project' },
@@ -66,7 +66,7 @@ vi.mock('../events/utils', () => ({
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../blocks', () => ({
+vi.mock('../../slack/services/blocks', () => ({
   createErrorMessage: vi.fn((msg: string) => ({ blocks: [{ type: 'section', text: { type: 'mrkdwn', text: msg } }] })),
   createUpdatedHelpMessage: vi.fn(() => ({ blocks: [] })),
   createAlreadyLinkedMessage: vi.fn(() => ({ blocks: [] })),
@@ -78,11 +78,11 @@ vi.mock('../blocks', () => ({
   createContextBlock: vi.fn(() => ({ type: 'context', elements: [] })),
 }));
 
-vi.mock('../modals', () => ({
+vi.mock('../../slack/services/modals', () => ({
   buildAgentSelectorModal: vi.fn(() => ({ type: 'modal', blocks: [] })),
 }));
 
-vi.mock('../agent-resolution', () => ({
+vi.mock('../../slack/services/agent-resolution', () => ({
   resolveEffectiveAgent: vi.fn().mockResolvedValue(null),
   getAgentConfigSources: vi.fn().mockResolvedValue({
     channelConfig: null,
@@ -91,8 +91,8 @@ vi.mock('../agent-resolution', () => ({
   }),
 }));
 
-import { handleCommand } from '../commands';
-import type { SlackCommandPayload } from '../types';
+import { handleCommand } from '../../slack/services/commands';
+import type { SlackCommandPayload } from '../../slack/services/types';
 
 const basePayload: SlackCommandPayload = {
   command: '/inkeep',

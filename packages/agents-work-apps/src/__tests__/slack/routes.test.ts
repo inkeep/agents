@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import app from '../routes/index';
+import app from '../../slack/routes/index';
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -51,7 +51,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../services/nango', () => ({
+vi.mock('../../slack/services/nango', () => ({
   getSlackNango: vi.fn(() => ({
     listConnections: vi.fn(async () => ({ connections: [] })),
     getConnection: vi.fn(async () => ({})),

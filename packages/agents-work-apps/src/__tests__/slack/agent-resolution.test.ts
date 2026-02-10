@@ -26,7 +26,7 @@ vi.mock('../../logger', () => ({
   }),
 }));
 
-vi.mock('../nango', () => ({
+vi.mock('../../slack/services/nango', () => ({
   getWorkspaceDefaultAgentFromNango: vi.fn(),
 }));
 
@@ -47,7 +47,7 @@ describe('Agent Resolution', () => {
         })
       );
 
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
+      const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
       const result = await resolveEffectiveAgent({
         tenantId: 'tenant-1',
@@ -66,7 +66,7 @@ describe('Agent Resolution', () => {
 
     it('should fall back to workspace config when no channel default', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
@@ -77,7 +77,7 @@ describe('Agent Resolution', () => {
         agentName: 'Workspace Agent',
       });
 
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
+      const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
       const result = await resolveEffectiveAgent({
         tenantId: 'tenant-1',
@@ -96,14 +96,14 @@ describe('Agent Resolution', () => {
 
     it('should return null when no config exists at any level', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue(null);
 
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
+      const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
       const result = await resolveEffectiveAgent({
         tenantId: 'tenant-1',
@@ -117,14 +117,14 @@ describe('Agent Resolution', () => {
 
     it('should skip channel check when channelId is not provided', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue({
         agentId: 'workspace-agent',
         projectId: 'workspace-project',
       });
 
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
+      const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
       const result = await resolveEffectiveAgent({
         tenantId: 'tenant-1',
@@ -138,7 +138,7 @@ describe('Agent Resolution', () => {
 
     it('should skip disabled channel config', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
@@ -152,7 +152,7 @@ describe('Agent Resolution', () => {
         projectId: 'workspace-project',
       });
 
-      const { resolveEffectiveAgent } = await import('../agent-resolution');
+      const { resolveEffectiveAgent } = await import('../../slack/services/agent-resolution');
 
       const result = await resolveEffectiveAgent({
         tenantId: 'tenant-1',
@@ -168,7 +168,7 @@ describe('Agent Resolution', () => {
   describe('getAgentConfigSources', () => {
     it('should return all config sources and effective choice', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue({
@@ -182,7 +182,7 @@ describe('Agent Resolution', () => {
         projectId: 'workspace-project',
       });
 
-      const { getAgentConfigSources } = await import('../agent-resolution');
+      const { getAgentConfigSources } = await import('../../slack/services/agent-resolution');
 
       const result = await getAgentConfigSources({
         tenantId: 'tenant-1',
@@ -201,7 +201,7 @@ describe('Agent Resolution', () => {
 
     it('should set effective to workspaceConfig when no channel config', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
@@ -211,7 +211,7 @@ describe('Agent Resolution', () => {
         projectId: 'workspace-project',
       });
 
-      const { getAgentConfigSources } = await import('../agent-resolution');
+      const { getAgentConfigSources } = await import('../../slack/services/agent-resolution');
 
       const result = await getAgentConfigSources({
         tenantId: 'tenant-1',
@@ -227,14 +227,14 @@ describe('Agent Resolution', () => {
 
     it('should return null effective when no configs exist', async () => {
       const { findWorkAppSlackChannelAgentConfig } = await import('@inkeep/agents-core');
-      const { getWorkspaceDefaultAgentFromNango } = await import('../nango');
+      const { getWorkspaceDefaultAgentFromNango } = await import('../../slack/services/nango');
 
       vi.mocked(findWorkAppSlackChannelAgentConfig).mockReturnValue(
         vi.fn().mockResolvedValue(null)
       );
       vi.mocked(getWorkspaceDefaultAgentFromNango).mockResolvedValue(null);
 
-      const { getAgentConfigSources } = await import('../agent-resolution');
+      const { getAgentConfigSources } = await import('../../slack/services/agent-resolution');
 
       const result = await getAgentConfigSources({
         tenantId: 'tenant-1',

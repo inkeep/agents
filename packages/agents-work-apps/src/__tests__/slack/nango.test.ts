@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { computeWorkspaceConnectionId, getSlackIntegrationId } from '../nango';
+import { computeWorkspaceConnectionId, getSlackIntegrationId } from '../../slack/services/nango';
 
 vi.mock('../../../../env', () => ({
   env: {

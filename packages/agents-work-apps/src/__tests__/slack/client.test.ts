@@ -18,7 +18,7 @@ import {
   getSlackUserInfo,
   postMessage,
   postMessageInThread,
-} from '../client';
+} from '../../slack/services/client';
 
 vi.mock('@slack/web-api', () => ({
   WebClient: vi.fn().mockImplementation(() => ({

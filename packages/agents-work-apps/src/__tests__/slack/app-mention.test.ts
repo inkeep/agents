@@ -10,7 +10,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { handleAppMention } from '../events/app-mention';
+import { handleAppMention } from '../../slack/services/events/app-mention';
 
 const mockPostEphemeral = vi.fn().mockResolvedValue({ ok: true });
 const mockPostMessage = vi.fn().mockResolvedValue({ ok: true, ts: '1234.5678' });
@@ -23,9 +23,9 @@ vi.mock('@inkeep/agents-core', () => ({
   signSlackUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
 }));
 
-vi.mock('../../../db/runDbClient', () => ({ default: {} }));
+vi.mock('../../db/runDbClient', () => ({ default: {} }));
 
-vi.mock('../../../env', () => ({
+vi.mock('../../env', () => ({
   env: {
     INKEEP_AGENTS_MANAGE_UI_URL: 'http://localhost:3000',
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
@@ -33,7 +33,7 @@ vi.mock('../../../env', () => ({
   },
 }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     info: vi.fn(),
     debug: vi.fn(),
@@ -42,13 +42,13 @@ vi.mock('../../../logger', () => ({
   }),
 }));
 
-vi.mock('../../i18n', () => ({
+vi.mock('../../slack/i18n', () => ({
   SlackStrings: {
     usage: { mentionEmpty: 'Usage hint message' },
   },
 }));
 
-vi.mock('../client', () => ({
+vi.mock('../../slack/services/client', () => ({
   getSlackClient: vi.fn(() => ({
     chat: { postEphemeral: mockPostEphemeral, postMessage: mockPostMessage },
     chatStream: mockChatStream,
@@ -56,19 +56,19 @@ vi.mock('../client', () => ({
   postMessageInThread: vi.fn(),
 }));
 
-vi.mock('../nango', () => ({
+vi.mock('../../slack/services/nango', () => ({
   findWorkspaceConnectionByTeamId: vi.fn(),
 }));
 
-vi.mock('../workspace-tokens', () => ({
+vi.mock('../../slack/services/workspace-tokens', () => ({
   getBotTokenForTeam: vi.fn(),
 }));
 
-vi.mock('../events/streaming', () => ({
+vi.mock('../../slack/services/events/streaming', () => ({
   streamAgentResponse: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock('../events/utils', () => ({
+vi.mock('../../slack/services/events/utils', () => ({
   checkIfBotThread: vi.fn().mockResolvedValue(false),
   classifyError: vi.fn().mockReturnValue('unknown'),
   findCachedUserMapping: vi.fn(),
@@ -93,8 +93,8 @@ describe('handleAppMention', () => {
   });
 
   it('should return silently when no bot token is available', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
-    const { getBotTokenForTeam } = await import('../workspace-tokens');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { getBotTokenForTeam } = await import('../../slack/services/workspace-tokens');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue(null);
     vi.mocked(getBotTokenForTeam).mockReturnValue(undefined);
@@ -106,8 +106,8 @@ describe('handleAppMention', () => {
   });
 
   it('should prompt to set up agents when no agent config found', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../events/utils');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -130,8 +130,8 @@ describe('handleAppMention', () => {
   });
 
   it('should prompt to link account when user not linked', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../events/utils');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -156,8 +156,8 @@ describe('handleAppMention', () => {
   });
 
   it('should show usage hint for channel mention with no query', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../events/utils');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -192,9 +192,9 @@ describe('handleAppMention', () => {
   });
 
   it('should stream response for channel mention with query', async () => {
-    const { findWorkspaceConnectionByTeamId } = await import('../nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../events/utils');
-    const { streamAgentResponse } = await import('../events/streaming');
+    const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
+    const { streamAgentResponse } = await import('../../slack/services/events/streaming');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
