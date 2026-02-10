@@ -1,5 +1,5 @@
 import { Braces } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, FC } from 'react';
 import { useState } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
@@ -14,20 +14,11 @@ type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
   error?: string;
 };
 
-export function ExpandablePromptEditor({
-  label,
-  isRequired = false,
-  className,
-  error,
-  name,
-  ...props
-}: PromptEditorProps) {
+/** @lintignore */
+export const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, className }) => {
   'use memo';
-  const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
   const { getEditorByUri } = useMonacoActions();
-  const $uri = props.uri ?? `${name}.template`;
-  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
 
   function handleAddVariable() {
     const editor = getEditorByUri(uri);
@@ -46,6 +37,32 @@ export function ExpandablePromptEditor({
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
   }
 
+  return (
+    <Button
+      size="sm"
+      variant="link"
+      className={cn('text-xs rounded-sm h-6', className)}
+      type="button"
+      onClick={handleAddVariable}
+    >
+      <Braces className="size-3.5" />
+      Add variables
+    </Button>
+  );
+};
+
+export function ExpandablePromptEditor({
+  label,
+  isRequired = false,
+  className,
+  error,
+  name,
+  ...props
+}: PromptEditorProps) {
+  'use memo';
+  const [open, onOpenChange] = useState(false);
+  const $uri = props.uri ?? `${name}.template`;
+  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
   const id = `${name}-label`;
 
   return (
@@ -57,20 +74,7 @@ export function ExpandablePromptEditor({
       label={label}
       isRequired={isRequired}
       hasError={!!error}
-      actions={
-        uri.endsWith('.template') && (
-          <Button
-            size="sm"
-            variant="link"
-            className="text-xs rounded-sm h-6"
-            type="button"
-            onClick={handleAddVariable}
-          >
-            <Braces className="size-3.5" />
-            Add variables
-          </Button>
-        )
-      }
+      actions={uri.endsWith('.template') && <AddVariableAction uri={uri} />}
     >
       <PromptEditor
         autoFocus={open}
