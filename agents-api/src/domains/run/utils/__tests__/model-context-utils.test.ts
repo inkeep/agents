@@ -7,6 +7,11 @@ vi.mock('../../constants/execution-limits', () => ({
   COMPRESSION_ENABLED: true,
   COMPRESSION_HARD_LIMIT: 120000,
   COMPRESSION_SAFETY_BUFFER: 20000,
+  executionLimitsDefaults: {
+    COMPRESSION_ENABLED: true,
+    COMPRESSION_HARD_LIMIT: 120000,
+    COMPRESSION_SAFETY_BUFFER: 20000,
+  },
 }));
 
 // Mock the llm-info module
