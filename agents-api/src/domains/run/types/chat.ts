@@ -5,7 +5,7 @@ export type TextContentItem = {
   text: string;
 };
 
-export const imageUrlSchema = z.union([
+export const ImageUrlSchema = z.union([
   z.httpUrl(),
   z
     .string()
@@ -19,19 +19,20 @@ export const imageUrlSchema = z.union([
     }, 'Invalid base64 data in image data URI'),
 ]);
 
-export const imageDetailEnum = ['auto', 'low', 'high'] as const;
-export const imageDetailSchema = z.enum(imageDetailEnum);
-export type ImageDetail = z.infer<typeof imageDetailSchema>;
+/** OpenAI-specific image detail level. Has no effect on other providers. */
+export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
+export const ImageDetailSchema = z.enum(ImageDetailEnum);
+export type ImageDetail = z.infer<typeof ImageDetailSchema>;
 
-export const imageContentItemSchema = z.object({
+export const ImageContentItemSchema = z.object({
   type: z.literal('image_url'),
   image_url: z.object({
-    url: imageUrlSchema,
-    detail: imageDetailSchema.optional(),
+    url: ImageUrlSchema,
+    detail: ImageDetailSchema.optional(),
   }),
 });
 
-export type ImageContentItem = z.infer<typeof imageContentItemSchema>;
+export type ImageContentItem = z.infer<typeof ImageContentItemSchema>;
 
 export type ContentItem = TextContentItem | ImageContentItem;
 

@@ -90,12 +90,18 @@ import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { PromptConfig, V1_BREAKDOWN_SCHEMA } from './versions/v1/PromptConfig';
 
-type AiSdkContentPart = {
-  type: string;
-  text?: string;
-  image?: string | URL;
+type AiSdkTextPart = {
+  type: 'text';
+  text: string;
+};
+
+type AiSdkImagePart = {
+  type: 'image';
+  image: string | URL;
   experimental_providerMetadata?: { openai?: { imageDetail?: ImageDetail } };
 };
+
+type AiSdkContentPart = AiSdkTextPart | AiSdkImagePart;
 
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix

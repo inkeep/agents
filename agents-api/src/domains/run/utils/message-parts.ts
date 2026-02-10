@@ -1,13 +1,13 @@
 import { z } from '@hono/zod-openapi';
 import {
-  FilePartSchema,
   type FilePart,
+  FilePartSchema,
   type Part,
-  TextPartSchema,
   type TextPart,
+  TextPartSchema,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { type ContentItem, type ImageContentItem, imageUrlSchema } from '../types/chat';
+import { type ContentItem, type ImageContentItem, ImageUrlSchema } from '../types/chat';
 
 const logger = getLogger('message-parts');
 
@@ -22,7 +22,7 @@ const isImageContentItem = (item: ContentItem): item is ImageContentItem => {
     item.type === 'image_url' &&
     'image_url' in item &&
     item.image_url != null &&
-    imageUrlSchema.safeParse(item.image_url.url).success
+    ImageUrlSchema.safeParse(item.image_url.url).success
   );
 };
 
@@ -32,7 +32,7 @@ const textContentPartSchema = z.object({
 });
 const imageContentPartSchema = z.object({
   type: z.literal('image'),
-  text: imageUrlSchema,
+  text: ImageUrlSchema,
 });
 const vercelMessageContentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
 
@@ -90,13 +90,23 @@ export const getMessagePartsFromOpenAIContent = (content: string | ContentItem[]
 
   const textChunks: string[] = [];
   const imageParts: FilePart[] = [];
+  let skipped = 0;
 
   for (const item of content) {
     if (isTextContentItem(item)) {
       textChunks.push(item.text);
     } else if (isImageContentItem(item)) {
       imageParts.push(buildFilePart(item.image_url.url, { detail: item.image_url.detail }));
+    } else {
+      skipped += 1;
     }
+  }
+
+  if (skipped > 0) {
+    logger.warn(
+      { total: content.length, skipped, accepted: content.length - skipped },
+      'Some content items were dropped due to invalid or unsupported type'
+    );
   }
 
   return [...(textChunks.length > 0 ? [buildTextPart(textChunks.join(' '))] : []), ...imageParts];
@@ -121,6 +131,10 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
     );
   }
 
+  const assertNever = (x: never): never => {
+    throw new Error(`Unexpected part type: ${JSON.stringify(x)}`);
+  };
+
   return parsedParts.map((part) => {
     if (part.type === 'text') {
       return buildTextPart(part.text);
@@ -130,8 +144,6 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
       return buildFilePart(part.text);
     }
 
-    throw new Error(
-      `Invalid part type. Expected 'text' or 'image', got ${(part as any).type as string}`
-    );
+    return assertNever(part);
   });
 };

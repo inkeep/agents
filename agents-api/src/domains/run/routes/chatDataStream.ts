@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
-  PartSchema,
   commonGetErrorResponses,
   createApiError,
   createMessage,
@@ -12,6 +11,7 @@ import {
   getConversationId,
   loggerFactory,
   type Part,
+  PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
@@ -23,7 +23,7 @@ import { contextValidationMiddleware, handleContextResolution } from '../context
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
-import { imageUrlSchema } from '../types/chat';
+import { ImageUrlSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
@@ -63,7 +63,7 @@ const chatDataStreamRoute = createRoute({
                       }),
                       z.object({
                         type: z.literal('image'),
-                        text: imageUrlSchema,
+                        text: ImageUrlSchema,
                       }),
                       z.object({
                         type: z.union([
@@ -332,9 +332,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       // Build Part[] for execution (text + image parts), validated against core PartSchema
       const messageParts: Part[] = z
         .array(PartSchema)
-        .parse(
-          getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts)
-        );
+        .parse(getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts));
 
       // Extract text content from parts
       const userText = extractTextFromParts(messageParts) || '';

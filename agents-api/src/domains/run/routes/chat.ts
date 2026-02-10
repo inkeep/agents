@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
-  PartSchema,
   createApiError,
   createMessage,
   createOrGetConversation,
@@ -9,6 +8,7 @@ import {
   generateId,
   getActiveAgentForConversation,
   getConversationId,
+  PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
@@ -19,7 +19,7 @@ import { contextValidationMiddleware, handleContextResolution } from '../context
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { Message } from '../types/chat';
-import { imageContentItemSchema } from '../types/chat';
+import { ImageContentItemSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
@@ -62,7 +62,7 @@ const chatCompletionsRoute = createRoute({
                             type: z.literal('text'),
                             text: z.string(),
                           }),
-                          imageContentItemSchema,
+                          ImageContentItemSchema,
                         ])
                       ),
                     ])
@@ -309,9 +309,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       // Build Part[] for execution (text + image parts), validated against core PartSchema
       const messageParts = z
         .array(PartSchema)
-        .parse(
-          lastUserMessage ? getMessagePartsFromOpenAIContent(lastUserMessage.content) : []
-        );
+        .parse(lastUserMessage ? getMessagePartsFromOpenAIContent(lastUserMessage.content) : []);
 
       // Extract text content from parts
       const userMessage = extractTextFromParts(messageParts);
@@ -471,7 +469,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage,
-            messageParts: messageParts.length > 1 ? messageParts : undefined,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
             initialAgentId: subAgentId,
             requestId,
             sseHelper,
