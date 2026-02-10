@@ -46,6 +46,8 @@ export {
   type ProjectPermissions,
   type ProjectRole,
   ProjectRoles,
+  type SpiceDbConversationPermission,
+  SpiceDbConversationPermissions,
   type SpiceDbOrgPermission,
   SpiceDbOrgPermissions,
   type SpiceDbProjectPermission,

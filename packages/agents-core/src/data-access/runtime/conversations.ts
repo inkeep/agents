@@ -18,9 +18,11 @@ export const listConversations =
   async (params: {
     scopes: ProjectScopeConfig;
     userId?: string;
+    anonymousUserId?: string;
+    conversationIds?: string[];
     pagination?: PaginationConfig;
   }): Promise<{ conversations: ConversationSelect[]; total: number }> => {
-    const { userId, pagination } = params;
+    const { userId, anonymousUserId, conversationIds, pagination } = params;
 
     const page = pagination?.page || 1;
     const limit = Math.min(pagination?.limit || 20, 200);
@@ -33,6 +35,14 @@ export const listConversations =
 
     if (userId) {
       whereConditions.push(eq(conversations.userId, userId));
+    }
+
+    if (anonymousUserId) {
+      whereConditions.push(eq(conversations.anonymousUserId, anonymousUserId));
+    }
+
+    if (conversationIds && conversationIds.length > 0) {
+      whereConditions.push(inArray(conversations.id, conversationIds));
     }
 
     const conversationList = await db
@@ -189,6 +199,7 @@ export const createOrGetConversation =
       tenantId: input.tenantId,
       projectId: input.projectId,
       userId: input.userId,
+      anonymousUserId: input.anonymousUserId,
       agentId: input.agentId,
       activeSubAgentId: input.activeSubAgentId,
       title: input.title,
