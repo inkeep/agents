@@ -1,4 +1,11 @@
 {
   "icon": "LuGitPullRequest",
-  "pages": ["overview", "project-constraints", "spans", "environment-configuration", "..."]
+  "pages": [
+    "overview",
+    "project-constraints",
+    "manage-database",
+    "spans",
+    "environment-configuration",
+    "..."
+  ]
 }
