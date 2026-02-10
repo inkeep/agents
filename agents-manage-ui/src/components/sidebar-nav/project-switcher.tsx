@@ -102,12 +102,6 @@ export const ProjectSwitcher: FC = () => {
             onKeyDown={(e) => e.stopPropagation()}
             className="h-7 border-none shadow-none focus-visible:ring-0 px-0"
           />
-            placeholder="Search projects..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.stopPropagation()}
-            className="h-7 border-none shadow-none focus-visible:ring-0 px-0"
-          />
         </div>
         <DropdownMenuSeparator />
         <div className="overflow-y-auto max-h-[200px]">
