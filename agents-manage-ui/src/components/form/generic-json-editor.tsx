@@ -11,6 +11,7 @@ import {
   FormMessage,
 } from '../ui/form';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
+import { cn } from '@/lib/utils';
 
 /** @lintignore */
 export function GenericJsonEditor<
@@ -30,6 +31,7 @@ export function GenericJsonEditor<
   customTemplate: string;
 }) {
   const [open, onOpenChange] = useState(false);
+  const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   return (
     <FormField
       control={control}
@@ -39,12 +41,14 @@ export function GenericJsonEditor<
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <FormLabel isRequired={isRequired}>
               {label}
-              {!open && <Editor.DialogTrigger />}
+              <Editor.DialogTrigger className={cn('ml-auto', open && 'invisible')} />
             </FormLabel>
             <FormControl>
               <StandaloneJsonEditor
+                uri={uri}
                 placeholder={placeholder}
                 customTemplate={customTemplate}
+                hasDynamicHeight={!open}
                 {...field}
               />
             </FormControl>
