@@ -25,8 +25,10 @@ import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/sta
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import {
+  azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
   statusUpdatesComponentsTemplate,
+  structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
@@ -305,6 +307,12 @@ export function MetadataEditor() {
               updateMetadata('models', newModels);
             }}
             editorNamePrefix="agent-structured"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelProviderOptionsTemplate;
+              }
+              return structuredOutputModelProviderOptionsTemplate;
+            }}
           />
 
           <ModelConfiguration

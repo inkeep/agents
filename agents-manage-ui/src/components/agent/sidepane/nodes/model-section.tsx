@@ -6,7 +6,9 @@ import {
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
 import {
+  azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
+  structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { createProviderOptionsHandler } from '@/lib/utils';
@@ -151,6 +153,12 @@ export function ModelSection({
             updatePath('models.structuredOutput.providerOptions', options)
           )}
           editorNamePrefix="structured"
+          getJsonPlaceholder={(model) => {
+            if (model?.startsWith('azure/')) {
+              return azureModelProviderOptionsTemplate;
+            }
+            return structuredOutputModelProviderOptionsTemplate;
+          }}
         />
 
         <ModelConfiguration
