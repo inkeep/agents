@@ -32,7 +32,7 @@ export function GenericPromptEditor<
 }: Omit<FormFieldWrapperProps<FV, TV, TName>, 'children'> & {
   className?: string;
   placeholder: string;
-  uri: ComponentProps<typeof PromptEditor>['uri'];
+  uri?: ComponentProps<typeof PromptEditor>['uri'];
 }) {
   'use memo';
   const [open, onOpenChange] = useState(false);
