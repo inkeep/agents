@@ -1,5 +1,41 @@
 # @inkeep/agents-api
 
+## 0.47.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.47.5
+- @inkeep/agents-manage-mcp@0.47.5
+- @inkeep/agents-mcp@0.47.5
+- @inkeep/agents-work-apps@0.47.5
+
+## 0.47.4
+
+### Patch Changes
+
+- 83346fc: Retry/rerun functionality for webhook triggers in the traces UI
+- 820bd49: Fix z.stringbool() breaking COMPRESSION_ENABLED default when env var is unset
+- Updated dependencies [83346fc]
+- Updated dependencies [5f3f5ea]
+  - @inkeep/agents-core@0.47.4
+  - @inkeep/agents-work-apps@0.47.4
+  - @inkeep/agents-manage-mcp@0.47.4
+  - @inkeep/agents-mcp@0.47.4
+
+## 0.47.3
+
+### Patch Changes
+
+- 756a560: Consolidate `ResourceId` as reusable OpenAPI component to reduce spec size
+- 045c405: enhance tool approval handling, so agents are conversationally aware of approvals
+- Updated dependencies [3abfc41]
+- Updated dependencies [756a560]
+- Updated dependencies [045c405]
+  - @inkeep/agents-work-apps@0.47.3
+  - @inkeep/agents-core@0.47.3
+  - @inkeep/agents-manage-mcp@0.47.3
+  - @inkeep/agents-mcp@0.47.3
+
 ## 0.47.2
 
 ### Patch Changes

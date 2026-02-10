@@ -34,6 +34,10 @@ export function createAgentsManageDatabasePool(config: AgentsManageDatabaseConfi
   const pool = new Pool({
     connectionString,
     max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 100,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 60_000,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
   });
 
   // Handle pool errors
@@ -65,6 +69,10 @@ export function createAgentsManageDatabaseClient(
   const pool = new Pool({
     connectionString,
     max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 100,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 60_000,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
   });
 
   // Handle pool errors
@@ -97,6 +105,9 @@ export function createAgentManageDatabaseConnection(config: AgentsManageDatabase
   const pool = new Pool({
     connectionString,
     max: 1,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 60_000,
+    connectionTimeoutMillis: 10_000,
   });
 
   pool.on('error', (err) => {
