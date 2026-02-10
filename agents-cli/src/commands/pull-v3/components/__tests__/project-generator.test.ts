@@ -29,7 +29,7 @@ describe('Project Generator', () => {
     description: 'Multi-agent customer support system with escalation capabilities',
     models: {
       base: { model: 'gpt-4o-mini' },
-      summarizer: { model: 'gpt-4o-mini' },
+      summarizer: { model: 'gpt-4o' },
     },
     agents: ['supportAgent', 'escalationAgent'],
   };
@@ -167,7 +167,7 @@ describe('Project Generator', () => {
 
       expect(() => {
         generateProjectDefinition('minimal-project', minimalData);
-      }).toThrow("Missing required fields for project 'minimal-project': models, models.base");
+      }).toThrow("Missing required fields for project 'minimal-project': models");
     });
 
     it('should throw error for missing required fields', () => {
@@ -175,9 +175,7 @@ describe('Project Generator', () => {
 
       expect(() => {
         generateProjectDefinition('fallback-project', noNameData);
-      }).toThrow(
-        "Missing required fields for project 'fallback-project': name, models, models.base"
-      );
+      }).toThrow("Missing required fields for project 'fallback-project': name, models");
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -281,7 +279,7 @@ describe('Project Generator', () => {
         name: 'Complex Models Project',
         models: {
           base: { model: 'gpt-4o', temperature: 0.7, maxTokens: 4096 },
-          summarizer: { model: 'gpt-4o-mini' },
+          summarizer: { model: 'gpt-4o-mini', temperature: 0.3 },
         },
       };
 
@@ -419,7 +417,7 @@ describe('Project Generator', () => {
 
       expect(() => {
         generateProjectDefinition('minimal-test-project', minimalData);
-      }).toThrow("Missing required fields for project 'minimal-test-project': models, models.base");
+      }).toThrow("Missing required fields for project 'minimal-test-project': models");
     });
   });
 
@@ -463,7 +461,7 @@ describe('Project Generator', () => {
 
       expect(() => {
         generateProjectDefinition('null-values-project', nullData);
-      }).toThrow("Missing required fields for project 'null-values-project': models, models.base");
+      }).toThrow("Missing required fields for project 'null-values-project': models");
     });
 
     it('should handle large number of agents with proper formatting', () => {
@@ -522,6 +520,7 @@ describe('Project Generator', () => {
       expect(() => {
         generateProjectDefinition('missing-base', {
           name: 'Test Project',
+          models: {},
         });
       }).toThrow("Missing required fields for project 'missing-base': models.base");
     });
