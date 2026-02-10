@@ -82,6 +82,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
 
+      # Generate a GitHub App token so the release event triggers downstream
+      # workflows (the default GITHUB_TOKEN cannot do this).
+      - name: Generate GitHub App Token
+        if: steps.changesets.outputs.published == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
       - name: Create GitHub Release
         if: steps.changesets.outputs.published == 'true'
         shell: bash
@@ -117,17 +127,13 @@ jobs:
 
             ${CHANGELOG}"
 
+            # Pin the release tag to the exact commit that was built and published.
+            # The app token ensures the release:published event triggers the
+            # downstream Vercel production deploy workflow.
             gh release create "v${VERSION}" \
+              --target "${{ github.sha }}" \
               --title "${RELEASE_DATE}" \
               --notes "$RELEASE_NOTES"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      # The default GITHUB_TOKEN cannot trigger downstream workflows,
-      # so we use a PAT that can.
-      - name: Trigger Vercel Production Deploy
-        if: steps.changesets.outputs.published == 'true'
-        run: gh workflow run vercel-production.yml --ref main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
