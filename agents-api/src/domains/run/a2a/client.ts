@@ -156,7 +156,6 @@ export class A2AClient {
       ...options,
     };
     this.agentCardPromise = this._fetchAndCacheAgentCard();
-
   }
 
   /**
