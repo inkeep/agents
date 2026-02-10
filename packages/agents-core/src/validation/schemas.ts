@@ -1370,7 +1370,7 @@ export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchem
   .openapi('DatasetRunConfigAgentRelationUpdate');
 
 const SkillIndexSchema = z.int().min(0);
-const StringRecordSchema = z
+export const StringRecordSchema = z
   .record(z.string(), z.string('All object values must be strings'), 'Must be valid JSON object')
   .openapi('StringRecord');
 

@@ -39,7 +39,7 @@ describe('validation', () => {
       expect(error).toMatchObject([
         {
           path: [],
-          message: 'All header values must be strings\n  → at foo',
+          message: 'All object values must be strings\n  → at foo',
         },
       ]);
     });
@@ -52,7 +52,7 @@ describe('validation', () => {
       expect(error).toMatchObject([
         {
           path: [],
-          message: 'All header values must be strings\n  → at foo',
+          message: 'All object values must be strings\n  → at foo',
         },
       ]);
     });

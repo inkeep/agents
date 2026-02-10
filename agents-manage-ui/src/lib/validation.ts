@@ -1,4 +1,4 @@
-import { HeadersSchema } from '@inkeep/agents-core/client-exports';
+import { StringRecordSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { transformToJson } from '@/lib/json-schema-validation';
 
@@ -30,7 +30,7 @@ export function createCustomHeadersSchema(customHeaders?: string) {
     // superRefine to attach error to `headers` field instead of possible nested e.g. headers.something
     .superRefine((value, ctx) => {
       // First validate default schema
-      const result = HeadersSchema.safeParse(value);
+      const result = StringRecordSchema.safeParse(value);
       if (!result.success) {
         addIssue(ctx, result.error);
         return;
