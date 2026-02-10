@@ -151,16 +151,81 @@ These provide domain expertise. Select when the PR touches their domain; skip wh
 
 Spawn each selected reviewer via the Task tool, spawning all relevant agents **in parallel**.
 
-**Handoff packet (message) format:**
+### 3.1 Detect Context
+
+Check pr-context for two signals that shape the handoff:
+
+**Diff mode** (from the metadata table):
+- **`inline`** — Full diff is embedded in pr-context. Reviewers see it directly.
+- **`summary`** — Diff is NOT inline (too large). Reviewers MUST read file diffs on-demand via tool calls.
+
+**Review iteration** (from the "Changes Since Last Review" section):
+- **First review** — No prior automated review exists. Full-scope review.
+- **Re-review** — A prior review exists. Scope to the delta (files changed since the last review).
+
+### 3.2 First Review — Inline Mode
+
 ```
 Review PR #[PR_NUMBER]: [Title].
 
-<<brief 1-3 sentences on why this subagent was selected without being overly prescriptive on what it should limit its scope to — just describe what you believe about the PR intersects its domain at a high elvel. Mention specific files or areas worth starting from, but don't limit scope. Keep farily general, be wary of biasing the reviewer.>>
+<<brief 1-3 sentences on why this subagent was selected without being overly prescriptive on what it should limit its scope to — just describe what you believe about the PR intersects its domain at a high level. Mention specific files or areas worth starting from, but don't limit scope. Keep fairly general, be wary of biasing the reviewer.>>
 
 The PR context (diff, changed files, metadata) is loaded via your pr-context skill. A pre-computed context brief (intent, surface impact, review state) is available via your pr-tldr skill — treat it as a starting point that may contain inaccuracies, not as authoritative.
 
 Return findings as JSON array per pr-review-output-contract.
 ```
+
+### 3.3 First Review — Summary Mode (large PR)
+
+When pr-context is in summary mode, the diff is NOT available inline. You MUST provide each reviewer with a domain-scoped file list so they know what to read. Each reviewer should read only the files relevant to their domain — NOT the entire diff.
+
+```
+Review PR #[PR_NUMBER]: [Title].
+
+<<brief 1-3 sentences on why this subagent was selected>>
+
+**⚠️ LARGE PR — summary mode.** The diff is NOT inline in pr-context (too large). You MUST read file diffs on-demand using:
+  git diff origin/[BASE_BRANCH]...HEAD -- <path>
+
+Start with these files (most relevant to your domain):
+- path/to/file1.ts — <<why relevant>>
+- path/to/file2.ts — <<why relevant>>
+- ...
+
+Use the Changed Files section in pr-context for the full file list and diff stats. Prioritize files with the most changes in your domain. Read only what you need — do NOT try to read the entire diff at once.
+
+The PR context (metadata, file list, diff stats, prior feedback) is loaded via your pr-context skill. A pre-computed context brief is available via your pr-tldr skill.
+
+Return findings as JSON array per pr-review-output-contract.
+```
+
+**Tips for building domain-scoped file lists:**
+- Use the Changed Files diff stats from pr-context to identify files by domain
+- Group files by package/directory for each reviewer's domain
+- Include 5-15 files per reviewer — enough for thorough coverage, not so many they exhaust context
+- For reviewers with broad scope (standards, product), prioritize by diff size (most changed files first)
+
+### 3.4 Re-Review Handoff
+
+On re-reviews, scope each reviewer to the delta — files changed since the last automated review. Use the "Changes Since Last Review" section in pr-context to identify which files changed and the commit narrative.
+
+Append this paragraph to **whichever handoff format applies** (3.2 or 3.3):
+
+```
+**RE-REVIEW — scope to the delta.** A prior review already covered this PR. Your review scope is the code that changed since the last review. Apply your normal review process — same quality bar, same criteria — but focus on what's new or modified. Do not re-analyze unchanged code. The "Review Focus" and "Changes Since Last Review" sections in pr-context have the details.
+
+Files changed since last review (focus here):
+- path/to/changed-file1.ts
+- path/to/changed-file2.ts
+- ...
+```
+
+**Building the delta file list:**
+- Use the "Diff stats since last review" in pr-context to identify files in the delta
+- Filter to files relevant to the reviewer's domain
+- If the delta is small (< 5 files in this reviewer's domain), include all of them
+- If the delta is large, prioritize by change size within the reviewer's domain
+- In summary mode, provide `git diff` commands scoped to delta files only
 
 ## Phase 4: Judge & Filter
 
@@ -200,8 +265,8 @@ Feel free to make your own determination about the confidence and severity level
 ## Phase 5: **Inline Comments via Pending Review** (DO THIS FIRST)
 
 **Add Inline Comments to a pending review BEFORE writing the summary (Phase 6).** This is critical because:
-1. Items posted as inline comments are EXCLUDED from full Main writeups — they appear only as 1-line inline logs inside the corresponding bucket (Critical/Major/Minor/Consider)
-2. The pending review collects all inline comments invisibly until Phase 6 submits them atomically with the summary
+1. Items posted as Inline Comments are EXCLUDED from full Main writeups — they appear only as 1-line inline logs inside the corresponding bucket (Critical/Major/Minor/Consider)
+2. The pending review collects all Inline Comments invisibly until Phase 6 submits them atomically with the summary
 
 ### 5.0 Create Pending Review
 
@@ -243,7 +308,7 @@ Per the **No Duplication Principle**:
 - **Skip** if an unresolved thread or prior review finding already covers this issue → goes in Pending Recommendations instead
 - **Post** only if: no existing thread/finding, or thread is outdated but issue persists, or issue is materially different
 
-**Tip:** Minimize noise — a few high-signal inline comments are better than many marginal ones. When in doubt about inline-routability (scope/architecture/optionality), route to summary-only.
+**Tip:** Minimize noise — a few high-signal Inline Comments are better than many marginal ones. When in doubt about inline-routability (scope/architecture/optionality), route to summary-only.
 
 ### 5.3 Add Comments to Pending Review
 
@@ -333,7 +398,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
 }
 ```
 
-**Track what you posted:** Keep a local list of which findings were added as inline comments (file, line/range, issue slug, and which bucket they belong to: Critical/Major/Minor/Consider). You need this in Phase 6 to log them inside the corresponding bucket section (as 1-line entries) and to avoid duplicating them as full Main writeups.
+**Track what you posted:** Keep a local list of which findings were added as Inline Comments (file, line/range, issue slug, and which bucket they belong to: Critical/Major/Minor/Consider). You need this in Phase 6 to log them inside the corresponding bucket section (as 1-line entries) and to avoid duplicating them as full Main writeups.
 
 ## Phase 6: Submit Review with Summary
 
@@ -350,7 +415,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
 
 ### 6.2 Format Review Body
 
-The review body is the summary markdown. It will be submitted together with all inline comments as a single atomic PR review. Produce it in this order:
+The review body is the summary markdown. It will be submitted together with all Inline Comments as a single atomic PR review. Produce it in this order:
 
 1. **Main** — NEW findings: Critical, Major, Minor (full detail), and Consider (brief detail). Inline comments posted in Phase 5 are logged as 1-line entries inside their corresponding bucket.
 2. **Pending Recommendations** — Links to PRIOR unresolved review threads and previous review findings (link + 1-sentence only)
@@ -378,7 +443,7 @@ The review body is the summary markdown. It will be submitted together with all 
 
 #### Format
 
-> ⚠️ **NO DUPLICATION**: Items in Pending Recommendations MUST NOT appear here. Items posted as inline comments must appear only as 1-line inline logs (not full writeups). See No Duplication Principle.
+> ⚠️ **NO DUPLICATION**: Items in Pending Recommendations MUST NOT appear here. Items posted as Inline Comments must appear only as 1-line inline logs (not full writeups). See No Duplication Principle.
 
 ````markdown
 ## PR Review Summary
@@ -398,7 +463,7 @@ when the problem is complex or context is needed.
 
 **Why:** Consequences, risks, *justification*, and/or user impact. Scale 1-3 sentences based on severity — critical issues deserve thorough explanation.
 
-**Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like. *(Note: Issues solvable with a single code block should usually be handled as inline comments (with a suggestion block when eligible) and logged as 1-line inline items, rather than written up here as full Main entries.)*
+**Fix:** Suggestion[s] for how to address it. If a brief code example[s] would be helpful, incorporate them as full code blocks (still minimum viable short) interweaved into the explanation. Otherwise describe the alternative approaches to consider qualitatively. Don't go into over-engineering a solution, this is more about giving a starting point/direction as to what a resolution may look like. *(Note: Issues solvable with a single code block should usually be handled as Inline Comments (with a suggestion block when eligible) and logged as 1-line inline items, rather than written up here as full Main entries.)*
 
 **Refs:** Ground the finding with clickable hyperlinks. Use the GitHub URL base from `pr-context` to construct links.
 - Code: `[src/api/client.ts:42](https://github.com/{repo}/blob/{sha}/src/api/client.ts#L42)`
@@ -425,7 +490,7 @@ when the problem is complex or context is needed.
 ### 🟡 Minor (L) 🟡
 
 // MINOR + HIGH confidence issues.
-// - If posted as inline comments (Phase 5), log them below.
+// - If posted as Inline Comments (Phase 5), log them below.
 // - Otherwise, write them up here (full entry).
 
 🟡 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
@@ -479,9 +544,9 @@ Adjust accordingly to the context of the issue and PR and what's most relevant f
 
 ### Inline comment log lines (within Main)
 
-If you added inline comments to the pending review in Phase 5, log them as brief 1-line entries inside the corresponding bucket section (Critical/Major/Minor/Consider) under the `**Inline comments:**` sublist. These comments are part of the same review — the reader can click **"View changes"** on the review to see them in context. No URLs needed.
+If you added Inline Comments to the pending review in Phase 5, log them as brief 1-line entries inside the corresponding bucket section (Critical/Major/Minor/Consider) under the `**Inline comments:**` sublist. These comments are part of the same review — the reader can click **"View changes"** on the review to see them in context. No URLs needed.
 
-**Rule:** Any issues posted as inline comments should appear only as 1-line log entries (not as full Main writeups).
+**Rule:** Any issues posted as Inline Comments should appear only as 1-line log entries (not as full Main writeups).
 
 **Format:** `- {severity_emoji} {Severity}: \`{file}:{line}\` {paraphrased issue <1 sentence}`
 
@@ -498,23 +563,21 @@ Previous issues raised by humans or yourself from **previous runs** that are sti
 | Human review comments | `Human Review Comments` | `#discussion_rXXX` |
 | Review body findings (Main section items from prior review submissions) | `Previous Review Summaries` | `#pullrequestreview-XXXXX` |
 
-Link to the original source using the `url` field from pr-context. For review body findings, link to the review submission itself.
-
-**DO NOT repeat the full issue/fix details** — just link with a 1-sentence summary. The original thread/review has the details.
+Link to the original source using the `url` field from pr-context. **DO NOT repeat the full issue/fix details** — just link with a 1-sentence summary. The original thread/review has the details.
 
 ````markdown
 ### 🕐 Pending Recommendations (R)
 
-**From review threads:**
 - 🔴 [`file.ts:42`](https://github.com/.../pull/123#discussion_r456) Paraphrased issue <1 sentence
-- 🟠 [`file.ts:42`](https://github.com/.../pull/123#discussion_r457) Paraphrased issue <1 sentence
-
-**From previous reviews:**
 - 🟠 [`file.ts:70`](https://github.com/.../pull/123#pullrequestreview-789) Paraphrased issue <1 sentence
+- 🟠 [`file.ts:42`](https://github.com/.../pull/123#discussion_r457) Paraphrased issue <1 sentence
 - 🟡 [`scope`](https://github.com/.../pull/123#pullrequestreview-789) Paraphrased issue <1 sentence
 ````
 
-**Note:** If a prior review had zero review threads (all findings were in the review body), all pending items will be in the "From previous reviews" group. Omit either sub-group if empty.
+**Notes:**
+- Flat list, sorted by severity (highest first).
+- Items can come from any prior source: inline review threads (`#discussion_rXXX` from `Automated Review Comments` or `Human Review Comments`) or review body findings (`#pullrequestreview-XXXXX` from `Previous Review Summaries`). Include both — the link itself takes the reader to the right place.
+- Omit this section entirely if there are no pending items.
 
 ### "Final Recommendation" section
 
@@ -531,7 +594,7 @@ Link to the original source using the `url` field from pr-context. For review bo
 
 ### Submitting the Review
 
-Submit the pending review with the summary as the review body. This atomically publishes both the review body AND all inline comments added in Phase 5 as a single PR review.
+Submit the pending review with the summary as the review body. This atomically publishes both the review body AND all Inline Comments added in Phase 5 as a single PR review.
 
 ```
 mcp__github__submit_pending_pull_request_review
@@ -550,7 +613,7 @@ mcp__github__submit_pending_pull_request_review
 | 💡 APPROVE WITH SUGGESTIONS | `"COMMENT"` |
 | 🚫 REQUEST CHANGES | `"REQUEST_CHANGES"` |
 
-**Result:** A single PR review appears in the timeline with the review badge (Approved / Changes Requested / Commented), the summary as the review body, and all inline comments grouped under "View changes". One notification to the PR author.
+**Result:** A single PR review appears in the timeline with the review badge (Approved / Changes Requested / Commented), the summary as the review body, and all Inline Comments grouped under "View changes". One notification to the PR author.
 
 ### Discarded
 
@@ -586,6 +649,8 @@ Throughout Phases 4–6, track the **origin reviewer** for every finding (includ
 | ... | ... | ... | ... | ... | ... | ... |
 | **Total** | **12** | **2** | **1** | **2** | **1** | **6** |
 
+[(optional) Note: <1-2 sentences max with any debugging notes on sub-agent behavior]
+
 </details>
 ````
 R =  # of reviewers dispatched
@@ -594,7 +659,7 @@ R =  # of reviewers dispatched
 - **Returned** — Total raw findings the reviewer sub-agent returned (before dedup/filtering).
 - **Main Findings** — Findings from this reviewer that are written up as full entries in the Main section (Critical, Major, or Minor), excluding 1-line inline logs.
 - **Consider** — Findings from this reviewer written up as full Consider entries (validated as strictly better but nitpick or developer preference), excluding 1-line inline logs.
-- **Inline Comments** — Findings from this reviewer that were posted as GitHub inline comments (Phase 5) and logged as 1-line inline items inside the corresponding bucket.
+- **Inline Comments** — Findings from this reviewer that were posted as GitHub Inline Comments (Phase 5) and logged as 1-line inline items inside the corresponding bucket.
 - **Pending Recs** — Findings from this reviewer matched to prior unresolved review threads or previous review findings (Pending Recommendations).
 - **Discarded** — Findings from this reviewer assessed as invalid, inapplicable, or not relevant.
 
@@ -604,6 +669,7 @@ R =  # of reviewers dispatched
 - Include a **Total** row summing each column.
 - Order reviewers by **Returned** count descending.
 
+**Tip**: If there's any failures in calling sub-reviewers, or they returned misformatted or responses look off for some reason, note that in the designated "Note: " slot.
 ---
 
 # Constraints
@@ -625,7 +691,7 @@ R =  # of reviewers dispatched
 | **Bash** | Git operations (`git diff`, `git merge-base`), `gh api` for queries, `mkdir -p` for pr-tldr directory |
 | **mcp__exa__web_search_exa** | Verify external claims, check library docs/changelogs, resolve reviewer disagreements (Phase 4) |
 | **mcp__github__create_pending_pull_request_review** | Create pending review (Phase 5.0) |
-| **mcp__github__add_comment_to_pending_review** | Add inline comments to the pending review (include suggestion blocks when eligible) (Phase 5.3) |
+| **mcp__github__add_comment_to_pending_review** | Add Inline Comments to the pending review (include suggestion blocks when eligible) (Phase 5.3) |
 | **mcp__github__submit_pending_pull_request_review** | Submit review with body + event (Phase 6) |
 
 **Do not:** Edit existing code files, use Bash for non-git/non-mkdir commands, or use Write for anything other than the pr-tldr skill file.
@@ -637,6 +703,7 @@ R =  # of reviewers dispatched
 | Task tool unavailable | Return error: must run as `claude --agent pr-review` |
 | No changed files | Submit review with "No changes detected" body and `"APPROVE"` event |
 | Subagent failure | Log error, continue with other reviewers, note partial review |
+| Subagent hits context limit | This should be rare with summary mode. If it occurs: (1) note which reviewer failed in the Reviewer Stats table, (2) continue with other reviewers, (3) mention reduced coverage in the review summary. Do NOT retry — the same context will hit the same limit. |
 | Invalid JSON from subagent | Extract findings manually, flag parsing issue |
 | No findings | Submit review with positive summary and `"APPROVE"` event |
 | Pending review creation fails | Fall back to `Bash(gh api:*)` to create/submit review via REST API |
