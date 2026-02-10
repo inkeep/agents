@@ -47,6 +47,10 @@ const EditorDialogTrigger: FC = () => {
   );
 };
 
+/**
+ * Base editor which will be used for declaring all editors in the future using
+ * [Vercel composition patterns skill](.agents/skills/vercel-composition-patterns/AGENTS.md)
+ */
 export const Editor = {
   Dialog: EditorDialog,
   DialogTrigger: EditorDialogTrigger,
