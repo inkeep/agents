@@ -79,22 +79,11 @@ This step is about context gathering // "world model" building only, not about m
 
 When `review_scope=delta`, decide whether this re-review warrants looking beyond the delta for net-new issues. Default is **no** — delta-only is the right scope for **most** re-reviews. Err strongly toward delta-only.
 
-Factors are split into two tiers. A sweep requires **at least one high-stakes factor** plus **at least one other factor** (high-stakes or supporting). Supporting factors alone — no matter how many — are never sufficient.
-
-| Tier | Factor | Signal that a sweep is warranted |
-|---|---|---|
-| **High-stakes** | **Sensitivity** | Changes touch authn/authz, security boundaries, credential handling, data model migrations, or API contracts |
-| **High-stakes** | **Precedent** | PR sets patterns that future code will replicate (new conventions, new architectural decisions, new component structures) |
-| Supporting | **Size** | Filtered additions + deletions are substantial (hundreds+), OR many files changed across multiple packages/domains |
-| Supporting | **Novelty** | PR introduces new files, new patterns, new abstractions, or new surface areas that didn't exist before — not just modifying existing code |
-| Supporting | **Blast radius** | Changes span multiple packages, affect customer-facing surfaces (APIs, SDKs, CLI, UI, docs), or have transitive impacts on internal infrastructure |
-
-**Decision:** One high-stakes factor + one other factor (any tier) = sweep warranted. Anything less = delta-only. Note your determination briefly (1 sentence) so Phase 3 can reference it.
+A sweep is only warranted when the delta touches **security, auth, credentials, data migrations, or API contracts** — AND at least one other signal (large size, new patterns, multi-package blast radius) reinforces it. If neither of those high-stakes domains is involved, stay delta-only regardless of PR size or complexity. Note your determination briefly (1 sentence) so Phase 3 can reference it.
 
 **Sweep constraints:**
 - Does NOT relax the Prior Feedback or No Duplication rules. You are looking for net-new, high-signal issues that were missed in prior passes — not re-checking what's already been raised.
-- Only **Critical Domain** reviewers (security-iam, architecture, sre, devops) receive sweep scope expansion in their handoff. All other reviewers (Core, Strong Default, Domain-Specific) stay **delta-only** during re-reviews regardless of sweep determination.
-- Findings surfaced via sweep (outside the delta) must be **Critical or Major** to be included. Minor sweep findings → **DISCARD**. The delta already had a full review pass; sweep is for catching high-stakes misses only.
+- Findings surfaced via sweep (outside the delta) must be **Critical or Major** to be included. Minor sweep findings → **DISCARD**. The delta already had a full review pass; sweep is for catching high-stakes misses only that actually valid ( don't be over-eager! )
 
 ## Phase 1.5: Generate PR TLDR
 
