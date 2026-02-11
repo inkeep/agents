@@ -329,11 +329,13 @@ export async function handleAgentPickerCommand(
       return { response_type: 'ephemeral', ...message };
     }
 
-    // Fetch agents for first project
-    const firstProject = projectList[0];
-    let agentList = await fetchAgentsForProject(tenantId, firstProject.id);
+    // Fetch agents for all projects in parallel
+    const agentResults = await Promise.all(
+      projectList.map((project) => fetchAgentsForProject(tenantId, project.id))
+    );
+    let agentList = agentResults.flat();
 
-    if (agentList.length === 0 && defaultAgent && defaultAgent.projectId === firstProject.id) {
+    if (agentList.length === 0 && defaultAgent) {
       agentList = [
         {
           id: defaultAgent.agentId,
@@ -343,6 +345,8 @@ export async function handleAgentPickerCommand(
         },
       ];
     }
+
+    const firstProject = projectList[0];
 
     // Generate a Slack-compatible timestamp (seconds.microseconds format)
     const now = Date.now();

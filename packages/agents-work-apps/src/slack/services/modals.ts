@@ -74,12 +74,16 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     value: project.id,
   }));
 
+  const hasMultipleProjects = new Set(agents.map((a) => a.projectId)).size > 1;
+
   const agentOptions =
     agents.length > 0
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: agent.name || agent.id,
+            text: hasMultipleProjects
+              ? `${agent.name || agent.id} (${agent.projectName || agent.projectId})`
+              : (agent.name || agent.id),
             emoji: true,
           },
           value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
