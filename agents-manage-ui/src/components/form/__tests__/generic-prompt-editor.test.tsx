@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
-import { GenericPromptEditor } from '../generic-prompt-editor';
-import { useForm } from 'react-hook-form';
 import type { FC } from 'react';
+import { useForm } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
+import { GenericPromptEditor } from '../generic-prompt-editor';
 
 describe('GenericPromptEditor', () => {
   test('should show Add variables button for .template files (default)', () => {

@@ -12,7 +12,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { cn } from '@/lib/utils';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
 
 export function GenericJsonEditor<
