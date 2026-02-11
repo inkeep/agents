@@ -51,10 +51,11 @@ if (process.env.VERCEL) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     ({ waitUntil } = require('@vercel/functions'));
-  } catch {
-    // Not on Vercel or package not available
+  } catch (e) {
+    console.error('[TriggerService] Failed to import @vercel/functions:', e);
   }
 }
+console.log('[TriggerService] waitUntil available:', !!waitUntil, 'VERCEL env:', !!process.env.VERCEL);
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
@@ -582,7 +583,16 @@ export async function dispatchExecution(params: {
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
   if (waitUntil) {
+    logger.info(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Calling waitUntil with execution promise'
+    );
     waitUntil(safeExecutionPromise);
+  } else {
+    logger.warn(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'waitUntil is NOT available — background execution will be abandoned on serverless'
+    );
   }
 
   logger.info(
