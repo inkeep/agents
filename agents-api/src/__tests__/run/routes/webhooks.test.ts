@@ -1764,4 +1764,121 @@ describe('Webhook Endpoint Tests', () => {
       );
     });
   });
+
+  describe('Background execution error handling', () => {
+    it('should update invocation status to failed when project is not found', async () => {
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      // Make getFullProjectWithRelationIds return null (project not found)
+      getFullProjectWithRelationIdsMock.mockReturnValue(vi.fn().mockResolvedValue(null));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      // Webhook still returns 202 (async execution)
+      expect(response.status).toBe(202);
+
+      // Wait for background execution to fail and update status
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('not found'),
+          }),
+        })
+      );
+    });
+
+    it('should update invocation status to failed when agent is not in project', async () => {
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      // Return project with no matching agent
+      const projectWithoutAgent = {
+        ...testProject,
+        agents: {},
+      };
+      getFullProjectWithRelationIdsMock.mockReturnValue(
+        vi.fn().mockResolvedValue(projectWithoutAgent)
+      );
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('not found in project'),
+          }),
+        })
+      );
+    });
+
+    it('should update invocation status to failed when agent has no default sub-agent', async () => {
+      const updateStatusFn = vi.fn().mockResolvedValue({});
+      updateTriggerInvocationStatusMock.mockReturnValue(updateStatusFn);
+
+      // Return project where agent has no defaultSubAgentId
+      const projectNoSubAgent = {
+        ...testProject,
+        agents: {
+          'agent-123': {
+            ...testProject.agents['agent-123'],
+            defaultSubAgentId: null,
+          },
+        },
+      };
+      getFullProjectWithRelationIdsMock.mockReturnValue(
+        vi.fn().mockResolvedValue(projectNoSubAgent)
+      );
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: 'test' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      expect(updateStatusFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'failed',
+            errorMessage: expect.stringContaining('no default sub-agent'),
+          }),
+        })
+      );
+    });
+  });
 });
