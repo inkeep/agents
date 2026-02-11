@@ -1896,11 +1896,6 @@ export class Agent {
     const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
     const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
-    const skillDebugInfo =
-      this.config.skills?.map((skill) => ({
-        name: skill.name,
-        alwaysLoaded: skill.alwaysLoaded,
-      })) || [];
     const skillTools = hasOnDemandSkills ? { load_skill: this.#createLoadSkillTool() } : {};
     const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools };
 
@@ -1913,9 +1908,9 @@ export class Agent {
         allTools: Object.keys(allTools),
         functionToolsDetails: Object.entries(functionTools).map(([name, tool]) => ({
           name,
-          hasExecute: typeof (tool as any).execute === 'function',
-          hasDescription: !!(tool as any).description,
-          hasInputSchema: !!(tool as any).inputSchema,
+          hasExecute: typeof tool.execute === 'function',
+          hasDescription: !!tool.description,
+          hasInputSchema: !!tool.inputSchema,
         })),
       },
       'Tools loaded for agent'
