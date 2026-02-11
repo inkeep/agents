@@ -60,7 +60,7 @@ export function UseInYourAppSection({
     <div className="mt-4 space-y-4 rounded-md border border-border bg-muted/30 p-4">
       <ol className="list-inside list-decimal space-y-3 text-sm text-muted-foreground">
         <li>
-          Run this command in your project to add this component to{' '}
+          Run this command in your project to add this component:
           <div className="relative mt-2">
             <pre className="overflow-x-auto rounded-md border border-border bg-muted/50 p-3 pr-12 text-xs">
               <code>{addOneCommand}</code>

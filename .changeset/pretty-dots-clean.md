@@ -3,4 +3,4 @@
 "@inkeep/agents-cli": patch
 ---
 
-cli --ui add flag
+Add `--ui` flag to CLI `add` command for downloading UI components from the dashboard
