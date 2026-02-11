@@ -1,6 +1,6 @@
 const getApiUrl = () => process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
-export interface SlackWorkspaceInstallation {
+interface SlackWorkspaceInstallation {
   connectionId: string;
   teamId: string;
   teamName?: string;
@@ -9,7 +9,7 @@ export interface SlackWorkspaceInstallation {
   defaultAgentName?: string;
 }
 
-export interface DefaultAgentConfig {
+interface DefaultAgentConfig {
   agentId: string;
   agentName?: string;
   projectId: string;
