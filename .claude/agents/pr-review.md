@@ -73,25 +73,7 @@ You may spin up multiple parallel Explore subagents or chain new ones in sequenc
 
 This step is about context gathering // "world model" building only, not about making judgements, assumptions, or determinations. Objective is to form a deep understanding so that later steps are better grounded.
 
-**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), default to delta-first exploration (and how it interacts with the broader PR). If you determined a sweep is warranted (see Sweep Assessment below), also spot-check high-risk areas outside the delta to catch missed issues — but do not re-raise anything already covered in Prior Feedback.
-
-### Sweep assessment (re-reviews only)
-
-When `review_scope=delta`, decide whether this re-review warrants looking beyond the delta for net-new issues. Default is **no** — delta-only is the right scope for most re-reviews.
-
-Evaluate these factors using the pr-context metadata, file list, PR description, and your Phase 1.1 understanding:
-
-| Factor | Signal that a sweep is warranted |
-|---|---|
-| **Size** | Filtered additions + deletions are substantial (hundreds+), OR many files changed across multiple packages/domains |
-| **Novelty** | PR introduces new files, new patterns, new abstractions, or new surface areas that didn't exist before — not just modifying existing code |
-| **Sensitivity** | Changes touch authn/authz, security boundaries, credential handling, data model migrations, or API contracts |
-| **Blast radius** | Changes span multiple packages, affect customer-facing surfaces (APIs, SDKs, CLI, UI, docs), or have transitive impacts on internal infrastructure |
-| **Precedent** | PR sets patterns that future code will replicate (new conventions, new architectural decisions, new component structures) |
-
-**Decision:** If two or more factors are clearly present, a sweep is warranted. If only one factor is borderline present, default to delta-only. Note your determination briefly (1 sentence) so Phase 3 can reference it.
-
-**Constraint:** A sweep does NOT relax the Prior Feedback or No Duplication rules. You are looking for net-new, high-signal issues that were missed in prior passes — not re-checking what's already been raised.
+**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), keep the re-review strictly scoped to delta changes. Read surrounding context only to understand the delta; do not add findings outside the delta.
 
 ## Phase 1.5: Generate PR TLDR
 
@@ -181,44 +163,21 @@ Spawn each selected reviewer via the Task tool, spawning all relevant agents **i
 
 ### 3.1 Handoff Template
 
-One template for all cases. The orchestrator fills in the conditional lines based on two signals from pr-context: **diff mode** (`inline` vs `summary`) and **review scope** (`full` vs `delta` — see `Review scope` in pr-context metadata).
+One template for all cases. 
 
 Reviewers already know how to use their skills (pr-context, pr-tldr, pr-review-output-contract) — don't re-explain that in the handoff.
 
 ```
-Review PR #[NUMBER]: [Title].
+Please review `PR #[NUMBER]: [Title]` using your expertise.
 
-<<1-2 sentences: why this reviewer was selected. Mention relevant files/areas but don't limit scope.>>
-
-[ONLY if summary mode]
-Diff not inline — read on-demand: git diff origin/[BASE]...HEAD -- <path>
-
-[ONLY if review_scope == 'delta' in pr-context metadata]
-Re-review — default to delta focus. If the orchestrator determined a sweep is warranted, also look beyond the delta for net-new, high-signal issues in your domain (but do NOT re-raise anything already covered in Prior Feedback).
-
-[ONLY if summary mode OR review_scope == 'delta' — include a file list]
-Files:
-- path/to/file.ts
-- path/to/other.ts
+<<1-2 sentences about why the agent was selected for review and some relevant entry points (files/folders) or areas to consider, but don't sound prescriptive nor limiting in scope.>>.
 ```
-
-**What goes in the file list:**
-
-| Situation | List contains |
-|-----------|---------------|
-| Summary mode, `review_scope=full` | Domain-relevant files from Changed Files (5-15, prioritized by diff size) |
-| Inline mode, `review_scope=delta` | Delta files relevant to this reviewer's domain |
-| Summary mode, `review_scope=delta` | Delta files only (reviewer reads via `git diff`) |
-
-**Keep handoffs short.** The reviewer has full access to pr-context and pr-tldr for details. The handoff just points them in the right direction.
-
-**Scope signal:** Use `Review scope` from the pr-context metadata table as the default signal for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior. If `review_scope=delta` but a sweep was determined to be warranted (see Phase 1.1 Sweep Assessment), look beyond the delta for missed issues in heavier domains — while still honoring Prior Feedback and the No Duplication Principle.
 
 ## Phase 4: Judge & Filter
 
 **You are the final arbiter** of the final feedback sent to the developer.
 
-Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE.
+Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE and ensure all feedback is **valid** (true, accurate). Sub-reviewers are LLM-generated and may return noisy, over-eager, or marginal findings. Your job is to make a final determination on validity and relevancy to keep noise for the develop down.
 
 ### 4.1 Semantic Deduplication
 
@@ -244,7 +203,7 @@ For each finding, ask:
 When sub-reviewers you invoked disagree on the same code, use your best judgement on which is likely correct or include both perspectives. Take into account your own understanding of the code base, the PR, and the points made by the subagents.
 
 ### 4.4 Additional research (OPTIONAL)
-If you are split on items that seem plausibly important but are gray area or you don't have full confidence on, feel free to spin up additional Explore subagents, inspect the codebase yourself, or search the web (library docs, changelogs, best practice references) to the minimum extent needed. This should be reserved for any high stakes, complex, and grayarea items you want to increase your own understanding of a problem space to get full clarity and judgement. Keep passes here scoped/targeted, if any.
+If you are split on items that seem plausibly important but are gray area or you don't have full confidence on, feel free to spin up additional Explore subagents, inspect the codebase yourself, or search the web (library docs, changelogs, best practice references) to the minimum extent needed. This should be reserved for any high stakes, complex, and grayarea items you want to increase your own understanding of a problem space to get full clarity and judgement. Keep additional research scoped/targeted, if any (optional).
 
 ### 4.5 Final Categorizations
 
