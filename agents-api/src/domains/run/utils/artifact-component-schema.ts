@@ -101,10 +101,13 @@ export class ArtifactCreateSchema {
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };
 
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+
       return z.object({
         id: z.string(),
         name: z.literal(`ArtifactCreate_${component.name}`),
-        props: z.fromJSONSchema(propsSchema),
+        props: z.fromJSONSchema(normalizedPropsSchema as JSONSchema.BaseSchema),
       });
     });
   }
@@ -152,13 +155,16 @@ export class ArtifactCreateSchema {
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       } satisfies JSONSchema.BaseSchema;
 
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
         tenantId: tenantId,
         projectId: projectId,
         name: `ArtifactCreate_${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
-        props: propsSchema as JsonSchemaForLlmSchemaType,
+        props: normalizedPropsSchema as JsonSchemaForLlmSchemaType,
       };
     });
   }

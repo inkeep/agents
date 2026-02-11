@@ -13,5 +13,7 @@ export default {
     'agents-manage-ui/src/components/agent/configuration/model-options.tsx': ['exports'],
     'agents-manage-ui/cypress/env.d.ts': ['files'],
     'agents-manage-ui/cypress/cypress.config.ts': ['files'],
+    'agents-manage-ui/src/components/form/generic-prompt-editor.tsx': ['files'],
+    'agents-manage-ui/src/components/form/generic-json-editor.tsx': ['files'],
   },
 } satisfies KnipConfig;

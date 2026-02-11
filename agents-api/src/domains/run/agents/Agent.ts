@@ -69,6 +69,7 @@ import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import { SchemaProcessor } from '../utils/SchemaProcessor';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import {
@@ -3493,7 +3494,9 @@ ${output}`;
     const componentSchemas: z.ZodType<any>[] = [];
 
     this.config.dataComponents?.forEach((dc) => {
-      const propsSchema = z.fromJSONSchema(dc.props);
+      // Normalize schema to ensure all properties are required (cross-provider compatibility)
+      const normalizedProps = SchemaProcessor.makeAllPropertiesRequired(dc.props);
+      const propsSchema = z.fromJSONSchema(normalizedProps);
       componentSchemas.push(
         z.object({
           id: z.string(),

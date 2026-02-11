@@ -19,13 +19,11 @@ export const summarizerModelProviderOptionsTemplate = `{
 }`;
 
 export const azureModelProviderOptionsTemplate = `{
-  "resourceName": "your-azure-resource",
   "temperature": 0.7,
   "maxOutputTokens": 2048
 }`;
 
 export const azureModelSummarizerProviderOptionsTemplate = `{
-  "resourceName": "your-azure-resource",
   "temperature": 0.3,
   "maxOutputTokens": 1024
 }`;
