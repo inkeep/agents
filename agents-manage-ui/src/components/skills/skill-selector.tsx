@@ -121,75 +121,77 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
               </TooltipContent>
             </Tooltip>
           </div>
-          {selectedSkills.map((skill) => (
-            <li
-              key={skill.id}
-              className={cn(
-                'cursor-pointer flex items-center gap-2 text-muted-foreground px-3 py-2 transition-colors border-t',
-                dragOverId ? dragOverId === skill.id && 'bg-muted/30' : 'hover:bg-muted/30'
-              )}
-              draggable
-              data-id={skill.id}
-              onDragStart={(event) => {
-                setDraggingId(event.currentTarget.dataset.id as string);
-              }}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setDragOverId(event.currentTarget.dataset.id as string);
-              }}
-              onDragLeave={() => setDragOverId('')}
-              onDrop={(event) => {
-                handleDrop(event.currentTarget.dataset.id as string);
-              }}
-              onDragEnd={() => {
-                setDraggingId('');
-                setDragOverId('');
-              }}
-            >
-              <div className="flex items-center">
-                {`${skill.index + 1}.`}
-                <GripVertical className="size-4" />
-              </div>
-              <div className="grow">
-                <div className="text-sm text-foreground font-medium line-clamp-1">{skill.id}</div>
-                <div className="line-clamp-1">{skill.description}</div>
-              </div>
-              <Checkbox
-                checked={skill.alwaysLoaded}
-                onCheckedChange={(checked) => handleAlwaysLoadedChange(skill.id, checked)}
-              />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="-mr-2"
-                    aria-label="Skill options"
-                  >
-                    <MoreVertical />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <NextLink href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}>
-                      <Pencil />
-                      Edit
-                    </NextLink>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    variant="destructive"
-                    data-id={skill.id}
-                    onClick={(event) => {
-                      handleToggle(event.currentTarget.dataset.id as string);
-                    }}
-                  >
-                    <Trash2 />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </li>
-          ))}
+          <ul>
+            {selectedSkills.map((skill) => (
+              <li
+                key={skill.id}
+                className={cn(
+                  'cursor-pointer flex items-center gap-2 text-muted-foreground px-3 py-2 transition-colors border-t',
+                  dragOverId ? dragOverId === skill.id && 'bg-muted/30' : 'hover:bg-muted/30'
+                )}
+                draggable
+                data-id={skill.id}
+                onDragStart={(event) => {
+                  setDraggingId(event.currentTarget.dataset.id as string);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragOverId(event.currentTarget.dataset.id as string);
+                }}
+                onDragLeave={() => setDragOverId('')}
+                onDrop={(event) => {
+                  handleDrop(event.currentTarget.dataset.id as string);
+                }}
+                onDragEnd={() => {
+                  setDraggingId('');
+                  setDragOverId('');
+                }}
+              >
+                <div className="flex items-center">
+                  {`${skill.index + 1}.`}
+                  <GripVertical className="size-4" />
+                </div>
+                <div className="grow">
+                  <div className="text-sm text-foreground font-medium line-clamp-1">{skill.id}</div>
+                  <div className="line-clamp-1">{skill.description}</div>
+                </div>
+                <Checkbox
+                  checked={skill.alwaysLoaded}
+                  onCheckedChange={(checked) => handleAlwaysLoadedChange(skill.id, checked)}
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="-mr-2"
+                      aria-label="Skill options"
+                    >
+                      <MoreVertical />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <NextLink href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}>
+                        <Pencil />
+                        Edit
+                      </NextLink>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      data-id={skill.id}
+                      onClick={(event) => {
+                        handleToggle(event.currentTarget.dataset.id as string);
+                      }}
+                    >
+                      <Trash2 />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
