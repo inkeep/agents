@@ -77,21 +77,24 @@ This step is about context gathering // "world model" building only, not about m
 
 ### Sweep assessment (re-reviews only)
 
-When `review_scope=delta`, decide whether this re-review warrants looking beyond the delta for net-new issues. Default is **no** — delta-only is the right scope for most re-reviews.
+When `review_scope=delta`, decide whether this re-review warrants looking beyond the delta for net-new issues. Default is **no** — delta-only is the right scope for **most** re-reviews. Err strongly toward delta-only.
 
-Evaluate these factors using the pr-context metadata, file list, PR description, and your Phase 1.1 understanding:
+Factors are split into two tiers. A sweep requires **at least one high-stakes factor** plus **at least one other factor** (high-stakes or supporting). Supporting factors alone — no matter how many — are never sufficient.
 
-| Factor | Signal that a sweep is warranted |
-|---|---|
-| **Size** | Filtered additions + deletions are substantial (hundreds+), OR many files changed across multiple packages/domains |
-| **Novelty** | PR introduces new files, new patterns, new abstractions, or new surface areas that didn't exist before — not just modifying existing code |
-| **Sensitivity** | Changes touch authn/authz, security boundaries, credential handling, data model migrations, or API contracts |
-| **Blast radius** | Changes span multiple packages, affect customer-facing surfaces (APIs, SDKs, CLI, UI, docs), or have transitive impacts on internal infrastructure |
-| **Precedent** | PR sets patterns that future code will replicate (new conventions, new architectural decisions, new component structures) |
+| Tier | Factor | Signal that a sweep is warranted |
+|---|---|---|
+| **High-stakes** | **Sensitivity** | Changes touch authn/authz, security boundaries, credential handling, data model migrations, or API contracts |
+| **High-stakes** | **Precedent** | PR sets patterns that future code will replicate (new conventions, new architectural decisions, new component structures) |
+| Supporting | **Size** | Filtered additions + deletions are substantial (hundreds+), OR many files changed across multiple packages/domains |
+| Supporting | **Novelty** | PR introduces new files, new patterns, new abstractions, or new surface areas that didn't exist before — not just modifying existing code |
+| Supporting | **Blast radius** | Changes span multiple packages, affect customer-facing surfaces (APIs, SDKs, CLI, UI, docs), or have transitive impacts on internal infrastructure |
 
-**Decision:** If two or more factors are clearly present, a sweep is warranted. If only one factor is borderline present, default to delta-only. Note your determination briefly (1 sentence) so Phase 3 can reference it.
+**Decision:** One high-stakes factor + one other factor (any tier) = sweep warranted. Anything less = delta-only. Note your determination briefly (1 sentence) so Phase 3 can reference it.
 
-**Constraint:** A sweep does NOT relax the Prior Feedback or No Duplication rules. You are looking for net-new, high-signal issues that were missed in prior passes — not re-checking what's already been raised.
+**Sweep constraints:**
+- Does NOT relax the Prior Feedback or No Duplication rules. You are looking for net-new, high-signal issues that were missed in prior passes — not re-checking what's already been raised.
+- Only **Critical Domain** reviewers (security-iam, architecture, sre, devops) receive sweep scope expansion in their handoff. All other reviewers (Core, Strong Default, Domain-Specific) stay **delta-only** during re-reviews regardless of sweep determination.
+- Findings surfaced via sweep (outside the delta) must be **Critical or Major** to be included. Minor sweep findings → **DISCARD**. The delta already had a full review pass; sweep is for catching high-stakes misses only.
 
 ## Phase 1.5: Generate PR TLDR
 
@@ -193,8 +196,11 @@ Review PR #[NUMBER]: [Title].
 [ONLY if summary mode]
 Diff not inline — read on-demand: git diff origin/[BASE]...HEAD -- <path>
 
-[ONLY if review_scope == 'delta' in pr-context metadata]
-Re-review — default to delta focus. If the orchestrator determined a sweep is warranted, also look beyond the delta for net-new, high-signal issues in your domain (but do NOT re-raise anything already covered in Prior Feedback).
+[ONLY if review_scope == 'delta' in pr-context metadata AND this reviewer is a Critical Domain reviewer AND sweep is warranted]
+Re-review with sweep — delta focus first, then spot-check high-risk areas outside the delta for Critical/Major issues only in your domain (do NOT re-raise anything already covered in Prior Feedback, and do NOT surface Minor issues from outside the delta).
+
+[ONLY if review_scope == 'delta' in pr-context metadata AND (sweep is NOT warranted OR this reviewer is NOT a Critical Domain reviewer)]
+Re-review — delta focus only. Review only the changed files listed below.
 
 [ONLY if summary mode OR review_scope == 'delta' — include a file list]
 Files:
@@ -212,13 +218,13 @@ Files:
 
 **Keep handoffs short.** The reviewer has full access to pr-context and pr-tldr for details. The handoff just points them in the right direction.
 
-**Scope signal:** Use `Review scope` from the pr-context metadata table as the default signal for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior. If `review_scope=delta` but a sweep was determined to be warranted (see Phase 1.1 Sweep Assessment), look beyond the delta for missed issues in heavier domains — while still honoring Prior Feedback and the No Duplication Principle.
+**Scope signal:** Use `Review scope` from the pr-context metadata table as the default signal for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior. If `review_scope=delta` and a sweep is warranted, only Critical Domain reviewers (security-iam, architecture, sre, devops) get sweep scope — all others stay delta-only. Sweep findings outside the delta must be Critical or Major to surface (see Sweep Assessment constraints).
 
 ## Phase 4: Judge & Filter
 
 **You are the final arbiter** of the final feedback sent to the developer.
 
-Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE.
+Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE. Sub-reviewers are LLM-generated and will return noisy, over-eager, or marginal findings — this is expected. Your job is to **filter aggressively**, not to pass findings through. A tightly scoped review with 2-3 high-signal items is better than a sprawling one with 10+ marginal items. Hold the same bar for validity, severity, and confidence regardless of how many findings sub-reviewers return.
 
 ### 4.1 Semantic Deduplication
 
