@@ -30,7 +30,7 @@ app.get('/*', async (c) => {
       status: 200,
       headers: {
         'Content-Type': result.contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'private, max-age=31536000, immutable', // route behind requireProjectPermission('view'); URL is immutable per key
         'Content-Length': result.data.length.toString(),
       },
     });

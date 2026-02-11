@@ -1,3 +1,9 @@
+/**
+ * Vercel Blob does not offer a true private access level or an SDK get() for private
+ * blobs. Blobs have unique but publicly accessible URLs ("unguessable" security).
+ * We serve controlled access via the media proxy: run/routes/media.ts (behind
+ * requireProjectPermission('view')). Uploads use public URLs; auth is enforced at the proxy.
+ */
 import { del, head, put } from '@vercel/blob';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
@@ -21,7 +27,7 @@ export class VercelBlobStorageProvider implements BlobStorageProvider {
     const body =
       params.data instanceof Buffer ? params.data : Buffer.from(params.data as Uint8Array);
     await put(params.key, body, {
-      access: 'public',
+      access: 'public', // The only allowed value (check the type)
       contentType: params.contentType,
       token: this.token,
       addRandomSuffix: false,

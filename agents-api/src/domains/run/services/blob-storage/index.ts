@@ -14,6 +14,12 @@ const logger = getLogger('blob-storage');
 
 let instance: BlobStorageProvider | null = null;
 
+/**
+ * Returns the configured blob storage provider (S3 or Vercel). Stored keys do not
+ * encode which backend was used. Do not change BLOB_STORAGE_PROVIDER after uploads
+ * have been made—existing media URLs may 404. Migration between backends is the
+ * deployer's responsibility.
+ */
 export function getBlobStorageProvider(): BlobStorageProvider {
   if (!instance) {
     const provider = env.BLOB_STORAGE_PROVIDER ?? 's3';

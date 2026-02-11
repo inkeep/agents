@@ -168,7 +168,7 @@ const envSchema = z.object({
     .optional()
     .default('s3')
     .describe(
-      'Blob storage provider for media uploads: s3 (MinIO/AWS for self-host or local), vercel (Vercel Blob when deployed on Vercel)'
+      'Blob storage provider for media uploads: s3 (MinIO/AWS for self-host or local), vercel (Vercel Blob when deployed on Vercel). Do not switch after uploads exist—existing media keys are not provider-scoped and may 404.'
     ),
   BLOB_READ_WRITE_TOKEN: z
     .string()
