@@ -158,8 +158,10 @@ app.openapi(
       const { teamId, userId: slackUserId, enterpriseId, username } = slack;
 
       // Prefer session userId (from auth) over body.userId for security
+      // Skip dev bypass user — it's not a real DB user
       const sessionUserId = c.get('userId') as string | undefined;
-      const inkeepUserId = sessionUserId || body.userId;
+      const isRealSessionUser = sessionUserId && sessionUserId !== 'dev-user' && !sessionUserId.startsWith('apikey:') && sessionUserId !== 'system';
+      const inkeepUserId = isRealSessionUser ? sessionUserId : body.userId;
 
       const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
         tenantId,
