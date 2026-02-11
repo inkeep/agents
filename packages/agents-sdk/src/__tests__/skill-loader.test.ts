@@ -136,7 +136,7 @@ metadata:
   author: 0
 ---`,
       });
-      expect(() => loadSkills(root)).toThrow('Invalid input: expected string, received number');
+      expect(() => loadSkills(root)).toThrow('All object values must be strings');
     });
 
     it('accepts with string values', async () => {
