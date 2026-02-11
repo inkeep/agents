@@ -228,9 +228,9 @@ export class SchemaProcessor {
    * Makes all properties required recursively throughout the schema.
    * This ensures compatibility across all LLM providers (OpenAI/Azure require it, Anthropic accepts it).
    */
-  static makeAllPropertiesRequired(
-    schema: JSONSchema.BaseSchema | Record<string, unknown> | null | undefined
-  ): JSONSchema.BaseSchema | Record<string, unknown> | null | undefined {
+  static makeAllPropertiesRequired<
+    T extends JSONSchema.BaseSchema | Record<string, unknown> | null | undefined,
+  >(schema: T): T {
     if (!schema || typeof schema !== 'object') {
       return schema;
     }

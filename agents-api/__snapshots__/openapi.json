@@ -2355,7 +2355,8 @@
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "props"
         ],
         "type": "object"
       },

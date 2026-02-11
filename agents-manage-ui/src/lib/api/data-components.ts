@@ -20,13 +20,12 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: DataComponentApiSelect might have nullable props, but UI expects non-nullable
-export type DataComponent = Omit<DataComponentApiSelect, 'props'> & {
-  props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
+export interface DataComponent extends Omit<DataComponentApiSelect, 'render'> {
   render?: {
     component: string;
     mockData: Record<string, unknown>;
   } | null;
-};
+}
 
 /**
  * Fetch all data components for a tenant
