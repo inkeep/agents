@@ -57,6 +57,13 @@
       "when": 1770640010230,
       "tag": "0007_nice_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770851895625,
+      "tag": "0008_busy_scorpion",
+      "breakpoints": true
     }
   ]
 }
