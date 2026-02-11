@@ -16914,7 +16914,7 @@
         },
         "summary": "Attach Skill to Sub-Agent",
         "tags": [
-          "SubAgent Skills"
+          "Skills"
         ]
       }
     },
@@ -17033,7 +17033,7 @@
         },
         "summary": "List Skills for Sub-Agent",
         "tags": [
-          "SubAgent Skills"
+          "Skills"
         ]
       }
     },
@@ -17152,7 +17152,7 @@
         },
         "summary": "Detach Skill from Sub-Agent",
         "tags": [
-          "SubAgent Skills"
+          "Skills"
         ]
       }
     },

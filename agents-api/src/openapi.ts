@@ -27,6 +27,8 @@ export const TagToDescription = {
   'Project Permissions': 'Operations for managing project permissions',
   Projects: 'Operations for managing projects',
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
+  Skills:
+    'Reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority',
   SubAgents: 'Operations for managing sub agents',
   'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
   Tools: 'Operations for managing MCP tools',

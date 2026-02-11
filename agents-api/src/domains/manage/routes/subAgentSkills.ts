@@ -38,7 +38,7 @@ app.openapi(
     path: '/agent/{subAgentId}',
     summary: 'List Skills for Sub-Agent',
     operationId: 'get-skills-for-subagent',
-    tags: ['SubAgent Skills'],
+    tags: ['Skills'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
@@ -72,7 +72,7 @@ app.openapi(
     path: '/',
     summary: 'Attach Skill to Sub-Agent',
     operationId: 'create-subagent-skill',
-    tags: ['SubAgent Skills'],
+    tags: ['Skills'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -135,7 +135,7 @@ app.openapi(
     path: '/agent/{subAgentId}/skill/{skillId}',
     summary: 'Detach Skill from Sub-Agent',
     operationId: 'delete-subagent-skill',
-    tags: ['SubAgent Skills'],
+    tags: ['Skills'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         subAgentId: z.string(),
