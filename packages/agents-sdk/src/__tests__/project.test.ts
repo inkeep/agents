@@ -130,8 +130,7 @@ describe('Project', () => {
       expect(mockAgent.setConfig).toHaveBeenCalledWith(
         'default',
         'test-project',
-        'http://localhost:3002',
-        []
+        'http://localhost:3002'
       );
     });
   });
@@ -162,14 +161,12 @@ describe('Project', () => {
       expect(mockAgent1.setConfig).toHaveBeenCalledWith(
         'new-tenant',
         'test-project',
-        'http://new-api.com',
-        []
+        'http://new-api.com'
       );
       expect(mockAgent2.setConfig).toHaveBeenCalledWith(
         'new-tenant',
         'test-project',
-        'http://new-api.com',
-        []
+        'http://new-api.com'
       );
     });
 
@@ -300,8 +297,7 @@ describe('Project', () => {
       expect(mockAgent.setConfig).toHaveBeenCalledWith(
         'test-tenant',
         'test-project',
-        'http://localhost:3002',
-        []
+        'http://localhost:3002'
       );
     });
 
