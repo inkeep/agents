@@ -34689,6 +34689,10 @@
       "name": "Refs"
     },
     {
+      "description": "Reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority",
+      "name": "Skills"
+    },
+    {
       "description": "Operations for managing sub agents",
       "name": "SubAgents"
     },
