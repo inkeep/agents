@@ -141,7 +141,7 @@ app.openapi(
       const sessionTenantId = c.get('tenantId') as string | undefined;
       const workspaces = sessionTenantId
         ? allWorkspaces.filter((w) => w.tenantId === sessionTenantId)
-        : allWorkspaces;
+        : []; // Require authenticated session for tenant-scoped data
 
       logger.info(
         { count: workspaces.length, tenantId: sessionTenantId },
@@ -416,27 +416,8 @@ app.openapi(
         }
       }
 
-      const nangoSuccess = await deleteWorkspaceInstallation(connectionId);
-
-      if (!nangoSuccess) {
-        logger.error({ connectionId }, 'deleteWorkspaceInstallation returned false');
-        return c.json({ error: 'Failed to delete workspace from Nango' }, 500);
-      }
-
-      const dbDeleted =
-        await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
-      if (dbDeleted) {
-        logger.info({ connectionId }, 'Deleted workspace from database');
-      }
-
+      // Delete from PostgreSQL first (recoverable), then Nango (point of no return)
       const tenantId = workspace.tenantId || 'default';
-      const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
-        tenantId,
-        teamId
-      );
-      if (deletedMappings > 0) {
-        logger.info({ teamId, deletedMappings }, 'Deleted user mappings for uninstalled workspace');
-      }
 
       const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(
         runDbClient
@@ -445,6 +426,29 @@ app.openapi(
         logger.info(
           { teamId, deletedChannelConfigs },
           'Deleted channel configs for uninstalled workspace'
+        );
+      }
+
+      const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
+        tenantId,
+        teamId
+      );
+      if (deletedMappings > 0) {
+        logger.info({ teamId, deletedMappings }, 'Deleted user mappings for uninstalled workspace');
+      }
+
+      const dbDeleted =
+        await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
+      if (dbDeleted) {
+        logger.info({ connectionId }, 'Deleted workspace from database');
+      }
+
+      // Point of no return: delete from Nango (OAuth tokens)
+      const nangoSuccess = await deleteWorkspaceInstallation(connectionId);
+      if (!nangoSuccess) {
+        logger.error(
+          { connectionId },
+          'deleteWorkspaceInstallation returned false (DB already cleaned up)'
         );
       }
 

@@ -90,14 +90,6 @@ export async function findCachedUserMapping(
 }
 
 /**
- * Invalidate user mapping cache for a specific user (call on link/unlink).
- */
-export function invalidateUserMappingCache(tenantId: string, slackUserId: string, teamId: string) {
-  const cacheKey = `${tenantId}:${slackUserId}:${teamId}:work-apps-slack`;
-  userMappingCache.delete(cacheKey);
-}
-
-/**
  * Convert standard Markdown to Slack's mrkdwn format
  *
  * Key differences:

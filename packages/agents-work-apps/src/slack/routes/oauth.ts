@@ -15,6 +15,7 @@ import { getLogger } from '../../logger';
 import {
   clearWorkspaceConnectionCache,
   computeWorkspaceConnectionId,
+  deleteWorkspaceInstallation,
   getBotTokenForTeam,
   getSlackClient,
   getSlackTeamInfo,
@@ -359,8 +360,18 @@ app.openapi(
             } else {
               logger.error(
                 { error: dbErrorMessage, teamId: workspaceData.teamId },
-                'Failed to persist workspace to database'
+                'Failed to persist workspace to database, rolling back Nango connection'
               );
+              // Rollback: delete from Nango to avoid split-brain state
+              try {
+                await deleteWorkspaceInstallation(nangoResult.connectionId);
+              } catch (rollbackError) {
+                logger.error(
+                  { error: rollbackError, connectionId: nangoResult.connectionId },
+                  'Failed to rollback Nango connection after DB failure'
+                );
+              }
+              return c.redirect(`${dashboardUrl}?error=installation_failed`);
             }
           }
         } else {
