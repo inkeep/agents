@@ -45,17 +45,24 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { tracer } from '../utils/tracer';
 
-// Import waitUntil synchronously (only available on Vercel)
-let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
-if (process.env.VERCEL) {
+// Lazily resolve waitUntil from @vercel/functions (ESM dynamic import)
+let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+let _waitUntilResolved = false;
+
+async function getWaitUntil(): Promise<
+  ((promise: Promise<unknown>) => void) | undefined
+> {
+  if (_waitUntilResolved) return _waitUntil;
+  _waitUntilResolved = true;
+  if (!process.env.VERCEL) return undefined;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    ({ waitUntil } = require('@vercel/functions'));
+    const mod = await import('@vercel/functions');
+    _waitUntil = mod.waitUntil;
   } catch (e) {
     console.error('[TriggerService] Failed to import @vercel/functions:', e);
   }
+  return _waitUntil;
 }
-console.log('[TriggerService] waitUntil available:', !!waitUntil, 'VERCEL env:', !!process.env.VERCEL);
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
@@ -582,6 +589,7 @@ export async function dispatchExecution(params: {
 
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
+  const waitUntil = await getWaitUntil();
   if (waitUntil) {
     logger.info(
       { tenantId, projectId, agentId, triggerId, invocationId },
