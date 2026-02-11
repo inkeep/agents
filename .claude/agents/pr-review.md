@@ -462,7 +462,7 @@ This is a binary, mutually exclusive decision. A finding is NEVER both a full wr
 ````markdown
 ## PR Review Summary
 
-**X Key Findings** | Risk: **High/Medium/Low**
+**(X) Total Issues** | Risk: **High/Medium/Low**
 
 ### 🔴❗ Critical (N) ❗🔴
 
@@ -548,7 +548,7 @@ when the problem is complex or context is needed.
 🧹 2) ...
 ````
 
-Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L (Consider and While You're Here items don't count toward Key Findings).
+Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L + W + P (total actionable issues: Main findings + While You're Here + Pending Recommendations. Consider and Discarded are excluded).
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
@@ -596,6 +596,14 @@ Link to the original source using the `url` field from pr-context. **DO NOT repe
 - Omit this section entirely if there are no pending items.
 
 ### "Final Recommendation" section
+
+**Decision criteria** — based on the highest severity across Main (Critical/Major/Minor) and Pending Recommendations. Consider, While You're Here, and Discarded items do NOT influence the recommendation.
+
+| Highest severity present (new or pending) | Recommendation |
+|---|---|
+| Critical or Major | 🚫 REQUEST CHANGES |
+| Minor only | 💡 APPROVE WITH SUGGESTIONS |
+| None (only Consider / While You're Here / Discarded, or clean) | ✅ APPROVE |
 
 ````markdown
 ---
