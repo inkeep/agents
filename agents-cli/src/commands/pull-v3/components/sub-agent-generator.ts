@@ -199,7 +199,7 @@ export function generateSubAgentDefinition(
   }
 
   // skills - ordered skill attachments by id
-  if (agentData.skills && Array.isArray(agentData.skills) && agentData.skills.length > 0) {
+  if (Array.isArray(agentData.skills) && agentData.skills.length) {
     lines.push(`${indentation}skills: () => [`);
     for (const skill of agentData.skills) {
       const parts = [`id: ${formatString(skill.id, q)}`];
