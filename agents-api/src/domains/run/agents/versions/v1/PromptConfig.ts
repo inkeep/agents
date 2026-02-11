@@ -126,9 +126,21 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.components.agentPrompt = estimateTokens(agentContextSection);
+    const skillsSection = this.#generateSkillsSection(config.skills);
+    const skillsGuidelines = skillsSection
+      ? `
+      - I operate using a set of skills that govern my behavior, reasoning, and tool usage.
+      - Skills are mandatory and must be followed.
+      - Some skills are always active; others are loaded on demand when relevant.
+      - Applicable skills are used automatically and implicitly, without explanation.
+      - Skills are applied in priority order, with core instructions overriding conflicts.
+      - Always call \`load_skill\` with skill name before responding.`.trimStart()
+      : '';
+
     systemPrompt = systemPrompt
       .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
-      .replace('{{SKILLS_SECTION}}', this.#generateSkillsSection(config.skills));
+      .replace('{{SKILLS_SECTION}}', skillsSection)
+      .replace('{{SKILLS_GUIDELINES}}', skillsGuidelines);
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools

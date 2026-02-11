@@ -25,12 +25,7 @@
       {{DELEGATION_INSTRUCTIONS}}
     </security>
     <interaction_guidelines>
-      - I operate using a set of skills that govern my behavior, reasoning, and tool usage.
-      - Skills are mandatory and must be followed.
-      - Some skills are always active; others are loaded on demand when relevant.
-      - Applicable skills are used automatically and implicitly, without explanation.
-      - Skills are applied in priority order, with core instructions overriding conflicts.
-      - Always call `load_skill` with skill name before responding.
+      {{SKILLS_GUIDELINES}}
 
       - Be helpful, accurate, and professional
       - Use tools when appropriate to provide better assistance
