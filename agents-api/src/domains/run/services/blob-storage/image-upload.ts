@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
+import {
+  downloadExternalImage,
+  normalizeInlineImageBytes,
+  toCanonicalImageMimeType,
+} from './image-security';
 import { getBlobStorageProvider, toBlobUri } from './index';
 
 const logger = getLogger('image-upload');
@@ -32,21 +37,6 @@ function buildStorageKey(ctx: UploadContext, hash: string, ext: string): string 
   return `${ctx.tenantId}/${ctx.projectId}/${ctx.conversationId}/${ctx.messageId}/${hash}.${ext}`;
 }
 
-async function downloadExternalImage(url: string): Promise<{ data: Uint8Array; mimeType: string }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to download image from ${url}: ${response.status} ${response.statusText}`
-    );
-  }
-  const contentType = response.headers.get('content-type') || 'application/octet-stream';
-  const arrayBuffer = await response.arrayBuffer();
-  return {
-    data: new Uint8Array(arrayBuffer),
-    mimeType: contentType.split(';')[0].trim(),
-  };
-}
-
 async function uploadFilePart(
   part: FilePart,
   ctx: UploadContext,
@@ -59,8 +49,9 @@ async function uploadFilePart(
   let mimeType: string;
 
   if ('bytes' in file && file.bytes) {
-    data = Uint8Array.from(Buffer.from(file.bytes, 'base64'));
-    mimeType = file.mimeType || 'application/octet-stream';
+    const normalized = await normalizeInlineImageBytes(file);
+    data = normalized.data;
+    mimeType = normalized.mimeType;
   } else if ('uri' in file && file.uri) {
     const downloaded = await downloadExternalImage(file.uri);
     data = downloaded.data;
@@ -71,7 +62,7 @@ async function uploadFilePart(
   }
 
   const hash = createHash('sha256').update(data).digest('hex').slice(0, 16);
-  const ext = getExtensionFromMimeType(mimeType);
+  const ext = getExtensionFromMimeType(toCanonicalImageMimeType(mimeType));
   const key = buildStorageKey(ctx, `${index}-${hash}`, ext);
 
   await storage.upload({ key, data, contentType: mimeType });
