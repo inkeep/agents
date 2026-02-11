@@ -19,6 +19,7 @@ import {
   getFullAgent,
   getProjectScopedRef,
   ModelFactory,
+  parseSSEResponse,
   resolveRef,
   updateEvaluationResult,
   withRef,
@@ -212,7 +213,7 @@ export class EvaluationService {
     }
 
     const responseText = await response.text();
-    const parseResult = this.parseSSEResponse(responseText);
+    const parseResult = parseSSEResponse(responseText);
 
     // Check if the response indicates an error
     if (parseResult.error) {
@@ -537,100 +538,6 @@ Generate the next user message:`;
     }
 
     return null;
-  }
-
-  /**
-   * Parse SSE (Server-Sent Events) response from chat API
-   * Handles text deltas, error operations, and other data operations
-   */
-  private parseSSEResponse(sseText: string): { text: string; error?: string } {
-    let textContent = '';
-    let hasError = false;
-    let errorMessage = '';
-
-    const lines = sseText.split('\n').filter((line) => line.startsWith('data: '));
-
-    for (const line of lines) {
-      try {
-        const data = JSON.parse(line.slice(6)); // Remove 'data: ' prefix
-
-        // Handle OpenAI-compatible chat completion chunk format
-        if (data.object === 'chat.completion.chunk' && data.choices?.[0]?.delta) {
-          const delta = data.choices[0].delta;
-
-          // Extract text content
-          if (delta.content) {
-            textContent += delta.content;
-          }
-
-          // Check for embedded JSON in content (for operations)
-          if (delta.content && typeof delta.content === 'string') {
-            try {
-              const parsedContent = JSON.parse(delta.content);
-              if (parsedContent.type === 'data-operation' && parsedContent.data?.type === 'error') {
-                hasError = true;
-                errorMessage = parsedContent.data.message || 'Unknown error occurred';
-                logger.warn(
-                  {
-                    errorMessage,
-                    errorData: parsedContent.data,
-                  },
-                  'Received error operation from chat API'
-                );
-              }
-            } catch {
-              // Not JSON, treat as regular text content
-            }
-          }
-        }
-        // Handle Vercel AI SDK data stream format
-        else if (data.type === 'text-delta' && data.delta) {
-          textContent += data.delta;
-        }
-        // Handle error operations (like the UI does)
-        else if (data.type === 'data-operation' && data.data?.type === 'error') {
-          hasError = true;
-          errorMessage = data.data.message || 'Unknown error occurred';
-          logger.warn(
-            {
-              errorMessage,
-              errorData: data.data,
-            },
-            'Received error operation from chat API'
-          );
-        }
-        // Handle error type directly
-        else if (data.type === 'error') {
-          hasError = true;
-          errorMessage = data.message || 'Unknown error occurred';
-          logger.warn(
-            {
-              errorMessage,
-              errorData: data,
-            },
-            'Received error event from chat API'
-          );
-        }
-        // Handle other response formats
-        else if (data.content) {
-          textContent +=
-            typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
-        }
-      } catch {
-        // Skip invalid JSON lines (like '[DONE]' or empty lines)
-      }
-    }
-
-    if (hasError) {
-      return {
-        text: textContent.trim(),
-        error: errorMessage,
-      };
-    }
-
-    return {
-      text: textContent.trim(),
-    };
   }
 
   /**
