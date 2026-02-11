@@ -1902,13 +1902,6 @@ export class Agent {
         alwaysLoaded: skill.alwaysLoaded,
       })) || [];
     const skillTools = hasOnDemandSkills ? { load_skill: this.#createLoadSkillTool() } : {};
-    // TODO remove
-    console.log('[load_skill] buildSystemPrompt', {
-      hasOnDemandSkills,
-      skills: skillDebugInfo,
-      toolNames: Object.keys(skillTools),
-    });
-
     const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools };
 
     logger.info(
