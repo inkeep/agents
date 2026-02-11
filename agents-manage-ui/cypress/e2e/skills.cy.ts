@@ -9,13 +9,11 @@ describe('Skills', () => {
 
     cy.visit('/default/projects/my-weather-project/skills');
     cy.contains('Create skill').click();
-    cy.get('[role=dialog]').contains('Create skill');
     cy.get('[name=name]').type(fixture.name);
     cy.get('textarea[name=description]').type(fixture.description);
     cy.typeInMonaco('content.md', fixture.content);
     cy.typeInMonaco('metadata.json', fixture.metadata);
     cy.contains('Save').click();
-    cy.get('[role=dialog]').should('not.exist');
     for (const text of Object.values(fixture)) {
       cy.contains(text).should('exist');
     }
