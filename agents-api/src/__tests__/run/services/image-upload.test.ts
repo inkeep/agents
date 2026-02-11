@@ -2,10 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { uploadPartsImages } from '../../../domains/run/services/blob-storage/image-upload';
 
 const mockUpload = vi.fn();
-const mockLookup = vi.fn();
 
 vi.mock('node:dns/promises', () => ({
-  lookup: mockLookup,
+  lookup: vi.fn(),
 }));
 
 vi.mock('../../../domains/run/services/blob-storage/index', () => ({
@@ -28,9 +27,16 @@ const uploadContext = {
 };
 
 describe('uploadPartsImages', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const { lookup } = vi.mocked(await import('node:dns/promises'));
+    lookup.mockImplementation((...args: any[]) => {
+      const options = args[args.length - 1];
+      if (options && typeof options === 'object' && 'all' in options && options.all) {
+        return Promise.resolve([{ address: '93.184.216.34', family: 4 }] as any);
+      }
+      return Promise.resolve({ address: '93.184.216.34', family: 4 } as any);
+    });
   });
 
   it('uploads a valid external image and stores a blob URI', async () => {

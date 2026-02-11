@@ -1,6 +1,16 @@
 import type { Part } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('node:dns/promises', () => ({
+  lookup: vi.fn().mockImplementation((...args: any[]) => {
+    const options = args[args.length - 1];
+    if (options && typeof options === 'object' && 'all' in options && options.all) {
+      return Promise.resolve([{ address: '93.184.216.34', family: 4 }]);
+    }
+    return Promise.resolve({ address: '93.184.216.34', family: 4 });
+  }),
+}));
+
 vi.mock('../../../../env', () => ({
   env: {
     BLOB_STORAGE_PROVIDER: 's3',
@@ -21,6 +31,10 @@ const mockDownload = vi.fn().mockResolvedValue({
 });
 const mockDelete = vi.fn().mockResolvedValue(undefined);
 const mockGetPresignedUrl = vi.fn().mockResolvedValue('https://presigned.url/test');
+const VALID_PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
+  'base64'
+);
 
 vi.mock('../blob-storage', () => ({
   getBlobStorageProvider: () => ({
@@ -49,7 +63,7 @@ describe('Image Upload', () => {
         {
           kind: 'file',
           file: {
-            bytes: Buffer.from('fake-image-data').toString('base64'),
+            bytes: VALID_PNG_BYTES.toString('base64'),
             mimeType: 'image/png',
           },
         },
@@ -84,9 +98,9 @@ describe('Image Upload', () => {
       const { uploadPartsImages } = await import('../blob-storage/image-upload');
 
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-        new Response(new Uint8Array([1, 2, 3, 4]), {
+        new Response(VALID_PNG_BYTES, {
           status: 200,
-          headers: { 'content-type': 'image/jpeg' },
+          headers: { 'content-type': 'image/png' },
         })
       );
 
@@ -94,8 +108,8 @@ describe('Image Upload', () => {
         {
           kind: 'file',
           file: {
-            uri: 'https://example.com/image.jpg',
-            mimeType: 'image/jpeg',
+            uri: 'https://example.com/image.png',
+            mimeType: 'image/png',
           },
         },
       ];
@@ -113,8 +127,11 @@ describe('Image Upload', () => {
       expect(result[0].kind).toBe('file');
       const filePart = result[0] as any;
       expect(filePart.file.uri).toMatch(/^blob:\/\//);
-      expect(filePart.file.mimeType).toBe('image/jpeg');
-      expect(fetchSpy).toHaveBeenCalledWith('https://example.com/image.jpg');
+      expect(filePart.file.mimeType).toBe('image/png');
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://example.com/image.png',
+        expect.objectContaining({ redirect: 'manual' })
+      );
       expect(mockUpload).toHaveBeenCalledOnce();
 
       fetchSpy.mockRestore();
@@ -151,7 +168,7 @@ describe('Image Upload', () => {
         {
           kind: 'file',
           file: {
-            bytes: Buffer.from('fake-data').toString('base64'),
+            bytes: VALID_PNG_BYTES.toString('base64'),
             mimeType: 'image/png',
           },
         },
@@ -359,7 +376,7 @@ describe('buildPersistedMessageContent', () => {
       {
         kind: 'file',
         file: {
-          bytes: Buffer.from('test-image').toString('base64'),
+          bytes: VALID_PNG_BYTES.toString('base64'),
           mimeType: 'image/png',
         },
       },
