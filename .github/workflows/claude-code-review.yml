@@ -128,6 +128,20 @@ jobs:
           echo "$FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+          # Compute filtered size metrics from numstat (respects EXCLUDE_PATTERNS,
+          # unlike the raw GitHub API additions/deletions which include lockfiles etc.)
+          NUMSTAT=$(git diff --numstat "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
+          FILTERED_ADDITIONS=$(printf '%s\n' "$NUMSTAT" | awk '$1 != "-" {s+=$1} END{print s+0}')
+          FILTERED_DELETIONS=$(printf '%s\n' "$NUMSTAT" | awk '$2 != "-" {s+=$2} END{print s+0}')
+          if [ -n "$FILES" ]; then
+            FILTERED_FILE_COUNT=$(printf '%s\n' "$FILES" | wc -l | tr -d ' ')
+          else
+            FILTERED_FILE_COUNT=0
+          fi
+          echo "filtered_additions=$FILTERED_ADDITIONS" >> $GITHUB_OUTPUT
+          echo "filtered_deletions=$FILTERED_DELETIONS" >> $GITHUB_OUTPUT
+          echo "filtered_file_count=$FILTERED_FILE_COUNT" >> $GITHUB_OUTPUT
+
           # Per-file diff stats (compact size overview)
           DIFF_STATS=$(git diff --stat "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
           {
@@ -571,7 +585,7 @@ jobs:
           | **Base** | `${{ steps.pr.outputs.base_ref }}` |
           | **Repo** | ${{ github.repository }} |
           | **Head SHA** | `${{ steps.pr.outputs.head_sha }}` |
-          | **Size** | ${{ steps.diff.outputs.commit_count }} commits · +${{ steps.pr.outputs.additions }}/-${{ steps.pr.outputs.deletions }} · ${{ steps.pr.outputs.changed_files_count }} files |
+          | **Size** | ${{ steps.diff.outputs.commit_count }} commits · +${{ steps.diff.outputs.filtered_additions }}/-${{ steps.diff.outputs.filtered_deletions }} · ${{ steps.diff.outputs.filtered_file_count }} files |
           | **Labels** | ${{ steps.pr.outputs.labels || '_None_' }} |
           | **Review state** | ${{ steps.review_context.outputs.review_decision }} |
           | **Diff mode** | `${{ steps.diff.outputs.diff_mode }}` — ${{ steps.diff.outputs.diff_mode == 'summary' && 'reviewers must read file diffs on-demand via `git diff`' || 'full diff included below' }} |
