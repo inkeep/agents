@@ -24,7 +24,7 @@ export function registerAppFetch(fn: typeof fetch): void {
 
 export function getInProcessFetch(): typeof fetch {
   if (!_appFetch) {
-    if (process.env.ENVIRONMENT === 'test') {
+    if (process.env.ENVIRONMENT === 'test' || process.env.ENVIRONMENT === 'development') {
       return fetch;
     }
     throw new Error(
