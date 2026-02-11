@@ -99,7 +99,7 @@ export interface SkillDefinition {
   name: string;
   description: string;
   content: string;
-  metadata: Record<string, unknown> | null;
+  metadata: Record<string, string> | null;
   createdAt?: string;
   updatedAt?: string;
 }
