@@ -20,6 +20,12 @@
 definition user {}
 
 /**
+ * anonymous_user represents an unauthenticated end-user (e.g., widget visitor)
+ * Identified by a JWE token; scoped to a tenant + project
+ */
+definition anonymous_user {}
+
+/**
  * organization represents a tenant/org boundary
  * All authorization is scoped within an organization
  */
@@ -111,4 +117,35 @@ definition project {
      * - Only project_admin can edit
      */
     permission edit = organization->manage + project_admin
+}
+
+/**
+ * conversation represents a chat conversation/thread
+ * Scoped to a project; participants can be users or anonymous users
+ */
+definition conversation {
+    /**
+     * The project this conversation belongs to
+     */
+    relation project: project
+
+    /**
+     * A participant in this conversation (user or anonymous user)
+     */
+    relation participant: user | anonymous_user
+
+    /**
+     * Can view the conversation and its messages
+     * "Can subject VIEW conversation?"
+     * - Direct participants can always view
+     * - Project users with 'use' permission can view all project conversations
+     */
+    permission view = participant + project->use
+
+    /**
+     * Can delete the conversation
+     * "Can subject DELETE conversation?"
+     * - Only project editors can delete
+     */
+    permission delete = project->edit
 }

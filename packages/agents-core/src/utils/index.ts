@@ -1,3 +1,4 @@
+export * from './anonymous-token';
 export * from './apiKeys';
 export * from './auth-detection';
 export * from './conversations';

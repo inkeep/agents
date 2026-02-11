@@ -306,6 +306,9 @@ export interface BaseExecutionContext {
       type: 'user' | 'api_key';
       id: string;
     };
+    anonymous?: boolean;
+    anonymousUserId?: string;
+    isNewAnonymousUser?: boolean;
   };
 }
 

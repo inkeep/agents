@@ -8,8 +8,10 @@
  */
 export const SpiceDbResourceTypes = {
   USER: 'user',
+  ANONYMOUS_USER: 'anonymous_user',
   ORGANIZATION: 'organization',
   PROJECT: 'project',
+  CONVERSATION: 'conversation',
 } as const;
 
 /**
@@ -61,6 +63,14 @@ export const SpiceDbProjectPermissions = {
 
 export type SpiceDbProjectPermission =
   (typeof SpiceDbProjectPermissions)[keyof typeof SpiceDbProjectPermissions];
+
+export const SpiceDbConversationPermissions = {
+  VIEW: 'view',
+  DELETE: 'delete',
+} as const;
+
+export type SpiceDbConversationPermission =
+  (typeof SpiceDbConversationPermissions)[keyof typeof SpiceDbConversationPermissions];
 
 /**
  * Permission levels for project access checks.

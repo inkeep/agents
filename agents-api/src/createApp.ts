@@ -304,7 +304,9 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/oauth/login', async (c, next) => branchScopedDbMiddleware(c, next));
 
   // Apply ref middleware to all execution routes
-  app.use('/run/*', async (c, next) => runRefMiddleware(c, next));
+  app.use('/run/*', async (c, next) => {
+    return runRefMiddleware(c, next);
+  });
 
   // Fetch project config upfront for authenticated execution routes
   app.use('/run/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));

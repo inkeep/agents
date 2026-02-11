@@ -1,8 +1,10 @@
 import {
   type BaseExecutionContext,
   canUseProjectStrict,
+  isAnonymousToken,
   validateAndGetApiKey,
   validateTargetAgent,
+  verifyAnonymousToken,
   verifyServiceToken,
   verifyTempToken,
 } from '@inkeep/agents-core';
@@ -36,6 +38,7 @@ interface RequestData {
   subAgentId?: string;
   ref?: string;
   baseUrl: string;
+  isAnonymous?: boolean;
 }
 
 /**
@@ -66,6 +69,7 @@ function extractRequestData(c: { req: any }): RequestData {
   const host = fwdHost ?? c.req.header('host');
   const reqUrl = new URL(c.req.url);
   const ref = c.req.query('ref');
+  const isAnonymous = c.req.header('x-inkeep-anonymous') === 'true';
 
   const baseUrl =
     proto && host
@@ -83,6 +87,7 @@ function extractRequestData(c: { req: any }): RequestData {
     subAgentId,
     ref,
     baseUrl,
+    isAnonymous,
   };
 }
 
@@ -315,6 +320,90 @@ function createDevContext(reqData: RequestData): AuthResult {
   return result;
 }
 
+/**
+ * Authenticate using an anonymous JWE token (returning anonymous user)
+ */
+async function tryAnonymousJweAuth(
+  apiKey: string,
+  reqData: RequestData
+): Promise<AuthResult | null> {
+  if (!isAnonymousToken(apiKey)) {
+    return null;
+  }
+
+  const result = await verifyAnonymousToken(apiKey);
+  if (!result.valid) {
+    logger.debug({ error: result.error }, 'Anonymous JWE token verification failed');
+    return null;
+  }
+
+  const { anonymousUserId, tenantId, projectId } = result.payload;
+  const agentId = reqData.agentId;
+
+  if (!agentId) {
+    logger.warn({}, 'Anonymous JWE auth missing x-inkeep-agent-id header');
+    throw new HTTPException(400, {
+      message: 'x-inkeep-agent-id header is required for anonymous authentication',
+    });
+  }
+
+  logger.info({ anonymousUserId, tenantId, projectId, agentId }, 'Anonymous JWE authenticated');
+
+  return {
+    apiKey: 'anonymous-jwe',
+    tenantId,
+    projectId,
+    agentId,
+    apiKeyId: 'anonymous',
+    metadata: {
+      anonymous: true,
+      anonymousUserId,
+    },
+  };
+}
+
+/**
+ * Create auth context for a new anonymous user (no token yet)
+ * Requires x-inkeep-anonymous: true header plus tenant/project/agent headers
+ */
+function tryAnonymousNewAuth(reqData: RequestData): AuthResult | null {
+  if (!reqData.isAnonymous) {
+    return null;
+  }
+
+  if (!reqData.tenantId || !reqData.projectId || !reqData.agentId) {
+    logger.warn(
+      {
+        hasTenantId: !!reqData.tenantId,
+        hasProjectId: !!reqData.projectId,
+        hasAgentId: !!reqData.agentId,
+      },
+      'Anonymous new user auth missing required headers'
+    );
+    throw new HTTPException(400, {
+      message:
+        'x-inkeep-tenant-id, x-inkeep-project-id, and x-inkeep-agent-id headers are required for anonymous access',
+    });
+  }
+
+  logger.info(
+    { tenantId: reqData.tenantId, projectId: reqData.projectId, agentId: reqData.agentId },
+    'New anonymous user auth from headers'
+  );
+
+  return {
+    apiKey: 'anonymous-new',
+    tenantId: reqData.tenantId,
+    projectId: reqData.projectId,
+    agentId: reqData.agentId,
+    apiKeyId: 'anonymous',
+    metadata: {
+      anonymous: true,
+      isNewAnonymousUser: true,
+    },
+  };
+}
+
 // ============================================================================
 // Main Middleware
 // ============================================================================
@@ -325,27 +414,35 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  if (!apiKey) {
-    return { authResult: null };
+  if (apiKey) {
+    // 1. Try anonymous JWE token (fast header check)
+    const anonJweResult = await tryAnonymousJweAuth(apiKey, reqData);
+    if (anonJweResult) return { authResult: anonJweResult };
+
+    // 2. Try JWT temp token
+    const jwtResult = await tryTempJwtAuth(apiKey);
+    if (jwtResult) return { authResult: jwtResult };
+
+    // 3. Try bypass secret
+    const bypassResult = tryBypassAuth(apiKey, reqData);
+    if (bypassResult) return { authResult: bypassResult };
+
+    // 4. Try regular API key
+    const apiKeyResult = await tryApiKeyAuth(apiKey);
+    if (apiKeyResult) return { authResult: apiKeyResult };
+
+    // 5. Try team agent token
+    const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
+    if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
+
+    return { authResult: null, failureMessage: teamAttempt.failureMessage };
   }
 
-  // 1. Try JWT temp token
-  const jwtResult = await tryTempJwtAuth(apiKey);
-  if (jwtResult) return { authResult: jwtResult };
+  // No API key — check for new anonymous user (x-inkeep-anonymous header)
+  const anonNewResult = tryAnonymousNewAuth(reqData);
+  if (anonNewResult) return { authResult: anonNewResult };
 
-  // 2. Try bypass secret
-  const bypassResult = tryBypassAuth(apiKey, reqData);
-  if (bypassResult) return { authResult: bypassResult };
-
-  // 3. Try regular API key
-  const apiKeyResult = await tryApiKeyAuth(apiKey);
-  if (apiKeyResult) return { authResult: apiKeyResult };
-
-  // 4. Try team agent token
-  const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
-  if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
-
-  return { authResult: null, failureMessage: teamAttempt.failureMessage };
+  return { authResult: null };
 }
 
 /**
@@ -385,17 +482,32 @@ async function runApiKeyAuthHandler(
     return;
   }
 
-  // Production environment - require valid auth
+  // Production environment - require valid auth (or anonymous mode)
   if (!reqData.authHeader || !reqData.authHeader.startsWith('Bearer ')) {
+    // Allow anonymous requests without Bearer token when x-inkeep-anonymous header is present
+    if (reqData.isAnonymous) {
+      const anonNewResult = tryAnonymousNewAuth(reqData);
+      if (anonNewResult) {
+        c.set('executionContext', buildExecutionContext(anonNewResult, reqData));
+        await next();
+        return;
+      }
+    }
+
     throw new HTTPException(401, {
       message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
     });
   }
 
   if (!reqData.apiKey || reqData.apiKey.length < 16) {
-    throw new HTTPException(401, {
-      message: 'Invalid API key format',
-    });
+    // Anonymous JWE tokens may be shorter or longer — check before rejecting
+    if (reqData.apiKey && isAnonymousToken(reqData.apiKey)) {
+      // Let it through to authenticateRequest which will verify the JWE
+    } else {
+      throw new HTTPException(401, {
+        message: 'Invalid API key format',
+      });
+    }
   }
 
   let attempt: AuthAttempt = { authResult: null };

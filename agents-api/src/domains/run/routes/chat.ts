@@ -19,6 +19,10 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { ContentItem, Message } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
+import {
+  resolveAnonymousUser,
+  writeAnonymousConversationRelationships,
+} from '../utils/anonymous-user';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
@@ -233,14 +237,28 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
+      const anonUser = await resolveAnonymousUser(executionContext);
+      if (anonUser?.isNew && anonUser.token) {
+        c.header('x-anonymous-token', anonUser.token);
+      }
+
       await createOrGetConversation(runDbClient)({
         tenantId,
         projectId,
         id: conversationId,
         agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
+        anonymousUserId: anonUser?.anonymousUserId,
         ref: executionContext.resolvedRef,
       });
+
+      if (anonUser) {
+        await writeAnonymousConversationRelationships({
+          conversationId,
+          anonymousUserId: anonUser.anonymousUserId,
+          projectId,
+        });
+      }
 
       const activeAgent = await getActiveAgentForConversation(runDbClient)({
         scopes: { tenantId, projectId },

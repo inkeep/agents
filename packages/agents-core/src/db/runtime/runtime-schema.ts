@@ -100,11 +100,27 @@ export const projectMetadata = pgTable(
   ]
 );
 
+export const anonymousUsers = pgTable(
+  'anonymous_users',
+  {
+    id: varchar('id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('anonymous_users_tenant_project_idx').on(table.tenantId, table.projectId),
+  ]
+);
+
 export const conversations = pgTable(
   'conversations',
   {
     ...projectScoped,
     userId: varchar('user_id', { length: 256 }),
+    anonymousUserId: varchar('anonymous_user_id', { length: 256 }),
     agentId: varchar('agent_id', { length: 256 }),
     activeSubAgentId: varchar('active_sub_agent_id', { length: 256 }).notNull(),
     ref: jsonb('ref').$type<ResolvedRef>(),

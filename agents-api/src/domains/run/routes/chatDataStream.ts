@@ -4,6 +4,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   createMessage,
+  createOrGetConversation,
   type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
@@ -22,6 +23,10 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import { errorOp } from '../utils/agent-operations';
+import {
+  resolveAnonymousUser,
+  writeAnonymousConversationRelationships,
+} from '../utils/anonymous-user';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
@@ -277,6 +282,29 @@ app.openapi(chatDataStreamRoute, async (c) => {
         throw createApiError({
           code: 'bad_request',
           message: 'Agent does not have a default agent configured',
+        });
+      }
+
+      const anonUser = await resolveAnonymousUser(executionContext);
+      if (anonUser?.isNew && anonUser.token) {
+        c.header('x-anonymous-token', anonUser.token);
+      }
+
+      await createOrGetConversation(runDbClient)({
+        tenantId,
+        projectId,
+        id: conversationId,
+        agentId,
+        activeSubAgentId: defaultSubAgentId,
+        anonymousUserId: anonUser?.anonymousUserId,
+        ref: executionContext.resolvedRef,
+      });
+
+      if (anonUser) {
+        await writeAnonymousConversationRelationships({
+          conversationId,
+          anonymousUserId: anonUser.anonymousUserId,
+          projectId,
         });
       }
 
