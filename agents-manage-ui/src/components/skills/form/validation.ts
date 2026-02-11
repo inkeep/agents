@@ -14,8 +14,7 @@ export const SkillSchema = SkillApiInsertSchema.pick({
     .trim()
     .transform((value, ctx) => (value ? transformToJson(value, ctx) : null))
     .pipe(SkillMetadata)
-    .optional()
-    .default(null),
+    .optional(),
 });
 
 export type SkillInput = z.input<typeof SkillSchema>;

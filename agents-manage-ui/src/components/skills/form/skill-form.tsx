@@ -111,8 +111,8 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
               ? ''
               : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
           }
-          isRequired={isRequired(schema, 'name')}
           disabled={!!initialData}
+          isRequired={isRequired(schema, 'name')}
         />
         <GenericTextarea
           control={form.control}
@@ -142,7 +142,6 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           control={form.control}
           label="Content"
           name="content"
-          isRequired={isRequired(schema, 'content')}
           uri="content.md"
           placeholder={`# PDF Processing
 
@@ -157,6 +156,7 @@ Use this skill when the user needs to work with PDF files...
 ## How to fill forms
 
 ...`}
+          isRequired={isRequired(schema, 'content')}
         />
         <GenericJsonEditor
           control={form.control}
@@ -166,6 +166,7 @@ Use this skill when the user needs to work with PDF files...
   "version": "1.0.0",
   "author": "example"
 }`}
+          isRequired={isRequired(schema, 'metadata')}
         />
 
         <div className="flex w-full justify-between">
