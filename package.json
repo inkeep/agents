@@ -91,6 +91,8 @@
     "husky": "^9.1.6",
     "knip": "5.82.0",
     "lint-staged": "^16.1.5",
+    "playwright": "^1.58.2",
+    "sharp": "^0.34.5",
     "turbo": "^2.7.0",
     "unique-names-generator": "^4.7.1",
     "vitest": "^3.2.4",
