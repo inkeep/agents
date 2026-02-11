@@ -22,11 +22,7 @@ vi.mock('../../logger', () => ({
   }),
 }));
 
-import {
-  createOAuthState,
-  getStateSigningSecret,
-  parseOAuthState,
-} from '../../slack/routes/oauth';
+import { createOAuthState, getStateSigningSecret, parseOAuthState } from '../../slack/routes/oauth';
 
 describe('OAuth State Management', () => {
   describe('getStateSigningSecret', () => {
@@ -82,9 +78,9 @@ describe('OAuth State Management', () => {
     });
 
     it('should reject malformed state (no signature)', () => {
-      const data = Buffer.from(
-        JSON.stringify({ nonce: 'test', timestamp: Date.now() })
-      ).toString('base64url');
+      const data = Buffer.from(JSON.stringify({ nonce: 'test', timestamp: Date.now() })).toString(
+        'base64url'
+      );
       expect(parseOAuthState(data)).toBeNull();
     });
 
@@ -100,10 +96,7 @@ describe('OAuth State Management', () => {
         timestamp: Date.now() - 11 * 60 * 1000,
       };
       const data = Buffer.from(JSON.stringify(oldState)).toString('base64url');
-      const signature = crypto
-        .createHmac('sha256', secret)
-        .update(data)
-        .digest('base64url');
+      const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
       expect(parseOAuthState(`${data}.${signature}`)).toBeNull();
     });
   });

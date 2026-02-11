@@ -138,6 +138,7 @@ export async function handleModalSubmission(view: {
       channel: metadata.channel,
       threadTs: metadata.threadTs || metadata.messageTs,
       isDM: false,
+      agentId,
     });
 
     const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';

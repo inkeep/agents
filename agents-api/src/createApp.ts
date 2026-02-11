@@ -25,8 +25,8 @@ import {
   runApiKeyAuthExcept,
   runCorsConfig,
   signozCorsConfig,
-  workAppsCorsConfig,
   workAppsAuth,
+  workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { evalApiKeyAuth } from './middleware/evalsAuth';

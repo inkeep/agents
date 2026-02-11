@@ -9,7 +9,11 @@
 
 import crypto from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { parseSlackCommandBody, parseSlackEventBody, verifySlackRequest } from '../../slack/services/security';
+import {
+  parseSlackCommandBody,
+  parseSlackEventBody,
+  verifySlackRequest,
+} from '../../slack/services/security';
 
 describe('security', () => {
   describe('verifySlackRequest', () => {

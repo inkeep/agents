@@ -27,7 +27,10 @@ const logger = getLogger('slack-users');
  * Verify the authenticated caller matches the requested userId.
  * System tokens and API keys are allowed to act on behalf of any user.
  */
-function isAuthorizedForUser(c: { get: (key: string) => unknown }, requestedUserId: string): boolean {
+function isAuthorizedForUser(
+  c: { get: (key: string) => unknown },
+  requestedUserId: string
+): boolean {
   const sessionUserId = c.get('userId') as string | undefined;
   if (!sessionUserId) return true; // No session context (unauthenticated endpoints like link-status)
   if (sessionUserId === requestedUserId) return true;
@@ -160,7 +163,11 @@ app.openapi(
       // Prefer session userId (from auth) over body.userId for security
       // Skip dev bypass user — it's not a real DB user
       const sessionUserId = c.get('userId') as string | undefined;
-      const isRealSessionUser = sessionUserId && sessionUserId !== 'dev-user' && !sessionUserId.startsWith('apikey:') && sessionUserId !== 'system';
+      const isRealSessionUser =
+        sessionUserId &&
+        sessionUserId !== 'dev-user' &&
+        !sessionUserId.startsWith('apikey:') &&
+        sessionUserId !== 'system';
       const inkeepUserId = isRealSessionUser ? sessionUserId : body.userId;
 
       const existingLink = await findWorkAppSlackUserMapping(runDbClient)(

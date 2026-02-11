@@ -75,15 +75,13 @@ export async function handleOpenAgentSelectorModal(params: {
       return;
     }
 
-    // Fetch agents for all projects in parallel
-    const agentResults = await Promise.all(
-      projectList.map((project) => fetchAgentsForProject(tenantId, project.id))
-    );
-    let agentList = agentResults.flat();
+    // Fetch agents for first project (modal updates dynamically on project change)
+    const firstProject = projectList[0];
+    let agentList = await fetchAgentsForProject(tenantId, firstProject.id);
 
     if (agentList.length === 0) {
       const defaultAgent = await getChannelAgentConfig(teamId, channel);
-      if (defaultAgent) {
+      if (defaultAgent && defaultAgent.projectId === firstProject.id) {
         agentList = [
           {
             id: defaultAgent.agentId,
@@ -94,8 +92,6 @@ export async function handleOpenAgentSelectorModal(params: {
         ];
       }
     }
-
-    const firstProject = projectList[0];
 
     const modalMetadata: ModalMetadata = {
       channel,

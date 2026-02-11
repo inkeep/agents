@@ -417,27 +417,29 @@ export async function sendResponseUrlMessage(
 
 /**
  * Generate a deterministic conversation ID for Slack threads/DMs.
- * This ensures the same thread always gets the same conversation ID,
+ * This ensures the same thread + agent combination gets the same conversation ID,
  * allowing the agent to maintain conversation history.
  *
- * Format: slack-{teamId}-{identifier}
- * - For threads: identifier = thread_ts (parent message timestamp)
- * - For DMs: identifier = channel (DM channel ID)
+ * Including agentId ensures switching agents in the same thread starts a fresh
+ * conversation, avoiding sub-agent conflicts when the Run API tries to resume
+ * a conversation that was started by a different agent.
+ *
+ * Format: slack-thread-{teamId}-{identifier}[-{agentId}]
  */
 export function generateSlackConversationId(params: {
   teamId: string;
   threadTs?: string;
   channel: string;
   isDM?: boolean;
+  agentId?: string;
 }): string {
-  const { teamId, threadTs, channel, isDM } = params;
+  const { teamId, threadTs, channel, isDM, agentId } = params;
 
-  if (isDM) {
-    return `slack-dm-${teamId}-${channel}`;
-  }
+  const base = isDM
+    ? `slack-dm-${teamId}-${channel}`
+    : `slack-thread-${teamId}-${threadTs || channel}`;
 
-  const identifier = threadTs || channel;
-  return `slack-thread-${teamId}-${identifier}`;
+  return agentId ? `${base}-${agentId}` : base;
 }
 
 /**

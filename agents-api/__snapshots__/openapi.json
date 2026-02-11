@@ -20130,12 +20130,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],
@@ -33370,73 +33365,6 @@
         ]
       }
     },
-    "/work-apps/slack/agents": {
-      "get": {
-        "description": "List all agents across all projects (flat view)",
-        "operationId": "slack-list-all-agents",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "tenantId",
-            "required": false,
-            "schema": {
-              "default": "default",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "agents": {
-                      "items": {
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "projectId": {
-                            "type": "string"
-                          },
-                          "projectName": {
-                            "nullable": true,
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "projectId"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "agents"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "List of agents"
-          }
-        },
-        "summary": "List All Agents",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Resources"
-        ]
-      }
-    },
     "/work-apps/slack/install": {
       "get": {
         "description": "Redirects to Slack OAuth page for workspace installation",
@@ -33504,154 +33432,6 @@
           "Work Apps",
           "Slack",
           "OAuth"
-        ]
-      }
-    },
-    "/work-apps/slack/projects": {
-      "get": {
-        "description": "List all projects for the tenant",
-        "operationId": "slack-list-projects",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "tenantId",
-            "required": false,
-            "schema": {
-              "default": "default",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "nullable": true,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "projects": {
-                      "items": {
-                        "properties": {
-                          "description": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "nullable": true,
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "projects"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "List of projects"
-          }
-        },
-        "summary": "List Projects",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Resources"
-        ]
-      }
-    },
-    "/work-apps/slack/projects/:projectId/agents": {
-      "get": {
-        "description": "List all agents within a specific project",
-        "operationId": "slack-list-project-agents",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "projectId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "tenantId",
-            "required": false,
-            "schema": {
-              "default": "default",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "agents": {
-                      "items": {
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "projectId": {
-                            "type": "string"
-                          },
-                          "projectName": {
-                            "nullable": true,
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "projectId"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "agents"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "List of agents"
-          }
-        },
-        "summary": "List Agents in Project",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Resources"
         ]
       }
     },
@@ -34089,6 +33869,55 @@
       }
     },
     "/work-apps/slack/workspaces/:teamId": {
+      "delete": {
+        "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
+        "operationId": "slack-delete-workspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Workspace uninstalled"
+          },
+          "400": {
+            "description": "Invalid connectionId format"
+          },
+          "404": {
+            "description": "Workspace not found"
+          },
+          "500": {
+            "description": "Failed to uninstall workspace"
+          }
+        },
+        "summary": "Uninstall Workspace",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      },
       "get": {
         "description": "Get details of a specific Slack workspace",
         "operationId": "slack-get-workspace",
@@ -35060,57 +34889,6 @@
           "Work Apps",
           "Slack",
           "Users"
-        ]
-      }
-    },
-    "/work-apps/slack/workspaces/:workspaceId": {
-      "delete": {
-        "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
-        "operationId": "slack-delete-workspace",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workspaceId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Workspace uninstalled"
-          },
-          "400": {
-            "description": "Invalid connectionId format"
-          },
-          "404": {
-            "description": "Workspace not found"
-          },
-          "500": {
-            "description": "Failed to uninstall workspace"
-          }
-        },
-        "summary": "Uninstall Workspace",
-        "tags": [
-          "Work Apps",
-          "Slack",
-          "Workspaces"
         ]
       }
     }

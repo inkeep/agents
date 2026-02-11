@@ -136,7 +136,10 @@ app.openapi(
         ? allWorkspaces.filter((w) => w.tenantId === sessionTenantId)
         : allWorkspaces;
 
-      logger.info({ count: workspaces.length, tenantId: sessionTenantId }, 'Listed workspace installations');
+      logger.info(
+        { count: workspaces.length, tenantId: sessionTenantId },
+        'Listed workspace installations'
+      );
 
       return c.json({
         workspaces: workspaces.map((w) => ({

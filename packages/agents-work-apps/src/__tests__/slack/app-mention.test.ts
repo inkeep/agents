@@ -107,7 +107,9 @@ describe('handleAppMention', () => {
 
   it('should prompt to set up agents when no agent config found', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
+      '../../slack/services/events/utils'
+    );
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -131,7 +133,9 @@ describe('handleAppMention', () => {
 
   it('should prompt to link account when user not linked', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
+      '../../slack/services/events/utils'
+    );
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -157,7 +161,9 @@ describe('handleAppMention', () => {
 
   it('should show usage hint for channel mention with no query', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
+      '../../slack/services/events/utils'
+    );
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({
       connectionId: 'conn-1',
@@ -197,7 +203,9 @@ describe('handleAppMention', () => {
 
   it('should stream response for channel mention with query', async () => {
     const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
-    const { resolveChannelAgentConfig, findCachedUserMapping } = await import('../../slack/services/events/utils');
+    const { resolveChannelAgentConfig, findCachedUserMapping } = await import(
+      '../../slack/services/events/utils'
+    );
     const { streamAgentResponse } = await import('../../slack/services/events/streaming');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue({

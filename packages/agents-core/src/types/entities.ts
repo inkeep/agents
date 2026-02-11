@@ -622,4 +622,3 @@ export interface SummaryEvent {
     [key: string]: any; // Structured data from agent session
   };
 }
-

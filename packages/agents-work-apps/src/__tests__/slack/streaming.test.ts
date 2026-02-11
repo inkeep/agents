@@ -94,9 +94,7 @@ describe('streamAgentResponse', () => {
   });
 
   it('should clean up thinking message on error', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response('Bad Request', { status: 400 })
-    );
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('Bad Request', { status: 400 }));
 
     await streamAgentResponse(baseParams);
 
@@ -135,15 +133,13 @@ describe('streamAgentResponse', () => {
     expect(result.success).toBe(true);
     expect(localAppend).toHaveBeenCalled();
     expect(localStop).toHaveBeenCalled();
-    expect(mockChatDelete).toHaveBeenCalledWith(
-      expect.objectContaining({ ts: '1234.9999' })
-    );
+    expect(mockChatDelete).toHaveBeenCalledWith(expect.objectContaining({ ts: '1234.9999' }));
   });
 
   it('should pass conversationId in API request body', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response('Error', { status: 500 })
-    );
+    const fetchSpy = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('Error', { status: 500 }));
 
     await streamAgentResponse(baseParams);
 

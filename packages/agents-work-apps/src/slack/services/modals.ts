@@ -74,16 +74,12 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     value: project.id,
   }));
 
-  const hasMultipleProjects = new Set(agents.map((a) => a.projectId)).size > 1;
-
   const agentOptions =
     agents.length > 0
       ? agents.map((agent) => ({
           text: {
             type: 'plain_text' as const,
-            text: hasMultipleProjects
-              ? `${agent.name || agent.id} (${agent.projectName || agent.projectId})`
-              : (agent.name || agent.id),
+            text: agent.name || agent.id,
             emoji: true,
           },
           value: JSON.stringify({ agentId: agent.id, projectId: agent.projectId }),
@@ -107,6 +103,7 @@ export function buildAgentSelectorModal(params: BuildAgentSelectorModalParams): 
     {
       type: 'input',
       block_id: 'project_select_block',
+      dispatch_action: true,
       element: {
         type: 'static_select',
         action_id: 'modal_project_select',
@@ -364,6 +361,7 @@ export function buildMessageShortcutModal(params: BuildMessageShortcutModalParam
     {
       type: 'input',
       block_id: 'project_select_block',
+      dispatch_action: true,
       element: {
         type: 'static_select',
         action_id: 'modal_project_select',

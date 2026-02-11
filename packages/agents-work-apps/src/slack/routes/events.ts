@@ -201,6 +201,77 @@ app.post('/events', async (c) => {
           });
         }
 
+        if (action.action_id === 'modal_project_select') {
+          const selectedOption = (action as { selected_option?: { value?: string } })
+            .selected_option;
+          const selectedProjectId = selectedOption?.value;
+          const view = eventBody.view as {
+            id?: string;
+            private_metadata?: string;
+          };
+
+          if (selectedProjectId && view?.id) {
+            (async () => {
+              try {
+                const metadata = JSON.parse(view.private_metadata || '{}');
+                const tenantId = metadata.tenantId || 'default';
+
+                const workspace = await findWorkspaceConnectionByTeamId(teamId);
+                if (!workspace?.botToken) return;
+
+                const slackClient = getSlackClient(workspace.botToken);
+
+                const { fetchProjectsForTenant, fetchAgentsForProject } = await import(
+                  '../services/events/utils'
+                );
+                const { buildAgentSelectorModal, buildMessageShortcutModal } = await import(
+                  '../services/modals'
+                );
+
+                const projectList = await fetchProjectsForTenant(tenantId);
+                const agentList = await fetchAgentsForProject(tenantId, selectedProjectId);
+
+                const agentOptions = agentList.map((a) => ({
+                  id: a.id,
+                  name: a.name,
+                  projectId: a.projectId,
+                  projectName: a.projectName || a.projectId,
+                }));
+
+                const modal = metadata.messageContext
+                  ? buildMessageShortcutModal({
+                      projects: projectList,
+                      agents: agentOptions,
+                      metadata,
+                      selectedProjectId,
+                      messageContext: metadata.messageContext,
+                    })
+                  : buildAgentSelectorModal({
+                      projects: projectList,
+                      agents: agentOptions,
+                      metadata,
+                      selectedProjectId,
+                    });
+
+                await slackClient.views.update({
+                  view_id: view.id as string,
+                  view: modal,
+                });
+
+                logger.debug(
+                  { selectedProjectId, agentCount: agentList.length },
+                  'Updated modal with agents for selected project'
+                );
+              } catch (err) {
+                logger.error(
+                  { err, selectedProjectId },
+                  'Failed to update modal on project change'
+                );
+              }
+            })();
+          }
+        }
+
         if (action.action_id === 'open_follow_up_modal' && action.value && triggerId) {
           handleOpenFollowUpModal({
             triggerId,
@@ -259,6 +330,22 @@ app.post('/events', async (c) => {
         private_metadata?: string;
         state?: { values?: Record<string, Record<string, unknown>> };
       };
+
+      // Validate agent selection before accepting submission
+      const agentSelect = view.state?.values?.agent_select_block?.agent_select as
+        | {
+            selected_option?: { value?: string };
+          }
+        | undefined;
+      if (!agentSelect?.selected_option?.value || agentSelect.selected_option.value === 'none') {
+        return c.json({
+          response_action: 'errors',
+          errors: {
+            agent_select_block:
+              'Please select an agent. If none are available, add agents to this project in the dashboard.',
+          },
+        });
+      }
 
       handleModalSubmission(view).catch((err: unknown) => {
         const errorMessage = err instanceof Error ? err.message : String(err);

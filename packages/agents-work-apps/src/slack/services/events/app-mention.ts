@@ -174,6 +174,7 @@ export async function handleAppMention(params: {
         threadTs,
         channel,
         isDM: false,
+        agentId: agentConfig.agentId,
       });
 
       const threadQuery = `A user mentioned you in a thread to get your help understanding or responding to the conversation.
@@ -244,6 +245,7 @@ Respond naturally as if you're joining the conversation to help.`;
       threadTs: replyThreadTs,
       channel,
       isDM: false,
+      agentId: agentConfig.agentId,
     });
 
     logger.info(

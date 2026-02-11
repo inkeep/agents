@@ -59,15 +59,19 @@ vi.mock('../../slack/services/client', () => ({
 
 vi.mock('../../slack/services/events/utils', () => ({
   fetchProjectsForTenant: vi.fn().mockResolvedValue([{ id: 'proj-1', name: 'Project' }]),
-  fetchAgentsForProject: vi.fn().mockResolvedValue([
-    { id: 'agent-1', name: 'Agent', projectId: 'proj-1', projectName: 'Project' },
-  ]),
+  fetchAgentsForProject: vi
+    .fn()
+    .mockResolvedValue([
+      { id: 'agent-1', name: 'Agent', projectId: 'proj-1', projectName: 'Project' },
+    ]),
   getChannelAgentConfig: vi.fn().mockResolvedValue(null),
   sendResponseUrlMessage: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../slack/services/blocks', () => ({
-  createErrorMessage: vi.fn((msg: string) => ({ blocks: [{ type: 'section', text: { type: 'mrkdwn', text: msg } }] })),
+  createErrorMessage: vi.fn((msg: string) => ({
+    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: msg } }],
+  })),
   createUpdatedHelpMessage: vi.fn(() => ({ blocks: [] })),
   createAlreadyLinkedMessage: vi.fn(() => ({ blocks: [] })),
   createNotLinkedMessage: vi.fn(() => ({ blocks: [] })),
