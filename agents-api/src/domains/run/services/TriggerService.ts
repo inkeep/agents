@@ -45,13 +45,10 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { tracer } from '../utils/tracer';
 
-
 let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
 let _waitUntilResolved = false;
 
-async function getWaitUntil(): Promise<
-  ((promise: Promise<unknown>) => void) | undefined
-> {
+async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | undefined> {
   if (_waitUntilResolved) return _waitUntil;
   _waitUntilResolved = true;
   if (!process.env.VERCEL) return undefined;
