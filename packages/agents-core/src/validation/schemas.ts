@@ -1826,16 +1826,10 @@ const validateExecuteCode = (val: string, ctx: z.RefinementCtx) => {
   }
 };
 
-const ExecuteCodeSchema = z.string().trim().nonempty().superRefine(validateExecuteCode);
-
-export function isValidExecuteCode(value: string): boolean {
-  return ExecuteCodeSchema.safeParse(value).success;
-}
-
 export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema)
   .openapi('FunctionCreate')
   .extend({
-    executeCode: ExecuteCodeSchema,
+    executeCode: z.string().trim().nonempty().superRefine(validateExecuteCode),
   });
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');

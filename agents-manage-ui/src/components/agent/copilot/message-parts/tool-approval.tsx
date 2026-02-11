@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import type { FieldDiff } from '@/lib/actions/tool-approval';
 import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
 import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
@@ -24,13 +25,6 @@ type ToolCallApprovalData = DataOperationEvent & {
     data: ToolCallData;
   };
 };
-
-interface FieldDiff {
-  field: string;
-  oldValue: any;
-  newValue: any;
-  renderAsCode?: boolean;
-}
 
 interface EntityData {
   id: string;
