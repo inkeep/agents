@@ -83,7 +83,8 @@ export const CodeDiff: FC<CodeDiffProps> = ({
     });
 
     const diffEditor = editor.createDiffEditor(container, {
-      automaticLayout: true,
+      // Keep disabled: automatic Monaco relayout causes sidebar flickering when hovering a collapsed sidebar.
+      automaticLayout: false,
       readOnly: true,
       renderSideBySide: false,
       minimap: { enabled: false },
