@@ -35,6 +35,7 @@ import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgen
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
+import { listScheduledTriggers } from './scheduledTriggers';
 import { listTools } from './tools';
 import { listTriggers } from './triggers';
 
@@ -945,6 +946,36 @@ const getFullAgentDefinitionInternal =
       }
     } catch (error) {
       console.warn('Failed to load triggers:', error);
+    }
+
+    // Fetch scheduled triggers (agent-scoped)
+    try {
+      const scheduledTriggersList = await listScheduledTriggers(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+
+      if (scheduledTriggersList.length > 0) {
+        const scheduledTriggersObject: Record<string, any> = {};
+        for (const scheduledTrigger of scheduledTriggersList) {
+          scheduledTriggersObject[scheduledTrigger.id] = {
+            id: scheduledTrigger.id,
+            name: scheduledTrigger.name,
+            description: scheduledTrigger.description,
+            enabled: scheduledTrigger.enabled,
+            cronExpression: scheduledTrigger.cronExpression,
+            cronTimezone: scheduledTrigger.cronTimezone,
+            runAt: scheduledTrigger.runAt,
+            payload: scheduledTrigger.payload,
+            messageTemplate: scheduledTrigger.messageTemplate,
+            maxRetries: scheduledTrigger.maxRetries,
+            retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
+            timeoutSeconds: scheduledTrigger.timeoutSeconds,
+          };
+        }
+        result.scheduledTriggers = scheduledTriggersObject;
+      }
+    } catch (error) {
+      console.warn('Failed to load scheduled triggers:', error);
     }
 
     return result;

@@ -970,13 +970,18 @@ export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
   ScheduledTriggerSelectSchema
 ).openapi('ScheduledTrigger');
 
-export const ScheduledTriggerApiInsertSchema = createAgentScopedApiInsertSchema(
+export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSchema(
   ScheduledTriggerInsertSchemaBase
 )
   .extend({ id: ResourceIdSchema.optional() })
-  .refine((data) => data.cronExpression || data.runAt, {
+  .openapi('ScheduledTriggerInsertBase');
+
+export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSchema.refine(
+  (data) => data.cronExpression || data.runAt,
+  {
     message: 'Either cronExpression or runAt must be provided',
-  })
+  }
+)
   .refine((data) => !(data.cronExpression && data.runAt), {
     message: 'Cannot specify both cronExpression and runAt',
   })
@@ -2372,6 +2377,7 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   triggers: z.record(z.string(), TriggerApiInsertSchema).optional(), // Webhook triggers (agent-scoped)
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiInsertBaseSchema).optional(), // Scheduled triggers (agent-scoped)
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
@@ -2518,6 +2524,7 @@ export const AgentWithinContextOfProjectSelectSchema = AgentApiSelectSchema.exte
   teamAgents: z.record(z.string(), TeamAgentSchema).nullable(),
   functionTools: z.record(z.string(), FunctionToolApiSelectSchema).nullable(),
   functions: z.record(z.string(), FunctionApiSelectSchema).nullable(),
+  scheduledTriggers: z.record(z.string(), ScheduledTriggerApiSelectSchema).nullable(),
   contextConfig: ContextConfigApiSelectSchema.nullable(),
   statusUpdates: StatusUpdateSchema.nullable(),
   models: ModelSchema.nullable(),

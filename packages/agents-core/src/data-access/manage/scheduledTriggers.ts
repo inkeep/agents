@@ -128,3 +128,48 @@ export const deleteScheduledTrigger =
         )
       );
   };
+
+/**
+ * Upsert a scheduled trigger (create if it doesn't exist, update if it does)
+ */
+export const upsertScheduledTrigger =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    data: ScheduledTriggerInsert;
+  }): Promise<ScheduledTrigger> => {
+    const existing = await getScheduledTriggerById(db)({
+      scopes: params.scopes,
+      scheduledTriggerId: params.data.id,
+    });
+
+    if (existing) {
+      return await updateScheduledTrigger(db)({
+        scopes: params.scopes,
+        scheduledTriggerId: params.data.id,
+        data: params.data,
+      });
+    }
+
+    return await createScheduledTrigger(db)(params.data);
+  };
+
+/**
+ * List all scheduled triggers for an agent (non-paginated, used by agentFull)
+ */
+export const listScheduledTriggers =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig }): Promise<ScheduledTrigger[]> => {
+    const result = await db
+      .select()
+      .from(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggers.projectId, params.scopes.projectId),
+          eq(scheduledTriggers.agentId, params.scopes.agentId)
+        )
+      );
+
+    return result as ScheduledTrigger[];
+  };

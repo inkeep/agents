@@ -19,9 +19,11 @@ import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './external-agent';
 import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
+import type { ScheduledTriggerInterface } from './scheduled-trigger';
 import type { TriggerInterface } from './trigger';
 
 export type { ModelSettings };
+export type { ScheduledTriggerInterface };
 export type { TriggerInterface };
 
 /**
@@ -261,6 +263,7 @@ export interface AgentConfig {
   };
   statusUpdates?: StatusUpdateSettings;
   triggers?: () => TriggerInterface[];
+  scheduledTriggers?: () => ScheduledTriggerInterface[];
 }
 
 export class AgentError extends Error {
