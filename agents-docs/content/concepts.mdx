@@ -57,26 +57,37 @@ Sub Agents in Inkeep are designed to respond to the user as a single, cohesive u
 
 ## Triggers
 
-**Triggers** are webhook endpoints that allow external services to invoke your Agents. When a webhook is received, the payload is validated, transformed into a message, and used to start a new conversation.
+**Triggers** allow external events or schedules to invoke your Agents automatically. Inkeep supports two types of triggers:
 
-Triggers are useful for:
+### Webhook Triggers
 
+Webhook triggers create HTTP endpoints that allow external services to invoke your Agents. When a webhook is received, the payload is validated, transformed into a message, and used to start a new conversation.
+
+Webhook triggers are useful for:
 - **Event-driven workflows** - Respond to events from external services like GitHub, Slack, or Stripe
 - **Third-party integrations** - Connect any service that can send HTTP webhooks to your Agents
-- **Automated pipelines** - Kick off Agent tasks from CI/CD, cron jobs, or other automation systems
+- **Custom applications** - Allow your own services to invoke agents via HTTP
 
-Each trigger can be configured with:
+### Scheduled Triggers
 
-- **Input validation** - JSON Schema to validate incoming payloads
-- **Message templates** - Transform webhook payloads into natural language messages using `{{placeholder}}` syntax
-- **Authentication** - API keys, bearer tokens, or basic auth to secure the endpoint
-- **Signature verification** - HMAC-SHA256 verification for services like GitHub that sign webhooks
+Scheduled triggers run agents on a time-based schedule using cron expressions or at a specific one-time date.
 
-When a webhook is received, the trigger creates a new conversation and invokes the Agent asynchronously, returning immediately with an invocation ID for tracking.
+Scheduled triggers are useful for:
+- **Recurring tasks** - Run daily reports, weekly summaries, or hourly health checks
+- **One-time execution** - Schedule a migration task or maintenance job for a specific time
+- **Automated workflows** - Generate content, send reminders, or process data on a schedule
+
+Both trigger types support:
+- **Message templates** - Transform trigger context into natural language messages using `{{placeholder}}` syntax
+- **Retry configuration** - Configure retry behavior for failed invocations
+- **Invocation tracking** - Monitor execution status and view run history
 
 <Cards>
   <Card title="Webhook Triggers" icon="LuWebhook" href="/talk-to-your-agents/triggers">
-    Learn how triggers work and when to use them.
+    Learn how webhook triggers work and when to use them.
+  </Card>
+  <Card title="Scheduled Triggers" icon="LuClock" href="/typescript-sdk/scheduled-triggers">
+    Create time-based triggers with cron expressions.
   </Card>
   <Card title="TypeScript SDK" icon="LuCode" href="/typescript-sdk/triggers">
     Define triggers in code with the SDK.
