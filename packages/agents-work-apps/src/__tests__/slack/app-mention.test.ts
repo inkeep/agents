@@ -97,7 +97,7 @@ describe('handleAppMention', () => {
     const { getBotTokenForTeam } = await import('../../slack/services/workspace-tokens');
 
     vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValue(null);
-    vi.mocked(getBotTokenForTeam).mockReturnValue(undefined);
+    vi.mocked(getBotTokenForTeam).mockReturnValue(null);
 
     await handleAppMention(baseParams);
 
@@ -175,9 +175,13 @@ describe('handleAppMention', () => {
       tenantId: 'default',
       slackUserId: 'U123',
       slackTeamId: 'T789',
+      slackEnterpriseId: null,
       inkeepUserId: 'user-1',
       clientId: 'work-apps-slack',
+      slackUsername: null,
+      slackEmail: null,
       linkedAt: '2026-01-01',
+      lastUsedAt: null,
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     });
@@ -212,9 +216,13 @@ describe('handleAppMention', () => {
       tenantId: 'default',
       slackUserId: 'U123',
       slackTeamId: 'T789',
+      slackEnterpriseId: null,
       inkeepUserId: 'user-1',
       clientId: 'work-apps-slack',
+      slackUsername: null,
+      slackEmail: null,
       linkedAt: '2026-01-01',
+      lastUsedAt: null,
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     });
