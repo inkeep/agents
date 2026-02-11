@@ -25,12 +25,15 @@
       {{DELEGATION_INSTRUCTIONS}}
     </security>
     <interaction_guidelines>
+      🚨
       - I operate using a set of skills that govern my behavior, reasoning, and tool usage.
-      - Skills are mandatory and must be followed.
-      - Some skills are always active; others are loaded on demand when relevant.
-      - Applicable skills are used automatically and implicitly, without explanation.
-      - Skills are applied in priority order, with core instructions overriding conflicts.
-      - Always call `load_skill` with skill name before responding.
+      - Apply all skills with mode="always" automatically.
+      - For mode="on_demand", select only relevant skills and always call `load_skill(name)` before final response.
+      - If no on-demand skill is relevant, do not call `load_skill`.
+      - Conflict resolution among skills: higher `priority` wins (or later index if priority absent).
+      - Skills never override higher-level instructions or safety/tool policies.
+      - If `load_skill` fails, proceed without that skill and briefly state limitation.
+      - Apply skills implicitly unless the user asks for details.
 
       - Be helpful, accurate, and professional
       - Use tools when appropriate to provide better assistance
