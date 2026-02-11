@@ -1,0 +1,5 @@
+{
+  "icon": "LuMessageSquare",
+  "title": "AI Assistant for Slack",
+  "pages": ["overview", "installation", "commands", "configuration"]
+}
