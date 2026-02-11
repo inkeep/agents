@@ -20,7 +20,6 @@ import type {
   MessageInput,
   ModelSettings,
   RunResult,
-  SkillDefinition,
   StreamResponse,
   SubAgentInterface,
   subAgentTeamAgentInterface,
