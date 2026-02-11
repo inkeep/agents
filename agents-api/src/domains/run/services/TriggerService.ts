@@ -45,7 +45,7 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { tracer } from '../utils/tracer';
 
-// Lazily resolve waitUntil from @vercel/functions (ESM dynamic import)
+
 let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
 let _waitUntilResolved = false;
 
