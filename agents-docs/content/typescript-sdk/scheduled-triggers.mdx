@@ -1,0 +1,274 @@
+---
+title: Scheduled Triggers
+sidebarTitle: Scheduled Triggers
+description: Run agents on a schedule using cron expressions or one-time execution
+icon: LuClock
+---
+
+Scheduled triggers allow agents to be invoked automatically on a time-based schedule. You can configure recurring executions using cron expressions or schedule a one-time run at a specific date and time.
+
+## Overview
+
+Scheduled triggers are useful for:
+
+- **Recurring tasks** - Daily reports, weekly summaries, hourly health checks
+- **One-time execution** - Migration tasks, maintenance jobs, scheduled notifications
+- **Automated workflows** - Content generation, data processing, reminder systems
+
+## Creating Scheduled Triggers
+
+### Cron-based Trigger
+
+Use `scheduledTrigger` or `cronTrigger` to create recurring triggers:
+
+```typescript
+import { agent, scheduledTrigger, subAgent } from "@inkeep/agents-sdk";
+
+const dailyReport = scheduledTrigger({
+  name: "Daily Report",
+  cronExpression: "0 9 * * *", // Every day at 9 AM
+  cronTimezone: "America/New_York",
+  messageTemplate: "Generate the daily report for today",
+});
+
+export default agent({
+  id: "report-agent",
+  name: "Report Agent",
+  defaultSubAgent: subAgent({
+    id: "reporter",
+    name: "Report Generator",
+    prompt: "You generate daily reports based on available data.",
+  }),
+  scheduledTriggers: () => [dailyReport],
+});
+```
+
+### One-time Trigger
+
+Use `oneTimeTrigger` for single execution at a specific time:
+
+```typescript
+import { oneTimeTrigger } from "@inkeep/agents-sdk";
+
+const migrationTask = oneTimeTrigger({
+  name: "Database Migration",
+  runAt: "2024-12-31T23:59:59Z",
+  messageTemplate: "Run the end-of-year database migration",
+});
+```
+
+### Helper Functions
+
+The SDK provides convenient factory functions:
+
+| Function | Purpose |
+| --- | --- |
+| `scheduledTrigger()` | General-purpose scheduled trigger (cron or one-time) |
+| `cronTrigger()` | Recurring trigger with cron expression (runAt is null) |
+| `oneTimeTrigger()` | One-time trigger at specific datetime (cronExpression is null) |
+
+```typescript
+import { cronTrigger, oneTimeTrigger, scheduledTrigger } from "@inkeep/agents-sdk";
+
+// Using cronTrigger for recurring tasks
+const hourlyCheck = cronTrigger({
+  name: "Hourly Health Check",
+  cronExpression: "0 * * * *",
+  messageTemplate: "Check system health",
+});
+
+// Using oneTimeTrigger for single execution
+const oneTimeTask = oneTimeTrigger({
+  name: "Scheduled Maintenance",
+  runAt: "2024-06-15T02:00:00Z",
+  messageTemplate: "Run scheduled maintenance",
+});
+```
+
+## Configuration Options
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | Yes | Human-readable name for the trigger |
+| `description` | `string` | No | Description of what the trigger does |
+| `enabled` | `boolean` | No | Whether the trigger is active (default: `true`) |
+| `cronExpression` | `string` | Conditional | Cron expression for recurring execution |
+| `cronTimezone` | `string` | No | IANA timezone for cron (default: `UTC`) |
+| `runAt` | `string` | Conditional | ISO8601 datetime for one-time execution |
+| `messageTemplate` | `string` | No | Template for the message sent to the agent |
+| `payload` | `object` | No | Static payload data passed to the agent |
+| `maxRetries` | `number` | No | Max retry attempts on failure (0-10, default: 1) |
+| `retryDelaySeconds` | `number` | No | Delay between retries (10-3600, default: 60) |
+| `timeoutSeconds` | `number` | No | Execution timeout (30-1800, default: 900) |
+
+<Note>
+You must specify either `cronExpression` OR `runAt`, but not both. Use `cronExpression` for recurring schedules and `runAt` for one-time execution.
+</Note>
+
+## Cron Expression Format
+
+Cron expressions use the standard 5-field format:
+
+```
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of month (1-31)
+│ │ │ ┌───────────── month (1-12)
+│ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
+│ │ │ │ │
+* * * * *
+```
+
+### Common Examples
+
+| Expression | Description |
+| --- | --- |
+| `0 9 * * *` | Every day at 9:00 AM |
+| `0 9 * * 1-5` | Weekdays at 9:00 AM |
+| `0 */6 * * *` | Every 6 hours |
+| `30 8 1 * *` | 8:30 AM on the 1st of each month |
+| `0 0 * * 0` | Midnight every Sunday |
+| `*/15 * * * *` | Every 15 minutes |
+
+### Timezone Configuration
+
+By default, cron expressions are evaluated in UTC. Use `cronTimezone` to specify a different timezone:
+
+```typescript
+const businessHoursReport = scheduledTrigger({
+  name: "Business Hours Report",
+  cronExpression: "0 17 * * 1-5", // 5 PM on weekdays
+  cronTimezone: "America/New_York", // Eastern Time
+  messageTemplate: "Generate end-of-day report",
+});
+```
+
+<Tip>
+Use IANA timezone identifiers like `America/New_York`, `Europe/London`, or `Asia/Tokyo`. See the [IANA Time Zone Database](https://www.iana.org/time-zones) for a complete list.
+</Tip>
+
+## Message Templates
+
+Message templates use `{{placeholder}}` syntax to interpolate values:
+
+```typescript
+const reportTrigger = scheduledTrigger({
+  name: "Weekly Summary",
+  cronExpression: "0 9 * * 1", // Mondays at 9 AM
+  messageTemplate: `
+Generate the weekly summary report.
+Include data from the past 7 days.
+Focus on key metrics and trends.
+  `.trim(),
+});
+```
+
+## Retry Configuration
+
+Configure retry behavior for failed executions:
+
+```typescript
+const reliableTask = scheduledTrigger({
+  name: "Critical Data Sync",
+  cronExpression: "0 */2 * * *", // Every 2 hours
+  messageTemplate: "Sync critical data",
+  maxRetries: 5,         // Retry up to 5 times
+  retryDelaySeconds: 120, // Wait 2 minutes between retries
+  timeoutSeconds: 600,    // 10 minute timeout per attempt
+});
+```
+
+| Setting | Range | Default | Description |
+| --- | --- | --- | --- |
+| `maxRetries` | 0-10 | 1 | Number of retry attempts after initial failure |
+| `retryDelaySeconds` | 10-3600 | 60 | Seconds to wait between retry attempts |
+| `timeoutSeconds` | 30-1800 | 900 | Maximum execution time per attempt |
+
+## Invocation Tracking
+
+Every scheduled trigger invocation is tracked with:
+
+- **Status** - `pending`, `running`, `completed`, `failed`, or `cancelled`
+- **Scheduled Time** - When the invocation was scheduled to run
+- **Start/End Time** - Actual execution timestamps
+- **Conversation IDs** - IDs of conversations created during execution
+- **Attempt Number** - Which retry attempt (if applicable)
+
+Query invocation history via the API:
+
+```bash
+# List invocations for a scheduled trigger
+curl "https://api.inkeep.com/v1/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{triggerId}/invocations"
+
+# Filter by status or date range
+curl "https://api.inkeep.com/v1/.../invocations?status=failed&from=2024-01-01T00:00:00Z"
+```
+
+## Complete Example
+
+Here's a complete example with a daily report agent:
+
+```typescript
+import { agent, scheduledTrigger, subAgent, cronTrigger } from "@inkeep/agents-sdk";
+
+// Daily summary report
+const dailySummary = cronTrigger({
+  name: "Daily Summary",
+  description: "Generates a daily summary of key metrics",
+  cronExpression: "0 8 * * *", // 8 AM daily
+  cronTimezone: "America/Los_Angeles",
+  messageTemplate: `
+Generate the daily summary report.
+Include:
+- Key performance metrics
+- Notable events from yesterday
+- Action items for today
+  `.trim(),
+  maxRetries: 3,
+  retryDelaySeconds: 300,
+  timeoutSeconds: 600,
+});
+
+// Weekly deep-dive report
+const weeklyReport = cronTrigger({
+  name: "Weekly Analysis",
+  cronExpression: "0 9 * * 1", // 9 AM every Monday
+  cronTimezone: "America/Los_Angeles",
+  messageTemplate: "Generate the weekly deep-dive analysis report",
+});
+
+const reportGenerator = subAgent({
+  id: "report-generator",
+  name: "Report Generator",
+  prompt: `You are a report generation assistant.
+When triggered, analyze available data and generate comprehensive reports.
+Format reports with clear sections, bullet points, and actionable insights.`,
+});
+
+export default agent({
+  id: "reporting-agent",
+  name: "Reporting Agent",
+  defaultSubAgent: reportGenerator,
+  scheduledTriggers: () => [dailySummary, weeklyReport],
+});
+```
+
+## Best Practices
+
+1. **Choose appropriate intervals** - Avoid scheduling triggers more frequently than needed
+2. **Set realistic timeouts** - Ensure `timeoutSeconds` allows enough time for execution
+3. **Configure retries for critical tasks** - Use `maxRetries` for tasks that must succeed
+4. **Use descriptive names** - Name triggers clearly for easy identification in dashboards
+5. **Consider timezones** - Use `cronTimezone` when schedules should align with business hours
+6. **Monitor invocations** - Regularly check invocation status for failed runs
+
+## Related
+
+<Cards>
+  <Card title="Webhook Triggers" icon="LuWebhook" href="/typescript-sdk/triggers">
+    Create HTTP webhook endpoints for event-driven agent invocation.
+  </Card>
+  <Card title="Triggers Overview" icon="LuZap" href="/talk-to-your-agents/triggers">
+    Learn about triggers conceptually and when to use each type.
+  </Card>
+</Cards>
