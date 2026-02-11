@@ -29,9 +29,12 @@ import {
 import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
+
+const logger = getLogger('projects');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -260,9 +263,30 @@ app.openapi(
           projectId: body.id,
           creatorUserId: userId,
         });
-      } catch (syncError) {
-        // Log but don't fail the request
-        console.warn('Failed to sync project to SpiceDB:', syncError);
+      } catch (spiceDbError) {
+        // Compensating action: delete the project we just committed
+        logger.error(
+          { error: spiceDbError, tenantId, projectId: body.id, userId },
+          'SpiceDB sync failed after project creation - rolling back project'
+        );
+        try {
+          await deleteProject(configDb)({
+            scopes: { tenantId, projectId: body.id },
+          });
+          await deleteProjectWithBranch(
+            runDbClient,
+            manageDbClient
+          )({ tenantId, projectId: body.id });
+        } catch (cleanupError) {
+          logger.error(
+            { error: cleanupError, tenantId, projectId: body.id },
+            'Failed to clean up project after SpiceDB sync failure - manual intervention required'
+          );
+        }
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to set up project authorization. Project creation has been rolled back.',
+        });
       }
 
       return c.json(

@@ -21,6 +21,7 @@ import {
   getProjectMetadata,
   type ResolvedRef,
   removeProjectFromSpiceDb,
+  SpiceDbError,
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
@@ -129,12 +130,9 @@ app.openapi(
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
     try {
-      // Two-phase commit: Wrap all database operations in transactions
-      // If SpiceDB sync fails, both DB transactions will rollback automatically
+      // Phase 1: Commit all database operations first
       const createdProject = await runDbClient.transaction(async (runTx) => {
         return await configDb.transaction(async (configTx) => {
-          // Phase 1: Database operations (within transactions - not committed yet)
-
           // 1. Create project in runtime DB and create project main branch
           await createProjectMetadataAndBranch(
             runTx,
@@ -173,20 +171,46 @@ app.openapi(
             projectData: validatedProjectData,
           });
 
-          // Phase 2: Sync to SpiceDB (still within transaction scope)
-          // If this fails, both transactions will rollback automatically
-          if (userId) {
-            await syncProjectToSpiceDb({
-              tenantId,
-              projectId: validatedProjectData.id,
-              creatorUserId: userId,
-            });
-          }
-
-          // If we reach here, both transactions will commit
           return project;
         });
       });
+
+      // Phase 2: Sync to SpiceDB after DB transactions are committed
+      // SpiceDB defaults to deny, so the project is safe until auth is set up
+      if (userId) {
+        try {
+          await syncProjectToSpiceDb({
+            tenantId,
+            projectId: validatedProjectData.id,
+            creatorUserId: userId,
+          });
+        } catch (spiceDbError) {
+          // Compensating action: delete the project we just committed
+          logger.error(
+            { error: spiceDbError, tenantId, projectId: validatedProjectData.id, userId },
+            'SpiceDB sync failed after project creation - rolling back project'
+          );
+          try {
+            await deleteFullProject(configDb)({
+              scopes: { tenantId, projectId: validatedProjectData.id },
+            });
+            await deleteProjectWithBranch(
+              runDbClient,
+              manageDbClient
+            )({ tenantId, projectId: validatedProjectData.id });
+          } catch (cleanupError) {
+            logger.error(
+              { error: cleanupError, tenantId, projectId: validatedProjectData.id },
+              'Failed to clean up project after SpiceDB sync failure - manual intervention required'
+            );
+          }
+          throw createApiError({
+            code: 'internal_server_error',
+            message:
+              'Failed to set up project authorization. Project creation has been rolled back.',
+          });
+        }
+      }
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -199,23 +223,10 @@ app.openapi(
         });
       }
 
-      // Handle SpiceDB sync failures - transactions already rolled back
-      // Check for gRPC error characteristics (SpiceDB uses gRPC via @authzed/authzed-node)
-      const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
-      const mentionsSpiceDb = error?.message?.includes('SpiceDB');
-      if (mentionsSpiceDb || isGrpcError) {
-        logger.error(
-          {
-            error,
-            tenantId,
-            projectId: validatedProjectData.id,
-            userId,
-          },
-          'Failed to sync project to SpiceDB - database transactions rolled back'
-        );
+      if (error instanceof SpiceDbError) {
         throw createApiError({
           code: 'internal_server_error',
-          message: 'Failed to set up project authorization. No changes were made to the database.',
+          message: 'Failed to set up project authorization. Project creation has been rolled back.',
         });
       }
 
@@ -404,12 +415,10 @@ app.openapi(
       // Use cached result from middleware (permission already checked there)
       const isCreate = c.get('isProjectCreate') ?? false;
 
-      // Two-phase commit for creates, regular update for existing projects
+      // Phase 1: Commit database operations
       const updatedProject: FullProjectSelect = isCreate
         ? await runDbClient.transaction(async (runTx) => {
             return await configDb.transaction(async (configTx) => {
-              // Phase 1: Database operations (within transactions)
-
               // Create project with branch first
               await createProjectMetadataAndBranch(
                 runTx,
@@ -435,16 +444,6 @@ app.openapi(
                 projectData: validatedProjectData,
               });
 
-              // Phase 2: Sync to SpiceDB (within transaction scope)
-              // If this fails, both transactions will rollback automatically
-              if (userId) {
-                await syncProjectToSpiceDb({
-                  tenantId,
-                  projectId,
-                  creatorUserId: userId,
-                });
-              }
-
               return project;
             });
           })
@@ -452,6 +451,39 @@ app.openapi(
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           });
+
+      // Phase 2: Sync to SpiceDB after DB transactions are committed (creates only)
+      if (isCreate && userId) {
+        try {
+          await syncProjectToSpiceDb({
+            tenantId,
+            projectId,
+            creatorUserId: userId,
+          });
+        } catch (spiceDbError) {
+          // Compensating action: delete the project we just committed
+          logger.error(
+            { error: spiceDbError, tenantId, projectId, userId },
+            'SpiceDB sync failed after project creation (PUT upsert) - rolling back project'
+          );
+          try {
+            await deleteFullProject(configDb)({
+              scopes: { tenantId, projectId },
+            });
+            await deleteProjectWithBranch(runDbClient, manageDbClient)({ tenantId, projectId });
+          } catch (cleanupError) {
+            logger.error(
+              { error: cleanupError, tenantId, projectId },
+              'Failed to clean up project after SpiceDB sync failure - manual intervention required'
+            );
+          }
+          throw createApiError({
+            code: 'internal_server_error',
+            message:
+              'Failed to set up project authorization. Project creation has been rolled back.',
+          });
+        }
+      }
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
     } catch (error: any) {
@@ -469,28 +501,11 @@ app.openapi(
         });
       }
 
-      // Handle SpiceDB sync failures for creates - transactions already rolled back
-      const isCreate = c.get('isProjectCreate') ?? false;
-      if (isCreate) {
-        // Check for gRPC error characteristics (SpiceDB uses gRPC via @authzed/authzed-node)
-        const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
-        const mentionsSpiceDb = error?.message?.includes('SpiceDB');
-        if (mentionsSpiceDb || isGrpcError) {
-          logger.error(
-            {
-              error,
-              tenantId,
-              projectId,
-              userId,
-            },
-            'Failed to sync project to SpiceDB - database transactions rolled back'
-          );
-          throw createApiError({
-            code: 'internal_server_error',
-            message:
-              'Failed to set up project authorization. No changes were made to the database.',
-          });
-        }
+      if (error instanceof SpiceDbError) {
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to set up project authorization. Project creation has been rolled back.',
+        });
       }
 
       throw createApiError({
