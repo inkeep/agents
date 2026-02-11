@@ -22,7 +22,10 @@ export function resolveMessageBlobUris(content: MessageContent, baseUrl?: string
         const proxyUrl = `${apiBaseUrl}/manage/tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}/media/${encodeURIComponent(mediaKey)}`;
         return [{ ...part, data: proxyUrl }];
       }
-      logger.error({ key }, 'Malformed blob key (expected tenantId/projectId/conversationId/...), filtering part out');
+      logger.error(
+        { key },
+        'Malformed blob key (expected tenantId/projectId/conversationId/...), filtering part out'
+      );
       return [];
     }
 

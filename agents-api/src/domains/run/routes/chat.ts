@@ -329,11 +329,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
       }
       const userMessageId = generateId();
 
-      const messageContent = await buildPersistedMessageContent(
-        userMessage,
-        messageParts,
-        { tenantId, projectId, conversationId, messageId: userMessageId }
-      );
+      const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
+        tenantId,
+        projectId,
+        conversationId,
+        messageId: userMessageId,
+      });
 
       await createMessage(runDbClient)({
         id: userMessageId,

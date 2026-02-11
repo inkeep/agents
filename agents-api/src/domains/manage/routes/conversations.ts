@@ -7,8 +7,8 @@ import {
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient';
-import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
 import mediaRoutes from '../../run/routes/media';
+import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
 
 const app = new OpenAPIHono();
 
