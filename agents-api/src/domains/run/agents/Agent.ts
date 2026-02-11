@@ -2053,8 +2053,6 @@ export class Agent {
       }),
       execute: async ({ name }) => {
         const skill = this.config.skills?.find((item) => item.name === name);
-        // TODO remove
-        console.log('[load_skill] execute', { name, found: !!skill });
 
         if (!skill) {
           throw new Error(`Skill ${name} not found`);
