@@ -28,7 +28,6 @@ export const TagToDescription = {
   'Project Permissions': 'Operations for managing project permissions',
   Projects: 'Operations for managing projects',
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
-  Resources: 'Operations for fetching resources and data',
   Slack: 'Slack App integration endpoints',
   SubAgents: 'Operations for managing sub agents',
   'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',

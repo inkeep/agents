@@ -35007,10 +35007,6 @@
       "name": "Refs"
     },
     {
-      "description": "Operations for fetching resources and data",
-      "name": "Resources"
-    },
-    {
       "description": "Slack App integration endpoints",
       "name": "Slack"
     },
