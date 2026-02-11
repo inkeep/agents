@@ -60,7 +60,6 @@ export class Agent implements AgentInterface {
   private stopWhen?: AgentStopWhen;
   private triggers: TriggerInterface[] = [];
   private triggerMap = new Map<string, Trigger>();
-  private skills: SkillDefinition[] = [];
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
