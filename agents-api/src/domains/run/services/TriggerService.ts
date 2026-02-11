@@ -553,7 +553,7 @@ export async function dispatchExecution(params: {
     resolvedRef,
   });
 
-  // Attach error handling so failures are always logged and invocation
+  // Attach error handling so failures are always logged and invocation status is updated to failed
   const safeExecutionPromise = executionPromise.catch(async (error) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
