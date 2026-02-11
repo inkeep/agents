@@ -78,59 +78,29 @@ export class ScheduledTrigger implements ScheduledTriggerInterface {
 }
 
 /**
- * Factory function for creating scheduled triggers with cron expressions.
+ * Factory function for creating scheduled triggers.
+ *
+ * Supports both recurring (cron) and one-time (runAt) schedules.
+ * You must specify either `cronExpression` or `runAt`, but not both.
+ * Schema validation enforces mutual exclusivity.
  *
  * @example
  * ```typescript
+ * // Recurring schedule with cron
  * const dailyReport = scheduledTrigger({
  *   name: 'Daily Report',
  *   cronExpression: '0 9 * * *', // Every day at 9 AM
  *   messageTemplate: 'Generate the daily report',
  * });
- * ```
- */
-export function scheduledTrigger(config: ScheduledTriggerConfig): ScheduledTrigger {
-  return new ScheduledTrigger(config);
-}
-
-/**
- * Factory function for creating one-time scheduled triggers.
  *
- * @example
- * ```typescript
- * const oneTimeTask = oneTimeTrigger({
+ * // One-time schedule
+ * const oneTimeTask = scheduledTrigger({
  *   name: 'Migration Task',
  *   runAt: '2024-12-31T23:59:59Z',
  *   messageTemplate: 'Run the migration',
  * });
  * ```
  */
-export function oneTimeTrigger(
-  config: Omit<ScheduledTriggerConfig, 'cronExpression'> & { runAt: string }
-): ScheduledTrigger {
-  return new ScheduledTrigger({
-    ...config,
-    cronExpression: null,
-  });
-}
-
-/**
- * Factory function for creating recurring scheduled triggers with cron.
- *
- * @example
- * ```typescript
- * const hourlyCheck = cronTrigger({
- *   name: 'Hourly Health Check',
- *   cronExpression: '0 * * * *', // Every hour
- *   messageTemplate: 'Check system health',
- * });
- * ```
- */
-export function cronTrigger(
-  config: Omit<ScheduledTriggerConfig, 'runAt'> & { cronExpression: string }
-): ScheduledTrigger {
-  return new ScheduledTrigger({
-    ...config,
-    runAt: null,
-  });
+export function scheduledTrigger(config: ScheduledTriggerConfig): ScheduledTrigger {
+  return new ScheduledTrigger(config);
 }

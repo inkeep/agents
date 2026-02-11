@@ -39,6 +39,11 @@ import {
 } from './functionTools';
 import { upsertSubAgentSkill } from './skills';
 import {
+  deleteScheduledTrigger,
+  listScheduledTriggers,
+  upsertScheduledTrigger,
+} from './scheduledTriggers';
+import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
   upsertSubAgentExternalAgentRelation,
@@ -55,11 +60,6 @@ import {
   getSubAgentTeamAgentRelationsByAgent,
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
-import {
-  deleteScheduledTrigger,
-  listScheduledTriggers,
-  upsertScheduledTrigger,
-} from './scheduledTriggers';
 import { upsertSubAgentToolRelation } from './tools';
 import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
 
@@ -1257,36 +1257,36 @@ export const updateFullAgentServerSide =
           'Updating scheduled triggers for agent'
         );
 
-        const scheduledTriggerPromises = Object.entries(
-          typedAgentDefinition.scheduledTriggers
-        ).map(async ([scheduledTriggerId, scheduledTriggerData]) => {
-          try {
-            logger.info(
-              { agentId: finalAgentId, scheduledTriggerId },
-              'Updating scheduled trigger in agent'
-            );
-            await upsertScheduledTrigger(db)({
-              scopes: { tenantId, projectId, agentId: finalAgentId },
-              data: {
-                ...scheduledTriggerData,
-                id: scheduledTriggerId,
-                tenantId,
-                projectId,
-                agentId: finalAgentId,
-              },
-            });
-            logger.info(
-              { agentId: finalAgentId, scheduledTriggerId },
-              'Scheduled trigger updated successfully'
-            );
-          } catch (error) {
-            logger.error(
-              { agentId: finalAgentId, scheduledTriggerId, error },
-              'Failed to update scheduled trigger in agent'
-            );
-            throw error;
+        const scheduledTriggerPromises = Object.entries(typedAgentDefinition.scheduledTriggers).map(
+          async ([scheduledTriggerId, scheduledTriggerData]) => {
+            try {
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Updating scheduled trigger in agent'
+              );
+              await upsertScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...scheduledTriggerData,
+                  id: scheduledTriggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Scheduled trigger updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, scheduledTriggerId, error },
+                'Failed to update scheduled trigger in agent'
+              );
+              throw error;
+            }
           }
-        });
+        );
 
         await Promise.all(scheduledTriggerPromises);
         logger.info(

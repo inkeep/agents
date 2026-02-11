@@ -51,7 +51,7 @@ const scheduledTriggerFormSchema = z
     messageTemplate: z.string().default(''),
     maxRetries: z.coerce.number().int().min(0).max(10).default(1),
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
-    timeoutSeconds: z.coerce.number().int().min(30).max(900).default(900),
+    timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
   })
   .refine(
     (data) => {
@@ -103,7 +103,7 @@ export function ScheduledTriggerForm({
         messageTemplate: '',
         maxRetries: 1,
         retryDelaySeconds: 60,
-        timeoutSeconds: 900,
+        timeoutSeconds: 780,
       };
     }
 
@@ -120,7 +120,7 @@ export function ScheduledTriggerForm({
       messageTemplate: trigger.messageTemplate || '',
       maxRetries: trigger.maxRetries ?? 1,
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
-      timeoutSeconds: trigger.timeoutSeconds ?? 900,
+      timeoutSeconds: trigger.timeoutSeconds ?? 780,
     };
   };
 
@@ -395,7 +395,7 @@ export function ScheduledTriggerForm({
                     <FormControl>
                       <Input {...field} type="number" min={30} max={900} />
                     </FormControl>
-                    <FormDescription>Execution timeout (30-900)</FormDescription>
+                    <FormDescription>Execution timeout (30-780)</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

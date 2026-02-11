@@ -174,7 +174,7 @@ export const scheduledTriggers = pgTable(
     messageTemplate: text('message_template'),
     maxRetries: numeric('max_retries', { mode: 'number' }).notNull().default(1),
     retryDelaySeconds: numeric('retry_delay_seconds', { mode: 'number' }).notNull().default(60),
-    timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(900),
+    timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(780),
     ...timestamps,
   },
   (table) => [

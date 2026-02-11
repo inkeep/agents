@@ -31,11 +31,11 @@ import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
 import { getSkillsForSubAgents } from './skills';
+import { listScheduledTriggers } from './scheduledTriggers';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
-import { listScheduledTriggers } from './scheduledTriggers';
 import { listTools } from './tools';
 import { listTriggers } from './triggers';
 

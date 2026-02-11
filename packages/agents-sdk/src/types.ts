@@ -18,8 +18,8 @@ import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './external-agent';
 import type { FunctionTool } from './function-tool';
-import type { Tool } from './tool';
 import type { ScheduledTriggerInterface } from './scheduled-trigger';
+import type { Tool } from './tool';
 import type { TriggerInterface } from './trigger';
 
 export type { ModelSettings };

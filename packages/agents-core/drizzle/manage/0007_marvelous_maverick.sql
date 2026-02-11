@@ -13,7 +13,7 @@ CREATE TABLE "scheduled_triggers" (
 	"message_template" text,
 	"max_retries" numeric DEFAULT 1 NOT NULL,
 	"retry_delay_seconds" numeric DEFAULT 60 NOT NULL,
-	"timeout_seconds" numeric DEFAULT 900 NOT NULL,
+	"timeout_seconds" numeric DEFAULT 780 NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "scheduled_triggers_tenant_id_project_id_agent_id_id_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")

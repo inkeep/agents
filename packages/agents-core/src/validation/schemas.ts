@@ -952,7 +952,7 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
     z.string().trim().min(1).describe('Message template with {{placeholder}} syntax').optional(),
   maxRetries: () => z.number().int().min(0).max(10).default(1),
   retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
-  timeoutSeconds: () => z.number().int().min(30).max(1800).default(900),
+  timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
 });
 
 export const ScheduledTriggerInsertSchema = ScheduledTriggerInsertSchemaBase.refine(

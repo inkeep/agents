@@ -49,6 +49,7 @@
     "lint:fix": "biome check --write"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "3.0.7",
     "@ai-sdk/google": "3.0.4",
     "@hono/mcp": "^0.1.5",
     "@hono/swagger-ui": "^0.5.1",

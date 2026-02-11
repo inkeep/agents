@@ -48,6 +48,24 @@ import {
 } from '../../run/services/ScheduledTriggerService';
 import { executeAgentAsync } from '../../run/services/TriggerService';
 
+// Lazy-load waitUntil for Vercel serverless environments
+let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+let _waitUntilResolved = false;
+
+async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | undefined> {
+  if (_waitUntilResolved) return _waitUntil;
+  _waitUntilResolved = true;
+  if (!process.env.VERCEL) return undefined;
+  try {
+    const mod = await import('@vercel/functions');
+    _waitUntil = mod.waitUntil;
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error('[ScheduledTriggers] Failed to import @vercel/functions:', errorMessage);
+  }
+  return _waitUntil;
+}
+
 const logger = getLogger('scheduled-triggers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -919,7 +937,8 @@ app.openapi(
     const scopes = { tenantId, projectId, agentId };
 
     // Execute in background (fire-and-forget) with retry support
-    setImmediate(async () => {
+    // On Vercel, use waitUntil to ensure completion after response is sent
+    const rerunExecutionPromise = (async () => {
       try {
         await markScheduledTriggerInvocationRunning(runDbClient)({
           scopes,
@@ -1048,8 +1067,10 @@ app.openapi(
             });
 
             attemptNumber++;
-            // Sleep before retry
-            await new Promise((resolve) => setTimeout(resolve, retryDelaySeconds * 1000));
+            const jitter = Math.random() * 0.3;
+            await new Promise((resolve) =>
+              setTimeout(resolve, retryDelaySeconds * 1000 * (1 + jitter))
+            );
           } else {
             break;
           }
@@ -1089,7 +1110,24 @@ app.openapi(
           );
         });
       }
-    });
+    })();
+
+    // Use waitUntil on Vercel to prevent execution context from being killed
+    const waitUntil = await getWaitUntil();
+    if (waitUntil) {
+      waitUntil(rerunExecutionPromise);
+    } else {
+      // For local/non-Vercel: fire-and-forget with error logging
+      rerunExecutionPromise.catch((error) => {
+        logger.error(
+          {
+            invocationId: newInvocationId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'Background rerun execution failed (no waitUntil available)'
+        );
+      });
+    }
 
     return c.json({
       success: true,
@@ -1153,7 +1191,7 @@ app.openapi(
     // Apply defaults for retry configuration
     const maxRetries = trigger.maxRetries ?? 1;
     const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
-    const timeoutSeconds = trigger.timeoutSeconds ?? 900;
+    const timeoutSeconds = trigger.timeoutSeconds ?? 780;
 
     // Create a new invocation
     const invocationId = generateId();
@@ -1186,7 +1224,8 @@ app.openapi(
     const scopes = { tenantId, projectId, agentId };
 
     // Execute in background (fire-and-forget) with retry support
-    setImmediate(async () => {
+    // On Vercel, use waitUntil to ensure completion after response is sent
+    const executionPromise = (async () => {
       try {
         await markScheduledTriggerInvocationRunning(runDbClient)({
           scopes,
@@ -1308,7 +1347,10 @@ app.openapi(
             });
 
             attemptNumber++;
-            await new Promise((resolve) => setTimeout(resolve, retryDelaySeconds * 1000));
+            const jitter = Math.random() * 0.3;
+            await new Promise((resolve) =>
+              setTimeout(resolve, retryDelaySeconds * 1000 * (1 + jitter))
+            );
           } else {
             break;
           }
@@ -1348,7 +1390,24 @@ app.openapi(
           );
         });
       }
-    });
+    })();
+
+    // Use waitUntil on Vercel to prevent execution context from being killed
+    const waitUntil = await getWaitUntil();
+    if (waitUntil) {
+      waitUntil(executionPromise);
+    } else {
+      // For local/non-Vercel: fire-and-forget with error logging
+      executionPromise.catch((error) => {
+        logger.error(
+          {
+            invocationId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'Background execution failed (no waitUntil available)'
+        );
+      });
+    }
 
     return c.json({
       success: true,

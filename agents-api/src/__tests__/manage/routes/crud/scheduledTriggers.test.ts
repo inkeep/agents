@@ -53,7 +53,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
     messageTemplate = 'Scheduled run: {{status}}',
     maxRetries = 1,
     retryDelaySeconds = 60,
-    timeoutSeconds = 900,
+    timeoutSeconds = 780,
   }: {
     tenantId: string;
     projectId?: string;
@@ -409,7 +409,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.maxRetries).toBe(1);
       expect(body.data.retryDelaySeconds).toBe(60);
-      expect(body.data.timeoutSeconds).toBe(900);
+      expect(body.data.timeoutSeconds).toBe(780);
     });
 
     it('should reject trigger with neither cronExpression nor runAt', async () => {
@@ -506,7 +506,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const updateData = {
         maxRetries: 5,
         retryDelaySeconds: 300,
-        timeoutSeconds: 1200,
+        timeoutSeconds: 600,
       };
 
       const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
@@ -518,7 +518,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.maxRetries).toBe(5);
       expect(body.data.retryDelaySeconds).toBe(300);
-      expect(body.data.timeoutSeconds).toBe(1200);
+      expect(body.data.timeoutSeconds).toBe(600);
     });
 
     it('should accept empty update body (schema applies defaults for retry fields)', async () => {
