@@ -13,7 +13,7 @@ describe('DiffField', () => {
         renderAsCode={true}
       />
     );
-    expect(screen.getByText('Execute code')).toBeDefined();
+    expect(screen.getByText('Execute code')).toBeInTheDocument();
   });
 
   it('uses text diff when renderAsCode is false for string values', () => {
@@ -25,8 +25,8 @@ describe('DiffField', () => {
         renderAsCode={false}
       />
     );
-    expect(screen.getByText('Description')).toBeDefined();
-    expect(screen.getByText('Old')).toBeDefined();
-    expect(screen.getByText('New')).toBeDefined();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.getByText('Old')).toBeInTheDocument();
+    expect(screen.getByText('New')).toBeInTheDocument();
   });
 });
