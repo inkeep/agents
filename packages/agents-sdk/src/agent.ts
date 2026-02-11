@@ -123,7 +123,7 @@ export class Agent implements AgentInterface {
    * Set or update the configuration (tenantId, projectId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(tenantId: string, projectId: string, apiUrl: string, skills?: SkillDefinition[]): void {
+  setConfig(tenantId: string, projectId: string, apiUrl: string): void {
     if (this.initialized) {
       throw new Error('Cannot set config after agent has been initialized');
     }
@@ -131,9 +131,6 @@ export class Agent implements AgentInterface {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.baseURL = apiUrl;
-    if (skills) {
-      this.skills = skills;
-    }
 
     // Propagate tenantId, projectId, and apiUrl to all agents and their tools
     for (const subAgent of this.subAgents) {

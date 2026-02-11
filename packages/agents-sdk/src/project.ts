@@ -132,7 +132,7 @@ export class Project implements ProjectInterface {
 
       // Set project context on agent
       for (const agent of this.agents) {
-        agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.skills);
+        agent.setConfig(this.tenantId, this.projectId, this.baseURL);
       }
     }
 
@@ -199,7 +199,7 @@ export class Project implements ProjectInterface {
 
     // Update all agent with new config
     for (const agent of this.agents) {
-      agent.setConfig(tenantId, this.projectId, apiUrl, this.skills);
+      agent.setConfig(tenantId, this.projectId, apiUrl);
     }
 
     logger.info(
@@ -440,7 +440,7 @@ export class Project implements ProjectInterface {
     this.agentMap.set(agent.getId(), agent);
 
     // Set project context on the agent
-    agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.skills);
+    agent.setConfig(this.tenantId, this.projectId, this.baseURL);
 
     logger.info(
       {
