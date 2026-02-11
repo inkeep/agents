@@ -339,9 +339,7 @@ export const Agent: FC<AgentProps> = ({
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
-      agentToolConfigLookup,
-      undefined,
-      undefined
+      agentToolConfigLookup
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
