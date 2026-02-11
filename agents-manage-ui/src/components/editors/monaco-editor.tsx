@@ -98,8 +98,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       language,
       // Shift the find widget left to avoid flicker when clicking its close button.
       extraEditorClassName: '[&_.find-widget]:!right-11',
-      // Keep disabled: automatic Monaco relayout causes sidebar flickering when hovering a collapsed sidebar.
-      automaticLayout: false,
+      automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
       overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
       scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
