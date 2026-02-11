@@ -620,12 +620,22 @@ async function executeAgentAsync(params: {
     resolvedRef,
   } = params;
 
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId },
+    'executeAgentAsync: started, loading project'
+  );
+
   // Load project FIRST to get agent name
   const project = await withRef(manageDbPool, resolvedRef, async (db) => {
     return await getFullProjectWithRelationIds(db)({
       scopes: { tenantId, projectId },
     });
   });
+
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId, hasProject: !!project },
+    'executeAgentAsync: project loaded'
+  );
 
   if (!project) {
     logger.error(
@@ -664,6 +674,11 @@ async function executeAgentAsync(params: {
     .setEntry('agent.id', { value: agentId })
     .setEntry('agent.name', { value: agentName });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
+
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId },
+    'executeAgentAsync: starting tracer span'
+  );
 
   // Execute the agent in a new trace root with baggage
   return tracer.startActiveSpan(
