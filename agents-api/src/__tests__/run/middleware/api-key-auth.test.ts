@@ -398,7 +398,8 @@ describe('API Key Authentication Middleware', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toMatchObject({
-        apiKey: 'team-agent-jwt',
+        apiKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tenantId: 'tenant_123',
         projectId: 'project_123',
         agentId: 'target-agent',
@@ -504,7 +505,8 @@ describe('API Key Authentication Middleware', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toMatchObject({
-        apiKey: 'team-agent-jwt',
+        apiKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tenantId: 'tenant_123',
         projectId: 'project_123',
         agentId: 'target-agent',
