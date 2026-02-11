@@ -22,9 +22,11 @@ const envSchema = z.object({
   // Database
   INKEEP_AGENTS_RUN_DATABASE_URL: z
     .string()
-    .describe(
-      'PostgreSQL connection URL for the runtime database (Doltgres with Git version control)'
-    ),
+    .describe('PostgreSQL connection URL for the runtime database'),
+  INKEEP_AGENTS_MANAGE_DATABASE_URL: z
+    .string()
+    .optional()
+    .describe('PostgreSQL connection URL for the management database'),
   INKEEP_AGENTS_MANAGE_UI_URL: z
     .string()
     .optional()
@@ -47,6 +49,22 @@ const envSchema = z.object({
     .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
   GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+
+  // Slack App Configuration
+  SLACK_CLIENT_ID: z.string().optional().describe('Slack App Client ID'),
+  SLACK_CLIENT_SECRET: z.string().optional().describe('Slack App Client Secret'),
+  SLACK_SIGNING_SECRET: z.string().optional().describe('Slack App Signing Secret'),
+  SLACK_BOT_TOKEN: z.string().optional().describe('Slack Bot Token (for testing)'),
+  SLACK_APP_URL: z.string().optional().describe('Slack App Install URL'),
+
+  // Nango Configuration (Slack uses Nango for OAuth)
+  NANGO_SECRET_KEY: z.string().optional().describe('Nango Secret Key'),
+  NANGO_SLACK_SECRET_KEY: z.string().optional().describe('Nango Slack-specific Secret Key'),
+  NANGO_SLACK_INTEGRATION_ID: z.string().optional().describe('Nango Slack Integration ID'),
+  NANGO_SERVER_URL: z.string().optional().describe('Nango Server URL'),
+
+  // API URLs
+  INKEEP_AGENTS_API_URL: z.string().optional().describe('Inkeep Agents API URL'),
 });
 
 const parseEnv = () => {

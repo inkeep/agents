@@ -1,5 +1,6 @@
-import { CredentialStoreType } from '@inkeep/agents-core';
+import { CredentialStoreType, type JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
@@ -1386,20 +1387,20 @@ describe('Agent', () => {
         id: 'data1',
         name: 'Data Component 1',
         description: 'Test data component',
-        props: { key: 'value' },
+        props: { key: 'value' } as unknown as JsonSchemaForLlmSchemaType,
       };
-
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          summary: { type: 'string', inPreview: true },
+          full: { type: 'string', inPreview: false },
+        },
+      };
       const artifactComponent = {
         id: 'artifact1',
         name: 'Artifact Component 1',
         description: 'Test artifact component',
-        props: {
-          type: 'object',
-          properties: {
-            summary: { type: 'string', inPreview: true },
-            full: { type: 'string', inPreview: false },
-          },
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const agent = new SubAgent({

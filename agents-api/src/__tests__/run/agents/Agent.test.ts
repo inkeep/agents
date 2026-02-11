@@ -1,11 +1,13 @@
 import {
   type DataComponentSelect,
+  type JsonSchemaForLlmSchemaType,
   MCPServerType,
   MCPTransportType,
   type McpTool,
   type MessageType,
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
@@ -1335,7 +1337,10 @@ describe('Two-Pass Generation System', () => {
       projectId: 'test-project',
       name: 'TestComponent',
       description: 'Test component',
-      props: { type: 'object', properties: { message: { type: 'string' } } },
+      props: {
+        type: 'object',
+        properties: { message: { type: 'string' } },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       render: {
@@ -1526,7 +1531,10 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
@@ -1550,7 +1558,10 @@ describe('Agent Model Settings', () => {
           id: 'test-component',
           name: 'TestComponent',
           description: 'Test component',
-          props: { type: 'object', properties: { message: { type: 'string' } } },
+          props: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         },
       ],
     };
@@ -1717,7 +1728,7 @@ describe('Agent Conditional Tool Availability', () => {
             name: { type: 'string', inPreview: true },
             details: { type: 'string', inPreview: false },
           },
-        },
+        } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },

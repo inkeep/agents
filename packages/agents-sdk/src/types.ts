@@ -21,19 +21,6 @@ import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
 import type { TriggerInterface } from './trigger';
 
-export interface ArtifactComponentWithZodProps {
-  id: string;
-  name: string;
-  description: string;
-  props?: z.ZodObject<any>;
-}
-
-export interface DataComponentWithZodProps {
-  id: string;
-  name: string;
-  description: string;
-  props?: z.ZodObject<any>;
-}
 export type { ModelSettings };
 export type { TriggerInterface };
 
@@ -129,16 +116,8 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   canTransferTo?: () => SubAgentInterface[];
   canDelegateTo?: () => AllDelegateInputInterface[];
   skills?: () => SkillReference[];
-  dataComponents?: () => (
-    | DataComponentApiInsert
-    | DataComponentInterface
-    | DataComponentWithZodProps
-  )[];
-  artifactComponents?: () => (
-    | ArtifactComponentApiInsert
-    | ArtifactComponentInterface
-    | ArtifactComponentWithZodProps
-  )[];
+  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
+  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 

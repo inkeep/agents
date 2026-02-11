@@ -28,6 +28,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../../types/utility';
+import type { JsonSchemaForLlmSchemaType } from '../../validation/json-schemas';
 import type {
   AgentStopWhen,
   ModelSettings,
@@ -87,8 +88,7 @@ export const agents = pgTable(
   'agent',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
-    description: text('description'),
+    ...uiProperties,
     defaultSubAgentId: varchar('default_sub_agent_id', { length: 256 }),
     contextConfigId: varchar('context_config_id', { length: 256 }),
     models: jsonb('models').$type<Models>(),
@@ -287,7 +287,7 @@ export const dataComponents = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    props: jsonb('props').$type<Record<string, unknown>>(),
+    props: jsonb('props').$type<JsonSchemaForLlmSchemaType>().notNull(),
     render: jsonb('render').$type<{
       component: string;
       mockData: Record<string, unknown>;
@@ -331,7 +331,7 @@ export const artifactComponents = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    props: jsonb('props').$type<Record<string, unknown>>(),
+    props: jsonb('props').$type<JsonSchemaForLlmSchemaType>(),
     render: jsonb('render').$type<{
       component: string;
       mockData: Record<string, unknown>;
@@ -381,8 +381,7 @@ export const tools = pgTable(
   'tools',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
-    description: text('description'),
+    ...uiProperties,
     config: jsonb('config')
       .$type<{
         type: 'mcp';
@@ -417,8 +416,7 @@ export const functionTools = pgTable(
   'function_tools',
   {
     ...agentScoped,
-    name: varchar('name', { length: 256 }).notNull(),
-    description: text('description'),
+    ...uiProperties,
     functionId: varchar('function_id', { length: 256 }).notNull(),
     ...timestamps,
   },
@@ -574,7 +572,7 @@ export const credentialReferences = pgTable(
   'credential_references',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
+    name: uiProperties.name,
     type: varchar('type', { length: 256 }).notNull(),
     credentialStoreId: varchar('credential_store_id', { length: 256 }).notNull(),
     retrievalParams: jsonb('retrieval_params').$type<Record<string, unknown>>(),
@@ -607,7 +605,7 @@ export const credentialReferences = pgTable(
  * runs where conversations are created from dataset items. Each datasetRun
  * specifies which agent to use when executing the dataset.
  *
- * one to many relationship with datasetItem
+ * one-to-many relationship with datasetItem
  *
  * Includes: name and timestamps
  */
@@ -615,7 +613,7 @@ export const dataset = pgTable(
   'dataset',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
+    name: uiProperties.name,
     ...timestamps,
   },
   (table) => [

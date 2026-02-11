@@ -2,8 +2,10 @@ import {
   type BaseExecutionContext,
   getLogger,
   isInternalServiceToken,
+  isSlackUserToken,
   validateAndGetApiKey,
   verifyInternalServiceAuthHeader,
+  verifySlackUserToken,
 } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
@@ -115,7 +117,37 @@ export const manageApiKeyAuth = () =>
       return;
     }
 
-    // 4. Validate as an internal service token if not already authenticated
+    // 4. Validate as a Slack user JWT token (for Slack work app delegation)
+    if (isSlackUserToken(token)) {
+      const result = await verifySlackUserToken(token);
+
+      if (!result.valid || !result.payload) {
+        throw new HTTPException(401, {
+          message: result.error || 'Invalid Slack user token',
+        });
+      }
+
+      logger.info(
+        {
+          inkeepUserId: result.payload.sub,
+          tenantId: result.payload.tenantId,
+          slackTeamId: result.payload.slack.teamId,
+          slackUserId: result.payload.slack.userId,
+        },
+        'Slack user JWT authenticated successfully'
+      );
+
+      c.set('userId', result.payload.sub);
+      if (result.payload.slack.email) {
+        c.set('userEmail', result.payload.slack.email);
+      }
+      c.set('tenantId', result.payload.tenantId);
+
+      await next();
+      return;
+    }
+
+    // 5. Validate as an internal service token if not already authenticated
     if (isInternalServiceToken(token)) {
       const result = await verifyInternalServiceAuthHeader(authHeader);
       if (!result.valid || !result.payload) {

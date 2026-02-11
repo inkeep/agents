@@ -1,19 +1,22 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import { artifactComponent } from '../../builderFunctions';
 import type { ArtifactComponentConfig } from '../../builders';
 
 describe('artifactComponent builder function', () => {
   it('should create an artifact component with basic config', () => {
+    const props: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: {
+        title: { type: 'string', inPreview: true },
+        content: { type: 'string', inPreview: false },
+      },
+    };
     const config: ArtifactComponentConfig = {
       name: 'Test Artifact',
       description: 'Test artifact component',
-      props: {
-        type: 'object',
-        properties: {
-          title: { type: 'string', inPreview: true },
-          content: { type: 'string', inPreview: false },
-        },
-      },
+      props: props as JsonSchemaForLlmSchemaType,
     };
 
     const component = artifactComponent(config);
@@ -24,35 +27,36 @@ describe('artifactComponent builder function', () => {
   });
 
   it('should handle complex props structure', () => {
-    const config: ArtifactComponentConfig = {
-      name: 'Complex Artifact',
-      description: 'Artifact with complex props',
-      props: {
-        type: 'object',
-        properties: {
-          title: { type: 'string', inPreview: true },
-          metadata: {
-            type: 'object',
-            inPreview: true,
-            properties: {
-              tags: { type: 'array', items: { type: 'string' } },
-              version: { type: 'string' },
-            },
+    const props: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: {
+        title: { type: 'string', inPreview: true },
+        metadata: {
+          type: 'object',
+          inPreview: true,
+          properties: {
+            tags: { type: 'array', items: { type: 'string' } },
+            version: { type: 'string' },
           },
-          content: { type: 'string', inPreview: false },
-          sections: {
-            type: 'array',
-            inPreview: false,
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string' },
-                body: { type: 'string' },
-              },
+        },
+        content: { type: 'string', inPreview: false },
+        sections: {
+          type: 'array',
+          inPreview: false,
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              body: { type: 'string' },
             },
           },
         },
       },
+    };
+    const config: ArtifactComponentConfig = {
+      name: 'Complex Artifact',
+      description: 'Artifact with complex props',
+      props: props as JsonSchemaForLlmSchemaType,
     };
 
     const component = artifactComponent(config);
@@ -65,7 +69,7 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Artifact Component With Spaces & Special!@# Characters',
       description: 'Test description',
-      props: {},
+      props: {} as JsonSchemaForLlmSchemaType,
     };
 
     const component = artifactComponent(config);
@@ -76,7 +80,7 @@ describe('artifactComponent builder function', () => {
     const config: ArtifactComponentConfig = {
       name: 'Default Tenant Artifact',
       description: 'Artifact without tenant',
-      props: {},
+      props: {} as JsonSchemaForLlmSchemaType,
     };
 
     const component = artifactComponent(config);
