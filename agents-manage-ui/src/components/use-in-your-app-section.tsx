@@ -16,17 +16,23 @@ interface UseInYourAppSectionProps {
 const ADD_ONE_CMD = (id: string) => `inkeep add --ui ${id}`;
 const ADD_ALL_CMD = 'inkeep add --ui';
 
+function escapeComponentKey(name: string): string {
+  return JSON.stringify(name);
+}
+
 function buildImportAndRegistrationSnippet(
   pascalCaseFileName: string,
-  importedName: string
+  importedName: string,
+  dashboardComponentName: string
 ): string {
+  const componentsKey = escapeComponentKey(dashboardComponentName);
   return `import { ${importedName} } from './ui/${pascalCaseFileName}';
 
 <InkeepSidebarChat
   aiChatSettings={{
     agentUrl: "your-agent-url",
     components: {
-      ${importedName}, // Component name must match dashboard Name
+      ${componentsKey}: ${importedName},
     },
   }}
 />`;
@@ -46,8 +52,8 @@ export function UseInYourAppSection({
   );
   const addOneCommand = ADD_ONE_CMD(componentId);
   const importAndSnippet = useMemo(
-    () => buildImportAndRegistrationSnippet(pascalCaseFileName, importedName),
-    [pascalCaseFileName, importedName]
+    () => buildImportAndRegistrationSnippet(pascalCaseFileName, importedName, componentName),
+    [pascalCaseFileName, importedName, componentName]
   );
 
   return (
