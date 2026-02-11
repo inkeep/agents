@@ -53,7 +53,9 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="text-xs">Started: {formatDateTime(isoString)}</p>
+                            <p className="text-xs">
+                              Started: {formatDateTime(isoString, { local: true })}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </>
