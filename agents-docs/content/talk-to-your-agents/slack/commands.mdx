@@ -1,0 +1,98 @@
+---
+title: Slack Commands Reference
+sidebarTitle: Commands
+description: All available @mention patterns and slash commands for the Inkeep Slack app.
+---
+
+# Slack Commands Reference
+
+The Inkeep Slack app supports two interaction modes: **public** responses via `@Inkeep` mentions and **private** responses via `/inkeep` slash commands.
+
+## Public — `@Inkeep`
+
+Public responses are visible to everyone in the channel. They appear as threaded replies.
+
+| Usage | Description |
+|-------|-------------|
+| `@Inkeep <message>` | Send a message to your agent. The response appears in a thread. |
+| `@Inkeep <message>` in a thread | Send a message with the full thread included as context for the agent. |
+| `@Inkeep` in a thread | Trigger the agent using the entire thread as context (no additional message needed). |
+| `@Inkeep` with no message | Shows a usage hint explaining how to use @mentions. |
+
+<Note>
+The `@Inkeep` message itself is posted to the channel by Slack before the bot receives it — this is a Slack platform behavior and can't be suppressed.
+</Note>
+
+### Thread context
+
+When you use `@Inkeep` inside a thread, the agent automatically receives the full conversation history as context. This lets the agent understand what's being discussed and provide relevant responses.
+
+The thread content is treated as untrusted user input and wrapped in safety delimiters before being sent to the agent.
+
+## Private — `/inkeep`
+
+Private responses are **ephemeral** — only you can see them. They don't appear in the channel for other users.
+
+| Command | Description |
+|---------|-------------|
+| `/inkeep <message>` | Send a message to the default agent. Response is private. |
+| `/inkeep` | Open a modal to select a project, agent, and write your prompt. |
+| `/inkeep run "agent name" <message>` | Send a message to a specific agent by name. |
+| `/inkeep help` | Show the full usage guide. |
+| `/inkeep status` | Check your linked account and the active agent for the current channel. |
+| `/inkeep link` | Link your Slack account to your Inkeep account (one-time setup). |
+| `/inkeep unlink` | Disconnect your Slack account from Inkeep. |
+| `/inkeep list` | List all available agents. |
+
+### Multi-turn conversations
+
+When you use `/inkeep` (modal) or `/inkeep <message>`, the response includes a **Follow Up** button. Clicking it opens a new prompt modal that continues the same conversation — the agent remembers everything from previous turns.
+
+Each follow-up response appears as a new ephemeral message showing your question and the agent's response.
+
+### Agent picker modal
+
+Running `/inkeep` with no arguments opens a modal where you can:
+
+1. **Select a project** from the dropdown
+2. **Select an agent** from that project
+3. **Write your prompt**
+4. Submit to get a private response
+
+The modal also includes a link to the dashboard for managing agents.
+
+## Agent resolution
+
+When you use `@Inkeep` or `/inkeep`, the app determines which agent to use based on this priority:
+
+| Priority | Source | Set by |
+|----------|--------|--------|
+| 1 | **Channel default** | Admin, via the dashboard |
+| 2 | **Workspace default** | Admin, via the dashboard |
+
+If no agent is configured, you'll see a prompt directing you to the dashboard to set one up.
+
+<Tip>
+Use `/inkeep status` to see which agent is active for the current channel.
+</Tip>
+
+## Troubleshooting
+
+### "You need to link your account"
+
+Run `/inkeep link` and click the link to connect your Slack and Inkeep accounts. This is a one-time setup per user.
+
+### "No agents configured"
+
+An organization admin needs to set a workspace or channel default agent in the dashboard at **Work Apps** → **Slack**.
+
+### "Request timed out"
+
+The agent took too long to respond. Try again — if the issue persists, check that your Inkeep deployment is running and healthy.
+
+### Command shows "failed with error"
+
+This typically means the bot couldn't process the command. Check that:
+- The Slack app is properly installed (try `/inkeep help`)
+- Your account is linked (`/inkeep status`)
+- An agent is configured for the workspace

@@ -1,0 +1,10 @@
+{
+  "icon": "LuMessageSquare",
+  "pages": [
+    "overview",
+    "installation",
+    "commands",
+    "configuration",
+    "..."
+  ]
+}

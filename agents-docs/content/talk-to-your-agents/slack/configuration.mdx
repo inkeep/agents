@@ -1,0 +1,99 @@
+---
+title: Configure Slack Agents
+sidebarTitle: Configuration
+description: Set up workspace and channel default agents for the Slack integration.
+---
+
+# Configure Slack Agents
+
+After installing the Slack app, configure which agents respond to your team's messages. You can set a workspace-wide default and optionally assign different agents to specific channels.
+
+## Workspace default
+
+The workspace default agent responds to all `@Inkeep` mentions and `/inkeep` commands across every channel in the workspace — unless a channel has its own default.
+
+<Steps>
+  <Step>
+    ### Open the Slack dashboard
+
+    Navigate to **Work Apps** → **Slack** in the Inkeep dashboard. Select your installed workspace.
+  </Step>
+  <Step>
+    ### Set the default agent
+
+    In the **Agent Configuration** section, select a project and agent from the dropdowns. Click **Save**.
+
+    This agent will now handle all requests in channels without a channel-specific default.
+  </Step>
+</Steps>
+
+## Channel defaults
+
+Channel defaults let you assign a specific agent to individual channels. This is useful when different channels need different expertise — for example, a support channel using a support agent and an engineering channel using a technical agent.
+
+<Steps>
+  <Step>
+    ### Open channel defaults
+
+    In the Slack dashboard, scroll to the **Channel Defaults** section. You'll see a list of all channels the bot has access to.
+  </Step>
+  <Step>
+    ### Filter and select channels
+
+    Use the filter buttons to view **All**, **Private**, or **Slack Connect** channels. Select the channels you want to configure.
+  </Step>
+  <Step>
+    ### Assign an agent
+
+    Choose a project and agent for the selected channels. You can configure channels individually or use **bulk actions** to assign the same agent to multiple channels at once.
+  </Step>
+</Steps>
+
+<Tip>
+Channel defaults take priority over the workspace default. If you remove a channel default, that channel falls back to the workspace default agent.
+</Tip>
+
+## Agent resolution priority
+
+| Priority | Source | Scope |
+|----------|--------|-------|
+| 1 | **Channel default** | Applies to a specific channel only |
+| 2 | **Workspace default** | Applies to all channels without a channel default |
+
+## Managing linked users
+
+The dashboard shows all users who have linked their Slack accounts to Inkeep. You can:
+
+- **View** linked users with their Slack username, email, and link date
+- **Export** the linked users list as CSV
+- **Unlink** a user if needed (the user can re-link with `/inkeep link`)
+
+## Workspace health
+
+The dashboard includes a health check that verifies:
+
+- **Bot connection** — The bot token is valid and the bot is accessible
+- **Permissions** — The bot can post messages, read channels, and read history
+- **Workspace info** — Team name and bot identity are correct
+
+If the health check shows issues, try reinstalling the Slack app from the dashboard.
+
+## Who can configure
+
+| Action | Required role |
+|--------|-------------|
+| Set workspace default | Organization admin or owner |
+| Set channel defaults | Organization admin, or channel member |
+| View configuration | Any authenticated user in the organization |
+| Install/uninstall | Organization admin or owner |
+
+## Next steps
+
+<Cards>
+  <Card title="Commands Reference" icon="LuTerminal" href="/talk-to-your-agents/slack/commands">
+    Learn all available slash commands and @mention patterns
+  </Card>
+  <Card title="API Reference" icon="LuFileCode" href="/api-reference/slack">
+    Explore the Slack API endpoints
+  </Card>
+</Cards>
