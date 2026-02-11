@@ -230,7 +230,12 @@ export class SubAgent implements SubAgentInterface {
     ];
   }
 
-  getSkills(): { id: string; index?: number; skill?: SkillDefinition }[] {
+  getSkills(): Array<{
+    id: string;
+    index?: number;
+    alwaysLoaded?: boolean;
+    skill?: SkillDefinition;
+  }> {
     const skills = resolveGetter(this.config.skills);
     if (!skills) {
       return [];
@@ -246,14 +251,24 @@ export class SubAgent implements SubAgentInterface {
           const skillEntry = entry as any;
           const hasSkillDefinition =
             typeof skillEntry.content === 'string' || typeof skillEntry.name === 'string';
+          const alwaysLoaded =
+            typeof skillEntry.alwaysLoaded === 'boolean' ? skillEntry.alwaysLoaded : undefined;
           return {
             id: skillEntry.id,
             index: skillEntry.index ?? idx,
-            ...(hasSkillDefinition ? { skill: skillEntry } : {}),
+            ...(alwaysLoaded !== undefined && { alwaysLoaded }),
+            ...(hasSkillDefinition && { skill: skillEntry }),
           };
         }
         if ('skillId' in entry) {
-          return { id: (entry as any).skillId, index: (entry as any).index ?? idx };
+          const skillEntry = entry as any;
+          const alwaysLoaded =
+            typeof skillEntry.alwaysLoaded === 'boolean' ? skillEntry.alwaysLoaded : undefined;
+          return {
+            id: skillEntry.skillId,
+            index: skillEntry.index ?? idx,
+            ...(alwaysLoaded !== undefined && { alwaysLoaded }),
+          };
         }
         return null;
       })

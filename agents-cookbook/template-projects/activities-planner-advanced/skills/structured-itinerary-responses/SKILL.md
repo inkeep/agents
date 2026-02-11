@@ -1,6 +1,6 @@
 ---
-name: structured-itinerary-responses
-description: Present time-aware itineraries with clear actions and citations
+name: "structured-itinerary-responses"
+description: "Present time-aware itineraries with clear actions and citations"
 metadata:
   author: example-org
   version: "1.0"

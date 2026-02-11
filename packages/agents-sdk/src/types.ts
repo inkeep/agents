@@ -106,9 +106,9 @@ export interface SkillDefinition {
 
 export type SkillReference =
   | string
-  | { id: string; index?: number }
-  | { skillId: string; index?: number }
-  | (SkillDefinition & { index?: number });
+  | { id: string; index?: number; alwaysLoaded?: boolean }
+  | { skillId: string; index?: number; alwaysLoaded?: boolean }
+  | (SkillDefinition & { index?: number; alwaysLoaded?: boolean });
 export type AllDelegateInputInterface =
   | SubAgentInterface
   | subAgentExternalAgentInterface
@@ -333,7 +333,12 @@ export interface SubAgentInterface {
   getExternalAgentDelegates(): subAgentExternalAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
-  getSkills(): Array<{ id: string; index?: number; skill?: SkillDefinition }>;
+  getSkills(): Array<{
+    id: string;
+    index?: number;
+    alwaysLoaded?: boolean;
+    skill?: SkillDefinition;
+  }>;
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: SubAgentInterface[]): void;

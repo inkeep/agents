@@ -179,11 +179,6 @@ export class Agent implements AgentInterface {
     const externalAgentsObject: Record<string, any> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
-    const skillsById = new Map<string, SkillDefinition>();
-
-    for (const skill of this.skills) {
-      skillsById.set(skill.id, skill);
-    }
 
     for (const subAgent of this.subAgents) {
       // Get agent relationships
@@ -283,22 +278,11 @@ export class Agent implements AgentInterface {
         toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
-      const skillTimestamp = new Date().toISOString();
-      const resolvedSkills = subAgent
-        .getSkills()
-        .map((skillRef, idx) => {
-          const skillDef = skillRef.skill || skillsById.get(skillRef.id);
-          if (!skillDef) {
-            return null;
-          }
-          return {
-            ...skillDef,
-            index: skillRef.index ?? idx,
-            createdAt: skillDef.createdAt ?? skillTimestamp,
-            updatedAt: skillDef.updatedAt ?? skillTimestamp,
-          };
-        })
-        .filter((p) => !!p);
+      const resolvedSkills = subAgent.getSkills().map((skillRef, idx) => ({
+        id: skillRef.id,
+        index: skillRef.index ?? idx,
+        ...(skillRef.alwaysLoaded !== undefined && { alwaysLoaded: skillRef.alwaysLoaded }),
+      }));
 
       subAgentsObject[subAgent.getId()] = {
         id: subAgent.getId(),
