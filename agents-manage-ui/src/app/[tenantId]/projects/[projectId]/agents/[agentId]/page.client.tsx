@@ -565,7 +565,7 @@ export const Agent: FC<AgentProps> = ({
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
         if (edges.some((edge) => edge.target === targetNode.id)) {
-          toast.error('This MCP tool is already connected. Remove the existing connection first.');
+          toast.error('This MCP tool is already connected. Connect to a new MCP server node.');
           return;
         }
         updateNodeData(targetNode.id, {
