@@ -160,7 +160,12 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" className="-mr-2">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="-mr-2"
+                    aria-label="Skill options"
+                  >
                     <MoreVertical />
                   </Button>
                 </DropdownMenuTrigger>
