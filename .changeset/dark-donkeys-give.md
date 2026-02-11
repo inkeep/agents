@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-trigger paths get error logging + invocation status updated to 'failed' instead of pending
+Add error logging to trigger execution paths and update invocation status to 'failed' on errors
