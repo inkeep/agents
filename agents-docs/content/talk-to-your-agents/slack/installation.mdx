@@ -1,0 +1,96 @@
+---
+title: Install the Slack App
+sidebarTitle: Installation
+description: Step-by-step guide to installing the Inkeep Slack app in your workspace.
+---
+
+# Install the Slack App
+
+Connect your Slack workspace to Inkeep so your team can interact with AI agents directly from Slack.
+
+## Prerequisites
+
+- An Inkeep account with at least one project and agent configured
+- **Slack workspace admin** access (required to install apps)
+- Your Inkeep deployment running with the Slack environment variables configured
+
+## Installation
+
+<Steps>
+  <Step>
+    ### Open the Work Apps dashboard
+
+    Navigate to your Inkeep dashboard and select **Work Apps** from the sidebar. You'll see the Slack integration card.
+  </Step>
+  <Step>
+    ### Install to Slack
+
+    Click **Install** on the Slack card. This redirects you to Slack's OAuth consent screen where you authorize the Inkeep bot to join your workspace.
+
+    The bot requests the following permissions:
+    - Read messages in channels where it's mentioned
+    - Post messages and replies
+    - Access channel and user information
+    - Register slash commands
+  </Step>
+  <Step>
+    ### Verify the installation
+
+    After authorizing, you're redirected back to the dashboard. The Slack card should now show your workspace as **Installed** with the workspace name.
+
+    You can verify the bot is active by typing `/inkeep help` in any Slack channel.
+  </Step>
+</Steps>
+
+## Link your account
+
+Each user needs to link their Slack account to their Inkeep account before using agents. This is a one-time setup.
+
+<Steps>
+  <Step>
+    ### Run the link command
+
+    In any Slack channel, type:
+
+    ```
+    /inkeep link
+    ```
+
+    The bot responds with a private link that expires in 10 minutes.
+  </Step>
+  <Step>
+    ### Complete the linking
+
+    Click the link to open the Inkeep dashboard. If you're already signed in, the linking completes automatically. If not, sign in first.
+  </Step>
+  <Step>
+    ### Verify your link
+
+    Run `/inkeep status` to confirm your account is linked. You'll see your Inkeep account email and the active agent for the current channel.
+  </Step>
+</Steps>
+
+<Tip>
+Account linking uses a short-lived JWT token for security. If the link expires, run `/inkeep link` again to get a fresh one.
+</Tip>
+
+## Uninstalling
+
+To remove the Slack app from your workspace:
+
+1. Go to the **Work Apps** → **Slack** dashboard
+2. Click the workspace options menu
+3. Select **Uninstall**
+
+This removes the bot from your workspace, deletes all user link mappings, and cleans up channel configurations.
+
+## Next steps
+
+<Cards>
+  <Card title="Commands Reference" icon="LuTerminal" href="/talk-to-your-agents/slack/commands">
+    Learn all the ways to interact with agents in Slack
+  </Card>
+  <Card title="Configure Agents" icon="LuSettings" href="/talk-to-your-agents/slack/configuration">
+    Set up which agents respond in which channels
+  </Card>
+</Cards>

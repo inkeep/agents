@@ -90,7 +90,7 @@ export function SlackDashboard() {
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                 <a
-                  href="https://docs.inkeep.com/api-reference/slack"
+                  href="https://docs.inkeep.com/talk-to-your-agents/slack/overview"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="View Slack integration documentation"
