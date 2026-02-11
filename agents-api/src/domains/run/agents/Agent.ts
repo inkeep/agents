@@ -2080,11 +2080,6 @@ export class Agent {
     }
 
     const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
-    const skillDebugInfo =
-      this.config.skills?.map((skill) => ({
-        name: skill.name,
-        alwaysLoaded: skill.alwaysLoaded,
-      })) || [];
     if (hasOnDemandSkills) {
       const loadSkillTool = this.#createLoadSkillTool();
       if (loadSkillTool) {
