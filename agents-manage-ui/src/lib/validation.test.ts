@@ -8,8 +8,10 @@ describe('validation', () => {
         headersJsonSchema: '',
         headersString: 'null',
       });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
+          code: 'invalid_type',
+          expected: 'record',
           path: [],
           message: 'Must be valid JSON object',
         },
@@ -21,8 +23,9 @@ describe('validation', () => {
         headersJsonSchema: '',
         headersString: '#',
       });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
+          code: 'custom',
           path: [],
           message: 'Invalid JSON syntax',
         },
@@ -36,10 +39,12 @@ describe('validation', () => {
           foo: { bar: 'baz' },
         }),
       });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
-          path: [],
-          message: 'All header values must be strings\n  → at foo',
+          code: 'invalid_type',
+          expected: 'string',
+          path: ['foo'],
+          message: 'All object values must be strings',
         },
       ]);
     });
@@ -49,10 +54,12 @@ describe('validation', () => {
         headersJsonSchema: '',
         headersString: JSON.stringify({ foo: null }),
       });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
-          path: [],
-          message: 'All header values must be strings\n  → at foo',
+          code: 'invalid_type',
+          expected: 'string',
+          path: ['foo'],
+          message: 'All object values must be strings',
         },
       ]);
     });
@@ -63,10 +70,12 @@ describe('validation', () => {
         headersJsonSchema: JSON.stringify(jsonSchema),
         headersString: JSON.stringify({}),
       });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
-          path: [],
-          message: 'Invalid input: expected string, received undefined\n  → at foo',
+          code: 'invalid_type',
+          expected: 'string',
+          path: ['foo'],
+          message: 'Invalid input: expected string, received undefined',
         },
       ]);
     });
@@ -77,8 +86,10 @@ describe('validation', () => {
         headersJsonSchema: JSON.stringify(jsonSchema),
         headersString: '"bar"',
       });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
+          code: 'invalid_type',
+          expected: 'record',
           path: [],
           message: 'Must be valid JSON object',
         },
@@ -88,8 +99,9 @@ describe('validation', () => {
     test('returns error for invalid JSON schemas syntax', () => {
       const error = getErrorObject({ headersJsonSchema: '#', headersString: '' });
 
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
+          code: 'custom',
           path: [],
           message: `Error during parsing JSON schema headers: Unexpected token '#', "#" is not valid JSON`,
         },
@@ -98,8 +110,9 @@ describe('validation', () => {
 
     test('returns error for invalid JSON schemas', () => {
       const error = getErrorObject({ headersJsonSchema: 'null', headersString: '' });
-      expect(error).toMatchObject([
+      expect(error).toStrictEqual([
         {
+          code: 'custom',
           path: [],
           message:
             "Error during parsing JSON schema headers: Cannot read properties of null (reading '$schema')",
@@ -122,5 +135,5 @@ function getErrorObject({
   if (result.success) {
     throw new Error('Must throw zod error');
   }
-  return JSON.parse(result.error.message);
+  return result.error.issues;
 }

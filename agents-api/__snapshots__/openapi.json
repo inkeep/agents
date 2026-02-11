@@ -20130,12 +20130,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "description": "Resource identifier",
-              "example": "resource_789",
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[a-zA-Z0-9\\-_.]+$",
-              "type": "string"
+              "$ref": "#/components/schemas/ResourceId"
             }
           }
         ],

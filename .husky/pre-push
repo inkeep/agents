@@ -1,14 +1,6 @@
 #!/usr/bin/env sh
 
-# Pre-push hook: Comprehensive but fast validation
-# Target: < 30 seconds (with cache)
-#
-# Runs optimized checks:
-# - Lint (all packages except docs/cookbook)
-# - Typecheck (all packages except docs/cookbook)
-# - Tests (only affected packages since origin/main)
-#
-# Excludes slow builds (agents-manage-ui, agents-docs) for speed
-# Full validation still runs in CI
+# Pre-push hook: Format check only
+# Full validation runs in CI
 
-pnpm check:prepush
+pnpm format
