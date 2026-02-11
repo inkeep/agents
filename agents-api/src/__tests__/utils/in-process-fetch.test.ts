@@ -7,7 +7,7 @@ vi.mock('@opentelemetry/api', () => ({
   },
 }));
 
-vi.mock('../../../logger', () => ({
+vi.mock('../../logger', () => ({
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -23,7 +23,7 @@ describe('in-process-fetch', () => {
   });
 
   it('should delegate to registered fetch when app is registered', async () => {
-    const { registerAppFetch, getInProcessFetch } = await import('../../../utils/in-process-fetch');
+    const { registerAppFetch, getInProcessFetch } = await import('../../utils/in-process-fetch');
     const mockFetch = vi.fn().mockResolvedValue(new Response('ok')) as unknown as typeof fetch;
 
     registerAppFetch(mockFetch);
@@ -37,7 +37,7 @@ describe('in-process-fetch', () => {
   it('should throw in production when not registered', async () => {
     vi.stubEnv('ENVIRONMENT', 'production');
 
-    const { getInProcessFetch } = await import('../../../utils/in-process-fetch');
+    const { getInProcessFetch } = await import('../../utils/in-process-fetch');
 
     expect(() => getInProcessFetch()).toThrow('[in-process-fetch] App fetch not registered');
 
@@ -47,7 +47,7 @@ describe('in-process-fetch', () => {
   it('should fall back to global fetch in test environment when not registered', async () => {
     vi.stubEnv('ENVIRONMENT', 'test');
 
-    const { getInProcessFetch } = await import('../../../utils/in-process-fetch');
+    const { getInProcessFetch } = await import('../../utils/in-process-fetch');
 
     expect(getInProcessFetch()).toBe(fetch);
 
@@ -57,7 +57,7 @@ describe('in-process-fetch', () => {
   it('should return wrapped registered fetch even in test environment', async () => {
     vi.stubEnv('ENVIRONMENT', 'test');
 
-    const { registerAppFetch, getInProcessFetch } = await import('../../../utils/in-process-fetch');
+    const { registerAppFetch, getInProcessFetch } = await import('../../utils/in-process-fetch');
     const mockFetch = vi.fn().mockResolvedValue(new Response('ok')) as unknown as typeof fetch;
 
     registerAppFetch(mockFetch);
@@ -76,7 +76,7 @@ describe('in-process-fetch', () => {
       setAttribute: mockSetAttribute,
     } as any);
 
-    const { registerAppFetch, getInProcessFetch } = await import('../../../utils/in-process-fetch');
+    const { registerAppFetch, getInProcessFetch } = await import('../../utils/in-process-fetch');
     const mockFetch = vi.fn().mockResolvedValue(new Response('ok')) as unknown as typeof fetch;
 
     registerAppFetch(mockFetch);
@@ -90,7 +90,7 @@ describe('in-process-fetch', () => {
   it('should not throw when no active span exists', async () => {
     vi.mocked(trace.getActiveSpan).mockReturnValue(undefined);
 
-    const { registerAppFetch, getInProcessFetch } = await import('../../../utils/in-process-fetch');
+    const { registerAppFetch, getInProcessFetch } = await import('../../utils/in-process-fetch');
     const mockFetch = vi.fn().mockResolvedValue(new Response('ok')) as unknown as typeof fetch;
 
     registerAppFetch(mockFetch);
