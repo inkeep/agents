@@ -553,20 +553,36 @@ export async function dispatchExecution(params: {
     resolvedRef,
   });
 
+  // Attach error handling so failures are always logged and invocation
+  const safeExecutionPromise = executionPromise.catch(async (error) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error(
+      { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId, invocationId },
+      'Background trigger execution failed'
+    );
+
+    try {
+      await updateTriggerInvocationStatus(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        invocationId,
+        data: { status: 'failed', errorMessage },
+      });
+    } catch (updateError) {
+      const updateErrorMessage =
+        updateError instanceof Error ? updateError.message : String(updateError);
+      logger.error(
+        { err: updateErrorMessage, invocationId },
+        'Failed to update invocation status to failed'
+      );
+    }
+  });
+
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
   if (waitUntil) {
-    waitUntil(executionPromise);
-  } else {
-    // For local/non-Vercel: fire-and-forget with error logging
-    executionPromise.catch((error) => {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      logger.error(
-        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId, invocationId },
-        'Background trigger execution failed'
-      );
-    });
+    waitUntil(safeExecutionPromise);
   }
 
   logger.info(
@@ -612,16 +628,28 @@ async function executeAgentAsync(params: {
   });
 
   if (!project) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Project not found for trigger execution'
+    );
     throw new Error(`Project ${projectId} not found`);
   }
 
   // Find the agent's default sub-agent
   const agent = project.agents?.[agentId];
   if (!agent) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Agent not found in project for trigger execution'
+    );
     throw new Error(`Agent ${agentId} not found in project`);
   }
   const defaultSubAgentId = agent.defaultSubAgentId;
   if (!defaultSubAgentId) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Agent has no default sub-agent configured'
+    );
     throw new Error(`Agent ${agentId} has no default sub-agent configured`);
   }
 
