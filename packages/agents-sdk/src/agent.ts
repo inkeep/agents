@@ -171,10 +171,6 @@ export class Agent implements AgentInterface {
     );
   }
 
-  setSkills(skills: SkillDefinition[]): void {
-    this.skills = skills;
-  }
-
   /**
    * Convert the Agent to FullAgentDefinition format for the new agent endpoint
    */

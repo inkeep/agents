@@ -133,7 +133,6 @@ export class Project implements ProjectInterface {
       // Set project context on agent
       for (const agent of this.agents) {
         agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.skills);
-        agent.setSkills(this.skills);
       }
     }
 
@@ -442,7 +441,6 @@ export class Project implements ProjectInterface {
 
     // Set project context on the agent
     agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.skills);
-    agent.setSkills(this.skills);
 
     logger.info(
       {
