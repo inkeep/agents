@@ -3,4 +3,4 @@
 "@inkeep/agents-api": patch
 ---
 
-unwrapping generic vercel ai sdk errors such as "fetch failed"
+Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces

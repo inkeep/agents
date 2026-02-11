@@ -199,7 +199,7 @@ export class A2AClient {
       return agentCard;
     } catch (error) {
       const rootCause = unwrapError(error);
-      console.error('Error fetching or parsing Agent Card:', rootCause);
+      logger.error({ error: rootCause }, 'Error fetching or parsing Agent Card');
       throw rootCause;
     }
   }
@@ -777,7 +777,7 @@ export class A2AClient {
       }
     } catch (error: any) {
       const rootCause = unwrapError(error);
-      console.error('Error reading or parsing SSE stream:', rootCause.message);
+      logger.error({ error: rootCause }, 'Error reading or parsing SSE stream');
       throw rootCause;
     } finally {
       reader.releaseLock(); // Ensure the reader lock is released
