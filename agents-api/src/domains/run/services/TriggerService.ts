@@ -45,15 +45,20 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
 import { tracer } from '../utils/tracer';
 
-// Import waitUntil synchronously (only available on Vercel)
-let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
-if (process.env.VERCEL) {
+let _waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+let _waitUntilResolved = false;
+
+async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | undefined> {
+  if (_waitUntilResolved) return _waitUntil;
+  _waitUntilResolved = true;
+  if (!process.env.VERCEL) return undefined;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    ({ waitUntil } = require('@vercel/functions'));
-  } catch {
-    // Not on Vercel or package not available
+    const mod = await import('@vercel/functions');
+    _waitUntil = mod.waitUntil;
+  } catch (e) {
+    console.error('[TriggerService] Failed to import @vercel/functions:', e);
   }
+  return _waitUntil;
 }
 
 const logger = getLogger('TriggerService');
@@ -553,20 +558,46 @@ export async function dispatchExecution(params: {
     resolvedRef,
   });
 
+  // Attach error handling so failures are always logged and invocation status is updated to failed
+  const safeExecutionPromise = executionPromise.catch(async (error) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error(
+      { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId, invocationId },
+      'Background trigger execution failed'
+    );
+
+    try {
+      await updateTriggerInvocationStatus(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        invocationId,
+        data: { status: 'failed', errorMessage },
+      });
+    } catch (updateError) {
+      const updateErrorMessage =
+        updateError instanceof Error ? updateError.message : String(updateError);
+      logger.error(
+        { err: updateErrorMessage, invocationId },
+        'Failed to update invocation status to failed'
+      );
+    }
+  });
+
   // On Vercel, use waitUntil to ensure completion after response is sent
   // In other environments, the promise runs in the background
+  const waitUntil = await getWaitUntil();
   if (waitUntil) {
-    waitUntil(executionPromise);
+    logger.info(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Calling waitUntil with execution promise'
+    );
+    waitUntil(safeExecutionPromise);
   } else {
-    // For local/non-Vercel: fire-and-forget with error logging
-    executionPromise.catch((error) => {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      logger.error(
-        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId, invocationId },
-        'Background trigger execution failed'
-      );
-    });
+    logger.warn(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'waitUntil is NOT available — background execution will be abandoned on serverless'
+    );
   }
 
   logger.info(
@@ -604,6 +635,11 @@ async function executeAgentAsync(params: {
     resolvedRef,
   } = params;
 
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId },
+    'executeAgentAsync: started, loading project'
+  );
+
   // Load project FIRST to get agent name
   const project = await withRef(manageDbPool, resolvedRef, async (db) => {
     return await getFullProjectWithRelationIds(db)({
@@ -611,17 +647,34 @@ async function executeAgentAsync(params: {
     });
   });
 
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId, hasProject: !!project },
+    'executeAgentAsync: project loaded'
+  );
+
   if (!project) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Project not found for trigger execution'
+    );
     throw new Error(`Project ${projectId} not found`);
   }
 
   // Find the agent's default sub-agent
   const agent = project.agents?.[agentId];
   if (!agent) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Agent not found in project for trigger execution'
+    );
     throw new Error(`Agent ${agentId} not found in project`);
   }
   const defaultSubAgentId = agent.defaultSubAgentId;
   if (!defaultSubAgentId) {
+    logger.error(
+      { tenantId, projectId, agentId, triggerId, invocationId },
+      'Agent has no default sub-agent configured'
+    );
     throw new Error(`Agent ${agentId} has no default sub-agent configured`);
   }
 
@@ -636,6 +689,11 @@ async function executeAgentAsync(params: {
     .setEntry('agent.id', { value: agentId })
     .setEntry('agent.name', { value: agentName });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
+
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId },
+    'executeAgentAsync: starting tracer span'
+  );
 
   // Execute the agent in a new trace root with baggage
   return tracer.startActiveSpan(

@@ -8,6 +8,7 @@ export const TagToDescription = {
   Agents: 'Operations for managing agents',
   'Artifact Components': 'Operations for managing artifact components',
   Branches: 'Operations for managing branches',
+  Channels: 'Operations for managing Slack channels',
   CLI: 'CLI authentication endpoints',
   Chat: 'Chat completions endpoints',
   'Context Configs': 'Operations for managing context configurations',
@@ -27,13 +28,17 @@ export const TagToDescription = {
   'Project Permissions': 'Operations for managing project permissions',
   Projects: 'Operations for managing projects',
   Refs: 'Operations for the resolved ref (branch name, tag name, or commit hash)',
+  Slack: 'Slack App integration endpoints',
   SubAgents: 'Operations for managing sub agents',
   'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',
   'User Project Memberships': 'Operations for managing user project memberships',
+  Users: 'Operations for managing users',
   Webhooks: 'Webhook endpoints',
+  'Work Apps': 'Work app integrations (Slack, Teams, etc.)',
   Workflows: 'Workflow trigger endpoints',
+  Workspaces: 'Operations for managing Slack workspaces',
 };
 
 export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
