@@ -246,7 +246,6 @@ export function MetadataEditor() {
           title="Advanced model options"
         >
           <ModelConfiguration
-            key={`structured-${models?.structuredOutput?.model ?? 'unset'}`}
             value={models?.structuredOutput?.model}
             providerOptions={models?.structuredOutput?.providerOptions}
             inheritedValue={
@@ -316,7 +315,6 @@ export function MetadataEditor() {
           />
 
           <ModelConfiguration
-            key={`summarizer-${models?.summarizer?.model ?? 'unset'}`}
             value={models?.summarizer?.model}
             providerOptions={models?.summarizer?.providerOptions}
             inheritedValue={
