@@ -25,7 +25,6 @@ if (targetWorld === 'vercel') {
   const token = process.env.WORKFLOW_VERCEL_AUTH_TOKEN;
   world = createVercelWorld({
     token: token?.trim() || undefined,
-    baseUrl: process.env.WORKFLOW_VERCEL_BASE_URL || undefined,
     projectConfig: {
       projectId: process.env.VERCEL_PROJECT_ID,
       teamId: process.env.VERCEL_TEAM_ID,

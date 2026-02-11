@@ -318,5 +318,5 @@ async function _scheduledTriggerRunnerWorkflow(payload: ScheduledTriggerRunnerPa
 // Export with workflowId for the build system
 export const scheduledTriggerRunnerWorkflow = Object.assign(_scheduledTriggerRunnerWorkflow, {
   workflowId:
-    'workflow//src/domains/run/workflow/functions/scheduledTriggerRunner.ts//_scheduledTriggerRunnerWorkflow',
+    'workflow//./src/domains/run/workflow/functions/scheduledTriggerRunner//_scheduledTriggerRunnerWorkflow',
 });

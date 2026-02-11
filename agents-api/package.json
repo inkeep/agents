@@ -49,7 +49,6 @@
     "lint:fix": "biome check --write"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.7",
     "@ai-sdk/google": "3.0.4",
     "@hono/mcp": "^0.1.5",
     "@hono/swagger-ui": "^0.5.1",
@@ -71,10 +70,10 @@
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@vercel/functions": "^1.4.0",
     "@vercel/sandbox": "^0.0.24",
-    "@workflow/builders": "4.0.1-beta.27",
-    "@workflow/world-local": "4.0.1-beta.19",
-    "@workflow/world-postgres": "4.1.0-beta.28",
-    "@workflow/world-vercel": "4.0.1-beta.21",
+    "@workflow/builders": "^4.0.1-beta.45",
+    "@workflow/world-local": "^4.1.0-beta.30",
+    "@workflow/world-postgres": "^4.1.0-beta.32",
+    "@workflow/world-vercel": "^4.1.0-beta.31",
     "ai": "6.0.14",
     "ajv": "^8.17.1",
     "axios": "^1.13.2",
@@ -88,7 +87,7 @@
     "llm-info": "^1.0.69",
     "openid-client": "^6.8.1",
     "pg": "^8.16.3",
-    "workflow": "4.0.1-beta.33"
+    "workflow": "^4.1.0-beta.54"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
