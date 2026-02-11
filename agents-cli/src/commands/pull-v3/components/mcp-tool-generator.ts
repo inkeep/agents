@@ -79,7 +79,7 @@ export function generateMcpToolDefinition(
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
 
-  const toolVarName = registry?.getVariableName?.(toolId, 'tools') ?? toCamelCase(toolId);
+  const toolVarName = toCamelCase(toolId);
   const lines: string[] = [];
 
   lines.push(`export const ${toolVarName} = mcpTool({`);
