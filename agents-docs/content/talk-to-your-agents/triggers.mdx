@@ -45,7 +45,7 @@ Triggers are ideal for:
 | **DevOps alerts** | Process PagerDuty or Datadog alerts |
 | **Chat integrations** | Handle Slack or Discord messages |
 | **Form submissions** | Process Typeform or webhook-enabled forms |
-| **Scheduled tasks** | Invoke agents from cron jobs or schedulers |
+| **Scheduled tasks** | Use [Scheduled Triggers](/typescript-sdk/scheduled-triggers) for cron-based automation |
 
 ## Trigger Configuration
 
@@ -112,6 +112,14 @@ Every webhook invocation is tracked with:
 
 This allows you to monitor webhook activity, debug failures, and audit trigger usage.
 
+## Scheduled Triggers
+
+For time-based automation, Inkeep also supports **Scheduled Triggers** that run agents on a cron schedule or at a specific one-time date.
+
+<Card title="Scheduled Triggers" icon="LuClock" href="/typescript-sdk/scheduled-triggers">
+  Learn how to create scheduled triggers for recurring or one-time agent tasks.
+</Card>
+
 ## Example: GitHub Issue Handler
 
 Here's a conceptual example of a trigger that responds to GitHub issues:
@@ -133,5 +141,8 @@ The Agent then processes this message like any other conversation, using its con
   </Card>
   <Card title="Chat API" icon="LuNetwork" href="/talk-to-your-agents/chat-api">
     For synchronous conversations, use the Chat API instead.
+  </Card>
+  <Card title="Scheduled Triggers" icon="LuClock" href="/typescript-sdk/scheduled-triggers">
+    Create time-based triggers using cron expressions or one-time execution.
   </Card>
 </Cards>
