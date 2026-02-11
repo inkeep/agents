@@ -73,7 +73,25 @@ You may spin up multiple parallel Explore subagents or chain new ones in sequenc
 
 This step is about context gathering // "world model" building only, not about making judgements, assumptions, or determinations. Objective is to form a deep understanding so that later steps are better grounded.
 
-**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), focus exploration on the delta and how it interacts with the broader PR rather than re-exploring unchanged areas.
+**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), default to delta-first exploration (and how it interacts with the broader PR). If you determined a sweep is warranted (see Sweep Assessment below), also spot-check high-risk areas outside the delta to catch missed issues — but do not re-raise anything already covered in Prior Feedback.
+
+### Sweep assessment (re-reviews only)
+
+When `review_scope=delta`, decide whether this re-review warrants looking beyond the delta for net-new issues. Default is **no** — delta-only is the right scope for most re-reviews.
+
+Evaluate these factors using the pr-context metadata, file list, PR description, and your Phase 1.1 understanding:
+
+| Factor | Signal that a sweep is warranted |
+|---|---|
+| **Size** | Filtered additions + deletions are substantial (hundreds+), OR many files changed across multiple packages/domains |
+| **Novelty** | PR introduces new files, new patterns, new abstractions, or new surface areas that didn't exist before — not just modifying existing code |
+| **Sensitivity** | Changes touch authn/authz, security boundaries, credential handling, data model migrations, or API contracts |
+| **Blast radius** | Changes span multiple packages, affect customer-facing surfaces (APIs, SDKs, CLI, UI, docs), or have transitive impacts on internal infrastructure |
+| **Precedent** | PR sets patterns that future code will replicate (new conventions, new architectural decisions, new component structures) |
+
+**Decision:** If two or more factors are clearly present, a sweep is warranted. If only one factor is borderline present, default to delta-only. Note your determination briefly (1 sentence) so Phase 3 can reference it.
+
+**Constraint:** A sweep does NOT relax the Prior Feedback or No Duplication rules. You are looking for net-new, high-signal issues that were missed in prior passes — not re-checking what's already been raised.
 
 ## Phase 1.5: Generate PR TLDR
 
@@ -176,7 +194,7 @@ Review PR #[NUMBER]: [Title].
 Diff not inline — read on-demand: git diff origin/[BASE]...HEAD -- <path>
 
 [ONLY if review_scope == 'delta' in pr-context metadata]
-Re-review — scope to delta only.
+Re-review — default to delta focus. If the orchestrator determined a sweep is warranted, also look beyond the delta for net-new, high-signal issues in your domain (but do NOT re-raise anything already covered in Prior Feedback).
 
 [ONLY if summary mode OR review_scope == 'delta' — include a file list]
 Files:
@@ -194,7 +212,7 @@ Files:
 
 **Keep handoffs short.** The reviewer has full access to pr-context and pr-tldr for details. The handoff just points them in the right direction.
 
-**Scope signal:** Use `Review scope` from the pr-context metadata table as the single source of truth for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior.
+**Scope signal:** Use `Review scope` from the pr-context metadata table as the default signal for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior. If `review_scope=delta` but a sweep was determined to be warranted (see Phase 1.1 Sweep Assessment), look beyond the delta for missed issues in heavier domains — while still honoring Prior Feedback and the No Duplication Principle.
 
 ## Phase 4: Judge & Filter
 
@@ -208,6 +226,7 @@ Cluster findings describing the same issue:
 - `inline`: Same file + overlapping lines + similar problem → **merge**
 - `file`: Same file + similar problem → **merge**
 - `multi-file`/`system`: Similar scope + similar problem → **merge**
+- **Cross-type:** Also cluster across finding types when they address the same underlying concern. An `inline` fix that is a subset of a broader `file`/`multi-file`/`system` finding (or vice versa) must be merged into **one** finding. Choose the scope that best serves the developer — if the broader framing adds value, keep the broader finding; if the specific line-level fix is what matters, keep the `inline` version. **Never surface both.**
 - Keep or consolidate to the most actionable version (clearest issue + implications + fixes)
 
 ### 4.2 Relevancy Check
