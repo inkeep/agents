@@ -1,11 +1,15 @@
 ---
-title: Triggers
-sidebarTitle: Triggers
+title: Webhook Triggers
+sidebarTitle: Webhook Triggers
 description: Create webhook endpoints that allow external services to invoke your agents
 icon: LuWebhook
 ---
 
 Triggers create webhook endpoints that allow external services (like GitHub, Slack, Stripe, or custom applications) to invoke your agents. When a webhook is received, the payload is validated, transformed, and used to start a new conversation with the agent.
+
+<Note>
+For time-based automation (cron schedules or one-time runs), see [Scheduled Triggers](/typescript-sdk/scheduled-triggers).
+</Note>
 
 ## Message Format
 
@@ -434,6 +438,15 @@ export default agent({
 ```
 
 </SkillRule>
+
+## Related
+
+<Cards>
+  <Card title="Scheduled Triggers" icon="LuClock" href="/typescript-sdk/scheduled-triggers">
+    Run agents on a schedule using cron expressions or one-time execution.
+  </Card>
+</Cards>
+
 
 ## Best Practices
 
