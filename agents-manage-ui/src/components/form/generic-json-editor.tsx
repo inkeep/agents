@@ -44,7 +44,7 @@ export function GenericJsonEditor<
               <FormLabel isRequired={isRequired} className="inline-flex grow">
                 {label}
               </FormLabel>
-              <Editor.DialogTrigger className={open ? 'invisible' : ''} />
+              {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>
               <StandaloneJsonEditor

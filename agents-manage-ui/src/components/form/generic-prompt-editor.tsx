@@ -51,7 +51,7 @@ export function GenericPromptEditor<
                 {label}
               </FormLabel>
               {uri.endsWith('.template') && <AddVariableAction uri={uri} />}
-              <Editor.DialogTrigger className={open ? 'invisible' : ''} />
+              {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>
               <PromptEditor
