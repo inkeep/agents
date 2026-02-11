@@ -205,7 +205,6 @@ export const createTaskHandler = (
 
       const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
 
-      console.log('\n\n\n\n\n\n\n\n\n\n\n', 'getSkillsForSubAgent', { skills });
 
       agent = new Agent(
         {
