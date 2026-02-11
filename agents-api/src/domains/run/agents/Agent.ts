@@ -2085,12 +2085,8 @@ export class Agent {
         name: skill.name,
         alwaysLoaded: skill.alwaysLoaded,
       })) || [];
-    // TODO remove
-    console.log('[load_skill] getDefaultTools', { hasOnDemandSkills, skills: skillDebugInfo });
     if (hasOnDemandSkills) {
       const loadSkillTool = this.#createLoadSkillTool();
-      // TODO remove
-      console.log('[load_skill] register', { enabled: !!loadSkillTool });
       if (loadSkillTool) {
         defaultTools.load_skill = this.wrapToolWithStreaming(
           'load_skill',
