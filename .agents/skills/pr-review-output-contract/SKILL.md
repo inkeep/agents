@@ -209,9 +209,9 @@ Use the smallest severity that is still honest. Severity indicates **impact**, n
 | Severity | Meaning | Merge Impact |
 |----------|---------|--------------|
 | `CRITICAL` | Security or AuthN, Authz, or IAM vulnerability, data loss or corruption, breaking change or broken core functionality, likely incident | Blocks merge |
-| `MAJOR` | Core standard violation, reliability/maintainability/deployment risk, likely bug, not addressing all product or internal surface areas that changes affect (e.g. missing docs), etc. | Fix before merge |
-| `MINOR` | Improvements, consistency issues, "would be better if…"... I.e. functionally ok but could use cleaner implementation, etc. | Can merge; developer discretion.  |
-| `INFO` | Informational notes, non-actionable observations | No action required |
+| `MAJOR` | Core standard violation, likely bug, not addressing all product or internal surface areas that changes affect (e.g. missing docs), correctness issue, likely to face issues in deployments or cause failures, etc. | Fix before merge |
+| `MINOR` | Internal devex improvements, minor consistency or maintainability issues, plausible but potentially unlikely scenarios, nitpicks, "would be better if…", functionally OK but could use cleaner implementation, etc. Must still be "any reasonable engineer would agree that this is a valid strict improvement". | Can merge; developer discretion.  |
+| `INFO` | Informational notes, non-actionable observations, or 50/50 developer discretion/preference. | No action required |
 
 ### `confidence`
 
@@ -235,7 +235,7 @@ How confident you are in the proposed fix. Distinct from `confidence` (issue cer
 
 ### `category`
 
-Use **your primary domain**. This is a freeform string.
+Use **your primary domain**. This is a freeform string. Examples:
 
 | Category | Domain |
 |----------|--------|
@@ -253,16 +253,13 @@ Use **your primary domain**. This is a freeform string.
 | `sre` | reliability, retries, timeouts, circuit breakers, observability |
 | `llm` | AI/LLM integration: tools, templates, streaming, context management |
 
-**Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category relevant to you.
+**Cross-domain findings:** If you find an issue outside your domain, don't flag it unless it has valid cross-over to your domain. And if so, therefore still mark it as a category that corresponds to your domain.
 
 ### `pre_existing` (optional)
 
 Indicates whether the issue existed **before** this PR — it was not introduced by the PR's changes. Defaults to `false` (omit the field entirely for issues introduced by the PR).
 
-**This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues, expand your review scope, or spend additional cycles hunting for tech debt. Only flag something as `pre_existing: true` if it clearly stood out while you were doing your normal review.
-
-- Same quality bar as any other finding: must have references, clear issue/fix, appropriate severity/confidence
-- Only use with **HIGH confidence** findings — uncertain pre-existing issues are not worth flagging
+**This is purely opportunistic.** Your primary job is reviewing what this PR introduces or changes. Do NOT actively search for pre-existing issues or spend cycles hunting for tech debt. Only flag something as `pre_existing: true` if it stood out while you were doing your normal review but is not in the natural scope of the PR. Keep scoped to significant (crticial/major) high confidence findings.
 
 ### `issue`, `implications`, `fix`
 
