@@ -1,28 +1,27 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
 import type { CodeBlockWriter } from 'ts-morph';
 import { IndentationText, NewLineKind, Project, QuoteKind } from 'ts-morph';
+import { z } from 'zod';
 
 type ProjectDefinitionData = Omit<ProjectConfig, 'id'> & {
+  projectId: string;
   agents?: string[];
 };
 
-export function generateProjectDefinition(
-  projectId: string,
-  projectData: ProjectDefinitionData
-): string {
-  if (!projectId || typeof projectId !== 'string') {
-    throw new Error('projectId is required and must be a string');
-  }
+const ProjectSchema = z.looseObject({
+  projectId: z.string().nonempty(),
+  name: z.string().nonempty(),
+  models: z.looseObject({
+    base: z.looseObject({
+      model: z.string().nonempty(),
+    }),
+  }),
+});
 
-  if (!projectData || typeof projectData !== 'object') {
-    throw new Error(`projectData is required for project '${projectId}'`);
-  }
-
-  const missingFields = getMissingRequiredFields(projectData);
-  if (missingFields.length > 0) {
-    throw new Error(
-      `Missing required fields for project '${projectId}': ${missingFields.join(', ')}`
-    );
+export function generateProjectDefinition(data: ProjectDefinitionData): string {
+  const result = ProjectSchema.safeParse(data);
+  if (!result.success) {
+    throw new Error(z.prettifyError(result.error));
   }
 
   const project = new Project({
@@ -35,56 +34,39 @@ export function generateProjectDefinition(
     },
   });
 
+  const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
-  const projectVarName = toCamelCase(projectId);
-
+  const projectVarName = toCamelCase(parsed.projectId);
   sourceFile.replaceWithText((writer) => {
-    writeProjectDefinition(writer, projectVarName, projectId, projectData);
+    writeProjectDefinition(writer, projectVarName, parsed);
   });
 
   return sourceFile.getFullText().trimEnd();
 }
 
-function getMissingRequiredFields(projectData: ProjectDefinitionData): string[] {
-  const missingFields: string[] = [];
-
-  if (!projectData.name) {
-    missingFields.push('name');
-  }
-  if (!projectData.models) {
-    missingFields.push('models');
-  }
-  if (!projectData.models?.base) {
-    missingFields.push('models.base');
-  }
-
-  return missingFields;
-}
-
 function writeProjectDefinition(
   writer: CodeBlockWriter,
   projectVarName: string,
-  projectId: string,
-  projectData: ProjectDefinitionData
+  { agents, projectId, description, models, name }: ProjectDefinitionData
 ) {
-  const hasAgents = Boolean(projectData.agents?.length);
+  const hasAgents = Boolean(agents?.length);
 
   writer.writeLine(`export const ${projectVarName} = project({`);
   writer.indent(() => {
     writer.writeLine(`id: ${toLiteral(projectId)},`);
-    writer.writeLine(`name: ${toLiteral(projectData.name ?? '')},`);
+    writer.writeLine(`name: ${toLiteral(name ?? '')},`);
 
-    if (projectData.description) {
-      writer.writeLine(`description: ${toLiteral(projectData.description)},`);
+    if (description) {
+      writer.writeLine(`description: ${toLiteral(description)},`);
     }
 
-    writeModels(writer, projectData.models, hasAgents);
+    writeModels(writer, models, hasAgents);
 
     if (hasAgents) {
       writer.writeLine('agents: () => [');
       writer.indent(() => {
-        projectData.agents?.forEach((agentId, index) => {
-          const isLast = index === (projectData.agents?.length ?? 0) - 1;
+        agents?.forEach((agentId, index) => {
+          const isLast = index === (agents?.length ?? 0) - 1;
           writer.writeLine(`${agentId}${isLast ? '' : ','}`);
         });
       });
@@ -137,7 +119,7 @@ function toLiteral(value: unknown): string {
     return `[${value.map((item) => toLiteral(item)).join(', ')}]`;
   }
 
-  const entries = Object.entries(value as Record<string, unknown>);
+  const entries = Object.entries(value);
   if (entries.length === 0) {
     return '{}';
   }
