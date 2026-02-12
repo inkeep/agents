@@ -1,0 +1,114 @@
+---
+title: Set up a CLI profile
+sidebarTitle: Set Up Profile
+description: Create a CLI profile and authenticate with Inkeep Cloud
+icon: LuUserCog
+---
+
+<Note>
+Profile setup is only required when pushing or pulling to a **remote** deployment (Inkeep Cloud or a self-hosted instance). If you're pushing or pulling locally, you can skip this step.
+</Note>
+
+A CLI profile tells the CLI where to connect and how to authenticate with a remote deployment. This tutorial walks you through creating a profile and logging in.
+
+## Prerequisites
+
+- Access to [Inkeep Cloud](https://inkeep.com/cloud-waitlist) or a [self-hosted deployment](/deployment/vercel)
+- The Inkeep CLI installed globally:
+
+```bash
+npm install -g @inkeep/agents-cli
+```
+
+## Step 1: Create a profile
+
+Profiles let you manage multiple environments (cloud, local, staging) from the same CLI. Create a profile for Inkeep Cloud:
+
+```bash
+inkeep profile add <profile-name>
+```
+
+The CLI prompts you to configure the profile:
+
+1. **Remote type**: Select **Custom**
+2. **Agents API URL**: Enter the URL of your agents API
+3. **Manage UI URL**: Enter the URL of your manage UI
+4. **Environment name**: Enter `production` (or your preferred name)
+
+<Tip>
+You can verify the profile was created by running `inkeep profile list`.
+</Tip>
+
+## Step 2: Set the active profile
+
+Set the profile you created as the active profile:
+
+```bash
+inkeep profile use <profile-name>
+```
+
+Confirm which profile is active:
+
+```bash
+inkeep profile current
+```
+
+## Step 3: Log in
+
+Authenticate with your active profile:
+
+```bash
+inkeep login
+```
+
+The CLI will:
+1. Open your browser to the Inkeep authentication page
+2. Display a device code (e.g., `ABCD-1234`)
+3. Wait for you to complete authentication in the browser
+
+Once authenticated, you'll see confirmation:
+
+```
+✓ Logged in as you@example.com
+✓ Organization: Your Organization
+✓ Profile: cloud
+```
+
+<Note>
+Your credentials are securely stored in your system keychain. You only need to log in once per profile.
+</Note>
+
+## Managing multiple profiles
+
+You can create profiles for different environments and switch between them:
+
+```bash
+inkeep profile add staging
+inkeep profile use staging
+inkeep login
+```
+
+To authenticate a specific profile without switching:
+
+```bash
+inkeep login --profile staging
+```
+
+To remove a profile you no longer need:
+
+```bash
+inkeep profile remove staging
+```
+
+For a full list of profile commands, see the [CLI Reference](/typescript-sdk/cli-reference).
+
+## What's next
+
+<Cards>
+  <Card title="Push to Cloud" icon="LuCloudUpload" href="/tutorials/cli/push-to-cloud">
+    Push local agent configurations to Inkeep Cloud
+  </Card>
+  <Card title="Pull from Cloud" icon="LuCloudDownload" href="/tutorials/cli/pull-from-cloud">
+    Pull agent configurations from Inkeep Cloud to your local project
+  </Card>
+</Cards>
