@@ -1,0 +1,260 @@
+---
+title: Skills
+description: Attach reusable instruction blocks to sub-agents
+icon: LuHexagon
+keywords: skills, prompts, instructions, reuse, sub-agents, SKILL.md
+---
+
+## Overview
+
+Skills are reusable instruction blocks you can attach to sub-agents. They help you share behavioral rules, reasoning guidelines, and formatting standards across multiple sub-agents without duplicating prompt content.
+
+Use skills to:
+
+- **Standardize behavior** across sub-agents (tone, formatting, guardrails)
+- **Separate concerns** by moving specialized instructions out of the main prompt
+- **Load instructions on demand** to reduce context size when not needed
+
+<Tip>
+For the Visual Builder approach, see [Skills in the Visual Builder](/visual-builder/skills).
+</Tip>
+
+## Defining Skills
+
+Skills are defined as `SKILL.md` files with YAML frontmatter. Each skill lives in its own directory.
+
+### File Structure
+
+```
+skills/
+├── weather-safety-guardrails/
+│   └── SKILL.md
+└── structured-itinerary-responses/
+    └── SKILL.md
+```
+
+<Note>The directory name must match the `name` field in the frontmatter.</Note>
+
+### SKILL.md Format
+
+```markdown title="skills/weather-safety-guardrails/SKILL.md"
+---
+name: "weather-safety-guardrails"
+description: "Safety rules for weather-dependent activity recommendations"
+metadata:
+  author: acme-corp
+  version: "1.0"
+---
+
+- Never recommend outdoor activities during severe weather alerts.
+- Always mention indoor alternatives when precipitation exceeds 50%.
+- Include safety disclaimers for extreme temperature conditions.
+```
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Skill identifier. Must match the parent directory name. |
+| `description` | string | Yes | When to use this skill. Used by the agent to decide whether to load the skill. |
+| `metadata` | object | No | Additional key-value pairs (author, version, tags, etc.). |
+
+The body content after the frontmatter contains the actual instructions in Markdown format.
+
+## Loading Skills
+
+Use `loadSkills()` to load all skills from a directory:
+
+```typescript
+import path from 'node:path';
+import { loadSkills, project } from '@inkeep/agents-sdk';
+import { myAgent } from './agents/my-agent';
+
+export const myProject = project({
+  id: 'my-project',
+  name: 'My Project',
+  agents: () => [myAgent],
+  skills: () => loadSkills(path.join('my-project/skills')),
+  models: {
+    base: {
+      model: 'openai/gpt-4o',
+    },
+  },
+});
+```
+
+The `loadSkills()` function:
+
+1. Scans the directory for `*/SKILL.md` files
+2. Parses each file's frontmatter and content
+3. Validates that the `name` matches the directory name
+4. Returns an array of `SkillDefinition` objects
+
+## Attaching Skills to Sub-Agents
+
+Add skills to a sub-agent using the `skills` configuration option.
+
+### Reference by ID
+
+Reference skills defined at the project level by their ID:
+
+```typescript
+import { subAgent } from '@inkeep/agents-sdk';
+
+const activitiesPlanner = subAgent({
+  id: 'activities-planner',
+  name: 'Activities Planner',
+  description: 'Plans activities based on weather conditions',
+  prompt: 'Help users plan activities based on current weather.',
+  skills: () => [
+    { id: 'weather-safety-guardrails', index: 0 },
+    { id: 'structured-itinerary-responses', index: 1 },
+  ],
+});
+```
+
+### Skill Reference Options
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | The skill identifier (matches the `name` in SKILL.md). |
+| `index` | number | No | Controls ordering. Higher index = higher priority in the prompt. |
+| `alwaysLoaded` | boolean | No | If `true`, skill content is always included. If `false` (default), loaded on demand. |
+
+### Inline Skills
+
+Define attached skills to subagents:
+
+```typescript
+const mySubAgent = subAgent({
+  id: 'my-sub-agent',
+  name: 'My Sub Agent',
+  prompt: 'You are a helpful assistant.',
+  skills: () => [
+    {
+      id: 'inline-skill',
+      index: 0,
+      alwaysLoaded: true,
+    },
+  ],
+});
+```
+
+## Always Loaded vs On-Demand Skills
+
+Skills can be loaded in two ways:
+
+### Always Loaded
+
+Set `alwaysLoaded: true` to include the skill content in every prompt:
+
+```typescript
+skills: () => [
+  { id: 'brand-guidelines', alwaysLoaded: true },
+]
+```
+
+Use for skills that apply to every interaction (brand voice, compliance rules).
+
+### On-Demand (Default)
+
+When `alwaysLoaded` is `false` or omitted, skills appear as an outline in the system prompt. The agent can load the full content when needed using the built-in `load_skill` tool.
+
+```typescript
+skills: () => [
+  { id: 'technical-troubleshooting' }, // Loaded on demand
+]
+```
+
+Use for specialized instructions that only apply to certain requests.
+
+## Example
+
+A complete example with skills directory structure and usage:
+
+```
+activities-planner-advanced/
+├── index.ts
+├── agents/
+│   └── activities-planner-advanced.ts
+└── skills/
+    ├── weather-safety-guardrails/
+    │   └── SKILL.md
+    └── structured-itinerary-responses/
+        └── SKILL.md
+```
+
+```typescript title="index.ts"
+import path from 'node:path';
+import { loadSkills, project } from '@inkeep/agents-sdk';
+import { activitiesPlannerAgent } from './agents/activities-planner-advanced';
+
+export const activitiesPlannerAdvanced = project({
+  id: 'activities-planner-advanced',
+  name: 'Activities Planner Advanced',
+  description: 'Plans activities based on weather forecasts',
+  agents: () => [activitiesPlannerAgent],
+  skills: () => loadSkills(path.join('activities-planner-advanced/skills')),
+  models: {
+    base: {
+      model: 'openai/gpt-4o-mini',
+    },
+  },
+});
+```
+
+```typescript title="agents/activities-planner-advanced.ts"
+import { subAgent, agent } from '@inkeep/agents-sdk';
+
+const activitiesPlanner = subAgent({
+  id: 'activities-planner',
+  name: 'Activities Planner',
+  description: 'Plans activities considering weather conditions',
+  prompt: 'Help users find activities based on weather forecasts.',
+  skills: () => [
+    { id: 'weather-safety-guardrails', index: 0 },
+    { id: 'structured-itinerary-responses', index: 1 },
+  ],
+});
+
+export const activitiesPlannerAgent = agent({
+  id: 'activities-planner-advanced',
+  name: 'Activities Planner Advanced',
+  defaultSubAgent: activitiesPlanner,
+  subAgents: () => [activitiesPlanner],
+});
+```
+
+```markdown title="skills/weather-safety-guardrails/SKILL.md"
+---
+name: "weather-safety-guardrails"
+description: "Safety rules for weather-dependent recommendations"
+metadata:
+  author: acme-corp
+  version: "1.0"
+---
+
+- Never recommend outdoor activities during severe weather alerts.
+- Always mention indoor alternatives when precipitation exceeds 50%.
+- Include safety disclaimers for extreme temperature conditions.
+```
+
+```markdown title="skills/structured-itinerary-responses/SKILL.md"
+---
+name: "structured-itinerary-responses"
+description: "Present time-aware itineraries with clear actions and citations"
+metadata:
+  author: acme-corp
+  version: "1.0"
+---
+
+- Start with a one-sentence summary tailored to the user's location and weather window.
+- Provide 3–5 time-blocked suggestions with clear actions, durations, and required items.
+- End with a concise checklist plus source references when web results influence recommendations.
+```
+
+## Related
+
+- [Skills in the Visual Builder](/visual-builder/skills)
+- [Sub Agent Relationships](/typescript-sdk/agent-relationships)
+- [Project Management](/typescript-sdk/project-management)
