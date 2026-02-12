@@ -274,6 +274,96 @@ export class ManagementApiClient extends BaseApiClient {
 
     return allProjects;
   }
+
+  async getDataComponent(componentId: string): Promise<{
+    id: string;
+    name: string;
+    render: { component: string; mockData: Record<string, unknown> } | null;
+  } | null> {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/data-components/${componentId}`,
+      { method: 'GET' }
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const err = await response.text().catch(() => '');
+      throw new Error(`Failed to fetch data component: ${response.statusText}${err ? `\n${err}` : ''}`);
+    }
+    const json = await response.json();
+    return json.data ?? null;
+  }
+
+  async listDataComponents(): Promise<
+    { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[]
+  > {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const all: { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[] = [];
+    let page = 1;
+    const limit = 100;
+    let result: { data: any[]; pagination: { total: number } };
+    do {
+      const response = await this.authenticatedFetch(
+        `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/data-components?page=${page}&limit=${limit}`,
+        { method: 'GET' }
+      );
+      if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error(`Failed to list data components: ${response.statusText}${err ? `\n${err}` : ''}`);
+      }
+      result = await response.json();
+      all.push(...(result.data || []));
+      page++;
+    } while (result.data?.length === limit && all.length < (result.pagination?.total ?? 0));
+    return all;
+  }
+
+  async getArtifactComponent(componentId: string): Promise<{
+    id: string;
+    name: string;
+    render: { component: string; mockData: Record<string, unknown> } | null;
+  } | null> {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${componentId}`,
+      { method: 'GET' }
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const err = await response.text().catch(() => '');
+      throw new Error(`Failed to fetch artifact component: ${response.statusText}${err ? `\n${err}` : ''}`);
+    }
+    const json = await response.json();
+    return json.data ?? null;
+  }
+
+  async listArtifactComponents(): Promise<
+    { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[]
+  > {
+    const tenantId = this.checkTenantId();
+    const projectId = this.getProjectId();
+    const all: { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[] = [];
+    let page = 1;
+    const limit = 100;
+    let result: { data: any[]; pagination: { total: number } };
+    do {
+      const response = await this.authenticatedFetch(
+        `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/artifact-components?page=${page}&limit=${limit}`,
+        { method: 'GET' }
+      );
+      if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error(`Failed to list artifact components: ${response.statusText}${err ? `\n${err}` : ''}`);
+      }
+      result = await response.json();
+      all.push(...(result.data || []));
+      page++;
+    } while (result.data?.length === limit && all.length < (result.pagination?.total ?? 0));
+    return all;
+  }
 }
 
 export class ExecutionApiClient extends BaseApiClient {
