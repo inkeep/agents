@@ -1,4 +1,12 @@
 {
   "title": "Guides",
-  "pages": ["agents", "mcp-servers", "cli", "../connect-your-data", "upgrading", "agent-engineering", "..."]
+  "pages": [
+    "agents",
+    "mcp-servers",
+    "cli",
+    "../connect-your-data",
+    "upgrading",
+    "agent-engineering",
+    "..."
+  ]
 }
