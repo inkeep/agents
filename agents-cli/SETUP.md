@@ -79,17 +79,17 @@ Before using most commands, you need to set a tenant ID:
 
 ```bash
 # Set your tenant ID
-inkeep tenant test-tenant
+inkeep config set tenantId test-tenant
 
 # Verify it's set
-inkeep tenant
+inkeep config get tenantId
 ```
 
 ## Step 4: Test Basic Commands
 
 ```bash
-# List available graphs
-inkeep list-graphs
+# List available agents for a project
+inkeep list-agent --project <project-id>
 
 # Push your project
 inkeep push
@@ -139,7 +139,7 @@ npm link
 **Solution:** Set a tenant ID:
 
 ```bash
-inkeep tenant your-tenant-id
+inkeep config set tenantId your-tenant-id
 ```
 
 ## Environment Variables
@@ -161,8 +161,8 @@ After setup, try these commands:
 ```bash
 # Basic commands
 inkeep --help
-inkeep tenant
-inkeep list-graphs
+inkeep config list
+inkeep list-agent --project <project-id>
 ```
 
 ## Getting Help

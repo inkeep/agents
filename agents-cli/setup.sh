@@ -57,12 +57,12 @@ echo ""
 
 # Configure tenant (optional)
 echo "Tenant configuration (optional)"
-echo "You can set a tenant ID now or later with: inkeep tenant <tenant-id>"
+echo "You can set a tenant ID now or later with: inkeep config set tenantId <tenant-id>"
 echo -n "Enter tenant ID (press Enter to skip): "
 read -r TENANT_ID
 
 if [ -n "$TENANT_ID" ]; then
-    inkeep tenant "$TENANT_ID"
+    inkeep config set tenantId "$TENANT_ID"
     echo -e "${GREEN}✓ Tenant ID set to: $TENANT_ID${NC}"
 fi
 echo ""
@@ -76,10 +76,10 @@ echo "1. Test the CLI:"
 echo "   inkeep --version"
 echo ""
 echo "2. Configure tenant (if not done):"
-echo "   inkeep tenant <your-tenant-id>"
+echo "   inkeep config set tenantId <your-tenant-id>"
 echo ""
 echo "3. List available agents:"
-echo "   inkeep list-agents"
+echo "   inkeep list-agent --project <project-id>"
 echo ""
 echo "For more help, see README.md and SETUP.md"
 echo "========================================="

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import './env'; // Load environment files first (needed by instrumentation)
 import './instrumentation'; // Initialize Langfuse tracing second
 

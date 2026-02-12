@@ -96,10 +96,10 @@ Most commands support the `--config` option to specify a custom configuration fi
 
 ```bash
 # Use custom config file
-inkeep list-graphs --project my-project --config ./staging-config.ts
+inkeep list-agent --project my-project --config ./staging-config.ts
 
 # Backward compatibility (deprecated)
-inkeep list-graphs --project my-project --config-file-path ./staging-config.ts
+inkeep list-agent --project my-project --config-file-path ./staging-config.ts
 ```
 
 ### Environment Variables
@@ -224,37 +224,22 @@ docker build -t inkeep-dashboard $(inkeep dev --path)
 rsync -av $(inkeep dev --path)/ user@server:/var/www/dashboard/
 ```
 
-### `inkeep tenant [tenant-id]` ⚠️ NOT IMPLEMENTED
+### `inkeep list-agent`
 
-> **⚠️ WARNING: This command is not yet implemented in the current CLI.**
-> Use `inkeep.config.ts` to set your tenant ID instead.
-
-Manage tenant configuration.
+List all available agents for a specific project.
 
 ```bash
-# Set tenant ID
-inkeep tenant my-tenant
-
-# View current tenant ID
-inkeep tenant
-```
-
-### `inkeep list-graphs`
-
-List all available graphs for a specific project.
-
-```bash
-# List graphs for a project (required)
-inkeep list-graphs --project my-project-id
+# List agents for a project (required)
+inkeep list-agent --project my-project-id
 
 # With custom API URL
-inkeep list-graphs --project my-project-id --agent-api-url http://api.example.com:3002
+inkeep list-agent --project my-project-id --agents-api-url http://api.example.com:3002
 
 # With custom tenant ID
-inkeep list-graphs --project my-project-id --tenant-id my-tenant-id
+inkeep list-agent --project my-project-id --tenant-id my-tenant-id
 
 # Using config file
-inkeep list-agents --project my-project-id --config ./my-config.ts
+inkeep list-agent --project my-project-id --config ./my-config.ts
 ```
 
 Output:
@@ -484,7 +469,7 @@ inkeep mcp stop --all
 
 ```bash
 # Using environment variables
-INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 inkeep list-graphs
+INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 inkeep list-agent --project my-project-id
 
 # Using .env file
 echo "INKEEP_AGENTS_API_URL=http://localhost:3002" > .env
@@ -503,7 +488,7 @@ echo "INKEEP_AGENTS_API_URL=http://localhost:3002" > .env
 ```bash
 # Using environment variables
 export INKEEP_AGENTS_API_URL=https://inkeep-api.example.com
-inkeep list-graphs
+inkeep list-agent --project my-project-id
 ```
 
 ## Development
@@ -548,11 +533,23 @@ agents-cli/
 │   ├── index.ts              # Main CLI entry point
 │   ├── config.ts             # Configuration management
 │   ├── api.ts                # API client for backend
+│   ├── env.ts                # Environment variable loading
 │   ├── commands/             # Command implementations
-│   │   ├── push.ts           # Push graph configurations
-│   │   ├── tenant.ts         # Tenant management
-│   │   └── list-graphs.ts    # List graphs
+│   │   ├── add.ts            # Add templates
+│   │   ├── config.ts         # Config get/set/list
+│   │   ├── dev.ts            # Dashboard dev server
+│   │   ├── init.ts           # Project initialization
+│   │   ├── list-agents.ts    # List agents
+│   │   ├── login.ts          # Authentication
+│   │   ├── logout.ts         # Log out
+│   │   ├── profile.ts        # Profile management
+│   │   ├── pull-v3/          # Pull project configuration
+│   │   ├── push.ts           # Push configurations
+│   │   ├── status.ts         # Show current status
+│   │   ├── update.ts         # CLI self-update
+│   │   └── whoami.ts         # Auth status
 │   ├── types/                # TypeScript declarations
+│   ├── utils/                # Shared utilities
 │   └── __tests__/            # Test files
 ├── dist/                     # Compiled JavaScript
 ├── package.json
@@ -574,7 +571,7 @@ curl http://localhost:3002/health
 echo $INKEEP_AGENTS_API_URL
 
 # Try with explicit URL and project
-inkeep list-graphs --project my-project-id --agents-api-url http://localhost:3002
+inkeep list-agent --project my-project-id --agents-api-url http://localhost:3002
 ```
 
 **Command not found: inkeep**
@@ -600,10 +597,11 @@ export PATH="$PATH:/path/to/agents-cli/dist"
 - **commander**: Command-line framework
 - **chalk**: Terminal styling
 - **dotenv**: Environment variable loading
-- **ora**: Loading spinners
 - **cli-table3**: Table formatting
-- **inquirer**: Interactive prompts
-- **inquirer-autocomplete-prompt**: Searchable selections
+- **@clack/prompts**: Interactive prompts
+- **ai**: Vercel AI SDK
+- **yaml**: YAML parsing
+- **zod**: Schema validation
 
 ### Development Dependencies
 
