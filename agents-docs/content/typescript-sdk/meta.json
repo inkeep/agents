@@ -4,6 +4,7 @@
     "agent-settings",
     "models",
     "agent-relationships",
+    "skills",
     "tools",
     "triggers",
     "credentials",
