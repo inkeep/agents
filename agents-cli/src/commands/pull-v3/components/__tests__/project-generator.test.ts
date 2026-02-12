@@ -196,17 +196,30 @@ describe('Project Generator', () => {
       }).toThrow("Missing required fields for project 'minimal-project': models, models.base");
       expect(() => {
         generateProjectDefinitionV4({ projectId, ...minimalData });
-      }).toThrow(`✖ Invalid input: expected object, received undefined
-  → at models`);
+      }).toThrow(
+        new Error(`Missing required fields for project:
+✖ Invalid input: expected object, received undefined
+  → at models`)
+      );
     });
 
-    it('should throw error for missing required fields', () => {
+    it.only('should throw error for missing required fields', () => {
       const noNameData = {};
-
+      const projectId = 'fallback-project';
       expect(() => {
-        generateProjectDefinition('fallback-project', noNameData);
+        generateProjectDefinition(projectId, noNameData);
       }).toThrow(
         "Missing required fields for project 'fallback-project': name, models, models.base"
+      );
+      expect(() => {
+        // @ts-expect-error
+        generateProjectDefinitionV4({ projectId });
+      }).toThrowError(
+        new Error(`Missing required fields for project:
+✖ Invalid input: expected string, received undefined
+  → at name
+✖ Invalid input: expected object, received undefined
+  → at models`)
       );
     });
 

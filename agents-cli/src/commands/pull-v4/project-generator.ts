@@ -52,7 +52,8 @@ type SectionWriter = (writer: CodeBlockWriter, hasTrailingComma: boolean) => voi
 export function generateProjectDefinition(data: ProjectDefinitionData): string {
   const result = ProjectSchema.safeParse(data);
   if (!result.success) {
-    throw new Error(z.prettifyError(result.error));
+    throw new Error(`Missing required fields for project:
+${z.prettifyError(result.error)}`);
   }
 
   const project = new Project({
