@@ -11,7 +11,6 @@ import {
   readRelationships,
   writeRelationship,
 } from './client';
-import { SpiceDbError } from './errors';
 import { type OrgRole, type ProjectRole, SpiceDbRelations, SpiceDbResourceTypes } from './types';
 
 /**
@@ -118,76 +117,69 @@ export async function syncProjectToSpiceDb(params: {
   projectId: string;
   creatorUserId: string;
 }): Promise<void> {
-  try {
-    const spice = getSpiceClient();
+  const spice = getSpiceClient();
 
-    // Check if user is org admin/owner (they already have full access via inheritance)
-    const orgRoles = await readRelationships({
-      resourceType: SpiceDbResourceTypes.ORGANIZATION,
-      resourceId: params.tenantId,
-      subjectType: SpiceDbResourceTypes.USER,
-      subjectId: params.creatorUserId,
-    });
+  // Check if user is org admin/owner (they already have full access via inheritance)
+  const orgRoles = await readRelationships({
+    resourceType: SpiceDbResourceTypes.ORGANIZATION,
+    resourceId: params.tenantId,
+    subjectType: SpiceDbResourceTypes.USER,
+    subjectId: params.creatorUserId,
+  });
 
-    const isOrgAdminOrOwner = orgRoles.some(
-      (r) => r.relation === SpiceDbRelations.ADMIN || r.relation === SpiceDbRelations.OWNER
-    );
+  const isOrgAdminOrOwner = orgRoles.some(
+    (r) => r.relation === SpiceDbRelations.ADMIN || r.relation === SpiceDbRelations.OWNER
+  );
 
-    const updates: Parameters<typeof spice.promises.writeRelationships>[0]['updates'] = [
-      // Link project to organization
-      {
-        operation: RelationshipOperation.CREATE,
-        relationship: {
-          resource: {
-            objectType: SpiceDbResourceTypes.PROJECT,
-            objectId: params.projectId,
-          },
-          relation: SpiceDbRelations.ORGANIZATION,
-          subject: {
-            object: {
-              objectType: SpiceDbResourceTypes.ORGANIZATION,
-              objectId: params.tenantId,
-            },
-            optionalRelation: '',
-          },
-          optionalCaveat: undefined,
+  const updates: Parameters<typeof spice.promises.writeRelationships>[0]['updates'] = [
+    // Link project to organization
+    {
+      operation: RelationshipOperation.CREATE,
+      relationship: {
+        resource: {
+          objectType: SpiceDbResourceTypes.PROJECT,
+          objectId: params.projectId,
         },
+        relation: SpiceDbRelations.ORGANIZATION,
+        subject: {
+          object: {
+            objectType: SpiceDbResourceTypes.ORGANIZATION,
+            objectId: params.tenantId,
+          },
+          optionalRelation: '',
+        },
+        optionalCaveat: undefined,
       },
-    ];
+    },
+  ];
 
-    // Only grant project_admin if user is NOT org admin/owner
-    if (!isOrgAdminOrOwner) {
-      updates.push({
-        operation: RelationshipOperation.CREATE,
-        relationship: {
-          resource: {
-            objectType: SpiceDbResourceTypes.PROJECT,
-            objectId: params.projectId,
-          },
-          relation: SpiceDbRelations.PROJECT_ADMIN,
-          subject: {
-            object: {
-              objectType: SpiceDbResourceTypes.USER,
-              objectId: params.creatorUserId,
-            },
-            optionalRelation: '',
-          },
-          optionalCaveat: undefined,
+  // Only grant project_admin if user is NOT org admin/owner
+  if (!isOrgAdminOrOwner) {
+    updates.push({
+      operation: RelationshipOperation.CREATE,
+      relationship: {
+        resource: {
+          objectType: SpiceDbResourceTypes.PROJECT,
+          objectId: params.projectId,
         },
-      });
-    }
-
-    await spice.promises.writeRelationships({
-      updates,
-      optionalPreconditions: [],
-      optionalTransactionMetadata: undefined,
-    });
-  } catch (err: any) {
-    throw new SpiceDbError(`Failed to sync project ${params.projectId} to SpiceDB`, {
-      cause: err,
-      grpcCode: err?.code,
+        relation: SpiceDbRelations.PROJECT_ADMIN,
+        subject: {
+          object: {
+            objectType: SpiceDbResourceTypes.USER,
+            objectId: params.creatorUserId,
+          },
+          optionalRelation: '',
+        },
+        optionalCaveat: undefined,
+      },
     });
   }
+
+  await spice.promises.writeRelationships({
+    updates,
+    optionalPreconditions: [],
+    optionalTransactionMetadata: undefined,
+  });
 }
 
 /**
@@ -299,28 +291,21 @@ export async function removeProjectFromSpiceDb(params: {
   tenantId: string;
   projectId: string;
 }): Promise<void> {
-  try {
-    const spice = getSpiceClient();
+  const spice = getSpiceClient();
 
-    // Delete all relationships for this project
-    await spice.promises.deleteRelationships({
-      relationshipFilter: {
-        resourceType: SpiceDbResourceTypes.PROJECT,
-        optionalResourceId: params.projectId,
-        optionalResourceIdPrefix: '',
-        optionalRelation: '',
-      },
-      optionalPreconditions: [],
-      optionalLimit: 0,
-      optionalAllowPartialDeletions: false,
-      optionalTransactionMetadata: undefined,
-    });
-  } catch (err: any) {
-    throw new SpiceDbError(`Failed to remove project ${params.projectId} from SpiceDB`, {
-      cause: err,
-      grpcCode: err?.code,
-    });
-  }
+  // Delete all relationships for this project
+  await spice.promises.deleteRelationships({
+    relationshipFilter: {
+      resourceType: SpiceDbResourceTypes.PROJECT,
+      optionalResourceId: params.projectId,
+      optionalResourceIdPrefix: '',
+      optionalRelation: '',
+    },
+    optionalPreconditions: [],
+    optionalLimit: 0,
+    optionalAllowPartialDeletions: false,
+    optionalTransactionMetadata: undefined,
+  });
 }
 
 /**

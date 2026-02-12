@@ -17,8 +17,6 @@ export {
 } from './client';
 // Configuration
 export { getSpiceDbConfig } from './config';
-// Errors
-export { SpiceDbError } from './errors';
 // Permission checks
 export {
   canEditProject,
