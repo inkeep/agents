@@ -566,6 +566,42 @@ describe('Agent', () => {
         },
       });
     });
+
+    it('should serialize sub-agent skill references without inline skill fields', async () => {
+      const skilledSubAgent = new SubAgent({
+        id: 'skilled-agent',
+        name: 'Skilled Agent',
+        description: 'Agent with skills',
+        prompt: 'Use skills when needed.',
+        skills: () => [
+          { id: 'weather-safety-guardrails', index: 0 },
+          { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: true },
+        ],
+      });
+
+      const agent = new Agent({
+        id: 'test-agent-skills',
+        name: 'Test Agent Skills',
+        defaultSubAgent: skilledSubAgent,
+      });
+
+      await agent.init();
+
+      const { updateFullAgentViaAPI } = await import('../../agentFullClient.js');
+      const createCall = vi.mocked(updateFullAgentViaAPI).mock.calls[0][4];
+
+      expect(createCall.subAgents['skilled-agent'].skills).toEqual([
+        { id: 'weather-safety-guardrails', index: 0 },
+        { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: true },
+      ]);
+      const skill = createCall.subAgents['skilled-agent'].skills?.[0];
+      expect(skill).not.toHaveProperty('name');
+      expect(skill).not.toHaveProperty('description');
+      expect(skill).not.toHaveProperty('metadata');
+      expect(skill).not.toHaveProperty('content');
+      expect(skill).not.toHaveProperty('createdAt');
+      expect(skill).not.toHaveProperty('updatedAt');
+    });
   });
 
   describe('Error Handling', () => {

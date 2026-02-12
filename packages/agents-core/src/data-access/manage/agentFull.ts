@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   projects,
   subAgentFunctionToolRelations,
+  subAgentSkills,
   subAgents,
   subAgentToolRelations,
 } from '../../db/manage/manage-schema';
@@ -36,6 +37,7 @@ import {
   upsertFunctionTool,
   upsertSubAgentFunctionToolRelation,
 } from './functionTools';
+import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
@@ -65,6 +67,48 @@ const defaultLogger: AgentLogger = {
   info: () => {},
   error: () => {},
 };
+
+async function syncSubAgentSkills(
+  db: AgentsManageDatabaseClient,
+  scopes: ProjectScopeConfig & { agentId: string },
+  subAgentsMap: FullAgentDefinition['subAgents'],
+  logger: AgentLogger
+) {
+  await db
+    .delete(subAgentSkills)
+    .where(
+      and(
+        eq(subAgentSkills.tenantId, scopes.tenantId),
+        eq(subAgentSkills.projectId, scopes.projectId),
+        eq(subAgentSkills.agentId, scopes.agentId)
+      )
+    );
+
+  const skillPromises: Array<Promise<any>> = [];
+  for (const [subAgentId, subAgentData] of Object.entries(subAgentsMap)) {
+    if (!subAgentData.skills || subAgentData.skills.length === 0) continue;
+
+    subAgentData.skills.forEach((skill) => {
+      if (!skill.id) return;
+      skillPromises.push(
+        upsertSubAgentSkill(db)({
+          scopes: {
+            tenantId: scopes.tenantId,
+            projectId: scopes.projectId,
+            agentId: scopes.agentId,
+            subAgentId,
+          },
+          skillId: skill.id,
+          index: skill.index,
+          alwaysLoaded: skill.alwaysLoaded,
+        })
+      );
+    });
+  }
+
+  await Promise.all(skillPromises);
+  logger.info({ agentId: scopes.agentId, count: skillPromises.length }, 'Synced sub-agent skills');
+}
 
 /**
  * Apply execution limits inheritance from project to Agents and Sub Agents
@@ -748,6 +792,12 @@ export const createFullAgentServerSide =
       await Promise.all(subAgentRelationPromises);
       await Promise.all(subAgentExternalAgentRelationPromises);
       await Promise.all(subAgentTeamAgentRelationPromises);
+      await syncSubAgentSkills(
+        db,
+        { tenantId, projectId, agentId: finalAgentId },
+        typed.subAgents,
+        logger
+      );
       logger.info(
         { subAgentRelationCount: subAgentRelationPromises.length },
         'All sub-agent relations created'
@@ -1857,6 +1907,13 @@ export const updateFullAgentServerSide =
           subAgentTeamAgentRelationPromisesCount: subAgentTeamAgentRelationPromises.length,
         },
         'All sub-agent team agent relations updated'
+      );
+
+      await syncSubAgentSkills(
+        db,
+        { tenantId, projectId, agentId: typedAgentDefinition.id },
+        typedAgentDefinition.subAgents,
+        logger
       );
 
       // Retrieve and return the updated agent

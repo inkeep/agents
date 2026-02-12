@@ -39,6 +39,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Project Permissions': 'LuShield',
   Projects: 'LuFolderOpen',
   Refs: 'LuLink',
+  Skills: 'LuHexagon',
   SubAgents: 'LuSpline',
   'Third-Party MCP Servers': 'LuServerCog',
   Tools: 'LuHammer',

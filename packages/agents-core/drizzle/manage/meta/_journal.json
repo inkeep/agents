@@ -57,6 +57,13 @@
       "when": 1770640010230,
       "tag": "0007_nice_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770855763298,
+      "tag": "0008_friendly_mentallo",
+      "breakpoints": true
     }
   ]
 }

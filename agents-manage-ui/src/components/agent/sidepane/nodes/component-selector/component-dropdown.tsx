@@ -19,25 +19,34 @@ interface ComponentItem {
   description?: string | null;
 }
 
-interface ComponentDropdownProps<T extends ComponentItem> {
+export interface BaseComponentDropdownProps {
   selectedComponents: string[];
   handleToggle: (componentId: string) => void;
-  availableComponents: T[];
+  /** @default "No components found." */
   emptyStateMessage?: string;
   emptyStateActionText?: string;
   emptyStateActionHref?: string;
+  /** @default "Select components..." */
   placeholder?: string;
+  /** @default "Search components..." */
+  commandInputPlaceholder?: string;
+}
+
+interface ComponentDropdownProps<T extends ComponentItem> extends BaseComponentDropdownProps {
+  availableComponents: T[];
 }
 
 export function ComponentDropdown<T extends ComponentItem>({
   selectedComponents,
   handleToggle,
   availableComponents,
-  emptyStateMessage,
+  emptyStateMessage = 'No components found.',
   emptyStateActionText,
   emptyStateActionHref,
   placeholder = 'Select components...',
+  commandInputPlaceholder = 'Search components...',
 }: ComponentDropdownProps<T>) {
+  'use memo';
   const [open, setOpen] = useState(false);
 
   return (
@@ -58,12 +67,12 @@ export function ComponentDropdown<T extends ComponentItem>({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+        <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
           <Command>
-            <CommandInput placeholder="Search components..." />
+            <CommandInput placeholder={commandInputPlaceholder} />
             <CommandEmpty>
               <EmptyState
-                message={emptyStateMessage || 'No components found.'}
+                message={emptyStateMessage}
                 actionText={emptyStateActionText}
                 actionHref={emptyStateActionHref}
               />

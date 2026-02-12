@@ -3,7 +3,9 @@ import {
   boolean,
   doublePrecision,
   foreignKey,
+  index,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -185,6 +187,55 @@ export const subAgents = pgTable(
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'sub_agents_agents_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+export const skills = pgTable(
+  'skills',
+  {
+    ...projectScoped,
+    // Should be same as skill name
+    id: varchar('id', { length: 64 }).notNull(),
+    name: varchar('name', { length: 64 }).notNull(),
+    description: text('description').notNull(),
+    content: text('content').notNull(),
+    metadata: jsonb('metadata').$type<Record<string, string> | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'skills_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const subAgentSkills = pgTable(
+  'sub_agent_skills',
+  {
+    ...subAgentScoped,
+    skillId: varchar('skill_id', { length: 64 }).notNull(),
+    // TODO: integer() always returns NaN
+    index: numeric({ mode: 'number' }).notNull().default(0),
+    alwaysLoaded: boolean('always_loaded').notNull().default(false),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+      name: 'sub_agent_skills_sub_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.skillId],
+      foreignColumns: [skills.tenantId, skills.projectId, skills.id],
+      name: 'sub_agent_skills_skill_fk',
+    }).onDelete('cascade'),
+    unique('sub_agent_skills_sub_agent_skill_unique').on(table.subAgentId, table.skillId),
+    index('sub_agent_skills_skill_idx').on(table.skillId),
   ]
 );
 
@@ -897,6 +948,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   dataComponents: many(dataComponents),
   artifactComponents: many(artifactComponents),
   credentialReferences: many(credentialReferences),
+  skills: many(skills),
 }));
 
 export const contextConfigsRelations = relations(contextConfigs, ({ many, one }) => ({
@@ -923,6 +975,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
   functionToolRelations: many(subAgentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
+  skillRelations: many(subAgentSkills),
 }));
 
 export const agentRelations = relations(agents, ({ one, many }) => ({
@@ -1023,6 +1076,30 @@ export const subAgentDataComponentsRelations = relations(subAgentDataComponents,
   dataComponent: one(dataComponents, {
     fields: [subAgentDataComponents.dataComponentId],
     references: [dataComponents.id],
+  }),
+}));
+
+export const skillsRelations = relations(skills, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [skills.tenantId, skills.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  subAgentRelations: many(subAgentSkills),
+}));
+
+export const subAgentSkillsRelations = relations(subAgentSkills, ({ one }) => ({
+  subAgent: one(subAgents, {
+    fields: [
+      subAgentSkills.tenantId,
+      subAgentSkills.projectId,
+      subAgentSkills.agentId,
+      subAgentSkills.subAgentId,
+    ],
+    references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+  }),
+  skill: one(skills, {
+    fields: [subAgentSkills.tenantId, subAgentSkills.projectId, subAgentSkills.skillId],
+    references: [skills.tenantId, skills.projectId, skills.id],
   }),
 }));
 

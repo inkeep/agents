@@ -40,4 +40,5 @@ export const STATIC_LABELS = Object.freeze({
   triggers: 'Triggers',
   invocations: 'Invocations',
   'no-organization-found': 'No organization found',
+  skills: 'Skills',
 });

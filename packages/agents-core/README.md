@@ -265,7 +265,7 @@ export const WorkflowSelectSchema = createSelectSchema(workflows);
 
 // Insert schema (for creating new records)
 export const WorkflowInsertSchema = createInsertSchema(workflows).extend({
-  id: resourceIdSchema,
+  id: ResourceIdSchema,
   config: z.object({
     // Define your config structure
     triggers: z.array(z.string()).optional(),

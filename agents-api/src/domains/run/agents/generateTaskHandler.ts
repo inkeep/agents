@@ -23,6 +23,7 @@ import {
   enhanceTeamRelation,
   getArtifactComponentsForSubAgent,
   getDataComponentsForSubAgent,
+  getSkillsForSubAgent,
   getSubAgentRelations,
   getToolsForSubAgent,
 } from '../utils/project';
@@ -202,6 +203,8 @@ export const createTaskHandler = (
           );
         })) ?? [];
 
+      const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+
       agent = new Agent(
         {
           id: config.subAgentId,
@@ -216,6 +219,7 @@ export const createTaskHandler = (
           prompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
+          skills,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId,

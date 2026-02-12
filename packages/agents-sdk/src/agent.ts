@@ -58,7 +58,7 @@ export class Agent implements AgentInterface {
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
   private triggers: TriggerInterface[] = [];
-  private triggerMap: Map<string, Trigger> = new Map();
+  private triggerMap = new Map<string, Trigger>();
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -273,6 +273,12 @@ export class Agent implements AgentInterface {
         toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
+      const resolvedSkills = subAgent.getSkills().map((skillRef, idx) => ({
+        id: skillRef.id,
+        index: skillRef.index ?? idx,
+        ...(skillRef.alwaysLoaded !== undefined && { alwaysLoaded: skillRef.alwaysLoaded }),
+      }));
+
       subAgentsObject[subAgent.getId()] = {
         id: subAgent.getId(),
         name: subAgent.getName(),
@@ -299,6 +305,7 @@ export class Agent implements AgentInterface {
         canUse,
         dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
         artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
+        skills: resolvedSkills.length > 0 ? resolvedSkills : undefined,
         type: 'internal',
       };
     }
