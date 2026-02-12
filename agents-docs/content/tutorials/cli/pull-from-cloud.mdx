@@ -43,6 +43,10 @@ If you don't have the project locally yet, you'll specify the project ID in the 
 
 ## Step 2: Run the pull command
 
+<Note>
+Run `inkeep pull` from the directory that contains your `inkeep.config.ts`, or from any subdirectory below it.
+</Note>
+
 ### For an existing project
 
 From inside your project directory, run:
@@ -54,7 +58,7 @@ inkeep pull
 The CLI will:
 1. Detect the project from your `index.ts` file
 2. Resolve configuration — your active [CLI profile](/tutorials/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
-3. Fetch the latest configuration from Inkeep Cloud
+3. Fetch the latest project data from the cloud
 4. Compare remote changes against your local files
 5. Generate updated TypeScript files, preserving your local code structure
 
