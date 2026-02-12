@@ -96,10 +96,9 @@ describe('FullAgentUpdateSchema', () => {
         },
       },
     });
-    // console.dir(result, { depth: null });
     expect(result.success).toBe(true);
     if (result.data) {
-      expect(result.data.stopWhen?.transferCountIs).toBe(null);
+      expect(result.data.stopWhen?.transferCountIs).toBe(undefined);
       expect(result.data.contextConfig.contextVariables).toBe(null);
       expect(result.data.contextConfig.headersSchema).toBe(null);
       expect(result.data.models.base.providerOptions).toBe(null);
