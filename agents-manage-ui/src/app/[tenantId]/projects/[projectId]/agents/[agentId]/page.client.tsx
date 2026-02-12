@@ -73,6 +73,7 @@ import type {
   SubAgentTeamAgentConfig,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
@@ -100,10 +101,11 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: FullAgentResponse;
-  dataComponentLookup?: Record<string, DataComponent>;
-  artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
-  credentialLookup?: Record<string, Credential>;
+  dataComponentLookup: Record<string, DataComponent>;
+  artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  credentialLookup: Record<string, Credential>;
+  skills: Skill[];
   sandboxEnabled: boolean;
 }
 
@@ -163,11 +165,12 @@ function formatFormErrors<FV extends FieldValues>(errors: FieldErrors<FV>) {
 
 export const Agent: FC<AgentProps> = ({
   agent,
-  dataComponentLookup = {},
-  artifactComponentLookup = {},
-  toolLookup = {},
-  credentialLookup = {},
+  dataComponentLookup,
+  artifactComponentLookup,
+  toolLookup,
+  credentialLookup,
   sandboxEnabled,
+  skills,
 }) => {
   'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
@@ -367,6 +370,7 @@ export const Agent: FC<AgentProps> = ({
     setInitial(
       agentNodes,
       agentEdges,
+      skills,
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
@@ -486,6 +490,7 @@ export const Agent: FC<AgentProps> = ({
       setInitial(
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
+        skills,
         updatedDataComponentLookup as Record<string, DataComponent>,
         updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
         updatedToolLookup as unknown as Record<string, MCPTool>,
@@ -589,11 +594,13 @@ export const Agent: FC<AgentProps> = ({
     ) {
       const targetNode = nodes.find((n) => n.id === params.target);
       if (targetNode && targetNode.type === NodeType.MCP) {
-        const subAgentId = params.source;
+        if (edges.some((edge) => edge.target === targetNode.id)) {
+          toast.error('This MCP tool is already connected. Connect to a new MCP server node.');
+          return;
+        }
         updateNodeData(targetNode.id, {
           ...targetNode.data,
-          subAgentId,
-          relationshipId: null, // Will be set after saving to database
+          subAgentId: params.source,
         });
       }
     }

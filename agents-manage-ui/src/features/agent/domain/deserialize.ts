@@ -148,30 +148,25 @@ export function deserializeAgentData(data: PartialFullAgentDefinition): Transfor
                 : undefined,
             }
           : undefined,
+        skills: subAgent.skills,
         stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
         type: subAgent.type,
         tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
         selectedTools: subAgent.canUse
-          ? subAgent.canUse.reduce(
-              (acc, item) => {
-                if (item.toolSelection) {
-                  acc[item.toolId] = item.toolSelection;
-                }
-                return acc;
-              },
-              {} as Record<string, string[]>
-            )
+          ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
+              if (item.toolSelection) {
+                acc[item.toolId] = item.toolSelection;
+              }
+              return acc;
+            }, {})
           : undefined,
         headers: subAgent.canUse
-          ? subAgent.canUse.reduce(
-              (acc, item) => {
-                if (item.headers) {
-                  acc[item.toolId] = item.headers;
-                }
-                return acc;
-              },
-              {} as Record<string, Record<string, string>>
-            )
+          ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
+              if (item.headers) {
+                acc[item.toolId] = item.headers;
+              }
+              return acc;
+            }, {})
           : undefined,
       };
     })();

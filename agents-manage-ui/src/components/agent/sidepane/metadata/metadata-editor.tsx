@@ -31,6 +31,8 @@ import { useProjectPermissions } from '@/contexts/project';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useProjectData } from '@/hooks/use-project-data';
 import {
+  azureModelProviderOptionsTemplate,
+  azureModelSummarizerProviderOptionsTemplate,
   statusUpdatesComponentsTemplate,
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
@@ -41,11 +43,10 @@ import { GenericPromptEditor } from '../../../form/generic-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
 import { FieldLabel } from '../form-components/label';
-import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
 
-const ExecutionLimitInheritanceInfo = () => {
+const ExecutionLimitInheritanceInfo: FC = () => {
   return (
     <ul className="space-y-1.5 list-disc list-outside pl-4">
       <li>
@@ -140,7 +141,8 @@ export const MetadataEditor: FC = () => {
         <ModelConfiguration
           value={models.base.model}
           providerOptions={models.base.providerOptions}
-          inheritedValue={project?.models?.base?.model}
+          inheritedValue={project?.models.base?.model}
+          inheritedProviderOptions={project?.models.base?.providerOptions}
           label={
             <div className="flex items-center gap-2">
               Base model
@@ -148,7 +150,7 @@ export const MetadataEditor: FC = () => {
                 {...getModelInheritanceStatus(
                   'agent',
                   models.base.model,
-                  project?.models?.base?.model
+                  project?.models.base?.model
                 )}
                 size="sm"
               />
@@ -156,14 +158,10 @@ export const MetadataEditor: FC = () => {
           }
           description="Primary model for general agent responses"
           onModelChange={(value) => {
-            if (value) {
-              form.setValue('models.base.model', value, { shouldDirty: true });
-            } else {
-              form.setValue('models.base', {});
-            }
+            form.setValue('models.base.model', value, { shouldDirty: true });
           }}
-          onProviderOptionsChange={(value) => {
-            form.setValue('models.base.providerOptions', value);
+          onProviderOptionsChange={(value = '') => {
+            form.setValue('models.base.providerOptions', value, { shouldDirty: true });
           }}
           editorNamePrefix="agent-base"
         />
@@ -172,94 +170,95 @@ export const MetadataEditor: FC = () => {
           defaultOpen={!!(models.structuredOutput.model || models.summarizer.model)}
           title="Advanced model options"
         >
-          <div className="relative space-y-2">
-            <ModelSelector
-              value={models.structuredOutput.model || ''}
-              inheritedValue={
-                project?.models?.structuredOutput?.model ||
-                models.base.model ||
-                project?.models?.base?.model
+          <ModelConfiguration
+            value={models.structuredOutput?.model}
+            providerOptions={models.structuredOutput?.providerOptions}
+            inheritedValue={
+              project?.models.structuredOutput?.model ||
+              models.base.model ||
+              project?.models.base?.model
+            }
+            inheritedProviderOptions={
+              project?.models.structuredOutput?.model
+                ? project?.models.structuredOutput?.providerOptions
+                : models.base.model
+                  ? models.base.providerOptions
+                  : project?.models.base?.providerOptions
+            }
+            label={
+              <div className="flex items-center gap-2">
+                Structured output model
+                <InheritanceIndicator
+                  {...getModelInheritanceStatus(
+                    'agent',
+                    models.structuredOutput.model,
+                    project?.models.structuredOutput?.model
+                  )}
+                  size="sm"
+                />
+              </div>
+            }
+            description="Model for structured outputs and components (defaults to base model)"
+            canClear
+            onModelChange={(value) => {
+              form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
+            }}
+            onProviderOptionsChange={(value = '') => {
+              form.setValue('models.structuredOutput.providerOptions', value, {
+                shouldDirty: true,
+              });
+            }}
+            editorNamePrefix="agent-structured"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelProviderOptionsTemplate;
               }
-              onValueChange={(value) => {
-                if (value) {
-                  form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
-                } else {
-                  form.setValue('models.structuredOutput', {});
-                }
-              }}
-              label={
-                <div className="flex items-center gap-2">
-                  Structured output model
-                  <InheritanceIndicator
-                    {...getModelInheritanceStatus(
-                      'agent',
-                      models.structuredOutput.model,
-                      project?.models?.structuredOutput?.model
-                    )}
-                    size="sm"
-                  />
-                </div>
+              return structuredOutputModelProviderOptionsTemplate;
+            }}
+          />
+
+          <ModelConfiguration
+            value={models.summarizer?.model}
+            providerOptions={models.summarizer?.providerOptions}
+            inheritedValue={
+              project?.models.summarizer?.model || models.base.model || project?.models.base?.model
+            }
+            inheritedProviderOptions={
+              project?.models.summarizer?.model
+                ? project?.models.summarizer?.providerOptions
+                : models.base.model
+                  ? models.base.providerOptions
+                  : project?.models.base?.providerOptions
+            }
+            label={
+              <div className="flex items-center gap-2">
+                Summarizer model
+                <InheritanceIndicator
+                  {...getModelInheritanceStatus(
+                    'agent',
+                    models.summarizer.model,
+                    project?.models.summarizer?.model
+                  )}
+                  size="sm"
+                />
+              </div>
+            }
+            description="Model for summarization tasks (defaults to base model)"
+            canClear
+            onModelChange={(value) => {
+              form.setValue('models.summarizer.model', value, { shouldDirty: true });
+            }}
+            onProviderOptionsChange={(value = '') => {
+              form.setValue('models.summarizer.providerOptions', value, { shouldDirty: true });
+            }}
+            editorNamePrefix="agent-summarizer"
+            getJsonPlaceholder={(model) => {
+              if (model?.startsWith('azure/')) {
+                return azureModelSummarizerProviderOptionsTemplate;
               }
-            />
-            <p className="text-xs text-muted-foreground">
-              Model for structured outputs and components (defaults to base model)
-            </p>
-          </div>
-          {/* Structured Output Model Provider Options */}
-          {models.structuredOutput.model && (
-            <GenericJsonEditor
-              control={form.control}
-              label="Structured output model provider options"
-              name="models.structuredOutput.providerOptions"
-              placeholder={structuredOutputModelProviderOptionsTemplate}
-              customTemplate={structuredOutputModelProviderOptionsTemplate}
-              isRequired={isRequired(schema, 'models.structuredOutput.providerOptions')}
-            />
-          )}
-          <div className="relative space-y-2">
-            <ModelSelector
-              value={models.summarizer.model || ''}
-              inheritedValue={
-                project?.models?.summarizer?.model ||
-                models.base.model ||
-                project?.models?.base?.model
-              }
-              onValueChange={(value) => {
-                if (value) {
-                  form.setValue('models.summarizer.model', value, { shouldDirty: true });
-                } else {
-                  form.setValue('models.summarizer', {});
-                }
-              }}
-              label={
-                <div className="flex items-center gap-2">
-                  Summarizer model
-                  <InheritanceIndicator
-                    {...getModelInheritanceStatus(
-                      'agent',
-                      models.summarizer.model,
-                      project?.models?.summarizer?.model
-                    )}
-                    size="sm"
-                  />
-                </div>
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Model for summarization tasks (defaults to base model)
-            </p>
-          </div>
-          {/* Summarizer Model Provider Options */}
-          {models.summarizer.model && (
-            <GenericJsonEditor
-              control={form.control}
-              name="models.summarizer.providerOptions"
-              label="Summarizer model provider options"
-              placeholder={summarizerModelProviderOptionsTemplate}
-              customTemplate={summarizerModelProviderOptionsTemplate}
-              isRequired={isRequired(schema, 'models.summarizer.providerOptions')}
-            />
-          )}
+              return summarizerModelProviderOptionsTemplate;
+            }}
+          />
         </CollapsibleSettings>
       </div>
 

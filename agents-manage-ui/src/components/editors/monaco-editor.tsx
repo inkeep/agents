@@ -117,9 +117,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       tabSize: 2,
       readOnly,
       // Monaco doesn't render whitespace at the beginning of the lines
-      placeholder: placeholder.replaceAll(/^\s+/gm, (substring) =>
-        '\u00A0'.repeat(substring.length)
-      ),
+      placeholder: placeholder.replaceAll(' ', '\u00A0'),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
       editContext: false,
@@ -194,7 +192,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   return (
     <div
       className={cn(
-        'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
+        'min-w-0',
+        'max-h-[90vh]', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',

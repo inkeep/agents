@@ -10,12 +10,13 @@ import {
   type AgentApiInsert,
   type AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
+  transformToJson,
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { transformToJson } from '@/lib/json-schema-validation';
 import type { SingleResponse } from './response';
 
-const ContextConfigSchema = AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
+const OriginalContextConfigSchema =
+  AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
 const StatusUpdatesSchema = AgentWithinContextOfProjectSchema.shape.statusUpdates.unwrap().shape;
 const ModelsSchema = AgentWithinContextOfProjectSchema.shape.models.unwrap().shape;
 const StopWhenSchema = AgentWithinContextOfProjectSchema.shape.stopWhen.unwrap();
@@ -35,6 +36,14 @@ const NullToUndefinedSchema = z
   // but this schema expects `undefined` (optional field), not `null`.
   .transform((value: number) => (value === null ? undefined : value));
 
+export const ContextConfigSchema = z.strictObject({
+  id: OriginalContextConfigSchema.id,
+  headersSchema: StringToJsonSchema.pipe(OriginalContextConfigSchema.headersSchema).optional(),
+  contextVariables: StringToJsonSchema.pipe(
+    OriginalContextConfigSchema.contextVariables
+  ).optional(),
+});
+
 export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   id: true,
   name: true,
@@ -44,13 +53,7 @@ export const FullAgentUpdateSchema = AgentWithinContextOfProjectSchema.pick({
   stopWhen: StopWhenSchema.extend({
     transferCountIs: NullToUndefinedSchema.pipe(StopWhenSchema.shape.transferCountIs).optional(),
   }).optional(),
-  contextConfig: z
-    .strictObject({
-      id: ContextConfigSchema.id,
-      headersSchema: StringToJsonSchema.pipe(ContextConfigSchema.headersSchema).optional(),
-      contextVariables: StringToJsonSchema.pipe(ContextConfigSchema.contextVariables).optional(),
-    })
-    .optional(),
+  contextConfig: ContextConfigSchema,
   statusUpdates: z.strictObject({
     ...StatusUpdatesSchema,
     numEvents: NullToUndefinedSchema.pipe(StatusUpdatesSchema.numEvents).optional(),

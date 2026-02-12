@@ -7,6 +7,7 @@ import { getCapabilitiesAction } from '@/lib/actions/capabilities';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
+import { fetchSkillsAction } from '@/lib/actions/skills';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup, serializeJson } from '@/lib/utils';
 import { Agent } from './page.client';
@@ -30,13 +31,14 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     );
   }
 
-  const [dataComponents, artifactComponents, credentials, tools, externalAgents] =
+  const [dataComponents, artifactComponents, credentials, tools, externalAgents, skills] =
     await Promise.all([
       fetchDataComponentsAction(tenantId, projectId),
       fetchArtifactComponentsAction(tenantId, projectId),
       fetchCredentialsAction(tenantId, projectId),
       fetchToolsAction(tenantId, projectId, { skipDiscovery: true }),
       fetchExternalAgentsAction(tenantId, projectId),
+      fetchSkillsAction(tenantId, projectId),
     ]);
 
   if (
@@ -44,7 +46,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     !artifactComponents.success ||
     !credentials.success ||
     !tools.success ||
-    !externalAgents.success
+    !externalAgents.success ||
+    !skills.success
   ) {
     console.error(
       'Failed to fetch components:',
@@ -52,7 +55,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
       artifactComponents.error,
       credentials.error,
       tools.error,
-      externalAgents.error
+      externalAgents.error,
+      skills.error
     );
   }
 
@@ -72,6 +76,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     ? Boolean(capabilities.data?.sandbox?.configured)
     : false;
 
+  const skillsList = (skills.success && skills.data) || [];
   const {
     id,
     name,
@@ -87,17 +92,23 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     id,
     name,
     description,
-    prompt,
-    contextConfig: contextConfig && {
-      id: contextConfig.id,
-      headersSchema: serializeJson(contextConfig.headersSchema),
-      contextVariables: serializeJson(contextConfig.contextVariables),
+    prompt: prompt ?? '',
+    contextConfig: {
+      id: contextConfig?.id,
+      headersSchema: serializeJson(contextConfig?.headersSchema),
+      contextVariables: serializeJson(contextConfig?.contextVariables),
     },
     statusUpdates: {
       ...statusUpdates,
+      enabled: statusUpdates.enabled ?? false,
+      numEvents: statusUpdates.numEvents ?? 10,
+      timeInSeconds: statusUpdates.timeInSeconds ?? 30,
+      prompt: statusUpdates.prompt ?? '',
       statusComponents: serializeJson(statusUpdates.statusComponents),
     },
-    stopWhen,
+    stopWhen: {
+      transferCountIs: stopWhen?.transferCountIs ?? 10,
+    },
     models: {
       base: {
         ...models.base,
@@ -123,6 +134,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
         toolLookup={toolLookup}
         credentialLookup={credentialLookup}
         sandboxEnabled={sandboxEnabled}
+        skills={skillsList}
       />
     </FullAgentFormProvider>
   );

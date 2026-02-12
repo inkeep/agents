@@ -21,6 +21,7 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
@@ -45,6 +46,12 @@ interface AgentStateData {
    */
   isSidebarSessionOpen: boolean;
   variableSuggestions: string[];
+  /**
+   * Tracks if any model configuration modal is currently open (azure, openrouter, gateway, nim).
+   * Used to disable save button while configuration is in progress.
+   */
+  hasOpenModelConfig: boolean;
+  availableSkills: Skill[];
 }
 
 interface AgentPersistedStateData {
@@ -60,6 +67,7 @@ interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
+    availableSkills: Skill[],
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
@@ -110,6 +118,10 @@ interface AgentActions {
   animateGraph: EventListenerOrEventListenerObject;
 
   setVariableSuggestions: (variableSuggestions: string[]) => void;
+  /**
+   * Setter for `hasOpenModelConfig` field.
+   */
+  setHasOpenModelConfig: (hasOpenModelConfig: boolean) => void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -134,6 +146,8 @@ const initialAgentState: AgentStateData = {
   showErrors: false,
   isSidebarSessionOpen: true,
   variableSuggestions: [],
+  hasOpenModelConfig: false,
+  availableSkills: [],
 };
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
@@ -149,6 +163,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setInitial(
       nodes,
       edges,
+      availableSkills,
       dataComponentLookup = {},
       artifactComponentLookup = {},
       toolLookup = {},
@@ -165,6 +180,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         agentToolConfigLookup,
         externalAgentLookup,
         subAgentExternalAgentConfigLookup,
+        availableSkills,
         dirty: false,
         history: [],
         future: [],
@@ -524,6 +540,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     setVariableSuggestions(variableSuggestions) {
       set({ variableSuggestions });
+    },
+    setHasOpenModelConfig(hasOpenModelConfig) {
+      set({ hasOpenModelConfig });
     },
   },
 });

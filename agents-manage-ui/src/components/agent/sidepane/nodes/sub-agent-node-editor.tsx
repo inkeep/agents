@@ -1,7 +1,9 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
+import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -57,21 +59,22 @@ interface SubAgentNodeEditorProps {
   errorHelpers?: ErrorHelpers;
 }
 
-export function SubAgentNodeEditor({
+export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   selectedNode,
   dataComponentLookup,
   artifactComponentLookup,
   errorHelpers,
-}: SubAgentNodeEditorProps) {
+}) => {
   'use memo';
+
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
   const { canEdit } = useProjectPermissions();
-  const selectedDataComponents = selectedNode.data?.dataComponents || [];
-  const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
-  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
+  const selectedDataComponents = selectedNode.data.dataComponents ?? [];
+  const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
+  const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
   const { project } = useProjectData();
   const form = useFullAgentFormContext();
   const models = useWatch({ control: form.control, name: 'models' });
@@ -137,18 +140,20 @@ export function SubAgentNodeEditor({
         placeholder="This sub agent is responsible for..."
         error={getFieldError('description')}
       />
-
-      <div className="space-y-2">
-        <ExpandablePromptEditor
-          key={selectedNode.id}
-          name="prompt"
-          value={selectedNode.data.prompt}
-          onChange={(value) => updatePath('prompt', value)}
-          placeholder="You are a helpful assistant..."
-          error={getFieldError('prompt')}
-          label="Prompt"
-        />
-      </div>
+      <SkillSelector
+        selectedSkills={selectedNode.data.skills}
+        onChange={(value) => updatePath('skills', value)}
+        error={getFieldError('skills')}
+      />
+      <ExpandablePromptEditor
+        key={selectedNode.id}
+        name="prompt"
+        value={selectedNode.data.prompt}
+        onChange={(value) => updatePath('prompt', value)}
+        placeholder="You are a helpful assistant..."
+        error={getFieldError('prompt')}
+        label="Prompt"
+      />
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -242,6 +247,7 @@ export function SubAgentNodeEditor({
         emptyStateActionText="Create artifact"
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
+        commandInputPlaceholder="Search artifacts..."
       />
       {!isDefaultSubAgent && canEdit && (
         <>
@@ -256,4 +262,4 @@ export function SubAgentNodeEditor({
       )}
     </div>
   );
-}
+};

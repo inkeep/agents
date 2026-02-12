@@ -2,6 +2,7 @@ import { DataComponentForm } from '@/components/data-components/form/data-compon
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProjectPermissions } from '@/lib/api/projects';
+import { serializeJson } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
@@ -26,11 +27,11 @@ export default async function DataComponentPage({
         projectId={projectId}
         id={dataComponentId}
         readOnly={!permissions.canEdit}
-        initialData={{
+        defaultValues={{
           id: dataComponentId,
           name,
           description: description ?? '',
-          props,
+          props: serializeJson(props),
           render,
         }}
       />

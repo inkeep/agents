@@ -35,7 +35,7 @@ export const FullAgentFormProvider: FC<{
 export function useFullAgentFormContext() {
   const ctx = use(FullAgentFormContext);
   if (!ctx) {
-    throw new Error('useFullAgentFormContext must be used within a <FullAgentFormContext />');
+    throw new Error('useFullAgentFormContext must be used within a <FullAgentFormProvider />');
   }
   return ctx;
 }

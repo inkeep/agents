@@ -198,6 +198,20 @@ export function generateSubAgentDefinition(
     lines.push(`${indentation}},`);
   }
 
+  // skills - ordered skill attachments by id
+  if (Array.isArray(agentData.skills) && agentData.skills.length) {
+    lines.push(`${indentation}skills: () => [`);
+    for (const skill of agentData.skills) {
+      const parts = [`id: ${formatString(skill.id, q)}`];
+      parts.push(`index: ${skill.index}`);
+      if (skill.alwaysLoaded) {
+        parts.push(`alwaysLoaded: ${skill.alwaysLoaded}`);
+      }
+      lines.push(`${indentation}${indentation}{ ${parts.join(', ')} },`);
+    }
+    lines.push(`${indentation}],`);
+  }
+
   // canUse - tools that this agent can use directly (with .with() configuration if present)
   if (agentData.canUse && Array.isArray(agentData.canUse) && agentData.canUse.length > 0) {
     const toolReferences: string[] = [];

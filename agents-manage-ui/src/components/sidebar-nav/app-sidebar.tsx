@@ -11,6 +11,8 @@ import {
   Library,
   LifeBuoy,
   Lock,
+  LucideHexagon,
+  Plug,
   Settings,
   Users,
   Workflow,
@@ -58,6 +60,8 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const { user } = useAuthSession();
 
+  const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
+
   const topNavItems: NavItemProps[] = projectId
     ? []
     : [
@@ -71,6 +75,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
+        ...(isWorkAppsEnabled
+          ? [
+              {
+                title: STATIC_LABELS['work-apps'],
+                url: `/${tenantId}/work-apps`,
+                icon: Plug,
+              },
+            ]
+          : []),
       ];
 
   const orgNavItems: NavItemProps[] = [
@@ -87,6 +100,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.agents,
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: STATIC_LABELS.skills,
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
         },
         {
           title: STATIC_LABELS['api-keys'],

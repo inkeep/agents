@@ -214,7 +214,7 @@ export function TimelineItem({
                     : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
-  const formattedDateTime = formatDateTime(activity.timestamp);
+  const formattedDateTime = formatDateTime(activity.timestamp, { local: true });
   const isoDateTime = new Date(activity.timestamp).toISOString();
 
   // Determine text color based on status

@@ -5,6 +5,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { ArtifactComponentOutput } from '@/components/artifact-components/form/validation';
 import type { ArtifactComponent } from '../api/artifact-components';
 import {
   createArtifactComponent,
@@ -51,7 +52,7 @@ export async function fetchArtifactComponentsAction(
 export async function createArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  data: ArtifactComponent
+  data: ArtifactComponentOutput
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
     const result = await createArtifactComponent(tenantId, projectId, data);
@@ -83,7 +84,7 @@ export async function createArtifactComponentAction(
 export async function updateArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  data: ArtifactComponent
+  data: ArtifactComponentOutput
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
     const result = await updateArtifactComponent(tenantId, projectId, data);

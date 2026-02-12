@@ -17,6 +17,7 @@ export * from './manage/functionTools';
 export * from './manage/projectFull';
 export * from './manage/projectLifecycle';
 export * from './manage/projects';
+export * from './manage/skills';
 export * from './manage/subAgentExternalAgentRelations';
 export * from './manage/subAgentRelations';
 export * from './manage/subAgents';
@@ -38,5 +39,6 @@ export * from './runtime/projects';
 export * from './runtime/tasks';
 export * from './runtime/triggerInvocations';
 export * from './runtime/users';
+export * from './runtime/workAppSlack';
 
 export * from './validation';

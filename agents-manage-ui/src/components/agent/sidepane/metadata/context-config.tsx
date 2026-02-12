@@ -4,18 +4,12 @@ import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
-import { FullAgentUpdateSchema as schema } from '@/lib/types/agent-full';
+import { ContextConfigSchema as schema } from '@/lib/types/agent-full';
 import { isRequired } from '@/lib/utils';
 import { SectionHeader } from '../section';
 
-function tryJsonParse(json = ''): Record<string, any> {
-  try {
-    if (json.trim()) {
-      return JSON.parse(json);
-    }
-  } catch {}
-  return {};
-}
+const HeadersSchema = schema.shape.headersSchema;
+const ContextVariablesSchema = schema.shape.contextVariables;
 
 export const ContextConfigForm: FC = () => {
   'use memo';
@@ -28,11 +22,17 @@ export const ContextConfigForm: FC = () => {
     return form.subscribe({
       name: ['contextConfig.contextVariables', 'contextConfig.headersSchema'],
       formState: { values: true },
-      callback({ values }) {
+      callback(data) {
+        const config = data.values.contextConfig;
+
+        const headersSchema = HeadersSchema.safeParse(config?.headersSchema).data;
+        const contextVariables = ContextVariablesSchema.safeParse(config?.contextVariables).data;
+
         // Generate suggestions from context config
         const variables = getContextSuggestions({
-          headersSchema: tryJsonParse(values.contextConfig?.headersSchema),
-          contextVariables: tryJsonParse(values.contextConfig?.contextVariables),
+          headersSchema,
+          // @ts-expect-error improve types
+          contextVariables,
         });
         setVariableSuggestions(variables);
       },
@@ -51,7 +51,7 @@ export const ContextConfigForm: FC = () => {
         label="Context variables (JSON)"
         placeholder="{}"
         customTemplate={contextVariablesTemplate}
-        isRequired={isRequired(schema, 'contextConfig.contextVariables')}
+        isRequired={isRequired(schema, 'contextVariables')}
       />
       <GenericJsonEditor
         control={form.control}
@@ -59,7 +59,7 @@ export const ContextConfigForm: FC = () => {
         label="Headers schema (JSON)"
         placeholder="{}"
         customTemplate={headersSchemaTemplate}
-        isRequired={isRequired(schema, 'contextConfig.headersSchema')}
+        isRequired={isRequired(schema, 'headersSchema')}
       />
     </div>
   );

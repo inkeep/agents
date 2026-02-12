@@ -3,6 +3,7 @@ import type {
   ArtifactComponentApiInsert,
   ArtifactComponentApiSelect,
   DataComponentInsert,
+  JsonSchemaForLlmSchemaType,
 } from '@inkeep/agents-core';
 import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from './SchemaProcessor';
@@ -12,7 +13,7 @@ import { SchemaProcessor } from './SchemaProcessor';
  */
 export class ArtifactReferenceSchema {
   // Standard artifact props schema - single source of truth
-  private static readonly ARTIFACT_PROPS_SCHEMA: JSONSchema.BaseSchema = {
+  private static readonly ARTIFACT_PROPS_SCHEMA = {
     type: 'object',
     properties: {
       artifact_id: {
@@ -26,7 +27,7 @@ export class ArtifactReferenceSchema {
       },
     },
     required: ['artifact_id', 'tool_call_id'],
-  };
+  } satisfies JSONSchema.BaseSchema;
 
   /**
    * Get the standard Zod schema for artifact reference components
@@ -42,7 +43,7 @@ export class ArtifactReferenceSchema {
   /**
    * Get complete DataComponent by adding missing fields to base definition
    */
-  static getDataComponent(tenantId: string, projectId: string = ''): DataComponentInsert {
+  static getDataComponent(tenantId: string, projectId = ''): DataComponentInsert {
     return {
       id: 'The artifact_id from your artifact:create tag. Must match exactly.',
       tenantId: tenantId,
@@ -69,11 +70,11 @@ export class ArtifactCreateSchema {
   ): z.ZodType<any>[] {
     return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
-      const propsSchema: JSONSchema.BaseSchema = {
+      const propsSchema = {
         type: 'object',
         properties: {
           id: {
@@ -98,12 +99,15 @@ export class ArtifactCreateSchema {
           details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
-      };
+      } satisfies JSONSchema.BaseSchema;
+
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
 
       return z.object({
         id: z.string(),
         name: z.literal(`ArtifactCreate_${component.name}`),
-        props: z.fromJSONSchema(propsSchema),
+        props: z.fromJSONSchema(normalizedPropsSchema),
       });
     });
   }
@@ -120,7 +124,7 @@ export class ArtifactCreateSchema {
   ): DataComponentInsert[] {
     return artifactComponents.map((component) => {
       // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema = component.props
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
@@ -151,13 +155,16 @@ export class ArtifactCreateSchema {
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };
 
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
         tenantId: tenantId,
         projectId: projectId,
         name: `ArtifactCreate_${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
-        props: propsSchema,
+        props: normalizedPropsSchema as JsonSchemaForLlmSchemaType,
       };
     });
   }

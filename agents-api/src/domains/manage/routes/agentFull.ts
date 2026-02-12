@@ -198,7 +198,6 @@ app.openapi(
     const agentData = c.req.valid('json');
 
     try {
-      logger.info({}, 'test agent data');
       const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
       if (agentId !== validatedAgentData.id) {

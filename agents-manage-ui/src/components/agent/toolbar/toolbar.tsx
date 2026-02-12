@@ -23,7 +23,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   const agentDirtyState = useAgentStore((state) => state.dirty);
   const { isDirty, isSubmitting } = useFormState({ control: form.control });
   const dirty = agentDirtyState || isDirty;
-
+  const hasOpenModelConfig = useAgentStore((state) => state.hasOpenModelConfig);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
@@ -40,7 +40,11 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   } satisfies ComponentProps<typeof Button>;
 
   const PreviewButton = (
-    <Button {...commonProps} disabled={dirty} onClick={() => setShowPlayground(true)}>
+    <Button
+      {...commonProps}
+      disabled={dirty || hasOpenModelConfig}
+      onClick={() => setShowPlayground(true)}
+    >
       <Play className="size-4 text-muted-foreground" />
       Try it
     </Button>
@@ -64,7 +68,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
       {canUse && <ShipModal buttonClassName={commonProps.className} />}
-      {dirty && canUse ? (
+      {(dirty || hasOpenModelConfig) && canUse ? (
         <Tooltip>
           <TooltipTrigger asChild>
             {/**
@@ -74,9 +78,11 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
             <div>{PreviewButton}</div>
           </TooltipTrigger>
           <TooltipContent>
-            {dirty
-              ? 'Please save your changes before trying the agent.'
-              : 'Please save the agent to try it.'}
+            {hasOpenModelConfig
+              ? 'Please complete model configuration before trying the agent.'
+              : dirty
+                ? 'Please save your changes before trying the agent.'
+                : 'Please save the agent to try it.'}
           </TooltipContent>
         </Tooltip>
       ) : canUse ? (
@@ -87,7 +93,7 @@ export function Toolbar({ toggleSidePane, setShowPlayground }: ToolbarProps) {
           {...commonProps}
           type="submit"
           variant={dirty ? 'default' : 'outline'}
-          disabled={isSubmitting || !dirty}
+          disabled={isSubmitting || !dirty || hasOpenModelConfig}
           ref={saveButtonRef}
         >
           <Spinner className={cn(!isSubmitting && 'hidden')} />

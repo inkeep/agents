@@ -1,7 +1,7 @@
 import './App.css';
 
 import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from '@inkeep/agents-ui';
-import { TemperatureList } from './TemperatureList';
+import { TemperatureList } from './ui/TemperatureList';
 
 const embeddedChatProps: InkeepEmbeddedChatProps = {
   aiChatSettings: {
