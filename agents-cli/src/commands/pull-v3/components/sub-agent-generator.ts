@@ -236,18 +236,46 @@ export function generateSubAgentDefinition(
         );
       }
 
-      // Check if this tool has configuration (toolSelection or headers)
+      // Check if this tool has configuration (toolSelection, headers, or toolPolicies)
       const hasToolSelection = toolRelation.toolSelection && toolRelation.toolSelection.length > 0;
       const hasHeaders = toolRelation.headers && Object.keys(toolRelation.headers).length > 0;
+      const hasToolPolicies =
+        toolRelation.toolPolicies && Object.keys(toolRelation.toolPolicies).length > 0;
 
-      if (hasToolSelection || hasHeaders) {
+      if (hasToolSelection || hasHeaders || hasToolPolicies) {
         // Generate .with() configuration
         const configLines: string[] = [];
 
-        // Add selectedTools (mapped from toolSelection)
-        if (hasToolSelection) {
-          const selectedToolsStr = JSON.stringify(toolRelation.toolSelection);
-          configLines.push(`selectedTools: ${selectedToolsStr}`);
+        // Build selectedTools array, merging toolPolicies into McpToolSelection format
+        // McpToolSelection = string | { name: string; needsApproval?: boolean }
+        if (hasToolSelection || hasToolPolicies) {
+          const toolNames: string[] = toolRelation.toolSelection || [];
+          const policies: Record<string, { needsApproval?: boolean }> =
+            toolRelation.toolPolicies || {};
+
+          const selections: Array<string | { name: string; needsApproval?: boolean }> = [];
+
+          // Add tools from toolSelection, enriching with policies where applicable
+          for (const name of toolNames) {
+            const policy = policies[name];
+            if (policy?.needsApproval !== undefined) {
+              selections.push({ name, needsApproval: policy.needsApproval });
+            } else {
+              selections.push(name);
+            }
+          }
+
+          // Include policies for tools not already in toolSelection
+          for (const [name, policy] of Object.entries(policies)) {
+            if (!toolNames.includes(name) && policy?.needsApproval !== undefined) {
+              selections.push({ name, needsApproval: policy.needsApproval });
+            }
+          }
+
+          if (selections.length > 0) {
+            const selectedToolsStr = JSON.stringify(selections);
+            configLines.push(`selectedTools: ${selectedToolsStr}`);
+          }
         }
 
         // Add headers if present

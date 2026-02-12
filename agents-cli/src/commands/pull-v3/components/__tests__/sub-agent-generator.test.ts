@@ -562,6 +562,96 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('agent4,');
     });
 
+    it('should generate .with() for tools with toolPolicies (needsApproval)', () => {
+      const toolPoliciesData = {
+        name: 'Approval Agent',
+        description: 'Agent with tools requiring approval',
+        prompt: 'I have tools that need approval.',
+        canUse: [
+          {
+            toolId: 'safeTool',
+            toolSelection: ['action_a', 'action_b'],
+            toolPolicies: { action_b: { needsApproval: true } },
+          },
+          {
+            toolId: 'dangerousTool',
+            toolSelection: null,
+            toolPolicies: { delete_all: { needsApproval: true } },
+          },
+        ],
+      };
+
+      const definition = generateSubAgentDefinition(
+        'approval-agent',
+        toolPoliciesData,
+        undefined,
+        mockRegistry
+      );
+
+      // safeTool should have .with() that merges policies into selectedTools
+      expect(definition).toContain(
+        'safeTool.with({ selectedTools: ["action_a",{"name":"action_b","needsApproval":true}] })'
+      );
+      // dangerousTool has no toolSelection but has toolPolicies — should still get .with()
+      expect(definition).toContain(
+        'dangerousTool.with({ selectedTools: [{"name":"delete_all","needsApproval":true}] })'
+      );
+    });
+
+    it('should generate .with() for tools with only toolPolicies and no other config', () => {
+      const onlyPoliciesData = {
+        name: 'Policies Only Agent',
+        description: 'Agent with only toolPolicies',
+        prompt: 'Test prompt.',
+        canUse: [
+          {
+            toolId: 'myTool',
+            toolSelection: null,
+            headers: null,
+            toolPolicies: { run_command: { needsApproval: true } },
+          },
+        ],
+      };
+
+      const definition = generateSubAgentDefinition(
+        'policies-only-agent',
+        onlyPoliciesData,
+        undefined,
+        mockRegistry
+      );
+
+      expect(definition).toContain(
+        'myTool.with({ selectedTools: [{"name":"run_command","needsApproval":true}] })'
+      );
+    });
+
+    it('should not include toolPolicies when empty', () => {
+      const emptyPoliciesData = {
+        name: 'No Policies Agent',
+        description: 'Agent with empty toolPolicies',
+        prompt: 'Test prompt.',
+        canUse: [
+          {
+            toolId: 'plainTool',
+            toolSelection: null,
+            headers: null,
+            toolPolicies: {},
+          },
+        ],
+      };
+
+      const definition = generateSubAgentDefinition(
+        'no-policies-agent',
+        emptyPoliciesData,
+        undefined,
+        mockRegistry
+      );
+
+      // No .with() should be generated
+      expect(definition).not.toContain('.with(');
+      expect(definition).toContain('canUse: () => [plainTool]');
+    });
+
     it('should handle mixed array and reference types', () => {
       const mixedData = {
         name: 'Mixed Types Agent',
