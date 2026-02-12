@@ -104,6 +104,9 @@ To terminate the running services, click press `q` or `esc` in the terminal.
     - Verify that credentials are properly configured and valid
 - **Connection timeouts**:
     - Ensure network connectivity and firewall settings allow connections
+- **MCP server creation hangs**:
+    - For servers not using OAuth 2.1/PKCE, ensure you select **"No Authentication"** or an existing credential from the **Credential** dropdown
+    - Leaving the Credential field blank on non-OAuth servers causes the creation process to hang indefinitely
 
 ### AI Provider Configuration Problems
 
