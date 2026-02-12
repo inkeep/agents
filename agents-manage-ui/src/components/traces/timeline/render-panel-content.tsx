@@ -122,11 +122,13 @@ function AssistantMessageContent({ content }: { content: string }) {
 export function renderPanelContent({
   selected,
   findSpanById,
+  spanLoading = false,
 }: {
   selected: SelectedPanel;
   findSpanById: (
     id?: string
   ) => NonNullable<ConversationDetail['allSpanAttributes']>[number] | undefined;
+  spanLoading?: boolean;
 }) {
   if (selected.type === 'mcp_tool_error') {
     const e = selected.item;
@@ -160,7 +162,11 @@ export function renderPanelContent({
     </div>
   ) : null;
 
-  const AdvancedBlock = span ? (
+  const AdvancedBlock = spanLoading ? (
+    <div className="text-center py-4 text-xs text-muted-foreground animate-pulse">
+      Loading span attributes…
+    </div>
+  ) : span ? (
     <SpanAttributes span={span.data} />
   ) : (
     <div className="text-center py-4 text-xs text-muted-foreground">Span not found.</div>
