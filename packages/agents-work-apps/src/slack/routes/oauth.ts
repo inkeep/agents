@@ -353,9 +353,14 @@ app.openapi(
             );
           } catch (dbError) {
             const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+            const causeMessage =
+              dbError instanceof Error && dbError.cause instanceof Error
+                ? dbError.cause.message
+                : '';
+            const fullErrorText = `${dbErrorMessage} ${causeMessage}`;
             const isDuplicate =
-              dbErrorMessage.includes('duplicate key') ||
-              dbErrorMessage.includes('unique constraint');
+              fullErrorText.includes('duplicate key') ||
+              fullErrorText.includes('unique constraint');
 
             if (isDuplicate) {
               logger.info(
