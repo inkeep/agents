@@ -24,6 +24,7 @@ Transfer relationships **completely relinquish control** from one Sub Agent to a
 - The source Sub Agent stops processing
 - The target Sub Agent takes full control of the conversation
 - Control is permanently transferred until the target Sub Agent hands back
+- All message content, including images and other non-text parts, is preserved
 
 ```typescript
 import { subAgent, agent } from "agent-sdk";
@@ -86,6 +87,7 @@ Delegation relationships are used to **pass a task** from one Sub Agent to anoth
 - The target Sub Agent executes a specific task
 - Results are returned to the source Sub Agent
 - The source Sub Agent continues processing
+- All message content, including images and other non-text parts, is preserved
 
 ```typescript
 // Sub Agents for specific tasks
