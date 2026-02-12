@@ -31,7 +31,6 @@ import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import { getInProcessFetch } from '../../../utils/in-process-fetch';
 
 const logger = getLogger('EvaluationService');
 
@@ -189,7 +188,7 @@ export class EvaluationService {
       'Running dataset item through chat API'
     );
 
-    const response = await getInProcessFetch()(chatUrl, {
+    const response = await fetch(chatUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(chatPayload),
