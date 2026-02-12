@@ -64,6 +64,13 @@
       "when": 1770855763298,
       "tag": "0008_friendly_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770865212066,
+      "tag": "0009_volatile_trish_tilby",
+      "breakpoints": true
     }
   ]
 }
