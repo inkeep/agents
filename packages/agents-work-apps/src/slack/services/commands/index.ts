@@ -589,6 +589,10 @@ export async function handleRunCommand(
   _dashboardUrl: string,
   tenantId: string
 ): Promise<SlackCommandResponse> {
+  console.log('[SLACK-TRACE] handleRunCommand', {
+    agentName: agentIdentifier,
+    projectId: undefined,
+  });
   // Find user mapping without tenant filter to get the correct tenant
   const existingLink = await findWorkAppSlackUserMappingBySlackUser(runDbClient)(
     payload.userId,
@@ -615,6 +619,10 @@ export async function handleRunCommand(
 
     // Use manage API to find agent with proper Dolt branch resolution
     const targetAgent = await findAgentByIdentifier(userTenantId, agentIdentifier, authToken);
+    console.log('[SLACK-TRACE] handleRunCommand', {
+      agentName: agentIdentifier,
+      projectId: targetAgent?.projectId,
+    });
 
     if (!targetAgent) {
       const message = createErrorMessage(
@@ -722,6 +730,12 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
   const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 
   const workspaceConnection = await findWorkspaceConnectionByTeamId(payload.teamId);
+  const tenantId_pre = workspaceConnection?.tenantId;
+  console.log('[SLACK-TRACE] handleCommand', {
+    subcommand,
+    teamId: payload.teamId,
+    tenantId: tenantId_pre,
+  });
   if (!workspaceConnection?.tenantId) {
     logger.error({ teamId: payload.teamId }, 'No workspace connection or missing tenantId');
     return {

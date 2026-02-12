@@ -69,6 +69,12 @@ export const requireWorkspaceAdmin = <
     }
 
     const userId = c.get('userId');
+    console.log('[SLACK-TRACE] requireWorkspaceAdmin called', {
+      path: c.req.path,
+      userId,
+      tenantId: c.get('tenantId'),
+      tenantRole: c.get('tenantRole'),
+    });
 
     if (!userId) {
       throw createApiError({
@@ -87,7 +93,12 @@ export const requireWorkspaceAdmin = <
     // workAppsAuth sets tenantId from session but not tenantRole — we need both
     const teamId = c.req.param('teamId') || c.req.param('workspaceId');
     if (teamId && !c.get('tenantRole')) {
+      console.log('[SLACK-TRACE] resolving tenant context', { teamId, userId });
       await resolveWorkAppTenantContext(c, teamId, userId);
+      console.log('[SLACK-TRACE] tenant context resolved', {
+        tenantId: c.get('tenantId'),
+        tenantRole: c.get('tenantRole'),
+      });
     }
 
     const tenantId = c.get('tenantId');
@@ -101,6 +112,7 @@ export const requireWorkspaceAdmin = <
       });
     }
 
+    console.log('[SLACK-TRACE] admin check', { tenantRole, isAdmin: isOrgAdmin(tenantRole) });
     if (!isOrgAdmin(tenantRole)) {
       logger.warn(
         { userId, tenantId, tenantRole, path: c.req.path },

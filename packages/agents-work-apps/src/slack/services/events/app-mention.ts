@@ -64,6 +64,13 @@ export async function handleAppMention(params: {
 
   // Step 1: Single workspace connection lookup (cached, includes bot token + default agent)
   const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
+  const hasQuery = Boolean(text && text.trim().length > 0);
+  console.log('[SLACK-TRACE] handleAppMention', {
+    teamId,
+    channel,
+    hasQuery,
+    tenantId: workspaceConnection?.tenantId,
+  });
 
   const botToken =
     workspaceConnection?.botToken || getBotTokenForTeam(teamId) || env.SLACK_BOT_TOKEN;
@@ -92,7 +99,6 @@ export async function handleAppMention(params: {
   const slackClient = getSlackClient(botToken);
   const replyThreadTs = threadTs || messageTs;
   const isInThread = Boolean(threadTs && threadTs !== messageTs);
-  const hasQuery = Boolean(text && text.trim().length > 0);
 
   try {
     // Step 2: Parallel lookup — agent config + user mapping (independent queries)

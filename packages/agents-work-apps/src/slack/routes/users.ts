@@ -80,6 +80,7 @@ app.openapi(
   }),
   async (c) => {
     const { slackUserId, slackTeamId, tenantId } = c.req.valid('query');
+    console.log('[SLACK-TRACE] /link-status', { slackUserId, slackTeamId, tenantId });
 
     // Verify the caller has access to this tenant
     const sessionTenantId = c.get('tenantId') as string | undefined;
@@ -152,6 +153,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    console.log('[SLACK-TRACE] /verify-token called');
     const body = c.req.valid('json');
 
     try {
@@ -303,6 +305,7 @@ app.openapi(
   async (c) => {
     const body = c.req.valid('json');
     const { userId, userEmail, userName, tenantId } = body;
+    console.log('[SLACK-TRACE] /connect called', { userId });
 
     if (!userId) {
       return c.json({ error: 'userId is required' }, 400);

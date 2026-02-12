@@ -160,6 +160,7 @@ app.openapi(
   }),
   (c) => {
     const { tenant_id: tenantId } = c.req.valid('query');
+    console.log('[SLACK-TRACE] /install called', { tenantId });
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
 
@@ -220,6 +221,11 @@ app.openapi(
 
     const parsedState = stateParam ? parseOAuthState(stateParam) : null;
     const tenantId = parsedState?.tenantId || '';
+    console.log('[SLACK-TRACE] /oauth_redirect called', {
+      code: !!code,
+      state: !!stateParam,
+      tenantId,
+    });
     const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
     if (!stateParam || !parsedState) {
@@ -331,6 +337,10 @@ app.openapi(
           installationSource: 'dashboard',
         });
 
+        console.log('[SLACK-TRACE] Nango store result', {
+          success: nangoResult.success,
+          connectionId: nangoResult.connectionId,
+        });
         if (nangoResult.success && nangoResult.connectionId) {
           logger.info(
             { teamId: workspaceData.teamId, connectionId: nangoResult.connectionId },
@@ -347,6 +357,7 @@ app.openapi(
               nangoConnectionId: nangoResult.connectionId,
               status: 'active',
             });
+            console.log('[SLACK-TRACE] DB persist success', { teamId: workspaceData.teamId });
             logger.info(
               { teamId: workspaceData.teamId, tenantId },
               'Persisted workspace installation to database'

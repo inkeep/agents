@@ -174,8 +174,10 @@ export interface SlackWorkspaceConnection {
 export async function findWorkspaceConnectionByTeamId(
   teamId: string
 ): Promise<SlackWorkspaceConnection | null> {
+  console.log('[SLACK-TRACE] findWorkspaceConnectionByTeamId', { teamId });
   const cached = workspaceConnectionCache.get(teamId);
   if (cached && cached.expiresAt > Date.now()) {
+    console.log('[SLACK-TRACE] workspace cache hit', { teamId });
     logger.debug({ teamId }, 'Workspace connection cache hit');
     return cached.connection;
   }
@@ -183,6 +185,7 @@ export async function findWorkspaceConnectionByTeamId(
   try {
     const dbWorkspace = await findWorkAppSlackWorkspaceBySlackTeamId(runDbClient)(teamId);
 
+    console.log('[SLACK-TRACE] DB workspace lookup', { teamId, found: !!dbWorkspace });
     if (dbWorkspace?.nangoConnectionId) {
       const botToken = await getConnectionAccessToken(dbWorkspace.nangoConnectionId);
 

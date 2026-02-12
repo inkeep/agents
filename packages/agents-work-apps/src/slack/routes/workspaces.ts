@@ -139,6 +139,10 @@ app.openapi(
 
       // Filter by authenticated user's tenant to enforce tenant isolation
       const sessionTenantId = c.get('tenantId') as string | undefined;
+      console.log('[SLACK-TRACE] GET /workspaces', {
+        sessionTenantId,
+        totalCount: allWorkspaces.length,
+      });
       if (!sessionTenantId) {
         logger.warn({}, 'No tenantId in session context — cannot list workspaces');
         return c.json({ workspaces: [] });
@@ -325,6 +329,7 @@ app.openapi(
   }),
   async (c) => {
     const { teamId } = c.req.valid('param');
+    console.log('[SLACK-TRACE] PUT /settings called', { teamId });
     const body = c.req.valid('json');
 
     if (body.defaultAgent) {
@@ -386,6 +391,7 @@ app.openapi(
   }),
   async (c) => {
     const { teamId: workspaceIdentifier } = c.req.valid('param');
+    console.log('[SLACK-TRACE] DELETE /workspace called', { teamId: workspaceIdentifier });
 
     let teamId: string;
     let connectionId: string;

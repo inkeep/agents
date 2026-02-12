@@ -109,7 +109,7 @@ export function SlackDashboard() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold flex items-center gap-2">
                 <MessageSquare className="h-6 w-6" />
-                Slack Integration
+                Slack Test Integration
               </h1>
               {!isLoadingRole && (
                 <Tooltip>

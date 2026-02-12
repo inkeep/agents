@@ -39,6 +39,11 @@ export async function handleModalSubmission(view: {
       selectedAgentId?: string;
       selectedProjectId?: string;
     };
+    console.log('[SLACK-TRACE] handleModalSubmission', {
+      agentId: metadata.selectedAgentId,
+      projectId: metadata.selectedProjectId,
+      tenantId: metadata?.tenantId,
+    });
 
     const values = view.state?.values || {};
 

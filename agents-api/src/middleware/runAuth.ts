@@ -276,6 +276,12 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
     'Slack user JWT token authenticated successfully'
   );
 
+  console.log('[SLACK-TRACE] trySlackUserJwtAuth SUCCESS', {
+    tenantId: payload.tenantId,
+    projectId: reqData.projectId,
+    userId: payload.sub,
+  });
+
   return {
     authResult: {
       apiKey: token,

@@ -21,6 +21,10 @@ import { sessionAuth } from './sessionAuth';
 const isTestEnvironment = () => env.ENVIRONMENT === 'test';
 
 export const workAppsAuth = async (c: Context, next: Next) => {
+  console.log('[SLACK-TRACE] workAppsAuth middleware called', {
+    path: c.req.path,
+    method: c.req.method,
+  });
   if (isTestEnvironment()) {
     await next();
     return;
@@ -55,10 +59,14 @@ export const workAppsAuth = async (c: Context, next: Next) => {
   }
 
   // Session auth for dashboard users
+  console.log('[SLACK-TRACE] workAppsAuth: falling through to sessionAuth');
   await sessionAuth()(c as any, async () => {
     // Resolve tenantId from the session's active organization
     // sessionAuth sets userId/userEmail but not tenantId — we need it for tenant-scoped queries
     const session = c.get('session') as { activeOrganizationId?: string } | null;
+    console.log('[SLACK-TRACE] workAppsAuth: resolved tenantId from session', {
+      tenantId: session?.activeOrganizationId,
+    });
     if (!session?.activeOrganizationId) {
       throw createApiError({
         code: 'forbidden',

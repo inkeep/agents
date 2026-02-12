@@ -60,6 +60,10 @@ app.post('/commands', async (c) => {
   }
 
   const params = parseSlackCommandBody(body);
+  console.log('[SLACK-TRACE] /commands received', {
+    command: params.command,
+    text: params.text?.slice(0, 50),
+  });
 
   const payload: SlackCommandPayload = {
     command: params.command || '',
@@ -105,6 +109,7 @@ app.post('/events', async (c) => {
   logger.debug({ eventType: eventBody.type }, 'Slack event received');
 
   const eventType = eventBody.type as string | undefined;
+  console.log('[SLACK-TRACE] /events received', { eventType });
 
   // Verify signature on ALL Slack requests, including url_verification
   if (!env.SLACK_SIGNING_SECRET) {
@@ -335,6 +340,7 @@ app.post('/events', async (c) => {
 
   if (eventType === 'view_submission') {
     const callbackId = (eventBody.view as { callback_id?: string })?.callback_id;
+    console.log('[SLACK-TRACE] view_submission', { callbackId });
 
     if (callbackId === 'agent_selector_modal') {
       const view = eventBody.view as {

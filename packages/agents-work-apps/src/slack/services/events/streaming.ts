@@ -67,6 +67,7 @@ export async function streamAgentResponse(params: {
   } = params;
 
   const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  console.log('[SLACK-TRACE] streamAgentResponse start', { projectId, agentId, apiUrl });
 
   logger.debug(
     { conversationId, channel, threadTs },
@@ -97,6 +98,9 @@ export async function streamAgentResponse(params: {
       signal: abortController.signal,
     });
   } catch (fetchError) {
+    console.log('[SLACK-TRACE] streamAgentResponse fetch error', {
+      error: (fetchError as Error).message,
+    });
     clearTimeout(timeoutId);
     if ((fetchError as Error).name === 'AbortError') {
       const errorType = SlackErrorType.TIMEOUT;
@@ -120,6 +124,11 @@ export async function streamAgentResponse(params: {
     }
     throw fetchError;
   }
+
+  console.log('[SLACK-TRACE] streamAgentResponse fetch response', {
+    status: response.status,
+    ok: response.ok,
+  });
 
   if (!response.ok) {
     clearTimeout(timeoutId);
