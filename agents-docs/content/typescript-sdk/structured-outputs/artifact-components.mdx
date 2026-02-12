@@ -74,8 +74,8 @@ export const citation = artifactComponent({
 // ❌ WRONG: Tool returns text, schema expects structured data
 // Tool output: { result: { content: [{ text: "Weather: Sunny, 75°F" }] } }
 props: z.object({
-  temperature: z.number().describe("Current temperature"), // ❌ Cannot extract number from text
-  condition: z.string().describe("Weather condition"), // ❌ Cannot extract condition from text
+  temperature: z.number(), // ❌ Cannot extract number from text
+  condition: z.string(), // ❌ Cannot extract condition from text
 });
 
 // ✅ CORRECT: Tool returns structured data matching schema
