@@ -68,4 +68,43 @@ describe('FullAgentUpdateSchema', () => {
     const result = FullAgentUpdateSchema.safeParse(createSchema(''));
     expect(result.error).toBeUndefined();
   });
+
+  it.only('should be able remove fields', () => {
+    const result = FullAgentUpdateSchema.safeParse({
+      id: '_',
+      name: '_',
+      statusUpdates: {},
+      contextConfig: {
+        contextVariables: '',
+        headersSchema: '',
+      },
+      stopWhen: {
+        transferCountIs: null,
+      },
+      models: {
+        base: {
+          model: 'anthropic/claude-opus-4-6',
+          providerOptions: '',
+        },
+        structuredOutput: {
+          model: 'anthropic/claude-3-5-haiku-latest',
+          providerOptions: '',
+        },
+        summarizer: {
+          model: 'anthropic/claude-sonnet-4-0',
+          providerOptions: '',
+        },
+      },
+    });
+    // console.dir(result, { depth: null });
+    expect(result.success).toBe(true);
+    if (result.data) {
+      expect(result.data.stopWhen?.transferCountIs).toBe(null);
+      expect(result.data.contextConfig.contextVariables).toBe(null);
+      expect(result.data.contextConfig.headersSchema).toBe(null);
+      expect(result.data.models.base.providerOptions).toBe(null);
+      expect(result.data.models.structuredOutput.providerOptions).toBe(null);
+      expect(result.data.models.summarizer.providerOptions).toBe(null);
+    }
+  });
 });
