@@ -223,10 +223,16 @@ describe('Project Generator', () => {
       );
     });
 
-    it('should handle camelCase conversion for variable names', () => {
-      const definition = generateProjectDefinition('my-complex-project_v2', basicProjectData);
+    it.only('should handle camelCase conversion for variable names', async () => {
+      const projectId = 'my-complex-project_v2';
+      const definition = generateProjectDefinition(projectId, basicProjectData);
 
       expect(definition).toContain('export const myComplexProjectV2 = project({');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should handle multiline descriptions', () => {
