@@ -65,7 +65,7 @@ interface DefaultAgentConfig {
 
 export function AgentConfigurationCard() {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const { installedWorkspaces, actions } = useSlack();
+  const { installedWorkspaces } = useSlack();
   const { isAdmin, isLoading: isLoadingAdmin } = useIsOrgAdmin();
 
   const [agents, setAgents] = useState<SlackAgentOption[]>([]);
@@ -175,18 +175,10 @@ export function AgentConfigurationCard() {
       });
 
       installedWorkspaces.refetch();
-      actions.setNotification({
-        type: 'success',
-        message: `Default agent set to "${config.agentName}"`,
-        action: 'connected',
-      });
+      toast.success(`Default agent set to "${config.agentName}"`);
     } catch (error) {
       console.error('Failed to save default agent:', error);
-      actions.setNotification({
-        type: 'error',
-        message: 'Failed to save default agent',
-        action: 'error',
-      });
+      toast.error('Failed to save default agent', { duration: Infinity });
     } finally {
       setSavingDefault(false);
     }
@@ -222,22 +214,14 @@ export function AgentConfigurationCard() {
         )
       );
 
-      actions.setNotification({
-        type: 'success',
-        message: `#${channelName} now uses "${config.agentName}"`,
-        action: 'connected',
-      });
+      toast.success(`#${channelName} now uses "${config.agentName}"`);
     } catch (error) {
       console.error('Failed to set channel agent:', error);
       const errorMessage =
         error instanceof Error && error.message.includes('forbidden')
           ? `You can only configure channels you're a member of`
           : 'Failed to set channel agent';
-      actions.setNotification({
-        type: 'error',
-        message: errorMessage,
-        action: 'error',
-      });
+      toast.error(errorMessage, { duration: Infinity });
     } finally {
       setSavingChannel(null);
     }
@@ -257,22 +241,14 @@ export function AgentConfigurationCard() {
         )
       );
 
-      actions.setNotification({
-        type: 'success',
-        message: `#${channelName} now uses the workspace default`,
-        action: 'connected',
-      });
+      toast.success(`#${channelName} now uses the workspace default`);
     } catch (error) {
       console.error('Failed to reset channel:', error);
       const errorMessage =
         error instanceof Error && error.message.includes('forbidden')
           ? `You can only configure channels you're a member of`
           : 'Failed to reset channel to default';
-      actions.setNotification({
-        type: 'error',
-        message: errorMessage,
-        action: 'error',
-      });
+      toast.error(errorMessage, { duration: Infinity });
     } finally {
       setSavingChannel(null);
     }
@@ -331,11 +307,13 @@ export function AgentConfigurationCard() {
       toast.success(`Updated ${result.updated} channel${result.updated !== 1 ? 's' : ''}`);
 
       if (result.failed > 0) {
-        toast.error(`Failed to update ${result.failed} channel${result.failed !== 1 ? 's' : ''}`);
+        toast.error(`Failed to update ${result.failed} channel${result.failed !== 1 ? 's' : ''}`, {
+          duration: Infinity,
+        });
       }
     } catch (error) {
       console.error('Bulk update failed:', error);
-      toast.error('Failed to update channels');
+      toast.error('Failed to update channels', { duration: Infinity });
     } finally {
       setBulkSaving(false);
     }
@@ -361,7 +339,7 @@ export function AgentConfigurationCard() {
       toast.success(`Reset ${result.removed} channel${result.removed !== 1 ? 's' : ''} to default`);
     } catch (error) {
       console.error('Bulk reset failed:', error);
-      toast.error('Failed to reset channels');
+      toast.error('Failed to reset channels', { duration: Infinity });
     } finally {
       setBulkSaving(false);
     }

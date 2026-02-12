@@ -79,7 +79,7 @@ export function LinkedUsersSection() {
       );
     } catch (err) {
       console.error('Failed to unlink user:', err);
-      toast.error('Failed to unlink user. Please try again.');
+      toast.error('Failed to unlink user. Please try again.', { duration: Infinity });
     } finally {
       setUserToUnlink(null);
     }
@@ -102,7 +102,7 @@ export function LinkedUsersSection() {
       toast.success('Exported linked users to CSV');
     } catch (err) {
       console.error('Failed to export users:', err);
-      toast.error('Failed to export users');
+      toast.error('Failed to export users', { duration: Infinity });
     }
   };
 
