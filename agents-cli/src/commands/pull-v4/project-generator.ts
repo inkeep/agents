@@ -34,7 +34,7 @@ const ProjectSchema = z.looseObject({
     summarizer: z.looseObject({}).optional(),
   }),
   stopWhen: z
-    .object({
+    .strictObject({
       transferCountIs: z.int().optional(),
       stepCountIs: z.int().optional(),
     })
