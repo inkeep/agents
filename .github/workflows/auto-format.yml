@@ -3,22 +3,29 @@ name: Auto Format
 on:
   pull_request:
     branches: ["*"]
+  push:
+    branches:
+      - main
+      - master
 
 permissions:
   contents: write
 
 jobs:
   auto-format:
-    # Don't run on PRs from forks — we can't push back to those branches
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # On PRs: skip forks (can't push back). On push to main: always run.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout code
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.head_ref }}
-          # Use the default GITHUB_TOKEN — has write access for same-repo PRs
+          # On PRs, check out the PR branch so we push back to it.
+          # On push, check out the default ref (main).
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
