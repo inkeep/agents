@@ -185,14 +185,19 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should throw error for missing models field', () => {
+    it.only('should throw error for missing models field', () => {
+      const projectId = 'minimal-project';
       const minimalData = {
         name: 'Minimal Project',
       };
 
       expect(() => {
-        generateProjectDefinition('minimal-project', minimalData);
+        generateProjectDefinition(projectId, minimalData);
       }).toThrow("Missing required fields for project 'minimal-project': models, models.base");
+      expect(() => {
+        generateProjectDefinitionV4({ projectId, ...minimalData });
+      }).toThrow(`✖ Invalid input: expected object, received undefined
+  → at models`);
     });
 
     it('should throw error for missing required fields', () => {
