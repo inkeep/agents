@@ -572,6 +572,109 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(404);
     });
+
+    it('should reject update that sets both cronExpression and runAt', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-both-schedule');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestScheduledTrigger({
+        tenantId,
+        projectId,
+        agentId,
+        cronExpression: '0 * * * *',
+      });
+
+      const updateData = {
+        runAt: new Date(Date.now() + 60000).toISOString(),
+      };
+
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('Cannot have both cronExpression and runAt');
+    });
+
+    it('should reject update that clears both cronExpression and runAt', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-clear-both');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestScheduledTrigger({
+        tenantId,
+        projectId,
+        agentId,
+        cronExpression: '0 * * * *',
+      });
+
+      const updateData = {
+        cronExpression: null,
+      };
+
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('Either cronExpression or runAt must be provided');
+    });
+
+    it('should allow switching from cron to one-time trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-cron-to-runat');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestScheduledTrigger({
+        tenantId,
+        projectId,
+        agentId,
+        cronExpression: '0 * * * *',
+      });
+
+      const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const updateData = {
+        cronExpression: null,
+        runAt: futureDate,
+      };
+
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.cronExpression).toBeNull();
+      expect(body.data.runAt).toBeDefined();
+    });
+
+    it('should allow switching from one-time to cron trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('sched-update-runat-to-cron');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { trigger } = await createTestScheduledTrigger({
+        tenantId,
+        projectId,
+        agentId,
+        cronExpression: null,
+        runAt: futureDate,
+      });
+
+      const updateData = {
+        runAt: null,
+        cronExpression: '0 * * * *',
+      };
+
+      const res = await makeRequest(`${basePath(tenantId, projectId, agentId)}/${trigger.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.cronExpression).toBe('0 * * * *');
+      expect(body.data.runAt).toBeNull();
+    });
   });
 
   describe('DELETE /{id}', () => {

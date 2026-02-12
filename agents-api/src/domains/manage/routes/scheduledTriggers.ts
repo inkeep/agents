@@ -438,6 +438,29 @@ app.openapi(
       });
     }
 
+    // Validate merged state for schedule fields to prevent database corruption
+    const merged = {
+      cronExpression:
+        body.cronExpression !== undefined ? body.cronExpression : existing.cronExpression,
+      runAt: body.runAt !== undefined ? body.runAt : existing.runAt,
+    };
+
+    // Check mutual exclusivity: cannot have both cronExpression AND runAt
+    if (merged.cronExpression && merged.runAt) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Cannot have both cronExpression and runAt. Please provide only one.',
+      });
+    }
+
+    // Check at least one is present: must have either cronExpression OR runAt
+    if (!merged.cronExpression && !merged.runAt) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Either cronExpression or runAt must be provided.',
+      });
+    }
+
     // Determine if schedule changed (affects workflow timing)
     const scheduleChanged =
       body.cronExpression !== undefined ||

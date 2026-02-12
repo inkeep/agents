@@ -1,52 +1,10 @@
 ---
 title: Scheduled Triggers
-sidebarTitle: Scheduled Triggers
 description: Run your Agents on a schedule using cron expressions or one-time execution
 icon: LuClock
 ---
 
-Scheduled triggers let you run agents automatically on a recurring schedule (cron) or at a specific future time (one-time). Unlike [webhook triggers](/talk-to-your-agents/triggers) that respond to external events, scheduled triggers are driven by time — daily reports, hourly health checks, periodic data syncs, or deferred tasks.
-
-## How Scheduled Triggers Work
-
-```mermaid
-sequenceDiagram
-    participant Scheduler as Scheduler Worker
-    participant DB as Database
-    participant Agent as Your Agent
-
-    Scheduler->>DB: Poll for due triggers
-    DB-->>Scheduler: Pending invocations
-    Scheduler->>DB: Claim invocation (advisory lock)
-    Scheduler->>DB: Set status = running
-    Scheduler->>Agent: Execute with message + payload
-    Agent->>Agent: Process message
-    alt Success
-        Scheduler->>DB: Set status = completed
-    else Failure (retries remaining)
-        Scheduler->>DB: Set status = running, increment attempt
-        Scheduler->>Agent: Retry execution
-    else Failure (retries exhausted)
-        Scheduler->>DB: Set status = failed
-    end
-```
-
-1. **You define a schedule** — a cron expression for recurring runs, or a timestamp for one-time execution
-2. **The scheduler creates invocations** when the scheduled time arrives
-3. **Each invocation is claimed and executed** with exactly-once semantics via advisory locks
-4. **The agent processes the message** built from your template and payload
-5. **Retries are automatic** — failed executions retry up to your configured limit
-
-## When to Use Scheduled Triggers
-
-| Use Case | Schedule | Example |
-| --- | --- | --- |
-| **Daily reports** | Cron | `0 9 * * MON-FRI` — Weekdays at 9 AM |
-| **Health checks** | Cron | `0 * * * *` — Every hour |
-| **Data syncs** | Cron | `*/15 * * * *` — Every 15 minutes |
-| **Cleanup tasks** | Cron | `0 2 * * SUN` — Sundays at 2 AM |
-| **Deferred execution** | One-time | Run at a specific future timestamp |
-| **Migration tasks** | One-time | Execute once at a scheduled time |
+Scheduled triggers let you run agents automatically on a recurring schedule (cron) or at a specific future time (one-time). Scheduled triggers are driven by time and can be used for daily reports, hourly health checks, periodic data syncs, or deferred tasks.
 
 ## Schedule Types
 
@@ -73,36 +31,9 @@ Cron triggers use standard 5-field cron syntax to define recurring schedules:
 | `*/15 * * * *` | Every 15 minutes |
 | `0 */2 * * *` | Every 2 hours |
 | `0 0 1 * *` | First day of every month at midnight |
-| `30 14 * * WED` | Wednesdays at 2:30 PM |
 
-#### Timezone Support
 
-Cron expressions are evaluated in the timezone you specify via `cronTimezone`. This defaults to `UTC` and accepts any valid [IANA timezone identifier](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones):
 
-```typescript
-const dailyReport = scheduledTrigger({
-  name: 'Daily Report',
-  cronExpression: '0 9 * * MON-FRI',
-  cronTimezone: 'America/New_York', // 9 AM Eastern
-  messageTemplate: 'Generate the daily report',
-});
-```
-
-### One-Time Execution
-
-One-time triggers run at a specific ISO 8601 timestamp and are automatically disabled after execution:
-
-```typescript
-const migrationTask = scheduledTrigger({
-  name: 'Year-End Migration',
-  runAt: '2025-12-31T23:59:59Z',
-  messageTemplate: 'Run the end-of-year data migration',
-});
-```
-
-<Note>
-You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.
-</Note>
 
 ## Trigger Configuration
 
@@ -119,6 +50,10 @@ You must specify either `cronExpression` or `runAt`, but not both. The system va
 | `maxRetries` | `number` | No | `1` | Max retry attempts on failure (0–10) |
 | `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
 | `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
+
+<Note>
+You must specify either `cronExpression` or `runAt`, but not both. The system validates this at creation time.
+</Note>
 
 ### Message Templates
 
@@ -217,7 +152,7 @@ POST /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-
 ```
 
 <Note>
-Completed and failed invocations cannot be cancelled. Already-cancelled invocations return success without changes.
+Completed and failed invocations cannot be cancelled.
 </Note>
 
 ### View Upcoming Runs
@@ -227,15 +162,6 @@ See all pending and running invocations across all scheduled triggers for an age
 ```bash
 GET /manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/upcoming-runs
 ```
-
-## Execution Guarantees
-
-Scheduled triggers are designed for reliability:
-
-- **Exactly-once execution** — Postgres advisory locks prevent duplicate execution across multiple workers
-- **Automatic failover** — If a worker crashes, another worker picks up the pending invocations
-- **Idempotency keys** — Each invocation has a unique key to prevent duplicate processing
-- **Durable scheduling** — Schedules are stored in the database, not in memory
 
 ## Next Steps
 

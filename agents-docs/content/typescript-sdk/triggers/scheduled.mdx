@@ -110,6 +110,23 @@ const dataMigration = scheduledTrigger({
   retryDelaySeconds: 300,
   timeoutSeconds: 780,
 });
+
+const reportGenerator = subAgent({
+  id: "report-generator",
+  name: "Report Generator",
+  prompt: "You generate reports and summaries based on system activity.",
+});
+
+export default agent({
+  id: "automation-agent",
+  name: "Automation Agent",
+  defaultSubAgent: reportGenerator,
+  scheduledTriggers: () => [
+    dailySummary,
+    hourlyHealthCheck,
+    dataMigration,
+  ],
+});
 ```
 
 <Note>
@@ -118,9 +135,7 @@ Scheduled triggers are managed separately from webhook triggers via dedicated AP
 
 ## Best Practices
 
-1. **Use specific cron expressions** - Avoid running too frequently; match the schedule to actual need
-2. **Set appropriate timeouts** - Ensure `timeoutSeconds` is long enough for the agent to complete
-3. **Configure retries for critical tasks** - Use `maxRetries` for important scheduled jobs
-4. **Use `cronTimezone` for local schedules** - Avoid manually converting to UTC for recurring schedules
-5. **Monitor invocations** - Check the invocation history for failed runs
-6. **Use one-time triggers for deferred work** - Prefer `runAt` over cron for tasks that should execute exactly once
+1. **Set appropriate timeouts** - Ensure `timeoutSeconds` is long enough for the agent to complete
+2. **Configure retries for critical tasks** - Use `maxRetries` for important scheduled jobs
+3. **Monitor invocations** - Check the invocation history for failed runs
+4. **Use one-time triggers for deferred work** - Prefer `runAt` over cron for tasks that should execute exactly once
