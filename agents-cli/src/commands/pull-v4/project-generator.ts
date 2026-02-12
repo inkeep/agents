@@ -3,20 +3,51 @@ import type { CodeBlockWriter } from 'ts-morph';
 import { IndentationText, NewLineKind, Project, QuoteKind } from 'ts-morph';
 import { z } from 'zod';
 
-type ProjectDefinitionData = Omit<ProjectConfig, 'id'> & {
+type ProjectDefinitionData = Omit<
+  ProjectConfig,
+  | 'id'
+  | 'agents'
+  | 'tools'
+  | 'externalAgents'
+  | 'dataComponents'
+  | 'artifactComponents'
+  | 'credentialReferences'
+> & {
   projectId: string;
   agents?: string[];
+  tools?: string[];
+  externalAgents?: string[];
+  dataComponents?: string[];
+  artifactComponents?: string[];
+  credentialReferences?: string[];
 };
 
 const ProjectSchema = z.looseObject({
   projectId: z.string().nonempty(),
   name: z.string().nonempty(),
+  description: z.string().optional(),
   models: z.looseObject({
     base: z.looseObject({
       model: z.string().nonempty(),
     }),
+    structuredOutput: z.looseObject({}).optional(),
+    summarizer: z.looseObject({}).optional(),
   }),
+  stopWhen: z
+    .object({
+      transferCountIs: z.number().optional(),
+      stepCountIs: z.number().optional(),
+    })
+    .optional(),
+  agents: z.array(z.string()).optional(),
+  tools: z.array(z.string()).optional(),
+  externalAgents: z.array(z.string()).optional(),
+  dataComponents: z.array(z.string()).optional(),
+  artifactComponents: z.array(z.string()).optional(),
+  credentialReferences: z.array(z.string()).optional(),
 });
+
+type SectionWriter = (writer: CodeBlockWriter, hasTrailingComma: boolean) => void;
 
 export function generateProjectDefinition(data: ProjectDefinitionData): string {
   const result = ProjectSchema.safeParse(data);
@@ -47,31 +78,91 @@ export function generateProjectDefinition(data: ProjectDefinitionData): string {
 function writeProjectDefinition(
   writer: CodeBlockWriter,
   projectVarName: string,
-  { agents, projectId, description, models, name }: ProjectDefinitionData
+  {
+    agents,
+    artifactComponents,
+    credentialReferences,
+    dataComponents,
+    description,
+    externalAgents,
+    models,
+    name,
+    projectId,
+    stopWhen,
+    tools,
+  }: ProjectDefinitionData
 ) {
-  const hasAgents = Boolean(agents?.length);
+  const sections: SectionWriter[] = [];
+
+  sections.push((lineWriter, hasTrailingComma) => {
+    lineWriter.writeLine(`id: ${toLiteral(projectId)}${hasTrailingComma ? ',' : ''}`);
+  });
+  sections.push((lineWriter, hasTrailingComma) => {
+    lineWriter.writeLine(`name: ${toLiteral(name ?? '')}${hasTrailingComma ? ',' : ''}`);
+  });
+
+  if (description) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      lineWriter.writeLine(`description: ${toLiteral(description)}${hasTrailingComma ? ',' : ''}`);
+    });
+  }
+
+  sections.push((lineWriter, hasTrailingComma) => {
+    writeModels(lineWriter, models, hasTrailingComma);
+  });
+
+  if (hasStopWhen(stopWhen)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeStopWhen(lineWriter, stopWhen, hasTrailingComma);
+    });
+  }
+
+  if (hasReferences(agents)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeReferenceSection(lineWriter, 'agents', agents, hasTrailingComma);
+    });
+  }
+
+  if (hasReferences(tools)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeReferenceSection(lineWriter, 'tools', tools, hasTrailingComma);
+    });
+  }
+
+  if (hasReferences(externalAgents)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeReferenceSection(lineWriter, 'externalAgents', externalAgents, hasTrailingComma);
+    });
+  }
+
+  if (hasReferences(dataComponents)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeReferenceSection(lineWriter, 'dataComponents', dataComponents, hasTrailingComma);
+    });
+  }
+
+  if (hasReferences(artifactComponents)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeReferenceSection(lineWriter, 'artifactComponents', artifactComponents, hasTrailingComma);
+    });
+  }
+
+  if (hasReferences(credentialReferences)) {
+    sections.push((lineWriter, hasTrailingComma) => {
+      writeReferenceSection(
+        lineWriter,
+        'credentialReferences',
+        credentialReferences,
+        hasTrailingComma
+      );
+    });
+  }
 
   writer.writeLine(`export const ${projectVarName} = project({`);
   writer.indent(() => {
-    writer.writeLine(`id: ${toLiteral(projectId)},`);
-    writer.writeLine(`name: ${toLiteral(name ?? '')},`);
-
-    if (description) {
-      writer.writeLine(`description: ${toLiteral(description)},`);
-    }
-
-    writeModels(writer, models, hasAgents);
-
-    if (hasAgents) {
-      writer.writeLine('agents: () => [');
-      writer.indent(() => {
-        agents?.forEach((agentId, index) => {
-          const isLast = index === (agents?.length ?? 0) - 1;
-          writer.writeLine(`${agentId}${isLast ? '' : ','}`);
-        });
-      });
-      writer.writeLine(']');
-    }
+    sections.forEach((section, index) => {
+      section(writer, index < sections.length - 1);
+    });
   });
   writer.write('});');
 }
@@ -97,6 +188,49 @@ function writeModels(
     });
   });
   writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
+}
+
+function writeStopWhen(
+  writer: CodeBlockWriter,
+  stopWhen: NonNullable<ProjectDefinitionData['stopWhen']>,
+  hasTrailingComma: boolean
+) {
+  writer.writeLine('stopWhen: {');
+  writer.indent(() => {
+    const entries: Array<[string, number]> = [];
+    if (stopWhen.transferCountIs !== undefined) {
+      entries.push(['transferCountIs', stopWhen.transferCountIs]);
+    }
+    if (stopWhen.stepCountIs !== undefined) {
+      entries.push(['stepCountIs', stopWhen.stepCountIs]);
+    }
+    entries.forEach(([key, value], index) => {
+      const isLast = index === entries.length - 1;
+      writer.writeLine(`${key}: ${value}${isLast ? '' : ','}`);
+    });
+  });
+  writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
+}
+
+function writeReferenceSection(
+  writer: CodeBlockWriter,
+  key: string,
+  refs: string[],
+  hasTrailingComma: boolean
+) {
+  if (refs.length === 1) {
+    writer.writeLine(`${key}: () => [${refs[0]}]${hasTrailingComma ? ',' : ''}`);
+    return;
+  }
+
+  writer.writeLine(`${key}: () => [`);
+  writer.indent(() => {
+    refs.forEach((item, index) => {
+      const isLast = index === refs.length - 1;
+      writer.writeLine(`${item}${isLast ? '' : ','}`);
+    });
+  });
+  writer.writeLine(`]${hasTrailingComma ? ',' : ''}`);
 }
 
 function toLiteral(value: unknown): string {
@@ -142,4 +276,17 @@ function toCamelCase(input: string): string {
     first.toLowerCase() +
     rest.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join('')
   );
+}
+
+function hasStopWhen(
+  stopWhen: ProjectDefinitionData['stopWhen']
+): stopWhen is NonNullable<ProjectDefinitionData['stopWhen']> {
+  if (!stopWhen) {
+    return false;
+  }
+  return stopWhen.transferCountIs !== undefined || stopWhen.stepCountIs !== undefined;
+}
+
+function hasReferences(references: string[] | undefined): references is string[] {
+  return Array.isArray(references) && references.length > 0;
 }
