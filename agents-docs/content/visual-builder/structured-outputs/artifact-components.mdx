@@ -44,11 +44,10 @@ To visually add the artifact component to the Agent, see the [Sub Agents](/visua
 {
   "type": "object",
   "properties": {
-    "temperature": { "type": "number", "description": "Current temperature" },
-    "condition": { "type": "string", "description": "Weather condition" }
+    "temperature": { "type": "number" },
+    "condition": { "type": "string" }
   }
 }
-// Note: Even with descriptions, this is wrong because the tool output doesn't match
 
 // ✅ CORRECT: Tool returns structured data matching schema
 // Tool output: { "result": { "temperature": 75, "condition": "Sunny" } }
