@@ -35,8 +35,8 @@ const ProjectSchema = z.looseObject({
   }),
   stopWhen: z
     .object({
-      transferCountIs: z.number().optional(),
-      stepCountIs: z.number().optional(),
+      transferCountIs: z.int().optional(),
+      stepCountIs: z.int().optional(),
     })
     .optional(),
   agents: z.array(z.string()).optional(),
@@ -160,9 +160,9 @@ function writeProjectDefinition(
 
   writer.writeLine(`export const ${projectVarName} = project({`);
   writer.indent(() => {
-    sections.forEach((section, index) => {
+    for (const [index, section] of sections.entries()) {
       section(writer, index < sections.length - 1);
-    });
+    }
   });
   writer.write('});');
 }
@@ -182,10 +182,10 @@ function writeModels(
 
     const definedEntries = orderedEntries.filter(([, value]) => value != null);
 
-    definedEntries.forEach(([key, value], index) => {
+    for (const [index, [key, value]] of definedEntries.entries()) {
       const isLast = index === definedEntries.length - 1;
       writer.writeLine(`${key}: ${toLiteral(value)}${isLast ? '' : ','}`);
-    });
+    }
   });
   writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
 }
@@ -204,10 +204,10 @@ function writeStopWhen(
     if (stopWhen.stepCountIs !== undefined) {
       entries.push(['stepCountIs', stopWhen.stepCountIs]);
     }
-    entries.forEach(([key, value], index) => {
+    for (const [index, [key, value]] of entries.entries()) {
       const isLast = index === entries.length - 1;
       writer.writeLine(`${key}: ${value}${isLast ? '' : ','}`);
-    });
+    }
   });
   writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
 }
@@ -225,10 +225,10 @@ function writeReferenceSection(
 
   writer.writeLine(`${key}: () => [`);
   writer.indent(() => {
-    refs.forEach((item, index) => {
+    for (const [index, item] of refs.entries()) {
       const isLast = index === refs.length - 1;
       writer.writeLine(`${item}${isLast ? '' : ','}`);
-    });
+    }
   });
   writer.writeLine(`]${hasTrailingComma ? ',' : ''}`);
 }
@@ -287,6 +287,6 @@ function hasStopWhen(
   return stopWhen.transferCountIs !== undefined || stopWhen.stepCountIs !== undefined;
 }
 
-function hasReferences(references: string[] | undefined): references is string[] {
+function hasReferences(references?: string[]): references is string[] {
   return Array.isArray(references) && references.length > 0;
 }
