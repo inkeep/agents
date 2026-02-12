@@ -83,9 +83,10 @@ export const requireWorkspaceAdmin = <
       return;
     }
 
-    // Resolve tenant context from teamId for session-based users
+    // Resolve tenant context from teamId if tenantId or tenantRole is missing
+    // workAppsAuth sets tenantId from session but not tenantRole — we need both
     const teamId = c.req.param('teamId') || c.req.param('workspaceId');
-    if (teamId && !c.get('tenantId')) {
+    if (teamId && !c.get('tenantRole')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }
 
@@ -101,6 +102,10 @@ export const requireWorkspaceAdmin = <
     }
 
     if (!isOrgAdmin(tenantRole)) {
+      logger.warn(
+        { userId, tenantId, tenantRole, path: c.req.path },
+        'User does not have admin role for workspace operation'
+      );
       throw createApiError({
         code: 'forbidden',
         message: 'Only organization administrators can modify workspace settings',
@@ -147,9 +152,10 @@ export const requireChannelMemberOrAdmin = <
       return;
     }
 
-    // Resolve tenant context from teamId for session-based users
+    // Resolve tenant context from teamId if tenantRole is missing
+    // workAppsAuth sets tenantId from session but not tenantRole — we need both
     const teamId = c.req.param('teamId');
-    if (teamId && !c.get('tenantId')) {
+    if (teamId && !c.get('tenantRole')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }
 
