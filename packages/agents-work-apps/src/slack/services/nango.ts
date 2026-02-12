@@ -88,7 +88,7 @@ export function getSlackNango(): Nango {
   if (!secretKey) {
     throw new Error('NANGO_SLACK_SECRET_KEY or NANGO_SECRET_KEY is required for Slack integration');
   }
-  return new Nango({ secretKey });
+  return new Nango({ secretKey, host: env.NANGO_SERVER_URL });
 }
 
 export function getSlackIntegrationId(): string {
