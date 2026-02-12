@@ -88,7 +88,7 @@ export function getSlackNango(): Nango {
   if (!secretKey) {
     throw new Error('NANGO_SLACK_SECRET_KEY or NANGO_SECRET_KEY is required for Slack integration');
   }
-  return new Nango({ secretKey });
+  return new Nango({ secretKey, host: env.NANGO_SERVER_URL });
 }
 
 export function getSlackIntegrationId(): string {
@@ -239,7 +239,8 @@ async function getWorkspaceDefaultAgentFromNangoByConnectionId(
       }
     }
     return null;
-  } catch {
+  } catch (error) {
+    logger.warn({ error }, 'Failed to get workspace default agent from Nango');
     return null;
   }
 }
@@ -282,7 +283,7 @@ async function findWorkspaceConnectionByTeamIdFromNango(
               teamId,
               teamName: metadata?.slack_team_name,
               botToken: credentials.credentials.access_token,
-              tenantId: metadata?.tenant_id || 'default',
+              tenantId: metadata?.tenant_id || metadata?.inkeep_tenant_id || '',
               defaultAgent,
             };
 
@@ -294,8 +295,11 @@ async function findWorkspaceConnectionByTeamIdFromNango(
 
             return connection;
           }
-        } catch {
-          // Continue to next connection
+        } catch (error) {
+          logger.warn(
+            { error, connectionId: conn.connection_id },
+            'Failed to get Nango connection details'
+          );
         }
       }
     }
@@ -470,7 +474,7 @@ export async function storeWorkspaceInstallation(
         last_updated_at: now,
         installation_source: data.installationSource || 'dashboard',
 
-        inkeep_tenant_id: data.tenantId || 'default',
+        inkeep_tenant_id: data.tenantId || '',
         status: 'active',
       },
       connection_config: {
@@ -570,12 +574,15 @@ export async function listWorkspaceInstallations(): Promise<SlackWorkspaceConnec
               teamId: metadata.slack_team_id || '',
               teamName: metadata.slack_team_name,
               botToken: credentials.credentials.access_token,
-              tenantId: metadata.tenant_id || 'default',
+              tenantId: metadata.tenant_id || metadata.inkeep_tenant_id || '',
               defaultAgent,
             });
           }
-        } catch {
-          // Continue to next connection
+        } catch (error) {
+          logger.warn(
+            { error, connectionId: conn.connection_id },
+            'Failed to get Nango connection during list'
+          );
         }
       }
     }

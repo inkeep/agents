@@ -1,3 +1,4 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { subAgent } from '../../builderFunctions';
 import type { SubAgentConfig } from '../../types';
@@ -50,6 +51,7 @@ describe('agent builder function', () => {
       id: 'test-component',
       name: 'Test Component',
       description: 'A test data component',
+      props: undefined as unknown as JsonSchemaForLlmSchemaType,
     };
 
     const config: SubAgentConfig = {

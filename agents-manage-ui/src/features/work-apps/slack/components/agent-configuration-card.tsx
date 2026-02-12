@@ -762,6 +762,7 @@ export function AgentConfigurationCard() {
                       <Checkbox
                         checked={selectedChannels.has(channel.id)}
                         onCheckedChange={() => handleToggleChannel(channel.id)}
+                        aria-label={`Select ${channel.name}`}
                         className="shrink-0"
                       />
                       {channel.isPrivate ? (

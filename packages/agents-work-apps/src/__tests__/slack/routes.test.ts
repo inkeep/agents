@@ -8,8 +8,9 @@
  * - Channel configuration
  */
 
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import app from '../../slack/routes/index';
+import slackRoutes from '../../slack/routes/index';
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -51,6 +52,21 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
+vi.mock('../../slack/services/security', () => ({
+  verifySlackRequest: vi.fn(() => true),
+  parseSlackCommandBody: vi.fn(() => ({})),
+  parseSlackEventBody: vi.fn((body: string) => JSON.parse(body)),
+}));
+
+vi.mock('../../env', () => ({
+  env: {
+    SLACK_SIGNING_SECRET: 'test-signing-secret',
+    NANGO_SECRET_KEY: 'test-nango-key',
+    NANGO_SLACK_SECRET_KEY: 'test-nango-slack-key',
+    ENVIRONMENT: 'test',
+  },
+}));
+
 vi.mock('../../slack/services/nango', () => ({
   getSlackNango: vi.fn(() => ({
     listConnections: vi.fn(async () => ({ connections: [] })),
@@ -66,9 +82,24 @@ vi.mock('../../slack/services/nango', () => ({
   computeWorkspaceConnectionId: vi.fn(() => 'E:E123:T:T123'),
 }));
 
+function createTestApp(contextOverrides: Record<string, unknown> = {}) {
+  const testApp = new OpenAPIHono();
+  testApp.use('*', async (c, next) => {
+    for (const [key, value] of Object.entries(contextOverrides)) {
+      c.set(key as never, value as never);
+    }
+    await next();
+  });
+  testApp.route('/', slackRoutes);
+  return testApp;
+}
+
 describe('Slack Work App Routes', () => {
+  let app: ReturnType<typeof createTestApp>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    app = createTestApp();
   });
 
   describe('POST /events - url_verification', () => {
@@ -176,6 +207,113 @@ describe('Slack Work App Routes', () => {
       expect(response.status).toBe(400);
       const json = await response.json();
       expect(json.error).toBeDefined();
+    });
+
+    const validLinkPayload = {
+      iss: 'inkeep-auth' as const,
+      aud: 'slack-link' as const,
+      sub: 'slack:T123:U123',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 600,
+      tokenUse: 'slackLinkCode' as const,
+      tenantId: 'default',
+      slack: { teamId: 'T123', userId: 'U123', enterpriseId: '', username: 'testuser' },
+    };
+
+    it('should reject non-session users with 403', async () => {
+      const { verifySlackLinkToken } = await import('@inkeep/agents-core');
+      vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
+        valid: true,
+        payload: validLinkPayload,
+      });
+
+      const response = await app.request('/users/link/verify-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: 'valid.jwt.token',
+          userId: 'user_123',
+        }),
+      });
+
+      expect(response.status).toBe(403);
+      const json = await response.json();
+      expect(json.error).toBe('Session authentication required for account linking');
+    });
+
+    it('should reject API key users with 403', async () => {
+      const authedApp = createTestApp({ userId: 'apikey:key_123' });
+      const { verifySlackLinkToken } = await import('@inkeep/agents-core');
+      vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
+        valid: true,
+        payload: validLinkPayload,
+      });
+
+      const response = await authedApp.request('/users/link/verify-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: 'valid.jwt.token',
+          userId: 'user_123',
+        }),
+      });
+
+      expect(response.status).toBe(403);
+      const json = await response.json();
+      expect(json.error).toBe('Session authentication required for account linking');
+    });
+
+    it('should reject system token users with 403', async () => {
+      const authedApp = createTestApp({ userId: 'system' });
+      const { verifySlackLinkToken } = await import('@inkeep/agents-core');
+      vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
+        valid: true,
+        payload: validLinkPayload,
+      });
+
+      const response = await authedApp.request('/users/link/verify-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: 'valid.jwt.token',
+          userId: 'user_123',
+        }),
+      });
+
+      expect(response.status).toBe(403);
+      const json = await response.json();
+      expect(json.error).toBe('Session authentication required for account linking');
+    });
+
+    it('should allow session-authenticated users to link accounts', async () => {
+      const authedApp = createTestApp({ userId: 'user_123' });
+      const { verifySlackLinkToken } = await import('@inkeep/agents-core');
+      vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
+        valid: true,
+        payload: validLinkPayload,
+      });
+
+      const response = await authedApp.request('/users/link/verify-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: 'valid.jwt.token',
+          userId: 'user_123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.linkId).toBeDefined();
     });
   });
 

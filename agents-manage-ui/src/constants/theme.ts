@@ -43,4 +43,5 @@ export const STATIC_LABELS = Object.freeze({
   slack: 'Slack',
   github: 'GitHub',
   'no-organization-found': 'No organization found',
+  skills: 'Skills',
 });

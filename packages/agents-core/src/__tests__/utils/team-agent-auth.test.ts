@@ -8,6 +8,12 @@ import {
   verifyServiceToken,
 } from '../../utils/service-token-auth';
 
+vi.mock('../../env', () => ({
+  env: {
+    ENVIRONMENT: 'test',
+  },
+}));
+
 describe('Team Agent Authentication', () => {
   const mockParams = {
     tenantId: 'tenant_123',

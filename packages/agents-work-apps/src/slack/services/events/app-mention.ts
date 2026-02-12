@@ -64,15 +64,30 @@ export async function handleAppMention(params: {
 
   // Step 1: Single workspace connection lookup (cached, includes bot token + default agent)
   const workspaceConnection = await findWorkspaceConnectionByTeamId(teamId);
-  const tenantId = workspaceConnection?.tenantId || 'default';
-  const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
   const botToken =
     workspaceConnection?.botToken || getBotTokenForTeam(teamId) || env.SLACK_BOT_TOKEN;
   if (!botToken) {
-    logger.error({ teamId }, 'No bot token available');
+    logger.error({ teamId }, 'No bot token available — cannot respond to @mention');
     return;
   }
+
+  const tenantId = workspaceConnection?.tenantId;
+  if (!tenantId) {
+    logger.error({ teamId }, 'Workspace connection has no tenantId — workspace may need reinstall');
+    const slackClient = getSlackClient(botToken);
+    await slackClient.chat
+      .postEphemeral({
+        channel,
+        user: slackUserId,
+        text: '⚠️ This workspace is not properly configured. Please reinstall the Slack app from the Inkeep dashboard.',
+      })
+      .catch((e) =>
+        logger.warn({ error: e, channel }, 'Failed to send ephemeral workspace config error')
+      );
+    return;
+  }
+  const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
   const slackClient = getSlackClient(botToken);
   const replyThreadTs = threadTs || messageTs;

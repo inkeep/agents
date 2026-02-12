@@ -12,6 +12,7 @@ import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchProject } from '@/lib/api/projects';
+import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { getTrigger } from '@/lib/api/triggers';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
@@ -105,6 +106,10 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       const trigger = await getTrigger(tenantId, projectId, slug[3], id);
       return trigger.name;
     },
+    async skills(id) {
+      const result = await fetchSkill(tenantId, projectId, id);
+      return result.name;
+    },
   };
 
   function addCrumb({ segment, label }: { segment: string; label: string }) {
@@ -117,6 +122,7 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       `/${tenantId}/projects/${projectId}/evaluations/run-configs`,
       `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
       `/${tenantId}/projects/${projectId}/agents/${slug[3]}/triggers/${slug[5]}`,
+      ...(slug[3] === 'new' ? [] : [`/${tenantId}/projects/${projectId}/skills/${slug[3]}`]),
     ]);
 
     if (!routesWithoutBreadcrumbs.has(href)) {

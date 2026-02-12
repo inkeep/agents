@@ -331,7 +331,8 @@ export async function resolveChannelAgentConfig(
   channelId: string,
   workspace: SlackWorkspaceConnection | null
 ): Promise<DefaultAgentConfig | null> {
-  const tenantId = workspace?.tenantId || 'default';
+  const tenantId = workspace?.tenantId;
+  if (!tenantId) return null;
 
   const channelConfig = await findWorkAppSlackChannelAgentConfig(runDbClient)(
     tenantId,

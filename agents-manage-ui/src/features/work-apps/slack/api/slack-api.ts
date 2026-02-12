@@ -17,8 +17,12 @@ interface DefaultAgentConfig {
 }
 
 export const slackApi = {
-  getInstallUrl(): string {
-    return `${getApiUrl()}/work-apps/slack/install`;
+  getInstallUrl(tenantId?: string): string {
+    const url = `${getApiUrl()}/work-apps/slack/install`;
+    if (tenantId) {
+      return `${url}?tenant_id=${encodeURIComponent(tenantId)}`;
+    }
+    return url;
   },
 
   async listWorkspaceInstallations(): Promise<{
@@ -95,6 +99,7 @@ export const slackApi = {
     const response = await fetch(`${getApiUrl()}/work-apps/slack/users/link/verify-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(params),
     });
     const data = await response.json();

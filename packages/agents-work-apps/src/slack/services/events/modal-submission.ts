@@ -76,7 +76,9 @@ export async function handleModalSubmission(view: {
         await sendResponseUrlMessage(metadata.buttonResponseUrl, {
           text: 'Something went wrong — agent or project could not be determined. Please try again.',
           response_type: 'ephemeral',
-        }).catch(() => {});
+        }).catch((e) =>
+          logger.warn({ error: e }, 'Failed to send agent/project error notification')
+        );
       }
       return;
     }
@@ -95,7 +97,9 @@ export async function handleModalSubmission(view: {
         await sendResponseUrlMessage(metadata.buttonResponseUrl, {
           text: 'The Slack workspace connection could not be found. Please try again or contact your admin.',
           response_type: 'ephemeral',
-        }).catch(() => {});
+        }).catch((e) =>
+          logger.warn({ error: e }, 'Failed to send workspace connection error notification')
+        );
       }
       return;
     }
@@ -131,7 +135,7 @@ export async function handleModalSubmission(view: {
           user: metadata.slackUserId,
           text: 'Please provide a question or prompt to send to the agent.',
         })
-        .catch(() => {});
+        .catch((e) => logger.warn({ error: e }, 'Failed to send empty question feedback'));
       return;
     }
 
@@ -393,6 +397,7 @@ async function callAgentApi(params: {
   } catch (error) {
     clearTimeout(timeout);
     if ((error as Error).name === 'AbortError') {
+      logger.warn({ timeoutMs: 30000 }, 'Agent API call timed out');
       return { text: 'Request timed out. Please try again.', isError: true };
     }
     throw error;

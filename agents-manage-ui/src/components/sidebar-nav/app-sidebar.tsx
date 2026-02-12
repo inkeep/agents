@@ -11,6 +11,7 @@ import {
   Library,
   LifeBuoy,
   Lock,
+  LucideHexagon,
   Plug,
   Settings,
   Users,
@@ -99,6 +100,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.agents,
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: STATIC_LABELS.skills,
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
         },
         {
           title: STATIC_LABELS['api-keys'],

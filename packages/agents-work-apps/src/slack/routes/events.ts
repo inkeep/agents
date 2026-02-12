@@ -106,11 +106,7 @@ app.post('/events', async (c) => {
 
   const eventType = eventBody.type as string | undefined;
 
-  if (eventType === 'url_verification') {
-    logger.info({}, 'Responding to Slack URL verification challenge');
-    return c.text(String(eventBody.challenge));
-  }
-
+  // Verify signature on ALL Slack requests, including url_verification
   if (!env.SLACK_SIGNING_SECRET) {
     logger.error({}, 'SLACK_SIGNING_SECRET not configured - rejecting request');
     return c.json({ error: 'Server configuration error' }, 500);
@@ -119,6 +115,11 @@ app.post('/events', async (c) => {
   if (!verifySlackRequest(env.SLACK_SIGNING_SECRET, body, timestamp, signature)) {
     logger.error({}, 'Invalid Slack request signature');
     return c.json({ error: 'Invalid request signature' }, 401);
+  }
+
+  if (eventType === 'url_verification') {
+    logger.info({}, 'Responding to Slack URL verification challenge');
+    return c.text(String(eventBody.challenge));
   }
 
   if (eventType === 'event_callback') {
@@ -196,7 +197,9 @@ app.post('/events', async (c) => {
               await sendResponseUrlMessage(responseUrl, {
                 text: 'Sorry, something went wrong while opening the agent selector. Please try again.',
                 response_type: 'ephemeral',
-              }).catch(() => {});
+              }).catch((e) =>
+                logger.warn({ error: e }, 'Failed to send error notification via response URL')
+              );
             }
           });
         }
@@ -214,7 +217,14 @@ app.post('/events', async (c) => {
             (async () => {
               try {
                 const metadata = JSON.parse(view.private_metadata || '{}');
-                const tenantId = metadata.tenantId || 'default';
+                const tenantId = metadata.tenantId;
+                if (!tenantId) {
+                  logger.warn(
+                    { teamId },
+                    'No tenantId in modal metadata — skipping project update'
+                  );
+                  return;
+                }
 
                 const workspace = await findWorkspaceConnectionByTeamId(teamId);
                 if (!workspace?.botToken) return;
@@ -377,27 +387,28 @@ app.post('/events', async (c) => {
 app.post('/nango-webhook', async (c) => {
   const body = await c.req.text();
 
-  // Verify Nango webhook signature if secret is configured
-  if (env.NANGO_SECRET_KEY) {
-    const signature = c.req.header('x-nango-signature');
-    if (!signature) {
-      logger.warn({}, 'Missing Nango webhook signature');
-      return c.json({ error: 'Missing signature' }, 401);
-    }
+  // Verify Nango webhook signature — required in production
+  const nangoSecret = env.NANGO_SLACK_SECRET_KEY || env.NANGO_SECRET_KEY;
+  if (!nangoSecret) {
+    logger.error({}, 'No Nango secret key configured — rejecting webhook');
+    return c.json({ error: 'Server configuration error' }, 503);
+  }
 
-    const crypto = await import('node:crypto');
-    const expectedSignature = crypto
-      .createHmac('sha256', env.NANGO_SECRET_KEY)
-      .update(body)
-      .digest('hex');
+  const signature = c.req.header('x-nango-signature');
+  if (!signature) {
+    logger.warn({}, 'Missing Nango webhook signature');
+    return c.json({ error: 'Missing signature' }, 401);
+  }
 
-    if (
-      signature.length !== expectedSignature.length ||
-      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
-    ) {
-      logger.warn({ signature }, 'Invalid Nango webhook signature');
-      return c.json({ error: 'Invalid signature' }, 401);
-    }
+  const crypto = await import('node:crypto');
+  const expectedSignature = crypto.createHmac('sha256', nangoSecret).update(body).digest('hex');
+
+  if (
+    signature.length !== expectedSignature.length ||
+    !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+  ) {
+    logger.warn({ signature }, 'Invalid Nango webhook signature');
+    return c.json({ error: 'Invalid signature' }, 401);
   }
 
   let payload: {
@@ -434,7 +445,7 @@ app.post('/nango-webhook', async (c) => {
         if (teamMatch) {
           const teamId = teamMatch[1];
           const workspace = await findWorkspaceConnectionByTeamId(teamId);
-          const tenantId = workspace?.tenantId || 'default';
+          const tenantId = workspace?.tenantId;
 
           const dbDeleted =
             await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
@@ -442,21 +453,28 @@ app.post('/nango-webhook', async (c) => {
             logger.info({ connectionId }, 'Deleted workspace from database via Nango webhook');
           }
 
-          const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
-            tenantId,
-            teamId
-          );
-          if (deletedMappings > 0) {
-            logger.info({ teamId, deletedMappings }, 'Deleted user mappings via Nango webhook');
-          }
+          if (tenantId) {
+            const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
+              tenantId,
+              teamId
+            );
+            if (deletedMappings > 0) {
+              logger.info({ teamId, deletedMappings }, 'Deleted user mappings via Nango webhook');
+            }
 
-          const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(
-            runDbClient
-          )(tenantId, teamId);
-          if (deletedChannelConfigs > 0) {
-            logger.info(
-              { teamId, deletedChannelConfigs },
-              'Deleted channel configs via Nango webhook'
+            const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(
+              runDbClient
+            )(tenantId, teamId);
+            if (deletedChannelConfigs > 0) {
+              logger.info(
+                { teamId, deletedChannelConfigs },
+                'Deleted channel configs via Nango webhook'
+              );
+            }
+          } else {
+            logger.warn(
+              { connectionId, teamId },
+              'No tenantId found, skipping user/channel cleanup'
             );
           }
 
@@ -516,7 +534,7 @@ app.post('/nango-webhook', async (c) => {
           }
         }
 
-        const tenantId = payload.organization?.id || 'default';
+        const tenantId = payload.organization?.id || '';
 
         await updateConnectionMetadata(connectionId, {
           linked_at: new Date().toISOString(),

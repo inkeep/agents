@@ -1,6 +1,6 @@
-import type { DataComponentFormData } from './validation';
+import type { DataComponentInput } from './validation';
 
-export const defaultValues: DataComponentFormData = {
+export const initialData: DataComponentInput = {
   id: '',
   name: '',
   description: '',

@@ -148,6 +148,10 @@ export async function streamAgentResponse(params: {
 
   if (!response.body) {
     clearTimeout(timeoutId);
+    logger.error(
+      { status: response.status, channel, threadTs },
+      'Agent API returned 200 but no response body'
+    );
     const errorType = SlackErrorType.API_ERROR;
     const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
 

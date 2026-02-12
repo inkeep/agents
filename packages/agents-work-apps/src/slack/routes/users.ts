@@ -172,15 +172,19 @@ app.openapi(
       const { tenantId, slack } = verifyResult.payload;
       const { teamId, userId: slackUserId, enterpriseId, username } = slack;
 
-      // Prefer session userId (from auth) over body.userId for security
-      // Skip dev bypass user — it's not a real DB user
       const sessionUserId = c.get('userId') as string | undefined;
       const isRealSessionUser =
         sessionUserId &&
         sessionUserId !== 'dev-user' &&
         !sessionUserId.startsWith('apikey:') &&
         sessionUserId !== 'system';
-      const inkeepUserId = isRealSessionUser ? sessionUserId : body.userId;
+
+      if (!isRealSessionUser) {
+        logger.warn({ sessionUserId }, 'Link token verification rejected: no valid session user');
+        return c.json({ error: 'Session authentication required for account linking' }, 403);
+      }
+
+      const inkeepUserId = sessionUserId;
 
       const existingLink = await findWorkAppSlackUserMapping(runDbClient)(
         tenantId,
@@ -314,7 +318,7 @@ app.openapi(
       userId,
       userEmail,
       userName,
-      tenantId: tenantId || 'default',
+      tenantId: tenantId || (c.get('tenantId') as string) || '',
     });
 
     if (!session) {
@@ -376,9 +380,24 @@ app.openapi(
     }
 
     try {
-      const effectiveTenantId = tenantId || 'default';
+      const effectiveTenantId = tenantId || (c.get('tenantId') as string) || '';
 
       if (slackUserId && slackTeamId) {
+        const mapping = await findWorkAppSlackUserMapping(runDbClient)(
+          effectiveTenantId,
+          slackUserId,
+          slackTeamId,
+          'work-apps-slack'
+        );
+
+        if (!mapping) {
+          return c.json({ error: 'No link found for this user' }, 404);
+        }
+
+        if (!isAuthorizedForUser(c, mapping.inkeepUserId)) {
+          return c.json({ error: 'Can only disconnect your own account' }, 403);
+        }
+
         const deleted = await deleteWorkAppSlackUserMapping(runDbClient)(
           effectiveTenantId,
           slackUserId,
@@ -391,7 +410,7 @@ app.openapi(
           return c.json({ success: true });
         }
 
-        return c.json({ error: 'No link found for this user' }, 404);
+        return c.json({ error: 'Failed to unlink user' }, 500);
       }
 
       if (userId) {

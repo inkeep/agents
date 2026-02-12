@@ -68,8 +68,8 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
   }, [notification, queryClient]);
 
   const handleInstallClick = useCallback(() => {
-    window.location.href = slackApi.getInstallUrl();
-  }, []);
+    window.location.href = slackApi.getInstallUrl(tenantId);
+  }, [tenantId]);
 
   const uninstallWorkspace = useCallback(
     async (connectionId: string) => {

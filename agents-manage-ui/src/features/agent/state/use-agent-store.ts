@@ -22,6 +22,7 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
@@ -52,6 +53,7 @@ interface AgentStateData {
    * Used to disable save button while configuration is in progress.
    */
   hasOpenModelConfig: boolean;
+  availableSkills: Skill[];
 }
 
 interface AgentPersistedStateData {
@@ -68,6 +70,7 @@ interface AgentActions {
     nodes: Node[],
     edges: Edge[],
     metadata: AgentMetadata,
+    availableSkills: Skill[],
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
@@ -161,6 +164,7 @@ const initialAgentState: AgentStateData = {
   isSidebarSessionOpen: true,
   variableSuggestions: [],
   hasOpenModelConfig: false,
+  availableSkills: [],
 };
 
 const NODE_MODIFIED_CHANGE = new Set<NodeChange['type']>(['remove', 'add', 'replace']);
@@ -177,6 +181,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       nodes,
       edges,
       metadata,
+      availableSkills,
       dataComponentLookup = {},
       artifactComponentLookup = {},
       toolLookup = {},
@@ -194,6 +199,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         agentToolConfigLookup,
         externalAgentLookup,
         subAgentExternalAgentConfigLookup,
+        availableSkills,
         dirty: false,
         history: [],
         future: [],

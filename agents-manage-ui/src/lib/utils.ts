@@ -46,13 +46,13 @@ export function createProviderOptionsHandler(updateFn: (options: any) => void) {
   };
 }
 
-export function formatJsonField(value: any): string {
+export function formatJsonField(value: unknown): string {
   if (value === undefined || value === null) {
     return '';
   }
 
   const stringifiedValue = JSON.stringify(value);
-  if (stringifiedValue?.trim()) {
+  if (stringifiedValue.trim()) {
     return formatJson(stringifiedValue);
   }
 

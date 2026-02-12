@@ -131,7 +131,7 @@ export async function handleOpenAgentSelectorModal(params: {
       await sendResponseUrlMessage(responseUrl, {
         text: SlackStrings.errors.failedToOpenSelector,
         response_type: 'ephemeral',
-      }).catch(() => {});
+      }).catch((e) => logger.warn({ error: e }, 'Failed to send selector error notification'));
     }
   }
 }
@@ -175,7 +175,7 @@ export async function handleOpenFollowUpModal(params: {
       await sendResponseUrlMessage(responseUrl, {
         text: 'Failed to open follow-up dialog. Please try again.',
         response_type: 'ephemeral',
-      }).catch(() => {});
+      }).catch((e) => logger.warn({ error: e }, 'Failed to send follow-up error notification'));
     }
   }
 }
@@ -292,7 +292,7 @@ export async function handleMessageShortcut(params: {
       await sendResponseUrlMessage(responseUrl, {
         text: SlackStrings.errors.failedToOpenSelector,
         response_type: 'ephemeral',
-      }).catch(() => {});
+      }).catch((e) => logger.warn({ error: e }, 'Failed to send shortcut error notification'));
     }
   }
 }

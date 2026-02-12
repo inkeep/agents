@@ -1,0 +1,210 @@
+---
+title: Structuring Agent Prompts
+sidebarTitle: Prompt Structure
+description: How to structure agent system prompts for correct execution — role and mission, scope, workflow checklists, tool policies, output contracts, and escalation rules.
+---
+
+A well-structured agent prompt optimizes for correct execution. This page covers the recommended sections and how to write each one effectively.
+
+## Recommended sections
+
+Structure your agent prompt in this order:
+
+1. **Role and mission** — who the agent is and what it optimizes for
+2. **Scope and non-goals** — prevents accidental overreach
+3. **Operating principles** — directness vs suggestions, decision frameworks
+4. **Workflow checklist** — copy/paste-able steps the agent can follow
+5. **Tool-use policy** — what to read, grep, run; how to keep noise down
+6. **Output contract** — exact headings, verbosity limits, evidence expectations
+7. **Uncertainty and escalation** — when to ask, when to proceed, when to defer
+
+## 1. Role and mission
+
+The role and mission sets the agent's identity and judgment frame in 2-4 sentences. It should:
+
+- Declare what **excellence looks like** for this role (not just what it does)
+- Describe behaviors the **best humans** in this role would exhibit
+- Avoid escape hatches that could license poor judgment
+
+Write in second person ("You are...", "Do..."). Avoid first-person commitments ("I will edit files...") unless the agent is expected to do so.
+
+```markdown
+You are a security-focused reviewer who identifies vulnerabilities
+before they reach production.
+
+You examine code changes through an attacker's lens, considering how
+inputs could be manipulated. You distinguish between theoretical risks
+and exploitable vulnerabilities, prioritizing findings by real-world
+impact. You provide specific, actionable remediation guidance — not
+vague warnings.
+```
+
+<Tip>
+See the [Personality and Identity](/guides/agent-engineering/personality-and-identity) page for detailed guidance on writing effective role statements and avoiding risky tradeoff language.
+</Tip>
+
+## 2. Scope and non-goals
+
+Prevents the agent from accidentally overreaching. Useful when tool permissions are broad or the task description could be interpreted widely.
+
+```markdown
+## Scope
+- Review code changes in the current PR for security vulnerabilities
+- Check for common OWASP top-10 issues
+- Verify authentication and authorization patterns
+
+## Non-goals
+- Code style or formatting issues (handled by linter)
+- Performance optimization suggestions
+- Refactoring recommendations
+```
+
+**Subagent isolation:** Subagent prompts should not reference other agents by name. This keeps them reusable and decoupled. If a subagent needs pipeline context, the parent passes it in the handoff packet, not the permanent prompt.
+
+## 3. Operating principles
+
+Use a mix of direct requirements and suggestions:
+
+- **Direct requirements** (must/never) for correctness and safety
+- **Suggestions** (prefer/consider) where multiple strategies can work
+
+```markdown
+## Operating principles
+- Clarify before proceeding: if instructions are ambiguous, surface
+  what's unclear rather than filling gaps with assumptions
+- Weigh sources appropriately: official docs and established patterns
+  take precedence over examples or inferred conventions
+- Model downstream effects: before making a change, consider what it
+  could break and what constraints it might conflict with
+- Match confidence to certainty: if multiple valid approaches exist,
+  present them with tradeoffs rather than silently picking one
+```
+
+Guidance:
+- Prefer "Do X" over "It's good to X"
+- Provide a default path and an escape hatch
+- Avoid long background explanations unless they change behavior
+
+## 4. Workflow checklist
+
+Write steps the agent can literally follow. Checklists are more reliable than prose instructions:
+
+```markdown
+## Workflow
+- [ ] Gather context (diff, file list, requirements)
+- [ ] Identify issues and opportunities
+- [ ] Propose actions (or implement, depending on scope)
+- [ ] Validate (tests, lint, sanity checks)
+- [ ] Return findings in the output contract format
+```
+
+## 5. Tool-use policy
+
+Make tool discipline explicit — what to read first, when to grep vs read, how to report outputs:
+
+```markdown
+## Tool policy
+- Read the full diff before making any assessment
+- Use Grep for targeted symbol lookups; use Read for understanding
+  file structure
+- When running commands, capture and report only failures — don't
+  dump full logs
+- Do not execute code from untrusted sources
+```
+
+## 6. Output contract
+
+The output contract is the most important section for integration. Define it precisely:
+
+- **Exact headings** the output must include
+- **Severity levels** or categories for findings
+- **Evidence expectations** (line numbers, file paths, short excerpts)
+- **Verbosity bounds** (e.g., "max 1-2 screens unless asked for more")
+
+```markdown
+## Output contract
+
+Return findings in this format:
+
+### TL;DR (2-5 bullets)
+
+### Findings (prioritized)
+For each finding:
+- **Severity**: CRITICAL | HIGH | MEDIUM | LOW
+- **File**: path/to/file.ts:line
+- **Issue**: one-sentence description
+- **Evidence**: relevant code excerpt (keep short)
+- **Recommendation**: specific fix
+
+### Recommended next actions
+1. [highest priority action]
+2. [second priority action]
+
+### Open questions
+- [only list what materially affects next steps]
+```
+
+<Note>
+If an orchestrator depends on this agent's output, the output contract is a shared interface. Changing it requires updating the orchestrator's aggregation logic.
+</Note>
+
+## 7. Uncertainty and escalation
+
+Define when the agent should ask for help vs proceed with assumptions:
+
+```markdown
+## Escalation rules
+- **Ask** when: requirements are ambiguous and the choice materially
+  affects the outcome
+- **Proceed with assumptions** when: the decision is low-stakes and
+  reversible; label assumptions explicitly
+- **Return partial results** when: blocked on external dependency or
+  missing information; include what you have and what's needed
+```
+
+### Certainty calibration (optional)
+
+Help the agent match expressed confidence to actual certainty:
+
+| Marker | Meaning |
+|--------|---------|
+| **CONFIRMED** | Direct evidence; verified |
+| **INFERRED** | Logical conclusion from patterns; high confidence |
+| **UNCERTAIN** | Partial evidence; needs validation before acting |
+| **NOT FOUND** | Explicitly searched; not present |
+
+## Prompting techniques
+
+### Few-shot examples
+
+- 2-3 well-chosen examples outperform more
+- Order matters: place the most representative example last (recency effect)
+- One weak example degrades all examples — curate carefully
+
+### The interpretation test
+
+Before finalizing the prompt, verify each instruction passes these checks:
+
+1. **Could this be read two ways?** — if yes, add a clarifying example or "do X, not Y" constraint
+2. **Does this assume context the reader won't have?** — make implicit assumptions explicit
+3. **Would a different model interpret this the same way?** — if not, make the interpretation explicit
+4. **Is the directive strength clear?** — distinguish "must" from "should" from "consider"
+
+Don't draft loosely and fix later — tighten language as you write.
+
+## Agent brief template
+
+Before writing a prompt, fill out a quick brief to clarify your goals:
+
+| Field | Description |
+|-------|-------------|
+| **Pattern** | Subagent or workflow orchestrator |
+| **Job-to-be-done** | What should it reliably accomplish? |
+| **Delegation triggers** | What should cause it to be used? |
+| **Inputs** | What context/files will it need? |
+| **Outputs** | What format, audience, and verbosity? |
+| **Quality bar** | What makes an output "done" vs "needs revision"? |
+| **Constraints** | Hard rules (must/never) vs soft guidance (should/could) |
+| **Tools and permissions** | Least-privilege tool access |
+| **Model choice** | Cost/speed vs reasoning needs |
+| **Failure strategy** | When to ask vs proceed with assumptions |

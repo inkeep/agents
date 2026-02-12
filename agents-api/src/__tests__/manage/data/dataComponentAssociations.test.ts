@@ -7,10 +7,12 @@ import {
   getAgentsUsingDataComponent,
   getDataComponentsForAgent,
   isDataComponentAssociatedWithAgent,
+  type JsonSchemaForLlmSchemaType,
   removeDataComponentFromAgent,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
@@ -50,6 +52,15 @@ describe('Data Component Agent Associations', () => {
       prompt: 'You are a test agent',
     });
 
+    const props: JSONSchema.BaseSchema = {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        items: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['title'],
+    };
+
     // Create test data component
     const dataComponent = await createDataComponent(manageDbClient)({
       id: generateId(),
@@ -57,14 +68,7 @@ describe('Data Component Agent Associations', () => {
       projectId,
       name: 'TestComponent',
       description: 'Test component for associations',
-      props: {
-        type: 'object',
-        properties: {
-          title: { type: 'string' },
-          items: { type: 'array', items: { type: 'string' } },
-        },
-        required: ['title'],
-      },
+      props: props as JsonSchemaForLlmSchemaType,
     });
     dataComponentId = dataComponent.id;
   });
