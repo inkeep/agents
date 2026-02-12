@@ -73,7 +73,7 @@ You may spin up multiple parallel Explore subagents or chain new ones in sequenc
 
 This step is about context gathering // "world model" building only, not about making judgements, assumptions, or determinations. Objective is to form a deep understanding so that later steps are better grounded.
 
-**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), focus exploration on the delta and how it interacts with the broader PR rather than re-exploring unchanged areas.
+**Note**: In "summary mode" (large PR diffs), the diff isn't fully inline — use Explore subagents to read key changed files directly as relevant. When `review_scope=delta` (see pr-context metadata), keep the re-review strictly scoped to delta changes. Read surrounding context only to understand the delta; do not add findings outside the delta.
 
 ## Phase 1.5: Generate PR TLDR
 
@@ -163,44 +163,21 @@ Spawn each selected reviewer via the Task tool, spawning all relevant agents **i
 
 ### 3.1 Handoff Template
 
-One template for all cases. The orchestrator fills in the conditional lines based on two signals from pr-context: **diff mode** (`inline` vs `summary`) and **review scope** (`full` vs `delta` — see `Review scope` in pr-context metadata).
+One template for all cases. 
 
 Reviewers already know how to use their skills (pr-context, pr-tldr, pr-review-output-contract) — don't re-explain that in the handoff.
 
 ```
-Review PR #[NUMBER]: [Title].
+Please review `PR #[NUMBER]: [Title]` using your expertise.
 
-<<1-2 sentences: why this reviewer was selected. Mention relevant files/areas but don't limit scope.>>
-
-[ONLY if summary mode]
-Diff not inline — read on-demand: git diff origin/[BASE]...HEAD -- <path>
-
-[ONLY if review_scope == 'delta' in pr-context metadata]
-Re-review — scope to delta only.
-
-[ONLY if summary mode OR review_scope == 'delta' — include a file list]
-Files:
-- path/to/file.ts
-- path/to/other.ts
+<<1-2 sentences about why the agent was selected for review and some relevant entry points (files/folders) or areas to consider, but don't sound prescriptive nor limiting in scope.>>.
 ```
-
-**What goes in the file list:**
-
-| Situation | List contains |
-|-----------|---------------|
-| Summary mode, `review_scope=full` | Domain-relevant files from Changed Files (5-15, prioritized by diff size) |
-| Inline mode, `review_scope=delta` | Delta files relevant to this reviewer's domain |
-| Summary mode, `review_scope=delta` | Delta files only (reviewer reads via `git diff`) |
-
-**Keep handoffs short.** The reviewer has full access to pr-context and pr-tldr for details. The handoff just points them in the right direction.
-
-**Scope signal:** Use `Review scope` from the pr-context metadata table as the single source of truth for delta vs full scoping. If `review_scope` is absent (e.g. local runs without CI-generated pr-context), default to full-scope behavior.
 
 ## Phase 4: Judge & Filter
 
 **You are the final arbiter** of the final feedback sent to the developer.
 
-Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE.
+Your goal is to make feedback actionable, relevant, and NON-DUPLICATIVE and ensure all feedback is **valid** (true, accurate). Sub-reviewers are LLM-generated and may return noisy, over-eager, or marginal findings. Your job is to make a final determination on validity and relevancy to keep noise for the develop down.
 
 ### 4.1 Semantic Deduplication
 
@@ -208,6 +185,7 @@ Cluster findings describing the same issue:
 - `inline`: Same file + overlapping lines + similar problem → **merge**
 - `file`: Same file + similar problem → **merge**
 - `multi-file`/`system`: Similar scope + similar problem → **merge**
+- **Cross-type:** Also cluster across finding types when they address the same underlying concern. An `inline` fix that is a subset of a broader `file`/`multi-file`/`system` finding (or vice versa) must be merged into **one** finding. Choose the scope that best serves the developer — if the broader framing adds value, keep the broader finding; if the specific line-level fix is what matters, keep the `inline` version. **Never surface both.**
 - Keep or consolidate to the most actionable version (clearest issue + implications + fixes)
 
 ### 4.2 Relevancy Check
@@ -225,7 +203,7 @@ For each finding, ask:
 When sub-reviewers you invoked disagree on the same code, use your best judgement on which is likely correct or include both perspectives. Take into account your own understanding of the code base, the PR, and the points made by the subagents.
 
 ### 4.4 Additional research (OPTIONAL)
-If you are split on items that seem plausibly important but are gray area or you don't have full confidence on, feel free to spin up additional Explore subagents, inspect the codebase yourself, or search the web (library docs, changelogs, best practice references) to the minimum extent needed. This should be reserved for any high stakes, complex, and grayarea items you want to increase your own understanding of a problem space to get full clarity and judgement. Keep passes here scoped/targeted, if any.
+If you are split on items that seem plausibly important but are gray area or you don't have full confidence on, feel free to spin up additional Explore subagents, inspect the codebase yourself, or search the web (library docs, changelogs, best practice references) to the minimum extent needed. This should be reserved for any high stakes, complex, and grayarea items you want to increase your own understanding of a problem space to get full clarity and judgement. Keep additional research scoped/targeted, if any (optional).
 
 ### 4.5 Final Categorizations
 
@@ -443,7 +421,7 @@ This is a binary, mutually exclusive decision. A finding is NEVER both a full wr
 ````markdown
 ## PR Review Summary
 
-**X Key Findings** | Risk: **High/Medium/Low**
+**(X) Total Issues** | Risk: **High/Medium/Low**
 
 ### 🔴❗ Critical (N) ❗🔴
 
@@ -529,7 +507,7 @@ when the problem is complex or context is needed.
 🧹 2) ...
 ````
 
-Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L (Consider and While You're Here items don't count toward Key Findings).
+Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that bucket. X = N + M + L + W + P (total actionable issues: Main findings + While You're Here + Pending Recommendations. Consider and Discarded are excluded).
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
@@ -577,6 +555,14 @@ Link to the original source using the `url` field from pr-context. **DO NOT repe
 - Omit this section entirely if there are no pending items.
 
 ### "Final Recommendation" section
+
+**Decision criteria** — based on the highest severity across Main (Critical/Major/Minor) and Pending Recommendations. Consider, While You're Here, and Discarded items do NOT influence the recommendation.
+
+| Highest severity present (new or pending) | Recommendation |
+|---|---|
+| Critical or Major | 🚫 REQUEST CHANGES |
+| Minor only | 💡 APPROVE WITH SUGGESTIONS |
+| None (only Consider / While You're Here / Discarded, or clean) | ✅ APPROVE |
 
 ````markdown
 ---

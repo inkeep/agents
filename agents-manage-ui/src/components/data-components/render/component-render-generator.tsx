@@ -16,14 +16,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useProject } from '@/contexts/project';
 import { updateDataComponent } from '@/lib/api/data-components';
+import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
   tenantId: string;
   projectId: string;
   dataComponentId: string;
+  dataComponentName?: string;
   existingRender?: { component: string; mockData: Record<string, unknown> } | null;
   onRenderChanged?: (
     render: { component: string; mockData: Record<string, unknown> } | null
@@ -34,6 +37,7 @@ export function ComponentRenderGenerator({
   tenantId,
   projectId,
   dataComponentId,
+  dataComponentName,
   existingRender,
   onRenderChanged,
 }: ComponentPreviewGeneratorProps) {
@@ -243,6 +247,7 @@ export function ComponentRenderGenerator({
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     disabled={isDeleting || isGenerating}
@@ -302,8 +307,16 @@ export function ComponentRenderGenerator({
                   </div>
                 </PopoverContent>
               </Popover>
+              <UseInYourAppModal
+                componentId={dataComponentId}
+                componentName={dataComponentName}
+                componentKind="data"
+                renderCode={render?.component}
+                docsPath={`${DOCS_BASE_URL}/typescript-sdk/structured-outputs/data-components#frontend-integration`}
+              />
               {isSaved && (
                 <Button
+                  type="button"
                   variant="destructive-outline"
                   onClick={handleDeletePreview}
                   disabled={isDeleting || isGenerating}

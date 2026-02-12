@@ -1,11 +1,11 @@
 ---
 title: Push to Inkeep Cloud
 sidebarTitle: Push to Cloud
-description: Set up a profile, authenticate, and push your agents to Inkeep Cloud
+description: Push your local agent configurations to Inkeep Cloud
 icon: LuCloudUpload
 ---
 
-This tutorial walks you through pushing agent configurations to Inkeep Cloud. You'll learn how to set up a CLI profile, authenticate with your Inkeep Cloud account, and push changes made in the Visual Builder.
+This tutorial walks you through pushing agent configurations to Inkeep Cloud.
 
 ## Prerequisites
 
@@ -16,74 +16,21 @@ This tutorial walks you through pushing agent configurations to Inkeep Cloud. Yo
 npm install -g @inkeep/agents-cli
 ```
 
-## Step 1: Create a cloud profile
+- A CLI profile configured and authenticated (only needed for remote deployments). If you haven't done this yet, follow the [Set up a CLI profile](/tutorials/cli/setup-profile) tutorial.
 
-Profiles let you manage multiple environments (cloud, local, staging) from the same CLI. Create a profile for Inkeep Cloud:
+## Step 1: Navigate to your project
 
-```bash
-inkeep profile add <profile-name>
-```
-
-The CLI prompts you to configure the profile:
-
-1. **Remote type**: Select **Custom**
-2. **Agents API URL**: Enter the URL of your agents API
-3. **Manage UI URL**: Enter the URL of your manage UI
-2. **Environment name**: Enter `production` (or your preferred name)
-
-<Tip>
-You can verify the profile was created by running `inkeep profile list`.
-</Tip>
-
-### Switch to your cloud profile
-
-Set the cloud profile as your active profile:
-
-```bash
-inkeep profile use cloud
-```
-
-You can confirm which profile is active:
-
-```bash
-inkeep profile current
-```
-
-## Step 2: Log in
-
-Authenticate:
-
-```bash
-inkeep login
-```
-
-The CLI will:
-1. Open your browser to the Inkeep authentication page
-2. Display a device code (e.g., `ABCD-1234`)
-3. Wait for you to complete authentication in the browser
-
-Once authenticated, you'll see confirmation:
-
-```
-✓ Logged in as you@example.com
-✓ Organization: Your Organization
-✓ Profile: cloud
-```
-
-<Note>
-Your credentials are securely stored in your system keychain. You only need to log in once per profile.
-</Note>
-
-## Step 3: Push changes to Inkeep Cloud
-
-After making changes in the Visual Builder or in code, push them to Inkeep Cloud.
-
-### Push from a project directory
-
-Navigate to your project directory and run:
+Navigate to your project directory. A project directory contains an `index.ts` file that exports a project definition:
 
 ```bash
 cd my-project
+```
+
+## Step 2: Push to Inkeep Cloud
+
+Run the push command:
+
+```bash
 inkeep push
 ```
 
@@ -92,10 +39,25 @@ The CLI will:
 2. Load configuration from `inkeep.config.ts`
 3. Push all agents, tools, and configurations to Inkeep Cloud
 
-### Push all projects at once
+## Step 3: Verify the push
+
+After a successful push, the CLI prints a deployment summary with resource counts. You can also verify by opening the [Visual Builder](/visual-builder) to see your updated configurations.
+
+## Push all projects at once
 
 If you have multiple projects in a workspace, push them all:
 
 ```bash
 inkeep push --all
 ```
+
+## What's next
+
+<Cards>
+  <Card title="Pull from Cloud" icon="LuCloudDownload" href="/tutorials/cli/pull-from-cloud">
+    Pull agent configurations from Inkeep Cloud to your local project
+  </Card>
+  <Card title="CLI Reference" icon="LuTerminal" href="/typescript-sdk/cli-reference">
+    Full reference for all CLI commands and options
+  </Card>
+</Cards>

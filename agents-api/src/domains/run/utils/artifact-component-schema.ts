@@ -74,57 +74,6 @@ export class ArtifactCreateSchema {
         ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
         : { type: 'object', properties: {} };
 
-      const propsSchema: JSONSchema.BaseSchema = {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
-          },
-          tool_call_id: {
-            type: 'string',
-            description:
-              'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
-          },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
-          base_selector: {
-            type: 'string',
-            description:
-              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
-          },
-          details_selector: enhancedSchema,
-        },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
-      };
-
-      return z.object({
-        id: z.string(),
-        name: z.literal(`ArtifactCreate_${component.name}`),
-        props: z.fromJSONSchema(propsSchema),
-      });
-    });
-  }
-
-  /**
-   * Get DataComponents for artifact creation - one for each artifact component type
-   * @param artifactComponents - The available artifact components to generate schemas for
-   * @returns Array of DataComponent definitions, one for each artifact component
-   */
-  static getDataComponents(
-    tenantId: string,
-    projectId = '',
-    artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
-  ): DataComponentInsert[] {
-    return artifactComponents.map((component) => {
-      // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
-      const enhancedSchema: JSONSchema.BaseSchema = component.props
-        ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
-        : { type: 'object', properties: {} };
-
       const propsSchema = {
         type: 'object',
         properties: {
@@ -152,13 +101,70 @@ export class ArtifactCreateSchema {
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       } satisfies JSONSchema.BaseSchema;
 
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+
+      return z.object({
+        id: z.string(),
+        name: z.literal(`ArtifactCreate_${component.name}`),
+        props: z.fromJSONSchema(normalizedPropsSchema),
+      });
+    });
+  }
+
+  /**
+   * Get DataComponents for artifact creation - one for each artifact component type
+   * @param artifactComponents - The available artifact components to generate schemas for
+   * @returns Array of DataComponent definitions, one for each artifact component
+   */
+  static getDataComponents(
+    tenantId: string,
+    projectId = '',
+    artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
+  ): DataComponentInsert[] {
+    return artifactComponents.map((component) => {
+      // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
+      const enhancedSchema: JSONSchema.BaseSchema = component.props
+        ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
+        : { type: 'object', properties: {} };
+
+      const propsSchema: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
+          },
+          tool_call_id: {
+            type: 'string',
+            description:
+              'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+          },
+          type: {
+            type: 'string',
+            enum: [component.name],
+            description: `Artifact type - must be "${component.name}"`,
+          },
+          base_selector: {
+            type: 'string',
+            description:
+              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
+          },
+          details_selector: enhancedSchema,
+        },
+        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+      };
+
+      // Normalize schema for cross-provider compatibility
+      const normalizedPropsSchema = SchemaProcessor.makeAllPropertiesRequired(propsSchema);
+
       return {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
         tenantId: tenantId,
         projectId: projectId,
         name: `ArtifactCreate_${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
-        props: propsSchema as JsonSchemaForLlmSchemaType,
+        props: normalizedPropsSchema as JsonSchemaForLlmSchemaType,
       };
     });
   }

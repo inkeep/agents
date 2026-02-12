@@ -1,5 +1,5 @@
 {
   "title": "CLI",
   "icon": "LuTerminal",
-  "pages": ["overview", "push-to-cloud", "..."]
+  "pages": ["overview", "setup-profile", "push-to-cloud", "pull-from-cloud", "..."]
 }
