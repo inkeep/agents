@@ -209,14 +209,22 @@ describe('Slack Work App Routes', () => {
       expect(json.error).toBeDefined();
     });
 
+    const validLinkPayload = {
+      iss: 'inkeep-auth' as const,
+      aud: 'slack-link' as const,
+      sub: 'slack:T123:U123',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 600,
+      tokenUse: 'slackLinkCode' as const,
+      tenantId: 'default',
+      slack: { teamId: 'T123', userId: 'U123', enterpriseId: '', username: 'testuser' },
+    };
+
     it('should reject non-session users with 403', async () => {
       const { verifySlackLinkToken } = await import('@inkeep/agents-core');
       vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
         valid: true,
-        payload: {
-          tenantId: 'default',
-          slack: { teamId: 'T123', userId: 'U123', enterpriseId: '', username: 'testuser' },
-        },
+        payload: validLinkPayload,
       });
 
       const response = await app.request('/users/link/verify-token', {
@@ -240,10 +248,7 @@ describe('Slack Work App Routes', () => {
       const { verifySlackLinkToken } = await import('@inkeep/agents-core');
       vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
         valid: true,
-        payload: {
-          tenantId: 'default',
-          slack: { teamId: 'T123', userId: 'U123', enterpriseId: '', username: 'testuser' },
-        },
+        payload: validLinkPayload,
       });
 
       const response = await authedApp.request('/users/link/verify-token', {
@@ -267,10 +272,7 @@ describe('Slack Work App Routes', () => {
       const { verifySlackLinkToken } = await import('@inkeep/agents-core');
       vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
         valid: true,
-        payload: {
-          tenantId: 'default',
-          slack: { teamId: 'T123', userId: 'U123', enterpriseId: '', username: 'testuser' },
-        },
+        payload: validLinkPayload,
       });
 
       const response = await authedApp.request('/users/link/verify-token', {
@@ -294,10 +296,7 @@ describe('Slack Work App Routes', () => {
       const { verifySlackLinkToken } = await import('@inkeep/agents-core');
       vi.mocked(verifySlackLinkToken).mockResolvedValueOnce({
         valid: true,
-        payload: {
-          tenantId: 'default',
-          slack: { teamId: 'T123', userId: 'U123', enterpriseId: '', username: 'testuser' },
-        },
+        payload: validLinkPayload,
       });
 
       const response = await authedApp.request('/users/link/verify-token', {
