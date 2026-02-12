@@ -235,6 +235,10 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
+      const originalNonTextParts: Part[] = messageParts
+        ? messageParts.filter((p) => p.kind === 'file' || p.kind === 'data')
+        : [];
+
       const maxTransfers =
         agent?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
@@ -281,12 +285,10 @@ export class ExecutionHandler {
           messageMetadata.fromSubAgentId = fromSubAgentId;
         }
 
-        // On the first iteration, use the original message parts if provided (includes data parts from triggers)
-        // On subsequent iterations (after transfers), use text-only since currentMessage is updated
         const partsToSend: Part[] =
           iterations === 1 && messageParts && messageParts.length > 0
             ? messageParts
-            : [{ kind: 'text', text: currentMessage }];
+            : [{ kind: 'text', text: currentMessage }, ...originalNonTextParts];
 
         messageResponse = await a2aClient.sendMessage({
           message: {

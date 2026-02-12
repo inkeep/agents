@@ -4,6 +4,7 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   generateServiceToken,
@@ -260,6 +261,7 @@ export function createDelegateToAgentTool({
   metadata,
   sessionId,
   credentialStoreRegistry,
+  userImageParts,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
@@ -274,6 +276,7 @@ export function createDelegateToAgentTool({
   };
   sessionId?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
+  userImageParts?: FilePart[];
 }) {
   const { tenantId, projectId, agentId, project } = executionContext;
 
@@ -387,7 +390,7 @@ export function createDelegateToAgentTool({
 
       const messageToSend = {
         role: 'agent' as const,
-        parts: [{ text: input.message, kind: 'text' as const }],
+        parts: [{ text: input.message, kind: 'text' as const }, ...(userImageParts ?? [])],
         messageId: generateId(),
         kind: 'message' as const,
         contextId,
@@ -410,6 +413,7 @@ export function createDelegateToAgentTool({
         role: 'agent',
         content: {
           text: input.message,
+          parts: messageToSend.parts,
         },
         visibility: isInternal ? 'internal' : 'external',
         messageType: 'a2a-request',

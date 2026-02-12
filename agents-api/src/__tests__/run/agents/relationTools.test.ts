@@ -535,6 +535,7 @@ describe('Relationship Tools', () => {
           role: 'agent',
           content: {
             text: 'Test message',
+            parts: [{ text: 'Test message', kind: 'text' }],
           },
           visibility: 'external',
           messageType: 'a2a-request',
@@ -659,6 +660,7 @@ describe('Relationship Tools', () => {
           role: 'agent',
           content: {
             text: 'Test message',
+            parts: [{ text: 'Test message', kind: 'text' }],
           },
           visibility: 'internal',
           messageType: 'a2a-request',

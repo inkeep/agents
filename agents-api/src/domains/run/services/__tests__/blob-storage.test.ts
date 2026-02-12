@@ -364,7 +364,8 @@ describe('buildPersistedMessageContent', () => {
 
     const result = await buildPersistedMessageContent('Hello', parts, ctx);
 
-    expect(result).toEqual({ text: 'Hello' });
+    expect(result.content).toEqual({ text: 'Hello' });
+    expect(result.uploadedParts).toEqual(parts);
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
@@ -391,11 +392,13 @@ describe('buildPersistedMessageContent', () => {
 
     const result = await buildPersistedMessageContent('Look at this', parts, ctx);
 
-    expect(result.text).toBe('Look at this');
-    expect(result.parts).toBeDefined();
-    expect(result.parts?.length).toBe(2);
-    expect(result.parts?.[0].kind).toBe('text');
-    expect(result.parts?.[1].kind).toBe('file');
+    expect(result.content.text).toBe('Look at this');
+    expect(result.content.parts).toBeDefined();
+    expect(result.content.parts?.length).toBe(2);
+    expect(result.content.parts?.[0].kind).toBe('text');
+    expect(result.content.parts?.[1].kind).toBe('file');
+    expect(result.uploadedParts).toBeDefined();
+    expect(result.uploadedParts.length).toBe(2);
     expect(mockUpload).toHaveBeenCalledOnce();
   });
 });
