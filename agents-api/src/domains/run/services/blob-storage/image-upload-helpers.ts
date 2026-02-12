@@ -11,13 +11,18 @@ interface PersistContext {
   messageId: string;
 }
 
+interface PersistedMessageResult {
+  content: MessageContent;
+  uploadedParts: Part[];
+}
+
 export async function buildPersistedMessageContent(
   text: string,
   parts: Part[],
   ctx: PersistContext
-): Promise<MessageContent> {
+): Promise<PersistedMessageResult> {
   if (!hasFileParts(parts)) {
-    return { text };
+    return { content: { text }, uploadedParts: parts };
   }
 
   try {
@@ -34,7 +39,7 @@ export async function buildPersistedMessageContent(
       'Built persisted message content with uploaded images'
     );
 
-    return { text, parts: contentParts };
+    return { content: { text, parts: contentParts }, uploadedParts };
   } catch (error) {
     logger.error(
       {
@@ -43,6 +48,6 @@ export async function buildPersistedMessageContent(
       },
       'Failed to upload images, persisting text only'
     );
-    return { text };
+    return { content: { text }, uploadedParts: parts };
   }
 }

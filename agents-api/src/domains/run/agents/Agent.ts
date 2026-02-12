@@ -62,6 +62,8 @@ import {
 } from '../data/conversations';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
+import { isBlobUri } from '../services/blob-storage';
+import { blobUriToProxyUrl } from '../services/blob-storage/resolve-blob-uris';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
@@ -757,7 +759,8 @@ export class Agent {
         baseUrl?: string;
       };
     },
-    sessionId?: string
+    sessionId?: string,
+    userImageParts?: FilePart[]
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
     return Object.fromEntries([
@@ -797,6 +800,7 @@ export class Agent {
               },
               sessionId,
               credentialStoreRegistry: this.credentialStoreRegistry,
+              userImageParts,
             }),
             runtimeContext?.metadata?.streamRequestId,
             'delegation'
@@ -2796,7 +2800,12 @@ ${output}`;
             systemPrompt,
             sanitizedTools,
             contextBreakdown: initialContextBreakdown,
-          } = await this.loadToolsAndPrompts(sessionId, streamRequestId, runtimeContext);
+          } = await this.loadToolsAndPrompts(
+            sessionId,
+            streamRequestId,
+            runtimeContext,
+            imageParts
+          );
 
           // Update ArtifactService with this agent's artifact components
           if (streamRequestId && this.artifactComponents.length > 0) {
@@ -3041,7 +3050,8 @@ ${output}`;
         streamRequestId: string;
         apiKey?: string;
       };
-    }
+    },
+    userImageParts?: FilePart[]
   ) {
     // Load all tools and system prompt in parallel
     // Note: getDefaultTools needs to be called after streamHelper is set above
@@ -3060,7 +3070,7 @@ ${output}`;
               this.getMcpTools(sessionId, streamRequestId),
               this.buildSystemPrompt(runtimeContext, false), // System prompt with data components
               this.getFunctionTools(sessionId, streamRequestId),
-              Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
+              Promise.resolve(this.getRelationTools(runtimeContext, sessionId, userImageParts)),
               this.getDefaultTools(streamRequestId),
             ]);
 
@@ -3251,13 +3261,20 @@ ${output}`;
 
     for (const part of imageParts) {
       const file = part.file;
+      let imageValue: URL | string;
+
       // Transform directly from A2A FilePart to Vercel format:
       // - HTTP URIs become URL objects
+      // - Blob URIs become proxy URLs (via /media route)
       // - Base64 bytes become data URL strings (Vercel handles MIME detection)
-      const imageValue =
-        'uri' in file && file.uri
-          ? new URL(file.uri)
-          : `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+      if ('uri' in file && file.uri) {
+        const resolvedUri = isBlobUri(file.uri) ? blobUriToProxyUrl(file.uri) : file.uri;
+        imageValue = resolvedUri
+          ? new URL(resolvedUri)
+          : `data:${file.mimeType || 'image/*'};base64,`;
+      } else {
+        imageValue = `data:${file.mimeType || 'image/*'};base64,${file.bytes}`;
+      }
 
       const imagePart: AiSdkContentPart = {
         type: 'image',
