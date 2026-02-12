@@ -13,6 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
+    "types": ["vitest/globals"],
     "baseUrl": "."
   },
   "include": ["src/**/*"],

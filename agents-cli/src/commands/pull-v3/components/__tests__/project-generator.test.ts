@@ -2,14 +2,13 @@
 /**
  * Unit tests for project generator
  */
-
-import { describe, expect, it } from 'vitest';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateProjectDefinition,
   generateProjectFile,
   generateProjectImports,
 } from '../project-generator';
+import { generateProjectDefinition as generateProjectDefinitionV4 } from '../../../pull-v4/project-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -76,9 +75,11 @@ describe('Project Generator', () => {
   });
 
   describe('generateProjectDefinition', () => {
-    it('should generate basic project definition', () => {
+    it.only('should generate basic project definition', () => {
+      const projectId = 'customer-support-project';
+
       const definition = generateProjectDefinition(
-        'customer-support-project',
+        projectId,
         basicProjectData,
         undefined,
         mockRegistry
@@ -102,6 +103,9 @@ describe('Project Generator', () => {
       expect(definition).toMatchFileSnapshot(
         '__snapshots__/should-generate-basic-project-definition.txt'
       );
+
+      const def = generateProjectDefinitionV4(projectId, basicProjectData);
+      console.log(definition);
     });
 
     it('should generate complex project with all features', () => {
