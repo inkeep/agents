@@ -304,7 +304,7 @@ function createAgentsHono(config: AppConfig) {
     app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
   }
 
-  app.use('*', async (c, next) => {
+  app.use('*', async (_c, next) => {
     await next();
     if (process.env.VERCEL) {
       try {
