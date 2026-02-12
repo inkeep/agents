@@ -8,8 +8,9 @@ on:
       - main
       - master
 
-permissions:
-  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   auto-format:
@@ -18,6 +19,9 @@ jobs:
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -74,9 +78,16 @@ jobs:
 
       - name: Commit and push formatting fixes
         if: steps.changes.outputs.has_changes == 'true'
+        env:
+          PUSH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -u
           git commit -m "style: auto-format with biome"
-          git push
+          for i in 1 2 3; do
+            git push && break
+            echo "Push failed, attempting pull --rebase and retry ($i/3)"
+            git pull --rebase origin "$PUSH_REF" || exit 1
+            sleep $((i * 2))
+          done
