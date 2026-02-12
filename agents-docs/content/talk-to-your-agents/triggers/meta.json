@@ -1,0 +1,5 @@
+{
+  "title": "Triggers",
+  "icon": "LuWebhook",
+  "pages": ["scheduled", "webhooks"]
+}

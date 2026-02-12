@@ -504,6 +504,12 @@
                 "maxLength": 5000,
                 "type": "string"
               },
+              "scheduledTriggers": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInsertBase"
+                },
+                "type": "object"
+              },
               "statusUpdates": {
                 "$ref": "#/components/schemas/StatusUpdate"
               },
@@ -601,6 +607,13 @@
                   }
                 ]
               },
+              "scheduledTriggers": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ScheduledTrigger"
+                },
+                "nullable": true,
+                "type": "object"
+              },
               "statusUpdates": {
                 "allOf": [
                   {
@@ -649,6 +662,7 @@
               "teamAgents",
               "functionTools",
               "functions",
+              "scheduledTriggers",
               "contextConfig"
             ],
             "type": "object"
@@ -2127,6 +2141,12 @@
           "data"
         ],
         "type": "object"
+      },
+      "CronExpression": {
+        "description": "Cron expression in standard 5-field format (minute hour day month weekday)",
+        "nullable": true,
+        "pattern": "^(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,\\-A-Za-z]+(?:\\/\\d+)?)$",
+        "type": "string"
       },
       "DataComponent": {
         "properties": {
@@ -6045,6 +6065,535 @@
         "minLength": 1,
         "pattern": "^[a-zA-Z0-9\\-_.]+$",
         "type": "string"
+      },
+      "ScheduledTrigger": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "cronTimezone": {
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "maxRetries": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
+          "messageTemplate": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "retryDelaySeconds": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
+          "runAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "enabled",
+          "cronExpression",
+          "cronTimezone",
+          "runAt",
+          "messageTemplate",
+          "maxRetries",
+          "retryDelaySeconds",
+          "timeoutSeconds",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerCreate": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "$ref": "#/components/schemas/CronExpression"
+          },
+          "cronTimezone": {
+            "default": "UTC",
+            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Scheduled trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxRetries": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Scheduled trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Static payload for agent execution",
+            "nullable": true,
+            "type": "object"
+          },
+          "retryDelaySeconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "runAt": {
+            "description": "One-time execution timestamp",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "default": 780,
+            "maximum": 780,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInsertBase": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "$ref": "#/components/schemas/CronExpression"
+          },
+          "cronTimezone": {
+            "default": "UTC",
+            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Scheduled trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxRetries": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Scheduled trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Static payload for agent execution",
+            "nullable": true,
+            "type": "object"
+          },
+          "retryDelaySeconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "runAt": {
+            "description": "One-time execution timestamp",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "default": 780,
+            "maximum": 780,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInvocation": {
+        "properties": {
+          "attemptNumber": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
+          },
+          "completedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "conversationIds": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "resolvedPayload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "scheduledFor": {
+            "type": "string"
+          },
+          "scheduledTriggerId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "startedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "scheduledTriggerId",
+          "status",
+          "scheduledFor",
+          "startedAt",
+          "completedAt",
+          "conversationIds",
+          "attemptNumber",
+          "idempotencyKey",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInvocationListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledTriggerInvocation"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInvocationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduledTriggerInvocation"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduledTrigger"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerUpdate": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "$ref": "#/components/schemas/CronExpression"
+          },
+          "cronTimezone": {
+            "default": "UTC",
+            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Scheduled trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxRetries": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Scheduled trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Static payload for agent execution",
+            "nullable": true,
+            "type": "object"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "retryDelaySeconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "runAt": {
+            "description": "One-time execution timestamp",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "default": 780,
+            "maximum": 780,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScheduledTriggerWithRunInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ScheduledTrigger"
+          },
+          {
+            "properties": {
+              "lastRunAt": {
+                "description": "Timestamp of the last completed or failed run",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              },
+              "lastRunConversationIds": {
+                "description": "Conversation IDs from the last run",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "lastRunStatus": {
+                "description": "Status of the last run",
+                "enum": [
+                  "completed",
+                  "failed"
+                ],
+                "nullable": true,
+                "type": "string"
+              },
+              "nextRunAt": {
+                "description": "Timestamp of the next pending run",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "lastRunAt",
+              "lastRunStatus",
+              "lastRunConversationIds",
+              "nextRunAt"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "ScheduledTriggerWithRunInfoListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledTriggerWithRunInfo"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
       },
       "SignatureSource": {
         "description": "Configuration for extracting the signature",
@@ -14344,6 +14893,1529 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers": {
+      "get": {
+        "operationId": "list-scheduled-triggers",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerWithRunInfoListResponse"
+                }
+              }
+            },
+            "description": "List of scheduled triggers retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Scheduled Triggers",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "operationId": "create-scheduled-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledTriggerCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/upcoming-runs": {
+      "get": {
+        "operationId": "list-upcoming-scheduled-runs",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Include currently running invocations in results",
+            "in": "query",
+            "name": "includeRunning",
+            "required": false,
+            "schema": {
+              "description": "Include currently running invocations in results",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInvocationListResponse"
+                }
+              }
+            },
+            "description": "List of upcoming scheduled runs retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Upcoming Runs",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}": {
+      "delete": {
+        "operationId": "delete-scheduled-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scheduled trigger deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      },
+      "get": {
+        "operationId": "get-scheduled-trigger-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      },
+      "patch": {
+        "operationId": "update-scheduled-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledTriggerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations": {
+      "get": {
+        "operationId": "list-scheduled-trigger-invocations",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Start date for filtering (ISO8601)",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "description": "Start date for filtering (ISO8601)",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End date for filtering (ISO8601)",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "description": "End date for filtering (ISO8601)",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by invocation status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Filter by invocation status",
+              "enum": [
+                "pending",
+                "running",
+                "completed",
+                "failed",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInvocationListResponse"
+                }
+              }
+            },
+            "description": "List of scheduled trigger invocations retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Scheduled Trigger Invocations",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}": {
+      "get": {
+        "operationId": "get-scheduled-trigger-invocation-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled Trigger Invocation ID",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger Invocation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInvocationResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger invocation found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Scheduled Trigger Invocation",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/cancel": {
+      "post": {
+        "operationId": "cancel-scheduled-trigger-invocation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled Trigger Invocation ID",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger Invocation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "invocationId": {
+                      "type": "string"
+                    },
+                    "previousStatus": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "invocationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scheduled trigger invocation cancelled successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Cancel Scheduled Trigger Invocation",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/rerun": {
+      "post": {
+        "operationId": "rerun-scheduled-trigger-invocation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled Trigger Invocation ID to rerun",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger Invocation ID to rerun",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "newInvocationId": {
+                      "type": "string"
+                    },
+                    "originalInvocationId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "newInvocationId",
+                    "originalInvocationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scheduled trigger invocation rerun initiated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Rerun Scheduled Trigger Invocation",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/run": {
+      "post": {
+        "operationId": "run-scheduled-trigger-now",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "invocationId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "invocationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scheduled trigger run initiated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Run Scheduled Trigger Now",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components": {
       "post": {
         "operationId": "associate-artifact-component-with-agent",
@@ -20527,21 +22599,6 @@
             }
           },
           {
-            "description": "Filter by invocation status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "description": "Filter by invocation status",
-              "enum": [
-                "pending",
-                "success",
-                "failed"
-              ],
-              "type": "string"
-            }
-          },
-          {
             "description": "Start date for filtering (ISO8601)",
             "in": "query",
             "name": "from",
@@ -20560,6 +22617,21 @@
             "schema": {
               "description": "End date for filtering (ISO8601)",
               "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by invocation status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Filter by invocation status",
+              "enum": [
+                "pending",
+                "success",
+                "failed"
+              ],
               "type": "string"
             }
           }
@@ -36284,6 +38356,10 @@
     {
       "description": "Operations for managing sub agents",
       "name": "SubAgents"
+    },
+    {
+      "description": "Operations for managing scheduled triggers",
+      "name": "Scheduled Triggers"
     },
     {
       "description": "Operations for managing third-party MCP servers",

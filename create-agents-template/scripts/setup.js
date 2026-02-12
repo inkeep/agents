@@ -63,6 +63,7 @@ const isCloud = args.includes('--cloud');
 
 // Detect CI environment (same detection as agents-cli)
 const isCI =
+  process.env.INKEEP_CI === 'true' ||
   process.env.CI === 'true' ||
   process.env.CI === '1' ||
   !!process.env.GITHUB_ACTIONS ||
@@ -205,17 +206,31 @@ async function setupProjectInDatabase(isCloud) {
     }
   }
 
-  // Step 2: Run database migrations
-  logStep(2, 'Running database migrations and upgrading packages');
-  try {
-    const { stdout } = await execAsync('pnpm upgrade-agents');
-    if (stdout) {
-      console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
+  // Step 2: Run database migrations (and optionally upgrade packages)
+  if (process.env.SKIP_UPGRADE === 'true') {
+    logStep(2, 'Skipping package upgrade (SKIP_UPGRADE=true), running migrations only');
+    try {
+      const { stdout } = await execAsync('pnpm db:migrate');
+      if (stdout) {
+        console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
+      }
+      logSuccess('Database migrations completed successfully');
+    } catch (error) {
+      logError('Failed to run database migrations', error);
+      logWarning('This may cause issues with the setup. Consider checking your database schema.');
     }
-    logSuccess('Upgrades completed successfully');
-  } catch (error) {
-    logError('Failed to run database migrations', error);
-    logWarning('This may cause issues with the setup. Consider checking your database schema.');
+  } else {
+    logStep(2, 'Running database migrations and upgrading packages');
+    try {
+      const { stdout } = await execAsync('pnpm upgrade-agents');
+      if (stdout) {
+        console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
+      }
+      logSuccess('Upgrades completed successfully');
+    } catch (error) {
+      logError('Failed to run database migrations', error);
+      logWarning('This may cause issues with the setup. Consider checking your database schema.');
+    }
   }
 
   // Step 3: Initialize default organization and admin user (if credentials are set)
@@ -288,7 +303,7 @@ async function setupProjectInDatabase(isCloud) {
     // Regex patterns for detecting port errors in output
     const portErrorPatterns = {
       agentsApi: new RegExp(
-        `(EADDRINUSE.*:${agentsApiPort}|port ${agentsApiPort}.*already|Port ${agentsApiPort}.*already|agents-api.*Error.*Port)`,
+        `(EADDRINUSE.*:${agentsApiPort}|port ${agentsApiPort}.*already|Port ${agentsApiPort}.*already)`,
         'i'
       ),
       dashboard: /(EADDRINUSE.*:3000|port 3000.*already|Port 3000.*already)/i,
@@ -314,24 +329,6 @@ async function setupProjectInDatabase(isCloud) {
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
       }
       throw new Error(`Server not ready at ${url} after ${timeout}ms. Last error: ${lastError}`);
-    }
-
-    /**
-     * Display port conflict error and exit
-     */
-    function displayPortConflictError(unavailablePorts) {
-      let errorMessage = '';
-      if (unavailablePorts.agentsApi) {
-        errorMessage += `  Agents API port ${agentsApiPort} is already in use\n`;
-      }
-      if (unavailablePorts.dashboard) {
-        errorMessage += `  Dashboard port 3000 is already in use\n`;
-      }
-
-      logError('Port conflicts detected');
-      console.error(errorMessage);
-      logWarning('Please free up the ports and try again.');
-      process.exit(1);
     }
 
     // Monitor output for port errors (fallback in case ports become unavailable between check and start)
@@ -373,103 +370,121 @@ async function setupProjectInDatabase(isCloud) {
       logWarning('Continuing anyway, but subsequent steps may fail');
     }
 
-    // Check if any port errors occurred during startup
-    if (portErrors.agentsApi || portErrors.dashboard) {
-      displayPortConflictError(portErrors);
-    }
-
-    // Step 7: Set up CLI profile
-    logStep(7, 'Setting up CLI profile');
-    try {
-      if (isCloud) {
-        // Cloud setup - don't use --local flag
-        await execAsync('pnpm inkeep init --no-interactive');
-        logSuccess('Cloud CLI profile configured');
-      } else {
-        // Local setup - use --local flag to point to local APIs
-        await execAsync('pnpm inkeep init --local --no-interactive');
-        logSuccess('Local CLI profile configured');
+    // Helper to stop a spawned process
+    const stopProcess = async (proc, name) => {
+      if (!proc.pid) {
+        logWarning(`${name} process PID not found, may still be running`);
+        return;
       }
-    } catch {
-      const initCommand = isCloud ? 'inkeep init' : 'inkeep init --local';
-      logWarning(`Could not set up CLI profile - you may need to run: ${initCommand}`);
-    }
 
-    // Step 8: Log in to CLI (interactive - opens browser)
-    // Skip in CI environments since interactive browser login isn't possible
-    if (isCI) {
-      logStep(8, 'Skipping CLI login (CI environment detected)');
-      logInfo('In CI, use INKEEP_API_KEY environment variable for authentication');
-    } else {
-      logStep(8, 'Logging in to CLI');
-      logInfo('This will open a browser window for authentication...');
       try {
-        await new Promise((resolve, reject) => {
-          const loginProcess = spawn('pnpm', ['inkeep', 'login'], {
-            stdio: 'inherit',
-            shell: true,
-          });
-          loginProcess.on('close', (code) => {
-            if (code === 0) resolve();
-            else reject(new Error(`Login exited with code ${code}`));
-          });
-          loginProcess.on('error', reject);
-        });
-        logSuccess('CLI login completed');
+        if (process.platform === 'win32') {
+          // Windows: Use taskkill to kill process tree
+          await execAsync(`taskkill /pid ${proc.pid} /T /F`);
+        } else {
+          // Unix: Use negative PID to kill process group
+          process.kill(-proc.pid, 'SIGTERM');
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          try {
+            process.kill(-proc.pid, 'SIGKILL');
+          } catch {
+            // Process already killed, this is fine
+          }
+        }
+        logSuccess(`${name} stopped`);
       } catch {
-        logWarning('Could not log in to CLI - you may need to run: inkeep login');
+        logWarning(`Could not cleanly stop ${name} - may still be running in background`);
       }
-    }
-
-    // Step 9: Run inkeep push
-    logStep(9, 'Running inkeep push command');
-    logInfo(`Pushing project: src/projects/${projectId}`);
+    };
 
     let pushSuccess = false;
-    try {
-      const { stdout } = await execAsync(
-        `pnpm inkeep push --project src/projects/${projectId} --config src/inkeep.config.ts`
-      );
 
-      if (stdout) {
-        console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
+    try {
+      // Check if any port errors occurred during startup
+      if (portErrors.agentsApi || portErrors.dashboard) {
+        let errorMessage = '';
+        if (portErrors.agentsApi) {
+          errorMessage += `  Agents API port ${agentsApiPort} is already in use\n`;
+        }
+        if (portErrors.dashboard) {
+          errorMessage += `  Dashboard port 3000 is already in use\n`;
+        }
+        logError('Port conflicts detected');
+        console.error(errorMessage);
+        logWarning('Please free up the ports and try again.');
+        throw new Error('Port conflicts detected');
       }
 
-      logSuccess('Inkeep push completed successfully');
-      pushSuccess = true;
-    } catch (error) {
-      logError('Inkeep push command failed', error);
-      logWarning('The project may not have been pushed to the remote');
-      pushSuccess = false;
-    } finally {
-      // Step 10: Cleanup - Stop development servers
-      logStep(10, 'Cleaning up - stopping development servers');
-
-      const stopProcess = async (proc, name) => {
-        if (!proc.pid) {
-          logWarning(`${name} process PID not found, may still be running`);
-          return;
-        }
-
+      // Step 7: Set up CLI profile (skip in CI - uses INKEEP_API_KEY env var instead)
+      if (isCI) {
+        logStep(7, 'Skipping CLI profile setup (CI environment detected)');
+        logInfo('In CI, use INKEEP_API_KEY environment variable for authentication');
+      } else {
+        logStep(7, 'Setting up CLI profile');
         try {
-          if (process.platform === 'win32') {
-            // Windows: Use taskkill to kill process tree
-            await execAsync(`taskkill /pid ${proc.pid} /T /F`);
+          if (isCloud) {
+            // Cloud setup - don't use --local flag
+            await execAsync('pnpm inkeep init --no-interactive');
+            logSuccess('Cloud CLI profile configured');
           } else {
-            // Unix: Use negative PID to kill process group
-            process.kill(-proc.pid, 'SIGTERM');
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            try {
-              process.kill(-proc.pid, 'SIGKILL');
-            } catch {
-              // Process already killed, this is fine
-            }
+            // Local setup - use --local flag to point to local APIs
+            await execAsync('pnpm inkeep init --local --no-interactive');
+            logSuccess('Local CLI profile configured');
           }
-          logSuccess(`${name} stopped`);
         } catch {
-          logWarning(`Could not cleanly stop ${name} - may still be running in background`);
+          const initCommand = isCloud ? 'inkeep init' : 'inkeep init --local';
+          logWarning(`Could not set up CLI profile - you may need to run: ${initCommand}`);
         }
-      };
+      }
+
+      // Step 8: Log in to CLI (interactive - opens browser)
+      // Skip in CI environments since interactive browser login isn't possible
+      if (isCI) {
+        logStep(8, 'Skipping CLI login (CI environment detected)');
+        logInfo('In CI, use INKEEP_API_KEY environment variable for authentication');
+      } else {
+        logStep(8, 'Logging in to CLI');
+        logInfo('This will open a browser window for authentication...');
+        try {
+          await new Promise((resolve, reject) => {
+            const loginProcess = spawn('pnpm', ['inkeep', 'login'], {
+              stdio: 'inherit',
+              shell: true,
+            });
+            loginProcess.on('close', (code) => {
+              if (code === 0) resolve();
+              else reject(new Error(`Login exited with code ${code}`));
+            });
+            loginProcess.on('error', reject);
+          });
+          logSuccess('CLI login completed');
+        } catch {
+          logWarning('Could not log in to CLI - you may need to run: inkeep login');
+        }
+      }
+
+      // Step 9: Run inkeep push
+      logStep(9, 'Running inkeep push command');
+      logInfo(`Pushing project: src/projects/${projectId}`);
+
+      try {
+        const { stdout } = await execAsync(
+          `pnpm inkeep push --project src/projects/${projectId} --config src/inkeep.config.ts`
+        );
+
+        if (stdout) {
+          console.log(`${colors.dim}${stdout.trim()}${colors.reset}`);
+        }
+
+        logSuccess('Inkeep push completed successfully');
+        pushSuccess = true;
+      } catch (error) {
+        logError('Inkeep push command failed', error);
+        logWarning('The project may not have been pushed to the remote');
+      }
+    } finally {
+      // Step 10: Cleanup - Always stop development servers
+      logStep(10, 'Cleaning up - stopping development servers');
 
       logInfo('Stopping API server...');
       await stopProcess(devApiProcess, 'API server');
