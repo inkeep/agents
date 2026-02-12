@@ -1,6 +1,13 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
-import type { CodeBlockWriter } from 'ts-morph';
-import { IndentationText, NewLineKind, Project, QuoteKind } from 'ts-morph';
+import {
+  IndentationText,
+  NewLineKind,
+  type ObjectLiteralExpression,
+  Project,
+  QuoteKind,
+  SyntaxKind,
+  VariableDeclarationKind,
+} from 'ts-morph';
 import { z } from 'zod';
 
 type ProjectDefinitionData = Omit<
@@ -47,7 +54,7 @@ const ProjectSchema = z.looseObject({
   credentialReferences: z.array(z.string()).optional(),
 });
 
-type SectionWriter = (writer: CodeBlockWriter, hasTrailingComma: boolean) => void;
+type ParsedProjectDefinitionData = z.infer<typeof ProjectSchema>;
 
 export function generateProjectDefinition(data: ProjectDefinitionData): string {
   const result = ProjectSchema.safeParse(data);
@@ -69,174 +76,181 @@ ${z.prettifyError(result.error)}`);
   const parsed = result.data;
   const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
   const projectVarName = toCamelCase(parsed.projectId);
-  sourceFile.replaceWithText((writer) => {
-    writeProjectDefinition(writer, projectVarName, parsed);
+  sourceFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    isExported: true,
+    declarations: [
+      {
+        name: projectVarName,
+        initializer: 'project({})',
+      },
+    ],
   });
+
+  const declaration = sourceFile.getVariableDeclarationOrThrow(projectVarName);
+  const callExpression = declaration.getInitializerIfKindOrThrow(SyntaxKind.CallExpression);
+  const configObject = callExpression
+    .getArguments()[0]
+    ?.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  writeProjectConfig(configObject, parsed);
 
   return sourceFile.getFullText().trimEnd();
 }
 
-function writeProjectDefinition(
-  writer: CodeBlockWriter,
-  projectVarName: string,
-  {
-    agents,
-    artifactComponents,
-    credentialReferences,
-    dataComponents,
-    description,
-    externalAgents,
-    models,
-    name,
-    projectId,
-    stopWhen,
-    tools,
-  }: ProjectDefinitionData
-) {
-  const sections: SectionWriter[] = [];
+function writeProjectConfig(configObject: ObjectLiteralExpression, data: ParsedProjectDefinitionData) {
+  addStringProperty(configObject, 'id', data.projectId);
+  addStringProperty(configObject, 'name', data.name);
 
-  sections.push((lineWriter, hasTrailingComma) => {
-    lineWriter.writeLine(`id: ${toLiteral(projectId)}${hasTrailingComma ? ',' : ''}`);
-  });
-  sections.push((lineWriter, hasTrailingComma) => {
-    lineWriter.writeLine(`name: ${toLiteral(name ?? '')}${hasTrailingComma ? ',' : ''}`);
-  });
-
-  if (description) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      lineWriter.writeLine(`description: ${toLiteral(description)}${hasTrailingComma ? ',' : ''}`);
-    });
+  if (data.description) {
+    addStringProperty(configObject, 'description', data.description);
   }
 
-  sections.push((lineWriter, hasTrailingComma) => {
-    writeModels(lineWriter, models, hasTrailingComma);
-  });
+  addModelsProperty(configObject, data.models);
 
-  if (hasStopWhen(stopWhen)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeStopWhen(lineWriter, stopWhen, hasTrailingComma);
-    });
+  if (hasStopWhen(data.stopWhen)) {
+    addStopWhenProperty(configObject, data.stopWhen);
   }
 
-  if (hasReferences(agents)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeReferenceSection(lineWriter, 'agents', agents, hasTrailingComma);
-    });
+  if (hasReferences(data.agents)) {
+    addReferenceGetterProperty(configObject, 'agents', data.agents);
   }
 
-  if (hasReferences(tools)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeReferenceSection(lineWriter, 'tools', tools, hasTrailingComma);
-    });
+  if (hasReferences(data.tools)) {
+    addReferenceGetterProperty(configObject, 'tools', data.tools);
   }
 
-  if (hasReferences(externalAgents)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeReferenceSection(lineWriter, 'externalAgents', externalAgents, hasTrailingComma);
-    });
+  if (hasReferences(data.externalAgents)) {
+    addReferenceGetterProperty(configObject, 'externalAgents', data.externalAgents);
   }
 
-  if (hasReferences(dataComponents)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeReferenceSection(lineWriter, 'dataComponents', dataComponents, hasTrailingComma);
-    });
+  if (hasReferences(data.dataComponents)) {
+    addReferenceGetterProperty(configObject, 'dataComponents', data.dataComponents);
   }
 
-  if (hasReferences(artifactComponents)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeReferenceSection(lineWriter, 'artifactComponents', artifactComponents, hasTrailingComma);
-    });
+  if (hasReferences(data.artifactComponents)) {
+    addReferenceGetterProperty(configObject, 'artifactComponents', data.artifactComponents);
   }
 
-  if (hasReferences(credentialReferences)) {
-    sections.push((lineWriter, hasTrailingComma) => {
-      writeReferenceSection(
-        lineWriter,
-        'credentialReferences',
-        credentialReferences,
-        hasTrailingComma
-      );
-    });
+  if (hasReferences(data.credentialReferences)) {
+    addReferenceGetterProperty(configObject, 'credentialReferences', data.credentialReferences);
   }
-
-  writer.writeLine(`export const ${projectVarName} = project({`);
-  writer.indent(() => {
-    for (const [index, section] of sections.entries()) {
-      section(writer, index < sections.length - 1);
-    }
-  });
-  writer.write('});');
 }
 
-function writeModels(
-  writer: CodeBlockWriter,
-  models: NonNullable<ProjectDefinitionData['models']>,
-  hasTrailingComma: boolean
-) {
-  writer.writeLine('models: {');
-  writer.indent(() => {
-    const orderedEntries = [
-      ['base', models.base],
-      ['structuredOutput', models.structuredOutput],
-      ['summarizer', models.summarizer],
-    ] as const;
-
-    const definedEntries = orderedEntries.filter(([, value]) => value != null);
-
-    for (const [index, [key, value]] of definedEntries.entries()) {
-      const isLast = index === definedEntries.length - 1;
-      writer.writeLine(`${key}: ${toLiteral(value)}${isLast ? '' : ','}`);
-    }
+function addStringProperty(configObject: ObjectLiteralExpression, key: string, value: string) {
+  configObject.addPropertyAssignment({
+    name: key,
+    initializer: formatStringLiteral(value),
   });
-  writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
 }
 
-function writeStopWhen(
-  writer: CodeBlockWriter,
-  stopWhen: NonNullable<ProjectDefinitionData['stopWhen']>,
-  hasTrailingComma: boolean
+function addModelsProperty(
+  configObject: ObjectLiteralExpression,
+  models: ParsedProjectDefinitionData['models']
 ) {
-  writer.writeLine('stopWhen: {');
-  writer.indent(() => {
-    const entries: Array<[string, number]> = [];
-    if (stopWhen.transferCountIs !== undefined) {
-      entries.push(['transferCountIs', stopWhen.transferCountIs]);
-    }
-    if (stopWhen.stepCountIs !== undefined) {
-      entries.push(['stepCountIs', stopWhen.stepCountIs]);
-    }
-    for (const [index, [key, value]] of entries.entries()) {
-      const isLast = index === entries.length - 1;
-      writer.writeLine(`${key}: ${value}${isLast ? '' : ','}`);
-    }
+  const modelsProperty = configObject.addPropertyAssignment({
+    name: 'models',
+    initializer: '{}',
   });
-  writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
+  const modelsObject = modelsProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  addModelEntry(modelsObject, 'base', models.base);
+  if (models.structuredOutput) {
+    addModelEntry(modelsObject, 'structuredOutput', models.structuredOutput);
+  }
+  if (models.summarizer) {
+    addModelEntry(modelsObject, 'summarizer', models.summarizer);
+  }
 }
 
-function writeReferenceSection(
-  writer: CodeBlockWriter,
+function addModelEntry(
+  modelsObject: ObjectLiteralExpression,
   key: string,
-  refs: string[],
-  hasTrailingComma: boolean
+  value: Record<string, unknown>
 ) {
-  if (refs.length === 1) {
-    writer.writeLine(`${key}: () => [${refs[0]}]${hasTrailingComma ? ',' : ''}`);
-    return;
-  }
-
-  writer.writeLine(`${key}: () => [`);
-  writer.indent(() => {
-    for (const [index, item] of refs.entries()) {
-      const isLast = index === refs.length - 1;
-      writer.writeLine(`${item}${isLast ? '' : ','}`);
-    }
+  const modelProperty = modelsObject.addPropertyAssignment({
+    name: key,
+    initializer: '{}',
   });
-  writer.writeLine(`]${hasTrailingComma ? ',' : ''}`);
+  const modelObject = modelProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+  addObjectEntries(modelObject, value);
 }
 
-function toLiteral(value: unknown): string {
+function addStopWhenProperty(
+  configObject: ObjectLiteralExpression,
+  stopWhen: NonNullable<ParsedProjectDefinitionData['stopWhen']>
+) {
+  const stopWhenProperty = configObject.addPropertyAssignment({
+    name: 'stopWhen',
+    initializer: '{}',
+  });
+  const stopWhenObject = stopWhenProperty.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+  if (stopWhen.transferCountIs !== undefined) {
+    stopWhenObject.addPropertyAssignment({
+      name: 'transferCountIs',
+      initializer: String(stopWhen.transferCountIs),
+    });
+  }
+  if (stopWhen.stepCountIs !== undefined) {
+    stopWhenObject.addPropertyAssignment({
+      name: 'stepCountIs',
+      initializer: String(stopWhen.stepCountIs),
+    });
+  }
+}
+
+function addReferenceGetterProperty(
+  configObject: ObjectLiteralExpression,
+  key: string,
+  refs: string[]
+) {
+  const property = configObject.addPropertyAssignment({
+    name: key,
+    initializer: '() => []',
+  });
+  const getter = property.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
+  const body = getter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+  body.addElements(refs);
+}
+
+function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (entryValue === undefined) {
+      continue;
+    }
+
+    if (isPlainObject(entryValue)) {
+      const property = target.addPropertyAssignment({
+        name: formatPropertyName(key),
+        initializer: '{}',
+      });
+      const nestedObject = property.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+      addObjectEntries(nestedObject, entryValue);
+      continue;
+    }
+
+    target.addPropertyAssignment({
+      name: formatPropertyName(key),
+      initializer: formatInlineLiteral(entryValue),
+    });
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatPropertyName(key: string): string {
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
+    return key;
+  }
+  return formatStringLiteral(key);
+}
+
+function formatInlineLiteral(value: unknown): string {
   if (typeof value === 'string') {
-    return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+    return formatStringLiteral(value);
   }
   if (typeof value === 'number' || typeof value === 'bigint') {
     return String(value);
@@ -251,15 +265,29 @@ function toLiteral(value: unknown): string {
     return 'undefined';
   }
   if (Array.isArray(value)) {
-    return `[${value.map((item) => toLiteral(item)).join(', ')}]`;
+    return `[${value.map((item) => formatInlineLiteral(item)).join(', ')}]`;
   }
-
-  const entries = Object.entries(value);
-  if (entries.length === 0) {
-    return '{}';
+  if (isPlainObject(value)) {
+    const entries = Object.entries(value).filter(([, entryValue]) => entryValue !== undefined);
+    if (entries.length === 0) {
+      return '{}';
+    }
+    return `{ ${entries
+      .map(([key, entryValue]) => `${formatPropertyName(key)}: ${formatInlineLiteral(entryValue)}`)
+      .join(', ')} }`;
   }
+  return 'undefined';
+}
 
-  return `{ ${entries.map(([key, entryValue]) => `${key}: ${toLiteral(entryValue)}`).join(', ')} }`;
+function formatStringLiteral(value: string): string {
+  if (value.includes('\n')) {
+    return `\`${escapeTemplateLiteral(value)}\``;
+  }
+  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+}
+
+function escapeTemplateLiteral(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
 }
 
 function toCamelCase(input: string): string {
@@ -280,11 +308,12 @@ function toCamelCase(input: string): string {
 }
 
 function hasStopWhen(
-  stopWhen: ProjectDefinitionData['stopWhen']
-): stopWhen is NonNullable<ProjectDefinitionData['stopWhen']> {
+  stopWhen: ParsedProjectDefinitionData['stopWhen']
+): stopWhen is NonNullable<ParsedProjectDefinitionData['stopWhen']> {
   if (!stopWhen) {
-    return false;
+    return;
   }
+
   return stopWhen.transferCountIs !== undefined || stopWhen.stepCountIs !== undefined;
 }
 
