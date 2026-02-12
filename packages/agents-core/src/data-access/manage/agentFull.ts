@@ -37,12 +37,12 @@ import {
   upsertFunctionTool,
   upsertSubAgentFunctionToolRelation,
 } from './functionTools';
-import { upsertSubAgentSkill } from './skills';
 import {
   deleteScheduledTrigger,
   listScheduledTriggers,
   upsertScheduledTrigger,
 } from './scheduledTriggers';
+import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
