@@ -16,7 +16,7 @@ This tutorial walks you through pushing agent configurations to Inkeep Cloud.
 npm install -g @inkeep/agents-cli
 ```
 
-- A CLI profile configured and authenticated (only needed for remote deployments). If you haven't done this yet, follow the [Set up a CLI profile](/tutorials/cli/setup-profile) tutorial.
+- A CLI profile configured and authenticated (only needed for remote deployments). If you haven't done this yet, follow the [Set up a CLI profile](/guides/cli/setup-profile) tutorial.
 
 ## Step 1: Navigate to your project
 
@@ -40,7 +40,7 @@ inkeep push
 
 The CLI will:
 1. Detect the project from your `index.ts` file
-2. Resolve configuration — your active [CLI profile](/tutorials/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
+2. Resolve configuration — your active [CLI profile](/guides/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
 3. Push all agents, tools, and configurations to Inkeep Cloud
 
 ## Step 3: Verify the push
@@ -58,7 +58,7 @@ inkeep push --all
 ## What's next
 
 <Cards>
-  <Card title="Pull from Cloud" icon="LuCloudDownload" href="/tutorials/cli/pull-from-cloud">
+  <Card title="Pull from Cloud" icon="LuCloudDownload" href="/guides/cli/pull-from-cloud">
     Pull agent configurations from Inkeep Cloud to your local project
   </Card>
   <Card title="CLI Reference" icon="LuTerminal" href="/typescript-sdk/cli-reference">

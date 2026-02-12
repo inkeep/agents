@@ -16,7 +16,7 @@ This tutorial walks you through pulling agent configurations from Inkeep Cloud t
 npm install -g @inkeep/agents-cli
 ```
 
-- A CLI profile configured and authenticated (only needed for remote deployments). If you haven't done this yet, follow the [Set up a CLI profile](/tutorials/cli/setup-profile) tutorial.
+- A CLI profile configured and authenticated (only needed for remote deployments). If you haven't done this yet, follow the [Set up a CLI profile](/guides/cli/setup-profile) tutorial.
 - An LLM API key set as an environment variable. The pull command uses LLM generation to produce TypeScript files. Set one of the following:
 
 ```bash
@@ -57,8 +57,8 @@ inkeep pull
 
 The CLI will:
 1. Detect the project from your `index.ts` file
-2. Resolve configuration — your active [CLI profile](/tutorials/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
-3. Fetch the latest project data from the cloud
+2. Resolve configuration — your active [CLI profile](/guides/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
+3. Fetch the latest configuration from Inkeep Cloud
 4. Compare remote changes against your local files
 5. Generate updated TypeScript files, preserving your local code structure
 
@@ -172,7 +172,7 @@ This outputs the project configuration as JSON, which is useful for debugging or
 ## What's next
 
 <Cards>
-  <Card title="Push to Cloud" icon="LuCloudUpload" href="/tutorials/cli/push-to-cloud">
+  <Card title="Push to Cloud" icon="LuCloudUpload" href="/guides/cli/push-to-cloud">
     Push local changes back to Inkeep Cloud
   </Card>
   <Card title="CLI Reference" icon="LuTerminal" href="/typescript-sdk/cli-reference">
