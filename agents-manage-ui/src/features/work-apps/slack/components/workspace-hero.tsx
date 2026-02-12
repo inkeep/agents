@@ -166,10 +166,10 @@ export function WorkspaceHero() {
         toast.success('Test message sent successfully!');
         setShowTestMessageDialog(false);
       } else {
-        toast.error(result.error || 'Failed to send test message');
+        toast.error(result.error || 'Failed to send test message', { duration: Infinity });
       }
     } catch {
-      toast.error('Failed to send test message');
+      toast.error('Failed to send test message', { duration: Infinity });
     } finally {
       setSendingTestMessage(false);
     }
