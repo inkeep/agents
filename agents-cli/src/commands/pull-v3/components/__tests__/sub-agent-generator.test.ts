@@ -288,8 +288,8 @@ describe('Sub-Agent Generator', () => {
       const skillsData = {
         name: 'Skills Agent',
         skills: [
-          { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: false },
-          { id: 'weather-safety-guardrails', index: 0, alwaysLoaded: true },
+          { id: 'weather-safety-guardrails', alwaysLoaded: true },
+          { id: 'structured-itinerary-responses', alwaysLoaded: false },
         ],
       };
 
