@@ -136,12 +136,12 @@ app.openapi(
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
     try {
-      // Two-phase commit: Wrap all database operations in transactions
-      // If SpiceDB sync fails, both DB transactions will rollback automatically
+      // SpiceDB sync is placed inside the transaction callbacks so that a SpiceDB failure
+      // causes both DB transactions to roll back. However, SpiceDB is not a true transaction
+      // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
+      // may remain in SpiceDB (safe due to deny-by-default).
       const createdProject = await runDbClient.transaction(async (runTx) => {
         return await configDb.transaction(async (configTx) => {
-          // Phase 1: Database operations (within transactions - not committed yet)
-
           // 1. Create project in runtime DB and create project main branch
           await createProjectMetadataAndBranch(
             runTx,
@@ -180,17 +180,21 @@ app.openapi(
             projectData: validatedProjectData,
           });
 
-          // Phase 2: Sync to SpiceDB (still within transaction scope)
-          // If this fails, both transactions will rollback automatically
+          // Sync to SpiceDB — if this throws, both DB transactions roll back.
+          // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
+          // the auth relationships (orphaned but safe due to deny-by-default).
           if (userId) {
             await syncProjectToSpiceDb({
               tenantId,
               projectId: validatedProjectData.id,
               creatorUserId: userId,
             });
+          } else {
+            logger.warn(
+              { tenantId, projectId: validatedProjectData.id },
+              'Skipping SpiceDB sync — no userId available'
+            );
           }
-
-          // If we reach here, both transactions will commit
           return project;
         });
       });
@@ -206,8 +210,8 @@ app.openapi(
         });
       }
 
-      // Handle SpiceDB sync failures - transactions already rolled back
-      // Check for gRPC error characteristics (SpiceDB uses gRPC via @authzed/authzed-node)
+      // Handle SpiceDB sync failures — DB transactions rolled back since the
+      // exception propagated out of the transaction callbacks.
       const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
       const mentionsSpiceDb = error?.message?.includes('SpiceDB');
       if (mentionsSpiceDb || isGrpcError) {
@@ -218,7 +222,7 @@ app.openapi(
             projectId: validatedProjectData.id,
             userId,
           },
-          'Failed to sync project to SpiceDB - database transactions rolled back'
+          'Failed to sync project to SpiceDB — database transactions rolled back'
         );
         throw createApiError({
           code: 'internal_server_error',
@@ -397,6 +401,7 @@ app.openapi(
     const projectData = c.req.valid('json');
     const configDb = c.get('db');
     const userId = c.get('userId');
+    const isCreate = c.get('isProjectCreate') ?? false;
 
     try {
       const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
@@ -406,28 +411,6 @@ app.openapi(
           code: 'bad_request',
           message: `Project ID mismatch: expected ${projectId}, got ${validatedProjectData.id}`,
         });
-      }
-
-      // Use cached result from middleware (permission already checked there)
-      const isCreate = c.get('isProjectCreate') ?? false;
-
-      // Two-phase commit for creates, regular update for existing projects
-      if (isCreate) {
-        // Project doesn't exist - create it with branch first
-        await createProjectMetadataAndBranch(
-          runDbClient,
-          configDb
-        )({
-          tenantId,
-          projectId,
-          createdBy: userId,
-        });
-
-        logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
-
-        // Checkout the project main branch
-        const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
-        await checkoutBranch(configDb)({ branchName: projectMainBranch, autoCommitPending: true });
       }
 
       // fetch existing scheduled triggers for all agents
@@ -443,11 +426,13 @@ app.openapi(
       }
 
       // Update/create the full project using server-side data layer operations
+      // SpiceDB sync is placed inside the transaction callbacks so that a SpiceDB failure
+      // causes both DB transactions to roll back. However, SpiceDB is not a true transaction
+      // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
+      // may remain in SpiceDB (safe due to deny-by-default).
       const updatedProject: FullProjectSelect = isCreate
         ? await runDbClient.transaction(async (runTx) => {
             return await configDb.transaction(async (configTx) => {
-              // Phase 1: Database operations (within transactions)
-
               // Create project with branch first
               await createProjectMetadataAndBranch(
                 runTx,
@@ -473,14 +458,17 @@ app.openapi(
                 projectData: validatedProjectData,
               });
 
-              // Phase 2: Sync to SpiceDB (within transaction scope)
-              // If this fails, both transactions will rollback automatically
+              // Sync to SpiceDB — if this throws, both DB transactions roll back.
+              // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
+              // the auth relationships (orphaned but safe due to deny-by-default).
               if (userId) {
                 await syncProjectToSpiceDb({
                   tenantId,
                   projectId,
                   creatorUserId: userId,
                 });
+              } else {
+                logger.warn({ tenantId, projectId }, 'Skipping SpiceDB sync — no userId available');
               }
 
               return project;
@@ -626,10 +614,9 @@ app.openapi(
         });
       }
 
-      // Handle SpiceDB sync failures for creates - transactions already rolled back
-      const isCreate = c.get('isProjectCreate') ?? false;
+      // Handle SpiceDB sync failures for creates — DB transactions rolled back since the
+      // exception propagated out of the transaction callbacks.
       if (isCreate) {
-        // Check for gRPC error characteristics (SpiceDB uses gRPC via @authzed/authzed-node)
         const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
         const mentionsSpiceDb = error?.message?.includes('SpiceDB');
         if (mentionsSpiceDb || isGrpcError) {
@@ -640,7 +627,7 @@ app.openapi(
               projectId,
               userId,
             },
-            'Failed to sync project to SpiceDB - database transactions rolled back'
+            'Failed to sync project to SpiceDB — database transactions rolled back'
           );
           throw createApiError({
             code: 'internal_server_error',
@@ -736,12 +723,12 @@ app.openapi(
           projectId,
         });
         logger.info({ tenantId, projectId }, 'Removed project from SpiceDB');
-      } catch (spiceDbError) {
+      } catch (error) {
         // Log but don't fail - the project data is already deleted
         // This could leave orphaned auth relationships, but won't affect functionality
         logger.warn(
           {
-            spiceDbError,
+            error,
             tenantId,
             projectId,
           },
