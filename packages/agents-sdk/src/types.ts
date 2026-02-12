@@ -87,11 +87,11 @@ export type SkillDefinition = Pick<
   'id' | 'name' | 'description' | 'content' | 'metadata' | 'createdAt' | 'updatedAt'
 >;
 
-export type SkillReference = {
+export interface SkillReference {
   id: string;
   /** @default false */
   alwaysLoaded?: boolean;
-};
+}
 export type AllDelegateInputInterface =
   | SubAgentInterface
   | subAgentExternalAgentInterface
