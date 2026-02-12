@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-missing spans fix
+Fix missing OpenTelemetry spans in Vercel serverless streaming responses

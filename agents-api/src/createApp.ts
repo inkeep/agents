@@ -310,7 +310,8 @@ function createAgentsHono(config: AppConfig) {
       try {
         const { waitUntil } = await import('@vercel/functions');
         waitUntil(flushBatchProcessor());
-      } catch {
+      } catch (importError) {
+        logger.debug({ error: importError }, '@vercel/functions import failed, flushing synchronously');
         await flushBatchProcessor();
       }
     } else {
