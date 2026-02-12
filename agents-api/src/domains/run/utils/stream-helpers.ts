@@ -617,17 +617,12 @@ export class VercelDataStreamHelper implements StreamHelper {
     });
   }
 
-  async writeToolOutputError(params: {
-    toolCallId: string;
-    errorText: string;
-    output?: any;
-  }): Promise<void> {
+  async writeToolOutputError(params: { toolCallId: string; errorText: string }): Promise<void> {
     if (this.isCompleted) return;
     this.writer.write({
       type: 'tool-output-error',
       toolCallId: params.toolCallId,
       errorText: params.errorText,
-      output: params.output ?? null,
     });
   }
 
