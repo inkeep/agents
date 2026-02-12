@@ -1,6 +1,5 @@
-import { SkillApiInsertSchema } from '@inkeep/agents-core/client-exports';
+import { SkillApiInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { transformToJson } from '@/lib/json-schema-validation';
 
 const SkillMetadata = SkillApiInsertSchema.shape.metadata;
 
