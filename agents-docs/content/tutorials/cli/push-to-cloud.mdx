@@ -36,7 +36,7 @@ inkeep push
 
 The CLI will:
 1. Detect the project from your `index.ts` file
-2. Load configuration from `inkeep.config.ts`
+2. Resolve configuration — your active [CLI profile](/tutorials/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
 3. Push all agents, tools, and configurations to Inkeep Cloud
 
 ## Step 3: Verify the push
