@@ -103,6 +103,10 @@ async function fetchAgentsFromManageApi(tenantId: string, authToken: string): Pr
               projectName: project.name,
             }));
           }
+          logger.warn(
+            { status: agentsResponse.status, projectId: project.id },
+            'Failed to fetch agents for project'
+          );
           return [];
         } catch (error) {
           logger.error({ error, projectId: project.id }, 'Failed to fetch agents for project');
@@ -507,6 +511,10 @@ async function executeAgentInBackground(
     } catch (error) {
       clearTimeout(timeout);
       if ((error as Error).name === 'AbortError') {
+        logger.warn(
+          { teamId: payload.teamId, timeoutMs: 30000 },
+          'Background agent execution timed out'
+        );
         await sendResponseUrlMessage(payload.responseUrl, {
           response_type: 'ephemeral',
           text: 'Request timed out. Please try again.',
@@ -714,7 +722,14 @@ export async function handleCommand(payload: SlackCommandPayload): Promise<Slack
   const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 
   const workspaceConnection = await findWorkspaceConnectionByTeamId(payload.teamId);
-  const tenantId = workspaceConnection?.tenantId || 'default';
+  if (!workspaceConnection?.tenantId) {
+    logger.error({ teamId: payload.teamId }, 'No workspace connection or missing tenantId');
+    return {
+      response_type: 'ephemeral',
+      text: 'This workspace is not properly configured. Please reinstall the Slack app from the Inkeep dashboard.',
+    };
+  }
+  const tenantId = workspaceConnection.tenantId;
   const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
   logger.info(

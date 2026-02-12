@@ -40,7 +40,6 @@ export {
   getThreadContext,
   getUserFriendlyErrorMessage,
   getWorkspaceDefaultAgent,
-  invalidateUserMappingCache,
   markdownToMrkdwn,
   SlackErrorType,
   sendResponseUrlMessage,

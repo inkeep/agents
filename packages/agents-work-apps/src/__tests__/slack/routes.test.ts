@@ -51,6 +51,21 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
+vi.mock('../../slack/services/security', () => ({
+  verifySlackRequest: vi.fn(() => true),
+  parseSlackCommandBody: vi.fn(() => ({})),
+  parseSlackEventBody: vi.fn((body: string) => JSON.parse(body)),
+}));
+
+vi.mock('../../env', () => ({
+  env: {
+    SLACK_SIGNING_SECRET: 'test-signing-secret',
+    NANGO_SECRET_KEY: 'test-nango-key',
+    NANGO_SLACK_SECRET_KEY: 'test-nango-slack-key',
+    ENVIRONMENT: 'test',
+  },
+}));
+
 vi.mock('../../slack/services/nango', () => ({
   getSlackNango: vi.fn(() => ({
     listConnections: vi.fn(async () => ({ connections: [] })),

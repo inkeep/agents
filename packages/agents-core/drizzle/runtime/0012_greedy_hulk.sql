@@ -49,54 +49,6 @@ CREATE TABLE "work_app_slack_workspaces" (
 	CONSTRAINT "work_app_slack_workspaces_nango_connection_unique" UNIQUE("nango_connection_id")
 );
 --> statement-breakpoint
-/* 
-    Unfortunately in current drizzle-kit version we can't automatically get name for primary key.
-    We are working on making it available!
-
-    Meanwhile you can:
-        1. Check pk name in your database, by running
-            SELECT constraint_name FROM information_schema.table_constraints
-            WHERE table_schema = 'public'
-                AND table_name = 'work_app_github_installations'
-                AND constraint_type = 'PRIMARY KEY';
-        2. Uncomment code below and paste pk name manually
-        
-    Hope to release this update as soon as possible
-*/
-
--- ALTER TABLE "work_app_github_installations" DROP CONSTRAINT "<constraint_name>";--> statement-breakpoint
-/* 
-    Unfortunately in current drizzle-kit version we can't automatically get name for primary key.
-    We are working on making it available!
-
-    Meanwhile you can:
-        1. Check pk name in your database, by running
-            SELECT constraint_name FROM information_schema.table_constraints
-            WHERE table_schema = 'public'
-                AND table_name = 'work_app_github_mcp_tool_repository_access'
-                AND constraint_type = 'PRIMARY KEY';
-        2. Uncomment code below and paste pk name manually
-        
-    Hope to release this update as soon as possible
-*/
-
--- ALTER TABLE "work_app_github_mcp_tool_repository_access" DROP CONSTRAINT "<constraint_name>";--> statement-breakpoint
-/* 
-    Unfortunately in current drizzle-kit version we can't automatically get name for primary key.
-    We are working on making it available!
-
-    Meanwhile you can:
-        1. Check pk name in your database, by running
-            SELECT constraint_name FROM information_schema.table_constraints
-            WHERE table_schema = 'public'
-                AND table_name = 'work_app_github_project_repository_access'
-                AND constraint_type = 'PRIMARY KEY';
-        2. Uncomment code below and paste pk name manually
-        
-    Hope to release this update as soon as possible
-*/
-
--- ALTER TABLE "work_app_github_project_repository_access" DROP CONSTRAINT "<constraint_name>";--> statement-breakpoint
 ALTER TABLE "work_app_slack_channel_agent_configs" ADD CONSTRAINT "work_app_slack_channel_agent_configs_tenant_id_organization_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "work_app_slack_channel_agent_configs" ADD CONSTRAINT "work_app_slack_channel_agent_configs_configured_by_user_id_user_id_fk" FOREIGN KEY ("configured_by_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "work_app_slack_user_mappings" ADD CONSTRAINT "work_app_slack_user_mappings_tenant_id_organization_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

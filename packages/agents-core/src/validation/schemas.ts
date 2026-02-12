@@ -55,9 +55,6 @@ import {
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectRepositoryAccess,
   workAppGitHubRepositories,
-  workAppSlackChannelAgentConfigs,
-  workAppSlackUserMappings,
-  workAppSlackWorkspaces,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -2815,48 +2812,3 @@ export const WorkAppGitHubAccessGetResponseSchema = z.object({
   mode: WorkAppGitHubAccessModeSchema,
   repositories: z.array(WorkAppGitHubRepositorySelectSchema),
 });
-
-// ============================================================================
-// Work App Configuration Schemas
-// ============================================================================
-
-// ============================================================================
-// Work App Slack Schemas
-// ============================================================================
-
-export const WorkAppSlackWorkspaceStatusSchema = z.enum(['active', 'suspended', 'disconnected']);
-
-export const WorkAppSlackWorkspaceSelectSchema = createSelectSchema(workAppSlackWorkspaces);
-export const WorkAppSlackWorkspaceInsertSchema = createInsertSchema(workAppSlackWorkspaces)
-  .omit({
-    createdAt: true,
-    updatedAt: true,
-  })
-  .extend({
-    status: WorkAppSlackWorkspaceStatusSchema.optional().default('active'),
-  });
-export const WorkAppSlackWorkspaceUpdateSchema = WorkAppSlackWorkspaceInsertSchema.partial();
-
-export const WorkAppSlackUserMappingSelectSchema = createSelectSchema(workAppSlackUserMappings);
-export const WorkAppSlackUserMappingInsertSchema = createInsertSchema(workAppSlackUserMappings)
-  .omit({
-    createdAt: true,
-    updatedAt: true,
-    linkedAt: true,
-  })
-  .extend({
-    clientId: z.string().optional().default('work-apps-slack'),
-  });
-export const WorkAppSlackUserMappingUpdateSchema = WorkAppSlackUserMappingInsertSchema.partial();
-
-export const WorkAppSlackChannelAgentConfigSelectSchema = createSelectSchema(
-  workAppSlackChannelAgentConfigs
-);
-export const WorkAppSlackChannelAgentConfigInsertSchema = createInsertSchema(
-  workAppSlackChannelAgentConfigs
-).omit({
-  createdAt: true,
-  updatedAt: true,
-});
-export const WorkAppSlackChannelAgentConfigUpdateSchema =
-  WorkAppSlackChannelAgentConfigInsertSchema.partial();

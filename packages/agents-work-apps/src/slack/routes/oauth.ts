@@ -15,6 +15,7 @@ import { getLogger } from '../../logger';
 import {
   clearWorkspaceConnectionCache,
   computeWorkspaceConnectionId,
+  deleteWorkspaceInstallation,
   getBotTokenForTeam,
   getSlackClient,
   getSlackTeamInfo,
@@ -79,7 +80,7 @@ export function getStateSigningSecret(): string {
 export function createOAuthState(tenantId?: string): string {
   const state: OAuthState = {
     nonce: crypto.randomBytes(16).toString('hex'),
-    tenantId: tenantId || 'default',
+    tenantId: tenantId || '',
     timestamp: Date.now(),
   };
   const data = Buffer.from(JSON.stringify(state)).toString('base64url');
@@ -115,6 +116,10 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
     const state = JSON.parse(decoded) as OAuthState;
 
     if (!state.nonce || !state.timestamp) {
+      logger.warn(
+        { hasNonce: !!state.nonce, hasTimestamp: !!state.timestamp },
+        'OAuth state missing required fields'
+      );
       return null;
     }
 
@@ -183,7 +188,7 @@ app.openapi(
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
     slackAuthUrl.searchParams.set('state', state);
 
-    logger.info({ redirectUri, tenantId: tenantId || 'default' }, 'Redirecting to Slack OAuth');
+    logger.info({ redirectUri, tenantId: tenantId || '' }, 'Redirecting to Slack OAuth');
 
     return c.redirect(slackAuthUrl.toString());
   }
@@ -214,7 +219,7 @@ app.openapi(
     const { code, error, state: stateParam } = c.req.valid('query');
 
     const parsedState = stateParam ? parseOAuthState(stateParam) : null;
-    const tenantId = parsedState?.tenantId || 'default';
+    const tenantId = parsedState?.tenantId || '';
     const dashboardUrl = `${manageUiUrl}/${tenantId}/work-apps/slack`;
 
     if (!stateParam || !parsedState) {
@@ -359,8 +364,18 @@ app.openapi(
             } else {
               logger.error(
                 { error: dbErrorMessage, teamId: workspaceData.teamId },
-                'Failed to persist workspace to database'
+                'Failed to persist workspace to database, rolling back Nango connection'
               );
+              // Rollback: delete from Nango to avoid split-brain state
+              try {
+                await deleteWorkspaceInstallation(nangoResult.connectionId);
+              } catch (rollbackError) {
+                logger.error(
+                  { error: rollbackError, connectionId: nangoResult.connectionId },
+                  'Failed to rollback Nango connection after DB failure'
+                );
+              }
+              return c.redirect(`${dashboardUrl}?error=installation_failed`);
             }
           }
         } else {

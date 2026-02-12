@@ -72,6 +72,14 @@ export async function handleModalSubmission(view: {
 
     if (!agentId || !projectId) {
       logger.error({ metadata }, 'Missing agent or project ID in modal submission');
+      if (metadata.buttonResponseUrl) {
+        await sendResponseUrlMessage(metadata.buttonResponseUrl, {
+          text: 'Something went wrong — agent or project could not be determined. Please try again.',
+          response_type: 'ephemeral',
+        }).catch((e) =>
+          logger.warn({ error: e }, 'Failed to send agent/project error notification')
+        );
+      }
       return;
     }
 
@@ -85,6 +93,14 @@ export async function handleModalSubmission(view: {
 
     if (!workspaceConnection?.botToken) {
       logger.error({ teamId: metadata.teamId }, 'No bot token for modal submission');
+      if (metadata.buttonResponseUrl) {
+        await sendResponseUrlMessage(metadata.buttonResponseUrl, {
+          text: 'The Slack workspace connection could not be found. Please try again or contact your admin.',
+          response_type: 'ephemeral',
+        }).catch((e) =>
+          logger.warn({ error: e }, 'Failed to send workspace connection error notification')
+        );
+      }
       return;
     }
 
@@ -113,6 +129,13 @@ export async function handleModalSubmission(view: {
 
     if (!fullQuestion) {
       logger.warn({ metadata }, 'No question provided in modal submission');
+      await slackClient.chat
+        .postEphemeral({
+          channel: metadata.channel,
+          user: metadata.slackUserId,
+          text: 'Please provide a question or prompt to send to the agent.',
+        })
+        .catch((e) => logger.warn({ error: e }, 'Failed to send empty question feedback'));
       return;
     }
 
@@ -374,6 +397,7 @@ async function callAgentApi(params: {
   } catch (error) {
     clearTimeout(timeout);
     if ((error as Error).name === 'AbortError') {
+      logger.warn({ timeoutMs: 30000 }, 'Agent API call timed out');
       return { text: 'Request timed out. Please try again.', isError: true };
     }
     throw error;

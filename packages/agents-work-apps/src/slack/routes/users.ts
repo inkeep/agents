@@ -314,7 +314,7 @@ app.openapi(
       userId,
       userEmail,
       userName,
-      tenantId: tenantId || 'default',
+      tenantId: tenantId || (c.get('tenantId') as string) || '',
     });
 
     if (!session) {
@@ -376,7 +376,7 @@ app.openapi(
     }
 
     try {
-      const effectiveTenantId = tenantId || 'default';
+      const effectiveTenantId = tenantId || (c.get('tenantId') as string) || '';
 
       if (slackUserId && slackTeamId) {
         const deleted = await deleteWorkAppSlackUserMapping(runDbClient)(

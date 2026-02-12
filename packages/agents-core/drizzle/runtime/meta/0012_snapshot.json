@@ -1,6 +1,6 @@
 {
-  "id": "8ab1f4d2-1917-4793-831a-52e18ac0241c",
-  "prevId": "3ba13fe8-8f8e-466b-acf0-def5ebdf7dca",
+  "id": "a3af6418-fe18-46e7-ae37-e4afecb966c5",
+  "prevId": "b35d3d8b-7da1-403c-bc2a-f3cbe8535157",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1025,6 +1025,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "auth_method": {
+          "name": "auth_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1615,7 +1621,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "organization_slug_uidx": {
+          "name": "organization_slug_uidx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {

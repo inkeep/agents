@@ -139,12 +139,15 @@ app.openapi(
 
       // Filter by authenticated user's tenant to enforce tenant isolation
       const sessionTenantId = c.get('tenantId') as string | undefined;
-      const workspaces = sessionTenantId
-        ? allWorkspaces.filter((w) => w.tenantId === sessionTenantId)
-        : allWorkspaces;
+      if (!sessionTenantId) {
+        logger.warn({}, 'No tenantId in session context — cannot list workspaces');
+        return c.json({ workspaces: [] });
+      }
+
+      const workspaces = allWorkspaces.filter((w) => w.tenantId === sessionTenantId);
 
       logger.info(
-        { count: workspaces.length, tenantId: sessionTenantId },
+        { count: workspaces.length, totalCount: allWorkspaces.length, tenantId: sessionTenantId },
         'Listed workspace installations'
       );
 
@@ -257,6 +260,7 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      logger.warn({ teamId }, 'Workspace not found or tenant mismatch');
       return c.json({ defaultAgent: undefined });
     }
 
@@ -416,27 +420,8 @@ app.openapi(
         }
       }
 
-      const nangoSuccess = await deleteWorkspaceInstallation(connectionId);
-
-      if (!nangoSuccess) {
-        logger.error({ connectionId }, 'deleteWorkspaceInstallation returned false');
-        return c.json({ error: 'Failed to delete workspace from Nango' }, 500);
-      }
-
-      const dbDeleted =
-        await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
-      if (dbDeleted) {
-        logger.info({ connectionId }, 'Deleted workspace from database');
-      }
-
-      const tenantId = workspace.tenantId || 'default';
-      const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
-        tenantId,
-        teamId
-      );
-      if (deletedMappings > 0) {
-        logger.info({ teamId, deletedMappings }, 'Deleted user mappings for uninstalled workspace');
-      }
+      // Delete from PostgreSQL first (recoverable), then Nango (point of no return)
+      const tenantId = workspace.tenantId;
 
       const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(
         runDbClient
@@ -445,6 +430,29 @@ app.openapi(
         logger.info(
           { teamId, deletedChannelConfigs },
           'Deleted channel configs for uninstalled workspace'
+        );
+      }
+
+      const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
+        tenantId,
+        teamId
+      );
+      if (deletedMappings > 0) {
+        logger.info({ teamId, deletedMappings }, 'Deleted user mappings for uninstalled workspace');
+      }
+
+      const dbDeleted =
+        await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
+      if (dbDeleted) {
+        logger.info({ connectionId }, 'Deleted workspace from database');
+      }
+
+      // Point of no return: delete from Nango (OAuth tokens)
+      const nangoSuccess = await deleteWorkspaceInstallation(connectionId);
+      if (!nangoSuccess) {
+        logger.error(
+          { connectionId },
+          'deleteWorkspaceInstallation returned false (DB already cleaned up)'
         );
       }
 
@@ -512,7 +520,7 @@ app.openapi(
       return c.json({ error: 'Workspace not found or no bot token' }, 404);
     }
 
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
     const slackClient = getSlackClient(workspace.botToken);
 
     try {
@@ -597,9 +605,10 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      logger.warn({ teamId }, 'Workspace not found or tenant mismatch');
       return c.json({ channelId, agentConfig: undefined });
     }
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
 
     const config = await findWorkAppSlackChannelAgentConfig(runDbClient)(
       tenantId,
@@ -665,9 +674,10 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      logger.warn({ teamId }, 'Workspace not found or tenant mismatch');
       return c.json({ success: false, configId: '' });
     }
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
 
     const config = await upsertWorkAppSlackChannelAgentConfig(runDbClient)({
       tenantId,
@@ -751,7 +761,7 @@ app.openapi(
       return c.json({ error: 'Workspace not found or no bot token' }, 404);
     }
 
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
     const slackClient = getSlackClient(workspace.botToken);
 
     const channels = await getSlackChannels(slackClient, 500);
@@ -844,9 +854,10 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      logger.warn({ teamId }, 'Workspace not found or tenant mismatch');
       return c.json({ success: false, removed: 0 });
     }
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
 
     let removed = 0;
     await Promise.all(
@@ -896,9 +907,10 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      logger.warn({ teamId }, 'Workspace not found or tenant mismatch');
       return c.json({ success: false });
     }
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
 
     const deleted = await deleteWorkAppSlackChannelAgentConfig(runDbClient)(
       tenantId,
@@ -954,9 +966,10 @@ app.openapi(
 
     const workspace = await findWorkspaceConnectionByTeamId(teamId);
     if (!workspace || !verifyTenantOwnership(c, workspace.tenantId)) {
+      logger.warn({ teamId }, 'Workspace not found or tenant mismatch');
       return c.json({ linkedUsers: [] });
     }
-    const tenantId = workspace.tenantId || 'default';
+    const tenantId = workspace.tenantId;
 
     const linkedUsers = await listWorkAppSlackUserMappingsByTeam(runDbClient)(tenantId, teamId);
 
@@ -1059,8 +1072,9 @@ app.openapi(
 
       try {
         await slackClient.conversations.list({ limit: 1 });
-      } catch {
+      } catch (e) {
         permissions.canReadChannels = false;
+        logger.debug({ error: e }, 'Channel read permission check failed');
       }
 
       logger.info(
