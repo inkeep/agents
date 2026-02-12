@@ -27,6 +27,9 @@ patchedDependencies:
   fumadocs-core:
     hash: db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71
     path: patches/fumadocs-core.patch
+  monaco-editor:
+    hash: b30309503d77f1e35a209d6bf1c254daaaaba1ddf069451caa7fa7a9bfc36d42
+    path: patches/monaco-editor.patch
 
 importers:
 
@@ -609,7 +612,7 @@ importers:
         version: 0.555.0(react@19.3.0-canary-87ae75b3-20260128)
       monaco-editor:
         specifier: 0.55.1
-        version: 0.55.1
+        version: 0.55.1(patch_hash=b30309503d77f1e35a209d6bf1c254daaaaba1ddf069451caa7fa7a9bfc36d42)
       nanoid:
         specifier: ^5.1.5
         version: 5.1.6
@@ -15943,7 +15946,7 @@ snapshots:
       diff: 8.0.2
       import-in-the-middle-180ef2aea3860a36: import-in-the-middle@2.0.1
       lucide-react: 0.555.0(react@19.2.0)
-      monaco-editor: 0.55.1
+      monaco-editor: 0.55.1(patch_hash=b30309503d77f1e35a209d6bf1c254daaaaba1ddf069451caa7fa7a9bfc36d42)
       nanoid: 5.1.6
       next: 16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       next-themes: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -27797,7 +27800,7 @@ snapshots:
 
   module-details-from-path@1.0.4: {}
 
-  monaco-editor@0.55.1:
+  monaco-editor@0.55.1(patch_hash=b30309503d77f1e35a209d6bf1c254daaaaba1ddf069451caa7fa7a9bfc36d42):
     dependencies:
       dompurify: 3.2.7
       marked: 14.0.0
