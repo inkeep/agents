@@ -3,12 +3,15 @@ export const customerSupportProject = project({
   name: 'Customer Support System',
   description: 'Multi-agent customer support system with escalation capabilities',
   models: {
-    base: { model: 'gpt-4o-mini' },
-    structuredOutput: { model: 'gpt-4o' },
-    summarizer: { model: 'gpt-4o-mini' }
+    base: {
+      model: 'gpt-4o-mini'
+    },
+    structuredOutput: {
+      model: 'gpt-4o'
+    },
+    summarizer: {
+      model: 'gpt-4o-mini'
+    }
   },
-  agents: () => [
-    supportAgent,
-    escalationAgent
-  ]
+  agents: () => [supportAgent, escalationAgent]
 });
