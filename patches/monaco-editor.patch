@@ -1,0 +1,36 @@
+diff --git a/esm/vs/editor/browser/config/elementSizeObserver.js b/esm/vs/editor/browser/config/elementSizeObserver.js
+index 193c4cb6da737184beff065c366b0c99be65a714..d7af91625e379dacf31dd3a454b8ca7119b2657c 100644
+--- a/esm/vs/editor/browser/config/elementSizeObserver.js
++++ b/esm/vs/editor/browser/config/elementSizeObserver.js
+@@ -1,3 +1,4 @@
++import { Throttler } from '../../../base/common/observableInternal/logging/debugger/utils';
+ import { Disposable } from '../../../base/common/lifecycle.js';
+ import { Emitter } from '../../../base/common/event.js';
+ import { scheduleAtNextAnimationFrame, getWindow } from '../../../base/browser/dom.js';
+@@ -18,6 +19,7 @@ class ElementSizeObserver extends Disposable {
+         this.measureReferenceDomElement(false, dimension);
+     }
+     dispose() {
++        this.throttler.dispose();
+         this.stopObserving();
+         super.dispose();
+     }
+@@ -44,7 +46,8 @@ class ElementSizeObserver extends Disposable {
+             };
+             let shouldObserve = false;
+             let alreadyObservedThisAnimationFrame = false;
+-            const update = () => {
++            // Fix sidebar flickering when hovering a collapsed sidebar
++            const update = this.throttler.throttle.bind(this.throttler, () => {
+                 if (shouldObserve && !alreadyObservedThisAnimationFrame) {
+                     try {
+                         shouldObserve = false;
+@@ -58,7 +61,7 @@ class ElementSizeObserver extends Disposable {
+                         });
+                     }
+                 }
+-            };
++            }, 100);
+             this._resizeObserver = new ResizeObserver((entries) => {
+                 if (entries && entries[0] && entries[0].contentRect) {
+                     observedDimenstion = { width: entries[0].contentRect.width, height: entries[0].contentRect.height };

@@ -6,21 +6,22 @@ packages:
   - agents-docs
   - agents-cookbook
   - test-agents
-  - "packages/*"
+  - packages/*
 
 catalog:
   better-auth: ~1.4.10
-  "@better-auth/sso": ~1.4.10
+  '@better-auth/sso': ~1.4.10
 
 ignorePatchFailures: false
 
 patchedDependencies:
-  "@changesets/assemble-release-plan@6.0.9": patches/@changesets__assemble-release-plan.patch
+  '@changesets/assemble-release-plan@6.0.9': patches/@changesets__assemble-release-plan.patch
   fumadocs-core: patches/fumadocs-core.patch
+  monaco-editor: patches/monaco-editor.patch
 
 overrides:
   next: ^16.1.6 # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h
   esbuild: 0.25.9 # we pin it for Cypress
-  "@modelcontextprotocol/sdk>zod": ^3.25.7
-  "@anthropic-ai/mcpb>zod": ^3.25.7
-  preact: "-" # we don't use preact, this removes pnpm audit warnings from posthog-js>preact
+  '@modelcontextprotocol/sdk>zod': ^3.25.7
+  '@anthropic-ai/mcpb>zod': ^3.25.7
+  preact: '-' # we don't use preact, this removes pnpm audit warnings from posthog-js>preact
