@@ -32,6 +32,7 @@ export const TagToDescription = {
     'Reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority',
   Slack: 'Slack App integration endpoints',
   SubAgents: 'Operations for managing sub agents',
+  'Scheduled Triggers': 'Operations for managing scheduled triggers',
   'Third-Party MCP Servers': 'Operations for managing third-party MCP servers',
   Tools: 'Operations for managing MCP tools',
   Triggers: 'Operations for managing triggers',

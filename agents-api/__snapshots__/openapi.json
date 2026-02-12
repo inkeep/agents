@@ -38358,6 +38358,10 @@
       "name": "SubAgents"
     },
     {
+      "description": "Operations for managing scheduled triggers",
+      "name": "Scheduled Triggers"
+    },
+    {
       "description": "Operations for managing third-party MCP servers",
       "name": "Third-Party MCP Servers"
     },

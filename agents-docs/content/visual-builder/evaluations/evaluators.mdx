@@ -1,0 +1,126 @@
+---
+title: Create LLM-Based Evaluators
+sidebarTitle: Evaluators
+description: Define evaluators to assess agent conversation quality with custom prompts, output schemas, and pass/fail criteria.
+icon: LuClipboardCheck
+---
+
+## Overview
+
+Evaluators define how conversations should be assessed. Each evaluator uses an LLM to analyze conversations and produce structured output that can be used to determine quality.
+
+Evaluators are reusable and can be attached to [Batch Evaluations](/visual-builder/evaluations/batch-evaluations) or [Continuous Tests](/visual-builder/evaluations/continuous-tests).
+
+## Create an Evaluator
+
+1. Go to the **Evaluations** tab in the left sidebar
+2. Ensure you're on the **Evaluators** tab, then click **New evaluator**
+3. Fill in the evaluator details
+
+## Writing Evaluation Prompts
+
+The prompt tells the evaluator LLM how to analyze conversations. A good evaluation prompt should:
+
+- Clearly define what you're evaluating (e.g., hallucinations, helpfulness, tone)
+- Specify the criteria for judgment with concrete examples
+- Explain what sources of truth to use (retrieved context, expected output, etc.)
+- Indicate when NOT to flag issues (e.g., when uncertainty is acknowledged)
+
+**Example prompt (Hallucination Detection):**
+
+```text
+You are an expert QA judge evaluating an Inkeep QA agent response for hallucinations.
+
+Definition:
+A hallucination is any concrete claim presented as fact that is NOT supported by:
+1) retrieved context/tool outputs provided to the agent (if available), OR
+2) the user's messages / established conversation context, OR
+3) the expectedOutput (if provided).
+
+Concrete claims include: function/method names, endpoints, config keys, product capabilities, UI steps, pricing/limits, version-specific behavior.
+
+Rules:
+- If retrieved context/tool outputs are present, require support for concrete claims.
+- If an expectedOutput is provided, use it as a reference for factual correctness. Claims that contradict the expectedOutput are hallucinations.
+- Only flag hallucinations if the response clearly invents facts beyond the available evidence.
+- Do NOT flag if the agent clearly qualifies uncertainty (e.g., "I couldn't find X; here's what I do know...").
+- Output JSON ONLY matching the schema.
+```
+
+## Defining Output Schemas
+
+The output schema uses JSON Schema to define the structure of evaluation results. All properties must have a type defined.
+
+**Example schema (Hallucination Detection):**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "has_hallucination": {
+      "type": "number",
+      "description": "1 if hallucination detected, 0 if no hallucination"
+    },
+    "hallucination_severity": {
+      "type": "number",
+      "description": "Severity score from 0-10 where 0 is none and 10 is severe factual errors"
+    },
+    "hallucinated_claims": {
+      "type": "string",
+      "description": "List of specific claims that were not supported by context"
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Explanation of why claims were flagged as hallucinations or why the response passed"
+    }
+  }
+}
+```
+
+## Setting Pass/Fail Criteria
+
+Pass/fail criteria allow you to automatically determine if an evaluation passes based on numeric output fields.
+
+1. First, ensure your output schema includes numeric fields (type: "number")
+2. In the evaluator form, scroll to **Pass/Fail Criteria**
+3. Click **Add Condition** to create criteria
+
+Each condition has three parts:
+- **Field**: Select a numeric field from your schema
+- **Operator**: Choose a comparison (`>`, `<`, `>=`, `<=`, `=`, `!=`)
+- **Value**: The threshold value
+
+You can combine multiple conditions with:
+- **ALL** (AND): All conditions must be met to pass
+- **ANY** (OR): At least one condition must be met to pass
+
+**Example (Hallucination Detection):**
+
+To pass when no hallucinations are detected:
+
+```
+Pass when ALL conditions are met:
+- has_hallucination = 0
+```
+
+Or to allow minor issues but fail on severe hallucinations:
+
+```
+Pass when ALL conditions are met:
+- hallucination_severity < 5
+```
+
+## Best Practices
+
+### Evaluator Design
+
+1. **Single responsibility**: Create focused evaluators that measure one aspect well
+2. **Clear criteria**: Define unambiguous scoring criteria in your prompts
+3. **Appropriate models**: Use capable models for nuanced evaluation
+
+### Pass/Fail Thresholds
+
+1. **Start lenient**: Begin with lower thresholds and tighten as you understand your baseline
+2. **Use multiple conditions**: Combine criteria for more meaningful pass/fail determination
+3. **Review failures**: Regularly check failed evaluations to calibrate thresholds
+

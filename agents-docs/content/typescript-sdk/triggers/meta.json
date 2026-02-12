@@ -1,0 +1,4 @@
+{
+  "icon": "LuWebhook",
+  "pages": ["scheduled", "webhooks", "..."]
+}
