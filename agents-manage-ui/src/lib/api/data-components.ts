@@ -7,12 +7,9 @@
 
 'use server';
 
-import type {
-  DataComponentApiInsert,
-  DataComponentApiSelect,
-  DataComponentApiUpdate,
-} from '@inkeep/agents-core';
+import type { DataComponentApiInsert, DataComponentApiSelect } from '@inkeep/agents-core';
 import { cache } from 'react';
+import type { DataComponentOutput } from '@/components/data-components/form/validation';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
@@ -107,7 +104,7 @@ export async function createDataComponent(
 export async function updateDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponent: DataComponentApiUpdate & { id: string }
+  dataComponent: Partial<DataComponentOutput> & Pick<DataComponentOutput, 'id'>
 ): Promise<DataComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
