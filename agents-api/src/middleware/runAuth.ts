@@ -278,7 +278,7 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
 
   return {
     authResult: {
-      apiKey: 'slack-user-jwt',
+      apiKey: token,
       tenantId: payload.tenantId,
       projectId: reqData.projectId,
       agentId: reqData.agentId,
