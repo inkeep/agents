@@ -100,6 +100,19 @@
   }
 }
 
+/* type-table inline type links */
+.shiki code a {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--color-fd-primary);
+  cursor: pointer;
+}
+
+.shiki code a:hover {
+  text-decoration-style: solid;
+}
+
 /* tailwind typography overrides */
 @utility prose {
   th {
