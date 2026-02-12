@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
+  type AggregateStats,
   type ConversationStats,
   getSigNozStatsClient,
   type PaginatedConversationStats,
@@ -15,6 +16,7 @@ interface UseConversationStatsResult {
   loading: boolean;
   error: string | null;
   refresh: () => void;
+  aggregateStats: AggregateStats;
   pagination: {
     page: number;
     limit: number;
@@ -39,7 +41,16 @@ interface UseConversationStatsOptions {
   };
   searchQuery?: string;
   agentId?: string;
+  includeAggregates?: boolean;
 }
+
+const DEFAULT_AGGREGATE_STATS: AggregateStats = {
+  totalToolCalls: 0,
+  totalTransfers: 0,
+  totalDelegations: 0,
+  totalConversations: 0,
+  totalAICalls: 0,
+};
 
 export function useConversationStats(
   options?: UseConversationStatsOptions
@@ -51,9 +62,11 @@ export function useConversationStats(
   const [paginationInfo, setPaginationInfo] = useState<
     PaginatedConversationStats['pagination'] | null
   >(null);
+  const [aggregateStats, setAggregateStats] = useState<AggregateStats>(DEFAULT_AGGREGATE_STATS);
 
   // Extract stable values to avoid object recreation issues
   const pageSize = options?.pagination?.pageSize || 50;
+  const includeAggregates = options?.includeAggregates ?? false;
 
   const fetchData = useCallback(
     async (page: number) => {
@@ -74,11 +87,15 @@ export function useConversationStats(
           options?.projectId,
           { page, limit: pageSize },
           options?.searchQuery,
-          options?.agentId
+          options?.agentId,
+          includeAggregates
         );
 
         setStats(result.data);
         setPaginationInfo(result.pagination);
+        if (result.aggregateStats) {
+          setAggregateStats(result.aggregateStats);
+        }
       } catch (err) {
         console.error('Error fetching conversation stats:', err);
         const errorMessage =
@@ -97,6 +114,7 @@ export function useConversationStats(
       options?.searchQuery,
       options?.agentId,
       pageSize,
+      includeAggregates,
     ]
   );
 
@@ -157,6 +175,7 @@ export function useConversationStats(
     loading,
     error,
     refresh,
+    aggregateStats,
     pagination: paginationInfo
       ? {
           page: paginationInfo.page,
@@ -180,71 +199,6 @@ export function useConversationStats(
           previousPage,
           goToPage,
         },
-  };
-}
-
-// Hook for aggregate stats only (server-side aggregation)
-export function useAggregateStats(options?: {
-  startTime?: number;
-  endTime?: number;
-  filters?: SpanFilterOptions;
-  projectId?: string;
-  tenantId?: string;
-  agentId?: string;
-}) {
-  const [aggregateStats, setAggregateStats] = useState({
-    totalToolCalls: 0,
-    totalTransfers: 0,
-    totalDelegations: 0,
-    totalConversations: 0,
-    totalAICalls: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchAggregateStats = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const client = getSigNozStatsClient(options?.tenantId);
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
-
-      const stats = await client.getAggregateStats(
-        currentStartTime,
-        currentEndTime,
-        options?.filters,
-        options?.projectId,
-        options?.agentId
-      );
-
-      setAggregateStats(stats);
-    } catch (err) {
-      console.error('Error fetching aggregate stats:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch aggregate stats';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    options?.startTime,
-    options?.endTime,
-    options?.filters,
-    options?.projectId,
-    options?.tenantId,
-    options?.agentId,
-  ]);
-
-  useEffect(() => {
-    fetchAggregateStats();
-  }, [fetchAggregateStats]);
-
-  return {
-    aggregateStats,
-    loading,
-    error,
-    refresh: fetchAggregateStats,
   };
 }
 
