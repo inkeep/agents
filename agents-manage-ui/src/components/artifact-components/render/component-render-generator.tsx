@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { updateArtifactComponent } from '@/lib/api/artifact-components';
-import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {

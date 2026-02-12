@@ -289,18 +289,28 @@ export class ManagementApiClient extends BaseApiClient {
     if (response.status === 404) return null;
     if (!response.ok) {
       const err = await response.text().catch(() => '');
-      throw new Error(`Failed to fetch data component: ${response.statusText}${err ? `\n${err}` : ''}`);
+      throw new Error(
+        `Failed to fetch data component: ${response.statusText}${err ? `\n${err}` : ''}`
+      );
     }
     const json = await response.json();
     return json.data ?? null;
   }
 
   async listDataComponents(): Promise<
-    { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[]
+    {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[]
   > {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
-    const all: { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[] = [];
+    const all: {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[] = [];
     let page = 1;
     const limit = 100;
     let result: { data: any[]; pagination: { total: number } };
@@ -311,7 +321,9 @@ export class ManagementApiClient extends BaseApiClient {
       );
       if (!response.ok) {
         const err = await response.text().catch(() => '');
-        throw new Error(`Failed to list data components: ${response.statusText}${err ? `\n${err}` : ''}`);
+        throw new Error(
+          `Failed to list data components: ${response.statusText}${err ? `\n${err}` : ''}`
+        );
       }
       result = await response.json();
       all.push(...(result.data || []));
@@ -334,18 +346,28 @@ export class ManagementApiClient extends BaseApiClient {
     if (response.status === 404) return null;
     if (!response.ok) {
       const err = await response.text().catch(() => '');
-      throw new Error(`Failed to fetch artifact component: ${response.statusText}${err ? `\n${err}` : ''}`);
+      throw new Error(
+        `Failed to fetch artifact component: ${response.statusText}${err ? `\n${err}` : ''}`
+      );
     }
     const json = await response.json();
     return json.data ?? null;
   }
 
   async listArtifactComponents(): Promise<
-    { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[]
+    {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[]
   > {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
-    const all: { id: string; name: string; render: { component: string; mockData: Record<string, unknown> } | null }[] = [];
+    const all: {
+      id: string;
+      name: string;
+      render: { component: string; mockData: Record<string, unknown> } | null;
+    }[] = [];
     let page = 1;
     const limit = 100;
     let result: { data: any[]; pagination: { total: number } };
@@ -356,7 +378,9 @@ export class ManagementApiClient extends BaseApiClient {
       );
       if (!response.ok) {
         const err = await response.text().catch(() => '');
-        throw new Error(`Failed to list artifact components: ${response.statusText}${err ? `\n${err}` : ''}`);
+        throw new Error(
+          `Failed to list artifact components: ${response.statusText}${err ? `\n${err}` : ''}`
+        );
       }
       result = await response.json();
       all.push(...(result.data || []));
