@@ -25,8 +25,10 @@ import {
   type Models,
   parseEmbeddedJson,
   type ResolvedRef,
+  type SubAgentSkillWithIndex,
   type SubAgentStopWhen,
   TemplateEngine,
+  unwrapError,
   withRef,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
@@ -212,6 +214,7 @@ export type AgentConfig = {
   }>;
   contextConfigId?: string;
   dataComponents?: DataComponentApiInsert[];
+  skills?: SubAgentSkillWithIndex[];
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
@@ -254,7 +257,7 @@ export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 function isValidTool(
   tool: any
-): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
+): tool is Tool & { execute: (args: any, context?: any) => Promise<any> } {
   return (
     tool &&
     typeof tool === 'object' &&
@@ -702,7 +705,8 @@ export class Agent {
           return result;
         } catch (error) {
           const duration = Date.now() - startTime;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const rootCause = unwrapError(error);
+          const errorMessage = rootCause.message;
 
           if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
@@ -721,7 +725,7 @@ export class Agent {
             await streamHelper.writeToolOutputError({ toolCallId, errorText: errorMessage });
           }
 
-          throw error;
+          throw rootCause;
         }
       },
     };
@@ -1073,8 +1077,12 @@ export class Agent {
 
               return enhancedResult;
             } catch (error) {
-              logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
-              throw error;
+              const rootCause = unwrapError(error);
+              logger.error(
+                { toolName, toolCallId, error: rootCause.message },
+                'MCP tool execution failed'
+              );
+              throw rootCause;
             }
           },
         });
@@ -1896,20 +1904,22 @@ export class Agent {
     const mcpTools = await this.getMcpTools(undefined, streamRequestId);
     const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
-
-    const allTools = { ...mcpTools, ...functionTools, ...relationTools };
+    const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
+    const skillTools = hasOnDemandSkills ? { load_skill: this.#createLoadSkillTool() } : {};
+    const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools };
 
     logger.info(
       {
         mcpTools: Object.keys(mcpTools),
         functionTools: Object.keys(functionTools),
         relationTools: Object.keys(relationTools),
+        skillTools: Object.keys(skillTools),
         allTools: Object.keys(allTools),
         functionToolsDetails: Object.entries(functionTools).map(([name, tool]) => ({
           name,
-          hasExecute: typeof (tool as any).execute === 'function',
-          hasDescription: !!(tool as any).description,
-          hasInputSchema: !!(tool as any).inputSchema,
+          hasExecute: typeof tool.execute === 'function',
+          hasDescription: !!tool.description,
+          hasInputSchema: !!tool.inputSchema,
         })),
       },
       'Tools loaded for agent'
@@ -1920,9 +1930,11 @@ export class Agent {
       description: (tool as any).description || '',
       inputSchema: (tool as any).inputSchema || (tool as any).parameters || {},
       usageGuidelines:
-        name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
-          ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
-          : 'Use this tool when appropriate for the task at hand.',
+        name === 'load_skill'
+          ? 'Use this tool to load the full content of an on-demand skill by name.'
+          : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
+            ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
+            : 'Use this tool when appropriate for the task at hand.',
     }));
 
     const { getConversationScopedArtifacts } = await import('../data/conversations');
@@ -1984,6 +1996,7 @@ export class Agent {
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
+      skills: this.config.skills || [],
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
@@ -2032,6 +2045,38 @@ export class Agent {
     });
   }
 
+  #createLoadSkillTool(): Tool<
+    { name: string },
+    {
+      id: string;
+      name: string;
+      description: string;
+      content: string;
+    }
+  > {
+    return tool({
+      description:
+        'Load an on-demand skill by name and return its full content so you can apply it in this conversation.',
+      inputSchema: z.object({
+        name: z.string().describe('The skill name from the on-demand skills list.'),
+      }),
+      execute: async ({ name }) => {
+        const skill = this.config.skills?.find((item) => item.name === name);
+
+        if (!skill) {
+          throw new Error(`Skill ${name} not found`);
+        }
+
+        return {
+          id: skill.id,
+          name: skill.name,
+          description: skill.description,
+          content: skill.content,
+        };
+      },
+    });
+  }
+
   // Provide a default tool set that is always available to the agent.
   private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
@@ -2041,6 +2086,19 @@ export class Agent {
     const compressionConfig = getModelAwareCompressionConfig();
     if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
+    }
+
+    const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
+    if (hasOnDemandSkills) {
+      const loadSkillTool = this.#createLoadSkillTool();
+      if (loadSkillTool) {
+        defaultTools.load_skill = this.wrapToolWithStreaming(
+          'load_skill',
+          loadSkillTool,
+          streamRequestId,
+          'tool'
+        );
+      }
     }
 
     // Note: save_tool_result tool is replaced by artifact:create response annotations
@@ -3502,8 +3560,8 @@ ${output}`;
 
     this.config.dataComponents?.forEach((dc) => {
       // Normalize schema to ensure all properties are required (cross-provider compatibility)
-      const normalizedProps = dc.props ? SchemaProcessor.makeAllPropertiesRequired(dc.props) : null;
-      const propsSchema = normalizedProps ? z.fromJSONSchema(normalizedProps) : z.string();
+      const normalizedProps = SchemaProcessor.makeAllPropertiesRequired(dc.props);
+      const propsSchema = z.fromJSONSchema(normalizedProps);
       componentSchemas.push(
         z.object({
           id: z.string(),

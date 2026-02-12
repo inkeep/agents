@@ -3,7 +3,9 @@ import {
   boolean,
   doublePrecision,
   foreignKey,
+  index,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -26,6 +28,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../../types/utility';
+import type { JsonSchemaForLlmSchemaType } from '../../validation/json-schemas';
 import type {
   AgentStopWhen,
   ModelSettings,
@@ -85,8 +88,7 @@ export const agents = pgTable(
   'agent',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
-    description: text('description'),
+    ...uiProperties,
     defaultSubAgentId: varchar('default_sub_agent_id', { length: 256 }),
     contextConfigId: varchar('context_config_id', { length: 256 }),
     models: jsonb('models').$type<Models>(),
@@ -159,6 +161,62 @@ export const triggers = pgTable(
   ]
 );
 
+export const scheduledTriggers = pgTable(
+  'scheduled_triggers',
+  {
+    ...agentScoped,
+    ...uiProperties,
+    enabled: boolean('enabled').notNull().default(true),
+    cronExpression: varchar('cron_expression', { length: 256 }),
+    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
+    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
+    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
+    messageTemplate: text('message_template'),
+    maxRetries: numeric('max_retries', { mode: 'number' }).notNull().default(1),
+    retryDelaySeconds: numeric('retry_delay_seconds', { mode: 'number' }).notNull().default(60),
+    timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(780),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'scheduled_triggers_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const scheduledWorkflows = pgTable(
+  'scheduled_workflows',
+  {
+    ...agentScoped,
+    ...uiProperties,
+    workflowRunId: varchar('workflow_run_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('pending'),
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'scheduled_workflows_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.scheduledTriggerId],
+      foreignColumns: [
+        scheduledTriggers.tenantId,
+        scheduledTriggers.projectId,
+        scheduledTriggers.agentId,
+        scheduledTriggers.id,
+      ],
+      name: 'scheduled_workflows_trigger_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const subAgents = pgTable(
   'sub_agents',
   {
@@ -185,6 +243,55 @@ export const subAgents = pgTable(
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'sub_agents_agents_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+export const skills = pgTable(
+  'skills',
+  {
+    ...projectScoped,
+    // Should be same as skill name
+    id: varchar('id', { length: 64 }).notNull(),
+    name: varchar('name', { length: 64 }).notNull(),
+    description: text('description').notNull(),
+    content: text('content').notNull(),
+    metadata: jsonb('metadata').$type<Record<string, string> | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'skills_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const subAgentSkills = pgTable(
+  'sub_agent_skills',
+  {
+    ...subAgentScoped,
+    skillId: varchar('skill_id', { length: 64 }).notNull(),
+    // TODO: integer() always returns NaN
+    index: numeric({ mode: 'number' }).notNull().default(0),
+    alwaysLoaded: boolean('always_loaded').notNull().default(false),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+      name: 'sub_agent_skills_sub_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.skillId],
+      foreignColumns: [skills.tenantId, skills.projectId, skills.id],
+      name: 'sub_agent_skills_skill_fk',
+    }).onDelete('cascade'),
+    unique('sub_agent_skills_sub_agent_skill_unique').on(table.subAgentId, table.skillId),
+    index('sub_agent_skills_skill_idx').on(table.skillId),
   ]
 );
 
@@ -236,7 +343,7 @@ export const dataComponents = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    props: jsonb('props').$type<Record<string, unknown>>(),
+    props: jsonb('props').$type<JsonSchemaForLlmSchemaType>().notNull(),
     render: jsonb('render').$type<{
       component: string;
       mockData: Record<string, unknown>;
@@ -280,7 +387,7 @@ export const artifactComponents = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    props: jsonb('props').$type<Record<string, unknown>>(),
+    props: jsonb('props').$type<JsonSchemaForLlmSchemaType>(),
     render: jsonb('render').$type<{
       component: string;
       mockData: Record<string, unknown>;
@@ -330,8 +437,7 @@ export const tools = pgTable(
   'tools',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
-    description: text('description'),
+    ...uiProperties,
     config: jsonb('config')
       .$type<{
         type: 'mcp';
@@ -366,8 +472,7 @@ export const functionTools = pgTable(
   'function_tools',
   {
     ...agentScoped,
-    name: varchar('name', { length: 256 }).notNull(),
-    description: text('description'),
+    ...uiProperties,
     functionId: varchar('function_id', { length: 256 }).notNull(),
     ...timestamps,
   },
@@ -523,7 +628,7 @@ export const credentialReferences = pgTable(
   'credential_references',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
+    name: uiProperties.name,
     type: varchar('type', { length: 256 }).notNull(),
     credentialStoreId: varchar('credential_store_id', { length: 256 }).notNull(),
     retrievalParams: jsonb('retrieval_params').$type<Record<string, unknown>>(),
@@ -556,7 +661,7 @@ export const credentialReferences = pgTable(
  * runs where conversations are created from dataset items. Each datasetRun
  * specifies which agent to use when executing the dataset.
  *
- * one to many relationship with datasetItem
+ * one-to-many relationship with datasetItem
  *
  * Includes: name and timestamps
  */
@@ -564,7 +669,7 @@ export const dataset = pgTable(
   'dataset',
   {
     ...projectScoped,
-    name: varchar('name', { length: 256 }).notNull(),
+    name: uiProperties.name,
     ...timestamps,
   },
   (table) => [
@@ -899,6 +1004,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   dataComponents: many(dataComponents),
   artifactComponents: many(artifactComponents),
   credentialReferences: many(credentialReferences),
+  skills: many(skills),
 }));
 
 export const contextConfigsRelations = relations(contextConfigs, ({ many, one }) => ({
@@ -925,6 +1031,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
   functionToolRelations: many(subAgentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
+  skillRelations: many(subAgentSkills),
 }));
 
 export const agentRelations = relations(agents, ({ one, many }) => ({
@@ -941,6 +1048,37 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
+  scheduledWorkflows: many(scheduledWorkflows),
+  scheduledTriggers: many(scheduledTriggers),
+}));
+
+export const scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
+  agent: one(agents, {
+    fields: [scheduledTriggers.tenantId, scheduledTriggers.projectId, scheduledTriggers.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  scheduledWorkflow: one(scheduledWorkflows),
+}));
+
+export const scheduledWorkflowsRelations = relations(scheduledWorkflows, ({ one }) => ({
+  agent: one(agents, {
+    fields: [scheduledWorkflows.tenantId, scheduledWorkflows.projectId, scheduledWorkflows.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  scheduledTrigger: one(scheduledTriggers, {
+    fields: [
+      scheduledWorkflows.tenantId,
+      scheduledWorkflows.projectId,
+      scheduledWorkflows.agentId,
+      scheduledWorkflows.scheduledTriggerId,
+    ],
+    references: [
+      scheduledTriggers.tenantId,
+      scheduledTriggers.projectId,
+      scheduledTriggers.agentId,
+      scheduledTriggers.id,
+    ],
+  }),
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
@@ -1025,6 +1163,30 @@ export const subAgentDataComponentsRelations = relations(subAgentDataComponents,
   dataComponent: one(dataComponents, {
     fields: [subAgentDataComponents.dataComponentId],
     references: [dataComponents.id],
+  }),
+}));
+
+export const skillsRelations = relations(skills, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [skills.tenantId, skills.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  subAgentRelations: many(subAgentSkills),
+}));
+
+export const subAgentSkillsRelations = relations(subAgentSkills, ({ one }) => ({
+  subAgent: one(subAgents, {
+    fields: [
+      subAgentSkills.tenantId,
+      subAgentSkills.projectId,
+      subAgentSkills.agentId,
+      subAgentSkills.subAgentId,
+    ],
+    references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+  }),
+  skill: one(skills, {
+    fields: [subAgentSkills.tenantId, subAgentSkills.projectId, subAgentSkills.skillId],
+    references: [skills.tenantId, skills.projectId, skills.id],
   }),
 }));
 

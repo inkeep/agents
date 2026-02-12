@@ -16,7 +16,7 @@ import {
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
+import type { SkillData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 // Re-export for Agent.ts
 export { V1_BREAKDOWN_SCHEMA };
@@ -126,7 +126,21 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.components.agentPrompt = estimateTokens(agentContextSection);
-    systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
+    const skillsSection = this.#generateSkillsSection(config.skills);
+    const skillsGuidelines = skillsSection
+      ? `
+      - I operate using a set of skills that govern my behavior, reasoning, and tool usage.
+      - Skills are mandatory and must be followed.
+      - Some skills are always active; others are loaded on demand when relevant.
+      - Applicable skills are used automatically and implicitly, without explanation.
+      - Skills are applied in priority order, with core instructions overriding conflicts.
+      - Always call \`load_skill\` with skill name before responding.`.trimStart()
+      : '';
+
+    systemPrompt = systemPrompt
+      .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
+      .replace('{{SKILLS_SECTION}}', skillsSection)
+      .replace('{{SKILLS_GUIDELINES}}', skillsGuidelines);
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -228,6 +242,33 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
     IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
   </current_time>`;
+  }
+
+  #generateSkillsSection(skills: SkillData[] = []): string {
+    const result = skills
+      .sort((a, b) => a.index - b.index)
+      .map((skill) => {
+        const baseAttrs = `name=${JSON.stringify(skill.name)} description=${JSON.stringify(skill.description)}`;
+        return skill.alwaysLoaded
+          ? `<skill mode="always" ${baseAttrs}>${skill.content}</skill>`
+          : `<skill mode="on_demand" ${baseAttrs} />`;
+      })
+      .join('\n    ');
+
+    if (!result) {
+      return '';
+    }
+
+    return `<skills>
+    <instructions>
+      - Each entry has mode="always" or mode="on_demand".
+      - Always‑loaded skills apply immediately.
+      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content only when needed.
+      - Apply skills by index; later entries weigh more.
+      - core_instructions override skill content on conflict.
+    </instructions>
+    ${result}
+  </skills>`;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {

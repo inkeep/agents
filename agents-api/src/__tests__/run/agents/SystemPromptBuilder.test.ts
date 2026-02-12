@@ -1,7 +1,7 @@
 import type { McpTool } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
-import type { SystemPromptV1 } from '../../../domains/run/agents/types';
+import type { SkillData, SystemPromptV1 } from '../../../domains/run/agents/types';
 import { PromptConfig } from '../../../domains/run/agents/versions/v1/PromptConfig';
 
 // Helper to create mock McpTool
@@ -158,6 +158,121 @@ describe('SystemPromptBuilder', () => {
       expect(result.prompt).toContain('<name>tool_two</name>');
       expect(result.prompt).toContain('First tool');
       expect(result.prompt).toContain('Second tool');
+    });
+
+    const baseSkill = {
+      subAgentSkillId: '',
+      metadata: null,
+      description: '',
+      alwaysLoaded: true,
+    } satisfies Partial<SkillData>;
+
+    test('should include skills section in order when provided', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        skills: [
+          {
+            ...baseSkill,
+            id: 'second-skill',
+            name: 'second-skill',
+            content: 'Second content',
+            index: 1,
+          },
+          {
+            ...baseSkill,
+            id: 'first-skill',
+            name: 'first-skill',
+            content: 'First content',
+            index: 0,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain('<skills>');
+      expect(prompt).toContain(
+        '<skill mode="always" name="first-skill" description="">First content</skill>'
+      );
+      expect(prompt).toContain(
+        '<skill mode="always" name="second-skill" description="">Second content</skill>'
+      );
+      expect(prompt.indexOf('first-skill')).toBeLessThan(prompt.indexOf('second-skill'));
+    });
+
+    test('should include on-demand skills outline and exclude their content', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        skills: [
+          {
+            ...baseSkill,
+            id: 'always-loaded-skill',
+            name: 'always-loaded-skill',
+            content: 'Always content',
+            index: 0,
+          },
+          {
+            ...baseSkill,
+            id: 'on-demand-skill',
+            name: 'on-demand-skill',
+            content: 'On demand content',
+            description: 'On demand description',
+            alwaysLoaded: false,
+            index: 1,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain(
+        '<skill mode="on_demand" name="on-demand-skill" description="On demand description" />'
+      );
+      expect(prompt).not.toContain('On demand content');
+    });
+
+    test('should exclude skills that are not always loaded', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        skills: [
+          {
+            id: 'always-loaded-skill',
+            name: 'always-loaded-skill',
+            content: 'Always content',
+            description: 'Always description',
+            metadata: null,
+            subAgentSkillId: 'foo',
+            index: 1,
+            alwaysLoaded: true,
+          },
+          {
+            id: 'on-demand-skill',
+            name: 'on-demand-skill',
+            content: 'On demand content',
+            description: 'On demand description',
+            metadata: null,
+            subAgentSkillId: 'bar',
+            index: 2,
+            alwaysLoaded: false,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain(
+        '<skill mode="always" name="always-loaded-skill" description="Always description">Always content</skill>'
+      );
+      expect(prompt).toContain(
+        '<skill mode="on_demand" name="on-demand-skill" description="On demand description" />'
+      );
+      expect(prompt).not.toContain('On demand content');
     });
 
     test('should handle tools with complex parameter schemas', () => {
@@ -399,7 +514,6 @@ describe('SystemPromptBuilder', () => {
 
       expect(result.prompt).toContain('<name>Incomplete Artifact</name>');
       expect(result.prompt).toContain('<description>Artifact without metadata</description>');
-      expect(result).toBeDefined();
     });
   });
 });

@@ -19,9 +19,10 @@ import {
   getFullProjectWithRelationIds,
   getProjectMainBranchName,
   getProjectMetadata,
+  listScheduledTriggers,
   type ResolvedRef,
   removeProjectFromSpiceDb,
-  SpiceDbError,
+  type ScheduledTrigger,
   syncProjectToSpiceDb,
   TenantParamsSchema,
   TenantProjectParamsSchema,
@@ -33,6 +34,11 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { requirePermission } from '../../../middleware/requirePermission';
+import {
+  onTriggerCreated,
+  onTriggerDeleted,
+  onTriggerUpdated,
+} from '../../run/services/ScheduledTriggerService';
 
 const logger = getLogger('projectFull');
 
@@ -130,7 +136,10 @@ app.openapi(
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
     try {
-      // Phase 1: Commit all database operations first
+      // SpiceDB sync is placed inside the transaction callbacks so that a SpiceDB failure
+      // causes both DB transactions to roll back. However, SpiceDB is not a true transaction
+      // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
+      // may remain in SpiceDB (safe due to deny-by-default).
       const createdProject = await runDbClient.transaction(async (runTx) => {
         return await configDb.transaction(async (configTx) => {
           // 1. Create project in runtime DB and create project main branch
@@ -171,46 +180,24 @@ app.openapi(
             projectData: validatedProjectData,
           });
 
+          // Sync to SpiceDB — if this throws, both DB transactions roll back.
+          // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
+          // the auth relationships (orphaned but safe due to deny-by-default).
+          if (userId) {
+            await syncProjectToSpiceDb({
+              tenantId,
+              projectId: validatedProjectData.id,
+              creatorUserId: userId,
+            });
+          } else {
+            logger.warn(
+              { tenantId, projectId: validatedProjectData.id },
+              'Skipping SpiceDB sync — no userId available'
+            );
+          }
           return project;
         });
       });
-
-      // Phase 2: Sync to SpiceDB after DB transactions are committed
-      // SpiceDB defaults to deny, so the project is safe until auth is set up
-      if (userId) {
-        try {
-          await syncProjectToSpiceDb({
-            tenantId,
-            projectId: validatedProjectData.id,
-            creatorUserId: userId,
-          });
-        } catch (spiceDbError) {
-          // Compensating action: delete the project we just committed
-          logger.error(
-            { error: spiceDbError, tenantId, projectId: validatedProjectData.id, userId },
-            'SpiceDB sync failed after project creation - rolling back project'
-          );
-          try {
-            await deleteFullProject(configDb)({
-              scopes: { tenantId, projectId: validatedProjectData.id },
-            });
-            await deleteProjectWithBranch(
-              runDbClient,
-              manageDbClient
-            )({ tenantId, projectId: validatedProjectData.id });
-          } catch (cleanupError) {
-            logger.error(
-              { error: cleanupError, tenantId, projectId: validatedProjectData.id },
-              'Failed to clean up project after SpiceDB sync failure - manual intervention required'
-            );
-          }
-          throw createApiError({
-            code: 'internal_server_error',
-            message:
-              'Failed to set up project authorization. Project creation has been rolled back.',
-          });
-        }
-      }
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -223,10 +210,23 @@ app.openapi(
         });
       }
 
-      if (error instanceof SpiceDbError) {
+      // Handle SpiceDB sync failures — DB transactions rolled back since the
+      // exception propagated out of the transaction callbacks.
+      const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
+      const mentionsSpiceDb = error?.message?.includes('SpiceDB');
+      if (mentionsSpiceDb || isGrpcError) {
+        logger.error(
+          {
+            error,
+            tenantId,
+            projectId: validatedProjectData.id,
+            userId,
+          },
+          'Failed to sync project to SpiceDB — database transactions rolled back'
+        );
         throw createApiError({
           code: 'internal_server_error',
-          message: 'Failed to set up project authorization. Project creation has been rolled back.',
+          message: 'Failed to set up project authorization. No changes were made to the database.',
         });
       }
 
@@ -401,6 +401,7 @@ app.openapi(
     const projectData = c.req.valid('json');
     const configDb = c.get('db');
     const userId = c.get('userId');
+    const isCreate = c.get('isProjectCreate') ?? false;
 
     try {
       const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
@@ -412,10 +413,23 @@ app.openapi(
         });
       }
 
-      // Use cached result from middleware (permission already checked there)
-      const isCreate = c.get('isProjectCreate') ?? false;
+      // fetch existing scheduled triggers for all agents
+      const existingTriggersByAgent = new Map<string, ScheduledTrigger[]>();
+      if (!isCreate) {
+        const agents = Object.keys(validatedProjectData.agents || {});
+        for (const agentId of agents) {
+          const existingTriggers = await listScheduledTriggers(configDb)({
+            scopes: { tenantId, projectId, agentId },
+          });
+          existingTriggersByAgent.set(agentId, existingTriggers);
+        }
+      }
 
-      // Phase 1: Commit database operations
+      // Update/create the full project using server-side data layer operations
+      // SpiceDB sync is placed inside the transaction callbacks so that a SpiceDB failure
+      // causes both DB transactions to roll back. However, SpiceDB is not a true transaction
+      // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
+      // may remain in SpiceDB (safe due to deny-by-default).
       const updatedProject: FullProjectSelect = isCreate
         ? await runDbClient.transaction(async (runTx) => {
             return await configDb.transaction(async (configTx) => {
@@ -444,6 +458,19 @@ app.openapi(
                 projectData: validatedProjectData,
               });
 
+              // Sync to SpiceDB — if this throws, both DB transactions roll back.
+              // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
+              // the auth relationships (orphaned but safe due to deny-by-default).
+              if (userId) {
+                await syncProjectToSpiceDb({
+                  tenantId,
+                  projectId,
+                  creatorUserId: userId,
+                });
+              } else {
+                logger.warn({ tenantId, projectId }, 'Skipping SpiceDB sync — no userId available');
+              }
+
               return project;
             });
           })
@@ -452,37 +479,123 @@ app.openapi(
             projectData: validatedProjectData,
           });
 
-      // Phase 2: Sync to SpiceDB after DB transactions are committed (creates only)
-      if (isCreate && userId) {
-        try {
-          await syncProjectToSpiceDb({
-            tenantId,
-            projectId,
-            creatorUserId: userId,
-          });
-        } catch (spiceDbError) {
-          // Compensating action: delete the project we just committed
-          logger.error(
-            { error: spiceDbError, tenantId, projectId, userId },
-            'SpiceDB sync failed after project creation (PUT upsert) - rolling back project'
-          );
-          try {
-            await deleteFullProject(configDb)({
-              scopes: { tenantId, projectId },
+      // Reconcile scheduled trigger workflows for all agents in the project
+      try {
+        const agents = Object.keys(validatedProjectData.agents || {});
+
+        logger.info(
+          { tenantId, projectId, agentIds: agents, agentCount: agents.length },
+          'Starting scheduled trigger workflow reconciliation'
+        );
+
+        // Process all agents in parallel
+        await Promise.all(
+          agents.map(async (agentId) => {
+            const existingTriggersForAgent = existingTriggersByAgent.get(agentId) || [];
+            const newTriggersForAgent = await listScheduledTriggers(configDb)({
+              scopes: { tenantId, projectId, agentId },
             });
-            await deleteProjectWithBranch(runDbClient, manageDbClient)({ tenantId, projectId });
-          } catch (cleanupError) {
-            logger.error(
-              { error: cleanupError, tenantId, projectId },
-              'Failed to clean up project after SpiceDB sync failure - manual intervention required'
+
+            logger.info(
+              {
+                tenantId,
+                projectId,
+                agentId,
+                existingCount: existingTriggersForAgent.length,
+                newCount: newTriggersForAgent.length,
+              },
+              'Reconciling scheduled triggers for agent'
             );
-          }
-          throw createApiError({
-            code: 'internal_server_error',
-            message:
-              'Failed to set up project authorization. Project creation has been rolled back.',
-          });
-        }
+
+            const existingTriggerMap = new Map(existingTriggersForAgent.map((t) => [t.id, t]));
+            const newTriggerMap = new Map(newTriggersForAgent.map((t) => [t.id, t]));
+
+            // Collect all workflow operations to parallelize them
+            const workflowOperations: Promise<void>[] = [];
+
+            // Handle created and updated triggers
+            for (const trigger of newTriggersForAgent) {
+              const existing = existingTriggerMap.get(trigger.id);
+
+              if (!existing) {
+                // New trigger
+                workflowOperations.push(
+                  onTriggerCreated(trigger)
+                    .then(() =>
+                      logger.info(
+                        { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
+                        'Started workflow for new scheduled trigger'
+                      )
+                    )
+                    .catch((err) =>
+                      logger.error(
+                        { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
+                        'Failed to start workflow for new scheduled trigger'
+                      )
+                    )
+                );
+              } else {
+                // Updated trigger
+                const scheduleChanged =
+                  existing.cronExpression !== trigger.cronExpression ||
+                  String(existing.runAt) !== String(trigger.runAt);
+                const previousEnabled = existing.enabled;
+
+                if (scheduleChanged || previousEnabled !== trigger.enabled) {
+                  workflowOperations.push(
+                    onTriggerUpdated({ trigger, previousEnabled, scheduleChanged })
+                      .then(() =>
+                        logger.info(
+                          { tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
+                          'Updated workflow for scheduled trigger'
+                        )
+                      )
+                      .catch((err) =>
+                        logger.error(
+                          { err, tenantId, projectId, agentId, scheduledTriggerId: trigger.id },
+                          'Failed to update workflow for scheduled trigger'
+                        )
+                      )
+                  );
+                }
+              }
+            }
+
+            // Handle deleted triggers
+            for (const existing of existingTriggersForAgent) {
+              if (!newTriggerMap.has(existing.id)) {
+                workflowOperations.push(
+                  onTriggerDeleted(existing)
+                    .then(() =>
+                      logger.info(
+                        { tenantId, projectId, agentId, scheduledTriggerId: existing.id },
+                        'Stopped workflow for deleted scheduled trigger'
+                      )
+                    )
+                    .catch((err) =>
+                      logger.error(
+                        { err, tenantId, projectId, agentId, scheduledTriggerId: existing.id },
+                        'Failed to stop workflow for deleted scheduled trigger'
+                      )
+                    )
+                );
+              }
+            }
+
+            // Execute all workflow operations for this agent in parallel
+            await Promise.allSettled(workflowOperations);
+          })
+        );
+
+        logger.info(
+          { tenantId, projectId, agentCount: agents.length },
+          'Completed scheduled trigger workflow reconciliation'
+        );
+      } catch (err) {
+        logger.error(
+          { err, tenantId, projectId },
+          'Failed to reconcile scheduled trigger workflows after project update'
+        );
       }
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
@@ -501,11 +614,27 @@ app.openapi(
         });
       }
 
-      if (error instanceof SpiceDbError) {
-        throw createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to set up project authorization. Project creation has been rolled back.',
-        });
+      // Handle SpiceDB sync failures for creates — DB transactions rolled back since the
+      // exception propagated out of the transaction callbacks.
+      if (isCreate) {
+        const isGrpcError = error?.metadata !== undefined && typeof error?.code === 'number';
+        const mentionsSpiceDb = error?.message?.includes('SpiceDB');
+        if (mentionsSpiceDb || isGrpcError) {
+          logger.error(
+            {
+              error,
+              tenantId,
+              projectId,
+              userId,
+            },
+            'Failed to sync project to SpiceDB — database transactions rolled back'
+          );
+          throw createApiError({
+            code: 'internal_server_error',
+            message:
+              'Failed to set up project authorization. No changes were made to the database.',
+          });
+        }
       }
 
       throw createApiError({
@@ -594,12 +723,12 @@ app.openapi(
           projectId,
         });
         logger.info({ tenantId, projectId }, 'Removed project from SpiceDB');
-      } catch (spiceDbError) {
+      } catch (error) {
         // Log but don't fail - the project data is already deleted
         // This could leave orphaned auth relationships, but won't affect functionality
         logger.warn(
           {
-            spiceDbError,
+            error,
             tenantId,
             projectId,
           },

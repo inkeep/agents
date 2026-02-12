@@ -13,6 +13,7 @@ import {
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
@@ -503,6 +504,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           try {
             unsubscribe?.();
           } catch (_e) {}
+          await flushBatchProcessor();
         }
       });
     });

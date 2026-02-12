@@ -1,9 +1,11 @@
 import {
   type BaseExecutionContext,
   canUseProjectStrict,
+  isSlackUserToken,
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
+  verifySlackUserToken,
   verifyTempToken,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
@@ -90,11 +92,17 @@ function extractRequestData(c: { req: any }): RequestData {
  * Build the final execution context from auth result and request data
  */
 function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
+  // For team delegation, use the parent agent ID from the request header (x-inkeep-agent-id)
+  // instead of the JWT's audience (which is the sub-agent being called).
+  // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
+  const agentId =
+    authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+
   return createBaseExecutionContext({
     apiKey: authResult.apiKey,
     tenantId: authResult.tenantId,
     projectId: authResult.projectId,
-    agentId: authResult.agentId,
+    agentId,
     apiKeyId: authResult.apiKeyId,
     baseUrl: reqData.baseUrl,
     subAgentId: reqData.subAgentId,
@@ -202,6 +210,96 @@ async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
 }
 
 /**
+ * Authenticate using a Slack user JWT token (for Slack work app delegation)
+ */
+async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise<AuthAttempt> {
+  if (!isSlackUserToken(token)) {
+    return { authResult: null };
+  }
+
+  const result = await verifySlackUserToken(token);
+
+  if (!result.valid || !result.payload) {
+    logger.warn({ error: result.error }, 'Invalid Slack user JWT token');
+    return {
+      authResult: null,
+      failureMessage: `Invalid Slack user token: ${result.error || 'Invalid token'}`,
+    };
+  }
+
+  const payload = result.payload;
+
+  if (!reqData.projectId || !reqData.agentId) {
+    logger.warn(
+      { hasProjectId: !!reqData.projectId, hasAgentId: !!reqData.agentId },
+      'Slack user JWT requires x-inkeep-project-id and x-inkeep-agent-id headers'
+    );
+    return {
+      authResult: null,
+      failureMessage: 'Slack user token requires x-inkeep-project-id and x-inkeep-agent-id headers',
+    };
+  }
+
+  // Verify the requested projectId belongs to the authenticated tenant
+  try {
+    const canUse = await canUseProjectStrict({
+      userId: payload.sub,
+      projectId: reqData.projectId,
+    });
+    if (!canUse) {
+      logger.warn(
+        {
+          userId: payload.sub,
+          tenantId: payload.tenantId,
+          projectId: reqData.projectId,
+        },
+        'Slack user JWT: user does not have access to requested project'
+      );
+      return {
+        authResult: null,
+        failureMessage: 'Access denied: insufficient permissions for the requested project',
+      };
+    }
+  } catch (error) {
+    logger.error(
+      { error, userId: payload.sub, projectId: reqData.projectId },
+      'SpiceDB permission check failed for Slack JWT'
+    );
+    throw new HTTPException(503, {
+      message: 'Authorization service temporarily unavailable',
+    });
+  }
+
+  logger.info(
+    {
+      inkeepUserId: payload.sub,
+      tenantId: payload.tenantId,
+      slackTeamId: payload.slack.teamId,
+      slackUserId: payload.slack.userId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+    },
+    'Slack user JWT token authenticated successfully'
+  );
+
+  return {
+    authResult: {
+      apiKey: token,
+      tenantId: payload.tenantId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      apiKeyId: 'slack-user-token',
+      metadata: {
+        initiatedBy: {
+          type: 'user',
+          id: payload.sub,
+        },
+      },
+    },
+  };
+}
+
+/**
  * Authenticate using a team agent JWT token (for intra-tenant delegation)
  */
 async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Promise<AuthAttempt> {
@@ -243,7 +341,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
 
   return {
     authResult: {
-      apiKey: 'team-agent-jwt',
+      apiKey: token,
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       agentId: payload.aud,
@@ -337,11 +435,16 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const bypassResult = tryBypassAuth(apiKey, reqData);
   if (bypassResult) return { authResult: bypassResult };
 
-  // 3. Try regular API key
+  // 3. Try Slack user JWT token
+  const slackAttempt = await trySlackUserJwtAuth(apiKey, reqData);
+  if (slackAttempt.authResult) return { authResult: slackAttempt.authResult };
+  if (slackAttempt.failureMessage) return slackAttempt;
+
+  // 4. Try regular API key
   const apiKeyResult = await tryApiKeyAuth(apiKey);
   if (apiKeyResult) return { authResult: apiKeyResult };
 
-  // 4. Try team agent token
+  // 5. Try team agent token
   const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
   if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
 

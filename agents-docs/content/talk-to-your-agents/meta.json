@@ -8,6 +8,7 @@
     "(chat-components)",
     "vercel-ai-sdk",
     "a2a",
+    "slack",
     "../troubleshooting",
     "..."
   ]

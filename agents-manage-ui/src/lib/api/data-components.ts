@@ -7,12 +7,9 @@
 
 'use server';
 
-import type {
-  DataComponentApiInsert,
-  DataComponentApiSelect,
-  DataComponentApiUpdate,
-} from '@inkeep/agents-core';
+import type { DataComponentApiInsert, DataComponentApiSelect } from '@inkeep/agents-core';
 import { cache } from 'react';
+import type { DataComponentOutput } from '@/components/data-components/form/validation';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
@@ -20,13 +17,12 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Note: DataComponentApiSelect might have nullable props, but UI expects non-nullable
-export type DataComponent = Omit<DataComponentApiSelect, 'props'> & {
-  props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
+export interface DataComponent extends Omit<DataComponentApiSelect, 'render'> {
   render?: {
     component: string;
     mockData: Record<string, unknown>;
   } | null;
-};
+}
 
 /**
  * Fetch all data components for a tenant
@@ -108,7 +104,7 @@ export async function createDataComponent(
 export async function updateDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponent: DataComponentApiUpdate & { id: string }
+  dataComponent: Partial<DataComponentOutput> & Pick<DataComponentOutput, 'id'>
 ): Promise<DataComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);

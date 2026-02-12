@@ -11,7 +11,6 @@ import type {
   FullAgentDefinition as CoreFullAgentDefinition,
   ExternalAgentApiInsert,
   FunctionApiInsert,
-  InternalAgentDefinition,
   ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
@@ -27,7 +26,7 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 };
 
 // Re-export types and schemas
-export type { InternalAgentDefinition };
+export type { InternalAgentDefinition } from '@inkeep/agents-core/client-exports';
 
 export interface Agent {
   id: string;

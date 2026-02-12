@@ -6,8 +6,8 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
-// Mock SpiceDB sync functions for integration tests.
-// syncOrgMemberToSpiceDb is called indirectly via better-auth org hooks during tenant setup.
+// Mock SpiceDB sync functions for integration tests
+// These are not needed for integration tests as they test the API/DB layer only
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
