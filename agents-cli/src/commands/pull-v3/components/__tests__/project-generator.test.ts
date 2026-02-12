@@ -101,7 +101,7 @@ describe('Project Generator', () => {
       expect(definition).not.toContain('escalationAgent,'); // No trailing comma
 
       const testName = expect.getState().currentTestName;
-      const definitionV4 = generateProjectDefinitionV4(projectId, basicProjectData);
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...basicProjectData });
       await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
@@ -133,7 +133,7 @@ describe('Project Generator', () => {
       expect(definition).not.toContain('reportGeneratorTool,'); // No trailing comma
 
       const testName = expect.getState().currentTestName;
-      const definitionV4 = generateProjectDefinitionV4(projectId, complexProjectData);
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
       await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
