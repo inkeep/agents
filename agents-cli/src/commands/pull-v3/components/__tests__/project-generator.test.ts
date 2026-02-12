@@ -104,8 +104,10 @@ describe('Project Generator', () => {
         '__snapshots__/should-generate-basic-project-definition.txt'
       );
 
-      const def = generateProjectDefinitionV4(projectId, basicProjectData);
-      console.log(definition);
+      const definitionV4 = generateProjectDefinitionV4(projectId, basicProjectData);
+      expect(definitionV4).toMatchFileSnapshot(
+        '__snapshots__/should-generate-basic-project-definition-v4.txt'
+      );
     });
 
     it('should generate complex project with all features', () => {

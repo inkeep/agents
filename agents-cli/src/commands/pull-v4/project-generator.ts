@@ -1,12 +1,6 @@
 import type { ProjectConfig } from '@inkeep/agents-sdk';
 import type { CodeBlockWriter } from 'ts-morph';
-import {
-  IndentationText,
-  NewLineKind,
-  Project,
-  QuoteKind,
-  VariableDeclarationKind,
-} from 'ts-morph';
+import { IndentationText, NewLineKind, Project, QuoteKind } from 'ts-morph';
 
 type ProjectDefinitionData = Omit<ProjectConfig, 'id'> & {
   agents?: string[];
@@ -24,7 +18,36 @@ export function generateProjectDefinition(
     throw new Error(`projectData is required for project '${projectId}'`);
   }
 
+  const missingFields = getMissingRequiredFields(projectData);
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Missing required fields for project '${projectId}': ${missingFields.join(', ')}`
+    );
+  }
+
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    manipulationSettings: {
+      indentationText: IndentationText.TwoSpaces,
+      quoteKind: QuoteKind.Single,
+      newLineKind: NewLineKind.LineFeed,
+      useTrailingCommas: false,
+    },
+  });
+
+  const sourceFile = project.createSourceFile('project-definition.ts', '', { overwrite: true });
+  const projectVarName = toCamelCase(projectId);
+
+  sourceFile.replaceWithText((writer) => {
+    writeProjectDefinition(writer, projectVarName, projectId, projectData);
+  });
+
+  return sourceFile.getFullText().trimEnd();
+}
+
+function getMissingRequiredFields(projectData: ProjectDefinitionData): string[] {
   const missingFields: string[] = [];
+
   if (!projectData.name) {
     missingFields.push('name');
   }
@@ -35,71 +58,46 @@ export function generateProjectDefinition(
     missingFields.push('models.base');
   }
 
-  if (missingFields.length > 0) {
-    throw new Error(
-      `Missing required fields for project '${projectId}': ${missingFields.join(', ')}`
-    );
-  }
-
-  const morphProject = new Project({
-    useInMemoryFileSystem: true,
-    manipulationSettings: {
-      indentationText: IndentationText.TwoSpaces,
-      quoteKind: QuoteKind.Single,
-      newLineKind: NewLineKind.LineFeed,
-      useTrailingCommas: false,
-    },
-  });
-
-  const sourceFile = morphProject.createSourceFile('project-definition.ts', '', {
-    overwrite: true,
-  });
-  const projectVarName = toCamelCase(projectId);
-
-  sourceFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    isExported: true,
-    declarations: [
-      {
-        name: projectVarName,
-        initializer: (writer) => {
-          writeProjectCall(writer, projectId, projectData);
-        },
-      },
-    ],
-  });
-
-  return sourceFile.getFullText().trimEnd();
+  return missingFields;
 }
 
-function writeProjectCall(
+function writeProjectDefinition(
   writer: CodeBlockWriter,
+  projectVarName: string,
   projectId: string,
   projectData: ProjectDefinitionData
 ) {
-  writer.write('project(');
-  writer.block(() => {
-    writer.writeLine(`id: ${stringLiteral(projectId)},`);
-    writer.writeLine(`name: ${stringLiteral(projectData.name || '')},`);
+  const hasAgents = Boolean(projectData.agents?.length);
+
+  writer.writeLine(`export const ${projectVarName} = project({`);
+  writer.indent(() => {
+    writer.writeLine(`id: ${toLiteral(projectId)},`);
+    writer.writeLine(`name: ${toLiteral(projectData.name ?? '')},`);
 
     if (projectData.description) {
-      writer.writeLine(`description: ${stringLiteral(projectData.description)},`);
+      writer.writeLine(`description: ${toLiteral(projectData.description)},`);
     }
 
-    writeModels(writer, projectData.models);
+    writeModels(writer, projectData.models, hasAgents);
 
-    if (projectData.agents && projectData.agents.length > 0) {
-      writer.write('agents: () => ');
-      writeIdentifierArray(writer, projectData.agents);
-      writer.newLine();
+    if (hasAgents) {
+      writer.writeLine('agents: () => [');
+      writer.indent(() => {
+        projectData.agents?.forEach((agentId, index) => {
+          const isLast = index === (projectData.agents?.length ?? 0) - 1;
+          writer.writeLine(`${agentId}${isLast ? '' : ','}`);
+        });
+      });
+      writer.writeLine(']');
     }
   });
-  writer.write(')');
+  writer.write('});');
 }
 
 function writeModels(
   writer: CodeBlockWriter,
-  models: NonNullable<ProjectDefinitionData['models']>
+  models: NonNullable<ProjectDefinitionData['models']>,
+  hasTrailingComma: boolean
 ) {
   writer.writeLine('models: {');
   writer.indent(() => {
@@ -112,44 +110,16 @@ function writeModels(
     const definedEntries = orderedEntries.filter(([, value]) => value != null);
 
     definedEntries.forEach(([key, value], index) => {
-      const hasNext = index < definedEntries.length - 1;
-      writeModelSettings(writer, key, value ?? {}, hasNext);
-    });
-  });
-  writer.writeLine('},');
-}
-
-function writeModelSettings(
-  writer: CodeBlockWriter,
-  key: string,
-  settings: Record<string, unknown>,
-  hasTrailingComma: boolean
-) {
-  writer.writeLine(`${key}: {`);
-  writer.indent(() => {
-    const entries = Object.entries(settings);
-    entries.forEach(([entryKey, entryValue], index) => {
-      const isLast = index === entries.length - 1;
-      writer.writeLine(`${entryKey}: ${toLiteral(entryValue)}${isLast ? '' : ','}`);
+      const isLast = index === definedEntries.length - 1;
+      writer.writeLine(`${key}: ${toLiteral(value)}${isLast ? '' : ','}`);
     });
   });
   writer.writeLine(`}${hasTrailingComma ? ',' : ''}`);
 }
 
-function writeIdentifierArray(writer: CodeBlockWriter, ids: string[]) {
-  writer.writeLine('[');
-  writer.indent(() => {
-    ids.forEach((id, index) => {
-      const isLast = index === ids.length - 1;
-      writer.writeLine(`${id}${isLast ? '' : ','}`);
-    });
-  });
-  writer.write(']');
-}
-
 function toLiteral(value: unknown): string {
   if (typeof value === 'string') {
-    return stringLiteral(value);
+    return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
   }
   if (typeof value === 'number' || typeof value === 'bigint') {
     return String(value);
@@ -163,11 +133,16 @@ function toLiteral(value: unknown): string {
   if (value === undefined) {
     return 'undefined';
   }
-  return JSON.stringify(value, null, 2);
-}
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => toLiteral(item)).join(', ')}]`;
+  }
 
-function stringLiteral(value: string) {
-  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) {
+    return '{}';
+  }
+
+  return `{ ${entries.map(([key, entryValue]) => `${key}: ${toLiteral(entryValue)}`).join(', ')} }`;
 }
 
 function toCamelCase(input: string): string {
