@@ -10,7 +10,6 @@ import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
-import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
@@ -25,8 +24,6 @@ import {
   runApiKeyAuthExcept,
   runCorsConfig,
   signozCorsConfig,
-  workAppsAuth,
-  workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
 import { evalApiKeyAuth } from './middleware/evalsAuth';
@@ -101,9 +98,6 @@ function createAgentsHono(config: AppConfig) {
 
   app.use('/manage/tenants/*/signoz/*', cors(signozCorsConfig));
 
-  // Work Apps routes - specific CORS config for dashboard integration
-  app.use('/work-apps/*', cors(workAppsCorsConfig));
-
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS for routes with their own CORS config
@@ -111,9 +105,6 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.startsWith('/run/')) {
-      return next();
-    }
-    if (c.req.path.startsWith('/work-apps/')) {
       return next();
     }
     if (c.req.path.includes('/playground/token')) {
@@ -138,12 +129,6 @@ function createAgentsHono(config: AppConfig) {
   });
 
   app.use('/manage/*', async (c, next) => {
-    c.set('auth', auth);
-    await next();
-  });
-
-  // Work Apps routes - set auth context for session-based operations (before sessionContext)
-  app.use('/work-apps/*', async (c, next) => {
     c.set('auth', auth);
     await next();
   });
@@ -367,13 +352,6 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount GitHub routes - unauthenticated, OIDC token is the authentication
   app.route('/work-apps/github', githubRoutes);
-
-  // Work Apps auth - session/API key auth for protected routes (workspace management, user endpoints)
-  app.use('/work-apps/slack/workspaces/*', workAppsAuth);
-  app.use('/work-apps/slack/users/*', workAppsAuth);
-
-  // Mount Work Apps routes - modular third-party integrations (Slack, etc.)
-  app.route('/work-apps', workAppsRoutes);
 
   // Mount MCP routes at top level (eclipses both manage and run services)
   // Also available at /manage/mcp for backward compatibility
