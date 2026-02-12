@@ -4,6 +4,7 @@ import {
   createTask,
   type FullExecutionContext,
   generateId,
+  generateServiceToken,
   getActiveAgentForConversation,
   getTask,
   type Part,
@@ -259,9 +260,23 @@ export class ExecutionHandler {
         }
 
         const agentBaseUrl = `${baseUrl}/run/agents`;
+
+        // For team delegation contexts, generate a fresh JWT for the target sub-agent.
+        // The inherited apiKey has aud=<parent agent>, but we need aud=<current sub-agent>.
+        // This ensures proper auth chain for each hop in agent-to-agent communication.
+        let authToken = apiKey;
+        if (executionContext.metadata?.teamDelegation) {
+          authToken = await generateServiceToken({
+            tenantId,
+            projectId,
+            originAgentId: agentId,
+            targetAgentId: currentAgentId,
+          });
+        }
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${authToken}`,
             'x-inkeep-tenant-id': tenantId,
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
