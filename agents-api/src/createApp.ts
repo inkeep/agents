@@ -304,6 +304,20 @@ function createAgentsHono(config: AppConfig) {
     app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
   }
 
+  app.use('*', async (c, next) => {
+    await next();
+    if (process.env.VERCEL) {
+      try {
+        const { waitUntil } = await import('@vercel/functions');
+        waitUntil(flushBatchProcessor());
+      } catch {
+        await flushBatchProcessor();
+      }
+    } else {
+      await flushBatchProcessor();
+    }
+  });
+
   // Apply API key authentication to all protected run routes
   app.use('/run/tenants/*', runApiKeyAuthExcept(isWebhookRoute));
   app.use('/run/agents/*', runApiKeyAuth());
@@ -385,11 +399,6 @@ function createAgentsHono(config: AppConfig) {
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
-
-  app.use('/run/*', async (_c, next) => {
-    await next();
-    await flushBatchProcessor();
-  });
 
   // Wrap in base Hono for framework detection
   const base = new Hono();
