@@ -106,10 +106,19 @@ describe('create-agents quickstart e2e', () => {
 
     console.log('Setting up project in database');
     // Pass bypass secret so setup-dev:cloud's internal push can authenticate
-    await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000, {
-      INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
-      INKEEP_API_KEY: TEST_BYPASS_SECRET,
-    }); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
+    await runCommand({
+      command: 'pnpm',
+      args: ['setup-dev:cloud'],
+      cwd: projectDir,
+      timeout: 600000, // 10 minutes for CI (includes migrations, server startup, push)
+      env: {
+        INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: TEST_BYPASS_SECRET,
+        INKEEP_API_KEY: TEST_BYPASS_SECRET,
+        INKEEP_CI: 'true',
+        SKIP_UPGRADE: 'true', // Packages are already linked locally, skip pnpm update --latest
+      },
+      stream: true,
+    });
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -156,9 +165,9 @@ describe('create-agents quickstart e2e', () => {
       console.log('Manage API is ready');
 
       console.log('Pushing project');
-      const pushResult = await runCommand(
-        'pnpm',
-        [
+      const pushResult = await runCommand({
+        command: 'pnpm',
+        args: [
           'inkeep',
           'push',
           '--project',
@@ -166,11 +175,10 @@ describe('create-agents quickstart e2e', () => {
           '--config',
           'src/inkeep.config.ts',
         ],
-        projectDir,
-        30000,
-        // Pass the bypass secret as INKEEP_API_KEY for CLI authentication in CI
-        { INKEEP_API_KEY: TEST_BYPASS_SECRET, INKEEP_CI: 'true' }
-      );
+        cwd: projectDir,
+        timeout: 30000,
+        env: { INKEEP_API_KEY: TEST_BYPASS_SECRET, INKEEP_CI: 'true' },
+      });
 
       expect(
         pushResult.exitCode,
