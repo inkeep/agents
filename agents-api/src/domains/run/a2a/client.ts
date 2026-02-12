@@ -49,7 +49,6 @@ export interface A2AClientOptions {
   retryConfig?: RetryConfig;
   ref?: ResolvedRef;
   headers?: Record<string, string>;
-  fetchFn?: typeof fetch;
 }
 
 const DEFAULT_BACKOFF: BackoffStrategy = {
@@ -136,7 +135,6 @@ export class A2AClient {
   private requestIdCounter = 1;
   private serviceEndpointUrl?: string; // To be populated from AgentCard after fetching
   private options: A2AClientOptions;
-  private fetchFn: typeof fetch;
 
   /**
    * Constructs an A2AClient instance.
@@ -148,7 +146,6 @@ export class A2AClient {
    */
   constructor(agentBaseUrl: string, options?: A2AClientOptions) {
     this.agentBaseUrl = agentBaseUrl.replace(/\/$/, ''); // Remove trailing slash if any
-    this.fetchFn = options?.fetchFn ?? fetch;
     this.options = {
       retryConfig: {
         strategy: 'backoff',
@@ -180,7 +177,7 @@ export class A2AClient {
       'agentCardUrl'
     );
     try {
-      const response = await this.fetchFn(url.toString(), {
+      const response = await fetch(url.toString(), {
         headers: {
           Accept: 'application/json',
           ...(this.options.headers || {}),
@@ -226,7 +223,7 @@ export class A2AClient {
         url.searchParams.set('ref', this.options.ref.name);
       }
 
-      const response = await this.fetchFn(url.toString(), {
+      const response = await fetch(url.toString(), {
         headers: {
           Accept: 'application/json',
           ...(this.options.headers || {}),
@@ -470,11 +467,11 @@ export class A2AClient {
     };
 
     const httpResponse = await this.retry(async () => {
-      return this.fetchFn(endpoint, {
+      return fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json',
+          Accept: 'application/json', // Expect JSON response for non-streaming requests
           ...(this.options.headers || {}),
         },
         body: JSON.stringify(rpcRequest),
@@ -563,11 +560,11 @@ export class A2AClient {
       id: clientRequestId,
     };
 
-    const response = await this.fetchFn(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
+        Accept: 'text/event-stream', // Crucial for SSE
         ...(this.options.headers || {}),
       },
       body: JSON.stringify(rpcRequest),
@@ -679,7 +676,7 @@ export class A2AClient {
       id: clientRequestId,
     };
 
-    const response = await this.fetchFn(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
