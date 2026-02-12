@@ -75,7 +75,7 @@ describe('Project Generator', () => {
   });
 
   describe('generateProjectDefinition', () => {
-    it.only('should generate basic project definition', () => {
+    it.only('should generate basic project definition', async () => {
       const projectId = 'customer-support-project';
 
       const definition = generateProjectDefinition(
@@ -100,13 +100,14 @@ describe('Project Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('escalationAgent,'); // No trailing comma
 
-      expect(definition).toMatchFileSnapshot(
-        '__snapshots__/should-generate-basic-project-definition.txt'
+      const testName = expect.getState().currentTestName
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/${testName}.txt`
       );
 
       const definitionV4 = generateProjectDefinitionV4(projectId, basicProjectData);
-      expect(definitionV4).toMatchFileSnapshot(
-        '__snapshots__/should-generate-basic-project-definition-v4.txt'
+       await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/${testName}-v4.txt`
       );
     });
 
