@@ -10,6 +10,7 @@ export const runeHolderStats = dataComponent({
     properties: {
       stats: {
         type: 'object',
+        description: 'Holder statistics and distribution metrics for a Rune token',
         properties: {
           runeName: {
             type: 'string',
@@ -29,6 +30,7 @@ export const runeHolderStats = dataComponent({
           },
           averageBalance: {
             type: 'object',
+            description: 'Average balance per holder in tokens and USD',
             properties: {
               tokens: {
                 type: 'string',
@@ -43,6 +45,7 @@ export const runeHolderStats = dataComponent({
           },
           topHolderConcentration: {
             type: 'object',
+            description: 'Concentration metrics for the largest holder',
             properties: {
               percentage: {
                 type: 'string',
@@ -57,6 +60,7 @@ export const runeHolderStats = dataComponent({
           },
           distributionHealth: {
             type: 'object',
+            description: 'Overall health assessment of token distribution',
             properties: {
               decentralization: {
                 type: 'string',
@@ -75,6 +79,7 @@ export const runeHolderStats = dataComponent({
           },
           priceInfo: {
             type: 'object',
+            description: 'Current price information for the token',
             properties: {
               currentPrice: {
                 type: 'string',
