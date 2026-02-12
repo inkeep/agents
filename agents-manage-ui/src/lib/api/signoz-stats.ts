@@ -196,8 +196,7 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined,
-    includeAggregates?: boolean
+    agentId: string | undefined
   ): Promise<PaginatedConversationStats> {
     try {
       return await this.getConversationStatsPaginated(
@@ -207,8 +206,7 @@ class SigNozStatsAPI {
         projectId,
         pagination,
         searchQuery,
-        agentId,
-        includeAggregates
+        agentId
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
@@ -233,10 +231,9 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined,
-    includeAggregates?: boolean
+    agentId: string | undefined
   ): Promise<PaginatedConversationStats> {
-    // Step 1: Get total count, paginated conversation IDs, and (optionally) aggregate stats
+    // Step 1: Get total count, paginated conversation IDs, and aggregate stats
     const { conversationIds, total, aggregateStats } = await this.getPaginatedConversationIds(
       startTime,
       endTime,
@@ -244,8 +241,7 @@ class SigNozStatsAPI {
       projectId,
       pagination,
       searchQuery,
-      agentId,
-      includeAggregates
+      agentId
     );
 
     if (conversationIds.length === 0) {
@@ -368,9 +364,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined,
-    includeAggregates?: boolean
-  ): Promise<{ conversationIds: string[]; total: number; aggregateStats?: AggregateStats }> {
+    agentId: string | undefined
+  ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
     const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
@@ -382,14 +377,12 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      useServerSidePagination ? pagination : undefined,
-      includeAggregates
+      useServerSidePagination ? pagination : undefined
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
 
-    const extractAggregates = (): AggregateStats | undefined => {
-      if (!includeAggregates) return undefined;
+    const extractAggregates = (): AggregateStats => {
       const zeroSeries = { values: [{ value: '0' }] } as Series;
       return {
         totalToolCalls: countFromSeries(
@@ -1432,8 +1425,7 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     agentId: string | undefined,
     includeSearchData: boolean,
-    pagination?: { page: number; limit: number },
-    includeAggregates?: boolean
+    pagination?: { page: number; limit: number }
   ) {
     const buildBaseFilters = (): any[] => {
       const items: any[] = [
@@ -1724,7 +1716,7 @@ class SigNozStatsAPI {
       };
     }
 
-    if (includeAggregates) {
+    {
       const convIdFilter = buildBaseFilters();
 
       builderQueries.aggToolCalls = {

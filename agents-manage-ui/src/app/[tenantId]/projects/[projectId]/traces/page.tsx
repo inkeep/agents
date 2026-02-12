@@ -120,7 +120,6 @@ export default function TracesOverview({
     searchQuery: debouncedSearchQuery,
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
-    includeAggregates: true,
   });
 
   const aggregateLoading = loading;

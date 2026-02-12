@@ -41,7 +41,6 @@ interface UseConversationStatsOptions {
   };
   searchQuery?: string;
   agentId?: string;
-  includeAggregates?: boolean;
 }
 
 const DEFAULT_AGGREGATE_STATS: AggregateStats = {
@@ -66,7 +65,6 @@ export function useConversationStats(
 
   // Extract stable values to avoid object recreation issues
   const pageSize = options?.pagination?.pageSize || 50;
-  const includeAggregates = options?.includeAggregates ?? false;
 
   const fetchData = useCallback(
     async (page: number) => {
@@ -87,8 +85,7 @@ export function useConversationStats(
           options?.projectId,
           { page, limit: pageSize },
           options?.searchQuery,
-          options?.agentId,
-          includeAggregates
+          options?.agentId
         );
 
         setStats(result.data);
@@ -114,7 +111,6 @@ export function useConversationStats(
       options?.searchQuery,
       options?.agentId,
       pageSize,
-      includeAggregates,
     ]
   );
 
