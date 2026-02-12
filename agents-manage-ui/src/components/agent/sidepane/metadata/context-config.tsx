@@ -1,10 +1,10 @@
 import { type FC, useEffect } from 'react';
+import { ContextConfigSchema as schema } from '@/components/agent/form/validation';
 import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
-import { ContextConfigSchema as schema } from '@/lib/types/agent-full';
 import { isRequired } from '@/lib/utils';
 import { SectionHeader } from '../section';
 

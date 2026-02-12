@@ -12,8 +12,8 @@ import type {
   AgentWithinContextOfProjectSchema,
 } from '@inkeep/agents-core/client-exports';
 import type { z } from 'zod';
-import type { SingleResponse } from './response';
 import type { FullAgentUpdateSchema } from '@/components/agent/form/validation';
+import type { SingleResponse } from './response';
 
 export type FullAgentResponse = z.infer<typeof AgentWithinContextOfProjectResponse>['data'];
 

@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createContext, type FC, type ReactNode, use } from 'react';
 import { type UseFormReturn, useForm } from 'react-hook-form';
 import type { z } from 'zod';
+import { FullAgentUpdateSchema } from '@/components/agent/form/validation';
 import { Form } from '@/components/ui/form';
-import { FullAgentUpdateSchema } from '@/lib/types/agent-full';
 
 type Input = z.input<typeof FullAgentUpdateSchema>;
 type Output = z.output<typeof FullAgentUpdateSchema>;

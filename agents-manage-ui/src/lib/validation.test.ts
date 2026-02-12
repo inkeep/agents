@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { FullAgentUpdateSchema } from '@/lib/types/agent-full';
 import { createCustomHeadersSchema } from '@/lib/validation';
 
 describe('validation', () => {
