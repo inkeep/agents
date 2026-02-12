@@ -2,13 +2,13 @@
 /**
  * Unit tests for project generator
  */
+import { generateProjectDefinition as generateProjectDefinitionV4 } from '../../../pull-v4/project-generator';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateProjectDefinition,
   generateProjectFile,
   generateProjectImports,
 } from '../project-generator';
-import { generateProjectDefinition as generateProjectDefinitionV4 } from '../../../pull-v4/project-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -100,15 +100,10 @@ describe('Project Generator', () => {
       expect(definition).toContain('});');
       expect(definition).not.toContain('escalationAgent,'); // No trailing comma
 
-      const testName = expect.getState().currentTestName
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/${testName}.txt`
-      );
-
+      const testName = expect.getState().currentTestName;
       const definitionV4 = generateProjectDefinitionV4(projectId, basicProjectData);
-       await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/${testName}-v4.txt`
-      );
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should generate complex project with all features', () => {
