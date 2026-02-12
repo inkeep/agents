@@ -163,9 +163,10 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should handle multiple items in multi-line format', () => {
+    it.only('should handle multiple items in multi-line format', async () => {
+      const projectId = 'multi-item-project';
       const definition = generateProjectDefinition(
-        'multi-item-project',
+        projectId,
         complexProjectData,
         undefined,
         mockRegistry
@@ -177,6 +178,11 @@ describe('Project Generator', () => {
       expect(definition).toContain('  reportingAgent'); // Last one without comma
       expect(definition).toContain(']');
       expect(definition).not.toContain('reportingAgent,');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...complexProjectData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should throw error for missing models field', () => {
