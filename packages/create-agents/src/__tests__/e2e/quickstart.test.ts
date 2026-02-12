@@ -169,7 +169,7 @@ describe('create-agents quickstart e2e', () => {
         projectDir,
         30000,
         // Pass the bypass secret as INKEEP_API_KEY for CLI authentication in CI
-        { INKEEP_API_KEY: TEST_BYPASS_SECRET }
+        { INKEEP_API_KEY: TEST_BYPASS_SECRET, INKEEP_CI: 'true' }
       );
 
       expect(
