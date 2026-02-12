@@ -27,7 +27,7 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
+
 import { getLogger } from '@/lib/logger';
 
 // Configure axios retry
@@ -45,7 +45,7 @@ type SigNozResp = {
   data?: { result?: Array<{ queryName?: string; list?: SigNozListItem[] }> };
 };
 
-const START_2020_MS = new Date('2020-01-01T00:00:00Z').getTime();
+const DEFAULT_LOOKBACK_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
@@ -167,7 +167,7 @@ function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
 
 function buildConversationListPayload(
   conversationId: string,
-  start = START_2020_MS,
+  start = Date.now() - DEFAULT_LOOKBACK_MS,
   end = Date.now()
 ) {
   const baseFilters = [
@@ -455,6 +455,12 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            // Context breakdown attributes (avoids needing the heavy allSpanAttributes SQL query)
+            { key: CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, ...QUERY_FIELD_CONFIGS.INT64_TAG },
+            ...V1_BREAKDOWN_SCHEMA.map((def) => ({
+              key: def.spanAttribute,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            })),
           ],
           QUERY_DEFAULTS.LIMIT_UNLIMITED
         ),
@@ -809,6 +815,10 @@ function buildConversationListPayload(
           QUERY_EXPRESSIONS.DURATION_SPANS,
           [],
           [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
             {
               key: SPAN_KEYS.TRACE_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
@@ -1212,17 +1222,23 @@ export async function GET(
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
 
+  // Optional time range params to narrow the ClickHouse scan window
+  const startParam = url.searchParams.get('start');
+  const endParam = url.searchParams.get('end');
+
   // Forward cookies for authentication
   const cookieHeader = req.headers.get('cookie');
 
   try {
-    const start = START_2020_MS;
-    const end = Date.now();
+    const now = Date.now();
+    const start = startParam ? Number(startParam) : now - DEFAULT_LOOKBACK_MS;
+    const end = endParam ? Number(endParam) : now;
 
     // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
 
-    // Call secure agents-api
+    // Single SigNoz builder query — allSpanAttributes SQL removed from initial load
+    // (span details are now fetched lazily via /api/signoz/spans/[spanId])
     const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
@@ -1251,7 +1267,6 @@ export async function GET(
     for (const s of userMessageSpans) {
       agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
-      // Extract trigger info if present
       const spanInvocationType = getString(s, SPAN_KEYS.INVOCATION_TYPE, '');
       if (spanInvocationType && !invocationType) {
         invocationType = spanInvocationType;
@@ -1261,38 +1276,33 @@ export async function GET(
       if (agentId || agentName) break;
     }
 
-    let allSpanAttributes: Array<{
-      spanId: string;
-      traceId: string;
-      timestamp: string;
-      data: Record<string, any>;
-    }> = [];
-    try {
-      // Call secure manage-api via the SQL helper function
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
-    } catch (e) {
-      const logger = getLogger('span-attributes');
-      logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
-    }
-
+    // Build parent-span map from durationSpans (already fetched in builder query)
     const spanIdToParentSpanId = new Map<string, string | null>();
-    for (const spanAttr of allSpanAttributes) {
-      const parentSpanId = spanAttr.data[SPAN_KEYS.PARENT_SPAN_ID] || null;
-      spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
+    for (const span of durationSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const parentSpanId = getString(span, SPAN_KEYS.PARENT_SPAN_ID, '') || null;
+      if (spanId) {
+        spanIdToParentSpanId.set(spanId, parentSpanId);
+      }
     }
 
-    // Build map from spanId to context breakdown (from agent.generate spans)
-    // Uses V1_BREAKDOWN_SCHEMA to dynamically parse breakdown from span attributes
+    // Build context breakdown map from agentGenerationSpans (breakdown attrs now in builder query)
     type ContextBreakdownData = {
       components: Record<string, number>;
       total: number;
     };
     const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
-    for (const spanAttr of allSpanAttributes) {
-      const data = spanAttr.data;
-      if (data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] !== undefined) {
+    for (const span of agentGenerationSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const totalValue = getField(span, CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE);
+      if (spanId && totalValue !== undefined && totalValue !== '' && totalValue !== null) {
+        const data: Record<string, unknown> = {};
+        data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] = totalValue;
+        for (const def of V1_BREAKDOWN_SCHEMA) {
+          data[def.spanAttribute] = getField(span, def.spanAttribute);
+        }
         spanIdToContextBreakdown.set(
-          spanAttr.spanId,
+          spanId,
           parseContextBreakdownFromSpan(data, V1_BREAKDOWN_SCHEMA)
         );
       }
@@ -2034,7 +2044,6 @@ export async function GET(
       mcpToolErrors: [],
       agentId,
       agentName,
-      allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
