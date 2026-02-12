@@ -34,16 +34,16 @@ export function ComponentRenderGenerator({
   projectId,
   artifactComponentId,
   artifactComponentName,
-  existingRender,
+  existingRender = null,
   onRenderChanged,
 }: ComponentPreviewGeneratorProps) {
   const [render, setRender] = useState<{
     component: string;
     mockData: Record<string, unknown>;
-  } | null>(existingRender || null);
+  } | null>(existingRender);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [streamingCode, setStreamingCode] = useState<string>('');
+  const [streamingCode, setStreamingCode] = useState('');
   const [isComplete, setIsComplete] = useState(!!existingRender);
   const [isSaved, setIsSaved] = useState(!!existingRender);
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
