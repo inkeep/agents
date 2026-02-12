@@ -1,0 +1,15 @@
+export const enterprisePlatform = project({
+  id: 'enterprise-platform',
+  name: 'Enterprise AI Platform',
+  description: 'Comprehensive enterprise AI platform with multiple specialized agents and shared resources',
+  models: {
+    base: { model: 'gpt-4o', temperature: 0.7 },
+    structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
+    summarizer: { model: 'gpt-4o-mini', temperature: 0.5 }
+  },
+  agents: () => [
+    primaryAgent,
+    analyticsAgent,
+    reportingAgent
+  ]
+});
