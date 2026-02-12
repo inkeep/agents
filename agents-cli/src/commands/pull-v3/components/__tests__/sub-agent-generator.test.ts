@@ -284,6 +284,31 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('legacyAgent2,');
     });
 
+    it('should generate skill references without index and keep index-based ordering', () => {
+      const skillsData = {
+        name: 'Skills Agent',
+        skills: [
+          { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: false },
+          { id: 'weather-safety-guardrails', index: 0, alwaysLoaded: true },
+        ],
+      };
+
+      const definition = generateSubAgentDefinition(
+        'skills-agent',
+        skillsData,
+        undefined,
+        mockRegistry
+      );
+
+      expect(definition).toContain('skills: () => [');
+      expect(definition).toContain("{ id: 'weather-safety-guardrails', alwaysLoaded: true },");
+      expect(definition).toContain("{ id: 'structured-itinerary-responses' },");
+      expect(definition).not.toContain('index:');
+      expect(definition.indexOf("{ id: 'weather-safety-guardrails'")).toBeLessThan(
+        definition.indexOf("{ id: 'structured-itinerary-responses'")
+      );
+    });
+
     it('should not generate stopWhen without stepCountIs', () => {
       const noStepCountData = {
         name: 'No Step Count Agent',
