@@ -345,7 +345,7 @@ Use GitHub's suggestion block syntax to enable **1-click "Commit suggestion"** o
   "startLine": 15,
   "line": 17,
   "side": "RIGHT",
-  "body": "🟠 **MAJOR**: Simplify error handling\n\n**Issue:** Error handling can be consolidated.\n\n**Why:** A single structured try/catch is easier to read and less error-prone.\n\n**Fix:**\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```\n\n**Refs:**\n- [pr-review-errors skill](https://github.com/org/repo/blob/sha/.agents/skills/pr-review-errors/SKILL.md)"
+  "body": "🟡 **Minor**: Simplify error handling\n\n**Issue:** Error handling can be consolidated.\n\n**Why:** A single structured try/catch is easier to read and less error-prone.\n\n**Fix:**\n```suggestion\ntry {\n  return await processRequest(data);\n} catch (error) {\n  throw new ApiError('Processing failed', { cause: error });\n}\n```\n\n**Refs:**\n- [pr-review-errors skill](https://github.com/org/repo/blob/sha/.agents/skills/pr-review-errors/SKILL.md)"
 }
 ```
 
@@ -445,25 +445,27 @@ when the problem is complex or context is needed.
 - External: `[React useMemo docs](https://react.dev/...)` · `[GitHub issue #1234](https://github.com/...)`
 
 🔴 2) `[file].ts[:line] || <issue_slug>` **Paraphrased title (short headline)**
-// ...
+// ... continue with full items
 
-// Findings that were posted as inline comments in Phase 5 (these REPLACE full writeups — not additions):
-- 🔴 Critical: `file.ts:42` Issue summary
-- 🔴 Critical: `handler.ts:15-17` Issue summary
+// Findings that were posted as inline comments in Phase 5 (these should NOT be fully re-numerated, keep as 1-liners)
+Inline Comments:
+- 🔴 Critical: `file.ts:42` Issue summary (1 line)
+- 🔴 Critical: `handler.ts:15-17` Issue summary (1 line)
 
 ### 🟠⚠️ Major (M) 🟠⚠️
 
-// 🟠 1) ...same format as "Critical" findings
+// 🟠 1) ...same full format as "Critical" findings
 
-// 🟠 2) ...same format as "Critical" findings
+// 🟠 2) ...same full format as "Critical" findings
 
-// Findings posted as inline comments (these REPLACE full writeups):
-- 🟠 Major: `utils.ts:88` Issue summary
+// Findings that were posted as inline comments in Phase 5 (these should NOT be fully re-numerated, keep as 1-liners)
+Inline Comments:
+- 🟠 Major: `utils.ts:88` Issue summary (1 line)
+- 🟠 Major: `utils.ts:88` Issue summary (1 line)
 
 ### 🟡 Minor (L) 🟡
 
 // MINOR + HIGH confidence issues.
-// Per-finding routing: posted inline → 1-line log only. NOT posted inline → full entry.
 
 🟡 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
 
@@ -472,14 +474,16 @@ when the problem is complex or context is needed.
 **Fix:** Quick suggestion.
 **Refs:** `[file:line](url)`
 
-// Findings posted as inline comments (these REPLACE full writeups):
-- 🟡 Minor: `file.ts:42` Issue summary
+🟡 2)  `[file].ts[:line] || <issue_slug>` **Paraphrased title**
+// ... continue
+
+// Findings that were posted as inline comments in Phase 5 (these should NOT be fully re-numerated, keep as 1-liners)
+Inline Comments:
+- 🟡 Minor: `file.ts:42` Issue summary (1-line)
 
 ### 💭 Consider (C) 💭
 
-// Validated as strictly better — you confirmed these are accurate, legitimate improvements
-// But they are nitpicks or developer preference: the developer can reasonably choose not to apply
-// This is NOT for uncertain items — if you're unsure, research (web or code) further before placing here
+// You confirmed these are accurate, legitimate improvements, but are nitpicks or developer preference: the developer can reasonably choose not to apply.
 
 💭 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
 **Issue:** Brief description.
@@ -494,9 +498,8 @@ when the problem is complex or context is needed.
 
 ### 🧹 While You're Here (W) 🧹
 
-// Pre-existing issues that surfaced naturally during this review.
-// Only include if they clearly stood out — do not go hunting. These are opportunistic, not required.
-// Omit this section entirely if nothing came up. Most reviews won't have this section.
+// Pre-existing issues prior to this PR that surfaced during the review.
+// These are opportunistic, not required. ONLY critical/major issues + that are outside the scope of this PR.
 
 🧹 1) `[file].ts[:line] || <issue_slug>` **Paraphrased title**
 **Issue:** Brief description of the pre-existing problem.
@@ -511,8 +514,8 @@ Tip: N, M, L, C each include BOTH full writeups and 1-line inline logs in that b
 
 Tip: For each finding, determine the proportional detail to include in "Issue", "Why", and "Fix" based on (1) severity and (2) confidence. For **example**:
 - **CRITICAL + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
-- **MAJOR + HIGH confidence**: 1-2 sentence Why, high level recommendation on resolution
-- **MINOR + HIGH confidence**: Brief issue/why + quick fix suggestion (keep it concise whether posted inline or in Main)
+- **MAJOR + HIGH confidence**: Full Issue, detailed Why, enumerated possible approaches with potentially code blocks to help illustrate
+- **MINOR + HIGH confidence**: Brief issue + brief why + quick fix suggestion (keep it concise whether posted inline or in Main)
 
 **MINOR + HIGH routing:**
 - If inline-routable (Phase 5.1 constraints) → **Inline Comment** (include a `suggestion` block only when `fix_confidence: HIGH`)
@@ -520,17 +523,17 @@ Tip: For each finding, determine the proportional detail to include in "Issue", 
 
 **Nitpick / preference routing:**
 - If validated as Consider and inline-routable (Phase 5.1 constraints) → **Inline Comment** (include a `suggestion` block only when `fix_confidence: HIGH`)
-- If NOT inline-routable → **Main (Consider section)**
+- If NOT inline-routable → **"Consider" section**
 - If invalid, inapplicable, or addressed elsewhere → **Discarded**
 - If you're unsure whether a finding is valid → do additional research (explore the codebase, check patterns elsewhere, search the web) to reach a determination. Don't place uncertain items in Consider — resolve your uncertainty first.
 
-Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it's valid (Critical/Major/Minor/Consider based on impact), a pre-existing issue worth surfacing (While You're Here), or it's not (Discarded).
+Every finding must land somewhere: you are the final arbiter and must assess validity. There is no "not sure" bucket — either it's valid (Critical/Major/Minor/Consider), a pre-existing issue worth surfacing (While You're Here), or it's Discarded because it's not correct, not applicable, or 50/50 developer preference.
 
-Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on.
+Adjust accordingly to the context of the issue and PR and what's most relevant for a developer to know and potentially act on, while being cognizant of only providing valid suggestions.
 
 ### "Pending Recommendations" section
 
-Previous issues raised by humans or yourself from **previous runs** that are still pending AND applicable. Sources (mapped to pr-context sections):
+Previous issues raised by humans or yourself from **previous review runs** that are still pending AND applicable. Sources (mapped to pr-context sections):
 
 | Source | pr-context section | URL pattern |
 |--------|-------------------|-------------|
@@ -556,11 +559,11 @@ Link to the original source using the `url` field from pr-context. **DO NOT repe
 
 ### "Final Recommendation" section
 
-**Decision criteria** — based on the highest severity across Main (Critical/Major/Minor) and Pending Recommendations. Consider, While You're Here, and Discarded items do NOT influence the recommendation.
+**Decision criteria** — based on the highest severity across Main (Critical/Major/Minor) AND Pending Recommendations. Consider, While You're Here, and Discarded items do NOT influence the recommendation.
 
 | Highest severity present (new or pending) | Recommendation |
 |---|---|
-| Critical or Major | 🚫 REQUEST CHANGES |
+| Critical or Major (new or Pending) | 🚫 REQUEST CHANGES |
 | Minor only | 💡 APPROVE WITH SUGGESTIONS |
 | None (only Consider / While You're Here / Discarded, or clean) | ✅ APPROVE |
 
@@ -607,12 +610,12 @@ Format:
 
 | Location | Issue | Reason Discarded |
 |----------|-------|------------------|
-| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Why it was assessed as invalid, inapplicable, addressed elsewhere, or not relevant |
+| `file[:line]` or `scope` | Paraphrased issue/why (<1 sentence) | Why it was assessed as invalid, inapplicable, addressed elsewhere, or 50/50 developer preference. |
 
 </details>
 ````
 
-Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, or not relevant to this PR. 'Y' is the count. Validated improvements — even minor nitpicks — go in Consider, not here. Pre-existing issues that are related to the PR's scope go in While You're Here, not here.
+Tip: This section contains findings you assessed and determined are NOT valid, NOT applicable, already addressed elsewhere, 50/50 developer preference, or not relevant to this PR. 'Y' is the count. Validated improvements — even minor nitpicks — go in Consider, not here. Pre-existing issues that are related to the PR's scope go in While You're Here, not here.
 
 **Per No Duplication Principle:** Do NOT include items that appear in Main (including Consider, While You're Here, and 1-line inline logs) or Pending Recommendations.
 

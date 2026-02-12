@@ -21,10 +21,11 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         content: { type: 'string', description: `Content field${suffix}`, inPreview: false },
         metadata: {
           type: 'object',
+          description: `Metadata for the artifact${suffix}`,
           inPreview: false,
           properties: {
-            author: { type: 'string' },
-            created: { type: 'string', format: 'date-time' },
+            author: { type: 'string', description: 'Author name' },
+            created: { type: 'string', description: 'Creation timestamp', format: 'date-time' },
           },
         },
       },
@@ -286,6 +287,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         id: `minimal-artifact-component-${generateId(6)}`,
         name: 'MinimalArtifactComponent',
         description: 'Minimal test artifact component',
+        props: null,
       };
 
       const res = await makeRequest(
@@ -299,6 +301,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
 
       const body = await res.json();
+
       expect(body.data).toMatchObject({
         name: minimalData.name,
         description: minimalData.description,
@@ -624,9 +627,13 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         props: {
           type: 'object',
           properties: {
-            title: { type: 'string', minLength: 1 },
-            count: { type: 'number', minimum: 0 },
-            tags: { type: 'array', items: { type: 'string' } },
+            title: { type: 'string', description: 'Title text', minLength: 1 },
+            count: { type: 'number', description: 'Item count', minimum: 0 },
+            tags: {
+              type: 'array',
+              description: 'Tag list',
+              items: { type: 'string', description: 'A tag' },
+            },
           },
           required: ['title'],
         },
@@ -657,22 +664,26 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
           properties: {
             user: {
               type: 'object',
+              description: 'User data',
               properties: {
                 profile: {
                   type: 'object',
+                  description: 'User profile',
                   properties: {
                     personal: {
                       type: 'object',
+                      description: 'Personal information',
                       properties: {
-                        name: { type: 'string' },
-                        age: { type: 'number', minimum: 0 },
+                        name: { type: 'string', description: 'Full name' },
+                        age: { type: 'number', description: 'Age in years', minimum: 0 },
                       },
                     },
                     professional: {
                       type: 'object',
+                      description: 'Professional information',
                       properties: {
-                        title: { type: 'string' },
-                        company: { type: 'string' },
+                        title: { type: 'string', description: 'Job title' },
+                        company: { type: 'string', description: 'Company name' },
                       },
                     },
                   },

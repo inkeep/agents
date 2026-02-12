@@ -133,7 +133,7 @@ export function ArtifactComponentForm({
               projectId={projectId}
               artifactComponentId={id}
               artifactComponentName={form.watch('name')}
-              existingRender={initialData?.render || null}
+              existingRender={defaultValues.render}
               onRenderChanged={(render) => {
                 form.setValue('render', render);
               }}

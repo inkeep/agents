@@ -145,7 +145,7 @@ export function DataComponentForm({
               projectId={projectId}
               dataComponentId={id}
               dataComponentName={form.watch('name')}
-              existingRender={initialData?.render || null}
+              existingRender={defaultValues.render}
               onRenderChanged={(render) => {
                 form.setValue('render', render);
               }}

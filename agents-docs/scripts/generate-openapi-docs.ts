@@ -20,6 +20,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   Agents: 'LuUser',
   'Artifact Components': 'TbInputSpark',
   Branches: 'LuGitBranch',
+  Channels: 'LuHash',
   CLI: 'LuTerminal',
   Chat: 'LuMessagesSquare',
   'Context Configs': 'LuCirclePlus',
@@ -40,13 +41,18 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   Projects: 'LuFolderOpen',
   Refs: 'LuLink',
   Skills: 'LuHexagon',
+  Slack: 'LuMessageCircle',
   SubAgents: 'LuSpline',
+  'Scheduled Triggers': 'LuClock',
   'Third-Party MCP Servers': 'LuServerCog',
   Tools: 'LuHammer',
   Triggers: 'LuWebhook',
   'User Project Memberships': 'LuUserCheck',
+  Users: 'LuUsers',
   Webhooks: 'LuWebhook',
+  'Work Apps': 'LuPlug',
   Workflows: 'LuWorkflow',
+  Workspaces: 'LuBuilding2',
 };
 
 async function main(): Promise<void> {
