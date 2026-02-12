@@ -42,6 +42,7 @@ import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
 import { healthChecksHandler } from './routes/healthChecks';
 import type { AppConfig, AppVariables } from './types';
+import { getInProcessFetch, registerAppFetch } from './utils/in-process-fetch';
 
 const logger = getLogger('agents-api');
 
@@ -364,7 +365,7 @@ function createAgentsHono(config: AppConfig) {
       body: bodyBuffer,
     });
 
-    return fetch(forwardedRequest);
+    return getInProcessFetch()(forwardedRequest);
   });
 
   app.route('/evals', evalRoutes);
@@ -394,6 +395,8 @@ function createAgentsHono(config: AppConfig) {
   // Wrap in base Hono for framework detection
   const base = new Hono();
   base.route('/', app);
+
+  registerAppFetch(base.request.bind(base) as typeof fetch);
 
   return base;
 }
