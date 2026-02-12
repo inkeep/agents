@@ -4,6 +4,7 @@ import { Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import { useProjectPermissions } from '@/contexts/project';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn } from '@/lib/utils';
@@ -32,16 +33,6 @@ export function ViewExternalAgentDetails({
   className,
 }: ExternalAgentProps) {
   const { canEdit } = useProjectPermissions();
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   return (
     <div className={cn('space-y-8', className)}>
@@ -81,11 +72,15 @@ export function ViewExternalAgentDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>{formatDate(externalAgent.createdAt)}</ItemValue>
+            <ItemValue>
+              <LocalDateTimeTable dateString={externalAgent.createdAt} />
+            </ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>{formatDate(externalAgent.updatedAt)}</ItemValue>
+            <ItemValue>
+              <LocalDateTimeTable dateString={externalAgent.updatedAt} />
+            </ItemValue>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import { useProjectPermissions } from '@/contexts/project';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useThirdPartyMCPServerQuery } from '@/lib/query/mcp-catalog';
@@ -15,7 +16,6 @@ import { AvailableToolsCard } from './available-tools-card';
 import { MCPToolImage } from './mcp-tool-image';
 import {
   ActiveToolBadge,
-  formatDate,
   getStatusBadgeVariant,
   ItemLabel,
   ItemValue,
@@ -81,11 +81,15 @@ export function ViewMCPServerDetailsProjectScope({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>{tool.createdAt ? formatDate(tool.createdAt) : 'N/A'}</ItemValue>
+            <ItemValue>
+              {tool.createdAt ? <LocalDateTimeTable dateString={tool.createdAt} /> : 'N/A'}
+            </ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>{tool.updatedAt ? formatDate(tool.updatedAt) : 'N/A'}</ItemValue>
+            <ItemValue>
+              {tool.updatedAt ? <LocalDateTimeTable dateString={tool.updatedAt} /> : 'N/A'}
+            </ItemValue>
           </div>
         </div>
 
@@ -204,7 +208,9 @@ export function ViewMCPServerDetailsProjectScope({
                   <ItemLabel>Credential Expires At</ItemLabel>
                   {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
                 </div>
-                <ItemValue>{formatDate(tool.expiresAt)}</ItemValue>
+                <ItemValue>
+                  <LocalDateTimeTable dateString={tool.expiresAt} />
+                </ItemValue>
               </div>
             )}
           </div>

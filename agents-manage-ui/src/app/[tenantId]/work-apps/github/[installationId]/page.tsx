@@ -225,12 +225,12 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
 
           <div className="space-y-2">
             <ItemLabel>Connected</ItemLabel>
-            <ItemValue>{formatDateTimeTable(installation.createdAt)}</ItemValue>
+            <ItemValue>{formatDateTimeTable(installation.createdAt, { local: true })}</ItemValue>
           </div>
 
           <div className="space-y-2">
             <ItemLabel>Last Updated</ItemLabel>
-            <ItemValue>{formatDateTimeTable(installation.updatedAt)}</ItemValue>
+            <ItemValue>{formatDateTimeTable(installation.updatedAt, { local: true })}</ItemValue>
           </div>
 
           <div className="space-y-2">
@@ -296,7 +296,7 @@ export default function GitHubInstallationDetailPage({ params }: PageParams) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate(repo.createdAt)}
+                    {formatDate(repo.createdAt, { local: true })}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon-sm" asChild>

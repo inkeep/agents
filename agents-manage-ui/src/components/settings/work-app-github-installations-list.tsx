@@ -27,6 +27,7 @@ import {
   reconnectWorkAppGitHubInstallation,
   syncWorkAppGitHubRepositories,
 } from '@/lib/api/github';
+import { formatDate } from '@/lib/utils/format-date';
 import { getGitHubInstallationSettingsUrl } from '@/lib/utils/work-app-github-utils';
 import { DisconnectInstallationDialog } from './work-app-github-disconnect-dialog';
 
@@ -64,14 +65,6 @@ function getStatusLabel(status: WorkAppGitHubInstallation['status']) {
     default:
       return status;
   }
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 export function WorkAppGitHubInstallationsList({
@@ -207,7 +200,7 @@ export function WorkAppGitHubInstallationsList({
                   <Badge variant="count">{installation.repositoryCount}</Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatDate(installation.createdAt)}
+                  {formatDate(installation.createdAt, { local: true })}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

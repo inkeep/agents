@@ -56,16 +56,6 @@ export function ItemValue({
   return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
 }
 
-export function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 export function isExpired(expiresAt: string | Date | null | undefined): boolean {
   if (!expiresAt) return false;
   const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;

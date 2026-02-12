@@ -95,20 +95,8 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
     }
 
     if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
-      // Parse ISO timestamps and display as date-only in local timezone
-      const startDate = new Date(filterCriteria.dateRange.startDate);
-      const endDate = new Date(filterCriteria.dateRange.endDate);
-
-      const startFormatted = startDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-      const endFormatted = endDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+      const startFormatted = formatDate(filterCriteria.dateRange.startDate, { local: true });
+      const endFormatted = formatDate(filterCriteria.dateRange.endDate, { local: true });
 
       parts.push(`${startFormatted} - ${endFormatted}`);
     }

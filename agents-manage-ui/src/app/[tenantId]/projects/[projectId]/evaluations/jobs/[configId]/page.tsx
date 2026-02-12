@@ -4,6 +4,7 @@ import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationJobResults } from '@/components/evaluation-jobs/evaluation-job-results';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import { LocalDateTimeTable } from '@/components/ui/local-datetime';
 import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import type {
   EvaluationJobConfig,
@@ -12,7 +13,7 @@ import type {
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
-import { formatDateTimeTable } from '@/lib/utils/format-date';
+import { formatDate } from '@/lib/utils/format-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +31,8 @@ export async function getJobName({
 
   // Prefer date range if available
   if (criteria?.dateRange?.startDate && criteria?.dateRange?.endDate) {
-    const startDate = new Date(criteria.dateRange.startDate).toLocaleDateString();
-    const endDate = new Date(criteria.dateRange.endDate).toLocaleDateString();
+    const startDate = formatDate(criteria.dateRange.startDate);
+    const endDate = formatDate(criteria.dateRange.endDate);
     displayName = `${startDate} - ${endDate}`;
   } else if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
     // Fall back to dataset run name
@@ -70,7 +71,11 @@ async function EvaluationJobPage({
         </div>
         <PageHeader
           title={await getJobName({ tenantId, projectId, jobConfig })}
-          description={`Created ${formatDateTimeTable(jobConfig.createdAt)}`}
+          description={
+            <>
+              Created <LocalDateTimeTable dateString={jobConfig.createdAt} />
+            </>
+          }
         />
         <EvaluationJobResults
           tenantId={tenantId}
