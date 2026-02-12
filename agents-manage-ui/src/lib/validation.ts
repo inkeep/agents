@@ -1,6 +1,5 @@
-import { StringRecordSchema } from '@inkeep/agents-core/client-exports';
+import { StringRecordSchema, transformToJson } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
-import { transformToJson } from '@/lib/json-schema-validation';
 
 type HeadersValue = z.output<typeof StringRecordSchema>;
 type HeadersPipeSchema = z.ZodType<HeadersValue, HeadersValue>;

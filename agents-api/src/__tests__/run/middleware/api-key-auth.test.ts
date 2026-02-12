@@ -7,6 +7,11 @@ const {
   getAgentByIdMock,
   verifyServiceTokenMock,
   validateTargetAgentMock,
+  isSlackUserTokenMock,
+  verifySlackUserTokenMock,
+  verifyTempTokenMock,
+  canUseProjectStrictMock,
+  createAgentsRunDatabaseClientMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   updateApiKeyLastUsedMock: vi.fn(),
@@ -19,6 +24,11 @@ const {
   ),
   verifyServiceTokenMock: vi.fn(),
   validateTargetAgentMock: vi.fn(),
+  isSlackUserTokenMock: vi.fn().mockReturnValue(false),
+  verifySlackUserTokenMock: vi.fn(),
+  verifyTempTokenMock: vi.fn(),
+  canUseProjectStrictMock: vi.fn(),
+  createAgentsRunDatabaseClientMock: vi.fn().mockReturnValue({}),
 }));
 
 // Mock the dependencies before imports
@@ -28,6 +38,11 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentById: getAgentByIdMock,
   verifyServiceToken: verifyServiceTokenMock,
   validateTargetAgent: validateTargetAgentMock,
+  isSlackUserToken: isSlackUserTokenMock,
+  verifySlackUserToken: verifySlackUserTokenMock,
+  verifyTempToken: verifyTempTokenMock,
+  canUseProjectStrict: canUseProjectStrictMock,
+  createAgentsRunDatabaseClient: createAgentsRunDatabaseClientMock,
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -44,7 +59,7 @@ import {
   runOptionalAuth as optionalAuth,
 } from '../../../middleware/runAuth';
 
-vi.mock('../../data/db/dbClient.js', () => ({
+vi.mock('../../../data/db/runDbClient', () => ({
   default: {},
 }));
 
@@ -383,7 +398,8 @@ describe('API Key Authentication Middleware', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toMatchObject({
-        apiKey: 'team-agent-jwt',
+        apiKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tenantId: 'tenant_123',
         projectId: 'project_123',
         agentId: 'target-agent',
@@ -489,7 +505,8 @@ describe('API Key Authentication Middleware', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toMatchObject({
-        apiKey: 'team-agent-jwt',
+        apiKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tenantId: 'tenant_123',
         projectId: 'project_123',
         agentId: 'target-agent',
@@ -521,6 +538,126 @@ describe('API Key Authentication Middleware', () => {
       expect(res.status).toBe(500);
       const body = await res.text();
       expect(body).toContain('Authentication failed');
+    });
+
+    it('should resolve agentId from x-inkeep-agent-id header in team delegation context', async () => {
+      const mockJwtPayload = {
+        iss: 'inkeep-agents',
+        aud: 'sub-agent-being-called',
+        sub: 'origin-agent',
+        tenantId: 'tenant_123',
+        projectId: 'project_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+      };
+
+      verifyServiceTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockJwtPayload,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+          'x-inkeep-agent-id': 'parent-team-agent',
+          'x-inkeep-sub-agent-id': 'sub-agent-being-called',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      // The agentId should be the parent agent from the header, not the JWT aud (sub-agent).
+      // This is critical for project lookup: project.agents[parentAgent].subAgents[subAgent]
+      expect(body.agentId).toBe('parent-team-agent');
+      expect(body.subAgentId).toBe('sub-agent-being-called');
+      expect(body.metadata).toMatchObject({
+        teamDelegation: true,
+        originAgentId: 'origin-agent',
+      });
+    });
+
+    it('should use JWT aud as agentId when x-inkeep-agent-id header is absent in team delegation', async () => {
+      const mockJwtPayload = {
+        iss: 'inkeep-agents',
+        aud: 'target-agent',
+        sub: 'origin-agent',
+        tenantId: 'tenant_123',
+        projectId: 'project_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+      };
+
+      verifyServiceTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockJwtPayload,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+          // No x-inkeep-agent-id header
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      // Without the parent agent header, falls back to JWT aud
+      expect(body.agentId).toBe('target-agent');
+    });
+
+    it('should preserve JWT token as apiKey for chained A2A calls', async () => {
+      const jwtToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
+      const mockJwtPayload = {
+        iss: 'inkeep-agents',
+        aud: 'target-agent',
+        sub: 'origin-agent',
+        tenantId: 'tenant_123',
+        projectId: 'project_123',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 300,
+      };
+
+      verifyServiceTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: mockJwtPayload,
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => {
+        const executionContext = (c as any).get('executionContext');
+        return c.json(executionContext);
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      // apiKey must be the actual JWT token, NOT a placeholder like 'team-agent-jwt'.
+      // This is critical: 'team-agent-jwt' (14 chars) fails the apiKey.length < 16 check
+      // on subsequent chained A2A calls, causing 401 errors in production.
+      expect(body.apiKey).toBe(jwtToken);
+      expect(body.apiKey.length).toBeGreaterThan(16);
+      expect(body.apiKey).toMatch(/^eyJ/);
     });
   });
 

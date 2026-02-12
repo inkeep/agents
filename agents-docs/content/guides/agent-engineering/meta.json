@@ -1,0 +1,15 @@
+{
+  "title": "Agent Engineering",
+  "icon": "LuBrain",
+  "pages": [
+    "index",
+    "operating-principles",
+    "choosing-patterns",
+    "prompt-structure",
+    "personality-and-identity",
+    "failure-modes",
+    "workflow-orchestrators",
+    "handoff-protocol",
+    "testing-and-iteration"
+  ]
+}

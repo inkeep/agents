@@ -1,0 +1,166 @@
+---
+title: Work Apps
+description: Work app integrations (Slack, Teams, etc.)
+full: true
+icon: LuPlug
+_openapi:
+  toc:
+    - depth: 2
+      title: Install Slack App
+      url: '#install-slack-app'
+    - depth: 2
+      title: Slack OAuth Callback
+      url: '#slack-oauth-callback'
+    - depth: 2
+      title: Create Nango Connect Session
+      url: '#create-nango-connect-session'
+    - depth: 2
+      title: Disconnect User
+      url: '#disconnect-user'
+    - depth: 2
+      title: Check Link Status
+      url: '#check-link-status'
+    - depth: 2
+      title: Verify Link Token
+      url: '#verify-link-token'
+    - depth: 2
+      title: Get Connection Status
+      url: '#get-connection-status'
+    - depth: 2
+      title: List Workspaces
+      url: '#list-workspaces'
+    - depth: 2
+      title: Get Workspace
+      url: '#get-workspace'
+    - depth: 2
+      title: Uninstall Workspace
+      url: '#uninstall-workspace'
+    - depth: 2
+      title: List Channels
+      url: '#list-channels'
+    - depth: 2
+      title: Get Channel Settings
+      url: '#get-channel-settings'
+    - depth: 2
+      title: Remove Channel Config
+      url: '#remove-channel-config'
+    - depth: 2
+      title: Set Channel Default Agent
+      url: '#set-channel-default-agent'
+    - depth: 2
+      title: Bulk Remove Channel Configs
+      url: '#bulk-remove-channel-configs'
+    - depth: 2
+      title: Bulk Set Channel Agents
+      url: '#bulk-set-channel-agents'
+    - depth: 2
+      title: Check Workspace Health
+      url: '#check-workspace-health'
+    - depth: 2
+      title: Get Workspace Settings
+      url: '#get-workspace-settings'
+    - depth: 2
+      title: Update Workspace Settings
+      url: '#update-workspace-settings'
+    - depth: 2
+      title: Send Test Message
+      url: '#send-test-message'
+    - depth: 2
+      title: List Linked Users
+      url: '#list-linked-users'
+  structuredData:
+    headings:
+      - content: Install Slack App
+        id: install-slack-app
+      - content: Slack OAuth Callback
+        id: slack-oauth-callback
+      - content: Create Nango Connect Session
+        id: create-nango-connect-session
+      - content: Disconnect User
+        id: disconnect-user
+      - content: Check Link Status
+        id: check-link-status
+      - content: Verify Link Token
+        id: verify-link-token
+      - content: Get Connection Status
+        id: get-connection-status
+      - content: List Workspaces
+        id: list-workspaces
+      - content: Get Workspace
+        id: get-workspace
+      - content: Uninstall Workspace
+        id: uninstall-workspace
+      - content: List Channels
+        id: list-channels
+      - content: Get Channel Settings
+        id: get-channel-settings
+      - content: Remove Channel Config
+        id: remove-channel-config
+      - content: Set Channel Default Agent
+        id: set-channel-default-agent
+      - content: Bulk Remove Channel Configs
+        id: bulk-remove-channel-configs
+      - content: Bulk Set Channel Agents
+        id: bulk-set-channel-agents
+      - content: Check Workspace Health
+        id: check-workspace-health
+      - content: Get Workspace Settings
+        id: get-workspace-settings
+      - content: Update Workspace Settings
+        id: update-workspace-settings
+      - content: Send Test Message
+        id: send-test-message
+      - content: List Linked Users
+        id: list-linked-users
+    contents:
+      - content: Redirects to Slack OAuth page for workspace installation
+        heading: install-slack-app
+      - content: Handles the OAuth callback from Slack after workspace installation
+        heading: slack-oauth-callback
+      - content: Create a Nango session for Slack OAuth flow. Used by the dashboard.
+        heading: create-nango-connect-session
+      - content: Unlink a Slack user from their Inkeep account.
+        heading: disconnect-user
+      - content: Check if a Slack user is linked to an Inkeep account
+        heading: check-link-status
+      - content: Verify a JWT link token and create user mapping
+        heading: verify-link-token
+      - content: Check if an Inkeep user has a linked Slack account.
+        heading: get-connection-status
+      - content: List all installed Slack workspaces for the tenant
+        heading: list-workspaces
+      - content: Get details of a specific Slack workspace
+        heading: get-workspace
+      - content: >-
+          Uninstall Slack app from workspace. Accepts either teamId or
+          connectionId.
+        heading: uninstall-workspace
+      - content: List Slack channels in the workspace that the bot can see
+        heading: list-channels
+      - content: Get default agent configuration for a specific channel
+        heading: get-channel-settings
+      - content: Remove the default agent configuration for a channel
+        heading: remove-channel-config
+      - content: Set or update the default agent for a specific channel
+        heading: set-channel-default-agent
+      - content: Remove agent configuration from multiple channels at once
+        heading: bulk-remove-channel-configs
+      - content: Apply the same agent configuration to multiple channels at once
+        heading: bulk-set-channel-agents
+      - content: >-
+          Verify the bot token is valid and check permissions. Returns bot info
+          and permission status.
+        heading: check-workspace-health
+      - content: Get settings for a Slack workspace including default agent
+        heading: get-workspace-settings
+      - content: Update workspace settings including default agent
+        heading: update-workspace-settings
+      - content: Send a test message to verify the bot is working correctly.
+        heading: send-test-message
+      - content: List all users linked to Inkeep in this workspace
+        heading: list-linked-users
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+<APIPage document={"index"} webhooks={[]} operations={[{"path":"/work-apps/slack/install","method":"get"},{"path":"/work-apps/slack/oauth_redirect","method":"get"},{"path":"/work-apps/slack/users/connect","method":"post"},{"path":"/work-apps/slack/users/disconnect","method":"post"},{"path":"/work-apps/slack/users/link-status","method":"get"},{"path":"/work-apps/slack/users/link/verify-token","method":"post"},{"path":"/work-apps/slack/users/status","method":"get"},{"path":"/work-apps/slack/workspaces","method":"get"},{"path":"/work-apps/slack/workspaces/:teamId","method":"get"},{"path":"/work-apps/slack/workspaces/:teamId","method":"delete"},{"path":"/work-apps/slack/workspaces/:teamId/channels","method":"get"},{"path":"/work-apps/slack/workspaces/:teamId/channels/:channelId/settings","method":"get"},{"path":"/work-apps/slack/workspaces/:teamId/channels/:channelId/settings","method":"delete"},{"path":"/work-apps/slack/workspaces/:teamId/channels/:channelId/settings","method":"put"},{"path":"/work-apps/slack/workspaces/:teamId/channels/bulk","method":"delete"},{"path":"/work-apps/slack/workspaces/:teamId/channels/bulk","method":"put"},{"path":"/work-apps/slack/workspaces/:teamId/health","method":"get"},{"path":"/work-apps/slack/workspaces/:teamId/settings","method":"get"},{"path":"/work-apps/slack/workspaces/:teamId/settings","method":"put"},{"path":"/work-apps/slack/workspaces/:teamId/test-message","method":"post"},{"path":"/work-apps/slack/workspaces/:teamId/users","method":"get"}]} showTitle={true} />

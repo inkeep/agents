@@ -12,7 +12,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { cn } from '@/lib/utils';
 import type { FormFieldWrapperProps } from './form-field-wrapper';
 
 export function GenericJsonEditor<
@@ -42,10 +41,10 @@ export function GenericJsonEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex">
+              <FormLabel isRequired={isRequired} className="inline-flex grow">
                 {label}
               </FormLabel>
-              <Editor.DialogTrigger className={cn('ml-auto', open && 'invisible')} />
+              {!open && <Editor.DialogTrigger />}
             </div>
             <FormControl>
               <StandaloneJsonEditor

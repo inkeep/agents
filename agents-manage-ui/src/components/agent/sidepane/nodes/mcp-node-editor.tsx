@@ -328,8 +328,7 @@ export function MCPServerNodeEditor({
             activeTools.length > 1 &&
             (() => {
               const allToolsSelected =
-                selectedTools === null ||
-                (selectedTools !== null && selectedTools.length === activeTools.length);
+                selectedTools === null || selectedTools.length === activeTools.length;
 
               return (
                 <>

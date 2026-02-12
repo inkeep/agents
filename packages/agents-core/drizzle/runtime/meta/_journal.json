@@ -85,6 +85,20 @@
       "when": 1770348304770,
       "tag": "0011_colorful_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1770856190894,
+      "tag": "0012_greedy_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1770909892488,
+      "tag": "0013_huge_white_queen",
+      "breakpoints": true
     }
   ]
 }

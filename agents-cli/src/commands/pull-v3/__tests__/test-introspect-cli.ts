@@ -11,8 +11,9 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
+import type { FullProjectDefinition, JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import chalk from 'chalk';
+import type { JSONSchema } from 'zod/v4/core';
 import { introspectGenerate } from '../introspect-generator';
 
 // Create a comprehensive test project
@@ -183,43 +184,53 @@ const testProject: FullProjectDefinition = {
       name: 'Customer Profile',
       description: 'Complete customer profile with history and preferences',
       props: {
-        customerId: 'string',
-        name: 'string',
-        email: 'string',
-        tier: 'string',
-        accountManager: 'string',
-        preferences: 'object',
-        ticketHistory: 'array',
-        satisfactionScore: 'number',
-      },
+        type: 'object',
+        properties: {
+          customerId: { type: 'string' },
+          name: { type: 'string' },
+          email: { type: 'string' },
+          tier: { type: 'string' },
+          accountManager: { type: 'string' },
+          preferences: { type: 'object' },
+          ticketHistory: { type: 'array' },
+          satisfactionScore: { type: 'number' },
+        },
+        required: ['customerId', 'name', 'email'],
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
     'ticket-context': {
       id: 'ticket-context',
       name: 'Ticket Context',
       description: 'Comprehensive ticket information and context',
       props: {
-        ticketId: 'string',
-        subject: 'string',
-        description: 'string',
-        priority: 'string',
-        status: 'string',
-        assignedAgent: 'string',
-        tags: 'array',
-        attachments: 'array',
-        conversationHistory: 'array',
-      },
+        type: 'object',
+        properties: {
+          ticketId: { type: 'string' },
+          subject: { type: 'string' },
+          description: { type: 'string' },
+          priority: { type: 'string' },
+          status: { type: 'string' },
+          assignedAgent: { type: 'string' },
+          tags: { type: 'array' },
+          attachments: { type: 'array' },
+          conversationHistory: { type: 'array' },
+        },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
     'resolution-data': {
       id: 'resolution-data',
       name: 'Resolution Data',
       description: 'Ticket resolution information and metrics',
       props: {
-        resolutionTime: 'number',
-        resolutionMethod: 'string',
-        customerSatisfaction: 'number',
-        escalationCount: 'number',
-        followUpRequired: 'boolean',
-      },
+        type: 'object',
+        properties: {
+          resolutionTime: { type: 'number' },
+          resolutionMethod: { type: 'string' },
+          customerSatisfaction: { type: 'number' },
+          escalationCount: { type: 'number' },
+          followUpRequired: { type: 'boolean' },
+        },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
   },
 
@@ -241,7 +252,7 @@ const testProject: FullProjectDefinition = {
           followUpItems: { type: 'array' },
           satisfactionScore: { type: 'number' },
         },
-      },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
     'escalation-report': {
       id: 'escalation-report',
@@ -258,7 +269,7 @@ const testProject: FullProjectDefinition = {
           previousAttempts: { type: 'array' },
           recommendedActions: { type: 'array' },
         },
-      },
+      } satisfies JSONSchema.BaseSchema as unknown as JsonSchemaForLlmSchemaType,
     },
   },
 
@@ -472,6 +483,7 @@ async function main(): Promise<void> {
     credentialsDir: join(testDir, 'credentials'),
     contextConfigsDir: join(testDir, 'context-configs'),
     externalAgentsDir: join(testDir, 'external-agents'),
+    skillsDir: join(testDir, 'skills'),
   };
 
   try {

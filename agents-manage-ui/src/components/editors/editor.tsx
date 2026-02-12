@@ -24,10 +24,7 @@ const EditorDialog: FC<EditorDialogProps> = ({ open, onOpenChange, children, lab
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
-      <DialogContent
-        size="fullscreen"
-        className="!max-w-none h-screen w-screen max-h-screen p-0 gap-0 border-0 rounded-none"
-      >
+      <DialogContent size="fullscreen" className="duration-0">
         <DialogTitle className="sr-only">{label}</DialogTitle>
         <DialogDescription className="sr-only">{`${label} Editor`}</DialogDescription>
         <div className="flex flex-col w-full px-8 pb-8 pt-12 mx-auto max-w-7xl min-w-0 gap-2">

@@ -1,0 +1,70 @@
+---
+title: Skills
+description: Reusable instruction blocks you can attach to sub-agents
+icon: LuHexagon
+keywords: skills, prompts, instructions, reuse, sub-agents
+---
+
+## Overview
+
+Skills are reusable instruction blocks that you can attach to multiple sub-agents. They govern agent behavior,
+reasoning, and tool usage, helping you keep shared rules, tone, and formatting consistent across the agent graph
+while still allowing each sub-agent to focus on its own role.
+
+## Create a skill
+
+1. Go to **Skills** in the left sidebar.
+2. Click **Create skill**.
+3. Fill in the required fields and save.
+
+
+<figure className="[&>img]:border [&>img]:h-120 [&>img]:mx-auto [&>img]:w-auto">
+<>![Create a new skill](./create-skill.png)</>
+<figcaption className="mt-2 text-center text-sm">Create a new skill</figcaption>
+</figure>
+
+## Fields
+
+- [**Name**](https://agentskills.io/specification#name-field): A short identifier.
+- [**Description**](https://agentskills.io/specification#description-field): Explains when to use this skill. Write descriptions that help the agent understand when to load the skill.
+- [**Content**](https://agentskills.io/specification#body-content): The Markdown body, write whatever helps agents perform the task effectively.
+- [**Metadata (JSON)**](https://agentskills.io/specification#metadata-field): Additional properties not defined by [the Agent Skills spec](https://agentskills.io/home).
+
+<Tip>
+  Write descriptions that include "Use when..." or "Use if..." phrases. This helps the agent decide when to load on-demand skills.
+</Tip>
+
+## Writing effective descriptions
+
+The description field is critical for on-demand skills. The agent uses it to decide whether to load the skill, so be specific about the scenarios where the skill applies.
+
+**Good example:**
+```
+Extracts text and tables from PDF files, fills PDF forms, and merges multiple PDFs. Use when working with PDF documents or when the user mentions PDFs, forms, or document extraction.
+```
+
+**Poor example:**
+```
+Helps with PDFs.
+```
+
+## Attach skills to sub-agents
+
+Open an agent in the Visual Builder, select a sub-agent node, and use the **Skills** picker to attach one or more
+skills.
+
+<Callout type="warning">You can drag to reorder them to control **their priority** (later entries weigh more).</Callout>
+
+<figure className="[&>img]:border">
+<>![Skills configuration in sidepane](./skills-sidepane.png)</>
+<figcaption className="mt-2 text-center text-sm">Skills configuration in sidepane</figcaption>
+</figure>
+
+## Always loaded and On-demand skills
+
+Use **Always loaded** to include a skill in every prompt. It's off by default so skills load on demand unless you
+enable it.
+
+### How on-demand skills work
+
+On-demand skills appear as an outline in the system prompt. When the agent determines a skill is relevant based on its description, it calls the built-in `load_skill` tool to retrieve the full content. This keeps prompts compact while still giving agents access to specialized instructions when needed.

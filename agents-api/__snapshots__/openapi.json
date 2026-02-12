@@ -165,8 +165,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -203,9 +202,7 @@
             ]
           },
           "name": {
-            "description": "Agent name",
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "prompt": {
             "nullable": true,
@@ -348,8 +345,7 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -386,9 +382,7 @@
             ]
           },
           "name": {
-            "description": "Agent name",
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "prompt": {
             "nullable": true,
@@ -510,6 +504,12 @@
                 "maxLength": 5000,
                 "type": "string"
               },
+              "scheduledTriggers": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInsertBase"
+                },
+                "type": "object"
+              },
               "statusUpdates": {
                 "$ref": "#/components/schemas/StatusUpdate"
               },
@@ -607,6 +607,13 @@
                   }
                 ]
               },
+              "scheduledTriggers": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ScheduledTrigger"
+                },
+                "nullable": true,
+                "type": "object"
+              },
               "statusUpdates": {
                 "allOf": [
                   {
@@ -655,6 +662,7 @@
               "teamAgents",
               "functionTools",
               "functions",
+              "scheduledTriggers",
               "contextConfig"
             ],
             "type": "object"
@@ -920,46 +928,16 @@
       "ArtifactComponentCreate": {
         "properties": {
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/JsonSchemaForLlmSchema"
           },
           "render": {
             "anyOf": [
@@ -995,7 +973,8 @@
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "props"
         ],
         "type": "object"
       },
@@ -2163,6 +2142,12 @@
         ],
         "type": "object"
       },
+      "CronExpression": {
+        "description": "Cron expression in standard 5-field format (minute hour day month weekday)",
+        "nullable": true,
+        "pattern": "^(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,-]+(?:\\/\\d+)?)\\s+(\\*(?:\\/\\d+)?|[\\d,\\-A-Za-z]+(?:\\/\\d+)?)$",
+        "type": "string"
+      },
       "DataComponent": {
         "properties": {
           "createdAt": {
@@ -2277,46 +2262,16 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/JsonSchemaForLlmSchema"
           },
           "render": {
             "anyOf": [
@@ -2355,7 +2310,8 @@
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "props"
         ],
         "type": "object"
       },
@@ -2394,46 +2350,16 @@
             "type": "string"
           },
           "description": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DescriptionSchema"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
           },
           "name": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/NameSchema"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "$ref": "#/components/schemas/JsonSchemaForLlmSchema"
           },
           "render": {
             "anyOf": [
@@ -2470,6 +2396,10 @@
             "type": "string"
           }
         },
+        "required": [
+          "name",
+          "props"
+        ],
         "type": "object"
       },
       "DataPart": {
@@ -2996,6 +2926,10 @@
           }
         },
         "type": "object"
+      },
+      "DescriptionSchema": {
+        "nullable": true,
+        "type": "string"
       },
       "ErrorResponse": {
         "properties": {
@@ -4293,6 +4227,29 @@
               "prompt": {
                 "type": "string"
               },
+              "skills": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "alwaysLoaded": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "$ref": "#/components/schemas/ResourceId"
+                    },
+                    "index": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "index"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
               "type": {
                 "enum": [
                   "internal"
@@ -4476,6 +4433,12 @@
                       "type": "object"
                     }
                   ]
+                },
+                "type": "object"
+              },
+              "skills": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/SkillCreate"
                 },
                 "type": "object"
               },
@@ -5100,6 +5063,141 @@
           }
         ]
       },
+      "JsonSchemaForLlmSchema": {
+        "additionalProperties": {
+          "nullable": true
+        },
+        "nullable": true,
+        "properties": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "properties": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonSchemaPropertySchema"
+            },
+            "type": "object"
+          },
+          "required": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "object"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "properties"
+        ],
+        "type": "object"
+      },
+      "JsonSchemaPropertyDescription": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "JsonSchemaPropertySchema": {
+        "oneOf": [
+          {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "properties": {
+              "description": {
+                "$ref": "#/components/schemas/JsonSchemaPropertyDescription"
+              },
+              "type": {
+                "enum": [
+                  "string",
+                  "number",
+                  "integer",
+                  "boolean",
+                  "null"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "description"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "properties": {
+              "description": {
+                "$ref": "#/components/schemas/JsonSchemaPropertyDescription"
+              },
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/JsonSchemaPropertySchema",
+                    "type": "object"
+                  },
+                  {
+                    "items": {
+                      "$ref": "#/components/schemas/JsonSchemaPropertySchema",
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                ]
+              },
+              "type": {
+                "enum": [
+                  "array"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "description"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "properties": {
+              "description": {
+                "$ref": "#/components/schemas/JsonSchemaPropertyDescription"
+              },
+              "properties": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonSchemaPropertySchema",
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "type": {
+                "enum": [
+                  "object"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "description"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "MCPCatalogListResponse": {
         "properties": {
           "data": {
@@ -5495,6 +5593,11 @@
           }
         },
         "type": "object"
+      },
+      "NameSchema": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
       },
       "NotFound": {
         "allOf": [
@@ -5963,6 +6066,535 @@
         "pattern": "^[a-zA-Z0-9\\-_.]+$",
         "type": "string"
       },
+      "ScheduledTrigger": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "cronTimezone": {
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "maxRetries": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
+          "messageTemplate": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "retryDelaySeconds": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
+          "runAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "number"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "enabled",
+          "cronExpression",
+          "cronTimezone",
+          "runAt",
+          "messageTemplate",
+          "maxRetries",
+          "retryDelaySeconds",
+          "timeoutSeconds",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerCreate": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "$ref": "#/components/schemas/CronExpression"
+          },
+          "cronTimezone": {
+            "default": "UTC",
+            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Scheduled trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxRetries": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Scheduled trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Static payload for agent execution",
+            "nullable": true,
+            "type": "object"
+          },
+          "retryDelaySeconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "runAt": {
+            "description": "One-time execution timestamp",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "default": 780,
+            "maximum": 780,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInsertBase": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "$ref": "#/components/schemas/CronExpression"
+          },
+          "cronTimezone": {
+            "default": "UTC",
+            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Scheduled trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxRetries": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Scheduled trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Static payload for agent execution",
+            "nullable": true,
+            "type": "object"
+          },
+          "retryDelaySeconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "runAt": {
+            "description": "One-time execution timestamp",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "default": 780,
+            "maximum": 780,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInvocation": {
+        "properties": {
+          "attemptNumber": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "type": "integer"
+          },
+          "completedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "conversationIds": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "resolvedPayload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "scheduledFor": {
+            "type": "string"
+          },
+          "scheduledTriggerId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "startedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "scheduledTriggerId",
+          "status",
+          "scheduledFor",
+          "startedAt",
+          "completedAt",
+          "conversationIds",
+          "attemptNumber",
+          "idempotencyKey",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInvocationListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledTriggerInvocation"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerInvocationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduledTriggerInvocation"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduledTrigger"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ScheduledTriggerUpdate": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "cronExpression": {
+            "$ref": "#/components/schemas/CronExpression"
+          },
+          "cronTimezone": {
+            "default": "UTC",
+            "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Scheduled trigger description",
+            "nullable": true,
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the trigger is enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "maxRetries": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "messageTemplate": {
+            "description": "Message template with {{placeholder}} syntax",
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Scheduled trigger name",
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Static payload for agent execution",
+            "nullable": true,
+            "type": "object"
+          },
+          "projectId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "retryDelaySeconds": {
+            "default": 60,
+            "maximum": 3600,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "runAt": {
+            "description": "One-time execution timestamp",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "tenantId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "default": 780,
+            "maximum": 780,
+            "minimum": 30,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScheduledTriggerWithRunInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ScheduledTrigger"
+          },
+          {
+            "properties": {
+              "lastRunAt": {
+                "description": "Timestamp of the last completed or failed run",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              },
+              "lastRunConversationIds": {
+                "description": "Conversation IDs from the last run",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "lastRunStatus": {
+                "description": "Status of the last run",
+                "enum": [
+                  "completed",
+                  "failed"
+                ],
+                "nullable": true,
+                "type": "string"
+              },
+              "nextRunAt": {
+                "description": "Timestamp of the next pending run",
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "lastRunAt",
+              "lastRunStatus",
+              "lastRunConversationIds",
+              "nextRunAt"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "ScheduledTriggerWithRunInfoListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledTriggerWithRunInfo"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
       "SignatureSource": {
         "description": "Configuration for extracting the signature",
         "properties": {
@@ -6098,6 +6730,131 @@
         ],
         "type": "object"
       },
+      "Skill": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/StringRecord"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "content",
+          "metadata",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "SkillCreate": {
+        "properties": {
+          "content": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "metadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StringRecord"
+              },
+              {
+                "default": null
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-z0-9-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "content"
+        ],
+        "type": "object"
+      },
+      "SkillListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Skill"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "SkillResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Skill"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SkillUpdate": {
+        "properties": {
+          "content": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "metadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StringRecord"
+              },
+              {
+                "default": null
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
       "StatusComponent": {
         "properties": {
           "description": {
@@ -6183,6 +6940,13 @@
             "type": "number"
           }
         },
+        "type": "object"
+      },
+      "StringRecord": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "nullable": true,
         "type": "object"
       },
       "SubAgent": {
@@ -6904,6 +7668,130 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SubAgent"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SubAgentSkill": {
+        "properties": {
+          "alwaysLoaded": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "index": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "skillId": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "subAgentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subAgentId",
+          "skillId",
+          "index",
+          "alwaysLoaded",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "SubAgentSkillCreate": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "alwaysLoaded": {
+            "default": false,
+            "type": "boolean"
+          },
+          "index": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "skillId": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "subAgentId": {
+            "$ref": "#/components/schemas/ResourceId"
+          }
+        },
+        "required": [
+          "agentId",
+          "subAgentId",
+          "skillId",
+          "index"
+        ],
+        "type": "object"
+      },
+      "SubAgentSkillResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubAgentSkill"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SubAgentSkillWithIndex": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Skill"
+          },
+          {
+            "properties": {
+              "alwaysLoaded": {
+                "type": "boolean"
+              },
+              "index": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "subAgentId": {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              "subAgentSkillId": {
+                "$ref": "#/components/schemas/ResourceId"
+              }
+            },
+            "required": [
+              "subAgentSkillId",
+              "subAgentId",
+              "index",
+              "alwaysLoaded"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "SubAgentSkillWithIndexArrayResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SubAgentSkillWithIndex"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -14005,6 +14893,1529 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers": {
+      "get": {
+        "operationId": "list-scheduled-triggers",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerWithRunInfoListResponse"
+                }
+              }
+            },
+            "description": "List of scheduled triggers retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Scheduled Triggers",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "operationId": "create-scheduled-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledTriggerCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/upcoming-runs": {
+      "get": {
+        "operationId": "list-upcoming-scheduled-runs",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Include currently running invocations in results",
+            "in": "query",
+            "name": "includeRunning",
+            "required": false,
+            "schema": {
+              "description": "Include currently running invocations in results",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInvocationListResponse"
+                }
+              }
+            },
+            "description": "List of upcoming scheduled runs retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Upcoming Runs",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}": {
+      "delete": {
+        "operationId": "delete-scheduled-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Scheduled trigger deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      },
+      "get": {
+        "operationId": "get-scheduled-trigger-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      },
+      "patch": {
+        "operationId": "update-scheduled-trigger",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduledTriggerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations": {
+      "get": {
+        "operationId": "list-scheduled-trigger-invocations",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Start date for filtering (ISO8601)",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "description": "Start date for filtering (ISO8601)",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End date for filtering (ISO8601)",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "description": "End date for filtering (ISO8601)",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by invocation status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Filter by invocation status",
+              "enum": [
+                "pending",
+                "running",
+                "completed",
+                "failed",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInvocationListResponse"
+                }
+              }
+            },
+            "description": "List of scheduled trigger invocations retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Scheduled Trigger Invocations",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}": {
+      "get": {
+        "operationId": "get-scheduled-trigger-invocation-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled Trigger Invocation ID",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger Invocation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledTriggerInvocationResponse"
+                }
+              }
+            },
+            "description": "Scheduled trigger invocation found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Scheduled Trigger Invocation",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/cancel": {
+      "post": {
+        "operationId": "cancel-scheduled-trigger-invocation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled Trigger Invocation ID",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger Invocation ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "invocationId": {
+                      "type": "string"
+                    },
+                    "previousStatus": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "invocationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scheduled trigger invocation cancelled successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Cancel Scheduled Trigger Invocation",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/invocations/{invocationId}/rerun": {
+      "post": {
+        "operationId": "rerun-scheduled-trigger-invocation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled Trigger Invocation ID to rerun",
+            "in": "path",
+            "name": "invocationId",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger Invocation ID to rerun",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "newInvocationId": {
+                      "type": "string"
+                    },
+                    "originalInvocationId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "newInvocationId",
+                    "originalInvocationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scheduled trigger invocation rerun initiated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Rerun Scheduled Trigger Invocation",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/run": {
+      "post": {
+        "operationId": "run-scheduled-trigger-now",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "invocationId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "invocationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Scheduled trigger run initiated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Run Scheduled Trigger Now",
+        "tags": [
+          "Scheduled Triggers"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components": {
       "post": {
         "operationId": "associate-artifact-component-with-agent",
@@ -16511,6 +18922,363 @@
         "summary": "Update Sub Agent Relation",
         "tags": [
           "SubAgents"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills": {
+      "post": {
+        "operationId": "create-subagent-skill",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentSkillCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentSkillResponse"
+                }
+              }
+            },
+            "description": "Skill attached to sub-agent successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Attach Skill to Sub-Agent",
+        "tags": [
+          "Skills"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills/agent/{subAgentId}": {
+      "get": {
+        "operationId": "get-skills-for-subagent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Sub-agent identifier",
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubAgentIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentSkillWithIndexArrayResponse"
+                }
+              }
+            },
+            "description": "Skills retrieved successfully for sub-agent"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Skills for Sub-Agent",
+        "tags": [
+          "Skills"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-skills/agent/{subAgentId}/skill/{skillId}": {
+      "delete": {
+        "operationId": "delete-subagent-skill",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "skillId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Skill detached successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Detach Skill from Sub-Agent",
+        "tags": [
+          "Skills"
         ]
       }
     },
@@ -19831,21 +22599,6 @@
             }
           },
           {
-            "description": "Filter by invocation status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "description": "Filter by invocation status",
-              "enum": [
-                "pending",
-                "success",
-                "failed"
-              ],
-              "type": "string"
-            }
-          },
-          {
             "description": "Start date for filtering (ISO8601)",
             "in": "query",
             "name": "from",
@@ -19864,6 +22617,21 @@
             "schema": {
               "description": "End date for filtering (ISO8601)",
               "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by invocation status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Filter by invocation status",
+              "enum": [
+                "pending",
+                "success",
+                "failed"
+              ],
               "type": "string"
             }
           }
@@ -30861,6 +33629,577 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/skills": {
+      "get": {
+        "operationId": "list-skills",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillListResponse"
+                }
+              }
+            },
+            "description": "Skills retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Skills",
+        "tags": [
+          "Skills"
+        ],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
+      },
+      "post": {
+        "operationId": "create-skill",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillResponse"
+                }
+              }
+            },
+            "description": "Skill created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Skill",
+        "tags": [
+          "Skills"
+        ]
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/skills/{id}": {
+      "delete": {
+        "operationId": "delete-skill",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Skill deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Skill",
+        "tags": [
+          "Skills"
+        ]
+      },
+      "get": {
+        "operationId": "get-skill",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillResponse"
+                }
+              }
+            },
+            "description": "Skill found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Skill",
+        "tags": [
+          "Skills"
+        ]
+      },
+      "put": {
+        "operationId": "update-skill",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillResponse"
+                }
+              }
+            },
+            "description": "Skill updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Skill",
+        "tags": [
+          "Skills"
+        ]
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers": {
       "post": {
         "description": "Fetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL",
@@ -33364,6 +36703,1533 @@
           "MCP"
         ]
       }
+    },
+    "/work-apps/slack/install": {
+      "get": {
+        "description": "Redirects to Slack OAuth page for workspace installation",
+        "operationId": "slack-install",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to Slack OAuth"
+          }
+        },
+        "summary": "Install Slack App",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "OAuth"
+        ]
+      }
+    },
+    "/work-apps/slack/oauth_redirect": {
+      "get": {
+        "description": "Handles the OAuth callback from Slack after workspace installation",
+        "operationId": "slack-oauth-redirect",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to dashboard with workspace data"
+          }
+        },
+        "summary": "Slack OAuth Callback",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "OAuth"
+        ]
+      }
+    },
+    "/work-apps/slack/users/connect": {
+      "post": {
+        "description": "Create a Nango session for Slack OAuth flow. Used by the dashboard.",
+        "operationId": "slack-user-connect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "tenantId": {
+                    "description": "Tenant ID",
+                    "type": "string"
+                  },
+                  "userEmail": {
+                    "description": "User email",
+                    "type": "string"
+                  },
+                  "userId": {
+                    "description": "Inkeep user ID",
+                    "type": "string"
+                  },
+                  "userName": {
+                    "description": "User display name",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "connectUrl": {
+                      "type": "string"
+                    },
+                    "sessionToken": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Connect session created"
+          },
+          "400": {
+            "description": "Missing required userId"
+          },
+          "500": {
+            "description": "Failed to create session"
+          }
+        },
+        "summary": "Create Nango Connect Session",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Users"
+        ]
+      }
+    },
+    "/work-apps/slack/users/disconnect": {
+      "post": {
+        "description": "Unlink a Slack user from their Inkeep account.",
+        "operationId": "slack-user-disconnect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "slackTeamId": {
+                    "description": "Slack team ID",
+                    "type": "string"
+                  },
+                  "slackUserId": {
+                    "description": "Slack user ID",
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "description": "Tenant ID",
+                    "type": "string"
+                  },
+                  "userId": {
+                    "description": "Inkeep user ID",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User disconnected"
+          },
+          "400": {
+            "description": "Missing required identifiers"
+          },
+          "404": {
+            "description": "No connection found"
+          },
+          "500": {
+            "description": "Failed to disconnect"
+          }
+        },
+        "summary": "Disconnect User",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Users"
+        ]
+      }
+    },
+    "/work-apps/slack/users/link-status": {
+      "get": {
+        "description": "Check if a Slack user is linked to an Inkeep account",
+        "operationId": "slack-link-status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "slackUserId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "slackTeamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "default": "default",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "linkId": {
+                      "type": "string"
+                    },
+                    "linked": {
+                      "type": "boolean"
+                    },
+                    "linkedAt": {
+                      "type": "string"
+                    },
+                    "slackUsername": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "linked"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Link status"
+          }
+        },
+        "summary": "Check Link Status",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Users"
+        ]
+      }
+    },
+    "/work-apps/slack/users/link/verify-token": {
+      "post": {
+        "description": "Verify a JWT link token and create user mapping",
+        "operationId": "slack-verify-link-token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "token": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "userEmail": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "userId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "userId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "linkId": {
+                      "type": "string"
+                    },
+                    "slackTeamId": {
+                      "type": "string"
+                    },
+                    "slackUsername": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Link successful"
+          },
+          "400": {
+            "description": "Invalid or expired token"
+          },
+          "409": {
+            "description": "Account already linked"
+          }
+        },
+        "summary": "Verify Link Token",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Users"
+        ]
+      }
+    },
+    "/work-apps/slack/users/status": {
+      "get": {
+        "description": "Check if an Inkeep user has a linked Slack account.",
+        "operationId": "slack-user-status",
+        "parameters": [
+          {
+            "description": "Inkeep user ID",
+            "in": "query",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "description": "Inkeep user ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "connected": {
+                      "type": "boolean"
+                    },
+                    "connection": {
+                      "nullable": true,
+                      "properties": {
+                        "appUserEmail": {
+                          "type": "string"
+                        },
+                        "appUserId": {
+                          "type": "string"
+                        },
+                        "connectionId": {
+                          "type": "string"
+                        },
+                        "linkedAt": {
+                          "type": "string"
+                        },
+                        "slackDisplayName": {
+                          "type": "string"
+                        },
+                        "slackTeamId": {
+                          "type": "string"
+                        },
+                        "slackUserId": {
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "connectionId",
+                        "appUserId",
+                        "appUserEmail",
+                        "slackDisplayName",
+                        "linkedAt",
+                        "tenantId",
+                        "slackUserId",
+                        "slackTeamId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "connected",
+                    "connection"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Connection status"
+          },
+          "400": {
+            "description": "Missing userId"
+          },
+          "500": {
+            "description": "Failed to get status"
+          }
+        },
+        "summary": "Get Connection Status",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Users"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces": {
+      "get": {
+        "description": "List all installed Slack workspaces for the tenant",
+        "operationId": "slack-list-workspaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "workspaces": {
+                      "items": {
+                        "properties": {
+                          "connectionId": {
+                            "type": "string"
+                          },
+                          "defaultAgentName": {
+                            "type": "string"
+                          },
+                          "hasDefaultAgent": {
+                            "type": "boolean"
+                          },
+                          "teamId": {
+                            "type": "string"
+                          },
+                          "teamName": {
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "connectionId",
+                          "teamId",
+                          "tenantId",
+                          "hasDefaultAgent"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "workspaces"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of workspaces"
+          }
+        },
+        "summary": "List Workspaces",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId": {
+      "delete": {
+        "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
+        "operationId": "slack-delete-workspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Workspace uninstalled"
+          },
+          "400": {
+            "description": "Invalid connectionId format"
+          },
+          "404": {
+            "description": "Workspace not found"
+          },
+          "500": {
+            "description": "Failed to uninstall workspace"
+          }
+        },
+        "summary": "Uninstall Workspace",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      },
+      "get": {
+        "description": "Get details of a specific Slack workspace",
+        "operationId": "slack-get-workspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "connectionId": {
+                      "type": "string"
+                    },
+                    "defaultAgent": {
+                      "properties": {
+                        "agentId": {
+                          "type": "string"
+                        },
+                        "agentName": {
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "projectId",
+                        "agentId"
+                      ],
+                      "type": "object"
+                    },
+                    "teamId": {
+                      "type": "string"
+                    },
+                    "teamName": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "teamId",
+                    "tenantId",
+                    "connectionId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Workspace details"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Get Workspace",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/channels": {
+      "get": {
+        "description": "List Slack channels in the workspace that the bot can see",
+        "operationId": "slack-list-channels",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "nullable": true,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "types",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "channels": {
+                      "items": {
+                        "properties": {
+                          "agentConfig": {
+                            "properties": {
+                              "agentId": {
+                                "type": "string"
+                              },
+                              "agentName": {
+                                "type": "string"
+                              },
+                              "projectId": {
+                                "type": "string"
+                              },
+                              "projectName": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "projectId",
+                              "agentId"
+                            ],
+                            "type": "object"
+                          },
+                          "hasAgentConfig": {
+                            "type": "boolean"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "isPrivate": {
+                            "type": "boolean"
+                          },
+                          "isShared": {
+                            "type": "boolean"
+                          },
+                          "memberCount": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "isPrivate",
+                          "isShared",
+                          "hasAgentConfig"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "nextCursor": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "channels"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of channels"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "List Channels",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/channels/:channelId/settings": {
+      "delete": {
+        "description": "Remove the default agent configuration for a channel",
+        "operationId": "slack-delete-channel-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channel config removed"
+          }
+        },
+        "summary": "Remove Channel Config",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      },
+      "get": {
+        "description": "Get default agent configuration for a specific channel",
+        "operationId": "slack-get-channel-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "agentConfig": {
+                      "properties": {
+                        "agentId": {
+                          "type": "string"
+                        },
+                        "agentName": {
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "projectId",
+                        "agentId"
+                      ],
+                      "type": "object"
+                    },
+                    "channelId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "channelId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channel settings"
+          }
+        },
+        "summary": "Get Channel Settings",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      },
+      "put": {
+        "description": "Set or update the default agent for a specific channel",
+        "operationId": "slack-set-channel-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channelId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentConfig": {
+                    "properties": {
+                      "agentId": {
+                        "type": "string"
+                      },
+                      "agentName": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projectId",
+                      "agentId"
+                    ],
+                    "type": "object"
+                  },
+                  "channelName": {
+                    "type": "string"
+                  },
+                  "channelType": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "agentConfig"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "configId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "configId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channel settings updated"
+          }
+        },
+        "summary": "Set Channel Default Agent",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/channels/bulk": {
+      "delete": {
+        "description": "Remove agent configuration from multiple channels at once",
+        "operationId": "slack-bulk-delete-channel-agents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "channelIds"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "removed": {
+                      "type": "number"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "removed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Configs removed"
+          }
+        },
+        "summary": "Bulk Remove Channel Configs",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      },
+      "put": {
+        "description": "Apply the same agent configuration to multiple channels at once",
+        "operationId": "slack-bulk-set-channel-agents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentConfig": {
+                    "properties": {
+                      "agentId": {
+                        "type": "string"
+                      },
+                      "agentName": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projectId",
+                      "agentId"
+                    ],
+                    "type": "object"
+                  },
+                  "channelIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "channelIds",
+                  "agentConfig"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "errors": {
+                      "items": {
+                        "properties": {
+                          "channelId": {
+                            "type": "string"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "channelId",
+                          "error"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "failed": {
+                      "type": "number"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "updated": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "updated",
+                    "failed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Channels updated"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Bulk Set Channel Agents",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Channels"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/health": {
+      "get": {
+        "description": "Verify the bot token is valid and check permissions. Returns bot info and permission status.",
+        "operationId": "slack-workspace-health",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "botId": {
+                      "type": "string"
+                    },
+                    "botName": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "healthy": {
+                      "type": "boolean"
+                    },
+                    "permissions": {
+                      "properties": {
+                        "canPostMessages": {
+                          "type": "boolean"
+                        },
+                        "canReadChannels": {
+                          "type": "boolean"
+                        },
+                        "canReadHistory": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "canPostMessages",
+                        "canReadChannels",
+                        "canReadHistory"
+                      ],
+                      "type": "object"
+                    },
+                    "teamId": {
+                      "type": "string"
+                    },
+                    "teamName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "healthy",
+                    "permissions"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Health check result"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Check Workspace Health",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/settings": {
+      "get": {
+        "description": "Get settings for a Slack workspace including default agent",
+        "operationId": "slack-get-workspace-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "defaultAgent": {
+                      "properties": {
+                        "agentId": {
+                          "type": "string"
+                        },
+                        "agentName": {
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "projectName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "projectId",
+                        "agentId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Workspace settings"
+          }
+        },
+        "summary": "Get Workspace Settings",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      },
+      "put": {
+        "description": "Update workspace settings including default agent",
+        "operationId": "slack-update-workspace-settings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "defaultAgent": {
+                    "properties": {
+                      "agentId": {
+                        "type": "string"
+                      },
+                      "agentName": {
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projectId",
+                      "agentId"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Settings updated"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Failed to update settings"
+          }
+        },
+        "summary": "Update Workspace Settings",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/test-message": {
+      "post": {
+        "description": "Send a test message to verify the bot is working correctly.",
+        "operationId": "slack-test-message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "channelId": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "channelId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "messageTs": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Test message sent"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "summary": "Send Test Message",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Workspaces"
+        ]
+      }
+    },
+    "/work-apps/slack/workspaces/:teamId/users": {
+      "get": {
+        "description": "List all users linked to Inkeep in this workspace",
+        "operationId": "slack-list-linked-users",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "linkedUsers": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "lastUsedAt": {
+                            "type": "string"
+                          },
+                          "linkedAt": {
+                            "type": "string"
+                          },
+                          "slackEmail": {
+                            "type": "string"
+                          },
+                          "slackTeamId": {
+                            "type": "string"
+                          },
+                          "slackUserId": {
+                            "type": "string"
+                          },
+                          "slackUsername": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "slackUserId",
+                          "slackTeamId",
+                          "userId",
+                          "linkedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "linkedUsers"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of linked users"
+          }
+        },
+        "summary": "List Linked Users",
+        "tags": [
+          "Work Apps",
+          "Slack",
+          "Users"
+        ]
+      }
     }
   },
   "security": [
@@ -33398,6 +38264,10 @@
     {
       "description": "Operations for managing branches",
       "name": "Branches"
+    },
+    {
+      "description": "Operations for managing Slack channels",
+      "name": "Channels"
     },
     {
       "description": "CLI authentication endpoints",
@@ -33476,8 +38346,20 @@
       "name": "Refs"
     },
     {
+      "description": "Reusable instruction blocks that can be attached to multiple sub-agents and ordered for priority",
+      "name": "Skills"
+    },
+    {
+      "description": "Slack App integration endpoints",
+      "name": "Slack"
+    },
+    {
       "description": "Operations for managing sub agents",
       "name": "SubAgents"
+    },
+    {
+      "description": "Operations for managing scheduled triggers",
+      "name": "Scheduled Triggers"
     },
     {
       "description": "Operations for managing third-party MCP servers",
@@ -33496,12 +38378,24 @@
       "name": "User Project Memberships"
     },
     {
+      "description": "Operations for managing users",
+      "name": "Users"
+    },
+    {
       "description": "Webhook endpoints",
       "name": "Webhooks"
     },
     {
+      "description": "Work app integrations (Slack, Teams, etc.)",
+      "name": "Work Apps"
+    },
+    {
       "description": "Workflow trigger endpoints",
       "name": "Workflows"
+    },
+    {
+      "description": "Operations for managing Slack workspaces",
+      "name": "Workspaces"
     }
   ]
 }

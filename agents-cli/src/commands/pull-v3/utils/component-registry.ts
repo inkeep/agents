@@ -25,6 +25,7 @@ export type ComponentType =
   | 'fetchDefinitions'
   | 'headers'
   | 'models'
+  | 'skills'
   | 'triggers'
   | 'project';
 
@@ -577,6 +578,13 @@ export function registerAllComponents(
   if (project.externalAgents) {
     for (const extAgentId of Object.keys(project.externalAgents)) {
       registry.register(extAgentId, 'externalAgents', `external-agents/${extAgentId}.ts`);
+    }
+  }
+
+  // Register skills
+  if (project.skills) {
+    for (const skillId of Object.keys(project.skills)) {
+      registry.register(skillId, 'skills', `skills/${skillId}.md`);
     }
   }
 

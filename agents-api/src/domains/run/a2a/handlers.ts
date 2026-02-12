@@ -11,6 +11,7 @@ import {
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import runDbClient from '../../../data/db/runDbClient';
+import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types';
 
@@ -599,6 +600,8 @@ async function handleMessageStream(
             id: request.id,
           }),
         });
+      } finally {
+        await flushBatchProcessor();
       }
     });
   } catch (error) {

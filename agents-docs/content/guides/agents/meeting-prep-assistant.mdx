@@ -1,0 +1,254 @@
+---
+title: Build a meeting prep agent without code
+sidebarTitle: Meeting Prep Agent
+icon: LuCalendar
+---
+
+## Overview
+
+In this tutorial, you'll build a meeting prep assistant agent using the Inkeep Visual Builder. When you ask "Can you help me prep for my upcoming Acme meeting?", the agent will:
+1. Look up the meeting in your Google Calendar
+2. Search the web to research the company
+3. Present a comprehensive meeting prep summary
+
+<Video
+  src="https://www.youtube.com/watch?v=8DxeNhfKJco"
+  title="Meeting prep agent tutorial"
+/>
+
+## Prerequisites
+
+- An existing Inkeep Visual Builder instance running (follow the [quick start guide](/get-started/quick-start) to get started)
+- Or access to Inkeep Cloud
+
+## Creating the Sub Agents
+
+### Step 1: Create the meeting prep agent
+
+<Steps>
+  <Step>
+    Go to the **Agents** tab in the left sidebar, then select **Create Agent**.
+  </Step>
+  <Step>
+    Provide the following details:
+    - **Name**: `Meeting prep agent`
+    - **Description**: `An agent that can help you prepare for your upcoming meeting`
+  </Step>
+</Steps>
+
+### Step 2: Configure the meeting prep coordinator sub agent
+
+The default sub agent will serve as the coordinator that orchestrates the workflow.
+
+<Steps>
+  <Step>
+    Click on the **Default Sub Agent** to configure it.
+  </Step>
+  <Step>
+    Provide the following details:
+    - **Name**: `Meeting prep coordinator`
+    - **Description**: `Orchestrate specialized agents to prepare for a meeting`
+    - **Prompt**: Copy the prompt below
+  </Step>
+</Steps>
+
+**Prompt:**
+```
+Orchestrate specialized agents to prepare for a meeting.
+
+<workflow>
+1. Greet & Find Meeting:
+   - Greet user, understand which company
+   - Announce: "Finding meeting with [Company]..."
+   - Delegate to Meeting Finder
+   - VERBOSE: Summarize meeting found (date, time, participants)
+
+2. Company Research:
+   - Announce: "Researching [Company]..."
+   - Delegate to Company research
+   - VERBOSE: Summarize company insights (what they do, products)
+
+3. Create Prep:
+   - Announce: "Creating prep summary..."
+   - Encouraging closing message
+</workflow>
+
+<rules>
+- Always delegate in order: Meeting Finder → Company Research
+- BE VERBOSE after each delegation returns
+- Show progress and insights clearly
+- Proceed automatically
+</rules>
+```
+
+### Step 3: Create the meeting finder sub agent
+
+<Steps>
+  <Step>
+    Drag and drop a **Sub Agent** block from the top left toolbar onto the canvas.
+  </Step>
+  <Step>
+    Configure the sub agent with:
+    - **Name**: `Meeting finder`
+    - **Description**: `Find the external meeting to prep for using Google Calendar`
+    - **Prompt**: Copy the prompt below
+  </Step>
+  <Step>
+Connect the Meeting Finder sub agent to the Meeting Prep Coordinator.
+</Step>
+<Step>
+Click on the connector and change the relationship type from **Transfer** to **Delegate**.
+</Step>
+</Steps>
+
+**Prompt:**
+```
+Find the external meeting to prep for using Google Calendar.
+
+<workflow>
+1. Search upcoming meetings for target company
+2. Filter: ONLY meetings with external email domain (e.g., @nvidia.com)
+3. Skip internal-only meetings entirely
+4. Present first external meeting:
+   - Date/time, duration
+   - Title and link
+   - External attendees (name + email)
+   - Internal team (list all @inkeep.com emails)
+5. Return to coordinator
+</workflow>
+
+<rules>
+- Never mention internal meetings
+- Automatically use first external meeting found
+- List all internal participant emails explicitly
+- Return to coordinator after finding meeting
+- Do not pass in a start_time parameter
+</rules>
+```
+
+### Step 4: Create the company research sub agent
+
+<Steps>
+  <Step>
+    Drag and drop another **Sub Agent** block onto the canvas.
+  </Step>
+  <Step>
+    Configure the sub agent with:
+    - **Name**: `Company research`
+    - **Description**: `Research the company to understand what they do`
+    - **Prompt**: Copy the prompt below
+  </Step>
+  <Step>
+    Connect the Company Research sub agent to the Meeting Prep Coordinator using the connector.
+    <Step>
+    Click on the connector and change the relationship type from **Transfer** to **Delegate**.
+    </Step>
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner to save your agent configuration.
+  </Step>
+</Steps>
+
+**Prompt:**
+```
+Research the company to understand what they do.
+
+<workflow>
+1. Exa: Scrape company website
+   - Show key info found
+2. Analyze:
+   - What does company do?
+   - Key products/services
+   - Market position
+3. Present summary with talking points
+4. Return to coordinator
+</workflow>
+
+<rules>
+- Brief explanations under 200 chars
+- Show findings immediately
+- Proceed automatically
+</rules>
+```
+
+## Adding MCP tools
+
+To enable your agent to access Google Calendar and perform web research, you'll need to add MCP tools. We'll use Zapier MCP, which provides pre-built MCP servers for many popular services.
+
+<Tip>
+Learn more on how to create MCP servers in our [MCP Servers guide](/guides/mcp-servers/overview).
+</Tip>
+
+### Step 1: Create a Google Calendar MCP server
+
+<Steps>
+  <Step>
+    Create a Zapier MCP account [here](https://zapier.com/mcp).
+  </Step>
+  <Step>
+    Click **+ New MCP Server** in the top right corner. When prompted to select an MCP Client, choose **Other**.
+  </Step>
+  <Step>
+    Click **+ Add Tool** and select **Google Calendar**. Then select the **Find Events** tool, click **Connect**, and complete the OAuth flow to authorize access.
+  </Step>
+  <Step>
+    Navigate to the **Connect** tab and copy the **Server URL**. You'll need this to register the tool in the Visual Builder.
+  </Step>
+</Steps>
+
+### Step 2: Register MCP servers in Visual Builder
+
+<Steps>
+  <Step>
+    In the Visual Builder, go to the **MCP Servers** tab in the left sidebar, then select **+ New MCP Server**.
+  </Step>
+  <Step>
+    Select **Custom Server** and enter the Server URL you copied from Zapier. Give it a descriptive name (e.g., "Google Calendar"), and for **Credential**, select **No Authentication**.
+  </Step>
+  <Step>
+    Click **Save** to register the Google Calendar server.
+  </Step>
+  <Step>
+    Repeat the same process for the Exa MCP Server. The MCP Server URL is https://mcp.exa.ai/mcp.
+  </Step>
+</Steps>
+
+### Step 3: Connect tools to sub agents
+
+<Steps>
+  <Step>
+    Navigate to the agent canvas: **Agents** > **Meeting prep agent**.
+  </Step>
+  <Step>
+    Drag and drop an **MCP** block from the top left toolbar onto the canvas.
+  </Step>
+  <Step>
+    Select the **Google Calendar MCP** tool and connect it to the **Meeting Finder** sub agent.
+  </Step>
+  <Step>
+    Add another MCP block, select the **Exa MCP** tool, and connect it to the **Company Research** sub agent.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner to save your configuration.
+  </Step>
+</Steps>
+
+## Testing your agent
+
+Ensure you have at least one upcoming meeting with an external company on your Google Calendar. If you don't have one, create a test meeting.
+
+<Steps>
+  <Step>
+    Click **Try it** in the top right corner to open the chat interface.
+  </Step>
+  <Step>
+    Test your agent by asking: "Can you help me prep for my upcoming [company name] meeting?"
+  </Step>
+</Steps>
+
+When working correctly, the agent will:
+1. Find the meeting in your Google Calendar
+2. Research the company using Exa
+3. Present a comprehensive meeting prep summary
+
+<Image src="/gifs/agent-in-action.gif" alt="Meeting prep agent in action" />

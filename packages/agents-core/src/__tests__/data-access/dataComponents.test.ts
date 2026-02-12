@@ -1,4 +1,6 @@
+import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema } from 'zod/v4/core';
 import {
   associateDataComponentWithAgent,
   countDataComponents,
@@ -309,19 +311,20 @@ describe('Data Components Data Access', () => {
 
   describe('createDataComponent', () => {
     it('should create a new data component', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+        },
+        required: ['key'],
+      };
       const componentData: DataComponentInsert = {
         id: testDataComponentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'New Component',
         description: 'A new test component',
-        props: {
-          type: 'object',
-          properties: {
-            key: { type: 'string' },
-          },
-          required: ['key'],
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {
@@ -348,19 +351,20 @@ describe('Data Components Data Access', () => {
     });
 
     it('should create a data component with generated ID when not provided', async () => {
+      const props: JSONSchema.BaseSchema = {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+        },
+        required: ['key'],
+      };
       const componentData: DataComponentInsert = {
         id: 'generated-id',
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'New Component',
         description: 'A new test component',
-        props: {
-          type: 'object',
-          properties: {
-            key: { type: 'string' },
-          },
-          required: ['key'],
-        },
+        props: props as JsonSchemaForLlmSchemaType,
       };
 
       const expectedComponent = {

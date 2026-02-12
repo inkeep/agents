@@ -170,5 +170,5 @@ async function _evaluateConversationWorkflow(payload: EvaluationPayload) {
 // This ID must match what workflow:build generates in .well-known/workflow/v1/flow.cjs
 export const evaluateConversationWorkflow = Object.assign(_evaluateConversationWorkflow, {
   workflowId:
-    'workflow//src/domains/evals/workflow/functions/evaluateConversation.ts//_evaluateConversationWorkflow',
+    'workflow//./src/domains/evals/workflow/functions/evaluateConversation//_evaluateConversationWorkflow',
 });
