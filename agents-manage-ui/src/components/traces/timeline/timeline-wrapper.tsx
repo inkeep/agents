@@ -438,13 +438,21 @@ export function TimelineWrapper({
     fetch(
       `/api/signoz/spans/${activityId}?conversationId=${encodeURIComponent(conversationId)}&tenantId=${encodeURIComponent(tenantId)}`
     )
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (!res.ok) {
+          console.warn(`Span fetch failed: ${res.status} ${res.statusText}`);
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
         if (!cancelled && data?.spanId) {
           setLazySpan(data);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Failed to fetch span details:', err);
+      })
       .finally(() => {
         if (!cancelled) setLazySpanLoading(false);
       });
