@@ -53,9 +53,10 @@ inkeep pull
 
 The CLI will:
 1. Detect the project from your `index.ts` file
-2. Fetch the latest configuration from Inkeep Cloud
-3. Compare remote changes against your local files
-4. Generate updated TypeScript files, preserving your local code structure
+2. Resolve configuration — your active [CLI profile](/tutorials/cli/setup-profile) overrides `inkeep.config.ts` for API URLs, API key, and tenant ID (see [Configuration Priority](/typescript-sdk/cli-reference#configuration-priority))
+3. Fetch the latest configuration from Inkeep Cloud
+4. Compare remote changes against your local files
+5. Generate updated TypeScript files, preserving your local code structure
 
 <Tip>
 The pull command uses smart comparison to detect what changed. If nothing has changed remotely, it tells you the project is already up to date.
