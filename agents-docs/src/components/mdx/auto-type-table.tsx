@@ -7,18 +7,34 @@ import 'server-only';
 import type { ReactNode } from 'react';
 import { parseTags } from '@/lib/parse-tags';
 
+export type TypeLinksInput = string[] | Record<string, string>;
+
+function normalizeTypeLinks(input?: TypeLinksInput): Map<string, string> {
+  if (!input) return new Map();
+  if (Array.isArray(input)) {
+    return new Map(input.map((name) => [name, name.toLowerCase()]));
+  }
+  return new Map(Object.entries(input));
+}
+
 export async function AutoTypeTable({
   generator,
   options = {},
-  renderType = renderTypeDefault,
+  typeLinks: typeLinksInput,
+  renderType,
   renderMarkdown = renderMarkdownDefault,
   ...props
 }: {
   generator: any;
   renderMarkdown?: typeof renderMarkdownDefault;
-  renderType?: typeof renderTypeDefault;
+  renderType?: (type: string) => Promise<ReactNode>;
+  typeLinks?: TypeLinksInput;
   options?: any;
 }) {
+  const typeLinksMap = normalizeTypeLinks(typeLinksInput);
+  if (!renderType) {
+    renderType = (type: string) => renderTypeWithLinks(type, typeLinksMap);
+  }
   const output: any[] = await generator.generateTypeTable(props, options);
 
   return output.map(async (item) => {
@@ -61,8 +77,11 @@ function toJsx(hast: any) {
   });
 }
 
-async function renderTypeDefault(type: string): Promise<ReactNode> {
-  return toJsx(await renderTypeToHast(type));
+async function renderTypeWithLinks(
+  type: string,
+  typeLinks: Map<string, string> = new Map()
+): Promise<ReactNode> {
+  return toJsx(await renderTypeToHast(type, typeLinks));
 }
 
 async function renderMarkdownDefault(md: string): Promise<ReactNode> {

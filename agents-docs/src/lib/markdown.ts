@@ -20,16 +20,18 @@ function textNode(value: string): any {
   return { type: 'text', value };
 }
 
-function linkNode(name: string, display: string): any {
+function linkNode(anchor: string, display: string): any {
   return {
     type: 'element',
     tagName: 'a',
-    properties: { href: '#' + name.toLowerCase() },
+    properties: { href: '#' + anchor },
     children: [textNode(display)],
   };
 }
 
-function linkifyPascalCaseInHast(node: any): any | any[] {
+function linkifyPascalCaseInHast(node: any, typeLinks: Map<string, string>): any | any[] {
+  if (typeLinks.size === 0) return node;
+
   if (node.type === 'text') {
     const value = node.value;
     const parts: string[] = [];
@@ -48,7 +50,12 @@ function linkifyPascalCaseInHast(node: any): any | any[] {
       if (i % 2 === 1) {
         const display = parts[i];
         const name = display.replace(/\[\]$/, '');
-        out.push(linkNode(name, display));
+        const anchor = typeLinks.get(name);
+        if (anchor) {
+          out.push(linkNode(anchor, display));
+        } else {
+          out.push(textNode(display));
+        }
       } else if (parts[i]) {
         out.push(textNode(parts[i]));
       }
@@ -57,7 +64,7 @@ function linkifyPascalCaseInHast(node: any): any | any[] {
   }
   if ((node.type === 'element' || node.type === 'root') && Array.isArray(node.children)) {
     const children = (node.children as any[]).flatMap((c: any) => {
-      const r = linkifyPascalCaseInHast(c);
+      const r = linkifyPascalCaseInHast(c, typeLinks);
       return Array.isArray(r) ? r : [r];
     });
     return { ...node, children };
@@ -65,14 +72,17 @@ function linkifyPascalCaseInHast(node: any): any | any[] {
   return node;
 }
 
-export async function renderTypeToHast(type: string): Promise<any> {
+export async function renderTypeToHast(
+  type: string,
+  typeLinks: Map<string, string> = new Map()
+): Promise<any> {
   const nodes = await highlightHast(type, {
     ...shikiOptions,
     lang: 'ts',
     structure: 'inline',
   });
 
-  const linkified = linkifyPascalCaseInHast(nodes);
+  const linkified = linkifyPascalCaseInHast(nodes, typeLinks);
   let innerChildren: any[] =
     linkified?.type === 'element' || linkified?.type === 'root'
       ? ((linkified.children as any[]) ?? [])
