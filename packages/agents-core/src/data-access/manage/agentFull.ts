@@ -37,6 +37,11 @@ import {
   upsertFunctionTool,
   upsertSubAgentFunctionToolRelation,
 } from './functionTools';
+import {
+  deleteScheduledTrigger,
+  listScheduledTriggers,
+  upsertScheduledTrigger,
+} from './scheduledTriggers';
 import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
@@ -462,6 +467,57 @@ export const createFullAgentServerSide =
             triggerCount: Object.keys(typed.triggers).length,
           },
           'All triggers created successfully'
+        );
+      }
+
+      // Create scheduled triggers (agent-scoped)
+      if (typed.scheduledTriggers && Object.keys(typed.scheduledTriggers).length > 0) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typed.scheduledTriggers).length,
+          },
+          'Creating scheduled triggers for agent'
+        );
+
+        const scheduledTriggerPromises = Object.entries(typed.scheduledTriggers).map(
+          async ([scheduledTriggerId, scheduledTriggerData]) => {
+            try {
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Creating scheduled trigger in agent'
+              );
+              await upsertScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...scheduledTriggerData,
+                  id: scheduledTriggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Scheduled trigger created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, scheduledTriggerId, error },
+                'Failed to create scheduled trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(scheduledTriggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typed.scheduledTriggers).length,
+          },
+          'All scheduled triggers created successfully'
         );
       }
 
@@ -1185,6 +1241,100 @@ export const updateFullAgentServerSide =
 
         if (deletedTriggerCount > 0) {
           logger.info({ deletedTriggerCount }, 'Deleted orphaned triggers from agent');
+        }
+      }
+
+      // Update scheduled triggers (agent-scoped)
+      if (
+        typedAgentDefinition.scheduledTriggers &&
+        Object.keys(typedAgentDefinition.scheduledTriggers).length > 0
+      ) {
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typedAgentDefinition.scheduledTriggers).length,
+          },
+          'Updating scheduled triggers for agent'
+        );
+
+        const scheduledTriggerPromises = Object.entries(typedAgentDefinition.scheduledTriggers).map(
+          async ([scheduledTriggerId, scheduledTriggerData]) => {
+            try {
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Updating scheduled trigger in agent'
+              );
+              await upsertScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                data: {
+                  ...scheduledTriggerData,
+                  id: scheduledTriggerId,
+                  tenantId,
+                  projectId,
+                  agentId: finalAgentId,
+                },
+              });
+              logger.info(
+                { agentId: finalAgentId, scheduledTriggerId },
+                'Scheduled trigger updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { agentId: finalAgentId, scheduledTriggerId, error },
+                'Failed to update scheduled trigger in agent'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(scheduledTriggerPromises);
+        logger.info(
+          {
+            agentId: finalAgentId,
+            scheduledTriggerCount: Object.keys(typedAgentDefinition.scheduledTriggers).length,
+          },
+          'All scheduled triggers updated successfully'
+        );
+      }
+
+      // Delete orphaned scheduled triggers - only if scheduledTriggers field was explicitly provided
+      if (typedAgentDefinition.scheduledTriggers !== undefined) {
+        const incomingScheduledTriggerIds = new Set(
+          Object.keys(typedAgentDefinition.scheduledTriggers)
+        );
+
+        const existingScheduledTriggers = await listScheduledTriggers(db)({
+          scopes: { tenantId, projectId, agentId: finalAgentId },
+        });
+
+        let deletedScheduledTriggerCount = 0;
+        for (const scheduledTrigger of existingScheduledTriggers) {
+          if (!incomingScheduledTriggerIds.has(scheduledTrigger.id)) {
+            try {
+              await deleteScheduledTrigger(db)({
+                scopes: { tenantId, projectId, agentId: finalAgentId },
+                scheduledTriggerId: scheduledTrigger.id,
+              });
+              deletedScheduledTriggerCount++;
+              logger.info(
+                { scheduledTriggerId: scheduledTrigger.id },
+                'Deleted orphaned scheduled trigger'
+              );
+            } catch (error) {
+              logger.error(
+                { scheduledTriggerId: scheduledTrigger.id, error },
+                'Failed to delete orphaned scheduled trigger'
+              );
+            }
+          }
+        }
+
+        if (deletedScheduledTriggerCount > 0) {
+          logger.info(
+            { deletedScheduledTriggerCount },
+            'Deleted orphaned scheduled triggers from agent'
+          );
         }
       }
 

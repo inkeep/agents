@@ -175,6 +175,10 @@ function createAgentsHono(config: AppConfig) {
       pino: getLogger('agents-api').getPinoInstance(),
       http: {
         onResLevel(c) {
+          // Workflow sleep responses use 503 - this is expected behavior, not an error
+          if (c.res.status === 503 && c.req.path.startsWith('/.well-known/workflow/')) {
+            return 'info';
+          }
           if (c.res.status >= 500) {
             return 'error';
           }

@@ -3,12 +3,14 @@ import {
   boolean,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
   unique,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
 import { organization, user } from '../../auth/auth-schema';
@@ -289,6 +291,35 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     index('work_app_slack_channel_agent_configs_tenant_idx').on(table.tenantId),
     index('work_app_slack_channel_agent_configs_team_idx').on(table.slackTeamId),
     index('work_app_slack_channel_agent_configs_channel_idx').on(table.slackChannelId),
+  ]
+);
+
+/**
+ * Scheduled trigger invocations - records each execution of a scheduled trigger.
+ * NOTE: No FK to scheduled_triggers table since it's in a different database (DoltGres).
+ */
+export const scheduledTriggerInvocations = pgTable(
+  'scheduled_trigger_invocations',
+  {
+    ...agentScoped,
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 50 })
+      .notNull()
+      .$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true, mode: 'string' }).notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true, mode: 'string' }),
+    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
+    resolvedPayload: jsonb('resolved_payload').$type<Record<string, unknown> | null>(),
+    conversationIds: jsonb('conversation_ids').$type<string[]>().default([]),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    idempotencyKey: varchar('idempotency_key', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    uniqueIndex('sched_invocations_idempotency_idx').on(table.idempotencyKey),
   ]
 );
 

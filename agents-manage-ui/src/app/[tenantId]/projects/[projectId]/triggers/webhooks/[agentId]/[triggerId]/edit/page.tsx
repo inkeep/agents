@@ -1,7 +1,10 @@
+import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
+import { Button } from '@/components/ui/button';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTrigger, type Trigger } from '@/lib/api/triggers';
 
@@ -11,7 +14,9 @@ export const metadata = {
 
 export default async function EditTriggerPage({
   params,
-}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/edit'>) {
+}: {
+  params: Promise<{ tenantId: string; projectId: string; agentId: string; triggerId: string }>;
+}) {
   const { tenantId, projectId, agentId, triggerId } = await params;
 
   // Fetch agent to verify it exists
@@ -30,8 +35,19 @@ export default async function EditTriggerPage({
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <PageHeader title={`Edit ${trigger.name}`} description={metadata.description} />
+    <div>
+      <div className="flex items-center gap-4 mb-6">
+        <Link href={`/${tenantId}/projects/${projectId}/triggers?tab=webhooks`}>
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to triggers
+          </Button>
+        </Link>
+      </div>
+      <PageHeader
+        title={`Edit ${trigger.name}`}
+        description={`${metadata.description} (Agent: ${agent.data.name})`}
+      />
       <TriggerForm
         tenantId={tenantId}
         projectId={projectId}

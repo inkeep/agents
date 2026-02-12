@@ -12,9 +12,9 @@ import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchProject } from '@/lib/api/projects';
+import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
 import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
-import { getTrigger } from '@/lib/api/triggers';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
@@ -102,13 +102,24 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
     async runs(_id) {
       return 'Run';
     },
-    async triggers(id) {
-      const trigger = await getTrigger(tenantId, projectId, slug[3], id);
-      return trigger.name;
+
+    async webhooks(agentId: string) {
+      const result = await getFullAgentAction(tenantId, projectId, agentId);
+      if (result.success) {
+        return result.data.name;
+      }
+      throw {
+        message: result.error,
+        code: result.code,
+      };
     },
     async skills(id) {
       const result = await fetchSkill(tenantId, projectId, id);
       return result.name;
+    },
+    async 'scheduled-triggers'(id) {
+      const trigger = await getScheduledTrigger(tenantId, projectId, slug[3], id);
+      return trigger.name;
     },
   };
 
@@ -123,6 +134,8 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       `/${tenantId}/projects/${projectId}/datasets/${slug[3]}/runs`,
       `/${tenantId}/projects/${projectId}/agents/${slug[3]}/triggers/${slug[5]}`,
       ...(slug[3] === 'new' ? [] : [`/${tenantId}/projects/${projectId}/skills/${slug[3]}`]),
+      `/${tenantId}/projects/${projectId}/triggers/webhooks`,
+      `/${tenantId}/projects/${projectId}/triggers/scheduled`,
     ]);
 
     if (!routesWithoutBreadcrumbs.has(href)) {

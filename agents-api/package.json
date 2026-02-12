@@ -33,7 +33,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "knip": "knip --directory .. --workspace agents-api --config agents-api/knip.config.ts --dependencies --files",
-    "workflow:build": "tsx src/domains/evals/scripts/build-workflow.ts",
+    "workflow:build": "tsx scripts/build-workflow.ts",
     "well-known:copy": "tsx scripts/copy-well-known.ts",
     "dev": "pnpm workflow:build && vite",
     "build": "pnpm workflow:build && tsdown && pnpm well-known:copy",
@@ -70,13 +70,14 @@
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@vercel/functions": "^1.4.0",
     "@vercel/sandbox": "^0.0.24",
-    "@workflow/builders": "4.0.1-beta.27",
-    "@workflow/world-local": "4.0.1-beta.19",
-    "@workflow/world-postgres": "4.1.0-beta.28",
-    "@workflow/world-vercel": "4.0.1-beta.21",
+    "@workflow/builders": "^4.0.1-beta.45",
+    "@workflow/world-local": "^4.1.0-beta.30",
+    "@workflow/world-postgres": "^4.1.0-beta.32",
+    "@workflow/world-vercel": "^4.1.0-beta.31",
     "ai": "6.0.14",
     "ajv": "^8.17.1",
     "axios": "^1.13.2",
+    "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
     "hono": "^4.11.7",
@@ -86,7 +87,7 @@
     "llm-info": "^1.0.69",
     "openid-client": "^6.8.1",
     "pg": "^8.16.3",
-    "workflow": "4.0.1-beta.33"
+    "workflow": "^4.1.0-beta.54"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
