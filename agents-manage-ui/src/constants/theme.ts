@@ -39,8 +39,5 @@ export const STATIC_LABELS = Object.freeze({
   runs: 'Runs',
   triggers: 'Triggers',
   invocations: 'Invocations',
-  'work-apps': 'Work Apps',
-  slack: 'Slack',
-  github: 'GitHub',
   'no-organization-found': 'No organization found',
 });

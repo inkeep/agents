@@ -144,23 +144,3 @@ export const signozCorsConfig: CorsOptions = {
   maxAge: 600,
   credentials: true,
 };
-
-/**
- * CORS configuration for work-apps routes (Slack, etc.)
- * Needs to allow cross-origin requests with credentials for dashboard integration
- */
-export const workAppsCorsConfig: CorsOptions = {
-  origin: originHandler,
-  allowHeaders: [
-    'content-type',
-    'Content-Type',
-    'authorization',
-    'Authorization',
-    'User-Agent',
-    'Cookie',
-  ],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  exposeHeaders: ['Content-Length'],
-  maxAge: 600,
-  credentials: true,
-};
