@@ -1,0 +1,39 @@
+diff --git a/esm/vs/editor/browser/config/elementSizeObserver.js b/esm/vs/editor/browser/config/elementSizeObserver.js
+index 193c4cb6da737184beff065c366b0c99be65a714..7291a5404d0e471d6ddb28a4726127a9a4e06d14 100644
+--- a/esm/vs/editor/browser/config/elementSizeObserver.js
++++ b/esm/vs/editor/browser/config/elementSizeObserver.js
+@@ -1,3 +1,4 @@
++import { Throttler } from '../../../base/common/observableInternal/logging/debugger/utils';
+ import { Disposable } from '../../../base/common/lifecycle.js';
+ import { Emitter } from '../../../base/common/event.js';
+ import { scheduleAtNextAnimationFrame, getWindow } from '../../../base/browser/dom.js';
+@@ -17,7 +18,9 @@ class ElementSizeObserver extends Disposable {
+         this._resizeObserver = null;
+         this.measureReferenceDomElement(false, dimension);
+     }
++    throttler = new Throttler();
+     dispose() {
++        this.throttler.dispose();
+         this.stopObserving();
+         super.dispose();
+     }
+@@ -44,7 +47,9 @@ class ElementSizeObserver extends Disposable {
+             };
+             let shouldObserve = false;
+             let alreadyObservedThisAnimationFrame = false;
+-            const update = () => {
++            // Reduces unnecessary resize calls to avoid performance issues, especially during hover interactions
++            // with a collapsed sidebar, by throttling the resize observer updates.
++            const update = this.throttler.throttle.bind(this.throttler, () => {
+                 if (shouldObserve && !alreadyObservedThisAnimationFrame) {
+                     try {
+                         shouldObserve = false;
+@@ -58,7 +63,7 @@ class ElementSizeObserver extends Disposable {
+                         });
+                     }
+                 }
+-            };
++            }, 100);
+             this._resizeObserver = new ResizeObserver((entries) => {
+                 if (entries && entries[0] && entries[0].contentRect) {
+                     observedDimenstion = { width: entries[0].contentRect.width, height: entries[0].contentRect.height };
