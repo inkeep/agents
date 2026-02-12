@@ -138,7 +138,7 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should handle single item arrays in single line format', () => {
+    it.only('should handle single item arrays in single line format', async () => {
       const singleItemData = {
         name: 'Single Agent Project',
         models: {
@@ -146,9 +146,9 @@ describe('Project Generator', () => {
         },
         agents: ['onlyAgent'],
       };
-
+      const projectId = 'single-agent-project';
       const definition = generateProjectDefinition(
-        'single-agent-project',
+        projectId,
         singleItemData,
         undefined,
         mockRegistry
@@ -156,6 +156,11 @@ describe('Project Generator', () => {
 
       expect(definition).toContain('agents: () => [onlyAgent]');
       expect(definition).not.toContain('agents: () => [\n'); // Single line format
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...singleItemData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should handle multiple items in multi-line format', () => {
