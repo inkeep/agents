@@ -98,6 +98,10 @@ describe('Project Generator', () => {
       expect(definition).toContain('escalationAgent');
       expect(definition).toContain('});');
       expect(definition).not.toContain('escalationAgent,'); // No trailing comma
+
+      expect(definition).toMatchFileSnapshot(
+        '__snapshots__/should-generate-basic-project-definition.txt'
+      );
     });
 
     it('should generate complex project with all features', () => {
