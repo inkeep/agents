@@ -53,10 +53,7 @@ export function MCPServerNodeEditor({
   const { markUnsaved } = useAgentActions();
 
   // Get skeleton data from store
-  const { toolLookup, edges } = useAgentStore((state) => ({
-    toolLookup: state.toolLookup,
-    edges: state.edges,
-  }));
+  const toolLookup = useAgentStore((state) => state.toolLookup);
 
   // Lazy-load actual tool status
   const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
@@ -71,8 +68,8 @@ export function MCPServerNodeEditor({
   const toolData = liveToolData ?? skeletonToolData;
 
   const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
-  }, [selectedNode, agentToolConfigLookup, edges]);
+    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup);
+  }, [selectedNode, agentToolConfigLookup]);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
@@ -94,14 +91,8 @@ export function MCPServerNodeEditor({
         : undefined,
   });
 
-  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
-
-  const currentToolPolicies = getCurrentToolPoliciesForNode(
-    selectedNode,
-    agentToolConfigLookup,
-    edges
-  );
-
+  const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup);
+  const currentToolPolicies = getCurrentToolPoliciesForNode(selectedNode, agentToolConfigLookup);
   const orphanedTools = findOrphanedTools(selectedTools, activeTools);
 
   // Track if we've already shown the warning for this node to avoid repeated toasts
@@ -337,8 +328,7 @@ export function MCPServerNodeEditor({
             activeTools.length > 1 &&
             (() => {
               const allToolsSelected =
-                selectedTools === null ||
-                (selectedTools !== null && selectedTools.length === activeTools.length);
+                selectedTools === null || selectedTools.length === activeTools.length;
 
               return (
                 <>

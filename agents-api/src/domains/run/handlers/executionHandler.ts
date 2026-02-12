@@ -4,6 +4,7 @@ import {
   createTask,
   type FullExecutionContext,
   generateId,
+  generateServiceToken,
   getActiveAgentForConversation,
   getTask,
   type Part,
@@ -15,6 +16,7 @@ import {
 import runDbClient from '../../../data/db/runDbClient.js';
 import { flushBatchProcessor } from '../../../instrumentation.js';
 import { getLogger } from '../../../logger.js';
+import { getInProcessFetch } from '../../../utils/in-process-fetch.js';
 import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -259,16 +261,30 @@ export class ExecutionHandler {
         }
 
         const agentBaseUrl = `${baseUrl}/run/agents`;
+
+        // For team delegation contexts, generate a fresh JWT for the target sub-agent.
+        // The inherited apiKey has aud=<parent agent>, but we need aud=<current sub-agent>.
+        // This ensures proper auth chain for each hop in agent-to-agent communication.
+        let authToken = apiKey;
+        if (executionContext.metadata?.teamDelegation) {
+          authToken = await generateServiceToken({
+            tenantId,
+            projectId,
+            originAgentId: agentId,
+            targetAgentId: currentAgentId,
+          });
+        }
+
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${authToken}`,
             'x-inkeep-tenant-id': tenantId,
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
-            // Forward user session headers for MCP tool authentication
             ...(forwardedHeaders || {}),
           },
+          fetchFn: getInProcessFetch(),
         });
 
         let messageResponse: SendMessageResponse | null = null;

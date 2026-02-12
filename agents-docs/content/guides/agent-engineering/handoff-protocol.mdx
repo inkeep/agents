@@ -1,0 +1,253 @@
+---
+title: Handoff Protocol and Procedural Patterns
+sidebarTitle: Handoff Protocol
+description: Structure context passing between agents with handoff packets and return packets. Use procedural patterns for validation loops, iteration policies, and error handling.
+---
+
+Subagents start with fresh context, so reliable outcomes depend on structured handoffs. This page covers how to pass context between agents and the procedural patterns that make agent behavior predictable and bounded.
+
+## Parent → subagent: handoff packet
+
+When spawning a subagent, provide a structured handoff packet. Copy and customize this template:
+
+```markdown
+## Task Handoff
+
+- **Objective:** [What to accomplish]
+- **Why this is needed:** [1 sentence]
+- **Scope (in-scope):** [What to focus on]
+- **Non-goals (out-of-scope):** [What to avoid]
+- **Target files / areas:** [Specific files or directories]
+- **Constraints (must / must-not):** [Hard rules]
+- **Preferred approach:** [If any]
+- **Required checks:** [Tests, linters, commands to run]
+- **Output format required:** [Link to output contract]
+- **Verbosity limit:** [e.g., "max 1-2 screens"]
+- **"Done" means:** [Clear definition of completion]
+- **If blocked, do:** [Fallback behavior]
+```
+
+<Tip>
+If you already know the target files, include them. If the agent must avoid edits, say so explicitly and restrict tools in frontmatter.
+</Tip>
+
+## Subagent → parent: return packet
+
+Require the subagent to respond in a structured format:
+
+```markdown
+## Return Packet
+
+### TL;DR (2-5 bullets)
+
+### Findings (prioritized)
+- **Critical:** [blocking issues]
+- **Warnings:** [should-fix issues]
+- **Suggestions:** [nice-to-have improvements]
+
+### Evidence
+- Files + line ranges (or code excerpts kept short)
+- Commands run + key outputs (truncated)
+
+### Recommended next actions
+1. [highest priority]
+2. [second priority]
+3. [third priority]
+
+### Open questions / assumptions
+- [Only list what materially affects next steps]
+```
+
+## Iteration patterns
+
+### Pattern 1: One-shot summary
+
+Best when:
+- The task is self-contained
+- The parent will do the implementation
+
+The subagent does its job and returns one comprehensive report.
+
+### Pattern 2: Resume loop
+
+Best when:
+- The task is iterative or large
+- You want the same subagent instance to keep its own context and history
+
+Instruction for the parent: "Continue the previous subagent work and now do X. Keep the same output contract."
+
+### Pattern 3: Chain subagents via the parent
+
+Best when:
+- You need different expertise phases (review → implement → validate)
+
+<Steps>
+  <Step>
+    Parent delegates to subagent A and gets the return packet
+  </Step>
+  <Step>
+    Parent extracts the minimal relevant pieces and passes them into subagent B's handoff
+  </Step>
+  <Step>
+    Repeat for additional phases
+  </Step>
+</Steps>
+
+<Warning>
+Avoid copying entire transcripts between subagents — this wastes tokens. Extract only the minimal context needed for the next phase.
+</Warning>
+
+## Artifact passing rules of thumb
+
+| Artifact size | Strategy |
+|---|---|
+| **Small** (< ~2-3 KB) | Pass directly in the next handoff packet |
+| **Large** (plans, research notes, many findings) | Write to a file and pass the **path** forward |
+
+This prevents token bloat and enables resume/fork workflows.
+
+### Error retention
+
+When a subagent action fails, keep the failed action and error in the handoff context. This enables implicit belief updating — the agent learns what doesn't work without explicit "don't do X" instructions. Summarize patterns if errors accumulate, but don't strip them entirely.
+
+---
+
+## Procedural patterns
+
+When agent tasks involve iteration, validation, or error handling, use these patterns to make behavior predictable and bounded.
+
+### Validation loops
+
+Use when an agent needs to verify its work before returning.
+
+**Pattern:** Do → Verify → Fix (if needed) → Re-verify → Return
+
+```markdown
+## Validation loop
+
+1. Complete the implementation
+2. Run `npm test` and capture output
+3. If tests fail:
+   - Fix the failing tests (max 2 fix attempts)
+   - Re-run tests after each fix
+4. If tests still fail after 2 attempts:
+   - Return findings with `status: BLOCKED`
+   - Include error output and what you tried
+5. If tests pass: return findings with `status: COMPLETE`
+```
+
+**Key elements:**
+- Bounded iterations (max N attempts)
+- Clear termination condition
+- Explicit failure path with useful output
+
+### Iteration policies
+
+Use when an agent may need multiple passes to complete a task:
+
+```markdown
+## Iteration policy
+
+- **Max iterations:** 3
+- **Loop-back when:**
+  - New issues discovered that weren't in the original scope
+  - Review feedback requires changes
+- **Terminate when:**
+  - All issues resolved, OR
+  - Max iterations reached, OR
+  - Blocked on external dependency
+- **On termination:** return findings with current status
+  and remaining work
+```
+
+### Error handling (graceful degradation)
+
+Use when an agent might encounter errors that shouldn't crash the entire task:
+
+```markdown
+## Error handling
+
+- If file read fails: skip that file, note it in findings,
+  continue with others
+- If tests won't run: return what you have with
+  `status: BLOCKED` and the error
+- If API calls fail: retry once, then report the failure
+- Never: silently swallow errors or proceed as if nothing happened
+```
+
+### Decision trees
+
+Use when an agent needs to choose between paths based on conditions:
+
+```markdown
+## Handling different file types
+
+If the file is a test file (*.test.ts, *.spec.ts):
+  → Focus on test coverage and assertions
+  → Skip style/formatting issues
+
+If the file is a config file (*.config.*, *.json):
+  → Check for security issues (exposed secrets, unsafe defaults)
+  → Skip code quality checks
+
+Otherwise:
+  → Apply full review checklist
+```
+
+### Severity levels
+
+Use when an agent needs to prioritize or categorize findings:
+
+| Level | Meaning | Examples |
+|-------|---------|---------|
+| **CRITICAL** | Must fix before proceeding; blocks the task | Security vulnerabilities, data loss risks, breaking API changes |
+| **HIGH** | Should fix; significant impact | Bugs affecting users, performance regressions, missing error handling |
+| **MEDIUM** | Worth fixing; moderate impact | Code quality issues, missing tests, inconsistent patterns |
+| **LOW** | Nice to have; minor improvement | Style preferences, minor refactoring, documentation gaps |
+
+```markdown
+## Severity classification
+
+Prioritize CRITICAL and HIGH findings. Include MEDIUM if time
+permits. Skip LOW unless specifically asked.
+```
+
+### Emphasis markers
+
+Use these markers consistently to signal importance:
+
+| Marker | Meaning | When to use |
+|---|---|---|
+| **CRITICAL:** | Non-negotiable | Safety constraints, security rules, data integrity |
+| **MUST** / **NEVER** | Hard requirement / prohibition | Core correctness rules |
+| **SHOULD** | Strong default with exceptions | Best practices with escape hatches |
+| **CONSIDER** / **MAY** | Suggestion; use judgment | Optional improvements |
+
+### Combining patterns
+
+For complex agents, combine these patterns into a cohesive workflow:
+
+```markdown
+## Workflow
+
+1. Gather context (read files, understand scope)
+2. Perform analysis
+3. **Validation loop:**
+   - Run automated checks
+   - If checks fail: fix and re-run (max 2 attempts)
+   - If still failing: return with `status: BLOCKED`
+4. Return findings with severity classification
+
+## Iteration policy
+
+- Max iterations: 2
+- Loop-back when: new scope discovered or blocking issue resolved
+- Terminate when: all CRITICAL/HIGH issues addressed or max
+  iterations reached
+
+## Error handling
+
+- If file not found: skip and note in findings
+- If blocked: return partial findings with clear
+  "what's missing" section
+```

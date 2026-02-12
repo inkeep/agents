@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import type { FieldDiff } from '@/lib/actions/tool-approval';
 import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
 import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
@@ -24,12 +25,6 @@ type ToolCallApprovalData = DataOperationEvent & {
     data: ToolCallData;
   };
 };
-
-interface FieldDiff {
-  field: string;
-  oldValue: any;
-  newValue: any;
-}
 
 interface EntityData {
   id: string;
@@ -72,8 +67,14 @@ const DeleteEntityApproval = ({ entityData }: { entityData: EntityData }) => {
 const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
   return (
     <div className="flex flex-col gap-5">
-      {diffs.map(({ field, oldValue, newValue }) => (
-        <DiffField key={field} field={field} originalValue={oldValue} newValue={newValue} />
+      {diffs.map(({ field, oldValue, newValue, renderAsCode }) => (
+        <DiffField
+          key={field}
+          field={field}
+          originalValue={oldValue}
+          newValue={newValue}
+          renderAsCode={renderAsCode}
+        />
       ))}
     </div>
   );

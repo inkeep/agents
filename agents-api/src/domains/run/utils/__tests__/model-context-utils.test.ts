@@ -2,6 +2,18 @@ import type { ModelSettings } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCompressionConfigForModel, getModelContextWindow } from '../model-context-utils';
 
+// Mock compression constants with default enabled
+vi.mock('../../constants/execution-limits', () => ({
+  COMPRESSION_ENABLED: true,
+  COMPRESSION_HARD_LIMIT: 120000,
+  COMPRESSION_SAFETY_BUFFER: 20000,
+  executionLimitsDefaults: {
+    COMPRESSION_ENABLED: true,
+    COMPRESSION_HARD_LIMIT: 120000,
+    COMPRESSION_SAFETY_BUFFER: 20000,
+  },
+}));
+
 // Mock the llm-info module
 vi.mock('llm-info', () => ({
   ModelInfoMap: {

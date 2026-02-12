@@ -276,5 +276,5 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
 // This ID must match what workflow:build generates in .well-known/workflow/v1/flow.cjs
 export const runDatasetItemWorkflow = Object.assign(_runDatasetItemWorkflow, {
   workflowId:
-    'workflow//src/domains/evals/workflow/functions/runDatasetItem.ts//_runDatasetItemWorkflow',
+    'workflow//./src/domains/evals/workflow/functions/runDatasetItem//_runDatasetItemWorkflow',
 });

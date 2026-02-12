@@ -88,7 +88,11 @@ import { updateFullAgentServerSide } from '../../data-access/manage/agentFull';
 
 describe('agentFull update - function tool toolPolicies', () => {
   it('passes toolPolicies when upserting sub-agent function tool relations', async () => {
+    const deleteWhereMock = vi.fn().mockResolvedValue(null);
     const db = {
+      delete: vi.fn(() => ({
+        where: deleteWhereMock,
+      })),
       query: {
         projects: { findFirst: vi.fn().mockResolvedValue(null) },
         subAgents: { findFirst: vi.fn().mockResolvedValue(null) },

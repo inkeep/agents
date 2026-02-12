@@ -1,4 +1,5 @@
 import jmespath from 'jmespath';
+import type { JSONSchema } from 'zod/v4/core';
 import { getLogger } from '../../../logger';
 
 export interface SchemaValidationResult {
@@ -221,6 +222,51 @@ export class SchemaProcessor {
     }
 
     return value;
+  }
+
+  /**
+   * Makes all properties required recursively throughout the schema.
+   * This ensures compatibility across all LLM providers (OpenAI/Azure require it, Anthropic accepts it).
+   */
+  static makeAllPropertiesRequired<
+    T extends JSONSchema.BaseSchema | Record<string, unknown> | null | undefined,
+  >(schema: T): T {
+    if (!schema || typeof schema !== 'object') {
+      return schema;
+    }
+
+    const normalized: any = { ...schema };
+
+    if (normalized.properties && typeof normalized.properties === 'object') {
+      normalized.required = Object.keys(normalized.properties);
+
+      const normalizedProperties: any = {};
+      for (const [key, value] of Object.entries(normalized.properties)) {
+        normalizedProperties[key] = SchemaProcessor.makeAllPropertiesRequired(value as any);
+      }
+      normalized.properties = normalizedProperties;
+    }
+
+    if (normalized.items) {
+      normalized.items = SchemaProcessor.makeAllPropertiesRequired(normalized.items as any);
+    }
+    if (Array.isArray(normalized.anyOf)) {
+      normalized.anyOf = normalized.anyOf.map((s: any) =>
+        SchemaProcessor.makeAllPropertiesRequired(s)
+      );
+    }
+    if (Array.isArray(normalized.oneOf)) {
+      normalized.oneOf = normalized.oneOf.map((s: any) =>
+        SchemaProcessor.makeAllPropertiesRequired(s)
+      );
+    }
+    if (Array.isArray(normalized.allOf)) {
+      normalized.allOf = normalized.allOf.map((s: any) =>
+        SchemaProcessor.makeAllPropertiesRequired(s)
+      );
+    }
+
+    return normalized;
   }
 
   /**

@@ -14,6 +14,7 @@ import type {
   AgentTool,
   AllDelegateInputInterface,
   AllDelegateOutputInterface,
+  SkillDefinition,
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
@@ -34,7 +35,7 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
 
 export class SubAgent implements SubAgentInterface {
   public config: SubAgentConfig;
-  public readonly type = 'internal' as const;
+  public readonly type = 'internal';
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
@@ -227,6 +228,51 @@ export class SubAgent implements SubAgentInterface {
       ...this.getTeamAgentDelegates(),
       ...this.getExternalAgentDelegates(),
     ];
+  }
+
+  getSkills(): Array<{
+    id: string;
+    index?: number;
+    alwaysLoaded?: boolean;
+    skill?: SkillDefinition;
+  }> {
+    const skills = resolveGetter(this.config.skills);
+    if (!skills) {
+      return [];
+    }
+
+    return skills
+      .map((entry, idx) => {
+        if (!entry) return null;
+        if (typeof entry === 'string') {
+          return { id: entry, index: idx };
+        }
+        if ('id' in entry) {
+          const skillEntry = entry as any;
+          const hasSkillDefinition =
+            typeof skillEntry.content === 'string' || typeof skillEntry.name === 'string';
+          const alwaysLoaded =
+            typeof skillEntry.alwaysLoaded === 'boolean' ? skillEntry.alwaysLoaded : undefined;
+          return {
+            id: skillEntry.id,
+            index: skillEntry.index ?? idx,
+            ...(alwaysLoaded !== undefined && { alwaysLoaded }),
+            ...(hasSkillDefinition && { skill: skillEntry }),
+          };
+        }
+        if ('skillId' in entry) {
+          const skillEntry = entry as any;
+          const alwaysLoaded =
+            typeof skillEntry.alwaysLoaded === 'boolean' ? skillEntry.alwaysLoaded : undefined;
+          return {
+            id: skillEntry.skillId,
+            index: skillEntry.index ?? idx,
+            ...(alwaysLoaded !== undefined && { alwaysLoaded }),
+          };
+        }
+        return null;
+      })
+      .filter((p) => !!p);
   }
 
   getDataComponents(): DataComponentApiInsert[] {

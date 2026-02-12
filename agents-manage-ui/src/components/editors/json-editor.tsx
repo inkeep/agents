@@ -19,6 +19,10 @@ export const JsonEditor: FC<JsonEditorProps> = ({ editorOptions, children, ...pr
     <MonacoEditor
       editorOptions={{
         ariaLabel: 'JSON editor',
+        unicodeHighlight: {
+          // Disable warnings for – ’ characters
+          ambiguousCharacters: false,
+        },
         ...editorOptions,
       }}
       {...props}

@@ -50,6 +50,27 @@
       "when": 1770069617711,
       "tag": "0006_fixed_umar",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770640010230,
+      "tag": "0007_nice_lilandra",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770855763298,
+      "tag": "0008_friendly_mentallo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770909891819,
+      "tag": "0009_chilly_old_lace",
+      "breakpoints": true
     }
   ]
 }

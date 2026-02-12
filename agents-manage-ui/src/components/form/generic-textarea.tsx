@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFieldWrapper } from './form-field-wrapper';
@@ -7,7 +8,7 @@ import { FormFieldWrapper } from './form-field-wrapper';
 interface GenericTextareaProps<FV extends FieldValues, TV = FieldValues> {
   control: Control<FV, unknown, TV>;
   name: FieldPath<FV>;
-  label: string;
+  label: string | JSX.Element;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
