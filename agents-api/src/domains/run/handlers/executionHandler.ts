@@ -10,6 +10,7 @@ import {
   type Part,
   type SendMessageResponse,
   setSpanWithError,
+  unwrapError,
   updateTask,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient.js';
@@ -705,8 +706,9 @@ export class ExecutionHandler {
         }
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const rootCause = unwrapError(error);
+      const errorMessage = rootCause.message;
+      const errorStack = rootCause.stack;
       logger.error({ errorMessage, errorStack }, 'Error in execution handler');
 
       // Create a span to mark this error for tracing
@@ -719,7 +721,7 @@ export class ExecutionHandler {
             'subAgent.name': agent?.subAgents[currentAgentId]?.name,
             'subAgent.id': currentAgentId,
           });
-          setSpanWithError(span, error instanceof Error ? error : new Error(errorMessage));
+          setSpanWithError(span, rootCause);
 
           // Stream error operation
           // Send error operation for execution exception

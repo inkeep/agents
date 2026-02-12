@@ -22,6 +22,7 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core';
+import { unwrapError } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 
 const logger = getLogger('a2aClient');
@@ -200,8 +201,9 @@ export class A2AClient {
       this.serviceEndpointUrl = agentCard.url; // Cache the service endpoint URL from the agent card
       return agentCard;
     } catch (error) {
-      console.error('Error fetching or parsing Agent Card:', error);
-      throw error;
+      const rootCause = unwrapError(error);
+      logger.error({ error: rootCause }, 'Error fetching or parsing Agent Card');
+      throw rootCause;
     }
   }
 
@@ -379,7 +381,7 @@ export class A2AClient {
         return res;
       } catch (err: unknown) {
         if (err instanceof PermanentError) {
-          throw err.cause;
+          throw unwrapError(err.cause);
         }
 
         const elapsed = Date.now() - start;
@@ -395,7 +397,7 @@ export class A2AClient {
           if (err instanceof TemporaryError) {
             return err.response;
           }
-          throw err;
+          throw unwrapError(err);
         }
 
         let retryInterval = 0;
@@ -777,8 +779,9 @@ export class A2AClient {
         }
       }
     } catch (error: any) {
-      console.error('Error reading or parsing SSE stream:', error.message);
-      throw error;
+      const rootCause = unwrapError(error);
+      logger.error({ error: rootCause }, 'Error reading or parsing SSE stream');
+      throw rootCause;
     } finally {
       reader.releaseLock(); // Ensure the reader lock is released
     }

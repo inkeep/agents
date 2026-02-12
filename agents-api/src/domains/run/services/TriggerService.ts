@@ -736,7 +736,6 @@ export async function executeAgentAsync(params: {
       );
       messageSpan.end();
       await flushBatchProcessor();
-
       logger.info(
         { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
         'Starting async trigger execution'
