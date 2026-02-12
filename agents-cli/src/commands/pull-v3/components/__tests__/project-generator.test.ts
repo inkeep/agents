@@ -235,20 +235,26 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should handle multiline descriptions', () => {
+    it.only('should handle multiline descriptions', async () => {
+      const projectId = 'multiline-project';
       const multilineData = {
         name: 'Complex Project',
         description:
-          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting',
+          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\nIt even contains newlines which should trigger multiline formatting',
         models: {
           base: { model: 'gpt-4o-mini' },
         },
       };
 
-      const definition = generateProjectDefinition('multiline-project', multilineData);
+      const definition = generateProjectDefinition(projectId, multilineData);
 
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('It even contains newlines');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4({ projectId, ...multilineData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
     it('should handle different code styles', () => {
