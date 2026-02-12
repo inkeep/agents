@@ -29,6 +29,10 @@ MCP servers provide tools that your agents can use to interact with external API
 | `Custom Prompt` | Additional instructions for agents on how to use tools from this server. This context is provided to agents alongside each tool from this server.                                                                                                     |
 | `Credential`    | Authentication credential if the server requires it. Choose from existing credentials, or leave blank and add a credential later. For OAuth 2.1/PKCE flows, leave blank and use the `Click to Login` button in the server details page to authenticate |
 
+<Warning>
+  For MCP servers that do not use OAuth 2.1/PKCE authentication, you must select either **"No Authentication"** or choose an existing credential from the **Credential** dropdown. Leaving this field blank on non-OAuth servers will cause the server creation to hang.
+</Warning>
+
 4. Click "Create" to create the server.
 
 ## Viewing server details
