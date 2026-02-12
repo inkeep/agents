@@ -38,6 +38,5 @@ export * from './runtime/projects';
 export * from './runtime/tasks';
 export * from './runtime/triggerInvocations';
 export * from './runtime/users';
-export * from './runtime/workAppSlack';
 
 export * from './validation';
