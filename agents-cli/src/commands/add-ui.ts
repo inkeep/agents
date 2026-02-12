@@ -115,7 +115,9 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
     : findConfigFile(process.cwd());
   if (!configPath) {
     console.error(
-      chalk.red('No Inkeep config found. Run from a project directory with inkeep.config.ts or pass --config <path>.')
+      chalk.red(
+        'No Inkeep config found. Run from a project directory with inkeep.config.ts or pass --config <path>.'
+      )
     );
     process.exit(1);
   }
@@ -132,7 +134,9 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
   const projectConfig = await findProjectConfig(path.dirname(configPath));
   const projectId = projectConfig?.projectId ?? null;
   if (!projectId) {
-    console.error(chalk.red('Project ID not found in config. Set projectId in your inkeep.config.ts.'));
+    console.error(
+      chalk.red('Project ID not found in config. Set projectId in your inkeep.config.ts.')
+    );
     process.exit(1);
   }
 
@@ -164,7 +168,8 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
 
   if (options.list) {
     s.start('Fetching components...');
-    const { data: dataComponents, artifact: artifactComponents } = await fetchAllComponentsWithRender(client);
+    const { data: dataComponents, artifact: artifactComponents } =
+      await fetchAllComponentsWithRender(client);
     s.stop();
     console.log(chalk.cyan('\nAvailable UI components (use id with inkeep add --ui <id>):\n'));
     console.log(formatComponentList(dataComponents, artifactComponents));
@@ -186,9 +191,12 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
     }
     if (!comp) {
       s.start('Fetching available components...');
-      const { data: dataComponents, artifact: artifactComponents } = await fetchAllComponentsWithRender(client);
+      const { data: dataComponents, artifact: artifactComponents } =
+        await fetchAllComponentsWithRender(client);
       s.stop();
-      console.error(chalk.red(`Component "${componentId}" not found (tried data and artifact components).`));
+      console.error(
+        chalk.red(`Component "${componentId}" not found (tried data and artifact components).`)
+      );
       console.log(chalk.cyan('\nAvailable UI components (use id with inkeep add --ui <id>):\n'));
       console.log(formatComponentList(dataComponents, artifactComponents));
       console.log('');
@@ -196,7 +204,9 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
     }
     if (!comp.render?.component?.trim()) {
       console.error(
-        chalk.red(`Component "${comp.name}" (${kind}) has no render code. Generate a render in the dashboard first.`)
+        chalk.red(
+          `Component "${comp.name}" (${kind}) has no render code. Generate a render in the dashboard first.`
+        )
       );
       process.exit(1);
     }
@@ -210,7 +220,9 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
     ]);
     s.stop();
     const withRender = (c: ComponentItem) =>
-      c.render?.component?.trim() ? { pascalName: toPascalCase(c.name), code: ensureExported(c.render.component) } : null;
+      c.render?.component?.trim()
+        ? { pascalName: toPascalCase(c.name), code: ensureExported(c.render.component) }
+        : null;
     for (const c of dataComponents) {
       const item = withRender(c);
       if (item) toWrite.push(item);
@@ -220,7 +232,11 @@ export async function addUiCommand(options: AddUiOptions): Promise<void> {
       if (item) toWrite.push(item);
     }
     if (toWrite.length === 0) {
-      console.log(chalk.yellow('No components with render code found. Generate renders in the dashboard first.'));
+      console.log(
+        chalk.yellow(
+          'No components with render code found. Generate renders in the dashboard first.'
+        )
+      );
       process.exit(0);
     }
   }
