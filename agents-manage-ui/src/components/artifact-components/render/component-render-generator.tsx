@@ -271,6 +271,7 @@ export function ComponentRenderGenerator({
               <UseInYourAppModal
                 componentId={artifactComponentId}
                 componentName={artifactComponentName}
+                componentKind="artifact"
                 renderCode={render?.component}
                 docsPath={`${DOCS_BASE_URL}/visual-builder/structured-outputs/artifact-components`}
               />

@@ -12,9 +12,12 @@ import {
 } from '@/components/ui/dialog';
 import { UseInYourAppSection } from '@/components/use-in-your-app-section';
 
+type ComponentKind = 'data' | 'artifact';
+
 interface UseInYourAppModalProps {
   componentId: string;
   componentName?: string;
+  componentKind?: ComponentKind;
   renderCode?: string;
   docsPath: string;
   docsLabel?: string;
@@ -23,6 +26,7 @@ interface UseInYourAppModalProps {
 export function UseInYourAppModal({
   componentId,
   componentName,
+  componentKind = 'data',
   renderCode,
   docsPath,
   docsLabel,
@@ -50,6 +54,7 @@ export function UseInYourAppModal({
           <UseInYourAppSection
             componentId={componentId}
             componentName={componentName}
+            componentKind={componentKind}
             renderCode={renderCode}
             docsPath={docsPath}
             docsLabel={docsLabel}

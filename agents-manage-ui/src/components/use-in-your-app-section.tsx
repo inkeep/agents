@@ -5,9 +5,12 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { extractExportedComponentName, toPascalCase } from '@/lib/component-name-utils';
 
+type ComponentKind = 'data' | 'artifact';
+
 interface UseInYourAppSectionProps {
   componentId: string;
   componentName?: string;
+  componentKind?: ComponentKind;
   renderCode?: string;
   docsPath: string;
   docsLabel?: string;
@@ -23,16 +26,18 @@ function escapeComponentKey(name: string): string {
 function buildImportAndRegistrationSnippet(
   pascalCaseFileName: string,
   importedName: string,
-  dashboardComponentName: string
+  dashboardComponentName: string,
+  kind: ComponentKind
 ): string {
-  const componentsKey = escapeComponentKey(dashboardComponentName);
+  const key = escapeComponentKey(dashboardComponentName);
+  const prop = kind === 'artifact' ? 'artifacts' : 'components';
   return `import { ${importedName} } from './ui/${pascalCaseFileName}';
 
 <InkeepSidebarChat
   aiChatSettings={{
     agentUrl: "your-agent-url",
-    components: {
-      ${componentsKey}: ${importedName},
+    ${prop}: {
+      ${key}: ${importedName},
     },
   }}
 />`;
@@ -41,6 +46,7 @@ function buildImportAndRegistrationSnippet(
 export function UseInYourAppSection({
   componentId,
   componentName = 'YourComponentName',
+  componentKind = 'data',
   renderCode,
   docsPath,
   docsLabel = 'Learn more',
@@ -52,8 +58,14 @@ export function UseInYourAppSection({
   );
   const addOneCommand = ADD_ONE_CMD(componentId);
   const importAndSnippet = useMemo(
-    () => buildImportAndRegistrationSnippet(pascalCaseFileName, importedName, componentName),
-    [pascalCaseFileName, importedName, componentName]
+    () =>
+      buildImportAndRegistrationSnippet(
+        pascalCaseFileName,
+        importedName,
+        componentName,
+        componentKind
+      ),
+    [pascalCaseFileName, importedName, componentName, componentKind]
   );
 
   return (

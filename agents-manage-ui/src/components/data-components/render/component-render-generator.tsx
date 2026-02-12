@@ -310,6 +310,7 @@ export function ComponentRenderGenerator({
               <UseInYourAppModal
                 componentId={dataComponentId}
                 componentName={dataComponentName}
+                componentKind="data"
                 renderCode={render?.component}
                 docsPath={`${DOCS_BASE_URL}/typescript-sdk/structured-outputs/data-components#frontend-integration`}
               />
