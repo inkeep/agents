@@ -106,9 +106,10 @@ describe('Project Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}-v4.txt`);
     });
 
-    it('should generate complex project with all features', () => {
+    it.only('should generate complex project with all features', async () => {
+      const projectId = 'enterprise-platform';
       const definition = generateProjectDefinition(
-        'enterprise-platform',
+        projectId,
         complexProjectData,
         undefined,
         mockRegistry
@@ -130,6 +131,11 @@ describe('Project Generator', () => {
       expect(definition).toContain('dataAnalysisTool,');
       expect(definition).toContain('reportGeneratorTool');
       expect(definition).not.toContain('reportGeneratorTool,'); // No trailing comma
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateProjectDefinitionV4(projectId, basicProjectData);
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
+      // await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/project/${testName}.txt`);
     });
 
     it('should handle single item arrays in single line format', () => {
