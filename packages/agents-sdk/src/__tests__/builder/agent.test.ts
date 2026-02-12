@@ -574,8 +574,8 @@ describe('Agent', () => {
         description: 'Agent with skills',
         prompt: 'Use skills when needed.',
         skills: () => [
-          { id: 'weather-safety-guardrails', index: 0 },
-          { id: 'structured-itinerary-responses', index: 1, alwaysLoaded: true },
+          { id: 'weather-safety-guardrails' },
+          { id: 'structured-itinerary-responses', alwaysLoaded: true },
         ],
       });
 
