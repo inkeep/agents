@@ -1,0 +1,17 @@
+export const myComplexProjectV2 = project({
+  id: 'my-complex-project_v2',
+  name: 'Customer Support System',
+  description: 'Multi-agent customer support system with escalation capabilities',
+  models: {
+    base: {
+      model: 'gpt-4o-mini'
+    },
+    structuredOutput: {
+      model: 'gpt-4o'
+    },
+    summarizer: {
+      model: 'gpt-4o-mini'
+    }
+  },
+  agents: () => []
+});

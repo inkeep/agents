@@ -32,7 +32,7 @@ describe('Project Generator', () => {
       summarizer: { model: 'gpt-4o-mini' },
     },
     agents: ['supportAgent', 'escalationAgent'],
-  };
+  } as const;
 
   const complexProjectData = {
     name: 'Enterprise AI Platform',
@@ -53,7 +53,7 @@ describe('Project Generator', () => {
     dataComponents: ['userProfile', 'transactionHistory'],
     artifactComponents: ['dashboardComponent', 'reportComponent'],
     credentialReferences: ['databaseCredentials', 'apiKeyCredentials'],
-  };
+  } as const;
 
   describe('generateProjectImports', () => {
     it('should generate basic imports', () => {
