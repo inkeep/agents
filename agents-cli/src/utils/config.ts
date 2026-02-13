@@ -2,6 +2,7 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { getLogger } from '@inkeep/agents-core';
 import { loadCredentials } from './credentials';
+import { LOCAL_REMOTE } from './profiles';
 import { importWithTypeScriptSupport } from './tsx-loader';
 
 const logger = getLogger('config');
@@ -340,8 +341,8 @@ export async function loadConfig(configPath?: string, tag?: string): Promise<Ink
 
   // 1. Start with default config (lowest priority)
   const config: InkeepConfig = {
-    agentsApiUrl: 'http://localhost:3002',
-    manageUiUrl: 'http://localhost:3000',
+    agentsApiUrl: LOCAL_REMOTE.api,
+    manageUiUrl: LOCAL_REMOTE.manageUi,
   };
 
   // 2. Override with file config (higher priority)
