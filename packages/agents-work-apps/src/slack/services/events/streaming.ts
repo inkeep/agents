@@ -129,9 +129,28 @@ export async function streamAgentResponse(params: {
         span.end();
         return { success: false, errorType, errorMessage };
       }
+      const errorType = classifyError(fetchError);
+      const errorMessage = getUserFriendlyErrorMessage(errorType, agentName);
+
+      await slackClient.chat
+        .postMessage({
+          channel,
+          thread_ts: threadTs,
+          text: errorMessage,
+        })
+        .catch((e) => logger.warn({ error: e }, 'Failed to send fetch error notification'));
+
+      if (thinkingMessageTs) {
+        try {
+          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
+        } catch {
+          // Ignore delete errors
+        }
+      }
+
       if (fetchError instanceof Error) setSpanWithError(span, fetchError);
       span.end();
-      throw fetchError;
+      return { success: false, errorType, errorMessage };
     }
 
     if (!response.ok) {

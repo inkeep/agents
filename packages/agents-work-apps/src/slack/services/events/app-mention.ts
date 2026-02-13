@@ -109,6 +109,7 @@ export async function handleAppMention(params: {
     const replyThreadTs = threadTs || messageTs;
     const isInThread = Boolean(threadTs && threadTs !== messageTs);
     const hasQuery = Boolean(text && text.trim().length > 0);
+    let thinkingMessageTs: string | undefined;
 
     try {
       // Step 2: Parallel lookup — agent config + user mapping (independent queries)
@@ -219,6 +220,7 @@ export async function handleAppMention(params: {
           thread_ts: threadTs,
           text: `_${agentDisplayName} is reading this thread..._`,
         });
+        thinkingMessageTs = ackMessage.ts || undefined;
 
         const conversationId = generateSlackConversationId({
           teamId,
@@ -253,7 +255,7 @@ Respond naturally as if you're joining the conversation to help.`;
           slackClient,
           channel,
           threadTs,
-          thinkingMessageTs: ackMessage.ts || '',
+          thinkingMessageTs: thinkingMessageTs || '',
           slackUserId,
           teamId,
           jwtToken: slackUserToken,
@@ -292,6 +294,7 @@ Respond naturally as if you're joining the conversation to help.`;
         thread_ts: replyThreadTs,
         text: `_${agentDisplayName} is preparing a response..._`,
       });
+      thinkingMessageTs = ackMessage.ts || undefined;
 
       const conversationId = generateSlackConversationId({
         teamId,
@@ -311,7 +314,7 @@ Respond naturally as if you're joining the conversation to help.`;
         slackClient,
         channel,
         threadTs: replyThreadTs,
-        thinkingMessageTs: ackMessage.ts || '',
+        thinkingMessageTs: thinkingMessageTs || '',
         slackUserId,
         teamId,
         jwtToken: slackUserToken,
@@ -328,6 +331,14 @@ Respond naturally as if you're joining the conversation to help.`;
 
       if (error instanceof Error) {
         setSpanWithError(span, error);
+      }
+
+      if (thinkingMessageTs) {
+        try {
+          await slackClient.chat.delete({ channel, ts: thinkingMessageTs });
+        } catch {
+          // Best-effort cleanup
+        }
       }
 
       const errorType = classifyError(error);
