@@ -140,9 +140,10 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it('should generate agent with status updates', () => {
+    it.only('should generate agent with status updates', async () => {
+      const agentId = 'complex-agent';
       const definition = generateAgentDefinition(
-        'complex-agent',
+        agentId,
         complexAgentData,
         undefined,
         mockRegistry
@@ -159,6 +160,11 @@ describe('Agent Generator', () => {
         "prompt: 'Provide status updates on task progress and tool usage'"
       );
       expect(definition).toContain('},');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...complexAgentData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
     it('should generate agent with stopWhen configuration', () => {

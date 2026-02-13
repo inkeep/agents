@@ -39,9 +39,9 @@ const AgentSchema = z.looseObject({
           z.union([
             z.string(),
             z.strictObject({
-              id: z.string(),
+              id: z.string().optional(),
               type: z.string(),
-              name: z.string(),
+              name: z.string().optional(),
             }),
           ])
         )
@@ -214,13 +214,6 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
       });
     }
 
-    if (data.statusUpdates.prompt !== undefined) {
-      statusUpdatesObject.addPropertyAssignment({
-        name: 'prompt',
-        initializer: formatStringLiteral(data.statusUpdates.prompt),
-      });
-    }
-
     if (data.statusUpdates.statusComponents && data.statusUpdates.statusComponents.length > 0) {
       const statusComponentRefs = data.statusUpdates.statusComponents
         .map((statusComponent) => {
@@ -247,6 +240,13 @@ function writeAgentConfig(configObject: ObjectLiteralExpression, data: ParsedAge
         );
         statusComponentsArray.addElements(statusComponentRefs);
       }
+    }
+
+    if (data.statusUpdates.prompt !== undefined) {
+      statusUpdatesObject.addPropertyAssignment({
+        name: 'prompt',
+        initializer: formatStringLiteral(data.statusUpdates.prompt),
+      });
     }
   }
 }
