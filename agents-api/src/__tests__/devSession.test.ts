@@ -110,7 +110,8 @@ describe('POST /api/auth/dev-session', () => {
 
     expect(res.status).toBe(200);
 
-    const setCookie = res.headers.get('Set-Cookie')!;
+    const setCookie = res.headers.get('Set-Cookie') ?? '';
+    expect(setCookie).not.toBe('');
     const cookieValue = setCookie.split(';')[0].split('=').slice(1).join('=');
     const decoded = decodeURIComponent(cookieValue);
     const [receivedToken, receivedSig] = decoded.split('.');
@@ -154,7 +155,8 @@ describe('POST /api/auth/dev-session', () => {
     });
 
     expect(res.status).toBe(200);
-    const setCookie = res.headers.get('Set-Cookie')!;
+    const setCookie = res.headers.get('Set-Cookie') ?? '';
+    expect(setCookie).not.toBe('');
 
     expect(setCookie).toContain('Path=/');
     expect(setCookie).toContain('HttpOnly');
