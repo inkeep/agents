@@ -110,8 +110,7 @@ inkeep push
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--tenant-id <id>` - Override tenant ID
-- `--agents-manage-api-url <url>` - Override the management API URL from config
-- `--agents-run-api-url <url>` - Override agents run API URL
+- `--agents-api-url <url>` - Override the agents API URL from config
 - `--json` - Generate project data as JSON file instead of pushing to server
 - `--profile <name>` - Use a specific CLI profile (overrides the active profile)
 - `--quiet` - Suppress interactive prompts and extra logs
@@ -155,9 +154,8 @@ inkeep push --json
 # Override tenant ID
 inkeep push --tenant-id my-tenant
 
-# Override API URLs
-inkeep push --agents-manage-api-url https://api.example.com
-inkeep push --agents-run-api-url https://run.example.com
+# Override API URL
+inkeep push --agents-api-url https://api.example.com
 
 # Use specific config file
 inkeep push --config ./custom-config/inkeep.config.ts
@@ -1049,9 +1047,9 @@ In CI environments, profiles are skipped entirely. The precedence becomes:
 
 | Priority | Source | Example |
 |----------|--------|---------|
-| 1 (highest) | CLI flags | `--tenant-id`, `--agents-manage-api-url` |
+| 1 (highest) | CLI flags | `--tenant-id`, `--agents-api-url` |
 | 2 | Environment variables | `INKEEP_API_KEY`, `INKEEP_TENANT_ID`, `INKEEP_AGENTS_API_URL` |
-| 3 | `inkeep.config.ts` | `tenantId`, `agentsManageApiUrl` |
+| 3 | `inkeep.config.ts` | `tenantId`, `agentsApi.url` |
 | 4 (lowest) | Built-in defaults | Default API URLs |
 
 <Tip>
@@ -1072,8 +1070,7 @@ Use `--profile <name>` on any command to override the active profile for a singl
 The CLI and SDK respect the following environment variables:
 
 - `INKEEP_TENANT_ID` - Tenant identifier
-- `INKEEP_AGENTS_MANAGE_API_URL` - Management API base URL
-- `INKEEP_AGENTS_RUN_API_URL` - Run API base URL
+- `INKEEP_AGENTS_API_URL` - Agents API base URL
 - `INKEEP_ENV` - Environment name for credentials loading during `inkeep push`
 - `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` - Optional bearer for Manage API (advanced)
 - `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` - Optional bearer for Run API (advanced)
