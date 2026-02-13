@@ -106,3 +106,29 @@ export function getTracer(serviceName: string, serviceVersion?: string): Tracer 
     return noopTracer;
   }
 }
+
+/**
+ * Force-flush all pending trace spans to the configured exporter.
+ *
+ * Uses the global TracerProvider registered by the OpenTelemetry SDK.
+ * This is safe to call from any package — it accesses the same provider
+ * that was set up in the host application's instrumentation.
+ *
+ * Use this in fire-and-forget handlers (e.g. Slack webhooks) where the
+ * HTTP response is sent before background work completes, so the
+ * per-request flush middleware runs too early to capture those spans.
+ */
+export async function flushTraces(): Promise<void> {
+  try {
+    const provider = trace.getTracerProvider() as {
+      forceFlush?: () => Promise<void>;
+      getDelegate?: () => { forceFlush?: () => Promise<void> };
+    };
+    const delegate = typeof provider.getDelegate === 'function' ? provider.getDelegate() : provider;
+    if (typeof delegate.forceFlush === 'function') {
+      await delegate.forceFlush();
+    }
+  } catch {
+    // Silently ignore flush failures to avoid disrupting request handling
+  }
+}
