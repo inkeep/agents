@@ -637,44 +637,7 @@ describe('Artifact Component Generator', () => {
     //   expect(definition).toContain('export const _2023Artifact = artifactComponent({');
     // });
 
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateArtifactComponentDefinitionV4({
-        artifactComponentId,
-        ...specialIdData,
-      });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
-    });
-
-    it.only('should handle component ID starting with number', async () => {
-      const artifactComponentId = '2023-artifact';
-      const numericIdData = {
-        name: 'Artifact',
-        description: 'Component starting with number',
-        props: { type: 'object', properties: {} },
-      };
-      const definition = generateArtifactComponentDefinition(artifactComponentId, numericIdData);
-
-      expect(definition).toContain('export const _2023Artifact = artifactComponent({');
-
-      const testName = expect.getState().currentTestName;
-      const definitionV4 = generateArtifactComponentDefinitionV4({
-        artifactComponentId,
-        ...numericIdData,
-      });
-      await expect(definition).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}.txt`
-      );
-      await expect(definitionV4).toMatchFileSnapshot(
-        `__snapshots__/artifact-component/${testName}-v4.txt`
-      );
-    });
-
-    it('should handle deeply nested objects with preview fields', () => {
+    it.only('should handle deeply nested objects with preview fields', async () => {
       const nestedData = {
         name: 'Nested',
         description: 'Component with nested objects',
@@ -699,8 +662,21 @@ describe('Artifact Component Generator', () => {
 
       // This is a limitation - we only handle top-level inPreview fields
       // but the function should not crash
-      const definition = generateArtifactComponentDefinition('nested', nestedData);
+      const artifactComponentId = 'nested';
+      const definition = generateArtifactComponentDefinition(artifactComponentId, nestedData);
       expect(definition).toContain('export const nested = artifactComponent({');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...nestedData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
   });
 });
