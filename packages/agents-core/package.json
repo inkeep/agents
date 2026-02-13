@@ -170,14 +170,14 @@
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
     "ts-pattern": "^5.7.1",
-    "@napi-rs/keyring": "^1.2.0",
-    "@vercel/functions": "^1.4.0"
+    "@napi-rs/keyring": "^1.2.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
+    "@vercel/functions": "^1.4.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
     "@opentelemetry/baggage-span-processor": "^0.4.0",
     "@opentelemetry/exporter-jaeger": "^2.0.1",
