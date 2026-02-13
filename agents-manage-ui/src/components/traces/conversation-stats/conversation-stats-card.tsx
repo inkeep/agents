@@ -110,7 +110,7 @@ export function ConversationStatsCard({
               Recent conversations
             </div>
 
-            <Badge variant="code" className="text-xs">
+            <Badge variant="count" className="text-xs">
               {totalConversations ?? 0}
             </Badge>
           </CardTitle>

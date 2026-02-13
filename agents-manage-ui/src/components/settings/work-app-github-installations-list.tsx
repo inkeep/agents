@@ -1,6 +1,14 @@
 'use client';
 
-import { Building2, ExternalLink, Github, MoreHorizontal, RefreshCw, User } from 'lucide-react';
+import {
+  Building2,
+  ExternalLink,
+  Github,
+  MoreHorizontal,
+  RefreshCw,
+  Unplug,
+  User,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -281,6 +289,7 @@ export function WorkAppGitHubInstallationsList({
                             variant="destructive"
                             onClick={() => openDisconnectDialog(installation)}
                           >
+                            <Unplug className="size-4" />
                             Disconnect
                           </DropdownMenuItem>
                         </>

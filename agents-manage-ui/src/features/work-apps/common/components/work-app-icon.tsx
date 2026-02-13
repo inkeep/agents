@@ -31,7 +31,7 @@ function SlackIcon({ className }: { className?: string }) {
   );
 }
 
-export const GithubIcon = ({ className }: { className?: string }) => {
+const GithubIcon = ({ className }: { className?: string }) => {
   return (
     <svg className={className} viewBox="0 0 62 62" fill="none" aria-label="Github">
       <title>Github</title>
