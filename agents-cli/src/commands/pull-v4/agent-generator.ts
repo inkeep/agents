@@ -9,12 +9,11 @@ import {
 } from 'ts-morph';
 import { z } from 'zod';
 import {
-  formatInlineLiteral,
-  formatPropertyName,
+  addObjectEntries,
+  addReferenceGetterProperty,
   formatStringLiteral,
   isPlainObject,
   toCamelCase,
-  addReferenceGetterProperty,
 } from './utils';
 
 const AgentSchema = z.looseObject({
@@ -257,29 +256,6 @@ function addStringProperty(configObject: ObjectLiteralExpression, key: string, v
     name: key,
     initializer: formatStringLiteral(value),
   });
-}
-
-function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {
-  for (const [key, entryValue] of Object.entries(value)) {
-    if (entryValue === undefined) {
-      continue;
-    }
-
-    if (isPlainObject(entryValue)) {
-      const property = target.addPropertyAssignment({
-        name: formatPropertyName(key),
-        initializer: '{}',
-      });
-      const nestedObject = property.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-      addObjectEntries(nestedObject, entryValue);
-      continue;
-    }
-
-    target.addPropertyAssignment({
-      name: formatPropertyName(key),
-      initializer: formatInlineLiteral(entryValue),
-    });
-  }
 }
 
 function extractIds(value: string[] | Record<string, unknown>): string[] {

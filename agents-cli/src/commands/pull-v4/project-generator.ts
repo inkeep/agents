@@ -10,12 +10,10 @@ import {
 } from 'ts-morph';
 import { z } from 'zod';
 import {
-  formatInlineLiteral,
-  formatPropertyName,
-  formatStringLiteral,
-  isPlainObject,
-  toCamelCase,
+  addObjectEntries,
   addReferenceGetterProperty,
+  formatStringLiteral,
+  toCamelCase,
 } from './utils';
 
 type ProjectDefinitionData = Omit<
@@ -219,29 +217,6 @@ function addStopWhenProperty(
     stopWhenObject.addPropertyAssignment({
       name: 'stepCountIs',
       initializer: String(stopWhen.stepCountIs),
-    });
-  }
-}
-
-function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {
-  for (const [key, entryValue] of Object.entries(value)) {
-    if (entryValue === undefined) {
-      continue;
-    }
-
-    if (isPlainObject(entryValue)) {
-      const property = target.addPropertyAssignment({
-        name: formatPropertyName(key),
-        initializer: '{}',
-      });
-      const nestedObject = property.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-      addObjectEntries(nestedObject, entryValue);
-      continue;
-    }
-
-    target.addPropertyAssignment({
-      name: formatPropertyName(key),
-      initializer: formatInlineLiteral(entryValue),
     });
   }
 }

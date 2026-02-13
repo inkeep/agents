@@ -24,14 +24,14 @@ export function formatStringLiteral(value: string): string {
   return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
 }
 
-export function formatPropertyName(key: string): string {
+function formatPropertyName(key: string): string {
   if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
     return key;
   }
   return formatStringLiteral(key);
 }
 
-export function formatInlineLiteral(value: unknown): string {
+function formatInlineLiteral(value: unknown): string {
   if (typeof value === 'string') {
     return formatStringLiteral(value);
   }
@@ -74,4 +74,27 @@ export function addReferenceGetterProperty(
   const getter = property.getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   const body = getter.getBody().asKindOrThrow(SyntaxKind.ArrayLiteralExpression);
   body.addElements(refs);
+}
+
+export function addObjectEntries(target: ObjectLiteralExpression, value: Record<string, unknown>) {
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (entryValue === undefined) {
+      continue;
+    }
+
+    if (isPlainObject(entryValue)) {
+      const property = target.addPropertyAssignment({
+        name: formatPropertyName(key),
+        initializer: '{}',
+      });
+      const nestedObject = property.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+      addObjectEntries(nestedObject, entryValue);
+      continue;
+    }
+
+    target.addPropertyAssignment({
+      name: formatPropertyName(key),
+      initializer: formatInlineLiteral(entryValue),
+    });
+  }
 }
