@@ -520,7 +520,8 @@ describe('Project Generator', () => {
       expect(definition).toContain("id: '2nd-generation-project',");
     });
 
-    it('should throw error for empty string name', () => {
+    it.only('should throw error for empty string name', () => {
+      const projectId = 'empty-strings-project';
       const emptyStringData = {
         name: '',
         description: '',
@@ -529,9 +530,14 @@ describe('Project Generator', () => {
         },
       };
 
-      expect(() => {
-        generateProjectDefinition('empty-strings-project', emptyStringData);
-      }).toThrow("Missing required fields for project 'empty-strings-project': name");
+      expect(() => generateProjectDefinition(projectId, emptyStringData)).toThrow(
+        `Missing required fields for project '${projectId}': name`
+      );
+      expect(() => generateProjectDefinitionV4({ projectId, ...emptyStringData })).toThrow(
+        new Error(`Missing required fields for project:
+✖ Too small: expected string to have >=1 characters
+  → at name`)
+      );
     });
 
     it.only('should throw error for null models values', () => {
