@@ -12,6 +12,7 @@ import {
   deleteAllWorkAppSlackChannelAgentConfigsByTeam,
   deleteAllWorkAppSlackUserMappingsByTeam,
   deleteWorkAppSlackWorkspaceByNangoConnectionId,
+  getWaitUntil,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../db/runDbClient';
@@ -186,7 +187,7 @@ app.post('/events', async (c) => {
             'Handling event: app_mention'
           );
 
-          handleAppMention({
+          const mentionPromise = handleAppMention({
             slackUserId: event.user,
             channel: event.channel,
             text: question,
@@ -201,6 +202,11 @@ app.post('/events', async (c) => {
               'Failed to handle app mention (outer catch)'
             );
           });
+
+          const waitUntil = await getWaitUntil();
+          if (waitUntil) {
+            waitUntil(mentionPromise);
+          }
         } else {
           outcome = 'ignored_unknown_event';
           span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);

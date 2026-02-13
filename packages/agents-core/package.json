@@ -170,7 +170,8 @@
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
     "ts-pattern": "^5.7.1",
-    "@napi-rs/keyring": "^1.2.0"
+    "@napi-rs/keyring": "^1.2.0",
+    "@vercel/functions": "^1.4.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
