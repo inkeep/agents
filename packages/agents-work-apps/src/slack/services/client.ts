@@ -5,7 +5,7 @@
  * Tokens are fetched from Nango at runtime and passed to these functions.
  */
 
-import { WebClient } from '@slack/web-api';
+import { retryPolicies, WebClient } from '@slack/web-api';
 import { getLogger } from '../../logger';
 
 const logger = getLogger('slack-client');
@@ -21,7 +21,7 @@ async function paginateSlack<TResponse, TItem>({
   fetchPage,
   extractItems,
   getNextCursor,
-  limit = 200,
+  limit,
 }: PaginateSlackOptions<TResponse, TItem>): Promise<TItem[]> {
   const items: TItem[] = [];
   let cursor: string | undefined;
@@ -30,19 +30,24 @@ async function paginateSlack<TResponse, TItem>({
     const response = await fetchPage(cursor);
     items.push(...extractItems(response));
     cursor = getNextCursor(response);
-  } while (cursor && items.length < limit);
+  } while (cursor && (limit === undefined || items.length < limit));
 
-  return items.slice(0, limit);
+  return limit !== undefined ? items.slice(0, limit) : items;
 }
 
 /**
  * Create a Slack WebClient with the provided bot token.
  *
+ * Built-in retry behavior:
+ * - **Connection errors**: 5 retries in 5 minutes (exponential backoff + jitter).
+ *
  * @param token - Bot OAuth token from Nango connection
  * @returns Configured Slack WebClient instance
  */
 export function getSlackClient(token: string): WebClient {
-  return new WebClient(token);
+  return new WebClient(token, {
+    retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
+  });
 }
 
 /**
@@ -119,8 +124,15 @@ export async function getSlackChannels(client: WebClient, limit = 200) {
           limit: Math.min(limit, 200),
           cursor,
         }),
-      extractItems: (result) =>
-        result.ok && result.channels
+      extractItems: (result) => {
+        if (!result.ok) {
+          logger.warn(
+            { error: result.error },
+            'Slack API returned ok: false during channel pagination'
+          );
+          return [];
+        }
+        return result.channels
           ? result.channels.map((ch) => ({
               id: ch.id,
               name: ch.name,
@@ -129,7 +141,8 @@ export async function getSlackChannels(client: WebClient, limit = 200) {
               isPrivate: ch.is_private ?? false,
               isShared: ch.is_shared ?? ch.is_ext_shared ?? false,
             }))
-          : [],
+          : [];
+      },
       getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
       limit,
     });
@@ -229,7 +242,16 @@ export async function checkUserIsChannelMember(
           limit: 200,
           cursor,
         }),
-      extractItems: (result) => (result.ok && result.members ? result.members : []),
+      extractItems: (result) => {
+        if (!result.ok) {
+          logger.warn(
+            { error: result.error },
+            'Slack API returned ok: false during members pagination'
+          );
+          return [];
+        }
+        return result.members ?? [];
+      },
       getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
     });
     return members.includes(userId);

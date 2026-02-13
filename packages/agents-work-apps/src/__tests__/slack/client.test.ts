@@ -10,7 +10,7 @@
  * - Message posting (channels and threads)
  */
 
-import { WebClient } from '@slack/web-api';
+import { retryPolicies, WebClient } from '@slack/web-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkUserIsChannelMember,
@@ -38,6 +38,9 @@ vi.mock('@slack/web-api', () => ({
       postMessage: vi.fn(),
     },
   })),
+  retryPolicies: {
+    fiveRetriesInFiveMinutes: { retries: 5, factor: 3.86, randomize: true },
+  },
 }));
 
 vi.mock('../../logger', () => ({
@@ -55,12 +58,14 @@ describe('Slack Client', () => {
   });
 
   describe('getSlackClient', () => {
-    it('should create a WebClient with the provided token', () => {
+    it('should create a WebClient with the provided token and retry config', () => {
       const token = 'xoxb-test-token';
 
       const client = getSlackClient(token);
 
-      expect(WebClient).toHaveBeenCalledWith(token);
+      expect(WebClient).toHaveBeenCalledWith(token, {
+        retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
+      });
       expect(client).toBeDefined();
     });
 
@@ -71,8 +76,8 @@ describe('Slack Client', () => {
       getSlackClient(token1);
       getSlackClient(token2);
 
-      expect(WebClient).toHaveBeenCalledWith(token1);
-      expect(WebClient).toHaveBeenCalledWith(token2);
+      expect(WebClient).toHaveBeenCalledWith(token1, expect.anything());
+      expect(WebClient).toHaveBeenCalledWith(token2, expect.anything());
     });
   });
 
@@ -380,6 +385,54 @@ describe('Slack Client', () => {
       expect(result.map((c) => c.id)).toEqual(['C1', 'C2', 'C3']);
     });
 
+    it('should return partial results when ok: false occurs mid-pagination', async () => {
+      const mockClient = {
+        conversations: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C1', name: 'ch1', num_members: 1, is_member: true, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page2' },
+            })
+            .mockResolvedValueOnce({
+              ok: false,
+              error: 'ratelimited',
+              response_metadata: { next_cursor: '' },
+            }),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannels(mockClient, 200);
+
+      expect(mockClient.conversations.list).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('C1');
+    });
+
+    it('should return empty array when error is thrown mid-pagination', async () => {
+      const mockClient = {
+        conversations: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({
+              ok: true,
+              channels: [
+                { id: 'C1', name: 'ch1', num_members: 1, is_member: true, is_private: false },
+              ],
+              response_metadata: { next_cursor: 'cursor_page2' },
+            })
+            .mockRejectedValueOnce(new Error('ratelimited')),
+        },
+      } as unknown as WebClient;
+
+      const result = await getSlackChannels(mockClient, 200);
+
+      expect(result).toEqual([]);
+    });
+
     it('should return empty array when request fails', async () => {
       const mockClient = {
         conversations: {
@@ -461,14 +514,16 @@ describe('Slack Client', () => {
 
       expect(result).toBe(true);
       expect(mockClient.conversations.members).toHaveBeenCalledTimes(2);
-      expect(mockClient.conversations.members).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({ cursor: undefined })
-      );
-      expect(mockClient.conversations.members).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({ cursor: 'members_cursor2' })
-      );
+      expect(mockClient.conversations.members).toHaveBeenNthCalledWith(1, {
+        channel: 'C123',
+        limit: 200,
+        cursor: undefined,
+      });
+      expect(mockClient.conversations.members).toHaveBeenNthCalledWith(2, {
+        channel: 'C123',
+        limit: 200,
+        cursor: 'members_cursor2',
+      });
     });
 
     it('should return false when user not found after all pages', async () => {
