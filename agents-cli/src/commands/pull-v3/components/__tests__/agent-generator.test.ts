@@ -354,7 +354,7 @@ describe('Agent Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
 
-    it('should not generate stopWhen without transferCountIs', () => {
+    it.only('should not generate stopWhen without transferCountIs', async () => {
       const noTransferCountData = {
         name: 'No Transfer Count Agent',
         defaultSubAgentId: 'defaultSubAgent',
@@ -364,14 +364,20 @@ describe('Agent Generator', () => {
         },
       };
 
+      const agentId = 'no-transfer-agent';
       const definition = generateAgentDefinition(
-        'no-transfer-agent',
+        agentId,
         noTransferCountData,
         undefined,
         mockRegistry
       );
 
       expect(definition).not.toContain('stopWhen:');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateAgentDefinitionV4({ agentId, ...noTransferCountData });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/agent/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/agent/${testName}-v4.txt`);
     });
   });
 

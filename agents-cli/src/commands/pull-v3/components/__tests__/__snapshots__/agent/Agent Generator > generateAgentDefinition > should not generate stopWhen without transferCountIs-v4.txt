@@ -1,0 +1,8 @@
+import { agent } from '@inkeep/agents-sdk';
+
+export const noTransferAgent = agent({
+  id: 'no-transfer-agent',
+  name: 'No Transfer Count Agent',
+  defaultSubAgent: defaultSubAgent,
+  subAgents: () => [subAgent1]
+});
