@@ -600,13 +600,20 @@ describe('Project Generator', () => {
       }).toThrow("Missing required fields for project 'missing-name': name");
     });
 
-    it('should throw error for models without base', () => {
-      expect(() => {
-        generateProjectDefinition('missing-base', {
-          name: 'Test Project',
-          models: { structuredOutput: { model: 'gpt-4o' } },
-        });
-      }).toThrow("Missing required fields for project 'missing-base': models.base");
+    it.only('should throw error for models without base', () => {
+      const projectId = 'missing-base';
+      const data = {
+        name: 'Test Project',
+        models: { structuredOutput: { model: 'gpt-4o' } },
+      };
+      expect(() => generateProjectDefinition(projectId, data)).toThrow(
+        `Missing required fields for project '${projectId}': models.base`
+      );
+      expect(() => generateProjectDefinitionV4({ projectId, ...data })).toThrow(
+        new Error(`Missing required fields for project:
+✖ Invalid input: expected object, received undefined
+  → at models.base`)
+      );
     });
   });
 });
