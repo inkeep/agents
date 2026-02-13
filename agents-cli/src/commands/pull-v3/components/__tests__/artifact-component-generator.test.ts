@@ -206,12 +206,28 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should not wrap non-preview fields with preview() function', () => {
-      const definition = generateArtifactComponentDefinition('citation', testComponentData);
+    it.only('should not wrap non-preview fields with preview() function', async () => {
+      const artifactComponentId = 'citation';
+      const definition = generateArtifactComponentDefinition(
+        artifactComponentId,
+        testComponentData
+      );
 
       // Content field should not have preview() wrapper since inPreview is not set
       expect(definition).toContain('content: z.array(');
       expect(definition).not.toContain('content: preview(');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...testComponentData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should throw error for missing required fields', () => {
