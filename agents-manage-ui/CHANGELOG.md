@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.48.2
+
+### Patch Changes
+
+- 5287615: Add "View Traces" button to agent builder toolbar for quick access to agent-specific trace analytics
+  - @inkeep/agents-core@0.48.2
+
 ## 0.48.1
 
 ### Patch Changes
