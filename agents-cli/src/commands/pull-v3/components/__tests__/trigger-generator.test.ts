@@ -6,9 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ComponentRegistry } from '../../utils/component-registry';
 import { generateTriggerDefinition, generateTriggerFile } from '../trigger-generator';
-import {
-  generateTriggerDefinition as generateTriggerDefinitionV4,
-} from '../../../pull-v4/trigger-generator';
+import { generateTriggerDefinition as generateTriggerDefinitionV4 } from '../../../pull-v4/trigger-generator';
 
 // Mock registry for tests
 const mockRegistry = {
@@ -154,9 +152,10 @@ describe('Trigger Generator', () => {
       await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
-    it('should generate trigger with GitHub signature verification', () => {
+    it.only('should generate trigger with GitHub signature verification', async () => {
+      const triggerId = 'github-webhook';
       const definition = generateTriggerDefinition(
-        'github-webhook',
+        triggerId,
         triggerWithSignatureVerification,
         { quotes: 'single', semicolons: true, indentation: '  ' },
         mockRegistry
@@ -178,6 +177,14 @@ describe('Trigger Generator', () => {
       expect(definition).toContain("separator: ''");
       expect(definition).toContain('signingSecretCredentialReference: githubWebhookSecret');
       expect(definition).toContain('});');
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateTriggerDefinitionV4({
+        triggerId,
+        ...triggerWithSignatureVerification,
+      });
+      await expect(definition).toMatchFileSnapshot(`__snapshots__/trigger/${testName}.txt`);
+      await expect(definitionV4).toMatchFileSnapshot(`__snapshots__/trigger/${testName}-v4.txt`);
     });
 
     it('should generate trigger with Slack signature verification', () => {
