@@ -412,7 +412,7 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should handle mixed preview and non-preview fields', () => {
+    it.only('should handle mixed preview and non-preview fields', async () => {
       const mixedData = {
         name: 'Mixed',
         description: 'Component with mixed preview fields',
@@ -432,13 +432,26 @@ describe('Artifact Component Generator', () => {
         },
       };
 
-      const definition = generateArtifactComponentDefinition('mixed', mixedData);
+      const artifactComponentId = 'mixed';
+      const definition = generateArtifactComponentDefinition(artifactComponentId, mixedData);
 
       expect(definition).toContain(
         'previewField: preview(z.string().describe("This is shown in preview")),'
       );
       expect(definition).toContain(
         'regularField: z.string().describe("This is not shown in preview"),'
+      );
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...mixedData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
       );
     });
   });
