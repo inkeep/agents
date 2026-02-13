@@ -262,16 +262,16 @@ function extractIds(value: string[] | Record<string, unknown>): string[] {
         if (isPlainObject(item) && typeof item.id === 'string') {
           return item.id;
         }
-        return undefined;
+        return;
       })
-      .filter((id): id is string => Boolean(id));
+      .filter((id) => !!id);
   }
   return Object.keys(value);
 }
 
 function extractContextConfigId(contextConfig?: string | { id?: string }): string | undefined {
   if (!contextConfig) {
-    return undefined;
+    return;
   }
   if (typeof contextConfig === 'string') {
     return contextConfig;

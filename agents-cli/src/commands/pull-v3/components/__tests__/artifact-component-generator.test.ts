@@ -3,12 +3,12 @@
  * Unit tests for artifact component generator
  */
 
+import { generateArtifactComponentDefinition as generateArtifactComponentDefinitionV4 } from '../../../pull-v4/artifact-component-generator';
 import {
   generateArtifactComponentDefinition,
   generateArtifactComponentFile,
   generateArtifactComponentImports,
 } from '../artifact-component-generator';
-import { generateArtifactComponentDefinition as generateArtifactComponentDefinitionV4 } from '../../../pull-v4/artifact-component-generator';
 
 describe('Artifact Component Generator', () => {
   const testComponentData = {
@@ -151,15 +151,29 @@ describe('Artifact Component Generator', () => {
       );
     });
 
-    it('should handle component ID to camelCase conversion', () => {
-      const definition = generateArtifactComponentDefinition('document-template', {
+    it.only('should handle component ID to camelCase conversion', async () => {
+      const artifactComponentId = 'document-template';
+      const conversionData = {
         name: 'Template',
         description: 'Document template component',
         props: { type: 'object', properties: { title: { type: 'string' } } },
-      });
+      };
+      const definition = generateArtifactComponentDefinition(artifactComponentId, conversionData);
 
       expect(definition).toContain('export const documentTemplate = artifactComponent({');
       expect(definition).toContain("id: 'document-template',");
+
+      const testName = expect.getState().currentTestName;
+      const definitionV4 = generateArtifactComponentDefinitionV4({
+        artifactComponentId,
+        ...conversionData,
+      });
+      await expect(definition).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}.txt`
+      );
+      await expect(definitionV4).toMatchFileSnapshot(
+        `__snapshots__/artifact-component/${testName}-v4.txt`
+      );
     });
 
     it('should wrap preview fields with preview() function', () => {
