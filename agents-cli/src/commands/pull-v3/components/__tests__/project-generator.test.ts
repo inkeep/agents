@@ -592,12 +592,19 @@ describe('Project Generator', () => {
       expect(definition).toContain('tools: () => [stringTool]');
     });
 
-    it('should throw error for missing name only', () => {
-      expect(() => {
-        generateProjectDefinition('missing-name', {
-          models: { base: { model: 'gpt-4o-mini' } },
-        });
-      }).toThrow("Missing required fields for project 'missing-name': name");
+    it.only('should throw error for missing name only', () => {
+      const projectId = 'missing-name';
+      const data = {
+        models: { base: { model: 'gpt-4o-mini' } },
+      };
+      expect(() => generateProjectDefinition(projectId, data)).toThrow(
+        `Missing required fields for project '${projectId}': name`
+      );
+      expect(() => generateProjectDefinitionV4({ projectId, ...data })).toThrow(
+        new Error(`Missing required fields for project:
+✖ Invalid input: expected string, received undefined
+  → at name`)
+      );
     });
 
     it.only('should throw error for models without base', () => {
